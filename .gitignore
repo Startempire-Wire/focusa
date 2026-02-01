@@ -1,0 +1,27 @@
+# Build
+target/
+dist/
+node_modules/
+
+# Runtime state (never commit)
+data/
+
+# OS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Beads internal (db, not jsonl)
+.beads/beads.db
+.beads/beads.db-shm
+.beads/beads.db-wal
+.beads/.local_version
