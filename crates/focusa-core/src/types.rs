@@ -604,6 +604,9 @@ pub enum Action {
     SurfaceCandidate {
         candidate_id: CandidateId,
     },
+    PinCandidate {
+        candidate_id: CandidateId,
+    },
     SuppressCandidate {
         candidate_id: CandidateId,
         scope: String,

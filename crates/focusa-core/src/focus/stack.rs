@@ -161,7 +161,7 @@ pub fn pop_frame(
 /// Rebuild the stack path cache from root to active.
 ///
 /// Includes cycle detection to prevent infinite loops on corrupt data.
-fn rebuild_stack_path(stack: &mut FocusStackState) {
+pub fn rebuild_stack_path(stack: &mut FocusStackState) {
     stack.stack_path_cache.clear();
     if let Some(active_id) = stack.active_id {
         let mut current = Some(active_id);

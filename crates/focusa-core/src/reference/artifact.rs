@@ -12,7 +12,7 @@ pub fn to_prompt_ref(handle: &HandleRef) -> String {
     format!("[HANDLE:{}:{} \"{}\"]", kind_str, handle.id, escaped_label)
 }
 
-fn handle_kind_str(kind: HandleKind) -> &'static str {
+pub fn handle_kind_str(kind: HandleKind) -> &'static str {
     match kind {
         HandleKind::Log => "log",
         HandleKind::Diff => "diff",

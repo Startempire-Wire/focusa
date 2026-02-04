@@ -25,13 +25,17 @@ use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
 use crate::runtime::persistence::Persistence;
 use crate::types::*;
-use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
 /// The main daemon handle.
 pub struct Daemon {
     config: FocusaConfig,
     state: FocusaState,
+    /// Shared state handle — written after every successful reduction so the API
+    /// server (and any other reader) always sees current state.
+    shared_state: Arc<RwLock<FocusaState>>,
     persistence: Persistence,
     ecs: ReferenceStore,
     pub command_tx: mpsc::Sender<Action>,
@@ -40,7 +44,13 @@ pub struct Daemon {
 
 impl Daemon {
     /// Create a new daemon, initializing persistence and loading saved state.
-    pub fn new(config: FocusaConfig) -> anyhow::Result<Self> {
+    ///
+    /// `shared_state` is the read handle that the API server uses. The daemon
+    /// writes to it after every successful reduction.
+    pub fn new(
+        config: FocusaConfig,
+        shared_state: Arc<RwLock<FocusaState>>,
+    ) -> anyhow::Result<Self> {
         let persistence = Persistence::new(&config)?;
         let ecs_root = persistence.data_dir.join("ecs");
         let ecs = ReferenceStore::new(ecs_root)?;
@@ -52,6 +62,7 @@ impl Daemon {
         Ok(Self {
             config,
             state,
+            shared_state,
             persistence,
             ecs,
             command_tx,
@@ -64,14 +75,12 @@ impl Daemon {
         self.command_tx.clone()
     }
 
-    /// Read-only access to current state.
-    pub fn state(&self) -> &FocusaState {
-        &self.state
-    }
-
     /// Run the main event loop. Blocks until the channel is closed.
     pub async fn run(&mut self) -> anyhow::Result<()> {
         tracing::info!("Focusa daemon starting (version {})", self.state.version);
+
+        // Sync initial loaded state to the shared handle so the API sees it.
+        self.sync_shared_state().await;
 
         while let Some(action) = self.command_rx.recv().await {
             if let Err(e) = self.process_action(action).await {
@@ -87,7 +96,7 @@ impl Daemon {
 
     /// Translate an Action to event(s), reduce, persist.
     async fn process_action(&mut self, action: Action) -> anyhow::Result<()> {
-        let events = self.translate_action(action)?;
+        let events = self.translate_action(action).await?;
 
         for event in events {
             match reducer::reduce(self.state.clone(), event.clone()) {
@@ -107,6 +116,9 @@ impl Daemon {
                     if let Err(e) = self.persistence.save_state(&self.state) {
                         tracing::error!("Failed to save state snapshot: {}", e);
                     }
+
+                    // Sync to shared handle so the API sees the update.
+                    self.sync_shared_state().await;
                 }
                 Err(e) => {
                     tracing::error!("Reducer error: {}", e);
@@ -122,7 +134,7 @@ impl Daemon {
     ///
     /// This is where IDs are generated and command parameters become event data.
     /// The resulting events are deterministic inputs to the reducer.
-    fn translate_action(&mut self, action: Action) -> anyhow::Result<Vec<FocusaEvent>> {
+    async fn translate_action(&mut self, action: Action) -> anyhow::Result<Vec<FocusaEvent>> {
         match action {
             // ─── Session ─────────────────────────────────────────────────
 
@@ -215,6 +227,10 @@ impl Daemon {
                 }])
             }
 
+            Action::PinCandidate { candidate_id } => {
+                Ok(vec![FocusaEvent::CandidatePinned { candidate_id }])
+            }
+
             Action::SuppressCandidate {
                 candidate_id,
                 scope,
@@ -240,9 +256,10 @@ impl Daemon {
             } => {
                 let session_id = self.state.session.as_ref().map(|s| s.session_id);
                 let handle = self.ecs.store(kind, label.clone(), &content, session_id)?;
+                let kind_str = crate::reference::artifact::handle_kind_str(handle.kind);
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     artifact_id: handle.id,
-                    artifact_type: format!("{:?}", handle.kind).to_lowercase(),
+                    artifact_type: kind_str.to_string(),
                     summary: label,
                     storage_uri: format!("ecs://{}", handle.sha256),
                 }])
@@ -260,17 +277,17 @@ impl Daemon {
                 value,
                 source,
             } => {
-                // Memory upsert doesn't have a dedicated event type.
-                // Apply directly via a synthetic FocusStateUpdated or handle in-loop.
-                // For MVP: mutate state directly (bypass reducer for memory ops).
+                // Memory ops bypass the reducer (no dedicated event type in MVP).
                 crate::memory::semantic::upsert(&mut self.state.memory, key, value, source);
                 self.persistence.save_state(&self.state)?;
+                self.sync_shared_state().await;
                 Ok(vec![])
             }
 
             Action::ReinforceRule { rule_id } => {
                 crate::memory::procedural::reinforce(&mut self.state.memory, &rule_id);
                 self.persistence.save_state(&self.state)?;
+                self.sync_shared_state().await;
                 Ok(vec![])
             }
 
@@ -284,6 +301,7 @@ impl Daemon {
                     self.config.gate_decay_factor,
                 );
                 self.persistence.save_state(&self.state)?;
+                self.sync_shared_state().await;
                 Ok(vec![])
             }
 
@@ -301,6 +319,12 @@ impl Daemon {
                 Ok(vec![])
             }
         }
+    }
+
+    /// Sync internal state to the shared handle for API readers.
+    async fn sync_shared_state(&self) {
+        let mut shared = self.shared_state.write().await;
+        *shared = self.state.clone();
     }
 
     /// Handle reducer errors — log an InvariantViolation event.

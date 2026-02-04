@@ -62,10 +62,9 @@ async fn pin(
     State(state): State<Arc<AppState>>,
     Json(body): Json<PinBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    // CandidatePinned goes directly through the reducer — emit the event.
     state
         .command_tx
-        .send(Action::SurfaceCandidate {
+        .send(Action::PinCandidate {
             candidate_id: body.candidate_id,
         })
         .await

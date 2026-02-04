@@ -21,6 +21,7 @@
 //!   6. Artifacts are immutable once registered
 //!   7. Conversation never mutates cognition (structural — no conversation in state)
 
+use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::types::*;
 use chrono::Utc;
@@ -489,29 +490,6 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
     // No event type carries raw conversation data.
 
     Ok(())
-}
-
-/// Rebuild the stack path cache from root → active.
-fn rebuild_stack_path(stack: &mut FocusStackState) {
-    stack.stack_path_cache.clear();
-    if let Some(active_id) = stack.active_id {
-        let mut current = Some(active_id);
-        let mut path = Vec::new();
-        let max_depth = stack.frames.len();
-        while let Some(id) = current {
-            path.push(id);
-            if path.len() > max_depth {
-                break;
-            }
-            current = stack
-                .frames
-                .iter()
-                .find(|f| f.id == id)
-                .and_then(|f| f.parent_id);
-        }
-        path.reverse();
-        stack.stack_path_cache = path;
-    }
 }
 
 /// Parse a string artifact type to HandleKind (best-effort).

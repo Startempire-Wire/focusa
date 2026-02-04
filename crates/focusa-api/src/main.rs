@@ -13,7 +13,7 @@ mod routes;
 mod server;
 
 use focusa_core::runtime::daemon::Daemon;
-use focusa_core::types::FocusaConfig;
+use focusa_core::types::{FocusaConfig, FocusaState};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -28,14 +28,12 @@ async fn main() -> anyhow::Result<()> {
 
     let config = FocusaConfig::default();
 
-    // Initialize daemon (loads saved state from disk).
-    let mut daemon = Daemon::new(config.clone())?;
-    let command_tx = daemon.command_sender();
+    // Shared state: daemon writes after every reduction, API reads.
+    let shared_state = Arc::new(RwLock::new(FocusaState::default()));
 
-    // Shared state: daemon writes, API reads.
-    // The daemon's state is periodically synced to this shared handle.
-    let shared_state = Arc::new(RwLock::new(daemon.state().clone()));
-    let shared_state_for_api = shared_state.clone();
+    // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
+    let mut daemon = Daemon::new(config.clone(), shared_state.clone())?;
+    let command_tx = daemon.command_sender();
 
     // Spawn daemon event loop.
     let daemon_handle = tokio::spawn(async move {
@@ -46,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Start API server (blocks until shutdown).
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = server::run(shared_state_for_api, command_tx, config).await {
+        if let Err(e) = server::run(shared_state, command_tx, config).await {
             tracing::error!("API server error: {}", e);
         }
     });

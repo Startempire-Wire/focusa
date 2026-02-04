@@ -128,7 +128,8 @@ async fn main() -> anyhow::Result<()> {
                             } else {
                                 " "
                             };
-                            println!("  {} [{}] {} ({})", marker, status, title, &id[..8]);
+                            let short_id = if id.len() >= 8 { &id[..8] } else { id };
+                            println!("  {} [{}] {} ({})", marker, status, title, short_id);
                         }
                     }
                 }
