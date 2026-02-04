@@ -25,13 +25,25 @@
 //! - `reducer` — Core reducer (single writer)
 
 pub mod adapters;
+pub mod autonomy;
+pub mod cache;
+pub mod clt;
+pub mod constitution;
 pub mod expression;
 pub mod focus;
 pub mod gate;
 pub mod intuition;
 pub mod memory;
+pub mod permissions;
+pub mod pre;
 pub mod reducer;
 pub mod reference;
+pub mod rfm;
 pub mod runtime;
+pub mod skills;
+pub mod telemetry;
+pub mod threads;
+pub mod training;
 pub mod types;
+pub mod uxp;
 pub mod workers;

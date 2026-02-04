@@ -43,6 +43,15 @@ pub struct FocusaState {
     pub focus_gate: FocusGateState,
     pub reference_index: ReferenceIndex,
     pub memory: ExplicitMemory,
+    pub clt: CltState,
+    pub uxp: UxpProfile,
+    pub ufi: UfiState,
+    pub autonomy: AutonomyState,
+    pub constitution: ConstitutionState,
+    pub telemetry: TelemetryState,
+    pub rfm: RfmState,
+    pub pre: PreState,
+    pub contribution: ContributionState,
     /// Monotonic version — incremented on every successful reduction.
     pub version: u64,
 }
@@ -56,6 +65,15 @@ impl FocusaState {
             focus_gate: FocusGateState::default(),
             reference_index: ReferenceIndex::default(),
             memory: ExplicitMemory::default(),
+            clt: CltState::default(),
+            uxp: UxpProfile::default(),
+            ufi: UfiState::default(),
+            autonomy: AutonomyState::default(),
+            constitution: ConstitutionState::default(),
+            telemetry: TelemetryState::default(),
+            rfm: RfmState::default(),
+            pre: PreState::default(),
+            contribution: ContributionState::default(),
             version: 0,
         }
     }
@@ -748,4 +766,677 @@ impl Default for FocusaConfig {
             worker_job_timeout_ms: 200,
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONTEXT LINEAGE TREE (CLT) — docs/17-context-lineage-tree.md
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// CLT Node — append-only, immutable once written.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CltNode {
+    pub node_id: String,
+    pub node_type: CltNodeType,
+    pub parent_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub session_id: Option<SessionId>,
+    pub payload: CltPayload,
+    pub metadata: CltMetadata,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CltNodeType {
+    Interaction,
+    Summary,
+    BranchMarker,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum CltPayload {
+    Interaction {
+        role: String,
+        content_ref: Option<String>,
+    },
+    Summary {
+        summary: String,
+        covered_range: Vec<String>,
+        compression_ratio: f64,
+    },
+    BranchMarker {
+        reason: String,
+        branches: Vec<String>,
+    },
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CltMetadata {
+    pub task_id: Option<String>,
+    pub agent_id: Option<String>,
+    pub model_id: Option<String>,
+}
+
+/// CLT tree state.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CltState {
+    pub nodes: Vec<CltNode>,
+    pub head_id: Option<String>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UXP / UFI — docs/14-uxp-ufi-schema.md
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// UXP — User Experience Profile (slow-moving calibration).
+/// 7 canonical dimensions, α ≤ 0.1, window ≥ 30.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UxpProfile {
+    pub autonomy_tolerance: UxpDimension,
+    pub verbosity_preference: UxpDimension,
+    pub interruption_sensitivity: UxpDimension,
+    pub explanation_depth: UxpDimension,
+    pub confirmation_preference: UxpDimension,
+    pub risk_tolerance: UxpDimension,
+    pub review_cadence: UxpDimension,
+}
+
+impl Default for UxpProfile {
+    fn default() -> Self {
+        let dim = || UxpDimension {
+            value: 0.5,
+            confidence: 0.0,
+            citations: vec![],
+            learning_rate: 0.1,
+            window_size: 30,
+            frozen: false,
+        };
+        Self {
+            autonomy_tolerance: dim(),
+            verbosity_preference: dim(),
+            interruption_sensitivity: dim(),
+            explanation_depth: dim(),
+            confirmation_preference: dim(),
+            risk_tolerance: dim(),
+            review_cadence: dim(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UxpDimension {
+    pub value: f64,
+    pub confidence: f64,
+    pub citations: Vec<String>,
+    pub learning_rate: f64,
+    pub window_size: u32,
+    /// User override freezes learning.
+    pub frozen: bool,
+}
+
+/// UFI — User Friction Index (fast-moving interaction cost).
+/// 14 signal types in 3 weight tiers.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UfiSignal {
+    pub signal_type: UfiSignalType,
+    pub timestamp: DateTime<Utc>,
+    pub session_id: Option<SessionId>,
+    pub weight_tier: UfiWeightTier,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UfiSignalType {
+    // High tier (objective)
+    TaskReopened,
+    ManualOverride,
+    ImmediateCorrection,
+    UndoOrRevert,
+    ExplicitRejection,
+    // Medium tier
+    Rephrase,
+    RepeatRequest,
+    ScopeClarification,
+    ForcedSimplification,
+    // Low tier (language-only — NEVER dominate aggregate)
+    NegationLanguage,
+    MetaLanguage,
+    ImpatienceMarker,
+    FrustrationIndicator,
+    EscalationEvent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UfiWeightTier {
+    High,
+    Medium,
+    Low,
+}
+
+/// UFI aggregate state.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UfiState {
+    pub signals: Vec<UfiSignal>,
+    pub aggregate: f64,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUTONOMY CALIBRATION — docs/37-autonomy-calibration-spec.md
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Autonomy Reliability Index (ARI) — 0 to 100.
+/// 6 dimensions: Correctness, Stability, Efficiency, Trust, Grounding, Recovery.
+/// ARI weights: Outcome 50%, Efficiency 20%, Discipline 15%, Safety 15%.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutonomyState {
+    pub level: AutonomyLevel,
+    pub ari_score: f64,
+    pub dimensions: AutonomyDimensions,
+    pub sample_count: u64,
+    pub granted_scope: Option<String>,
+    pub granted_ttl: Option<DateTime<Utc>>,
+    pub history: Vec<AutonomyEvent>,
+}
+
+impl Default for AutonomyState {
+    fn default() -> Self {
+        Self {
+            level: AutonomyLevel::AL0,
+            ari_score: 0.0,
+            dimensions: AutonomyDimensions::default(),
+            sample_count: 0,
+            granted_scope: None,
+            granted_ttl: None,
+            history: vec![],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum AutonomyLevel {
+    /// Advisory only.
+    AL0 = 0,
+    /// Suggest + confirm.
+    AL1 = 1,
+    /// Execute with undo window.
+    AL2 = 2,
+    /// Execute, report after.
+    AL3 = 3,
+    /// Full autonomy in scope.
+    AL4 = 4,
+    /// Long-horizon autonomy.
+    AL5 = 5,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AutonomyDimensions {
+    pub correctness: f64,
+    pub stability: f64,
+    pub efficiency: f64,
+    pub trust: f64,
+    pub grounding: f64,
+    pub recovery: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutonomyEvent {
+    pub timestamp: DateTime<Utc>,
+    pub event_type: String,
+    pub from_level: AutonomyLevel,
+    pub to_level: AutonomyLevel,
+    pub reason: String,
+    pub evidence: Vec<String>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGENT CONSTITUTION (ACP) — docs/16-agent-constitution.md
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Agent Constitution — versioned, immutable reasoning charter.
+/// SemVer. One active per agent. Never self-modifies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Constitution {
+    pub version: String,
+    pub created_at: DateTime<Utc>,
+    pub agent_id: String,
+    pub principles: Vec<ConstitutionPrinciple>,
+    pub self_eval_heuristics: Vec<String>,
+    pub autonomy_posture: String,
+    pub safety_rules: Vec<String>,
+    pub expression_rules: Vec<String>,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConstitutionPrinciple {
+    pub id: String,
+    pub text: String,
+    pub priority: u32,
+    pub rationale: String,
+}
+
+/// Constitution store — version history.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ConstitutionState {
+    pub versions: Vec<Constitution>,
+    pub active_version: Option<String>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// THREAD / THESIS / INSTANCE / SESSION — docs/38-39-40
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Thread — persistent cognitive workspace.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Thread {
+    pub id: Uuid,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub status: ThreadStatus,
+    pub thesis: ThreadThesis,
+    pub clt_head: Option<String>,
+    pub autonomy_history: Vec<AutonomyEvent>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ThreadStatus {
+    Active,
+    Saved,
+    Archived,
+    Forked,
+}
+
+/// Thread Thesis — living semantic anchor per thread.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ThreadThesis {
+    pub primary_intent: String,
+    pub secondary_goals: Vec<String>,
+    pub constraints: ThesisConstraints,
+    pub open_questions: Vec<String>,
+    pub assumptions: Vec<String>,
+    pub confidence: ThesisConfidence,
+    pub scope: ThesisScope,
+    pub sources: Vec<String>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ThesisConstraints {
+    pub explicit: Vec<String>,
+    pub implicit: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ThesisConfidence {
+    pub score: f64,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ThesisScope {
+    pub domain: String,
+    pub time_horizon: String,
+    pub risk_level: String,
+}
+
+/// Instance — where (runtime integration point).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Instance {
+    pub id: Uuid,
+    pub kind: InstanceKind,
+    pub created_at: DateTime<Utc>,
+    pub thread_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InstanceKind {
+    Acp,
+    Cli,
+    Tui,
+    Gui,
+    Background,
+}
+
+/// Session attachment — binds instance/session to thread.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Attachment {
+    pub session_id: SessionId,
+    pub thread_id: Uuid,
+    pub role: AttachmentRole,
+    pub attached_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AttachmentRole {
+    Active,
+    Assistant,
+    Observer,
+    Background,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROPOSAL RESOLUTION ENGINE (PRE) — docs/41-proposal-resolution-engine.md
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Proposal — timestamped async request for state change.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Proposal {
+    pub id: Uuid,
+    pub kind: ProposalKind,
+    pub source: String,
+    pub created_at: DateTime<Utc>,
+    pub deadline: DateTime<Utc>,
+    pub payload: serde_json::Value,
+    pub score: f64,
+    pub status: ProposalStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProposalKind {
+    FocusChange,
+    ThesisUpdate,
+    AutonomyAdjustment,
+    ConstitutionRevision,
+    MemoryWrite,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProposalStatus {
+    Pending,
+    Accepted,
+    Rejected,
+    Expired,
+}
+
+/// PRE state.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PreState {
+    pub proposals: Vec<Proposal>,
+    pub resolution_window_ms: u64,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TELEMETRY / CTL — docs/29-30-31-32
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Cognitive Telemetry event.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TelemetryEvent {
+    pub event_id: Uuid,
+    pub event_type: TelemetryEventType,
+    pub timestamp: DateTime<Utc>,
+    pub session_id: Option<SessionId>,
+    pub agent_id: Option<String>,
+    pub model_id: Option<String>,
+    pub clt_id: Option<String>,
+    pub focus_frame_id: Option<FrameId>,
+    pub payload: serde_json::Value,
+    pub schema_version: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TelemetryEventType {
+    ModelTokens,
+    FocusTransition,
+    LineageNodeCreated,
+    GateDecision,
+    ToolCall,
+    UxSignal,
+    AutonomyUpdate,
+}
+
+/// Telemetry aggregate state.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TelemetryState {
+    pub total_events: u64,
+    pub total_prompt_tokens: u64,
+    pub total_completion_tokens: u64,
+    pub tokens_per_task: Vec<TokensPerTask>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokensPerTask {
+    pub task_id: String,
+    pub prompt_tokens: u64,
+    pub completion_tokens: u64,
+    pub turns: u32,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CACHE PERMISSION MATRIX — docs/18-19
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Cache class from 5-tier permission matrix.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CacheClass {
+    /// C0: Immutable, always safe to cache.
+    C0,
+    /// C1: Stable, TTL-based.
+    C1,
+    /// C2: Session-scoped.
+    C2,
+    /// C3: Turn-scoped (short-lived).
+    C3,
+    /// C4: Forbidden — never cache.
+    C4,
+}
+
+/// Cache bust categories (A–F).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CacheBustCategory {
+    /// A: Fresh evidence.
+    FreshEvidence,
+    /// B: Authority change.
+    AuthorityChange,
+    /// C: Compaction.
+    Compaction,
+    /// D: Staleness.
+    Staleness,
+    /// E: Salience collapse.
+    SalienceCollapse,
+    /// F: Provider mismatch.
+    ProviderMismatch,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRAINING DATASET EXPORT — docs/20-21
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Training dataset families.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatasetFamily {
+    FocusaSft,
+    FocusaPreference,
+    FocusaContrastive,
+    FocusaLongHorizon,
+}
+
+/// Single training example.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrainingExample {
+    pub family: DatasetFamily,
+    pub session_id: SessionId,
+    pub turn_id: String,
+    pub input: String,
+    pub output: String,
+    pub focus_state_before: Option<FocusState>,
+    pub focus_state_after: Option<FocusState>,
+    pub uxp_signals: Vec<String>,
+    pub ufi_signals: Vec<String>,
+    pub lineage_path: Vec<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CAPABILITY PERMISSIONS — docs/25-26
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Permission scope: <domain>:<action>.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PermissionScope {
+    pub domain: String,
+    pub action: String,
+}
+
+/// 3 permission classes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PermissionClass {
+    Read,
+    Command,
+    Administrative,
+}
+
+/// 3 token types.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiToken {
+    pub token_id: Uuid,
+    pub token_type: ApiTokenType,
+    pub scopes: Vec<PermissionScope>,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub revoked: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApiTokenType {
+    /// Full access.
+    Owner,
+    /// Scoped, revocable.
+    Agent,
+    /// Read-only, expirable.
+    Integration,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGENT SKILLS — docs/34-35
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Agent Skill — 18 skills in 4 categories.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentSkill {
+    pub id: String,
+    pub name: String,
+    pub category: SkillCategory,
+    pub description: String,
+    pub api_endpoint: String,
+    pub permission_class: PermissionClass,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SkillCategory {
+    /// 8 read-only cognition inspection skills.
+    CognitionInspection,
+    /// 4 read-only telemetry skills.
+    TelemetryMetrics,
+    /// 2 read-only explanation skills.
+    ExplanationTraceability,
+    /// 4 guarded proposal skills.
+    ProposalRequest,
+}
+
+/// Prohibited skills — agents CANNOT execute these.
+pub const PROHIBITED_SKILLS: &[&str] = &[
+    "set_focus_state",
+    "modify_lineage",
+    "write_reference",
+    "activate_constitution",
+    "escalate_autonomy",
+    "approve_export",
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RELIABILITY FOCUS MODE (RFM) — docs/36-reliability-focus-mode.md
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// RFM level.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum RfmLevel {
+    /// Normal operation.
+    #[default]
+    R0 = 0,
+    /// Validation mode.
+    R1 = 1,
+    /// Regeneration mode.
+    R2 = 2,
+    /// Ensemble mode.
+    R3 = 3,
+}
+
+/// Microcell validators.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MicrocellValidator {
+    Schema,
+    Constraint,
+    Consistency,
+    ReferenceGrounding,
+}
+
+/// Artifact Integrity Score.
+/// ≥0.90 safe, 0.70–0.90 degraded, <0.70 triggers RFM.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RfmState {
+    pub level: RfmLevel,
+    pub ais_score: f64,
+    pub validator_results: Vec<ValidatorResult>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidatorResult {
+    pub validator: MicrocellValidator,
+    pub passed: bool,
+    pub details: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DATA CONTRIBUTION — docs/22
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Contribution pipeline state.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ContributionState {
+    pub enabled: bool,
+    pub queue: Vec<ContributionItem>,
+    pub total_contributed: u64,
+    pub policy: ContributionPolicy,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContributionItem {
+    pub id: Uuid,
+    pub dataset_family: DatasetFamily,
+    pub status: ContributionStatus,
+    pub created_at: DateTime<Utc>,
+    pub reviewed: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContributionStatus {
+    Pending,
+    Approved,
+    Rejected,
+    Submitted,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ContributionPolicy {
+    pub auto_contribute: bool,
+    pub require_review: bool,
+    pub anonymize: bool,
+    pub allowed_families: Vec<DatasetFamily>,
 }
