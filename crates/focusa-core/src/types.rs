@@ -483,6 +483,9 @@ pub enum FocusaEvent {
     CandidateSuppressed {
         candidate_id: CandidateId,
         scope: String,
+        /// Concrete deadline computed from scope at command time.
+        /// None = permanent (session scope). Stored in event for replay correctness.
+        suppressed_until: Option<DateTime<Utc>>,
     },
 
     // Reference Store

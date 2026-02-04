@@ -45,17 +45,13 @@ pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn run_state(cmd: StateCmd, json_mode: bool) -> anyhow::Result<()> {
+pub async fn run_state(cmd: StateCmd) -> anyhow::Result<()> {
     let api = ApiClient::new();
 
     match cmd {
         StateCmd::Dump => {
             let resp = api.get("/v1/status").await?;
-            if json_mode {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            }
+            println!("{}", serde_json::to_string_pretty(&resp)?);
         }
     }
     Ok(())

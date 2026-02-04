@@ -140,7 +140,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Memory(cmd) => commands::memory::run(cmd, cli.json).await?,
         Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await?,
         Commands::Events(cmd) => commands::debug::run_events(cmd, cli.json).await?,
-        Commands::State { cmd } => commands::debug::run_state(cmd, cli.json).await?,
+        Commands::State { cmd } => commands::debug::run_state(cmd).await?,
     }
 
     Ok(())

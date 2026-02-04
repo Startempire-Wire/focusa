@@ -328,6 +328,7 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
         FocusaEvent::CandidateSuppressed {
             candidate_id,
             scope: _,
+            suppressed_until,
         } => {
             let candidate = state
                 .focus_gate
@@ -339,6 +340,7 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
                 })?;
             candidate.state = CandidateState::Suppressed;
             candidate.pressure = 0.0;
+            candidate.suppressed_until = suppressed_until;
             candidate.updated_at = Utc::now();
         }
 

@@ -29,6 +29,11 @@ impl ApiClient {
             .send()
             .await
             .map_err(|e| anyhow::anyhow!("Cannot reach daemon at {}: {}", url, e))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            anyhow::bail!("HTTP {} from {}: {}", status, url, body);
+        }
         Ok(resp.json().await?)
     }
 
@@ -41,6 +46,11 @@ impl ApiClient {
             .send()
             .await
             .map_err(|e| anyhow::anyhow!("Cannot reach daemon at {}: {}", url, e))?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            anyhow::bail!("HTTP {} from {}: {}", status, url, body);
+        }
         Ok(resp.json().await?)
     }
 }

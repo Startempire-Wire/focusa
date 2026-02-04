@@ -25,6 +25,7 @@ use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
 use crate::runtime::persistence::Persistence;
 use crate::types::*;
+use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
@@ -38,7 +39,7 @@ pub struct Daemon {
     shared_state: Arc<RwLock<FocusaState>>,
     persistence: Persistence,
     ecs: ReferenceStore,
-    pub command_tx: mpsc::Sender<Action>,
+    command_tx: mpsc::Sender<Action>,
     command_rx: mpsc::Receiver<Action>,
 }
 
@@ -239,10 +240,14 @@ impl Daemon {
             Action::SuppressCandidate {
                 candidate_id,
                 scope,
-            } => Ok(vec![FocusaEvent::CandidateSuppressed {
-                candidate_id,
-                scope,
-            }]),
+            } => {
+                let suppressed_until = parse_suppression_scope(&scope);
+                Ok(vec![FocusaEvent::CandidateSuppressed {
+                    candidate_id,
+                    scope,
+                    suppressed_until,
+                }])
+            }
 
             // ─── ASCC / Focus State ──────────────────────────────────────
 
@@ -342,4 +347,43 @@ impl Daemon {
         self.persistence.append_event(&entry)?;
         Ok(())
     }
+}
+
+/// Parse a suppression scope into a concrete deadline.
+///
+/// Supported formats:
+///   - `"session"` → None (permanent for this session)
+///   - `"<n>s"` → now + n seconds
+///   - `"<n>m"` → now + n minutes
+///   - `"<n>h"` → now + n hours
+///   - Unrecognized → None (treated as session scope, logged as warning)
+///
+/// The deadline is computed here (command-side) and stored in the event,
+/// so replay produces the same result regardless of wall-clock time.
+fn parse_suppression_scope(scope: &str) -> Option<DateTime<Utc>> {
+    if scope == "session" {
+        return None;
+    }
+    if scope.len() < 2 {
+        tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
+        return None;
+    }
+    let (num_str, unit) = scope.split_at(scope.len() - 1);
+    let num: i64 = match num_str.parse() {
+        Ok(n) if n > 0 => n,
+        _ => {
+            tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
+            return None;
+        }
+    };
+    let seconds = match unit {
+        "s" => num,
+        "m" => num * 60,
+        "h" => num * 3600,
+        _ => {
+            tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
+            return None;
+        }
+    };
+    Some(Utc::now() + chrono::Duration::seconds(seconds))
 }
