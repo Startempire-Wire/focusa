@@ -1,12 +1,15 @@
 //! Event routes.
 //!
 //! GET /v1/events/recent?limit=200 — read recent events from JSONL log
+//! GET /v1/events/stream — SSE event stream (Server-Sent Events)
 
 use crate::server::AppState;
 use axum::extract::{Query, State};
+use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::{Json, Router, routing::get};
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::convert::Infallible;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,10 +25,6 @@ fn default_limit() -> usize {
 }
 
 /// Read the last N events from the JSONL event log.
-///
-/// Reads the entire file and returns the last `limit` entries.
-/// For MVP this is acceptable — the log is append-only and bounded
-/// by session lifetime. A future optimization could use seek-from-end.
 async fn recent(
     State(state): State<Arc<AppState>>,
     Query(params): Query<RecentParams>,
@@ -51,11 +50,8 @@ async fn recent(
     for line in reader.lines() {
         match line {
             Ok(l) if !l.trim().is_empty() => {
-                match serde_json::from_str::<Value>(&l) {
-                    Ok(v) => entries.push(v),
-                    Err(e) => {
-                        tracing::warn!("Skipping malformed event log line: {}", e);
-                    }
+                if let Ok(v) = serde_json::from_str::<Value>(&l) {
+                    entries.push(v);
                 }
             }
             _ => {}
@@ -63,7 +59,6 @@ async fn recent(
     }
 
     let total = entries.len();
-    // Return the last `limit` entries (most recent).
     let start = entries.len().saturating_sub(params.limit);
     let recent = &entries[start..];
 
@@ -74,7 +69,65 @@ async fn recent(
     }))
 }
 
-/// Expand ~ to $HOME (mirrors persistence.rs logic).
+/// SSE event stream — real-time event push.
+///
+/// Polls event log every 500ms for new lines. Sends keepalive every 15s.
+async fn stream(
+    State(state): State<Arc<AppState>>,
+) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
+    let data_dir = expand_home(&state.config.data_dir);
+    let log_path = data_dir.join("events/log.jsonl");
+
+    let initial_len = std::fs::metadata(&log_path)
+        .map(|m| m.len())
+        .unwrap_or(0);
+
+    let stream = async_stream::stream! {
+        let mut offset = initial_len;
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+            let new_events = read_new_events(&log_path, offset);
+            let new_len = std::fs::metadata(&log_path)
+                .map(|m| m.len())
+                .unwrap_or(offset);
+            offset = new_len;
+
+            for event_json in new_events {
+                yield Ok(Event::default()
+                    .event("focusa_event")
+                    .data(event_json));
+            }
+        }
+    };
+
+    Sse::new(stream).keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(15)))
+}
+
+/// Read new JSONL lines from file starting at byte offset.
+fn read_new_events(path: &PathBuf, offset: u64) -> Vec<String> {
+    let file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return vec![],
+    };
+
+    use std::io::{Read, Seek, SeekFrom};
+    let mut file = file;
+    if file.seek(SeekFrom::Start(offset)).is_err() {
+        return vec![];
+    }
+
+    let mut buf = String::new();
+    if file.read_to_string(&mut buf).is_err() {
+        return vec![];
+    }
+
+    buf.lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.to_string())
+        .collect()
+}
+
 fn expand_home(path: &str) -> PathBuf {
     if let Some(rest) = path.strip_prefix("~/")
         && let Ok(home) = std::env::var("HOME")
@@ -85,5 +138,7 @@ fn expand_home(path: &str) -> PathBuf {
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/v1/events/recent", get(recent))
+    Router::new()
+        .route("/v1/events/recent", get(recent))
+        .route("/v1/events/stream", get(stream))
 }

@@ -16,6 +16,7 @@
 //! Failure: passthrough raw request (fail-safe).
 //! Performance: <20ms overhead typical.
 
+pub mod acp;
 pub mod letta;
 pub mod openai;
 pub mod passthrough;

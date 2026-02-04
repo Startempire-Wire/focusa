@@ -59,6 +59,34 @@ enum Commands {
         #[command(subcommand)]
         cmd: commands::debug::StateCmd,
     },
+
+    /// Context Lineage Tree.
+    #[command(subcommand)]
+    Clt(commands::clt::CltCmd),
+
+    /// Autonomy calibration.
+    #[command(subcommand)]
+    Autonomy(commands::autonomy::AutonomyCmd),
+
+    /// Agent Constitution.
+    #[command(subcommand)]
+    Constitution(commands::constitution::ConstitutionCmd),
+
+    /// Cognitive telemetry.
+    #[command(subcommand)]
+    Telemetry(commands::telemetry::TelemetryCmd),
+
+    /// Reliability Focus Mode.
+    #[command(subcommand)]
+    Rfm(commands::rfm::RfmCmd),
+
+    /// Proposal Resolution Engine.
+    #[command(subcommand)]
+    Proposals(commands::proposals::ProposalCmd),
+
+    /// Agent skills.
+    #[command(subcommand)]
+    Skills(commands::skills::SkillsCmd),
 }
 
 #[tokio::main]
@@ -137,6 +165,13 @@ async fn main() -> anyhow::Result<()> {
         Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await?,
         Commands::Events(cmd) => commands::debug::run_events(cmd, cli.json).await?,
         Commands::State { cmd } => commands::debug::run_state(cmd).await?,
+        Commands::Clt(cmd) => commands::clt::run(cmd, cli.json).await?,
+        Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await?,
+        Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await?,
+        Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await?,
+        Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await?,
+        Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await?,
+        Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await?,
     }
 
     Ok(())

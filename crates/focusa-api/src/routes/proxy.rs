@@ -147,7 +147,55 @@ async fn chat_completions(
     Ok(Json(response))
 }
 
+/// POST /proxy/acp — ACP JSON-RPC proxy endpoint.
+///
+/// ACP clients can point to this endpoint for Mode B (Active Cognitive Proxy).
+/// Focusa applies Focus Gate + Prompt Assembly + CLT tracking.
+async fn acp_proxy(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    use focusa_core::adapters::acp;
+
+    // Parse ACP message.
+    let bytes = serde_json::to_vec(&body).unwrap_or_default();
+    let mut msg = acp::parse_message(&bytes).map_err(|e| {
+        (StatusCode::BAD_REQUEST, Json(json!({ "error": e })))
+    })?;
+
+    // Record telemetry.
+    let s = state.focusa.read().await;
+    let session_id = s.session.as_ref().map(|s| s.session_id.to_string()).unwrap_or_default();
+    let _event = acp::observe_message(&session_id, &msg, acp::AcpDirection::ClientToAgent);
+
+    // Apply cognition (Mode B).
+    if let Some(frame_record) = s.focus_stack.frames.first() {
+        let focus_state = &frame_record.focus_state;
+        let gate_state = &s.focus_gate;
+        acp::apply_cognition(&mut msg, focus_state, gate_state);
+    }
+    drop(s);
+
+    // Forward to upstream ACP server.
+    let upstream = std::env::var("FOCUSA_ACP_UPSTREAM").unwrap_or_else(|_| "http://127.0.0.1:4000".into());
+    let client = Client::new();
+    let resp = client.post(&upstream)
+        .json(&msg)
+        .send()
+        .await
+        .map_err(|e| {
+            (StatusCode::BAD_GATEWAY, Json(json!({ "error": format!("ACP upstream error: {}", e) })))
+        })?;
+
+    let response: Value = resp.json().await.map_err(|e| {
+        (StatusCode::BAD_GATEWAY, Json(json!({ "error": format!("ACP response parse error: {}", e) })))
+    })?;
+
+    Ok(Json(response))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/proxy/v1/chat/completions", post(chat_completions))
+        .route("/proxy/acp", post(acp_proxy))
 }

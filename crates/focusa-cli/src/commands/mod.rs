@@ -1,5 +1,12 @@
+pub mod autonomy;
+pub mod clt;
+pub mod constitution;
 pub mod debug;
 pub mod ecs;
 pub mod focus;
 pub mod gate;
 pub mod memory;
+pub mod proposals;
+pub mod rfm;
+pub mod skills;
+pub mod telemetry;

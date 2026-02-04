@@ -8,4 +8,5 @@
 //! Workers return results, not state changes.
 //! Reducer decides whether to accept results.
 
+pub mod executor;
 pub mod queue;

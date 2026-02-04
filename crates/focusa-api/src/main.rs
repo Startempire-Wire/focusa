@@ -9,6 +9,7 @@
 //! Default bind: 127.0.0.1:8787
 //! No auth in MVP (localhost only).
 
+mod middleware;
 mod routes;
 mod server;
 

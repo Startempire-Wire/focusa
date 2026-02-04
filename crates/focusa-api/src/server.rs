@@ -6,8 +6,10 @@
 //!
 //! The daemon owns the state; the API borrows a read handle and a command channel.
 
+use crate::middleware;
 use crate::routes;
 use axum::Router;
+use axum::middleware as axum_mw;
 use focusa_core::types::{Action, FocusaConfig, FocusaState};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -32,6 +34,17 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::events::router())
         .merge(routes::session::router())
         .merge(routes::proxy::router())
+        .merge(routes::clt::router())
+        .merge(routes::uxp::router())
+        .merge(routes::autonomy::router())
+        .merge(routes::constitution::router())
+        .merge(routes::telemetry::router())
+        .merge(routes::threads::router())
+        .merge(routes::proposals::router())
+        .merge(routes::rfm::router())
+        .merge(routes::skills::router())
+        .merge(routes::training::router())
+        .layer(axum_mw::from_fn(middleware::auth::auth_layer))
         .with_state(state)
 }
 
