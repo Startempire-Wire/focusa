@@ -181,7 +181,7 @@ impl Daemon {
 
         // Post-action: run intuition observers.
         if is_stack_action {
-            self.intuition.observe_stack(&self.state.focus_stack).await;
+            self.intuition.observe_stack(&self.state.focus_stack);
         }
 
         Ok(())

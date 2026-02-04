@@ -72,7 +72,7 @@ impl IntuitionEngine {
     ///
     /// Called by the daemon after each action is processed.
     /// Runs async but NEVER blocks the hot path — uses try_send.
-    pub async fn observe_turn(
+    pub fn observe_turn(
         &mut self,
         frame_id: Option<FrameId>,
         content: &str,
@@ -99,8 +99,8 @@ impl IntuitionEngine {
 
         // ── Run detectors ────────────────────────────────────────────
 
-        self.detect_error_repetition(frame_id).await;
-        self.detect_inactivity(now, frame_id).await;
+        self.detect_error_repetition(frame_id);
+        self.detect_inactivity(now, frame_id);
 
         self.last_activity = Some(now);
     }
@@ -108,7 +108,7 @@ impl IntuitionEngine {
     /// Observe the current focus stack state for structural signals.
     ///
     /// Called periodically or after stack mutations.
-    pub async fn observe_stack(&self, stack: &FocusStackState) {
+    pub fn observe_stack(&self, stack: &FocusStackState) {
         let now = Utc::now();
 
         // Deep nesting detection.
@@ -153,7 +153,7 @@ impl IntuitionEngine {
     }
 
     /// Detect repeated errors within the observation window for a frame.
-    async fn detect_error_repetition(&self, frame_id: Option<FrameId>) {
+    fn detect_error_repetition(&self, frame_id: Option<FrameId>) {
         if let Some(fid) = frame_id
             && let Some(&count) = self.error_counts.get(&fid)
             && count >= ERROR_REPEAT_THRESHOLD
@@ -175,7 +175,7 @@ impl IntuitionEngine {
     }
 
     /// Detect prolonged inactivity.
-    async fn detect_inactivity(&self, now: DateTime<Utc>, frame_id: Option<FrameId>) {
+    fn detect_inactivity(&self, now: DateTime<Utc>, frame_id: Option<FrameId>) {
         if let Some(last) = self.last_activity
             && (now - last) > Duration::seconds(INACTIVITY_THRESHOLD_SECS)
         {

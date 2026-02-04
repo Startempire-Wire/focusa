@@ -291,8 +291,11 @@ fn build_focus_slot(title: &str, state: &FocusState, ascc: Option<&AsccSections>
             append_if_nonempty(&mut out, "CURRENT_STATE", &state.current_state);
             append_list(&mut out, "DECISIONS", &state.decisions);
             append_list(&mut out, "CONSTRAINTS", &state.constraints);
+            append_list(&mut out, "OPEN_QUESTIONS", &state.open_questions);
             append_list(&mut out, "NEXT_STEPS", &state.next_steps);
+            append_list(&mut out, "RECENT_RESULTS", &state.recent_results);
             append_list(&mut out, "FAILURES", &state.failures);
+            append_list(&mut out, "NOTES", &state.notes);
         }
     }
 
