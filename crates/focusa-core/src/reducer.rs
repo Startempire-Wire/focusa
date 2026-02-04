@@ -83,8 +83,13 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
 
         FocusaEvent::SessionClosed { reason: _ } => {
             let session = state.session.as_mut().ok_or_else(|| {
-                ReducerError::SessionError("SessionClosed but no active session".into())
+                ReducerError::SessionError("SessionClosed but no session exists".into())
             })?;
+            if session.status != SessionStatus::Active {
+                return Err(ReducerError::SessionError(
+                    "SessionClosed but session is already Closed".into(),
+                ));
+            }
             session.status = SessionStatus::Closed;
         }
 
@@ -106,6 +111,13 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
 
             let now = Utc::now();
             let stack = &mut state.focus_stack;
+
+            if stack.frames.iter().any(|f| f.id == frame_id) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "FocusFramePushed with duplicate frame_id {}",
+                    frame_id
+                )));
+            }
 
             // Pause current active frame.
             if let Some(active_id) = stack.active_id {
@@ -448,21 +460,31 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
             active_count
         )));
     }
-    if let Some(aid) = state.focus_stack.active_id {
-        match state.focus_stack.frames.iter().find(|f| f.id == aid) {
-            None => {
+    match state.focus_stack.active_id {
+        Some(aid) => {
+            match state.focus_stack.frames.iter().find(|f| f.id == aid) {
+                None => {
+                    return Err(ReducerError::InvariantViolation(format!(
+                        "active_id {} points to nonexistent frame",
+                        aid
+                    )));
+                }
+                Some(f) if f.status != FrameStatus::Active => {
+                    return Err(ReducerError::InvariantViolation(format!(
+                        "active_id {} points to frame with status {:?}, expected Active",
+                        aid, f.status
+                    )));
+                }
+                _ => {}
+            }
+        }
+        None => {
+            if active_count != 0 {
                 return Err(ReducerError::InvariantViolation(format!(
-                    "active_id {} points to nonexistent frame",
-                    aid
+                    "active_id is None but {} frame(s) have Active status",
+                    active_count
                 )));
             }
-            Some(f) if f.status != FrameStatus::Active => {
-                return Err(ReducerError::InvariantViolation(format!(
-                    "active_id {} points to frame with status {:?}, expected Active",
-                    aid, f.status
-                )));
-            }
-            _ => {}
         }
     }
 
