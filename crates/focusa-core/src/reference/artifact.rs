@@ -8,7 +8,8 @@ use crate::types::{HandleKind, HandleRef};
 /// Kind uses snake_case to match serde serialization.
 pub fn to_prompt_ref(handle: &HandleRef) -> String {
     let kind_str = handle_kind_str(handle.kind);
-    format!("[HANDLE:{}:{} \"{}\"]", kind_str, handle.id, handle.label)
+    let escaped_label = handle.label.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("[HANDLE:{}:{} \"{}\"]", kind_str, handle.id, escaped_label)
 }
 
 fn handle_kind_str(kind: HandleKind) -> &'static str {

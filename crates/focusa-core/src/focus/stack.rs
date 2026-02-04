@@ -34,6 +34,10 @@ pub fn push_frame(
     constraints: Vec<String>,
     tags: Vec<String>,
 ) -> Result<(FrameId, Vec<FocusaEvent>), String> {
+    if beads_issue_id.is_empty() {
+        return Err("beads_issue_id is required — frames without Beads linkage are forbidden".into());
+    }
+
     let frame_id = Uuid::now_v7();
     let now = Utc::now();
 

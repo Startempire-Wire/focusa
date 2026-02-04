@@ -21,7 +21,9 @@ impl WorkerQueue {
     }
 
     /// Enqueue a job. Returns false if queue is full.
-    pub async fn enqueue(&self, job: WorkerJob) -> bool {
+    ///
+    /// Non-blocking — uses `try_send` which never suspends.
+    pub fn enqueue(&self, job: WorkerJob) -> bool {
         self.tx.try_send(job).is_ok()
     }
 
