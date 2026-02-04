@@ -564,3 +564,422 @@ pub enum ReducerError {
     #[error("Session error: {0}")]
     SessionError(String),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    fn fresh_state() -> FocusaState {
+        FocusaState::default()
+    }
+
+    fn start_session(state: FocusaState) -> FocusaState {
+        let event = FocusaEvent::SessionStarted {
+            session_id: Uuid::now_v7(),
+            adapter_id: None,
+            workspace_id: None,
+        };
+        reduce(state, event).unwrap().new_state
+    }
+
+    fn push_frame(state: FocusaState, title: &str) -> (FocusaState, FrameId) {
+        let frame_id = Uuid::now_v7();
+        let event = FocusaEvent::FocusFramePushed {
+            frame_id,
+            beads_issue_id: "BEAD-001".into(),
+            title: title.into(),
+            goal: format!("Goal for {}", title),
+            constraints: vec![],
+            tags: vec![],
+        };
+        let state = reduce(state, event).unwrap().new_state;
+        (state, frame_id)
+    }
+
+    // ─── Session lifecycle ───────────────────────────────────────────
+
+    #[test]
+    fn test_session_start_fresh() {
+        let state = fresh_state();
+        let state = start_session(state);
+        assert!(state.session.is_some());
+        assert_eq!(state.session.as_ref().unwrap().status, SessionStatus::Active);
+        assert_eq!(state.version, 1);
+    }
+
+    #[test]
+    fn test_session_start_rejects_active() {
+        let state = start_session(fresh_state());
+        let event = FocusaEvent::SessionStarted {
+            session_id: Uuid::now_v7(),
+            adapter_id: None,
+            workspace_id: None,
+        };
+        let result = reduce(state, event);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_session_close_and_restart() {
+        let state = start_session(fresh_state());
+        // Close
+        let event = FocusaEvent::SessionClosed { reason: "done".into() };
+        let state = reduce(state, event).unwrap().new_state;
+        assert_eq!(state.session.as_ref().unwrap().status, SessionStatus::Closed);
+        // Restart — should succeed (not reject closed session)
+        let state = start_session(state);
+        assert_eq!(state.session.as_ref().unwrap().status, SessionStatus::Active);
+    }
+
+    #[test]
+    fn test_session_close_without_session_errors() {
+        let result = reduce(fresh_state(), FocusaEvent::SessionClosed { reason: "test".into() });
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_session_double_close_errors() {
+        let state = start_session(fresh_state());
+        let state = reduce(state, FocusaEvent::SessionClosed { reason: "first".into() })
+            .unwrap().new_state;
+        let result = reduce(state, FocusaEvent::SessionClosed { reason: "second".into() });
+        assert!(result.is_err());
+    }
+
+    // ─── Focus Stack ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_push_frame() {
+        let state = fresh_state();
+        let (state, frame_id) = push_frame(state, "Task A");
+        assert_eq!(state.focus_stack.active_id, Some(frame_id));
+        assert_eq!(state.focus_stack.frames.len(), 1);
+        assert_eq!(state.focus_stack.frames[0].status, FrameStatus::Active);
+        assert_eq!(state.focus_stack.root_id, Some(frame_id));
+    }
+
+    #[test]
+    fn test_push_child_pauses_parent() {
+        let state = fresh_state();
+        let (state, parent_id) = push_frame(state, "Parent");
+        let (state, child_id) = push_frame(state, "Child");
+
+        assert_eq!(state.focus_stack.active_id, Some(child_id));
+        let parent = state.focus_stack.frames.iter().find(|f| f.id == parent_id).unwrap();
+        assert_eq!(parent.status, FrameStatus::Paused);
+        let child = state.focus_stack.frames.iter().find(|f| f.id == child_id).unwrap();
+        assert_eq!(child.status, FrameStatus::Active);
+    }
+
+    #[test]
+    fn test_pop_frame_restores_parent() {
+        let state = fresh_state();
+        let (state, parent_id) = push_frame(state, "Parent");
+        let (state, child_id) = push_frame(state, "Child");
+
+        let event = FocusaEvent::FocusFrameCompleted {
+            frame_id: child_id,
+            completion_reason: CompletionReason::GoalAchieved,
+        };
+        let state = reduce(state, event).unwrap().new_state;
+
+        assert_eq!(state.focus_stack.active_id, Some(parent_id));
+        let parent = state.focus_stack.frames.iter().find(|f| f.id == parent_id).unwrap();
+        assert_eq!(parent.status, FrameStatus::Active);
+        let child = state.focus_stack.frames.iter().find(|f| f.id == child_id).unwrap();
+        assert_eq!(child.status, FrameStatus::Completed);
+    }
+
+    #[test]
+    fn test_pop_root_clears_stack() {
+        let state = fresh_state();
+        let (state, root_id) = push_frame(state, "Root");
+
+        let event = FocusaEvent::FocusFrameCompleted {
+            frame_id: root_id,
+            completion_reason: CompletionReason::GoalAchieved,
+        };
+        let state = reduce(state, event).unwrap().new_state;
+
+        assert_eq!(state.focus_stack.active_id, None);
+        assert_eq!(state.focus_stack.root_id, None);
+    }
+
+    #[test]
+    fn test_push_empty_beads_id_rejected() {
+        let event = FocusaEvent::FocusFramePushed {
+            frame_id: Uuid::now_v7(),
+            beads_issue_id: "".into(),
+            title: "Bad frame".into(),
+            goal: "No beads".into(),
+            constraints: vec![],
+            tags: vec![],
+        };
+        let result = reduce(fresh_state(), event);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_push_duplicate_frame_id_rejected() {
+        let frame_id = Uuid::now_v7();
+        let state = fresh_state();
+        let event = FocusaEvent::FocusFramePushed {
+            frame_id,
+            beads_issue_id: "BEAD-001".into(),
+            title: "First".into(),
+            goal: "Goal".into(),
+            constraints: vec![],
+            tags: vec![],
+        };
+        let state = reduce(state, event).unwrap().new_state;
+
+        // Push again with same frame_id
+        let event = FocusaEvent::FocusFramePushed {
+            frame_id,
+            beads_issue_id: "BEAD-002".into(),
+            title: "Duplicate".into(),
+            goal: "Goal".into(),
+            constraints: vec![],
+            tags: vec![],
+        };
+        let result = reduce(state, event);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_complete_wrong_frame_rejected() {
+        let (state, _active_id) = push_frame(fresh_state(), "Active");
+        let wrong_id = Uuid::now_v7();
+        let event = FocusaEvent::FocusFrameCompleted {
+            frame_id: wrong_id,
+            completion_reason: CompletionReason::GoalAchieved,
+        };
+        let result = reduce(state, event);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_stack_path_cache() {
+        let state = fresh_state();
+        let (state, root_id) = push_frame(state, "Root");
+        let (state, child_id) = push_frame(state, "Child");
+        assert_eq!(state.focus_stack.stack_path_cache, vec![root_id, child_id]);
+    }
+
+    #[test]
+    fn test_suspend_clears_active() {
+        let (state, frame_id) = push_frame(fresh_state(), "Task");
+        let event = FocusaEvent::FocusFrameSuspended {
+            frame_id,
+            reason: "user paused".into(),
+        };
+        let state = reduce(state, event).unwrap().new_state;
+        assert_eq!(state.focus_stack.active_id, None);
+        let frame = state.focus_stack.frames.iter().find(|f| f.id == frame_id).unwrap();
+        assert_eq!(frame.status, FrameStatus::Paused);
+    }
+
+    // ─── Focus Gate ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_candidate_surfaced() {
+        let cid = Uuid::now_v7();
+        let event = FocusaEvent::CandidateSurfaced {
+            candidate_id: cid,
+            kind: CandidateKind::SuggestFixError,
+            description: "Fix the bug".into(),
+            pressure: 2.5,
+            related_frame_id: None,
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+        assert_eq!(state.focus_gate.candidates.len(), 1);
+        assert_eq!(state.focus_gate.candidates[0].state, CandidateState::Surfaced);
+        assert_eq!(state.focus_gate.candidates[0].pressure, 2.5);
+    }
+
+    #[test]
+    fn test_candidate_upsert() {
+        let cid = Uuid::now_v7();
+        let event1 = FocusaEvent::CandidateSurfaced {
+            candidate_id: cid,
+            kind: CandidateKind::SuggestFixError,
+            description: "v1".into(),
+            pressure: 1.0,
+            related_frame_id: None,
+        };
+        let state = reduce(fresh_state(), event1).unwrap().new_state;
+
+        let event2 = FocusaEvent::CandidateSurfaced {
+            candidate_id: cid,
+            kind: CandidateKind::SuggestFixError,
+            description: "v2".into(),
+            pressure: 3.0,
+            related_frame_id: None,
+        };
+        let state = reduce(state, event2).unwrap().new_state;
+
+        // Should still be 1 candidate, updated.
+        assert_eq!(state.focus_gate.candidates.len(), 1);
+        assert_eq!(state.focus_gate.candidates[0].pressure, 3.0);
+        assert_eq!(state.focus_gate.candidates[0].label, "v2");
+        assert_eq!(state.focus_gate.candidates[0].times_seen, 2);
+    }
+
+    #[test]
+    fn test_candidate_pin() {
+        let cid = Uuid::now_v7();
+        let state = reduce(fresh_state(), FocusaEvent::CandidateSurfaced {
+            candidate_id: cid,
+            kind: CandidateKind::SuggestFixError,
+            description: "test".into(),
+            pressure: 1.0,
+            related_frame_id: None,
+        }).unwrap().new_state;
+
+        let state = reduce(state, FocusaEvent::CandidatePinned { candidate_id: cid })
+            .unwrap().new_state;
+        assert!(state.focus_gate.candidates[0].pinned);
+    }
+
+    #[test]
+    fn test_candidate_suppress() {
+        let cid = Uuid::now_v7();
+        let state = reduce(fresh_state(), FocusaEvent::CandidateSurfaced {
+            candidate_id: cid,
+            kind: CandidateKind::SuggestFixError,
+            description: "test".into(),
+            pressure: 2.0,
+            related_frame_id: None,
+        }).unwrap().new_state;
+
+        let state = reduce(state, FocusaEvent::CandidateSuppressed {
+            candidate_id: cid,
+            scope: "session".into(),
+            suppressed_until: None,
+        }).unwrap().new_state;
+
+        assert_eq!(state.focus_gate.candidates[0].state, CandidateState::Suppressed);
+        assert_eq!(state.focus_gate.candidates[0].pressure, 0.0);
+    }
+
+    #[test]
+    fn test_nonexistent_candidate_pin_errors() {
+        let result = reduce(fresh_state(), FocusaEvent::CandidatePinned {
+            candidate_id: Uuid::now_v7(),
+        });
+        assert!(result.is_err());
+    }
+
+    // ─── Artifacts ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_artifact_register() {
+        let aid = Uuid::now_v7();
+        let event = FocusaEvent::ArtifactRegistered {
+            artifact_id: aid,
+            artifact_type: "log".into(),
+            summary: "Build output".into(),
+            storage_uri: "ecs://abc".into(),
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+        assert_eq!(state.reference_index.handles.len(), 1);
+        assert_eq!(state.reference_index.handles[0].kind, HandleKind::Log);
+    }
+
+    #[test]
+    fn test_artifact_immutability() {
+        let aid = Uuid::now_v7();
+        let event = FocusaEvent::ArtifactRegistered {
+            artifact_id: aid,
+            artifact_type: "log".into(),
+            summary: "v1".into(),
+            storage_uri: "ecs://abc".into(),
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+
+        // Re-registering same artifact_id should fail (immutability invariant).
+        let event2 = FocusaEvent::ArtifactRegistered {
+            artifact_id: aid,
+            artifact_type: "log".into(),
+            summary: "v2".into(),
+            storage_uri: "ecs://def".into(),
+        };
+        let result = reduce(state, event2);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_artifact_gc_removes() {
+        let aid = Uuid::now_v7();
+        let state = reduce(fresh_state(), FocusaEvent::ArtifactRegistered {
+            artifact_id: aid,
+            artifact_type: "text".into(),
+            summary: "temp".into(),
+            storage_uri: "ecs://abc".into(),
+        }).unwrap().new_state;
+
+        let state = reduce(state, FocusaEvent::ArtifactGarbageCollected { artifact_id: aid })
+            .unwrap().new_state;
+        assert!(state.reference_index.handles.is_empty());
+    }
+
+    #[test]
+    fn test_pinned_artifact_gc_blocked() {
+        let aid = Uuid::now_v7();
+        let state = reduce(fresh_state(), FocusaEvent::ArtifactRegistered {
+            artifact_id: aid,
+            artifact_type: "log".into(),
+            summary: "important".into(),
+            storage_uri: "ecs://abc".into(),
+        }).unwrap().new_state;
+
+        let state = reduce(state, FocusaEvent::ArtifactPinned { artifact_id: aid })
+            .unwrap().new_state;
+
+        let result = reduce(state, FocusaEvent::ArtifactGarbageCollected { artifact_id: aid });
+        assert!(result.is_err()); // Pinned — cannot GC.
+    }
+
+    // ─── Invariant checker ───────────────────────────────────────────
+
+    #[test]
+    fn test_invariant_bidirectional() {
+        // Manually create invalid state: active_id = None but a frame is Active.
+        let mut state = fresh_state();
+        state.focus_stack.frames.push(FrameRecord {
+            id: Uuid::now_v7(),
+            parent_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            status: FrameStatus::Active,
+            title: "Rogue".into(),
+            goal: "test".into(),
+            beads_issue_id: "BEAD-001".into(),
+            tags: vec![],
+            priority_hint: None,
+            ascc_checkpoint_id: None,
+            stats: FrameStats::default(),
+            handles: vec![],
+            constraints: vec![],
+            focus_state: FocusState::default(),
+        });
+        // active_id is None but a frame has Active status.
+        let result = check_invariants(&state);
+        assert!(result.is_err());
+    }
+
+    // ─── Version monotonicity ────────────────────────────────────────
+
+    #[test]
+    fn test_version_increments() {
+        let state = fresh_state();
+        assert_eq!(state.version, 0);
+
+        let (state, _) = push_frame(state, "A");
+        assert_eq!(state.version, 1);
+
+        let state = start_session(state);
+        assert_eq!(state.version, 2);
+    }
+}

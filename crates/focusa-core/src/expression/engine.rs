@@ -413,3 +413,143 @@ fn find_char_boundary(s: &str, max: usize) -> usize {
     }
     i
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_config() -> FocusaConfig {
+        FocusaConfig {
+            max_prompt_tokens: 6000,
+            reserve_for_response: 2000,
+            ..FocusaConfig::default()
+        }
+    }
+
+    fn test_state() -> FocusState {
+        FocusState {
+            intent: "Implement user auth".into(),
+            current_state: "Working on OAuth flow".into(),
+            decisions: vec!["Use JWT tokens".into()],
+            constraints: vec!["Must support PKCE".into()],
+            next_steps: vec!["Add token refresh".into()],
+            failures: vec![],
+            artifacts: vec![],
+        }
+    }
+
+    #[test]
+    fn test_assemble_basic() {
+        let config = test_config();
+        let state = test_state();
+        let result = assemble(&state, None, &[], &[], "Write the auth module", &config);
+
+        assert!(result.content.contains("Focusa"));
+        assert!(result.content.contains("INTENT: Implement user auth"));
+        assert!(result.content.contains("USER INPUT:\nWrite the auth module"));
+        assert!(result.content.contains("DIRECTIVE:"));
+        assert!(!result.degraded);
+        assert!(result.warnings.is_empty());
+    }
+
+    #[test]
+    fn test_assemble_includes_rules() {
+        let config = test_config();
+        let state = test_state();
+        let rules = vec![RuleRecord {
+            id: "r1".into(),
+            rule: "Prefer concise responses".into(),
+            weight: 1.0,
+            reinforced_count: 0,
+            last_reinforced_at: chrono::Utc::now(),
+            scope: RuleScope::Global,
+            enabled: true,
+            pinned: false,
+        }];
+
+        let result = assemble(&state, None, &rules, &[], "test", &config);
+        assert!(result.content.contains("RULES:"));
+        assert!(result.content.contains("Prefer concise responses"));
+    }
+
+    #[test]
+    fn test_assemble_skips_disabled_rules() {
+        let config = test_config();
+        let state = test_state();
+        let rules = vec![RuleRecord {
+            id: "r1".into(),
+            rule: "Should not appear".into(),
+            weight: 1.0,
+            reinforced_count: 0,
+            last_reinforced_at: chrono::Utc::now(),
+            scope: RuleScope::Global,
+            enabled: false,
+            pinned: false,
+        }];
+
+        let result = assemble(&state, None, &rules, &[], "test", &config);
+        assert!(!result.content.contains("Should not appear"));
+    }
+
+    #[test]
+    fn test_assemble_with_handles() {
+        let config = test_config();
+        let state = test_state();
+        let handles = vec![HandleRef {
+            id: uuid::Uuid::now_v7(),
+            kind: HandleKind::Diff,
+            label: "auth.patch".into(),
+            size: 1024,
+            sha256: "abc123".into(),
+            created_at: chrono::Utc::now(),
+            session_id: None,
+            pinned: false,
+        }];
+
+        let result = assemble(&state, None, &[], &handles, "test", &config);
+        assert!(result.content.contains("ARTIFACT REFERENCES:"));
+        assert!(result.content.contains("[HANDLE:diff:"));
+        assert!(result.content.contains("auth.patch"));
+        assert_eq!(result.handles_used.len(), 1);
+    }
+
+    #[test]
+    fn test_degradation_tiny_budget() {
+        let config = FocusaConfig {
+            max_prompt_tokens: 100,
+            reserve_for_response: 50,
+            ..FocusaConfig::default()
+        };
+        let state = test_state();
+        let long_input = "x".repeat(1000);
+
+        let result = assemble(&state, None, &[], &[], &long_input, &config);
+        assert!(result.degraded);
+        assert!(!result.warnings.is_empty());
+    }
+
+    #[test]
+    fn test_find_char_boundary_ascii() {
+        assert_eq!(find_char_boundary("hello", 3), 3);
+        assert_eq!(find_char_boundary("hello", 100), 5);
+        assert_eq!(find_char_boundary("hello", 0), 0);
+    }
+
+    #[test]
+    fn test_find_char_boundary_utf8() {
+        let s = "héllo"; // é is 2 bytes
+        assert_eq!(find_char_boundary(s, 1), 1); // 'h' boundary
+        assert_eq!(find_char_boundary(s, 2), 1); // inside 'é' → backs up to 1
+        assert_eq!(find_char_boundary(s, 3), 3); // after 'é'
+    }
+
+    #[test]
+    fn test_empty_focus_state() {
+        let config = test_config();
+        let state = FocusState::default();
+        let result = assemble(&state, None, &[], &[], "test", &config);
+        assert!(result.content.contains("FOCUS FRAME:"));
+        // Empty state should still produce valid prompt.
+        assert!(result.content.contains("USER INPUT:"));
+    }
+}
