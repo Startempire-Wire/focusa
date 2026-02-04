@@ -163,16 +163,17 @@ async fn acp_proxy(
         (StatusCode::BAD_REQUEST, Json(json!({ "error": e })))
     })?;
 
-    // Record telemetry.
+    // Record telemetry (logged; persistence via telemetry subsystem).
     let s = state.focusa.read().await;
     let session_id = s.session.as_ref().map(|s| s.session_id.to_string()).unwrap_or_default();
-    let _event = acp::observe_message(&session_id, &msg, acp::AcpDirection::ClientToAgent);
+    let telemetry = acp::observe_message(&session_id, &msg, acp::AcpDirection::ClientToAgent);
+    tracing::debug!(method = ?telemetry.method, direction = ?telemetry.direction, "ACP message observed");
 
-    // Apply cognition (Mode B).
-    if let Some(frame_record) = s.focus_stack.frames.first() {
-        let focus_state = &frame_record.focus_state;
-        let gate_state = &s.focus_gate;
-        acp::apply_cognition(&mut msg, focus_state, gate_state);
+    // Apply cognition (Mode B) — use active frame, not first frame.
+    if let Some(active_id) = s.focus_stack.active_id
+        && let Some(frame_record) = s.focus_stack.frames.iter().find(|f| f.id == active_id)
+    {
+        acp::apply_cognition(&mut msg, &frame_record.focus_state, &s.focus_gate);
     }
     drop(s);
 

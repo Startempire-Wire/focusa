@@ -55,17 +55,15 @@ pub fn detect_pii(text: &str) -> Vec<String> {
         findings.push("Possible phone number detected".into());
     }
 
-    // SSN pattern (NNN-NN-NNNN).
-    if text.len() >= 11 {
-        let bytes = text.as_bytes();
-        for i in 0..bytes.len().saturating_sub(10) {
-            let chunk = &text[i..i + 11];
-            if chunk.len() == 11
-                && chunk.as_bytes()[3] == b'-'
-                && chunk.as_bytes()[6] == b'-'
-                && chunk[..3].chars().all(|c| c.is_ascii_digit())
-                && chunk[4..6].chars().all(|c| c.is_ascii_digit())
-                && chunk[7..11].chars().all(|c| c.is_ascii_digit())
+    // SSN pattern (NNN-NN-NNNN) — work on bytes to avoid multibyte UTF-8 panics.
+    let bytes = text.as_bytes();
+    if bytes.len() >= 11 {
+        for i in 0..bytes.len() - 10 {
+            if bytes[i + 3] == b'-'
+                && bytes[i + 6] == b'-'
+                && bytes[i..i + 3].iter().all(|b| b.is_ascii_digit())
+                && bytes[i + 4..i + 6].iter().all(|b| b.is_ascii_digit())
+                && bytes[i + 7..i + 11].iter().all(|b| b.is_ascii_digit())
             {
                 findings.push("Possible SSN pattern detected".into());
                 break;

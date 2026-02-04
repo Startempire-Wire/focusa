@@ -101,7 +101,6 @@ pub enum CsChangeType {
 pub fn synthesize_draft(
     state: &ConstitutionState,
     evidence: &[String],
-    _task_count: u64,
 ) -> Result<CsDraft, String> {
     if evidence.len() < 50 {
         return Err(format!(
@@ -158,7 +157,7 @@ mod tests {
     #[test]
     fn test_cs_minimum_evidence() {
         let state = ConstitutionState::default();
-        let result = synthesize_draft(&state, &vec!["e".into(); 10], 10);
+        let result = synthesize_draft(&state, &vec!["e".into(); 10]);
         assert!(result.is_err());
     }
 }

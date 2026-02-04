@@ -163,14 +163,14 @@ impl Daemon {
                         tracing::error!("Failed to save state snapshot: {}", e);
                     }
 
-                    // Sync to shared handle so the API sees the update.
-                    self.sync_shared_state().await;
-
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
 
                     // Telemetry: record each event.
                     self.state.telemetry.total_events += 1;
+
+                    // Sync to shared handle so the API sees all updates.
+                    self.sync_shared_state().await;
                 }
                 Err(e) => {
                     tracing::error!("Reducer error: {}", e);
@@ -239,6 +239,14 @@ impl Daemon {
 
             Action::CloseSession { reason } => {
                 Ok(vec![FocusaEvent::SessionClosed { reason }])
+            }
+
+            Action::SubmitProposal { kind, source, payload, deadline_ms } => {
+                crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
+                // Proposals don't produce reducer events — they live in PRE state.
+                // Sync so the API sees the new proposal immediately.
+                self.sync_shared_state().await;
+                Ok(vec![])
             }
 
             // ─── Focus Stack ─────────────────────────────────────────────

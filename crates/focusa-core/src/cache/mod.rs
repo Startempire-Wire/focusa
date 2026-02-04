@@ -58,7 +58,7 @@ impl CacheStore {
         // TTL check for C1.
         if entry.class == CacheClass::C1 {
             if let Some(ttl) = entry.ttl_secs {
-                let elapsed = (Utc::now() - entry.created_at).num_seconds() as u64;
+                let elapsed = (Utc::now() - entry.created_at).num_seconds().max(0) as u64;
                 if elapsed > ttl {
                     return None;
                 }

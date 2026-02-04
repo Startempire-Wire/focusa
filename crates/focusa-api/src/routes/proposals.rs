@@ -3,6 +3,7 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
+use focusa_core::types::{Action, ProposalKind};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
@@ -15,7 +16,7 @@ async fn list_proposals(State(state): State<Arc<AppState>>) -> Json<Value> {
     }))
 }
 
-/// POST /v1/proposals — submit a proposal.
+/// POST /v1/proposals — submit a proposal via daemon command channel.
 async fn submit_proposal(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
@@ -26,17 +27,22 @@ async fn submit_proposal(
     let deadline_ms = body.get("deadline_ms").and_then(|v| v.as_u64()).unwrap_or(5000);
 
     let kind = match kind_str {
-        "focus_change" => focusa_core::types::ProposalKind::FocusChange,
-        "thesis_update" => focusa_core::types::ProposalKind::ThesisUpdate,
-        "autonomy_adjustment" => focusa_core::types::ProposalKind::AutonomyAdjustment,
-        "constitution_revision" => focusa_core::types::ProposalKind::ConstitutionRevision,
-        "memory_write" => focusa_core::types::ProposalKind::MemoryWrite,
-        _ => focusa_core::types::ProposalKind::FocusChange,
+        "focus_change" => ProposalKind::FocusChange,
+        "thesis_update" => ProposalKind::ThesisUpdate,
+        "autonomy_adjustment" => ProposalKind::AutonomyAdjustment,
+        "constitution_revision" => ProposalKind::ConstitutionRevision,
+        "memory_write" => ProposalKind::MemoryWrite,
+        _ => ProposalKind::FocusChange,
     };
 
-    let mut s = state.focusa.write().await;
-    let id = focusa_core::pre::submit(&mut s.pre, kind, source, payload, deadline_ms);
-    Json(json!({ "status": "accepted", "proposal_id": id }))
+    let _ = state.command_tx.send(Action::SubmitProposal {
+        kind,
+        source: source.into(),
+        payload,
+        deadline_ms,
+    }).await;
+
+    Json(json!({ "status": "accepted" }))
 }
 
 pub fn router() -> Router<Arc<AppState>> {

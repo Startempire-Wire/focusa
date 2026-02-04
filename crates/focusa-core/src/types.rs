@@ -719,6 +719,14 @@ pub enum Action {
     CloseSession {
         reason: String,
     },
+
+    // Proposals
+    SubmitProposal {
+        kind: ProposalKind,
+        source: String,
+        payload: serde_json::Value,
+        deadline_ms: u64,
+    },
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::convert::Infallible;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 #[derive(Deserialize)]
@@ -105,7 +105,7 @@ async fn stream(
 }
 
 /// Read new JSONL lines from file starting at byte offset.
-fn read_new_events(path: &PathBuf, offset: u64) -> Vec<String> {
+fn read_new_events(path: &Path, offset: u64) -> Vec<String> {
     let file = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(_) => return vec![],
