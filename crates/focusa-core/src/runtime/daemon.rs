@@ -264,13 +264,8 @@ impl Daemon {
                 }])
             }
 
-            Action::SetActiveFrame { frame_id: _ } => {
-                // Not yet implemented — requires a FocusFrameResumed event type.
-                // Previous code suspended the current frame without activating the
-                // target, leaving zero active frames (degraded state). A no-op is
-                // safer than a half-op. Use push/pop for frame management in MVP.
-                tracing::warn!("SetActiveFrame not yet implemented — use push/pop instead");
-                Ok(vec![])
+            Action::SetActiveFrame { frame_id } => {
+                Ok(vec![FocusaEvent::FocusFrameResumed { frame_id }])
             }
 
             // ─── Gate ────────────────────────────────────────────────────

@@ -161,16 +161,30 @@ pub enum CompletionReason {
 /// INVARIANT: Focus State is incrementally updated.
 /// INVARIANT: Focus State is injected every turn.
 /// INVARIANT: Focus State never inferred implicitly.
+/// 10 canonical ASCC slots per G1-07-ascc.md.
+/// All slots always exist (may be empty, never absent).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FocusState {
+    /// Slot 1: Current intent.
     pub intent: String,
-    pub decisions: Vec<String>,
-    pub constraints: Vec<String>,
-    /// References only — no inline content.
-    pub artifacts: Vec<ArtifactLine>,
-    pub failures: Vec<String>,
-    pub next_steps: Vec<String>,
+    /// Slot 2: Current focus / state description.
     pub current_state: String,
+    /// Slot 3: Decisions made (cap 30).
+    pub decisions: Vec<String>,
+    /// Slot 4: Artifact references (cap 50).
+    pub artifacts: Vec<ArtifactLine>,
+    /// Slot 5: Active constraints (cap 30).
+    pub constraints: Vec<String>,
+    /// Slot 6: Open questions (cap 20).
+    pub open_questions: Vec<String>,
+    /// Slot 7: Next steps (cap 15).
+    pub next_steps: Vec<String>,
+    /// Slot 8: Recent results (cap 10, newest-first).
+    pub recent_results: Vec<String>,
+    /// Slot 9: Failures (cap 20).
+    pub failures: Vec<String>,
+    /// Slot 10: Freeform notes (cap 20).
+    pub notes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -455,6 +469,9 @@ pub enum FocusaEvent {
         frame_id: FrameId,
         reason: String,
     },
+    FocusFrameResumed {
+        frame_id: FrameId,
+    },
 
     // Focus State
     FocusStateUpdated {
@@ -510,15 +527,43 @@ pub enum FocusaEvent {
 }
 
 /// Incremental Focus State delta — only changed fields.
+///
+/// Source: G1-07-ascc.md — 10 canonical ASCC slots.
+/// All 10 slots must exist. May be empty, never absent.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FocusStateDelta {
+    /// Slot 1: Current intent.
     pub intent: Option<String>,
-    pub decisions: Option<Vec<String>>,
-    pub constraints: Option<Vec<String>>,
-    pub artifacts: Option<Vec<ArtifactLine>>,
-    pub failures: Option<Vec<String>>,
-    pub next_steps: Option<Vec<String>>,
+    /// Slot 2: Current focus / state description.
     pub current_state: Option<String>,
+    /// Slot 3: Decisions made (cap 30, dedup).
+    pub decisions: Option<Vec<String>>,
+    /// Slot 4: Artifact references (cap 50, dedup by kind+path+label).
+    pub artifacts: Option<Vec<ArtifactLine>>,
+    /// Slot 5: Active constraints (cap 30, dedup).
+    pub constraints: Option<Vec<String>>,
+    /// Slot 6: Open questions (cap 20, remove when answered).
+    pub open_questions: Option<Vec<String>>,
+    /// Slot 7: Next steps (cap 15, replaced with latest).
+    pub next_steps: Option<Vec<String>>,
+    /// Slot 8: Recent results (cap 10, newest-first).
+    pub recent_results: Option<Vec<String>>,
+    /// Slot 9: Failures encountered (cap 20, append-only).
+    pub failures: Option<Vec<String>>,
+    /// Slot 10: Freeform notes (cap 20, append/decay oldest).
+    pub notes: Option<Vec<String>>,
+}
+
+/// ASCC per-slot capacity limits from G1-07-ascc.md.
+pub mod ascc_caps {
+    pub const DECISIONS: usize = 30;
+    pub const ARTIFACTS: usize = 50;
+    pub const CONSTRAINTS: usize = 30;
+    pub const OPEN_QUESTIONS: usize = 20;
+    pub const NEXT_STEPS: usize = 15;
+    pub const RECENT_RESULTS: usize = 10;
+    pub const FAILURES: usize = 20;
+    pub const NOTES: usize = 20;
 }
 
 // ─── Reduction Result (from core-reducer.md) ────────────────────────────────

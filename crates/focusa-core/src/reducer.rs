@@ -239,6 +239,47 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
             stack.version += 1;
         }
 
+        FocusaEvent::FocusFrameResumed { frame_id } => {
+            let stack = &mut state.focus_stack;
+            let now = Utc::now();
+
+            // Target frame must exist and be Paused or Suspended.
+            let target = stack.frames.iter().find(|f| f.id == frame_id);
+            match target {
+                None => {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "FocusFrameResumed: frame {} not found",
+                        frame_id
+                    )));
+                }
+                Some(f) if f.status != FrameStatus::Paused => {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "FocusFrameResumed: frame {} is {:?}, not Paused",
+                        frame_id, f.status
+                    )));
+                }
+                _ => {}
+            }
+
+            // Suspend current active frame (if any).
+            if let Some(active_id) = stack.active_id
+                && let Some(active) = stack.frames.iter_mut().find(|f| f.id == active_id)
+            {
+                active.status = FrameStatus::Paused;
+                active.updated_at = now;
+            }
+
+            // Activate target.
+            if let Some(frame) = stack.frames.iter_mut().find(|f| f.id == frame_id) {
+                frame.status = FrameStatus::Active;
+                frame.updated_at = now;
+            }
+
+            stack.active_id = Some(frame_id);
+            rebuild_stack_path(stack);
+            stack.version += 1;
+        }
+
         // ─── Focus State ─────────────────────────────────────────────────
 
         FocusaEvent::FocusStateUpdated { frame_id, delta } => {

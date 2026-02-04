@@ -432,8 +432,11 @@ mod tests {
             current_state: "Working on OAuth flow".into(),
             decisions: vec!["Use JWT tokens".into()],
             constraints: vec!["Must support PKCE".into()],
+            open_questions: vec![],
             next_steps: vec!["Add token refresh".into()],
+            recent_results: vec![],
             failures: vec![],
+            notes: vec![],
             artifacts: vec![],
         }
     }

@@ -33,10 +33,28 @@ pub fn to_string_compact(state: &FocusState) -> String {
             out.push_str(&format!("  - {}\n", n));
         }
     }
+    if !state.open_questions.is_empty() {
+        out.push_str("OPEN_QUESTIONS:\n");
+        for q in &state.open_questions {
+            out.push_str(&format!("  - {}\n", q));
+        }
+    }
+    if !state.recent_results.is_empty() {
+        out.push_str("RECENT_RESULTS:\n");
+        for r in &state.recent_results {
+            out.push_str(&format!("  - {}\n", r));
+        }
+    }
     if !state.failures.is_empty() {
         out.push_str("FAILURES:\n");
         for f in &state.failures {
             out.push_str(&format!("  - {}\n", f));
+        }
+    }
+    if !state.notes.is_empty() {
+        out.push_str("NOTES:\n");
+        for n in &state.notes {
+            out.push_str(&format!("  - {}\n", n));
         }
     }
     out
