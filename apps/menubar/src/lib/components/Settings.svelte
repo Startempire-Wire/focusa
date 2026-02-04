@@ -5,19 +5,11 @@
 <script lang="ts">
   import { focusStore } from '$lib/stores/focus.svelte';
 
-  let url = $state('');
+  // Initialize directly — ssr=false so localStorage is always available
+  let url = $state(localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787');
   let saved = $state(false);
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; msg: string } | null>(null);
-
-  // Read from localStorage on init
-  $effect(() => {
-    try {
-      url = localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787';
-    } catch {
-      url = 'http://127.0.0.1:8787';
-    }
-  });
 
   function save() {
     try {
