@@ -6,6 +6,9 @@ members = [
     "crates/focusa-api",
     "crates/focusa-tui",
 ]
+exclude = [
+    "apps/menubar/src-tauri",
+]
 
 [workspace.package]
 version = "0.1.0"
