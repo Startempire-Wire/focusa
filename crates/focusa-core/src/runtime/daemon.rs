@@ -244,7 +244,8 @@ impl Daemon {
             Action::SubmitProposal { kind, source, payload, deadline_ms } => {
                 crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
                 // Proposals don't produce reducer events — they live in PRE state.
-                // Sync so the API sees the new proposal immediately.
+                // Persist so proposals survive a daemon restart.
+                self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
                 Ok(vec![])
             }

@@ -28,13 +28,16 @@ pub struct JobResult {
 /// For MVP, the correlation_id carries the content inline.
 pub fn execute_job(job: &WorkerJob) -> JobResult {
     let content = job.correlation_id.as_deref().unwrap_or("");
-    match job.kind {
+    let mut result = match job.kind {
         WorkerJobKind::ClassifyTurn => classify_turn(content),
         WorkerJobKind::ExtractAsccDelta => extract_ascc_delta(content),
         WorkerJobKind::DetectRepetition => detect_repetition(content),
         WorkerJobKind::ScanForErrors => scan_for_errors(content),
         WorkerJobKind::SuggestMemory => suggest_memory(content),
-    }
+    };
+    // Preserve the input job's ID so callers can correlate results.
+    result.job_id = job.id;
+    result
 }
 
 /// Classify a turn based on content heuristics.

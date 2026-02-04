@@ -87,11 +87,8 @@ async fn stream(
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
-            let new_events = read_new_events(&log_path, offset);
-            let new_len = std::fs::metadata(&log_path)
-                .map(|m| m.len())
-                .unwrap_or(offset);
-            offset = new_len;
+            let (new_events, bytes_read) = read_new_events(&log_path, offset);
+            offset += bytes_read;
 
             for event_json in new_events {
                 yield Ok(Event::default()
@@ -105,27 +102,31 @@ async fn stream(
 }
 
 /// Read new JSONL lines from file starting at byte offset.
-fn read_new_events(path: &Path, offset: u64) -> Vec<String> {
+/// Returns (events, bytes_consumed) so the caller advances offset precisely.
+fn read_new_events(path: &Path, offset: u64) -> (Vec<String>, u64) {
     let file = match std::fs::File::open(path) {
         Ok(f) => f,
-        Err(_) => return vec![],
+        Err(_) => return (vec![], 0),
     };
 
     use std::io::{Read, Seek, SeekFrom};
     let mut file = file;
     if file.seek(SeekFrom::Start(offset)).is_err() {
-        return vec![];
+        return (vec![], 0);
     }
 
     let mut buf = String::new();
     if file.read_to_string(&mut buf).is_err() {
-        return vec![];
+        return (vec![], 0);
     }
 
-    buf.lines()
+    let bytes_read = buf.len() as u64;
+    let events = buf.lines()
         .filter(|l| !l.trim().is_empty())
         .map(|l| l.to_string())
-        .collect()
+        .collect();
+
+    (events, bytes_read)
 }
 
 fn expand_home(path: &str) -> PathBuf {

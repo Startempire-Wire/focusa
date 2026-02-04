@@ -179,7 +179,7 @@ async fn acp_proxy(
 
     // Forward to upstream ACP server.
     let upstream = std::env::var("FOCUSA_ACP_UPSTREAM").unwrap_or_else(|_| "http://127.0.0.1:4000".into());
-    let client = Client::new();
+    let client = get_client();
     let resp = client.post(&upstream)
         .json(&msg)
         .send()
