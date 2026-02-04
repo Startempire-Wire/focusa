@@ -154,7 +154,7 @@
 
   <!-- About -->
   <section class="section about">
-    <span>Focusa v0.2.3</span>
+    <span>Focusa v0.2.4</span>
     <span class="separator">·</span>
     <span>Cognitive Governance</span>
   </section>
@@ -277,15 +277,24 @@
 
   /* Test result */
   .test-result {
-    font-size: var(--text-xs);
-    font-family: var(--font-mono);
-    padding: var(--sp-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    padding: var(--sp-2) var(--sp-3);
     border-radius: var(--r-sm);
-    background: var(--bg-elevated);
+    text-align: center;
   }
 
-  .test-result.ok { color: var(--green); }
-  .test-result.err { color: var(--red); }
+  .test-result.ok {
+    color: var(--green);
+    background: rgba(52, 199, 89, 0.12);
+    border: 1px solid rgba(52, 199, 89, 0.3);
+  }
+
+  .test-result.err {
+    color: var(--red);
+    background: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgba(255, 59, 48, 0.25);
+  }
 
   /* Status grid */
   .status-grid {
