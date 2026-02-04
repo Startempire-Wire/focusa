@@ -15,9 +15,11 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new() -> Self {
+        let base = std::env::var("FOCUSA_API_URL")
+            .unwrap_or_else(|_| DEFAULT_BASE.to_string());
         Self {
             client: Client::new(),
-            base: DEFAULT_BASE.to_string(),
+            base,
         }
     }
 

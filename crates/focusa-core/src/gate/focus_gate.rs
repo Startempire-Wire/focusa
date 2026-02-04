@@ -35,11 +35,19 @@ pub fn base_pressure(kind: SignalKind) -> f32 {
     }
 }
 
-/// Apply decay to all candidates.
+/// Apply decay to all candidates and clean up expired suppressions.
 pub fn decay_candidates(gate: &mut FocusGateState, decay_factor: f32) {
+    let now = chrono::Utc::now();
     for candidate in &mut gate.candidates {
         if !candidate.pinned {
             candidate.pressure *= decay_factor;
+        }
+        // Reset expired suppressions so state data stays honest.
+        if candidate.state == CandidateState::Suppressed {
+            if candidate.suppressed_until.map_or(false, |until| now >= until) {
+                candidate.state = CandidateState::Latent;
+                candidate.suppressed_until = None;
+            }
         }
     }
 }

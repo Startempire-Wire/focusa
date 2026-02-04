@@ -434,7 +434,8 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
 
 /// Verify all 7 global invariants hold on the given state.
 pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
-    // INVARIANT 1: At most one active Focus Frame exists.
+    // INVARIANT 1: At most one active Focus Frame exists,
+    // and active_id must point to it (or both must be None).
     let active_count = state
         .focus_stack
         .frames
@@ -446,6 +447,23 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
             "Multiple active Focus Frames: {} found",
             active_count
         )));
+    }
+    if let Some(aid) = state.focus_stack.active_id {
+        match state.focus_stack.frames.iter().find(|f| f.id == aid) {
+            None => {
+                return Err(ReducerError::InvariantViolation(format!(
+                    "active_id {} points to nonexistent frame",
+                    aid
+                )));
+            }
+            Some(f) if f.status != FrameStatus::Active => {
+                return Err(ReducerError::InvariantViolation(format!(
+                    "active_id {} points to frame with status {:?}, expected Active",
+                    aid, f.status
+                )));
+            }
+            _ => {}
+        }
     }
 
     // INVARIANT 2: Every Focus Frame maps to a Beads issue.

@@ -22,10 +22,6 @@ struct Cli {
     #[arg(long, global = true)]
     verbose: bool,
 
-    /// Suppress non-essential output.
-    #[arg(long, global = true)]
-    quiet: bool,
-
     #[command(subcommand)]
     command: Commands,
 }
