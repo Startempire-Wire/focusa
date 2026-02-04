@@ -6,7 +6,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{
-    image::Image,
     tray::{TrayIconBuilder, TrayIconEvent},
     Manager,
 };
@@ -15,10 +14,10 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            // Create tray icon programmatically (gives us the click handler).
-            let icon = Image::from_bytes(include_bytes!("../icons/icon.png"))?;
+            // include_image! resolves relative to CARGO_MANIFEST_DIR (src-tauri/)
+            let icon = tauri::include_image!("icons/icon.png");
 
-            let _tray = TrayIconBuilder::new("focusa-tray")
+            let _tray = TrayIconBuilder::new()
                 .icon(icon)
                 .icon_as_template(true)
                 .tooltip("Focusa")
