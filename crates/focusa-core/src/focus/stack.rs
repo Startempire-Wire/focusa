@@ -100,22 +100,41 @@ pub fn pop_frame(
         .active_id
         .ok_or("No active frame to pop")?;
 
-    let parent_id = {
-        let frame = stack
-            .frames
-            .iter_mut()
-            .find(|f| f.id == active_id)
-            .ok_or("Active frame not found")?;
-        frame.status = FrameStatus::Completed;
-        frame.updated_at = Utc::now();
-        frame.parent_id
-    };
+    // ── Phase 1: Validate everything BEFORE mutating ──
+    let active_idx = stack
+        .frames
+        .iter()
+        .position(|f| f.id == active_id)
+        .ok_or("Active frame not found")?;
 
-    // Restore parent to active
+    let parent_id = stack.frames[active_idx].parent_id;
+
+    // If parent exists, it must be Paused (push_frame pauses the parent).
+    // Anything else means state corruption — refuse to proceed.
+    if let Some(pid) = parent_id {
+        let parent = stack
+            .frames
+            .iter()
+            .find(|f| f.id == pid)
+            .ok_or(format!("Parent frame {} not found", pid))?;
+        if parent.status != FrameStatus::Paused {
+            return Err(format!(
+                "Parent frame {} has status {:?}, expected Paused — state is corrupt",
+                pid, parent.status
+            ));
+        }
+    }
+
+    // ── Phase 2: All checks passed — now mutate ──
+    let now = Utc::now();
+
+    stack.frames[active_idx].status = FrameStatus::Completed;
+    stack.frames[active_idx].updated_at = now;
+
     if let Some(pid) = parent_id {
         if let Some(parent) = stack.frames.iter_mut().find(|f| f.id == pid) {
             parent.status = FrameStatus::Active;
-            parent.updated_at = Utc::now();
+            parent.updated_at = now;
         }
         stack.active_id = Some(pid);
     } else {
