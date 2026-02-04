@@ -45,12 +45,12 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
             adapter_id,
             workspace_id,
         } => {
-            if let Some(existing) = &state.session {
-                if existing.status == SessionStatus::Active {
-                    return Err(ReducerError::InvalidEvent(
-                        "SessionStarted but an active session already exists".into(),
-                    ));
-                }
+            if let Some(existing) = &state.session
+                && existing.status == SessionStatus::Active
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "SessionStarted but an active session already exists".into(),
+                ));
             }
             state.session = Some(SessionState {
                 session_id,
@@ -122,11 +122,11 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
             }
 
             // Pause current active frame.
-            if let Some(active_id) = stack.active_id {
-                if let Some(frame) = stack.frames.iter_mut().find(|f| f.id == active_id) {
-                    frame.status = FrameStatus::Paused;
-                    frame.updated_at = now;
-                }
+            if let Some(active_id) = stack.active_id
+                && let Some(frame) = stack.frames.iter_mut().find(|f| f.id == active_id)
+            {
+                frame.status = FrameStatus::Paused;
+                frame.updated_at = now;
             }
 
             let parent_id = stack.active_id;

@@ -90,11 +90,11 @@ impl IntuitionEngine {
             || content.contains("ERROR") || content.contains("panic")
             || content.contains("failed");
 
-        if has_error {
-            if let Some(fid) = frame_id {
-                let count = self.error_counts.entry(fid).or_insert(0);
-                *count += 1;
-            }
+        if has_error
+            && let Some(fid) = frame_id
+        {
+            let count = self.error_counts.entry(fid).or_insert(0);
+            *count += 1;
         }
 
         // ── Run detectors ────────────────────────────────────────────
@@ -129,69 +129,69 @@ impl IntuitionEngine {
         }
 
         // Long-running frame detection.
-        if let Some(active_id) = stack.active_id {
-            if let Some(frame) = stack.frames.iter().find(|f| f.id == active_id) {
-                let duration = now - frame.created_at;
-                if duration > Duration::seconds(FRAME_DURATION_THRESHOLD_SECS) {
-                    let signal = create_signal(
-                        SignalOrigin::Daemon,
-                        SignalKind::DeadlineTick,
-                        Some(active_id),
-                        format!(
-                            "Frame '{}' active for {} minutes (threshold: {} min)",
-                            frame.title,
-                            duration.num_minutes(),
-                            FRAME_DURATION_THRESHOLD_SECS / 60,
-                        ),
-                        None,
-                        vec!["temporal".into(), "long_running".into()],
-                    );
-                    let _ = self.signal_tx.try_send(signal);
-                }
+        if let Some(active_id) = stack.active_id
+            && let Some(frame) = stack.frames.iter().find(|f| f.id == active_id)
+        {
+            let duration = now - frame.created_at;
+            if duration > Duration::seconds(FRAME_DURATION_THRESHOLD_SECS) {
+                let signal = create_signal(
+                    SignalOrigin::Daemon,
+                    SignalKind::DeadlineTick,
+                    Some(active_id),
+                    format!(
+                        "Frame '{}' active for {} minutes (threshold: {} min)",
+                        frame.title,
+                        duration.num_minutes(),
+                        FRAME_DURATION_THRESHOLD_SECS / 60,
+                    ),
+                    None,
+                    vec!["temporal".into(), "long_running".into()],
+                );
+                let _ = self.signal_tx.try_send(signal);
             }
         }
     }
 
     /// Detect repeated errors within the observation window for a frame.
     async fn detect_error_repetition(&self, frame_id: Option<FrameId>) {
-        if let Some(fid) = frame_id {
-            if let Some(&count) = self.error_counts.get(&fid) {
-                if count >= ERROR_REPEAT_THRESHOLD && count % ERROR_REPEAT_THRESHOLD == 0 {
-                    let signal = create_signal(
-                        SignalOrigin::Daemon,
-                        SignalKind::Error,
-                        Some(fid),
-                        format!(
-                            "Repeated errors detected: {} errors in current frame",
-                            count,
-                        ),
-                        None,
-                        vec!["repetition".into(), "error_loop".into()],
-                    );
-                    let _ = self.signal_tx.try_send(signal);
-                }
-            }
+        if let Some(fid) = frame_id
+            && let Some(&count) = self.error_counts.get(&fid)
+            && count >= ERROR_REPEAT_THRESHOLD
+            && count % ERROR_REPEAT_THRESHOLD == 0
+        {
+            let signal = create_signal(
+                SignalOrigin::Daemon,
+                SignalKind::Error,
+                Some(fid),
+                format!(
+                    "Repeated errors detected: {} errors in current frame",
+                    count,
+                ),
+                None,
+                vec!["repetition".into(), "error_loop".into()],
+            );
+            let _ = self.signal_tx.try_send(signal);
         }
     }
 
     /// Detect prolonged inactivity.
     async fn detect_inactivity(&self, now: DateTime<Utc>, frame_id: Option<FrameId>) {
-        if let Some(last) = self.last_activity {
+        if let Some(last) = self.last_activity
+            && (now - last) > Duration::seconds(INACTIVITY_THRESHOLD_SECS)
+        {
             let gap = now - last;
-            if gap > Duration::seconds(INACTIVITY_THRESHOLD_SECS) {
-                let signal = create_signal(
-                    SignalOrigin::Daemon,
-                    SignalKind::Warning,
-                    frame_id,
-                    format!(
-                        "Prolonged inactivity: {} minutes since last turn",
-                        gap.num_minutes(),
-                    ),
-                    None,
-                    vec!["temporal".into(), "inactivity".into()],
-                );
-                let _ = self.signal_tx.try_send(signal);
-            }
+            let signal = create_signal(
+                SignalOrigin::Daemon,
+                SignalKind::Warning,
+                frame_id,
+                format!(
+                    "Prolonged inactivity: {} minutes since last turn",
+                    gap.num_minutes(),
+                ),
+                None,
+                vec!["temporal".into(), "inactivity".into()],
+            );
+            let _ = self.signal_tx.try_send(signal);
         }
     }
 

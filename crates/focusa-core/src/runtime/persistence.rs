@@ -71,10 +71,10 @@ fn atomic_write_json<T: serde::Serialize>(path: &Path, value: &T) -> anyhow::Res
 
 /// Expand ~ in paths.
 fn shellexpand(path: &str) -> PathBuf {
-    if path.starts_with("~/") {
-        if let Some(home) = dirs_home() {
-            return PathBuf::from(home).join(&path[2..]);
-        }
+    if let Some(rest) = path.strip_prefix("~/")
+        && let Some(home) = dirs_home()
+    {
+        return PathBuf::from(home).join(rest);
     }
     PathBuf::from(path)
 }

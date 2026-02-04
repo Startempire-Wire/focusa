@@ -110,23 +110,23 @@ async fn main() -> anyhow::Result<()> {
                     .as_str()
                     .unwrap_or("none");
                 println!("Active: {}", active);
-                if let Some(stack) = resp["stack"].as_object() {
-                    if let Some(frames) = stack.get("frames").and_then(|f| f.as_array()) {
-                        if frames.is_empty() {
-                            println!("  (empty stack)");
-                        }
-                        for frame in frames {
-                            let status = frame["status"].as_str().unwrap_or("?");
-                            let title = frame["title"].as_str().unwrap_or("?");
-                            let id = frame["id"].as_str().unwrap_or("?");
-                            let marker = if Some(id) == resp["active_frame_id"].as_str() {
-                                "►"
-                            } else {
-                                " "
-                            };
-                            let short_id = if id.len() >= 8 { &id[..8] } else { id };
-                            println!("  {} [{}] {} ({})", marker, status, title, short_id);
-                        }
+                if let Some(stack) = resp["stack"].as_object()
+                    && let Some(frames) = stack.get("frames").and_then(|f| f.as_array())
+                {
+                    if frames.is_empty() {
+                        println!("  (empty stack)");
+                    }
+                    for frame in frames {
+                        let status = frame["status"].as_str().unwrap_or("?");
+                        let title = frame["title"].as_str().unwrap_or("?");
+                        let id = frame["id"].as_str().unwrap_or("?");
+                        let marker = if Some(id) == resp["active_frame_id"].as_str() {
+                            "►"
+                        } else {
+                            " "
+                        };
+                        let short_id = if id.len() >= 8 { &id[..8] } else { id };
+                        println!("  {} [{}] {} ({})", marker, status, title, short_id);
                     }
                 }
             }

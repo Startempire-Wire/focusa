@@ -15,7 +15,7 @@
 
 /// Rough token estimate (4 chars ≈ 1 token).
 pub fn estimate_tokens(text: &str) -> u32 {
-    (text.len() as u32 + 3) / 4
+    (text.len() as u32).div_ceil(4)
 }
 
 /// Check if content fits within budget.

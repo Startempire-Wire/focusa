@@ -43,11 +43,11 @@ pub fn decay_candidates(gate: &mut FocusGateState, decay_factor: f32) {
             candidate.pressure *= decay_factor;
         }
         // Reset expired suppressions so state data stays honest.
-        if candidate.state == CandidateState::Suppressed {
-            if candidate.suppressed_until.map_or(false, |until| now >= until) {
-                candidate.state = CandidateState::Latent;
-                candidate.suppressed_until = None;
-            }
+        if candidate.state == CandidateState::Suppressed
+            && candidate.suppressed_until.is_some_and(|until| now >= until)
+        {
+            candidate.state = CandidateState::Latent;
+            candidate.suppressed_until = None;
         }
     }
 }
@@ -64,7 +64,7 @@ pub fn surfaced_candidates(gate: &FocusGateState, threshold: f32) -> Vec<&Candid
             c.pressure >= threshold
                 && c.state != CandidateState::Resolved
                 && (c.state != CandidateState::Suppressed
-                    || c.suppressed_until.map_or(false, |until| now >= until))
+                    || c.suppressed_until.is_some_and(|until| now >= until))
         })
         .collect()
 }

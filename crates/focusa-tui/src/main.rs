@@ -43,25 +43,23 @@ async fn main() -> Result<()> {
     loop {
         terminal.draw(|f| views::render(&app, f))?;
 
-        if event::poll(tick_rate)? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind != KeyEventKind::Press {
-                    continue;
-                }
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => break,
-                    KeyCode::Char('1') => app.tab = app::Tab::FocusState,
-                    KeyCode::Char('2') => app.tab = app::Tab::FocusStack,
-                    KeyCode::Char('3') => app.tab = app::Tab::Gate,
-                    KeyCode::Char('4') => app.tab = app::Tab::Events,
-                    KeyCode::Char('5') => app.tab = app::Tab::Metrics,
-                    KeyCode::Char('r') => app.refresh().await,
-                    KeyCode::Tab => app.next_tab(),
-                    KeyCode::BackTab => app.prev_tab(),
-                    KeyCode::Down | KeyCode::Char('j') => app.scroll_down(),
-                    KeyCode::Up | KeyCode::Char('k') => app.scroll_up(),
-                    _ => {}
-                }
+        if event::poll(tick_rate)?
+            && let Event::Key(key) = event::read()?
+            && key.kind == KeyEventKind::Press
+        {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('1') => app.tab = app::Tab::FocusState,
+                KeyCode::Char('2') => app.tab = app::Tab::FocusStack,
+                KeyCode::Char('3') => app.tab = app::Tab::Gate,
+                KeyCode::Char('4') => app.tab = app::Tab::Events,
+                KeyCode::Char('5') => app.tab = app::Tab::Metrics,
+                KeyCode::Char('r') => app.refresh().await,
+                KeyCode::Tab => app.next_tab(),
+                KeyCode::BackTab => app.prev_tab(),
+                KeyCode::Down | KeyCode::Char('j') => app.scroll_down(),
+                KeyCode::Up | KeyCode::Char('k') => app.scroll_up(),
+                _ => {}
             }
         }
 
