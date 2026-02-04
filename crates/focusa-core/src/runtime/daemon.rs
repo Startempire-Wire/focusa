@@ -165,6 +165,12 @@ impl Daemon {
 
                     // Sync to shared handle so the API sees the update.
                     self.sync_shared_state().await;
+
+                    // CLT: track interaction nodes for each event.
+                    self.track_clt_event(&event);
+
+                    // Telemetry: record each event.
+                    self.state.telemetry.total_events += 1;
                 }
                 Err(e) => {
                     tracing::error!("Reducer error: {}", e);
@@ -413,6 +419,28 @@ impl Daemon {
         let entry = create_entry(violation_event, SignalOrigin::Daemon, None);
         self.persistence.append_event(&entry)?;
         Ok(())
+    }
+
+    /// Track CLT interaction node for significant events.
+    fn track_clt_event(&mut self, event: &FocusaEvent) {
+        use crate::clt;
+
+        // Only track state-changing events as CLT interactions.
+        let role = match event {
+            FocusaEvent::FocusFramePushed { .. } => "system",
+            FocusaEvent::FocusStateUpdated { .. } => "assistant",
+            FocusaEvent::IntuitionSignalObserved { .. } => "system",
+            _ => return,
+        };
+
+        let session_id = self.state.session.as_ref().map(|s| s.session_id);
+        clt::append_interaction(
+            &mut self.state.clt,
+            session_id,
+            role,
+            None,
+            CltMetadata::default(),
+        );
     }
 }
 
