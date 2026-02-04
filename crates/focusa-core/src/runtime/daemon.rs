@@ -14,12 +14,14 @@
 //!   2. Translate Action → FocusaEvent(s)
 //!   3. For each event: call reducer(state, event)
 //!   4. Persist: save state snapshot + append event log
-//!   5. Broadcast emitted events (for subscribers)
+//!   5. Run intuition engine observers
+//!   6. Drain intuition signals → IngestSignal actions
 //!
 //! Shutdown:
 //!   - Flush persistence
 //!   - Close event log cleanly
 
+use crate::intuition::engine::IntuitionEngine;
 use crate::reducer::{self, ReducerError};
 use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
@@ -39,6 +41,9 @@ pub struct Daemon {
     shared_state: Arc<RwLock<FocusaState>>,
     persistence: Persistence,
     ecs: ReferenceStore,
+    intuition: IntuitionEngine,
+    /// Receive signals from the intuition engine.
+    signal_rx: mpsc::Receiver<Signal>,
     command_tx: mpsc::Sender<Action>,
     command_rx: mpsc::Receiver<Action>,
 }
@@ -67,6 +72,10 @@ impl Daemon {
             *shared = state.clone();
         }
 
+        // Intuition engine signal channel (bounded, non-blocking sender).
+        let (signal_tx, signal_rx) = mpsc::channel(64);
+        let intuition = IntuitionEngine::new(signal_tx);
+
         let (command_tx, command_rx) = mpsc::channel(256);
         Ok(Self {
             config,
@@ -74,6 +83,8 @@ impl Daemon {
             shared_state,
             persistence,
             ecs,
+            intuition,
+            signal_rx,
             command_tx,
             command_rx,
         })
@@ -92,6 +103,9 @@ impl Daemon {
             if let Err(e) = self.process_action(action).await {
                 tracing::error!("Action processing failed: {}", e);
             }
+
+            // Drain any signals emitted by the intuition engine during this tick.
+            self.drain_intuition_signals().await;
         }
 
         // Channel closed — flush final state.
@@ -100,8 +114,14 @@ impl Daemon {
         Ok(())
     }
 
-    /// Translate an Action to event(s), reduce, persist.
+    /// Translate an Action to event(s), reduce, persist, observe.
     async fn process_action(&mut self, action: Action) -> anyhow::Result<()> {
+        // Track whether this action touches the focus stack (for observe_stack).
+        let is_stack_action = matches!(
+            action,
+            Action::PushFrame { .. } | Action::PopFrame { .. } | Action::SetActiveFrame { .. }
+        );
+
         let events = self.translate_action(action).await?;
 
         for event in events {
@@ -133,7 +153,45 @@ impl Daemon {
             }
         }
 
+        // Post-action: run intuition observers.
+        if is_stack_action {
+            self.intuition.observe_stack(&self.state.focus_stack).await;
+        }
+
         Ok(())
+    }
+
+    /// Drain signals from the intuition engine and ingest them as events.
+    ///
+    /// Uses try_recv to avoid blocking — drains all available signals in one pass.
+    async fn drain_intuition_signals(&mut self) {
+        while let Ok(signal) = self.signal_rx.try_recv() {
+            let event = FocusaEvent::IntuitionSignalObserved {
+                signal_id: signal.id,
+                signal_type: signal.kind,
+                severity: "info".into(),
+                summary: signal.summary.clone(),
+                related_frame_id: signal.frame_context,
+            };
+            match reducer::reduce(self.state.clone(), event.clone()) {
+                Ok(result) => {
+                    self.state = result.new_state;
+                    for emitted in &result.emitted_events {
+                        let entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        if let Err(e) = self.persistence.append_event(&entry) {
+                            tracing::error!("Failed to persist intuition signal: {}", e);
+                        }
+                    }
+                    if let Err(e) = self.persistence.save_state(&self.state) {
+                        tracing::error!("Failed to save state after intuition signal: {}", e);
+                    }
+                    self.sync_shared_state().await;
+                }
+                Err(e) => {
+                    tracing::warn!("Intuition signal rejected by reducer: {}", e);
+                }
+            }
+        }
     }
 
     /// Translate Action → FocusaEvent(s).
@@ -178,6 +236,8 @@ impl Daemon {
                 let frame_id = self.state.focus_stack.active_id.ok_or_else(|| {
                     anyhow::anyhow!("PopFrame but no active frame")
                 })?;
+                // Clean up intuition engine state for this frame.
+                self.intuition.clear_frame(frame_id);
                 Ok(vec![FocusaEvent::FocusFrameCompleted {
                     frame_id,
                     completion_reason,

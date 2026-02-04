@@ -50,7 +50,7 @@ pub async fn run_state(cmd: StateCmd) -> anyhow::Result<()> {
 
     match cmd {
         StateCmd::Dump => {
-            let resp = api.get("/v1/status").await?;
+            let resp = api.get("/v1/state/dump").await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
         }
     }

@@ -1,6 +1,7 @@
 //! Session routes.
 //!
-//! GET  /v1/status        — daemon/session status
+//! GET  /v1/status        — daemon/session status (summary)
+//! GET  /v1/state/dump    — full cognitive state (debug)
 //! POST /v1/session/start — start a new session
 //! POST /v1/session/close — close current session
 
@@ -21,6 +22,12 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         "active_frame_id": focusa.focus_stack.active_id,
         "version": focusa.version,
     }))
+}
+
+/// Full cognitive state dump (debug).
+async fn state_dump(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let focusa = state.focusa.read().await;
+    Json(serde_json::to_value(&*focusa).unwrap_or(json!({"error": "serialization failed"})))
 }
 
 #[derive(Deserialize)]
@@ -73,6 +80,7 @@ async fn close_session(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/status", get(status))
+        .route("/v1/state/dump", get(state_dump))
         .route("/v1/session/start", post(start_session))
         .route("/v1/session/close", post(close_session))
 }
