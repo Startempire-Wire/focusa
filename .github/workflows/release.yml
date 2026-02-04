@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  # Build Rust core crates
+  # Gate: tests + clippy must pass
   rust-check:
     name: Rust Check
     runs-on: ubuntu-latest
@@ -21,10 +21,134 @@ jobs:
       - run: cargo test --workspace
       - run: cargo clippy --workspace -- -D warnings
 
+  # Create the GitHub Release with notes (runs once, before uploads)
+  create-release:
+    name: Create Release
+    needs: rust-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Get commits since last tag (or all if first tag)
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1 || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --oneline "${PREV_TAG}..${TAG}" --no-merges | head -50)
+          else
+            COMMITS=$(git log --oneline --no-merges | head -50)
+          fi
+          
+          # Write notes to file (heredoc avoids escaping issues)
+          cat > /tmp/release-notes.md << NOTES_EOF
+          ## Focusa ${TAG} — Cognitive Governance Framework
+
+          **Local-first cognitive proxy** that governs focus, context fidelity, and priority emergence for AI agents.
+
+          ### 🧠 Core Engine (22 modules)
+          - **Focus Stack (HEC)** — hierarchical frame push/pop/pause/resume with depth limit (8)
+          - **Focus Gate** — salience-weighted candidate queue with decay, suppression, pinning
+          - **Intuition Engine** — async signal producer detecting error repetition, inactivity, nesting depth, long-running tasks
+          - **Expression Engine** — deterministic prompt assembly with 10 ASCC slots, 6-step degradation cascade, token budget enforcement
+          - **Core Reducer** — pure-functional state machine handling 15 event types with 7 structural invariants
+          - **Context Lineage Tree (CLT)** — append-only tree tracking decision/observation/interaction lineage
+          - **UXP/UFI** — 7 user experience profile dimensions (EMA learning, α≤0.1) + 14 friction indicators in 3 tiers
+          - **Autonomy Calibration** — 6 ARI dimensions, 6 autonomy levels (AL0→AL5), TTL-based grant expiry
+          - **Agent Constitution** — SemVer-versioned immutable reasoning charter with Constitution Synthesizer
+          - **Proposal Resolution Engine (PRE)** — submit, score (5 criteria), resolve, reject, expire, garbage collect
+          - **Reliability Focus Mode (RFM)** — 4 levels (R0→R3), 4 microcell validators, AIS-based escalation/de-escalation
+          - **Cache Permission Matrix** — 5-tier classes (C0 immutable → C4 forbidden), 6 bust categories
+          - **Threads/Thesis/Instances** — persistent cognitive workspaces with fork, archive, resume
+          - **Agent Skills** — 18 skills in 4 categories, 6 prohibited skill guards
+          - **Capability Permissions** — 3 token types (Owner/Agent/Integration), scope-based validation
+          - **Training Dataset Export** — 4 dataset families, PII detection (heuristic), JSONL output
+          - **Data Contribution Pipeline** — enqueue → approve → submit workflow
+          - **Telemetry (CTL)** — model token tracking, focus transition events, per-task cost accounting
+          - **ECS Garbage Collector** — age-based eligibility, session protection, pinned immunity
+          - **Semantic + Procedural Memory** — embedding-based recall with decay, procedural rule store
+
+          ### 🔌 Proxy Adapters
+          - **OpenAI HTTP Proxy (Mode B)** — \`POST /proxy/v1/chat/completions\` with ASCC injection + passthrough fallback
+          - **ACP Proxy (Mode A+B)** — JSON-RPC 2.0 parsing with cognition injection
+          - **Letta Adapter** — 4 harness types (ClaudeCode, CodexCli, GeminiCli, Generic) with per-harness capabilities
+          - **Passthrough Adapter** — zero-modification relay
+
+          ### 🖥 Interfaces
+          - **REST API** — 38 routes across 14 domains (Axum, default \`127.0.0.1:8787\`)
+          - **CLI** — 14 command domains (\`focusa focus push\`, \`focusa gate list\`, \`focusa state dump\`, etc.)
+          - **TUI** — 14 ratatui views (focus stack, state, gate, events, proposals, telemetry, etc.)
+          - **Menubar App** — SvelteKit + Tauri v2 desktop app with 6 components, 3 reactive stores, design tokens
+          - **SSE Event Stream** — \`GET /v1/events/stream\` real-time tail of event log
+          - **Bearer Auth Middleware** — optional \`FOCUSA_AUTH_TOKEN\` (local-first: off by default)
+
+          ### 🏗 Architecture
+          - **Rust monorepo** — 4 workspace crates (\`focusa-core\`, \`focusa-cli\`, \`focusa-api\`, \`focusa-tui\`)
+          - **~13,000 LOC** across 106 Rust source files
+          - **96 unit tests**, zero warnings, zero clippy errors
+          - **Event-sourced** — append-only JSONL event log, deterministic reducer replay
+          - **Local filesystem persistence** — \`~/.focusa/state.json\`, \`~/.focusa/events.jsonl\`
+          - **Performance budget** — hot path <20ms, worker jobs <200ms, gate signal ingest <5ms
+          - **Edition 2024** (Rust nightly 1.94.0)
+
+          ### 📦 Downloads
+
+          | Platform | Binary | Description |
+          |----------|--------|-------------|
+          | **Linux x86_64** | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI + daemon |
+          | **macOS Apple Silicon** | \`focusa-${TAG}-aarch64-apple-darwin\` | CLI + daemon |
+          | **macOS Intel** | \`focusa-${TAG}-x86_64-apple-darwin\` | CLI + daemon |
+          | **Linux x86_64** | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
+          | **macOS Apple Silicon** | \`focusa-tui-${TAG}-aarch64-apple-darwin\` | TUI dashboard |
+          | **macOS Intel** | \`focusa-tui-${TAG}-x86_64-apple-darwin\` | TUI dashboard |
+
+          > **Menubar desktop app** (.dmg / .AppImage / .msi) coming in a future release.
+
+          ### 🚀 Quick Start
+          \`\`\`bash
+          # Download the binary for your platform
+          chmod +x focusa-${TAG}-*
+          
+          # Start the daemon
+          ./focusa-api-${TAG}-<your-platform>
+          
+          # In another terminal — push a focus frame
+          ./focusa-${TAG}-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
+          
+          # Check status
+          ./focusa-${TAG}-<your-platform> status
+          
+          # Launch TUI dashboard
+          ./focusa-tui-${TAG}-<your-platform>
+          \`\`\`
+
+          ### Commits
+          \`\`\`
+          ${COMMITS}
+          \`\`\`
+
+          ---
+          *Full spec: 67 design documents. Local-first. Privacy-preserving. No cloud dependency.*
+          NOTES_EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Focusa ${{ github.ref_name }}
+          body_path: /tmp/release-notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Build Tauri desktop app for all platforms
   tauri-build:
     name: Build Menubar (${{ matrix.platform }})
-    needs: rust-check
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
@@ -64,6 +188,24 @@ jobs:
         working-directory: apps/menubar
         run: bun install
 
+      - name: Generate macOS icons
+        if: contains(matrix.platform, 'macos')
+        working-directory: apps/menubar/src-tauri
+        run: |
+          # Generate .icns from PNG source using iconutil (macOS only)
+          mkdir -p /tmp/focusa.iconset
+          sips -z 16 16     icons/icon.png --out /tmp/focusa.iconset/icon_16x16.png
+          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_16x16@2x.png
+          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_32x32.png
+          sips -z 64 64     icons/icon.png --out /tmp/focusa.iconset/icon_32x32@2x.png
+          sips -z 128 128   icons/icon.png --out /tmp/focusa.iconset/icon_128x128.png
+          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_128x128@2x.png
+          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_256x256.png
+          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_256x256@2x.png
+          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_512x512.png
+          iconutil -c icns /tmp/focusa.iconset -o icons/icon.icns
+          ls -la icons/
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,22 +213,7 @@ jobs:
           projectPath: apps/menubar
           tagName: ${{ github.ref_name }}
           releaseName: 'Focusa ${{ github.ref_name }}'
-          releaseBody: |
-            ## Focusa ${{ github.ref_name }}
-
-            Cognitive governance framework — local-first, ambient awareness.
-
-            ### Downloads
-            - **macOS (Apple Silicon)**: `.dmg` file
-            - **macOS (Intel)**: `.dmg` file
-            - **Linux**: `.AppImage` or `.deb`
-            - **Windows**: `.msi` or `.exe`
-
-            ### What's included
-            - Focusa daemon (`focusa-api`)
-            - CLI (`focusa`)
-            - TUI (`focusa-tui`)
-            - Menubar app (this download)
+          releaseBody: ''
           releaseDraft: false
           prerelease: false
           tauriScript: bunx tauri
@@ -95,7 +222,7 @@ jobs:
   # Publish Rust binaries
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
-    needs: rust-check
+    needs: create-release
     strategy:
       matrix:
         include:
