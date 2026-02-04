@@ -75,15 +75,11 @@ async fn chat_completions(
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);
     drop(focusa_state); // Release read lock before HTTP call.
 
-    let (response, _user_input, _assembly_info) = match result {
+    let response = match result {
         Some(proxy_result) => {
             // Enhanced request — forward with Focusa context.
-            let user_input = proxy_result.user_input.clone();
-            let degraded = proxy_result.assembly.degraded;
-            let token_est = proxy_result.assembly.token_estimate;
-
             match openai::forward_request(client, &url, &key, &proxy_result.request).await {
-                Ok(resp) => (resp, user_input, Some((degraded, token_est))),
+                Ok(resp) => resp,
                 Err(e) => {
                     tracing::error!("Upstream request failed: {}", e);
                     return Err((
@@ -96,16 +92,7 @@ async fn chat_completions(
         None => {
             // Passthrough — no enhancement possible.
             match passthrough::passthrough(client, &url, &key, &request).await {
-                Ok(resp) => {
-                    let user_input = request
-                        .messages
-                        .iter()
-                        .filter(|m| m.role == "user")
-                        .map(|m| m.content.clone())
-                        .collect::<Vec<_>>()
-                        .join("\n");
-                    (resp, user_input, None)
-                }
+                Ok(resp) => resp,
                 Err(e) => {
                     return Err((
                         StatusCode::BAD_GATEWAY,

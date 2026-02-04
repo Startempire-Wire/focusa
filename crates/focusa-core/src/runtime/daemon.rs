@@ -211,6 +211,11 @@ impl Daemon {
                     if let Err(e) = self.persistence.save_state(&self.state) {
                         tracing::error!("Failed to save state after intuition signal: {}", e);
                     }
+
+                    // Same post-reduction bookkeeping as process_action.
+                    self.track_clt_event(&event);
+                    self.state.telemetry.total_events += 1;
+
                     self.sync_shared_state().await;
                 }
                 Err(e) => {
