@@ -96,16 +96,36 @@ impl Daemon {
     }
 
     /// Run the main event loop. Blocks until the channel is closed.
+    ///
+    /// Processes actions from the command channel and runs a periodic
+    /// decay tick every 30 seconds (pressure decay + rule weight decay).
     pub async fn run(&mut self) -> anyhow::Result<()> {
         tracing::info!("Focusa daemon starting (version {})", self.state.version);
 
-        while let Some(action) = self.command_rx.recv().await {
-            if let Err(e) = self.process_action(action).await {
-                tracing::error!("Action processing failed: {}", e);
-            }
+        let mut decay_interval = tokio::time::interval(std::time::Duration::from_secs(30));
+        // Don't fire immediately on startup — first tick is a no-op.
+        decay_interval.tick().await;
 
-            // Drain any signals emitted by the intuition engine during this tick.
-            self.drain_intuition_signals().await;
+        loop {
+            tokio::select! {
+                action = self.command_rx.recv() => {
+                    match action {
+                        Some(action) => {
+                            if let Err(e) = self.process_action(action).await {
+                                tracing::error!("Action processing failed: {}", e);
+                            }
+                            self.drain_intuition_signals().await;
+                        }
+                        None => break, // Channel closed.
+                    }
+                }
+                _ = decay_interval.tick() => {
+                    // Periodic decay tick — reduces candidate pressure and rule weights.
+                    if let Err(e) = self.process_action(Action::DecayTick).await {
+                        tracing::debug!("Decay tick failed: {}", e);
+                    }
+                }
+            }
         }
 
         // Channel closed — flush final state.
