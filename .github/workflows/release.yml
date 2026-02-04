@@ -1,0 +1,140 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # Build Rust core crates
+  rust-check:
+    name: Rust Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace -- -D warnings
+
+  # Build Tauri desktop app for all platforms
+  tauri-build:
+    name: Build Menubar (${{ matrix.platform }})
+    needs: rust-check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+            rust_target: aarch64-apple-darwin
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+            rust_target: x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            args: ''
+            rust_target: ''
+          - platform: windows-latest
+            args: ''
+            rust_target: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend deps
+        working-directory: apps/menubar
+        run: bun install
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/menubar
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Focusa ${{ github.ref_name }}'
+          releaseBody: |
+            ## Focusa ${{ github.ref_name }}
+
+            Cognitive governance framework — local-first, ambient awareness.
+
+            ### Downloads
+            - **macOS (Apple Silicon)**: `.dmg` file
+            - **macOS (Intel)**: `.dmg` file
+            - **Linux**: `.AppImage` or `.deb`
+            - **Windows**: `.msi` or `.exe`
+
+            ### What's included
+            - Focusa daemon (`focusa-api`)
+            - CLI (`focusa`)
+            - TUI (`focusa-tui`)
+            - Menubar app (this download)
+          releaseDraft: false
+          prerelease: false
+          tauriScript: bunx tauri
+          args: ${{ matrix.args }}
+
+  # Publish Rust binaries
+  rust-release:
+    name: Rust Binaries (${{ matrix.target }})
+    needs: rust-check
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install system deps (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Build release binaries
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binaries
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          mkdir -p dist
+          for bin in focusa-api focusa focusa-tui; do
+            if [ -f "target/${{ matrix.target }}/release/$bin" ]; then
+              cp "target/${{ matrix.target }}/release/$bin" "dist/${bin}-${TAG}-${{ matrix.target }}"
+            fi
+          done
+          ls -la dist/
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
