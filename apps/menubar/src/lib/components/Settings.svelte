@@ -1,19 +1,28 @@
 <!--
-  Settings panel — configure Focusa connection.
-  Persists to localStorage.
+  Settings — full-tab settings view.
+  Connection configuration, test, status display.
 -->
 <script lang="ts">
   import { focusStore } from '$lib/stores/focus.svelte';
 
-  let { onclose }: { onclose: () => void } = $props();
-
-  let url = $state(localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787');
+  let url = $state('');
   let saved = $state(false);
   let testing = $state(false);
-  let testResult = $state<string | null>(null);
+  let testResult = $state<{ ok: boolean; msg: string } | null>(null);
+
+  // Read from localStorage on init
+  $effect(() => {
+    try {
+      url = localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787';
+    } catch {
+      url = 'http://127.0.0.1:8787';
+    }
+  });
 
   function save() {
-    localStorage.setItem('focusa_api_url', url);
+    try {
+      localStorage.setItem('focusa_api_url', url);
+    } catch {}
     saved = true;
     setTimeout(() => saved = false, 2000);
   }
@@ -22,217 +31,224 @@
     testing = true;
     testResult = null;
     try {
-      const resp = await fetch(`${url}/v1/health`, { signal: AbortSignal.timeout(3000) });
+      const resp = await fetch(`${url}/v1/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
       if (resp.ok) {
-        testResult = '✓ Connected';
+        const data = await resp.json();
+        testResult = { ok: true, msg: `Connected — daemon v${data.version ?? '?'}` };
       } else {
-        testResult = `✗ HTTP ${resp.status}`;
+        testResult = { ok: false, msg: `HTTP ${resp.status} ${resp.statusText}` };
       }
     } catch (e) {
-      testResult = `✗ ${e instanceof Error ? e.message : 'Unreachable'}`;
+      const msg = e instanceof Error ? e.message : 'Cannot reach server';
+      testResult = { ok: false, msg };
     }
     testing = false;
   }
 
-  function useLocal() { url = 'http://127.0.0.1:8787'; }
-  function useRemote() {
-    const ip = prompt('Enter remote IP or hostname (e.g., 100.94.238.56)');
-    if (ip) { url = `http://${ip}:8787`; }
+  function setLocal() {
+    url = 'http://127.0.0.1:8787';
+    save();
+  }
+
+  function setRemote() {
+    const ip = prompt('Enter server IP or hostname:', '');
+    if (ip && ip.trim()) {
+      url = `http://${ip.trim()}:8787`;
+      save();
+    }
   }
 </script>
 
-<div class="settings">
-  <div class="settings-header">
-    <span class="settings-title">Settings</span>
-    <button class="close-btn" onclick={onclose}>×</button>
-  </div>
+<div class="settings-view">
+  <!-- Connection section -->
+  <section class="section">
+    <div class="section-label">CONNECTION</div>
 
-  <div class="section">
-    <label class="label">Focusa API URL</label>
-    <input
-      type="text"
-      bind:value={url}
-      placeholder="http://127.0.0.1:8787"
-      class="input"
-    />
+    <label class="field">
+      <span class="field-label">API URL</span>
+      <input
+        type="text"
+        bind:value={url}
+        placeholder="http://127.0.0.1:8787"
+        class="input"
+        onkeydown={(e) => { if (e.key === 'Enter') save(); }}
+      />
+    </label>
 
-    <div class="presets">
-      <button class="preset" onclick={useLocal}>
+    <div class="preset-row">
+      <button class="preset-btn" onclick={setLocal}>
         Local (127.0.0.1)
       </button>
-      <button class="preset" onclick={useRemote}>
+      <button class="preset-btn" onclick={setRemote}>
         Remote…
       </button>
     </div>
-  </div>
 
-  <div class="actions">
-    <button class="btn btn-test" onclick={testConnection} disabled={testing}>
-      {testing ? 'Testing…' : 'Test Connection'}
-    </button>
-    <button class="btn btn-save" onclick={save}>
-      {saved ? '✓ Saved' : 'Save'}
-    </button>
-  </div>
-
-  {#if testResult}
-    <div class="test-result" class:success={testResult.startsWith('✓')} class:error={testResult.startsWith('✗')}>
-      {testResult}
+    <div class="action-row">
+      <button class="btn secondary" onclick={testConnection} disabled={testing}>
+        {testing ? 'Testing…' : 'Test Connection'}
+      </button>
+      <button class="btn primary" onclick={save}>
+        {saved ? '✓ Saved' : 'Save'}
+      </button>
     </div>
-  {/if}
 
-  <div class="info">
-    <div class="info-header">Connection Status</div>
-    <div class="info-row">
-      <span class="info-label">Connected:</span>
-      <span class="info-value" class:ok={focusStore.connected} class:err={!focusStore.connected}>
-        {focusStore.connected ? 'Yes' : 'No'}
-      </span>
-    </div>
-    {#if focusStore.sessionId}
-      <div class="info-row">
-        <span class="info-label">Session:</span>
-        <span class="info-value mono">{focusStore.sessionId.slice(0, 12)}…</span>
+    {#if testResult}
+      <div class="test-result" class:ok={testResult.ok} class:err={!testResult.ok}>
+        {testResult.ok ? '✓' : '✗'} {testResult.msg}
       </div>
     {/if}
-    <div class="info-row">
-      <span class="info-label">Version:</span>
-      <span class="info-value mono">{focusStore.version}</span>
-    </div>
-  </div>
+  </section>
 
-  <div class="help">
-    <div class="help-title">Setup Guide</div>
-    <ol>
-      <li>
-        <strong>Local:</strong> Run <code>focusa-daemon</code> on this machine.
-        Default URL: <code>http://127.0.0.1:8787</code>
-      </li>
-      <li>
-        <strong>Remote:</strong> On your server, start the daemon with:<br/>
-        <code>FOCUSA_BIND=0.0.0.0:8787 focusa-daemon</code><br/>
-        Then click "Remote…" and enter the server IP.
-      </li>
-      <li>
-        <strong>Remote (SSH tunnel):</strong> Keep daemon on localhost, tunnel:<br/>
-        <code>ssh -L 8787:127.0.0.1:8787 your-vps</code><br/>
-        Then use <code>http://127.0.0.1:8787</code> (safest).
-      </li>
-    </ol>
-  </div>
+  <!-- Status section -->
+  <section class="section">
+    <div class="section-label">STATUS</div>
+    <div class="status-grid">
+      <div class="status-row">
+        <span class="status-key">Connection</span>
+        <span class="status-val" class:green={focusStore.connected === 'connected'} class:red={focusStore.connected === 'error' || focusStore.connected === 'disconnected'}>
+          {focusStore.connected === 'connected' ? 'Connected' : focusStore.connected === 'error' ? 'Error' : 'Disconnected'}
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Frames</span>
+        <span class="status-val">{focusStore.frameCount}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">State version</span>
+        <span class="status-val mono">{focusStore.version}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Help section -->
+  <section class="section">
+    <div class="section-label">SETUP GUIDE</div>
+    <div class="help-list">
+      <div class="help-item">
+        <div class="help-num">1</div>
+        <div class="help-text">
+          <strong>Local daemon</strong> — run <code>focusa-daemon</code> on this machine. It binds to <code>127.0.0.1:8787</code> by default.
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-num">2</div>
+        <div class="help-text">
+          <strong>Remote daemon</strong> — on your server, run:
+          <code>FOCUSA_BIND=0.0.0.0:8787 focusa-daemon</code>
+          Then click "Remote…" above and enter the server IP.
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-num">3</div>
+        <div class="help-text">
+          <strong>SSH tunnel</strong> (safest) — keep daemon on localhost, tunnel the port:
+          <code>ssh -L 8787:127.0.0.1:8787 user@server</code>
+          Then use Local (127.0.0.1).
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section class="section about">
+    <span>Focusa v0.2.3</span>
+    <span class="separator">·</span>
+    <span>Cognitive Governance</span>
+  </section>
 </div>
 
 <style>
-  .settings {
-    width: 300px;
-    max-height: 460px;
-    overflow-y: auto;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-panel);
-    animation: slideDown var(--transition-fade) forwards;
-  }
-
-  .settings-header {
+  .settings-view {
+    padding: var(--sp-3);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .settings-title {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--fg-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    color: var(--fg-dim);
-    cursor: pointer;
-    font-size: 1.2rem;
+    flex-direction: column;
+    gap: var(--sp-3);
   }
 
   .section {
-    padding: var(--space-sm) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
   }
 
-  .label {
-    display: block;
-    font-size: var(--font-size-sm);
-    color: var(--fg-dim);
-    margin-bottom: 4px;
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--fg-tertiary);
+    letter-spacing: 0.8px;
+  }
+
+  /* Fields */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .field-label {
+    font-size: var(--text-xs);
+    color: var(--fg-secondary);
+    font-weight: 500;
   }
 
   .input {
     width: 100%;
     font-family: var(--font-mono);
-    font-size: var(--font-size-sm);
-    padding: 6px 8px;
+    font-size: var(--text-xs);
+    padding: var(--sp-2);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
+    border-radius: var(--r-sm);
+    background: var(--bg-panel);
     color: var(--fg);
-  }
-
-  .input:focus {
     outline: none;
-    border-color: var(--accent);
+    transition: border-color var(--dur-fast) var(--ease);
   }
 
-  .presets {
+  .input:focus { border-color: var(--accent); }
+
+  /* Preset buttons */
+  .preset-row {
     display: flex;
-    gap: 6px;
-    margin-top: 6px;
+    gap: var(--sp-1);
   }
 
-  .preset {
+  .preset-btn {
     flex: 1;
-    font-size: 0.65rem;
-    padding: 4px 6px;
+    font-family: var(--font);
+    font-size: var(--text-xs);
+    padding: var(--sp-1) var(--sp-2);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
-    color: var(--fg-dim);
+    border-radius: var(--r-sm);
+    background: var(--bg-panel);
+    color: var(--fg-secondary);
     cursor: pointer;
-    transition: all var(--transition-fade);
+    transition: all var(--dur-fast) var(--ease);
   }
 
-  .preset:hover {
+  .preset-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
   }
 
-  .actions {
+  /* Action buttons */
+  .action-row {
     display: flex;
-    gap: 6px;
-    padding: 0 var(--space-md) var(--space-sm);
+    gap: var(--sp-2);
   }
 
   .btn {
     flex: 1;
-    font-size: var(--font-size-sm);
-    padding: 6px;
+    font-family: var(--font);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    padding: var(--sp-2);
+    border-radius: var(--r-sm);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: all var(--transition-fade);
-  }
-
-  .btn-test {
-    background: var(--bg);
-    color: var(--fg-dim);
-  }
-
-  .btn-save {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
+    transition: all var(--dur-fast) var(--ease);
   }
 
   .btn:disabled {
@@ -240,75 +256,119 @@
     cursor: not-allowed;
   }
 
+  .btn.secondary {
+    background: var(--bg-panel);
+    color: var(--fg-secondary);
+  }
+
+  .btn.secondary:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  .btn.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .btn.primary:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+
+  /* Test result */
   .test-result {
-    padding: 4px var(--space-md);
-    font-size: var(--font-size-sm);
+    font-size: var(--text-xs);
     font-family: var(--font-mono);
+    padding: var(--sp-2);
+    border-radius: var(--r-sm);
+    background: var(--bg-elevated);
   }
 
-  .test-result.success { color: var(--success); }
-  .test-result.error { color: var(--error); }
+  .test-result.ok { color: var(--green); }
+  .test-result.err { color: var(--red); }
 
-  .info {
-    padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid var(--border);
+  /* Status grid */
+  .status-grid {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
   }
 
-  .info-header {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--fg-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-  }
-
-  .info-row {
+  .status-row {
     display: flex;
     justify-content: space-between;
-    font-size: var(--font-size-sm);
-    padding: 1px 0;
+    align-items: center;
+    padding: var(--sp-2) var(--sp-3);
+    font-size: var(--text-xs);
   }
 
-  .info-label { color: var(--fg-dim); }
-  .info-value { color: var(--fg); }
-  .info-value.ok { color: var(--success); }
-  .info-value.err { color: var(--error); }
-  .mono { font-family: var(--font-mono); }
-
-  .help {
-    padding: var(--space-sm) var(--space-md);
+  .status-row + .status-row {
     border-top: 1px solid var(--border);
   }
 
-  .help-title {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--fg-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
+  .status-key { color: var(--fg-secondary); }
+  .status-val { color: var(--fg); font-weight: 500; }
+  .status-val.green { color: var(--green); }
+  .status-val.red { color: var(--red); }
+  .mono { font-family: var(--font-mono); }
+
+  /* Help */
+  .help-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
   }
 
-  .help ol {
-    font-size: 0.7rem;
-    color: var(--fg-dim);
-    padding-left: 16px;
+  .help-item {
+    display: flex;
+    gap: var(--sp-2);
+  }
+
+  .help-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    color: var(--fg-secondary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .help-text {
+    font-size: var(--text-xs);
+    color: var(--fg-secondary);
     line-height: 1.5;
   }
 
-  .help li { margin-bottom: 6px; }
-  .help code {
+  .help-text strong { color: var(--fg); }
+
+  .help-text code {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
-    background: var(--bg);
+    font-size: 10px;
+    background: var(--bg-elevated);
     padding: 1px 4px;
     border-radius: 3px;
     border: 1px solid var(--border);
+    display: inline;
   }
 
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+  /* About */
+  .about {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-1);
+    font-size: 10px;
+    color: var(--fg-tertiary);
+    padding-top: var(--sp-2);
+    border-top: 1px solid var(--border);
   }
+
+  .separator { color: var(--fg-tertiary); }
 </style>

@@ -1,90 +1,104 @@
-/* Focusa Design Tokens — docs/11-menubar-ui-spec.md
- *
- * Calm, organic, non-demanding.
- * Background: white/off-white
- * Primary: charcoal/grayscale
- * Accent: light navy
- * Focused: mid-gray
- * Nothing demands attention.
+/* Focusa Design Tokens
+ * macOS menubar popover style — follows system appearance.
+ * Calm, ambient, informative. Apple HIG compliant.
  */
 
 :root {
-  /* Colors */
-  --bg: #fafafa;
-  --bg-panel: #ffffff;
-  --fg: #333333;
-  --fg-dim: #888888;
-  --fg-muted: #aaaaaa;
-  --accent: #4a6fa5;        /* light navy */
-  --accent-soft: #6488b8;
-  --active: #555555;         /* mid-gray for focused elements */
-  --active-glow: rgba(74, 111, 165, 0.12);
-  --border: #e0e0e0;
-  --warn: #c8a050;
-  --error: #b85050;
-  --success: #50a064;
+  color-scheme: light dark;
 
-  /* Typography */
-  --font-body: system-ui, -apple-system, sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', monospace;
-  --font-size-sm: 0.75rem;
-  --font-size-base: 0.875rem;
-  --font-size-lg: 1rem;
+  /* Light mode defaults */
+  --bg: #f5f5f7;
+  --bg-panel: #ffffff;
+  --bg-elevated: #f0f0f2;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --fg: #1d1d1f;
+  --fg-secondary: #6e6e73;
+  --fg-tertiary: #aeaeb2;
+  --accent: #4a6fa5;
+  --accent-dim: rgba(74, 111, 165, 0.15);
+  --green: #34c759;
+  --orange: #ff9f0a;
+  --red: #ff3b30;
+  --border: rgba(0, 0, 0, 0.1);
+  --border-heavy: rgba(0, 0, 0, 0.18);
+  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* Typography — SF-style system font */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-lg: 15px;
+  --text-xl: 17px;
+  --text-2xl: 22px;
 
   /* Spacing */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-
-  /* Motion — cloud-like, organic */
-  --transition-gentle: 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-drift: 2s cubic-bezier(0.45, 0.05, 0.55, 0.95);
-  --transition-fade: 0.4s ease-out;
-
-  /* Elevation */
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-panel: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
 
   /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-full: 50%;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-full: 100px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur-fast: 0.15s;
+  --dur-normal: 0.25s;
 }
 
-/* Reduced motion support */
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --bg-panel: #2c2c2e;
+    --bg-elevated: #3a3a3c;
+    --bg-hover: rgba(255, 255, 255, 0.06);
+    --fg: #f5f5f7;
+    --fg-secondary: #98989d;
+    --fg-tertiary: #636366;
+    --accent: #6ba0d6;
+    --accent-dim: rgba(107, 160, 214, 0.18);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-heavy: rgba(255, 255, 255, 0.16);
+    --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --transition-gentle: 0s;
-    --transition-drift: 0s;
-    --transition-fade: 0s;
+    --dur-fast: 0s;
+    --dur-normal: 0s;
   }
 }
 
-/* High contrast mode */
-@media (prefers-contrast: high) {
-  :root {
-    --fg: #000000;
-    --fg-dim: #444444;
-    --border: #666666;
-    --active: #000000;
-  }
-}
-
-* {
+/* Reset */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
 body {
-  font-family: var(--font-body);
-  font-size: var(--font-size-base);
+  font-family: var(--font);
+  font-size: var(--text-base);
   color: var(--fg);
   background: var(--bg);
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Scrollbar — thin, subtle */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fg-tertiary); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fg-secondary); }

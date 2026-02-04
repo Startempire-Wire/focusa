@@ -1,6 +1,6 @@
-// Gate store — reactive state for Focus Gate candidates.
+// Gate store — Focus Gate candidates and signals.
 
-export interface Candidate {
+export interface GateCandidate {
   id: string;
   kind: string;
   label: string;
@@ -9,21 +9,28 @@ export interface Candidate {
   status: string;
 }
 
+export interface GateSignal {
+  kind: string;
+  frame_id?: string;
+  timestamp: string;
+  confidence: number;
+}
+
 function createGateStore() {
-  let candidates = $state<Candidate[]>([]);
+  let candidates = $state<GateCandidate[]>([]);
+  let signals = $state<GateSignal[]>([]);
 
   return {
     get candidates() { return candidates; },
+    get signals() { return signals; },
     get surfacedCount() {
       return candidates.filter(c => c.status === 'Surfaced').length;
     },
-    get pinnedCount() {
-      return candidates.filter(c => c.pinned).length;
-    },
 
     update(gateData: any) {
-      if (gateData?.candidates) {
-        candidates = gateData.candidates;
+      if (gateData) {
+        candidates = gateData.candidates ?? [];
+        signals = (gateData.signals ?? []).slice(-20);
       }
     },
   };

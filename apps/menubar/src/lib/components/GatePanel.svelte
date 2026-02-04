@@ -1,144 +1,206 @@
 <!--
-  GatePanel — small vertical panel showing surfaced candidates.
-  Pressure as opacity. Pin/suppress actions only.
-  No "switch focus" button.
+  GatePanel — full-tab view of gate candidates and recent signals.
 -->
 <script lang="ts">
   import { gateStore } from '$lib/stores/gate.svelte';
+  import { intuitionStore } from '$lib/stores/intuition.svelte';
 
-  let { onclose }: { onclose: () => void } = $props();
   let candidates = $derived(gateStore.candidates);
+  let signals = $derived(intuitionStore.signals);
 </script>
 
-<div class="gate-panel">
-  <div class="gate-header">
-    <span class="gate-title">Gate Candidates</span>
-    <button class="close-btn" onclick={onclose}>×</button>
-  </div>
-
-  {#if candidates.length === 0}
-    <div class="empty">No candidates</div>
-  {:else}
-    <div class="candidate-list">
-      {#each candidates as candidate}
-        <div
-          class="candidate"
-          class:surfaced={candidate.status === 'Surfaced'}
-          class:pinned={candidate.pinned}
-          style="--pressure-opacity: {Math.max(0.3, candidate.pressure)}"
-        >
-          <div class="candidate-header">
-            <span class="candidate-kind">{candidate.kind}</span>
-            {#if candidate.pinned}
-              <span class="pin">📌</span>
-            {/if}
-          </div>
-          <div class="candidate-label">{candidate.label}</div>
-          <div class="candidate-pressure">
-            <div class="pressure-bar" style="width: {candidate.pressure * 100}%"></div>
-          </div>
-        </div>
-      {/each}
+<div class="gate-view">
+  {#if candidates.length === 0 && signals.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">◇</div>
+      <div class="empty-title">Gate is Quiet</div>
+      <div class="empty-desc">
+        No candidates are pressing for attention. The intuition engine has no recent signals.
+      </div>
+      <div class="empty-hint">
+        Candidates surface when the daemon detects context switches, stalls, or priority changes.
+      </div>
     </div>
+  {:else}
+    {#if candidates.length > 0}
+      <section class="section">
+        <div class="section-label">CANDIDATES ({candidates.length})</div>
+        {#each candidates as c}
+          <div class="candidate" style="--pressure: {Math.max(0.3, c.pressure)}">
+            <div class="candidate-top">
+              <span class="candidate-kind">{c.kind}</span>
+              <div class="candidate-right">
+                {#if c.pinned}<span class="pin" title="Pinned">📌</span>{/if}
+                <span class="pressure-label">{Math.round(c.pressure * 100)}%</span>
+              </div>
+            </div>
+            <div class="candidate-label">{c.label}</div>
+            <div class="pressure-track">
+              <div class="pressure-fill" style="width: {c.pressure * 100}%"></div>
+            </div>
+          </div>
+        {/each}
+      </section>
+    {/if}
+
+    {#if signals.length > 0}
+      <section class="section">
+        <div class="section-label">RECENT SIGNALS ({signals.length})</div>
+        <div class="signal-list">
+          {#each signals.slice(-10).reverse() as s}
+            <div class="signal">
+              <span class="signal-kind">{s.kind}</span>
+              <span class="signal-conf">{Math.round(s.confidence * 100)}%</span>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
   {/if}
 </div>
 
 <style>
-  .gate-panel {
-    width: 260px;
-    max-height: 320px;
+  .gate-view {
+    padding: var(--sp-3);
+  }
+
+  /* Empty */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--sp-6) var(--sp-4);
+    min-height: 300px;
+    justify-content: center;
+  }
+
+  .empty-icon {
+    font-size: 36px;
+    color: var(--fg-tertiary);
+    margin-bottom: var(--sp-3);
+  }
+
+  .empty-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: var(--sp-1);
+  }
+
+  .empty-desc {
+    font-size: var(--text-sm);
+    color: var(--fg-secondary);
+    max-width: 260px;
+    line-height: 1.5;
+    margin-bottom: var(--sp-3);
+  }
+
+  .empty-hint {
+    font-size: var(--text-xs);
+    color: var(--fg-tertiary);
+    max-width: 240px;
+    line-height: 1.5;
+  }
+
+  /* Sections */
+  .section { margin-bottom: var(--sp-4); }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--fg-tertiary);
+    letter-spacing: 0.8px;
+    margin-bottom: var(--sp-2);
+  }
+
+  /* Candidates */
+  .candidate {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-panel);
-    overflow-y: auto;
-    animation: slideUp var(--transition-fade) forwards;
+    border-radius: var(--r-md);
+    padding: var(--sp-2) var(--sp-3);
+    margin-bottom: var(--sp-2);
+    opacity: var(--pressure);
+    transition: opacity var(--dur-normal) var(--ease);
   }
 
-  .gate-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--border);
-  }
+  .candidate:hover { opacity: 1; }
 
-  .gate-title {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--fg-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    color: var(--fg-dim);
-    cursor: pointer;
-    font-size: 1.2rem;
-  }
-
-  .empty {
-    padding: var(--space-md);
-    color: var(--fg-muted);
-    font-size: var(--font-size-sm);
-    text-align: center;
-  }
-
-  .candidate-list {
-    padding: var(--space-xs);
-  }
-
-  .candidate {
-    padding: var(--space-sm);
-    border-radius: var(--radius-sm);
-    margin-bottom: var(--space-xs);
-    opacity: var(--pressure-opacity);
-    transition: opacity var(--transition-gentle);
-  }
-
-  .candidate.surfaced {
-    background: var(--active-glow);
-  }
-
-  .candidate-header {
+  .candidate-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   .candidate-kind {
-    font-size: var(--font-size-sm);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
     color: var(--accent);
+    font-weight: 500;
+  }
+
+  .candidate-right {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-1);
+  }
+
+  .pin { font-size: 11px; }
+
+  .pressure-label {
+    font-size: 10px;
+    color: var(--fg-tertiary);
     font-family: var(--font-mono);
   }
 
-  .pin { font-size: 0.7rem; }
-
   .candidate-label {
-    font-size: var(--font-size-sm);
+    font-size: var(--text-sm);
     color: var(--fg);
     margin-top: 2px;
   }
 
-  .candidate-pressure {
-    margin-top: 4px;
+  .pressure-track {
     height: 2px;
     background: var(--border);
     border-radius: 1px;
+    margin-top: var(--sp-2);
     overflow: hidden;
   }
 
-  .pressure-bar {
+  .pressure-fill {
     height: 100%;
     background: var(--accent);
     border-radius: 1px;
-    transition: width var(--transition-gentle);
+    transition: width var(--dur-normal) var(--ease);
   }
 
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+  /* Signals */
+  .signal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .signal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--r-sm);
+    font-size: var(--text-xs);
+  }
+
+  .signal:hover { background: var(--bg-hover); }
+
+  .signal-kind {
+    font-family: var(--font-mono);
+    color: var(--fg-secondary);
+  }
+
+  .signal-conf {
+    font-family: var(--font-mono);
+    color: var(--fg-tertiary);
+    font-size: 10px;
   }
 </style>
