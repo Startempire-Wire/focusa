@@ -29,12 +29,19 @@ pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
+                let total = resp["total"].as_u64().unwrap_or(0);
+                let returned = resp["returned"].as_u64().unwrap_or(0);
                 let events = resp["events"].as_array();
                 match events {
                     Some(e) if e.is_empty() => println!("No events"),
                     Some(e) => {
+                        println!("Events ({} of {} total):", returned, total);
                         for event in e {
-                            println!("  {}", event);
+                            let ts = event["timestamp"].as_str().unwrap_or("?");
+                            let etype = event["type"].as_str().unwrap_or("?");
+                            let id = event["id"].as_str().unwrap_or("?");
+                            let short_id = if id.len() >= 8 { &id[..8] } else { id };
+                            println!("  {} [{}] {}", ts, short_id, etype);
                         }
                     }
                     None => println!("No events"),
