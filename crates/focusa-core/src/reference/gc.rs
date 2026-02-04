@@ -25,23 +25,20 @@ pub fn find_eligible(
 ) -> Vec<ArtifactId> {
     let cutoff = Utc::now() - max_age;
 
-    // Collect all handle IDs referenced by non-completed frames.
-    let active_handle_ids: Vec<HandleId> = state
-        .focus_stack
-        .frames
-        .iter()
-        .filter(|f| f.status != FrameStatus::Completed && f.status != FrameStatus::Archived)
-        .flat_map(|f| f.handles.iter().map(|h| h.id))
-        .collect();
+    // Protect handles from the active session (if any).
+    let active_session = state.session.as_ref()
+        .filter(|s| s.status == SessionStatus::Active)
+        .map(|s| s.session_id);
 
     state
         .reference_index
         .handles
         .iter()
         .filter(|h| {
+            let in_active_session = active_session.is_some() && h.session_id == active_session;
             !h.pinned
                 && h.created_at < cutoff
-                && !active_handle_ids.contains(&h.id)
+                && !in_active_session
         })
         .map(|h| h.id)
         .collect()

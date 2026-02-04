@@ -138,7 +138,6 @@ pub struct FrameRecord {
     pub priority_hint: Option<String>,
     pub ascc_checkpoint_id: Option<String>,
     pub stats: FrameStats,
-    pub handles: Vec<HandleRef>,
     pub constraints: Vec<String>,
     /// The frame's current cognitive state (updated incrementally via deltas).
     pub focus_state: FocusState,

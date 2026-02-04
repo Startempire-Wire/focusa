@@ -113,14 +113,16 @@ pub fn process_request(
     );
     let rules_owned: Vec<RuleRecord> = rules.into_iter().cloned().collect();
 
-    // Collect artifact handles from active frame.
-    let handles: Vec<&HandleRef> = state
-        .focus_stack
-        .active_id
-        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))
-        .map(|f| f.handles.iter().collect())
-        .unwrap_or_default();
-    let handles_owned: Vec<HandleRef> = handles.into_iter().cloned().collect();
+    // Collect artifact handles for prompt inclusion.
+    // Handles belong to the global reference_index; include session-scoped + pinned.
+    let session_id = state.session.as_ref().map(|s| s.session_id);
+    let handles_owned: Vec<HandleRef> = state
+        .reference_index
+        .handles
+        .iter()
+        .filter(|h| h.session_id == session_id || h.pinned)
+        .cloned()
+        .collect();
 
     // Assemble prompt.
     let assembly = assemble(

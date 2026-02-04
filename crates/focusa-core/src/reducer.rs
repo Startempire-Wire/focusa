@@ -144,7 +144,6 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
                 priority_hint: None,
                 ascc_checkpoint_id: None,
                 stats: FrameStats::default(),
-                handles: vec![],
                 constraints,
                 focus_state: FocusState::default(),
             });
@@ -1001,7 +1000,6 @@ mod tests {
             priority_hint: None,
             ascc_checkpoint_id: None,
             stats: FrameStats::default(),
-            handles: vec![],
             constraints: vec![],
             focus_state: FocusState::default(),
         });
