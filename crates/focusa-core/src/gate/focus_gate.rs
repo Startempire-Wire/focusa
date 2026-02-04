@@ -44,7 +44,10 @@ pub fn decay_candidates(gate: &mut FocusGateState, decay_factor: f32) {
     }
 }
 
-/// Get surfaced candidates (pressure >= threshold, not suppressed, not resolved).
+/// Get surfaced candidates (pressure >= threshold, not resolved, not actively suppressed).
+///
+/// Time-based suppression: suppressed candidates become eligible again
+/// once `suppressed_until` has passed.
 pub fn surfaced_candidates(gate: &FocusGateState, threshold: f32) -> Vec<&Candidate> {
     let now = chrono::Utc::now();
     gate.candidates
@@ -52,8 +55,8 @@ pub fn surfaced_candidates(gate: &FocusGateState, threshold: f32) -> Vec<&Candid
         .filter(|c| {
             c.pressure >= threshold
                 && c.state != CandidateState::Resolved
-                && c.state != CandidateState::Suppressed
-                && c.suppressed_until.map_or(true, |until| now >= until)
+                && (c.state != CandidateState::Suppressed
+                    || c.suppressed_until.map_or(false, |until| now >= until))
         })
         .collect()
 }
