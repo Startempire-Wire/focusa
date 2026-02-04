@@ -51,7 +51,7 @@ pub async fn run(cmd: ProposalCmd, json: bool) -> anyhow::Result<()> {
             if json {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("Proposal submitted: {}", resp["proposal_id"]);
+                println!("Proposal submitted (async — check 'focusa proposals list')");
             }
         }
     }
