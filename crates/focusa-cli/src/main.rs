@@ -7,6 +7,7 @@
 
 use clap::{Parser, Subcommand};
 
+mod api_client;
 mod commands;
 
 #[derive(Parser)]
@@ -16,10 +17,6 @@ struct Cli {
     /// Output in JSON format.
     #[arg(long, global = true)]
     json: bool,
-
-    /// Config file path.
-    #[arg(long, global = true)]
-    config: Option<String>,
 
     /// Verbose output.
     #[arg(long, global = true)]
@@ -35,10 +32,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Start the Focusa daemon.
-    Start,
-    /// Stop the Focusa daemon.
-    Stop,
     /// Show daemon status.
     Status,
 
@@ -46,7 +39,7 @@ enum Commands {
     #[command(subcommand)]
     Focus(commands::focus::FocusCmd),
 
-    /// Focus stack overview.
+    /// Show focus stack overview.
     Stack,
 
     /// Focus Gate (candidate management).
@@ -61,7 +54,7 @@ enum Commands {
     #[command(subcommand)]
     Ecs(commands::ecs::EcsCmd),
 
-    /// Debug and inspection.
+    /// Event log inspection.
     #[command(subcommand)]
     Events(commands::debug::EventsCmd),
 
@@ -76,7 +69,11 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let default_filter = if cli.verbose { "focusa=debug" } else { "focusa=warn" };
+    let default_filter = if cli.verbose {
+        "focusa=debug"
+    } else {
+        "focusa=warn"
+    };
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -85,23 +82,59 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     match cli.command {
-        Commands::Start => {
-            println!("Starting Focusa daemon...");
-            // TODO: Start daemon process
-        }
-        Commands::Stop => {
-            println!("Stopping Focusa daemon...");
-            // TODO: Stop daemon
-        }
         Commands::Status => {
-            println!("Focusa daemon status: not running");
-            // TODO: GET /v1/status
+            let api = api_client::ApiClient::new();
+            let resp = api.get("/v1/status").await?;
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                let version = resp["version"].as_u64().unwrap_or(0);
+                let depth = resp["stack_depth"].as_u64().unwrap_or(0);
+                let session = if resp["session"].is_null() {
+                    "none".to_string()
+                } else {
+                    resp["session"]["session_id"]
+                        .as_str()
+                        .unwrap_or("unknown")
+                        .to_string()
+                };
+                println!("Focusa daemon: running");
+                println!("  session:     {}", session);
+                println!("  stack depth: {}", depth);
+                println!("  version:     {}", version);
+            }
+        }
+        Commands::Stack => {
+            let api = api_client::ApiClient::new();
+            let resp = api.get("/v1/focus/stack").await?;
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                let active = resp["active_frame_id"]
+                    .as_str()
+                    .unwrap_or("none");
+                println!("Active: {}", active);
+                if let Some(stack) = resp["stack"].as_object() {
+                    if let Some(frames) = stack.get("frames").and_then(|f| f.as_array()) {
+                        if frames.is_empty() {
+                            println!("  (empty stack)");
+                        }
+                        for frame in frames {
+                            let status = frame["status"].as_str().unwrap_or("?");
+                            let title = frame["title"].as_str().unwrap_or("?");
+                            let id = frame["id"].as_str().unwrap_or("?");
+                            let marker = if Some(id) == resp["active_frame_id"].as_str() {
+                                "►"
+                            } else {
+                                " "
+                            };
+                            println!("  {} [{}] {} ({})", marker, status, title, &id[..8]);
+                        }
+                    }
+                }
+            }
         }
         Commands::Focus(cmd) => commands::focus::run(cmd, cli.json).await?,
-        Commands::Stack => {
-            println!("Focus stack: (empty)");
-            // TODO: GET /v1/focus/stack
-        }
         Commands::Gate(cmd) => commands::gate::run(cmd, cli.json).await?,
         Commands::Memory(cmd) => commands::memory::run(cmd, cli.json).await?,
         Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await?,

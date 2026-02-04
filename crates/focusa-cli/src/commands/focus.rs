@@ -1,5 +1,6 @@
 //! Focus stack CLI commands.
 
+use crate::api_client::ApiClient;
 use clap::Subcommand;
 use serde_json::json;
 
@@ -12,11 +13,18 @@ pub enum FocusCmd {
         /// Frame goal.
         #[arg(long)]
         goal: String,
+        /// Beads issue ID.
+        #[arg(long)]
+        beads_issue_id: String,
+        /// Constraints (comma-separated).
+        #[arg(long)]
+        constraints: Option<String>,
+        /// Tags (comma-separated).
+        #[arg(long)]
+        tags: Option<String>,
     },
     /// Pop (complete) the active frame.
-    Pop,
-    /// Complete the active frame with reason.
-    Complete {
+    Pop {
         /// Completion reason.
         #[arg(long, default_value = "goal_achieved")]
         reason: String,
@@ -29,26 +37,69 @@ pub enum FocusCmd {
 }
 
 pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
+    let api = ApiClient::new();
+
     match cmd {
-        FocusCmd::Push { title, goal } => {
+        FocusCmd::Push {
+            title,
+            goal,
+            beads_issue_id,
+            constraints,
+            tags,
+        } => {
+            let constraints: Vec<String> = constraints
+                .map(|s| s.split(',').map(|c| c.trim().to_string()).collect())
+                .unwrap_or_default();
+            let tags: Vec<String> = tags
+                .map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
+                .unwrap_or_default();
+
+            let resp = api
+                .post(
+                    "/v1/focus/push",
+                    &json!({
+                        "title": title,
+                        "goal": goal,
+                        "beads_issue_id": beads_issue_id,
+                        "constraints": constraints,
+                        "tags": tags,
+                    }),
+                )
+                .await?;
+
             if json_mode {
-                println!("{}", json!({"action": "push", "title": title, "goal": goal}));
+                println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("Push frame: {} (goal: {})", title, goal);
+                println!("✓ Frame pushed: {}", title);
             }
-            // TODO: POST /v1/focus/push
         }
-        FocusCmd::Pop => {
-            println!("Pop active frame");
-            // TODO: POST /v1/focus/pop
-        }
-        FocusCmd::Complete { reason } => {
-            println!("Complete frame: {}", reason);
-            // TODO: POST /v1/focus/pop with reason
+        FocusCmd::Pop { reason } => {
+            let resp = api
+                .post(
+                    "/v1/focus/pop",
+                    &json!({"completion_reason": reason}),
+                )
+                .await?;
+
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("✓ Frame popped ({})", reason);
+            }
         }
         FocusCmd::Set { frame_id } => {
-            println!("Set active frame: {}", frame_id);
-            // TODO: POST /v1/focus/set-active
+            let resp = api
+                .post(
+                    "/v1/focus/set-active",
+                    &json!({"frame_id": frame_id}),
+                )
+                .await?;
+
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("✓ Active frame set: {}", frame_id);
+            }
         }
     }
     Ok(())
