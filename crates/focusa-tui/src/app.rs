@@ -100,9 +100,6 @@ pub struct StateSnapshot {
 #[derive(Debug, Clone, Deserialize)]
 pub struct SessionInfo {
     pub session_id: String,
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub started_at: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Deserialize)]
@@ -126,9 +123,6 @@ pub struct FrameInfo {
     pub status: String,
     #[serde(default)]
     pub depth: u32,
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub parent_id: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Deserialize)]

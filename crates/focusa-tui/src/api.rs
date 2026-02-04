@@ -34,7 +34,6 @@ impl ApiClient {
         let session = resp.get("session").and_then(|s| {
             Some(SessionInfo {
                 session_id: s.get("session_id")?.as_str()?.to_string(),
-                started_at: s.get("started_at").and_then(|v| v.as_str()).map(String::from),
             })
         });
 
@@ -60,7 +59,7 @@ impl ApiClient {
         let url = format!("{}/v1/events/recent?limit=50", self.base_url);
         let resp: Value = self.client.get(&url).send().await?.json().await?;
 
-        let entries = resp.get("entries").and_then(|e| e.as_array());
+        let entries = resp.get("events").and_then(|e| e.as_array());
         let mut events = Vec::new();
         if let Some(arr) = entries {
             for entry in arr {
@@ -69,12 +68,11 @@ impl ApiClient {
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string(),
-                    event_type: entry.get("event_type")
-                        .or_else(|| entry.get("event").and_then(|e| e.get("type")))
+                    event_type: entry.get("type")
                         .and_then(|v| v.as_str())
                         .unwrap_or("unknown")
                         .to_string(),
-                    event_id: entry.get("event_id")
+                    event_id: entry.get("id")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .chars()
@@ -101,17 +99,21 @@ fn parse_stack(resp: &Value) -> StackInfo {
         .and_then(|f| f.as_array())
         .map(|arr| {
             arr.iter().map(|f| FrameInfo {
-                frame_id: f.get("frame_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                beads_id: f.get("beads_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                intent: f.get("intent").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                frame_id: f.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                beads_id: f.get("beads_issue_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                intent: f.get("focus_state")
+                    .and_then(|fs| fs.get("intent"))
+                    .and_then(|v| v.as_str())
+                    .or_else(|| f.get("title").and_then(|v| v.as_str()))
+                    .unwrap_or("")
+                    .to_string(),
                 status: f.get("status").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                depth: f.get("depth").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                parent_id: f.get("parent_id").and_then(|v| v.as_str()).map(String::from),
+                depth: 0, // Computed from stack_path_cache position, not stored.
             }).collect()
         })
         .unwrap_or_default();
 
-    let stack_path = stack.get("stack_path")
+    let stack_path = stack.get("stack_path_cache")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
         .unwrap_or_default();
@@ -120,22 +122,22 @@ fn parse_stack(resp: &Value) -> StackInfo {
 }
 
 fn parse_focus_state(resp: &Value) -> Option<FocusStateInfo> {
-    // Focus state lives inside the active frame's checkpoint.
+    // Focus state lives inside the active frame's focus_state field.
     let stack = resp.get("focus_stack")?;
     let active_id = stack.get("active_id")?.as_str()?;
     let frames = stack.get("frames")?.as_array()?;
     let active = frames.iter().find(|f| {
-        f.get("frame_id").and_then(|v| v.as_str()) == Some(active_id)
+        f.get("id").and_then(|v| v.as_str()) == Some(active_id)
     })?;
 
-    let cp = active.get("checkpoint")?;
+    let fs = active.get("focus_state")?;
 
     Some(FocusStateInfo {
-        intent: cp.get("intent").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        constraints: parse_string_array(cp.get("constraints")),
-        decisions: parse_string_array(cp.get("decisions")),
-        next_steps: parse_string_array(cp.get("next_steps")),
-        current_state: cp.get("current_state").and_then(|v| v.as_str()).map(String::from),
+        intent: fs.get("intent").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        constraints: parse_string_array(fs.get("constraints")),
+        decisions: parse_string_array(fs.get("decisions")),
+        next_steps: parse_string_array(fs.get("next_steps")),
+        current_state: fs.get("current_state").and_then(|v| v.as_str()).map(String::from),
     })
 }
 
@@ -154,7 +156,7 @@ fn parse_candidates(resp: &Value) -> Vec<CandidateInfo> {
                 label: c.get("label").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                 pressure: c.get("pressure").and_then(|v| v.as_f64()).unwrap_or(0.0),
                 pinned: c.get("pinned").and_then(|v| v.as_bool()).unwrap_or(false),
-                status: c.get("status").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                status: c.get("state").and_then(|v| v.as_str()).unwrap_or("").to_string(),
             }).collect()
         })
         .unwrap_or_default()
