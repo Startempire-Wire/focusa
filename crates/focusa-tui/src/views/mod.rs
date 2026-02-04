@@ -1,10 +1,19 @@
 //! View rendering — all panels composable, read-only.
 
+mod autonomy;
+mod constitution;
+mod events;
 mod focus_state;
 mod focus_stack;
 mod gate;
-mod events;
+mod lineage;
 mod metrics;
+mod proposals;
+mod rfm;
+mod skills;
+mod telemetry;
+mod training;
+mod uxp;
 
 use crate::app::{App, Tab};
 use crate::theme;
@@ -82,6 +91,15 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Tab::Gate => gate::render(app, frame, area),
         Tab::Events => events::render(app, frame, area),
         Tab::Metrics => metrics::render(app, frame, area),
+        Tab::Lineage => lineage::render(app, frame, area),
+        Tab::Autonomy => autonomy::render(app, frame, area),
+        Tab::Constitution => constitution::render(app, frame, area),
+        Tab::Telemetry => telemetry::render(app, frame, area),
+        Tab::Rfm => rfm::render(app, frame, area),
+        Tab::Proposals => proposals::render(app, frame, area),
+        Tab::Skills => skills::render(app, frame, area),
+        Tab::Uxp => uxp::render(app, frame, area),
+        Tab::Training => training::render(app, frame, area),
     }
 }
 

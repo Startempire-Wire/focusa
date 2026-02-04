@@ -2,6 +2,7 @@
 
 use crate::api::ApiClient;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// Active tab in the TUI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,6 +12,15 @@ pub enum Tab {
     Gate,
     Events,
     Metrics,
+    Lineage,
+    Autonomy,
+    Constitution,
+    Telemetry,
+    Rfm,
+    Proposals,
+    Skills,
+    Uxp,
+    Training,
 }
 
 impl Tab {
@@ -20,15 +30,33 @@ impl Tab {
         Tab::Gate,
         Tab::Events,
         Tab::Metrics,
+        Tab::Lineage,
+        Tab::Autonomy,
+        Tab::Constitution,
+        Tab::Telemetry,
+        Tab::Rfm,
+        Tab::Proposals,
+        Tab::Skills,
+        Tab::Uxp,
+        Tab::Training,
     ];
 
     pub fn label(&self) -> &'static str {
         match self {
-            Tab::FocusState => "Focus State",
-            Tab::FocusStack => "Focus Stack",
+            Tab::FocusState => "State",
+            Tab::FocusStack => "Stack",
             Tab::Gate => "Gate",
             Tab::Events => "Events",
             Tab::Metrics => "Metrics",
+            Tab::Lineage => "CLT",
+            Tab::Autonomy => "Autonomy",
+            Tab::Constitution => "ACP",
+            Tab::Telemetry => "Telemetry",
+            Tab::Rfm => "RFM",
+            Tab::Proposals => "PRE",
+            Tab::Skills => "Skills",
+            Tab::Uxp => "UXP",
+            Tab::Training => "Export",
         }
     }
 
@@ -39,6 +67,15 @@ impl Tab {
             Tab::Gate => "3",
             Tab::Events => "4",
             Tab::Metrics => "5",
+            Tab::Lineage => "6",
+            Tab::Autonomy => "7",
+            Tab::Constitution => "8",
+            Tab::Telemetry => "9",
+            Tab::Rfm => "0",
+            Tab::Proposals => "p",
+            Tab::Skills => "s",
+            Tab::Uxp => "u",
+            Tab::Training => "x",
         }
     }
 }
@@ -138,6 +175,7 @@ pub struct EventInfo {
 pub struct App {
     pub tab: Tab,
     pub state: StateSnapshot,
+    pub extra_data: HashMap<String, Option<serde_json::Value>>,
     pub scroll_offset: u16,
     pub connected: bool,
     pub last_error: Option<String>,
@@ -149,6 +187,7 @@ impl App {
         Self {
             tab: Tab::FocusState,
             state: StateSnapshot::default(),
+            extra_data: HashMap::new(),
             scroll_offset: 0,
             connected: false,
             last_error: None,
@@ -162,10 +201,35 @@ impl App {
                 self.state = snapshot;
                 self.connected = true;
                 self.last_error = None;
+
+                // Fetch extra data for the active tab.
+                self.refresh_tab_data().await;
             }
             Err(e) => {
                 self.connected = false;
                 self.last_error = Some(format!("{}", e));
+            }
+        }
+    }
+
+    async fn refresh_tab_data(&mut self) {
+        let endpoints: &[(&str, &str)] = &[
+            ("clt", "/v1/clt/nodes"),
+            ("autonomy", "/v1/autonomy"),
+            ("constitution", "/v1/constitution/active"),
+            ("telemetry", "/v1/telemetry/tokens"),
+            ("rfm", "/v1/rfm"),
+            ("proposals", "/v1/proposals"),
+            ("skills", "/v1/skills"),
+            ("uxp", "/v1/uxp"),
+            ("ufi", "/v1/ufi"),
+            ("training", "/v1/training/status"),
+        ];
+
+        for (key, endpoint) in endpoints {
+            match self.client.fetch_json(endpoint).await {
+                Ok(data) => { self.extra_data.insert(key.to_string(), Some(data)); }
+                Err(_) => { self.extra_data.insert(key.to_string(), None); }
             }
         }
     }

@@ -18,6 +18,13 @@ impl ApiClient {
         }
     }
 
+    /// Fetch arbitrary JSON from an endpoint.
+    pub async fn fetch_json(&self, path: &str) -> Result<serde_json::Value> {
+        let url = format!("{}{}", self.base_url, path);
+        let resp = self.client.get(&url).send().await?.json().await?;
+        Ok(resp)
+    }
+
     /// Fetch full state snapshot from the daemon.
     pub async fn fetch_state(&self) -> Result<StateSnapshot> {
         let url = format!("{}/v1/state/dump", self.base_url);
