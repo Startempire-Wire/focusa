@@ -23,11 +23,6 @@
         "skipTaskbar": true
       }
     ],
-    "trayIcon": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true,
-      "tooltip": "Focusa — Cognitive Runtime"
-    },
     "security": {
       "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* http://100.*:* http://10.*:* http://192.168.*:*; style-src 'self' 'unsafe-inline'"
     }

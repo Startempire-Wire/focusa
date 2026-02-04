@@ -35,7 +35,10 @@
   }
 
   function useLocal() { url = 'http://127.0.0.1:8787'; }
-  function useTailscale() { url = 'http://100.94.238.56:8787'; }
+  function useRemote() {
+    const ip = prompt('Enter remote IP or hostname (e.g., 100.94.238.56)');
+    if (ip) { url = `http://${ip}:8787`; }
+  }
 </script>
 
 <div class="settings">
@@ -57,8 +60,8 @@
       <button class="preset" onclick={useLocal}>
         Local (127.0.0.1)
       </button>
-      <button class="preset" onclick={useTailscale}>
-        VPS (Tailscale)
+      <button class="preset" onclick={useRemote}>
+        Remote…
       </button>
     </div>
   </div>
@@ -106,9 +109,9 @@
         Default URL: <code>http://127.0.0.1:8787</code>
       </li>
       <li>
-        <strong>Remote (Tailscale):</strong> On your VPS, start the daemon with:<br/>
+        <strong>Remote:</strong> On your server, start the daemon with:<br/>
         <code>FOCUSA_BIND=0.0.0.0:8787 focusa-daemon</code><br/>
-        Then use your VPS Tailscale IP here.
+        Then click "Remote…" and enter the server IP.
       </li>
       <li>
         <strong>Remote (SSH tunnel):</strong> Keep daemon on localhost, tunnel:<br/>
