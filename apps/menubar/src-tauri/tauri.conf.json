@@ -29,7 +29,7 @@
       "tooltip": "Focusa — Cognitive Runtime"
     },
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8787; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* http://100.*:* http://10.*:* http://192.168.*:*; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {

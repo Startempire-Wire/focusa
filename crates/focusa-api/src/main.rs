@@ -26,7 +26,13 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let config = FocusaConfig::default();
+    let mut config = FocusaConfig::default();
+
+    // Allow overriding bind address via env (e.g., for Tailscale access from Mac).
+    // FOCUSA_BIND=0.0.0.0:8787 or FOCUSA_BIND=100.94.238.56:8787
+    if let Ok(bind) = std::env::var("FOCUSA_BIND") {
+        config.api_bind = bind;
+    }
 
     // Shared state: daemon writes after every reduction, API reads.
     let shared_state = Arc::new(RwLock::new(FocusaState::default()));

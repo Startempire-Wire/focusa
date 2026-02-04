@@ -762,6 +762,112 @@ The system is working when:
 
 ---
 
+## Quick Start
+
+### 1. Start the Daemon
+
+```bash
+# Local (default — localhost only)
+cargo run --bin focusa-daemon
+
+# Remote access via Tailscale
+FOCUSA_BIND=0.0.0.0:8787 cargo run --bin focusa-daemon
+```
+
+### 2. Use the CLI
+
+```bash
+# Local
+cargo run --bin focusa -- status
+
+# Remote (from Mac via Tailscale)
+FOCUSA_API_URL=http://100.94.238.56:8787 cargo run --bin focusa -- status
+```
+
+### 3. Use the TUI
+
+```bash
+# Local
+cargo run --bin focusa-tui
+
+# Remote
+FOCUSA_API_URL=http://100.94.238.56:8787 cargo run --bin focusa-tui
+```
+
+### 4. Use the Menubar App
+
+Download from [GitHub Releases](https://github.com/Startempire-Wire/focusa/releases), or build locally:
+
+```bash
+cd apps/menubar
+bun install
+bunx tauri build
+```
+
+Configure the API URL in the app: click the **⚙** gear icon → enter your daemon URL → **Test Connection** → **Save**.
+
+### 5. Use the Proxy
+
+Point your AI harness to the Focusa proxy endpoint:
+
+```bash
+# Set upstream (OpenAI, Anthropic, etc.)
+export FOCUSA_UPSTREAM_URL=https://api.openai.com/v1/chat/completions
+export FOCUSA_API_KEY=sk-...
+
+# Your harness uses this URL instead of the model directly:
+# http://127.0.0.1:8787/proxy/v1/chat/completions
+```
+
+## Remote Access (Mac → VPS via Tailscale)
+
+Focusa runs on your VPS. Your Mac accesses it over Tailscale.
+
+### Option A: Bind to all interfaces (simplest)
+
+On your VPS:
+```bash
+FOCUSA_BIND=0.0.0.0:8787 focusa-daemon
+```
+
+On your Mac (CLI/TUI):
+```bash
+export FOCUSA_API_URL=http://100.94.238.56:8787
+focusa status
+focusa-tui
+```
+
+In the menubar app: **⚙** → `http://100.94.238.56:8787` → Save.
+
+> **Note:** `0.0.0.0` binds to all interfaces. This is safe when your VPS firewall blocks port 8787 from the public internet (only Tailscale peers can reach it via `100.x.x.x`).
+
+### Option B: Bind to Tailscale IP only (most secure)
+
+```bash
+FOCUSA_BIND=100.94.238.56:8787 focusa-daemon
+```
+
+Only Tailscale peers can connect. Not reachable from localhost or public IP.
+
+### Option C: SSH tunnel (no bind change needed)
+
+Keep daemon on `127.0.0.1:8787` (default). From your Mac:
+```bash
+ssh -L 8787:127.0.0.1:8787 root@100.94.238.56
+```
+
+Then use `http://127.0.0.1:8787` everywhere — the tunnel forwards to VPS.
+
+### Environment Variables
+
+| Variable | Default | Used By | Purpose |
+|----------|---------|---------|---------|
+| `FOCUSA_BIND` | `127.0.0.1:8787` | Daemon | API listen address |
+| `FOCUSA_API_URL` | `http://127.0.0.1:8787` | CLI, TUI | API endpoint |
+| `FOCUSA_UPSTREAM_URL` | OpenAI | Daemon | Proxy upstream LLM |
+| `FOCUSA_API_KEY` | — | Daemon | Proxy auth to upstream |
+| `RUST_LOG` | `focusa=info` | All | Log level |
+
 ## License
 
 Proprietary — Startempire Wire

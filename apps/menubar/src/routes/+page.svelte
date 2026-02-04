@@ -4,27 +4,36 @@
   import IntuitionPulse from '$lib/components/IntuitionPulse.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import ReferencePeek from '$lib/components/ReferencePeek.svelte';
+  import Settings from '$lib/components/Settings.svelte';
   import { focusStore } from '$lib/stores/focus';
   import { gateStore } from '$lib/stores/gate';
   import { intuitionStore } from '$lib/stores/intuition';
   import { onMount } from 'svelte';
 
   let showGate = $state(false);
+  let showSettings = $state(false);
 
   onMount(() => {
-    // Poll Focusa API every 2 seconds.
+    // Poll Focusa API every 2 seconds using saved URL.
+    const getApiUrl = () =>
+      localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787';
+
     const interval = setInterval(async () => {
       try {
-        const base = 'http://127.0.0.1:8787';
-        const stateResp = await fetch(`${base}/v1/state/dump`);
-        if (stateResp.ok) {
-          const data = await stateResp.json();
+        const base = getApiUrl();
+        const resp = await fetch(`${base}/v1/state/dump`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
           focusStore.update(data);
           gateStore.update(data.focus_gate);
           intuitionStore.update(data);
+        } else {
+          focusStore.disconnect();
         }
       } catch {
-        // Daemon not running — stay calm.
+        focusStore.disconnect();
       }
     }, 2000);
     return () => clearInterval(interval);
@@ -58,6 +67,15 @@
 
   <!-- Reference peek (on hover) -->
   <ReferencePeek />
+
+  <!-- Settings -->
+  <button class="settings-trigger" onclick={() => showSettings = !showSettings}>⚙</button>
+
+  {#if showSettings}
+    <div class="settings-overlay">
+      <Settings onclose={() => showSettings = false} />
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -117,5 +135,28 @@
     bottom: 48px;
     right: var(--space-md);
     z-index: 10;
+  }
+
+  .settings-trigger {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    z-index: 3;
+    opacity: 0.4;
+    transition: opacity var(--transition-gentle);
+  }
+
+  .settings-trigger:hover { opacity: 1; }
+
+  .settings-overlay {
+    position: absolute;
+    top: 32px;
+    right: var(--space-sm);
+    z-index: 20;
   }
 </style>
