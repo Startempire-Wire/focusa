@@ -1,0 +1,21 @@
+[package]
+name = "focusa-cli"
+description = "Focusa CLI — primary control interface for engineers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "focusa"
+path = "src/main.rs"
+
+[dependencies]
+focusa-core = { workspace = true }
+clap = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }

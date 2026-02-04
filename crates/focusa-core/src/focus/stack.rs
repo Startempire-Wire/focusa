@@ -1,0 +1,147 @@
+//! Focus Stack — Hierarchical Execution Context.
+//!
+//! Source: 03-focus-stack.md, G1-detail-05-focus-stack-hec.md
+//!
+//! Core Invariants:
+//!   1. Exactly one active Focus Frame exists at any time
+//!   2. Every Focus Frame has a concrete intent
+//!   3. Every Focus Frame maps to a Beads issue
+//!   4. Frames are entered and exited explicitly
+//!   5. Completed frames are archived, not forgotten
+//!
+//! Invalid Operations (Forbidden):
+//!   - Multiple active frames
+//!   - Implicit frame switching
+//!   - Editing archived frames
+//!   - Frames without Beads linkage
+//!   - Skipping completion reasons
+
+use crate::types::*;
+use chrono::Utc;
+use uuid::Uuid;
+
+/// Push a new child frame under the current active frame.
+///
+/// Rules:
+///   - New frame becomes Active
+///   - Previous active becomes Paused
+///   - Emits: FocusFramePushed, focus.active_changed
+pub fn push_frame(
+    stack: &mut FocusStackState,
+    title: String,
+    goal: String,
+    beads_issue_id: String,
+    constraints: Vec<String>,
+    tags: Vec<String>,
+) -> Result<(FrameId, Vec<FocusaEvent>), String> {
+    let frame_id = Uuid::now_v7();
+    let now = Utc::now();
+
+    // Pause current active frame
+    if let Some(active_id) = stack.active_id {
+        if let Some(frame) = stack.frames.iter_mut().find(|f| f.id == active_id) {
+            frame.status = FrameStatus::Paused;
+            frame.updated_at = now;
+        }
+    }
+
+    let parent_id = stack.active_id;
+
+    let frame = FrameRecord {
+        id: frame_id,
+        parent_id,
+        created_at: now,
+        updated_at: now,
+        status: FrameStatus::Active,
+        title: title.clone(),
+        goal: goal.clone(),
+        beads_issue_id: beads_issue_id.clone(),
+        tags,
+        priority_hint: None,
+        ascc_checkpoint_id: None,
+        stats: FrameStats::default(),
+        handles: vec![],
+        constraints,
+    };
+
+    stack.frames.push(frame);
+    stack.active_id = Some(frame_id);
+    if stack.root_id.is_none() {
+        stack.root_id = Some(frame_id);
+    }
+    rebuild_stack_path(stack);
+    stack.version += 1;
+
+    let events = vec![FocusaEvent::FocusFramePushed {
+        frame_id,
+        beads_issue_id,
+        title,
+        goal,
+    }];
+
+    Ok((frame_id, events))
+}
+
+/// Pop (complete) the active frame, returning focus to parent.
+///
+/// Rules:
+///   - Current active frame → Completed
+///   - Requires completion_reason
+///   - Parent frame restores to Active
+pub fn pop_frame(
+    stack: &mut FocusStackState,
+    completion_reason: CompletionReason,
+) -> Result<Vec<FocusaEvent>, String> {
+    let active_id = stack
+        .active_id
+        .ok_or("No active frame to pop")?;
+
+    let parent_id = {
+        let frame = stack
+            .frames
+            .iter_mut()
+            .find(|f| f.id == active_id)
+            .ok_or("Active frame not found")?;
+        frame.status = FrameStatus::Completed;
+        frame.updated_at = Utc::now();
+        frame.parent_id
+    };
+
+    // Restore parent to active
+    if let Some(pid) = parent_id {
+        if let Some(parent) = stack.frames.iter_mut().find(|f| f.id == pid) {
+            parent.status = FrameStatus::Active;
+            parent.updated_at = Utc::now();
+        }
+        stack.active_id = Some(pid);
+    } else {
+        stack.active_id = None;
+    }
+
+    rebuild_stack_path(stack);
+    stack.version += 1;
+
+    Ok(vec![FocusaEvent::FocusFrameCompleted {
+        frame_id: active_id,
+        completion_reason,
+    }])
+}
+
+/// Rebuild the stack path cache from root to active.
+fn rebuild_stack_path(stack: &mut FocusStackState) {
+    stack.stack_path_cache.clear();
+    if let Some(active_id) = stack.active_id {
+        let mut current = Some(active_id);
+        let mut path = Vec::new();
+        while let Some(id) = current {
+            path.push(id);
+            current = stack
+                .frames
+                .iter()
+                .find(|f| f.id == id)
+                .and_then(|f| f.parent_id);
+        }
+        path.reverse();
+        stack.stack_path_cache = path;
+    }
+}

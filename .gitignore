@@ -1,27 +1,35 @@
-# Build
-target/
-dist/
+# Rust
+/target/
+Cargo.lock
+
+# Node / JS (menubar UI)
 node_modules/
+.svelte-kit/
+dist/
+build/
+.turbo/
 
-# Runtime state (never commit)
-data/
+# Tauri
+apps/menubar/src-tauri/target/
 
-# OS
-.DS_Store
-*.swp
-*.swo
-*~
-
-# IDE
-.vscode/
-.idea/
+# Runtime data (never committed)
+/data/
 
 # Environment
 .env
 .env.local
+.env.*.local
 
-# Beads internal (db, not jsonl)
-.beads/beads.db
-.beads/beads.db-shm
-.beads/beads.db-wal
-.beads/.local_version
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Focusa local state (runtime)
+.focusa/
