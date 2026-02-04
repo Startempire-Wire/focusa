@@ -52,6 +52,7 @@ pub fn surfaced_candidates(gate: &FocusGateState, threshold: f32) -> Vec<&Candid
         .filter(|c| {
             c.pressure >= threshold
                 && c.state != CandidateState::Resolved
+                && c.state != CandidateState::Suppressed
                 && c.suppressed_until.map_or(true, |until| now >= until)
         })
         .collect()

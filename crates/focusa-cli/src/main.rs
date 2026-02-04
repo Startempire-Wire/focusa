@@ -76,11 +76,13 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    if cli.verbose {
-        tracing_subscriber::fmt()
-            .with_env_filter("focusa=debug")
-            .init();
-    }
+    let default_filter = if cli.verbose { "focusa=debug" } else { "focusa=warn" };
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| default_filter.into()),
+        )
+        .init();
 
     match cli.command {
         Commands::Start => {

@@ -1,6 +1,6 @@
 # Rust
 /target/
-Cargo.lock
+# NOTE: Cargo.lock IS committed — required for reproducible binary builds.
 
 # Node / JS (menubar UI)
 node_modules/

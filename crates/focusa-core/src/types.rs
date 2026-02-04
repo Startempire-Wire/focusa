@@ -85,14 +85,8 @@ pub enum SessionStatus {
     Closed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionMeta {
-    pub session_id: SessionId,
-    pub created_at: DateTime<Utc>,
-    pub adapter_id: Option<String>,
-    pub workspace_id: Option<String>,
-    pub status: SessionStatus,
-}
+/// Alias for backward compatibility — SessionState is the canonical type.
+pub type SessionMeta = SessionState;
 
 // ─── Focus Stack (from 03-focus-stack.md) ───────────────────────────────────
 

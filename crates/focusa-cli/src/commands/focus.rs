@@ -1,6 +1,7 @@
 //! Focus stack CLI commands.
 
 use clap::Subcommand;
+use serde_json::json;
 
 #[derive(Subcommand)]
 pub enum FocusCmd {
@@ -27,11 +28,11 @@ pub enum FocusCmd {
     },
 }
 
-pub async fn run(cmd: FocusCmd, json: bool) -> anyhow::Result<()> {
+pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
     match cmd {
         FocusCmd::Push { title, goal } => {
-            if json {
-                println!("{{\"action\":\"push\",\"title\":\"{}\",\"goal\":\"{}\"}}", title, goal);
+            if json_mode {
+                println!("{}", json!({"action": "push", "title": title, "goal": goal}));
             } else {
                 println!("Push frame: {} (goal: {})", title, goal);
             }

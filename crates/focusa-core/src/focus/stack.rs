@@ -115,7 +115,9 @@ pub fn pop_frame(
         }
         stack.active_id = Some(pid);
     } else {
+        // Root frame was popped — clear both so next push starts fresh.
         stack.active_id = None;
+        stack.root_id = None;
     }
 
     rebuild_stack_path(stack);
@@ -128,13 +130,20 @@ pub fn pop_frame(
 }
 
 /// Rebuild the stack path cache from root to active.
+///
+/// Includes cycle detection to prevent infinite loops on corrupt data.
 fn rebuild_stack_path(stack: &mut FocusStackState) {
     stack.stack_path_cache.clear();
     if let Some(active_id) = stack.active_id {
         let mut current = Some(active_id);
         let mut path = Vec::new();
+        let max_depth = stack.frames.len();
         while let Some(id) = current {
             path.push(id);
+            if path.len() > max_depth {
+                tracing::error!("Cycle detected in focus stack parent pointers — aborting path rebuild");
+                break;
+            }
             current = stack
                 .frames
                 .iter()
