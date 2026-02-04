@@ -5,9 +5,9 @@
   import GatePanel from '$lib/components/GatePanel.svelte';
   import ReferencePeek from '$lib/components/ReferencePeek.svelte';
   import Settings from '$lib/components/Settings.svelte';
-  import { focusStore } from '$lib/stores/focus';
-  import { gateStore } from '$lib/stores/gate';
-  import { intuitionStore } from '$lib/stores/intuition';
+  import { focusStore } from '$lib/stores/focus.svelte';
+  import { gateStore } from '$lib/stores/gate.svelte';
+  import { intuitionStore } from '$lib/stores/intuition.svelte';
   import { onMount } from 'svelte';
 
   let showGate = $state(false);

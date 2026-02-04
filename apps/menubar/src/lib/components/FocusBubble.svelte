@@ -4,7 +4,7 @@
   Per docs/11-menubar-ui-spec.md: always centered, calm.
 -->
 <script lang="ts">
-  import { focusStore } from '$lib/stores/focus';
+  import { focusStore } from '$lib/stores/focus.svelte';
 
   let hovered = $state(false);
   let frame = $derived(focusStore.activeFrame);

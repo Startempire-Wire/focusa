@@ -4,7 +4,7 @@
   No "switch focus" button.
 -->
 <script lang="ts">
-  import { gateStore } from '$lib/stores/gate';
+  import { gateStore } from '$lib/stores/gate.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
   let candidates = $derived(gateStore.candidates);

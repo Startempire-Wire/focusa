@@ -4,7 +4,7 @@
   Never overlap focused bubble.
 -->
 <script lang="ts">
-  import { focusStore } from '$lib/stores/focus';
+  import { focusStore } from '$lib/stores/focus.svelte';
 
   let frames = $derived(focusStore.inactiveFrames);
 </script>

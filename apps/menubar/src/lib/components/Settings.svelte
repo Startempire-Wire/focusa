@@ -3,7 +3,7 @@
   Persists to localStorage.
 -->
 <script lang="ts">
-  import { focusStore } from '$lib/stores/focus';
+  import { focusStore } from '$lib/stores/focus.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
 

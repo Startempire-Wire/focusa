@@ -4,7 +4,7 @@
   Never interrupt. Per docs/11-menubar-ui-spec.md.
 -->
 <script lang="ts">
-  import { intuitionStore } from '$lib/stores/intuition';
+  import { intuitionStore } from '$lib/stores/intuition.svelte';
 
   let active = $derived(intuitionStore.hasRecent);
 </script>
