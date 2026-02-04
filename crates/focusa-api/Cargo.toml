@@ -22,3 +22,4 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 uuid = { workspace = true }
 base64 = "0.22"
+reqwest = { workspace = true }
