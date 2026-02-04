@@ -58,6 +58,14 @@ impl Daemon {
         // Load existing state or create fresh.
         let state = persistence.load_state()?.unwrap_or_default();
 
+        // Sync loaded state immediately so the API sees it before run() is called.
+        // No contention at construction time, so try_write always succeeds.
+        {
+            let mut shared = shared_state.try_write()
+                .expect("no contention at daemon construction");
+            *shared = state.clone();
+        }
+
         let (command_tx, command_rx) = mpsc::channel(256);
         Ok(Self {
             config,
@@ -78,9 +86,6 @@ impl Daemon {
     /// Run the main event loop. Blocks until the channel is closed.
     pub async fn run(&mut self) -> anyhow::Result<()> {
         tracing::info!("Focusa daemon starting (version {})", self.state.version);
-
-        // Sync initial loaded state to the shared handle so the API sees it.
-        self.sync_shared_state().await;
 
         while let Some(action) = self.command_rx.recv().await {
             if let Err(e) = self.process_action(action).await {

@@ -11,4 +11,3 @@
 pub mod daemon;
 pub mod events;
 pub mod persistence;
-pub mod session;

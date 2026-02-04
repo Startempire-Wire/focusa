@@ -85,9 +85,6 @@ pub enum SessionStatus {
     Closed,
 }
 
-/// Alias for backward compatibility — SessionState is the canonical type.
-pub type SessionMeta = SessionState;
-
 // ─── Focus Stack (from 03-focus-stack.md) ───────────────────────────────────
 
 /// Hierarchical Execution Context — models nested work.
