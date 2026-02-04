@@ -113,7 +113,7 @@ jobs:
           chmod +x focusa-${TAG}-*
           
           # Start the daemon
-          ./focusa-api-${TAG}-<your-platform>
+          ./focusa-daemon-${TAG}-<your-platform>
           
           # In another terminal — push a focus frame
           ./focusa-${TAG}-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
@@ -254,7 +254,7 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           mkdir -p dist
-          for bin in focusa-api focusa focusa-tui; do
+          for bin in focusa-daemon focusa focusa-tui; do
             if [ -f "target/${{ matrix.target }}/release/$bin" ]; then
               cp "target/${{ matrix.target }}/release/$bin" "dist/${bin}-${TAG}-${{ matrix.target }}"
             fi
