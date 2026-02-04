@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
       - run: cargo test --workspace
       - run: cargo clippy --workspace -- -D warnings
 
