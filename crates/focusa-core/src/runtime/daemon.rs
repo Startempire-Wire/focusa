@@ -158,16 +158,16 @@ impl Daemon {
                         }
                     }
 
-                    // Save state snapshot after each reduction.
-                    if let Err(e) = self.persistence.save_state(&self.state) {
-                        tracing::error!("Failed to save state snapshot: {}", e);
-                    }
-
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
 
                     // Telemetry: record each event.
                     self.state.telemetry.total_events += 1;
+
+                    // Save state snapshot (after all mutations so CLT + telemetry are captured).
+                    if let Err(e) = self.persistence.save_state(&self.state) {
+                        tracing::error!("Failed to save state snapshot: {}", e);
+                    }
 
                     // Sync to shared handle so the API sees all updates.
                     self.sync_shared_state().await;
@@ -208,14 +208,14 @@ impl Daemon {
                             tracing::error!("Failed to persist intuition signal: {}", e);
                         }
                     }
-                    if let Err(e) = self.persistence.save_state(&self.state) {
-                        tracing::error!("Failed to save state after intuition signal: {}", e);
-                    }
 
                     // Same post-reduction bookkeeping as process_action.
                     self.track_clt_event(&event);
                     self.state.telemetry.total_events += 1;
 
+                    if let Err(e) = self.persistence.save_state(&self.state) {
+                        tracing::error!("Failed to save state after intuition signal: {}", e);
+                    }
                     self.sync_shared_state().await;
                 }
                 Err(e) => {
