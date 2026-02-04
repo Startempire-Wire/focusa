@@ -184,21 +184,13 @@ impl Daemon {
                 }])
             }
 
-            Action::SetActiveFrame { frame_id } => {
-                // Setting active frame = suspend current + directly activate target.
-                // For MVP: suspend current, then the API layer must push/resume explicitly.
-                let mut events = Vec::new();
-                if let Some(current_id) = self.state.focus_stack.active_id {
-                    if current_id != frame_id {
-                        events.push(FocusaEvent::FocusFrameSuspended {
-                            frame_id: current_id,
-                            reason: format!("Switching to frame {}", frame_id),
-                        });
-                    }
-                }
-                // TODO: Resume target frame (needs a FocusFrameResumed event or similar).
-                // For now, SetActiveFrame only suspends the current frame.
-                Ok(events)
+            Action::SetActiveFrame { frame_id: _ } => {
+                // Not yet implemented — requires a FocusFrameResumed event type.
+                // Previous code suspended the current frame without activating the
+                // target, leaving zero active frames (degraded state). A no-op is
+                // safer than a half-op. Use push/pop for frame management in MVP.
+                tracing::warn!("SetActiveFrame not yet implemented — use push/pop instead");
+                Ok(vec![])
             }
 
             // ─── Gate ────────────────────────────────────────────────────
@@ -364,7 +356,7 @@ fn parse_suppression_scope(scope: &str) -> Option<DateTime<Utc>> {
     if scope == "session" {
         return None;
     }
-    if scope.len() < 2 {
+    if scope.len() < 2 || !scope.is_ascii() {
         tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
         return None;
     }
