@@ -51,6 +51,9 @@ pub fn push_frame(
 
     let parent_id = stack.active_id;
 
+    let frame_constraints = constraints.clone();
+    let frame_tags = tags.clone();
+
     let frame = FrameRecord {
         id: frame_id,
         parent_id,
@@ -66,6 +69,7 @@ pub fn push_frame(
         stats: FrameStats::default(),
         handles: vec![],
         constraints,
+        focus_state: FocusState::default(),
     };
 
     stack.frames.push(frame);
@@ -81,6 +85,8 @@ pub fn push_frame(
         beads_issue_id,
         title,
         goal,
+        constraints: frame_constraints,
+        tags: frame_tags,
     }];
 
     Ok((frame_id, events))

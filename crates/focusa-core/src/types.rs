@@ -125,6 +125,8 @@ pub struct FrameRecord {
     pub stats: FrameStats,
     pub handles: Vec<HandleRef>,
     pub constraints: Vec<String>,
+    /// The frame's current cognitive state (updated incrementally via deltas).
+    pub focus_state: FocusState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -429,6 +431,8 @@ pub enum FocusaEvent {
     // Session lifecycle
     SessionStarted {
         session_id: SessionId,
+        adapter_id: Option<String>,
+        workspace_id: Option<String>,
     },
     SessionRestored {
         session_id: SessionId,
@@ -443,6 +447,8 @@ pub enum FocusaEvent {
         beads_issue_id: String,
         title: String,
         goal: String,
+        constraints: Vec<String>,
+        tags: Vec<String>,
     },
     FocusFrameCompleted {
         frame_id: FrameId,
@@ -464,10 +470,12 @@ pub enum FocusaEvent {
         signal_id: SignalId,
         signal_type: SignalKind,
         severity: String,
+        summary: String,
         related_frame_id: Option<FrameId>,
     },
     CandidateSurfaced {
         candidate_id: CandidateId,
+        kind: CandidateKind,
         description: String,
         pressure: f32,
         related_frame_id: Option<FrameId>,
