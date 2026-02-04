@@ -45,10 +45,12 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
             adapter_id,
             workspace_id,
         } => {
-            if state.session.is_some() {
-                return Err(ReducerError::InvalidEvent(
-                    "SessionStarted but a session already exists".into(),
-                ));
+            if let Some(existing) = &state.session {
+                if existing.status == SessionStatus::Active {
+                    return Err(ReducerError::InvalidEvent(
+                        "SessionStarted but an active session already exists".into(),
+                    ));
+                }
             }
             state.session = Some(SessionState {
                 session_id,
