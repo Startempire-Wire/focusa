@@ -62,13 +62,6 @@ pub struct ChatCompletionRequest {
     pub extra: Value,
 }
 
-/// OpenAI chat completion response (passed through unchanged).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChatCompletionResponse {
-    #[serde(flatten)]
-    pub raw: Value,
-}
-
 /// Result of proxy processing.
 pub struct ProxyResult {
     /// The modified request to send upstream.
