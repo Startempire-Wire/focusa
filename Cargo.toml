@@ -4,6 +4,7 @@ members = [
     "crates/focusa-core",
     "crates/focusa-cli",
     "crates/focusa-api",
+    "crates/focusa-tui",
 ]
 
 [workspace.package]
