@@ -2,11 +2,20 @@
 //!
 //! Source: docs/G1-12-api.md
 //!
+//! Runs two concurrent tasks:
+//!   1. Daemon event loop (single-writer state machine)
+//!   2. HTTP API server (read state + dispatch commands)
+//!
 //! Default bind: 127.0.0.1:8787
 //! No auth in MVP (localhost only).
 
 mod routes;
 mod server;
+
+use focusa_core::runtime::daemon::Daemon;
+use focusa_core::types::FocusaConfig;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -17,6 +26,36 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    tracing::info!("Focusa daemon starting");
-    server::run().await
+    let config = FocusaConfig::default();
+
+    // Initialize daemon (loads saved state from disk).
+    let mut daemon = Daemon::new(config.clone())?;
+    let command_tx = daemon.command_sender();
+
+    // Shared state: daemon writes, API reads.
+    // The daemon's state is periodically synced to this shared handle.
+    let shared_state = Arc::new(RwLock::new(daemon.state().clone()));
+    let shared_state_for_api = shared_state.clone();
+
+    // Spawn daemon event loop.
+    let daemon_handle = tokio::spawn(async move {
+        if let Err(e) = daemon.run().await {
+            tracing::error!("Daemon error: {}", e);
+        }
+    });
+
+    // Start API server (blocks until shutdown).
+    let api_handle = tokio::spawn(async move {
+        if let Err(e) = server::run(shared_state_for_api, command_tx, config).await {
+            tracing::error!("API server error: {}", e);
+        }
+    });
+
+    // Wait for either to finish (normally neither should).
+    tokio::select! {
+        _ = daemon_handle => tracing::warn!("Daemon exited"),
+        _ = api_handle => tracing::warn!("API server exited"),
+    }
+
+    Ok(())
 }
