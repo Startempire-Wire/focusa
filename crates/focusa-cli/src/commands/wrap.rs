@@ -214,6 +214,9 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let mut final_args = args.clone();
     let mut user_input = String::new();
 
+    // Track if we need to pipe stdin.
+    let mut stdin_prompt: Option<String> = None;
+
     if let Some((idx, prompt)) = extract_prompt(&args, &harness) {
         user_input = prompt.clone();
 
@@ -228,8 +231,8 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         let assemble_resp = client.post("/v1/prompt/assemble", &json!({
             "turn_id": turn_id,
             "raw_user_input": prompt,
-            "harness_context": null,
-            "max_tokens_budget": null
+            "format": "string",
+            "budget": null
         })).await;
 
         if let Ok(resp) = assemble_resp {
@@ -238,6 +241,39 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                 // Replace prompt in args with enhanced version.
                 final_args[idx] = assembled;
                 tracing::debug!("Prompt enhanced via Expression Engine");
+            }
+        }
+    } else if matches!(harness.prompt_arg, PromptArg::Stdin) {
+        // For stdin-based harnesses, read from stdin and enhance.
+        use std::io::Read;
+        let mut raw_input = String::new();
+        if std::io::stdin().read_to_string(&mut raw_input).is_ok() && !raw_input.is_empty() {
+            user_input = raw_input.clone();
+
+            // Emit signal: user input received.
+            let _ = client.post("/v1/gate/signal", &json!({
+                "kind": "user_input_received",
+                "summary": format!("User input (stdin): {} chars", raw_input.len()),
+                "frame_context": null
+            })).await;
+
+            // Call daemon to assemble enhanced prompt.
+            let assemble_resp = client.post("/v1/prompt/assemble", &json!({
+                "turn_id": turn_id,
+                "raw_user_input": raw_input,
+                "format": "string",
+                "budget": null
+            })).await;
+
+            if let Ok(resp) = assemble_resp {
+                if let Some(assembled) = extract_assembled_prompt(&resp) {
+                    stdin_prompt = Some(assembled);
+                    tracing::debug!("Stdin prompt enhanced via Expression Engine");
+                } else {
+                    stdin_prompt = Some(raw_input);
+                }
+            } else {
+                stdin_prompt = Some(raw_input);
             }
         }
     }
@@ -278,13 +314,29 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     // 4. RUN SUBPROCESS
     // ═══════════════════════════════════════════════════════════════════════════
     
+    // For stdin-based harnesses, pipe stdin; otherwise inherit.
+    let stdin_mode = if stdin_prompt.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::inherit()
+    };
+
     let mut child = Command::new(&command[0])
         .args(&final_args)
         .envs(env_vars)
-        .stdin(Stdio::inherit())
+        .stdin(stdin_mode)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
+
+    // Write enhanced prompt to stdin if needed.
+    if let Some(prompt) = stdin_prompt {
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            let _ = stdin.write_all(prompt.as_bytes()).await;
+            let _ = stdin.shutdown().await;
+        }
+    }
 
     let stdout = child.stdout.take().expect("stdout");
     let stderr = child.stderr.take().expect("stderr");
@@ -296,6 +348,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let mut stdout_done = false;
     let mut stderr_done = false;
     let mut cancelled = false;
+    let mut seen_warnings: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
 
     // Stream output from both stdout and stderr until both close.
     // Handle Ctrl-C gracefully per spec.
@@ -339,12 +392,26 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                     Ok(Some(text)) => {
                         eprintln!("{}", text);
 
-                        // Emit error signal.
-                        let _ = client.post("/v1/gate/signal", &json!({
-                            "kind": "error_observed",
-                            "summary": format!("stderr: {}", truncate(&text, 100)),
-                            "frame_context": null
-                        })).await;
+                        // Track warning repetition.
+                        let warning_key = truncate(&text, 50);
+                        let count = seen_warnings.entry(warning_key.clone()).or_insert(0);
+                        *count += 1;
+
+                        // Emit repeated_warning if seen multiple times.
+                        if *count > 1 {
+                            let _ = client.post("/v1/gate/signal", &json!({
+                                "kind": "repeated_warning",
+                                "summary": format!("Warning repeated {} times: {}", count, truncate(&text, 80)),
+                                "frame_context": null
+                            })).await;
+                        } else {
+                            // First occurrence — emit error_observed.
+                            let _ = client.post("/v1/gate/signal", &json!({
+                                "kind": "error_observed",
+                                "summary": format!("stderr: {}", truncate(&text, 100)),
+                                "frame_context": null
+                            })).await;
+                        }
                     }
                     Ok(None) => stderr_done = true,
                     Err(_) => stderr_done = true,

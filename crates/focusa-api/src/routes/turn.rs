@@ -120,8 +120,8 @@ async fn prompt_assemble(
             }
     }
 
-    // Return as messages array (chat format) or plain string based on harness_context hint.
-    let output = if req.harness_context.as_deref() == Some("plain") {
+    // Return as messages array (chat format) or plain string based on format hint.
+    let output = if req.format.as_deref() == Some("string") {
         AssembledPromptOutput::Plain(assembly.content)
     } else {
         // Default: chat messages format.

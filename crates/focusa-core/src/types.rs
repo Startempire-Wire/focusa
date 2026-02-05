@@ -1476,17 +1476,23 @@ pub struct TurnStart {
 pub struct PromptAssembleRequest {
     pub turn_id: TurnId,
     pub raw_user_input: String,
-    #[serde(default)]
-    pub harness_context: Option<String>,
-    #[serde(default)]
-    pub max_tokens_budget: Option<u32>,
+    /// Output format: "string" or "messages".
+    #[serde(default, alias = "harness_context")]
+    pub format: Option<String>,
+    /// Token budget target.
+    #[serde(default, alias = "max_tokens_budget")]
+    pub budget: Option<u32>,
 }
 
 /// Prompt assembly response to adapter.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromptAssembleResponse {
+    /// The assembled prompt (per spec: "assembled").
+    #[serde(alias = "assembled")]
     pub assembled_prompt: AssembledPromptOutput,
     pub handles_used: Vec<HandleRef>,
+    /// Token statistics (per spec: "stats").
+    #[serde(alias = "stats")]
     pub context_stats: ContextStats,
 }
 
