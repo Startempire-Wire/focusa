@@ -88,10 +88,10 @@
           {/if}
           <div class="frame-meta">
             <span title="Turns">{active.stats.turn_count} turns</span>
-            <span class="meta-sep">·</span>
+            <span>·</span>
             <span>{timeAgo(active.updated_at)}</span>
             {#if active.beads_issue_id}
-              <span class="meta-sep">·</span>
+              <span>·</span>
               <span class="mono">{active.beads_issue_id}</span>
             {/if}
           </div>
@@ -165,7 +165,7 @@
             {/if}
             <div class="frame-meta">
               <span>{frame.stats.turn_count} turns</span>
-              <span class="meta-sep">·</span>
+              <span>·</span>
               <span>{timeAgo(frame.updated_at)}</span>
             </div>
           </div>
@@ -320,7 +320,6 @@
     color: var(--fg-tertiary);
   }
 
-  .meta-sep { color: var(--fg-tertiary); }
   .mono { font-family: var(--font-mono); }
 
   /* Detail rows */

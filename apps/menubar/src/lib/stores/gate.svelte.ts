@@ -6,14 +6,17 @@ export interface GateCandidate {
   label: string;
   pressure: number;
   pinned: boolean;
-  status: string;
+  state: string; // "latent" | "surfaced" | "suppressed" | "resolved"
 }
 
 export interface GateSignal {
+  id: string;
+  ts: string;
+  origin: string;
   kind: string;
-  frame_id?: string;
-  timestamp: string;
-  confidence: number;
+  frame_context?: string;
+  summary: string;
+  tags: string[];
 }
 
 function createGateStore() {
@@ -24,7 +27,7 @@ function createGateStore() {
     get candidates() { return candidates; },
     get signals() { return signals; },
     get surfacedCount() {
-      return candidates.filter(c => c.status === 'Surfaced').length;
+      return candidates.filter(c => c.state === 'surfaced').length;
     },
 
     update(gateData: any) {

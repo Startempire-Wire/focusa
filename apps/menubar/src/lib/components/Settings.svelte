@@ -167,7 +167,7 @@
   <!-- About -->
   <section class="section about">
     <span>Focusa v0.2.4</span>
-    <span class="separator">·</span>
+    <span>·</span>
     <span>Cognitive Governance</span>
   </section>
 </div>
@@ -406,5 +406,4 @@
     border-top: 1px solid var(--border);
   }
 
-  .separator { color: var(--fg-tertiary); }
 </style>

@@ -49,7 +49,7 @@
           {#each signals.slice(-10).reverse() as s}
             <div class="signal">
               <span class="signal-kind">{s.kind}</span>
-              <span class="signal-conf">{Math.round(s.confidence * 100)}%</span>
+              <span class="signal-summary">{s.summary}</span>
             </div>
           {/each}
         </div>
@@ -197,9 +197,13 @@
     color: var(--fg-secondary);
   }
 
-  .signal-conf {
-    font-family: var(--font-mono);
+  .signal-summary {
     color: var(--fg-tertiary);
     font-size: 10px;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
   }
 </style>

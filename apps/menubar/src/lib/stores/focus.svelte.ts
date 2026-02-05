@@ -38,7 +38,6 @@ function createFocusStore() {
   let version = $state(0);
   let activeId = $state<string | null>(null);
   let frames = $state<FocusFrame[]>([]);
-  let stackPath = $state<string[]>([]);
 
   return {
     get connected() { return connected; },
@@ -68,7 +67,6 @@ function createFocusStore() {
       if (stack) {
         activeId = stack.active_id ?? null;
         frames = stack.frames ?? [];
-        stackPath = stack.stack_path_cache ?? [];
       }
     },
 
