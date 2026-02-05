@@ -16,6 +16,15 @@ pub enum GateCmd {
     },
     /// Pin a candidate.
     Pin { candidate_id: String },
+    /// Resolve a candidate (mark as addressed).
+    Resolve { candidate_id: String },
+    /// Promote a candidate to a focus frame.
+    Promote {
+        candidate_id: String,
+        /// Beads issue ID for the new frame.
+        #[arg(long)]
+        beads_issue_id: String,
+    },
 }
 
 pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
@@ -71,6 +80,59 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("✓ Pinned {}", candidate_id);
+            }
+        }
+        GateCmd::Resolve { candidate_id } => {
+            // Resolve = suppress permanently (frame scope).
+            let resp = api
+                .post(
+                    "/v1/focus-gate/suppress",
+                    &json!({"candidate_id": candidate_id, "scope": "permanent"}),
+                )
+                .await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("✓ Resolved {}", candidate_id);
+            }
+        }
+        GateCmd::Promote { candidate_id, beads_issue_id } => {
+            // Get candidate info first.
+            let candidates_resp = api.get("/v1/focus-gate/candidates").await?;
+            let candidate = candidates_resp["candidates"]
+                .as_array()
+                .and_then(|arr| arr.iter().find(|c| c["id"].as_str() == Some(&candidate_id)))
+                .ok_or_else(|| anyhow::anyhow!("Candidate not found"))?;
+
+            let label = candidate["label"].as_str().unwrap_or("Promoted task");
+            let description = candidate["description"].as_str().unwrap_or(label);
+
+            // Push a new focus frame.
+            let resp = api
+                .post(
+                    "/v1/focus/push",
+                    &json!({
+                        "title": label,
+                        "goal": description,
+                        "beads_issue_id": beads_issue_id,
+                        "constraints": [],
+                        "tags": ["promoted"],
+                    }),
+                )
+                .await?;
+
+            // Resolve the candidate.
+            let _ = api
+                .post(
+                    "/v1/focus-gate/suppress",
+                    &json!({"candidate_id": candidate_id, "scope": "permanent"}),
+                )
+                .await;
+
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("✓ Promoted {} → new focus frame", candidate_id);
             }
         }
     }

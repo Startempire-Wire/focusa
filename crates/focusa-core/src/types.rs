@@ -668,6 +668,7 @@ pub enum Action {
     },
     SurfaceCandidate {
         candidate_id: CandidateId,
+        boost: f32,
     },
     PinCandidate {
         candidate_id: CandidateId,

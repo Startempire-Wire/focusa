@@ -300,24 +300,26 @@ impl Daemon {
                 },
             ]),
 
-            Action::SurfaceCandidate { candidate_id } => {
-                // Find existing candidate to get its data.
+            Action::SurfaceCandidate { candidate_id, boost } => {
+                // Find and boost candidate pressure.
                 let candidate = self
                     .state
                     .focus_gate
                     .candidates
-                    .iter()
+                    .iter_mut()
                     .find(|c| c.id == candidate_id)
                     .ok_or_else(|| {
                         anyhow::anyhow!("Candidate {} not found", candidate_id)
                     })?;
-                Ok(vec![FocusaEvent::CandidateSurfaced {
+                candidate.pressure += boost;
+                let event = FocusaEvent::CandidateSurfaced {
                     candidate_id,
                     kind: candidate.kind,
                     description: candidate.label.clone(),
                     pressure: candidate.pressure,
                     related_frame_id: candidate.related_frame_id,
-                }])
+                };
+                Ok(vec![event])
             }
 
             Action::PinCandidate { candidate_id } => {

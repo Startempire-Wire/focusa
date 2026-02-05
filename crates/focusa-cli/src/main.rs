@@ -28,6 +28,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Start the Focusa daemon.
+    Start,
+
+    /// Stop the Focusa daemon.
+    Stop,
+
     /// Show daemon status.
     Status,
 
@@ -117,6 +123,18 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     match cli.command {
+        Commands::Start => {
+            commands::daemon::start().await?;
+            if !cli.json {
+                println!("Focusa daemon started");
+            }
+        }
+        Commands::Stop => {
+            commands::daemon::stop().await?;
+            if !cli.json {
+                println!("Focusa daemon stopped");
+            }
+        }
         Commands::Status => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/status").await?;

@@ -1,6 +1,7 @@
 pub mod autonomy;
 pub mod clt;
 pub mod constitution;
+pub mod daemon;
 pub mod debug;
 pub mod ecs;
 pub mod focus;

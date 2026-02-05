@@ -3,7 +3,9 @@
 //! GET  /v1/focus-gate/candidates     — list candidates
 //! POST /v1/focus-gate/suppress       — suppress a candidate
 //! POST /v1/focus-gate/pin            — pin a candidate
-//! POST /v1/gate/signal               — emit signal from adapter
+//! POST /v1/focus-gate/surface        — surface a candidate (increase pressure)
+//! POST /v1/focus-gate/ingest-signal  — emit signal from adapter
+//! POST /v1/gate/signal               — alias for ingest-signal
 
 use crate::server::AppState;
 use axum::extract::State;
@@ -76,7 +78,33 @@ async fn pin(
     Ok(Json(json!({"status": "accepted"})))
 }
 
-/// POST /v1/gate/signal — emit signal from adapter.
+/// POST /v1/focus-gate/surface — surface a candidate.
+///
+/// Increases the candidate's pressure to bring it to attention.
+#[derive(Deserialize)]
+struct SurfaceBody {
+    candidate_id: uuid::Uuid,
+    #[serde(default)]
+    boost: Option<f32>,
+}
+
+async fn surface(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<SurfaceBody>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    state
+        .command_tx
+        .send(Action::SurfaceCandidate {
+            candidate_id: body.candidate_id,
+            boost: body.boost.unwrap_or(1.0),
+        })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({"status": "accepted"})))
+}
+
+/// POST /v1/focus-gate/ingest-signal — emit signal from adapter.
 ///
 /// Per spec: adapters emit signals for user input, tool output, errors.
 #[derive(Deserialize)]
@@ -124,5 +152,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/focus-gate/candidates", get(candidates))
         .route("/v1/focus-gate/suppress", post(suppress))
         .route("/v1/focus-gate/pin", post(pin))
-        .route("/v1/gate/signal", post(emit_signal))
+        .route("/v1/focus-gate/surface", post(surface))
+        .route("/v1/focus-gate/ingest-signal", post(emit_signal))
+        .route("/v1/gate/signal", post(emit_signal)) // Alias
 }

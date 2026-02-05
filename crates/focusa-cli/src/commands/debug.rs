@@ -10,6 +10,11 @@ pub enum EventsCmd {
         #[arg(long, default_value = "20")]
         limit: u32,
     },
+    /// Show a specific event.
+    Show {
+        /// Event ID.
+        event_id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -46,6 +51,18 @@ pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
                     }
                     None => println!("No events"),
                 }
+            }
+        }
+        EventsCmd::Show { event_id } => {
+            let resp = api
+                .get(&format!("/v1/events/{}", event_id))
+                .await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else if let Some(event) = resp.get("event") {
+                println!("{}", serde_json::to_string_pretty(event)?);
+            } else {
+                eprintln!("Event not found: {}", event_id);
             }
         }
     }

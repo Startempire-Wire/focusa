@@ -29,6 +29,8 @@ pub enum FocusCmd {
         #[arg(long, default_value = "goal_achieved")]
         reason: String,
     },
+    /// Complete the active frame (alias for pop with goal_achieved).
+    Complete,
     /// Set active frame by ID.
     Set {
         /// Frame ID.
@@ -85,6 +87,20 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("✓ Frame popped ({})", reason);
+            }
+        }
+        FocusCmd::Complete => {
+            let resp = api
+                .post(
+                    "/v1/focus/pop",
+                    &json!({"completion_reason": "goal_achieved"}),
+                )
+                .await?;
+
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("✓ Frame completed");
             }
         }
         FocusCmd::Set { frame_id } => {

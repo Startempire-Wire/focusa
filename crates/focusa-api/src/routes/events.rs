@@ -1,10 +1,11 @@
 //! Event routes.
 //!
-//! GET /v1/events/recent?limit=200 — read recent events from JSONL log
-//! GET /v1/events/stream — SSE event stream (Server-Sent Events)
+//! GET /v1/events/recent?limit=200    — read recent events from JSONL log
+//! GET /v1/events/stream              — SSE event stream (Server-Sent Events)
+//! GET /v1/events/:event_id           — get a specific event by ID
 
 use crate::server::AppState;
-use axum::extract::{Query, State};
+use axum::extract::{Path as AxumPath, Query, State};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::{Json, Router, routing::get};
 use serde::Deserialize;
@@ -138,8 +139,46 @@ fn expand_home(path: &str) -> PathBuf {
     PathBuf::from(path)
 }
 
+/// GET /v1/events/:event_id — get a specific event by ID.
+async fn get_event(
+    State(state): State<Arc<AppState>>,
+    AxumPath(event_id): AxumPath<String>,
+) -> Json<Value> {
+    let data_dir = expand_home(&state.config.data_dir);
+    let log_path = data_dir.join("events/log.jsonl");
+
+    if !log_path.exists() {
+        return Json(json!({ "error": "Event log not found" }));
+    }
+
+    let file = match std::fs::File::open(&log_path) {
+        Ok(f) => f,
+        Err(e) => {
+            return Json(json!({ "error": format!("Cannot read log: {}", e) }));
+        }
+    };
+
+    let reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        if let Ok(l) = line
+            && !l.trim().is_empty()
+        {
+            if let Ok(v) = serde_json::from_str::<Value>(&l) {
+                // Check if this event matches the ID.
+                if v.get("id").and_then(|id| id.as_str()) == Some(&event_id) {
+                    return Json(json!({ "event": v }));
+                }
+            }
+        }
+    }
+
+    Json(json!({ "error": "Event not found" }))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/events/recent", get(recent))
         .route("/v1/events/stream", get(stream))
+        .route("/v1/events/{event_id}", get(get_event))
 }

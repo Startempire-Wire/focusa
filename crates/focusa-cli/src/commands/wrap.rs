@@ -12,11 +12,21 @@
 
 use crate::api_client::ApiClient;
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
+use tokio::signal;
 use uuid::Uuid;
+
+/// Adapter capability declaration per spec.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdapterCapabilities {
+    pub streaming: bool,
+    pub tool_output_capture: bool,
+    pub structured_messages: bool,
+}
 
 /// Harness configuration — how each harness takes prompts.
 struct HarnessConfig {
@@ -27,7 +37,13 @@ struct HarnessConfig {
     env_vars: &'static [(&'static str, &'static str)],
     /// API provider (for HTTP proxy fallback).
     provider: Provider,
+    /// Adapter capabilities.
+    capabilities: AdapterCapabilities,
 }
+
+/// ECS externalization thresholds per spec.
+const ECS_BYTE_THRESHOLD: usize = 8192; // 8KB
+const ECS_TOKEN_THRESHOLD: usize = 800; // ~800 tokens
 
 enum PromptArg {
     /// Prompt is a positional argument at given index.
@@ -59,36 +75,66 @@ fn detect_harness(cmd: &str) -> HarnessConfig {
             prompt_arg: PromptArg::Positional(0), // pi "prompt"
             env_vars: &[],
             provider: Provider::Anthropic,
+            capabilities: AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: true,
+                structured_messages: true,
+            },
         },
         "claude" => HarnessConfig {
             name: "claude",
             prompt_arg: PromptArg::Positional(0),
             env_vars: &[],
             provider: Provider::Anthropic,
+            capabilities: AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: true,
+                structured_messages: true,
+            },
         },
         "aider" => HarnessConfig {
             name: "aider",
             prompt_arg: PromptArg::Stdin, // aider reads from stdin
             env_vars: &[],
             provider: Provider::OpenAI,
+            capabilities: AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: false, // aider doesn't print tool outputs clearly
+                structured_messages: false,
+            },
         },
         "codex" => HarnessConfig {
             name: "codex",
             prompt_arg: PromptArg::Positional(0),
             env_vars: &[],
             provider: Provider::OpenAI,
+            capabilities: AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: true,
+                structured_messages: true,
+            },
         },
         "letta" => HarnessConfig {
             name: "letta",
             prompt_arg: PromptArg::Flag("-m"), // letta run -m "message"
             env_vars: &[("LETTA_FOCUSA_ENABLED", "1")],
             provider: Provider::OpenAI,
+            capabilities: AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: true,
+                structured_messages: true,
+            },
         },
         _ => HarnessConfig {
             name: "generic",
             prompt_arg: PromptArg::Unknown,
             env_vars: &[],
             provider: Provider::Unknown,
+            capabilities: AdapterCapabilities {
+                streaming: false,
+                tool_output_capture: false,
+                structured_messages: false,
+            },
         },
     }
 }
@@ -249,10 +295,20 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let mut output_buffer = String::new();
     let mut stdout_done = false;
     let mut stderr_done = false;
+    let mut cancelled = false;
 
     // Stream output from both stdout and stderr until both close.
+    // Handle Ctrl-C gracefully per spec.
     loop {
         tokio::select! {
+            _ = signal::ctrl_c() => {
+                // Graceful cancellation — forward SIGINT to child.
+                eprintln!("\n⚠ Interrupted — cleaning up...");
+                cancelled = true;
+                // Kill the child process.
+                let _ = child.kill().await;
+                break;
+            }
             line = stdout_reader.next_line(), if !stdout_done => {
                 match line {
                     Ok(Some(text)) => {
@@ -261,7 +317,9 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                         output_buffer.push('\n');
 
                         // Check for tool output patterns (best effort).
-                        if text.contains("```") || text.starts_with("Tool:") {
+                        if harness.capabilities.tool_output_capture
+                            && (text.contains("```") || text.starts_with("Tool:"))
+                        {
                             let _ = client.post("/v1/gate/signal", &json!({
                                 "kind": "tool_output_captured",
                                 "summary": format!("Tool output detected: {} chars", text.len()),
@@ -304,8 +362,14 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     
     let mut artifacts: Vec<Value> = vec![];
     
-    // If output exceeds 8KB, externalize to ECS.
-    if output_buffer.len() > 8192 {
+    // Estimate token count (rough: 4 chars per token).
+    let estimated_tokens = output_buffer.len() / 4;
+    
+    // Per spec: externalize if > 8KB OR > 800 tokens.
+    let should_externalize = output_buffer.len() > ECS_BYTE_THRESHOLD
+        || estimated_tokens > ECS_TOKEN_THRESHOLD;
+    
+    if should_externalize {
         let ecs_resp = client.post("/v1/ecs/store", &json!({
             "kind": "transcript",
             "label": format!("turn-{}-output", &turn_id[..8]),
@@ -324,17 +388,22 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     // 6. TURN COMPLETE — send transcript to ASCC
     // ═══════════════════════════════════════════════════════════════════════════
     
-    let errors: Vec<String> = if status.success() {
+    let mut errors: Vec<String> = if status.success() {
         vec![]
     } else {
         vec![format!("Exit code: {}", status.code().unwrap_or(-1))]
     };
+    
+    // Add cancellation to errors if interrupted.
+    if cancelled {
+        errors.push("Interrupted by user (Ctrl-C)".into());
+    }
 
     // Truncate output for ASCC if not externalized.
-    let transcript = if output_buffer.len() <= 8192 {
+    let transcript = if !should_externalize {
         output_buffer.clone()
     } else {
-        format!("[externalized to ECS — {} bytes]", output_buffer.len())
+        format!("[externalized to ECS — {} bytes, ~{} tokens]", output_buffer.len(), estimated_tokens)
     };
 
     let _ = client.post("/v1/turn/complete", &json!({
