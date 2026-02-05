@@ -166,7 +166,7 @@
 
   <!-- About -->
   <section class="section about">
-    <span>Focusa v0.2.4</span>
+    <span>Focusa v0.2.5</span>
     <span>·</span>
     <span>Cognitive Governance</span>
   </section>
