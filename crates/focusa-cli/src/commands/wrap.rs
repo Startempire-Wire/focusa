@@ -247,7 +247,6 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let mut stderr_reader = BufReader::new(stderr).lines();
 
     let mut output_buffer = String::new();
-    let mut error_buffer = String::new();
 
     // Stream output.
     loop {
@@ -279,8 +278,6 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                 match line {
                     Ok(Some(text)) => {
                         eprintln!("{}", text);
-                        error_buffer.push_str(&text);
-                        error_buffer.push('\n');
 
                         // Emit error signal.
                         let _ = client.post("/v1/gate/signal", &json!({
@@ -385,12 +382,19 @@ fn extract_assembled_prompt(resp: &Value) -> Option<String> {
         .map(String::from)
 }
 
-/// Truncate string to max length.
+/// Truncate string to max length (UTF-8 safe).
 fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
         s.to_string()
     } else {
-        format!("{}…", &s[..max])
+        // Find a safe UTF-8 boundary at or before max.
+        let boundary = s
+            .char_indices()
+            .take_while(|(i, _)| *i < max)
+            .last()
+            .map(|(i, c)| i + c.len_utf8())
+            .unwrap_or(0);
+        format!("{}…", &s[..boundary])
     }
 }
 
