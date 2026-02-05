@@ -113,12 +113,11 @@ async fn prompt_assemble(
     drop(focusa);
     {
         let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn {
-            if turn.turn_id == req.turn_id {
+        if let Some(ref mut turn) = focusa.active_turn
+            && turn.turn_id == req.turn_id {
                 turn.raw_user_input = Some(req.raw_user_input.clone());
                 turn.assembled_prompt = Some(assembly.content.clone());
             }
-        }
     }
 
     // Return as messages array (chat format) or plain string based on harness_context hint.
@@ -157,12 +156,11 @@ async fn turn_append(
     // Append to active turn's assembled_prompt (accumulating response).
     {
         let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn {
-            if turn.turn_id == req.turn_id {
+        if let Some(ref mut turn) = focusa.active_turn
+            && turn.turn_id == req.turn_id {
                 let existing = turn.assembled_prompt.take().unwrap_or_default();
                 turn.assembled_prompt = Some(format!("{}{}", existing, req.chunk));
             }
-        }
     }
 
     Ok(Json(json!({"status": "accepted"})))
@@ -198,15 +196,14 @@ async fn turn_complete(
     };
 
     // Validate turn_id matches.
-    if let Some(turn) = &active_turn {
-        if turn.turn_id != req.turn_id {
+    if let Some(turn) = &active_turn
+        && turn.turn_id != req.turn_id {
             tracing::warn!(
                 expected = %turn.turn_id,
                 got = %req.turn_id,
                 "Turn ID mismatch"
             );
         }
-    }
 
     // Update frame stats if we have an active frame.
     let frame_id = {

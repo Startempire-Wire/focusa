@@ -313,12 +313,11 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
             "mime_type": "text/plain"
         })).await;
 
-        if let Ok(resp) = ecs_resp {
-            if let Some(handle_id) = resp.get("handle_id").and_then(|v| v.as_str()) {
+        if let Ok(resp) = ecs_resp
+            && let Some(handle_id) = resp.get("handle_id").and_then(|v| v.as_str()) {
                 artifacts.push(json!({"handle_id": handle_id, "kind": "transcript"}));
                 tracing::debug!("Output externalized to ECS: {}", handle_id);
             }
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
