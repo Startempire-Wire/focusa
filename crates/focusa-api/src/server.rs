@@ -44,6 +44,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::rfm::router())
         .merge(routes::skills::router())
         .merge(routes::training::router())
+        .merge(routes::turn::router())
         .layer(axum_mw::from_fn(middleware::auth::auth_layer))
         .with_state(state)
 }

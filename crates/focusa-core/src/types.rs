@@ -52,6 +52,8 @@ pub struct FocusaState {
     pub rfm: RfmState,
     pub pre: PreState,
     pub contribution: ContributionState,
+    /// Active turn from Mode A adapter (if any).
+    pub active_turn: Option<ActiveTurn>,
     /// Monotonic version — incremented on every successful reduction.
     pub version: u64,
 }
@@ -74,6 +76,7 @@ impl FocusaState {
             rfm: RfmState::default(),
             pre: PreState::default(),
             contribution: ContributionState::default(),
+            active_turn: None,
             version: 0,
         }
     }
@@ -1446,4 +1449,89 @@ pub struct ContributionPolicy {
     pub require_review: bool,
     pub anonymize: bool,
     pub allowed_families: Vec<DatasetFamily>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TURN LIFECYCLE — docs/G1-detail-04-proxy-adapter.md (Mode A)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Turn identifier.
+pub type TurnId = String;
+
+/// Harness adapter identifier.
+pub type AdapterId = String;
+
+/// Turn start request from adapter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TurnStart {
+    pub turn_id: TurnId,
+    pub adapter_id: AdapterId,
+    pub harness_name: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Prompt assembly request from adapter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptAssembleRequest {
+    pub turn_id: TurnId,
+    pub raw_user_input: String,
+    #[serde(default)]
+    pub harness_context: Option<String>,
+    #[serde(default)]
+    pub max_tokens_budget: Option<u32>,
+}
+
+/// Prompt assembly response to adapter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptAssembleResponse {
+    pub assembled_prompt: AssembledPromptOutput,
+    pub handles_used: Vec<HandleRef>,
+    pub context_stats: ContextStats,
+}
+
+/// Assembled prompt — either plain string or chat messages.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum AssembledPromptOutput {
+    Plain(String),
+    Messages(Vec<ChatMessage>),
+}
+
+/// Chat message for structured output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+/// Context statistics from prompt assembly.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ContextStats {
+    pub estimated_tokens: u32,
+    pub focus_state_tokens: u32,
+    pub rules_tokens: u32,
+    pub handles_tokens: u32,
+    pub user_input_tokens: u32,
+}
+
+/// Turn completion from adapter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TurnComplete {
+    pub turn_id: TurnId,
+    pub assistant_output: String,
+    #[serde(default)]
+    pub artifacts: Vec<HandleRef>,
+    #[serde(default)]
+    pub errors: Vec<String>,
+}
+
+/// Active turn state (daemon-side).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActiveTurn {
+    pub turn_id: TurnId,
+    pub adapter_id: AdapterId,
+    pub harness_name: String,
+    pub started_at: DateTime<Utc>,
+    pub raw_user_input: Option<String>,
+    pub assembled_prompt: Option<String>,
 }

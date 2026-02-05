@@ -10,3 +10,4 @@ pub mod proposals;
 pub mod rfm;
 pub mod skills;
 pub mod telemetry;
+pub mod wrap;

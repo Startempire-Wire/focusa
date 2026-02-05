@@ -87,6 +87,17 @@ enum Commands {
     /// Agent skills.
     #[command(subcommand)]
     Skills(commands::skills::SkillsCmd),
+
+    /// Wrap a harness CLI (Mode A proxy).
+    ///
+    /// Usage: focusa wrap -- <command> [args...]
+    ///
+    /// Starts the harness as subprocess, redirects API calls through Focusa.
+    Wrap {
+        /// Command and arguments to wrap.
+        #[arg(trailing_var_arg = true, required = true)]
+        command: Vec<String>,
+    },
 }
 
 #[tokio::main]
@@ -172,6 +183,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await?,
         Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await?,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await?,
+        Commands::Wrap { command } => commands::wrap::run(command).await?,
     }
 
     Ok(())
