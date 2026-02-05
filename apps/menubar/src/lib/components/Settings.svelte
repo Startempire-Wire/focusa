@@ -10,6 +10,8 @@
   let saved = $state(false);
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; msg: string } | null>(null);
+  let showRemoteInput = $state(false);
+  let remoteIp = $state('');
 
   function save() {
     try {
@@ -45,9 +47,14 @@
   }
 
   function setRemote() {
-    const ip = prompt('Enter server IP or hostname:', '');
-    if (ip && ip.trim()) {
-      url = `http://${ip.trim()}:8787`;
+    showRemoteInput = true;
+    remoteIp = '';
+  }
+
+  function confirmRemote() {
+    if (remoteIp.trim()) {
+      url = `http://${remoteIp.trim()}:8787`;
+      showRemoteInput = false;
       save();
     }
   }
@@ -77,6 +84,19 @@
         Remote…
       </button>
     </div>
+
+    {#if showRemoteInput}
+      <div class="remote-input-row">
+        <input
+          type="text"
+          bind:value={remoteIp}
+          placeholder="IP or hostname"
+          class="input remote-ip"
+          onkeydown={(e) => { if (e.key === 'Enter') confirmRemote(); if (e.key === 'Escape') showRemoteInput = false; }}
+        />
+        <button class="btn primary small" onclick={confirmRemote}>Connect</button>
+      </div>
+    {/if}
 
     <div class="action-row">
       <button class="btn secondary" onclick={testConnection} disabled={testing}>
@@ -223,6 +243,21 @@
   .preset-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
+  }
+
+  .remote-input-row {
+    display: flex;
+    gap: var(--sp-1);
+  }
+
+  .remote-ip {
+    flex: 1;
+  }
+
+  .btn.small {
+    flex: none;
+    padding: var(--sp-1) var(--sp-2);
+    font-size: var(--text-xs);
   }
 
   /* Action buttons */

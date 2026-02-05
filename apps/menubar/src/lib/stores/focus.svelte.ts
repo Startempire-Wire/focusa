@@ -5,7 +5,7 @@ export interface FocusFrame {
   id: string;
   title: string;
   goal: string;
-  status: string; // "active" | "paused" | "suspended" | "completed" | "archived"
+  status: string; // "active" | "paused" | "completed" | "archived"
   parent_id: string | null;
   beads_issue_id: string;
   tags: string[];
@@ -44,17 +44,10 @@ function createFocusStore() {
     get connected() { return connected; },
     get errorMsg() { return errorMsg; },
     get version() { return version; },
-    get activeId() { return activeId; },
-    get frames() { return frames; },
-    get stackPath() { return stackPath; },
     get frameCount() { return frames.length; },
 
     get activeFrame(): FocusFrame | null {
       return frames.find(f => f.id === activeId) ?? null;
-    },
-
-    get inactiveFrames(): FocusFrame[] {
-      return frames.filter(f => f.id !== activeId);
     },
 
     get pausedFrames(): FocusFrame[] {

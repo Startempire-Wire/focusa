@@ -1,7 +1,6 @@
 <script lang="ts">
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
-  import { intuitionStore } from '$lib/stores/intuition.svelte';
   import FocusView from '$lib/components/FocusView.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
@@ -30,7 +29,6 @@
         const data = await resp.json();
         focusStore.update(data);
         gateStore.update(data.focus_gate);
-        intuitionStore.update(data);
       } else {
         focusStore.setError(`HTTP ${resp.status}`);
       }
@@ -91,8 +89,6 @@
     border-bottom: 1px solid var(--border);
     background: var(--bg-panel);
     flex-shrink: 0;
-    /* Draggable region for moving window */
-    -webkit-app-region: drag;
   }
 
   .header-left {
@@ -123,7 +119,6 @@
   .tabs {
     display: flex;
     gap: 2px;
-    -webkit-app-region: no-drag;
   }
 
   .tab {

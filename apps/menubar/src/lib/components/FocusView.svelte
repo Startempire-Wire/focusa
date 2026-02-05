@@ -3,7 +3,7 @@
   Three states: disconnected, empty (no frames), active.
 -->
 <script lang="ts">
-  import { focusStore, type FocusFrame } from '$lib/stores/focus.svelte';
+  import { focusStore } from '$lib/stores/focus.svelte';
 
   let active = $derived(focusStore.activeFrame);
   let paused = $derived(focusStore.pausedFrames);
@@ -25,8 +25,8 @@
     switch (status) {
       case 'active': return '●';
       case 'paused': return '◐';
-      case 'suspended': return '○';
       case 'completed': return '✓';
+      case 'archived': return '◌';
       default: return '·';
     }
   }
@@ -76,7 +76,7 @@
   <!-- Active focus view -->
   <div class="focus-view">
     {#if active}
-      <section class="active-section">
+      <section>
         <div class="section-label">ACTIVE FOCUS</div>
         <div class="frame-card active">
           <div class="frame-header">
@@ -87,12 +87,12 @@
             <div class="frame-goal">{active.goal}</div>
           {/if}
           <div class="frame-meta">
-            <span class="meta-item" title="Turns">{active.stats.turn_count} turns</span>
+            <span title="Turns">{active.stats.turn_count} turns</span>
             <span class="meta-sep">·</span>
-            <span class="meta-item">{timeAgo(active.updated_at)}</span>
+            <span>{timeAgo(active.updated_at)}</span>
             {#if active.beads_issue_id}
               <span class="meta-sep">·</span>
-              <span class="meta-item mono">{active.beads_issue_id}</span>
+              <span class="mono">{active.beads_issue_id}</span>
             {/if}
           </div>
 
@@ -152,7 +152,7 @@
     {/if}
 
     {#if paused.length > 0}
-      <section class="paused-section">
+      <section>
         <div class="section-label">PAUSED ({paused.length})</div>
         {#each paused as frame}
           <div class="frame-card paused">
@@ -164,9 +164,9 @@
               <div class="frame-goal">{frame.goal}</div>
             {/if}
             <div class="frame-meta">
-              <span class="meta-item">{frame.stats.turn_count} turns</span>
+              <span>{frame.stats.turn_count} turns</span>
               <span class="meta-sep">·</span>
-              <span class="meta-item">{timeAgo(frame.updated_at)}</span>
+              <span>{timeAgo(frame.updated_at)}</span>
             </div>
           </div>
         {/each}
@@ -175,9 +175,9 @@
 
     <!-- Stack depth indicator -->
     <div class="stack-info">
-      <span class="stack-label">Stack depth: {focusStore.frameCount}</span>
-      <span class="stack-sep">·</span>
-      <span class="stack-label">v{focusStore.version}</span>
+      <span>Stack depth: {focusStore.frameCount}</span>
+      <span>·</span>
+      <span>v{focusStore.version}</span>
     </div>
   </div>
 {/if}
@@ -408,6 +408,4 @@
     border-top: 1px solid var(--border);
     justify-content: center;
   }
-
-  .stack-sep { color: var(--fg-tertiary); }
 </style>

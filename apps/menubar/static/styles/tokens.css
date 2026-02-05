@@ -21,8 +21,6 @@
   --red: #ff3b30;
   --border: rgba(0, 0, 0, 0.1);
   --border-heavy: rgba(0, 0, 0, 0.18);
-  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
-
   /* Typography — SF-style system font */
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
   --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
@@ -30,15 +28,12 @@
   --text-sm: 12px;
   --text-base: 13px;
   --text-lg: 15px;
-  --text-xl: 17px;
-  --text-2xl: 22px;
 
   /* Spacing */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
   --sp-4: 16px;
-  --sp-5: 20px;
   --sp-6: 24px;
 
   /* Radius */
@@ -67,7 +62,6 @@
     --accent-dim: rgba(107, 160, 214, 0.18);
     --border: rgba(255, 255, 255, 0.1);
     --border-heavy: rgba(255, 255, 255, 0.16);
-    --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 }
 

@@ -3,10 +3,9 @@
 -->
 <script lang="ts">
   import { gateStore } from '$lib/stores/gate.svelte';
-  import { intuitionStore } from '$lib/stores/intuition.svelte';
 
   let candidates = $derived(gateStore.candidates);
-  let signals = $derived(intuitionStore.signals);
+  let signals = $derived(gateStore.signals);
 </script>
 
 <div class="gate-view">

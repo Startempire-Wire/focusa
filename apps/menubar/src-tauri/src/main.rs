@@ -14,7 +14,6 @@ use tauri::{
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_positioner::init())
         .setup(|app| {
             // macOS: hide dock icon — menubar-only app
