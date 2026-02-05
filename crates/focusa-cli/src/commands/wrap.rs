@@ -247,11 +247,13 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let mut stderr_reader = BufReader::new(stderr).lines();
 
     let mut output_buffer = String::new();
+    let mut stdout_done = false;
+    let mut stderr_done = false;
 
-    // Stream output.
+    // Stream output from both stdout and stderr until both close.
     loop {
         tokio::select! {
-            line = stdout_reader.next_line() => {
+            line = stdout_reader.next_line(), if !stdout_done => {
                 match line {
                     Ok(Some(text)) => {
                         println!("{}", text);
@@ -267,14 +269,14 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                             })).await;
                         }
                     }
-                    Ok(None) => break,
+                    Ok(None) => stdout_done = true,
                     Err(e) => {
                         eprintln!("stdout error: {}", e);
-                        break;
+                        stdout_done = true;
                     }
                 }
             }
-            line = stderr_reader.next_line() => {
+            line = stderr_reader.next_line(), if !stderr_done => {
                 match line {
                     Ok(Some(text)) => {
                         eprintln!("{}", text);
@@ -286,10 +288,11 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                             "frame_context": null
                         })).await;
                     }
-                    Ok(None) => {}
-                    Err(_) => {}
+                    Ok(None) => stderr_done = true,
+                    Err(_) => stderr_done = true,
                 }
             }
+            else => break, // Both streams closed
         }
     }
 
