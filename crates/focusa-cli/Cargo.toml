@@ -21,4 +21,5 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+which = "7"
 base64 = "0.22"
