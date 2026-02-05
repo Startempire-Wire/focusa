@@ -87,9 +87,6 @@ async fn prompt_assemble(
         .cloned()
         .collect();
 
-    // Budget from request or config default (used for degradation in future).
-    let _budget = req.max_tokens_budget.unwrap_or(state.config.max_prompt_tokens);
-
     // Assemble prompt.
     let assembly = assemble(
         &focus_state,
