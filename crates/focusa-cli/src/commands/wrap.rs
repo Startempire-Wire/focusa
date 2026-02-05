@@ -2,17 +2,114 @@
 //!
 //! Usage: focusa wrap -- <command> [args...]
 //!
-//! Focusa starts the harness as a subprocess, sets environment variables
-//! to redirect API calls through Focusa's proxy, and mediates I/O.
-//!
-//! Source: docs/G1-detail-04-proxy-adapter.md
+//! Per spec (docs/G1-detail-04-proxy-adapter.md):
+//! 1. Parse command to find user prompt
+//! 2. Call daemon to assemble enhanced prompt
+//! 3. Run harness with enhanced prompt
+//! 4. Emit signals to Focus Gate
+//! 5. Provide transcript to ASCC
+//! 6. Externalize large blobs to ECS
 
 use crate::api_client::ApiClient;
 use chrono::Utc;
+use serde_json::{json, Value};
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use uuid::Uuid;
+
+/// Harness configuration — how each harness takes prompts.
+struct HarnessConfig {
+    name: &'static str,
+    /// How to find the prompt in args.
+    prompt_arg: PromptArg,
+    /// Environment variables to set.
+    env_vars: &'static [(&'static str, &'static str)],
+    /// API provider (for HTTP proxy fallback).
+    provider: Provider,
+}
+
+enum PromptArg {
+    /// Prompt is a positional argument at given index.
+    Positional(usize),
+    /// Prompt follows a flag (e.g., -p "prompt").
+    Flag(&'static str),
+    /// Prompt is read from stdin.
+    Stdin,
+    /// Unknown — use HTTP proxy only.
+    Unknown,
+}
+
+enum Provider {
+    Anthropic,
+    OpenAI,
+    Unknown,
+}
+
+/// Detect harness type from command name.
+fn detect_harness(cmd: &str) -> HarnessConfig {
+    let base = std::path::Path::new(cmd)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(cmd);
+
+    match base {
+        "pi" => HarnessConfig {
+            name: "pi",
+            prompt_arg: PromptArg::Positional(0), // pi "prompt"
+            env_vars: &[],
+            provider: Provider::Anthropic,
+        },
+        "claude" => HarnessConfig {
+            name: "claude",
+            prompt_arg: PromptArg::Positional(0),
+            env_vars: &[],
+            provider: Provider::Anthropic,
+        },
+        "aider" => HarnessConfig {
+            name: "aider",
+            prompt_arg: PromptArg::Stdin, // aider reads from stdin
+            env_vars: &[],
+            provider: Provider::OpenAI,
+        },
+        "codex" => HarnessConfig {
+            name: "codex",
+            prompt_arg: PromptArg::Positional(0),
+            env_vars: &[],
+            provider: Provider::OpenAI,
+        },
+        "letta" => HarnessConfig {
+            name: "letta",
+            prompt_arg: PromptArg::Flag("-m"), // letta run -m "message"
+            env_vars: &[("LETTA_FOCUSA_ENABLED", "1")],
+            provider: Provider::OpenAI,
+        },
+        _ => HarnessConfig {
+            name: "generic",
+            prompt_arg: PromptArg::Unknown,
+            env_vars: &[],
+            provider: Provider::Unknown,
+        },
+    }
+}
+
+/// Extract prompt from command args based on harness config.
+fn extract_prompt(args: &[String], config: &HarnessConfig) -> Option<(usize, String)> {
+    match config.prompt_arg {
+        PromptArg::Positional(idx) => {
+            args.get(idx).map(|s| (idx, s.clone()))
+        }
+        PromptArg::Flag(flag) => {
+            for (i, arg) in args.iter().enumerate() {
+                if arg == flag && i + 1 < args.len() {
+                    return Some((i + 1, args[i + 1].clone()));
+                }
+            }
+            None
+        }
+        PromptArg::Stdin | PromptArg::Unknown => None,
+    }
+}
 
 /// Run the wrap command.
 pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
@@ -21,51 +118,105 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     }
 
     let client = ApiClient::new();
-    let adapter_id = format!("cli-wrap-{}", Uuid::now_v7());
-    let harness_name = command[0].clone();
+    let adapter_id = format!("wrap-{}", &Uuid::now_v7().to_string()[..8]);
+    let harness = detect_harness(&command[0]);
+    let turn_id = Uuid::now_v7().to_string();
 
-    println!("🔄 Focusa wrapping: {}", command.join(" "));
-
-    // Detect harness type and set appropriate env vars.
-    let mut env_vars = detect_harness_env(&harness_name);
-
-    // Get Focusa API URL for proxy redirection.
+    // Get Focusa API URL.
     let focusa_url = std::env::var("FOCUSA_API_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8787".to_string());
+        .unwrap_or_else(|_| "http://127.0.0.1:8787".into());
 
-    // Set proxy URLs based on harness type.
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 1. TURN START — notify daemon
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let _ = client.post("/v1/turn/start", &json!({
+        "turn_id": turn_id,
+        "adapter_id": adapter_id,
+        "harness_name": harness.name,
+        "timestamp": Utc::now().to_rfc3339()
+    })).await;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 2. EXTRACT & ENHANCE PROMPT (Mode A core)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let args: Vec<String> = command[1..].to_vec();
+    let mut final_args = args.clone();
+    let mut user_input = String::new();
+
+    if let Some((idx, prompt)) = extract_prompt(&args, &harness) {
+        user_input = prompt.clone();
+
+        // Emit signal: user input received.
+        let _ = client.post("/v1/gate/signal", &json!({
+            "kind": "user_input_received",
+            "summary": format!("User input: {} chars", prompt.len()),
+            "frame_context": null
+        })).await;
+
+        // Call daemon to assemble enhanced prompt.
+        let assemble_resp = client.post("/v1/prompt/assemble", &json!({
+            "turn_id": turn_id,
+            "raw_user_input": prompt,
+            "harness_context": null,
+            "max_tokens_budget": null
+        })).await;
+
+        if let Ok(resp) = assemble_resp {
+            // Extract assembled prompt.
+            if let Some(assembled) = extract_assembled_prompt(&resp) {
+                // Replace prompt in args with enhanced version.
+                final_args[idx] = assembled;
+                tracing::debug!("Prompt enhanced via Expression Engine");
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 3. SET UP HTTP PROXY (Mode B fallback)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let mut env_vars: Vec<(String, String)> = harness.env_vars
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
+    // Set proxy URLs based on provider.
     let proxy_base = format!("{}/proxy", focusa_url);
-    env_vars.push(("ANTHROPIC_BASE_URL".to_string(), proxy_base.clone()));
-    env_vars.push(("OPENAI_BASE_URL".to_string(), format!("{}/v1", proxy_base)));
-
-    // Pass through API keys from environment.
-    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
-        env_vars.push(("ANTHROPIC_API_KEY".to_string(), key));
+    match harness.provider {
+        Provider::Anthropic => {
+            env_vars.push(("ANTHROPIC_BASE_URL".into(), proxy_base));
+        }
+        Provider::OpenAI => {
+            env_vars.push(("OPENAI_BASE_URL".into(), format!("{}/v1", proxy_base)));
+        }
+        Provider::Unknown => {
+            // Set both.
+            env_vars.push(("ANTHROPIC_BASE_URL".into(), proxy_base.clone()));
+            env_vars.push(("OPENAI_BASE_URL".into(), format!("{}/v1", proxy_base)));
+        }
     }
-    if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-        env_vars.push(("OPENAI_API_KEY".to_string(), key));
+
+    // Pass through API keys.
+    for key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"] {
+        if let Ok(val) = std::env::var(key) {
+            env_vars.push((key.into(), val));
+        }
     }
 
-    // Start subprocess.
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 4. RUN SUBPROCESS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
     let mut child = Command::new(&command[0])
-        .args(&command[1..])
+        .args(&final_args)
         .envs(env_vars)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
 
-    let turn_id = Uuid::now_v7().to_string();
-
-    // Notify daemon of turn start.
-    let _ = client.post("/v1/turn/start", &serde_json::json!({
-        "turn_id": turn_id,
-        "adapter_id": adapter_id,
-        "harness_name": harness_name,
-        "timestamp": Utc::now().to_rfc3339()
-    })).await;
-
-    // Stream stdout.
     let stdout = child.stdout.take().expect("stdout");
     let stderr = child.stderr.take().expect("stderr");
 
@@ -73,8 +224,9 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let mut stderr_reader = BufReader::new(stderr).lines();
 
     let mut output_buffer = String::new();
+    let mut error_buffer = String::new();
 
-    // Process output streams.
+    // Stream output.
     loop {
         tokio::select! {
             line = stdout_reader.next_line() => {
@@ -83,6 +235,15 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                         println!("{}", text);
                         output_buffer.push_str(&text);
                         output_buffer.push('\n');
+
+                        // Check for tool output patterns (best effort).
+                        if text.contains("```") || text.starts_with("Tool:") {
+                            let _ = client.post("/v1/gate/signal", &json!({
+                                "kind": "tool_output_captured",
+                                "summary": format!("Tool output detected: {} chars", text.len()),
+                                "frame_context": null
+                            })).await;
+                        }
                     }
                     Ok(None) => break,
                     Err(e) => {
@@ -95,32 +256,80 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                 match line {
                     Ok(Some(text)) => {
                         eprintln!("{}", text);
+                        error_buffer.push_str(&text);
+                        error_buffer.push('\n');
+
+                        // Emit error signal.
+                        let _ = client.post("/v1/gate/signal", &json!({
+                            "kind": "error_observed",
+                            "summary": format!("stderr: {}", truncate(&text, 100)),
+                            "frame_context": null
+                        })).await;
                     }
                     Ok(None) => {}
-                    Err(e) => {
-                        eprintln!("stderr error: {}", e);
-                    }
+                    Err(_) => {}
                 }
             }
         }
     }
 
-    // Wait for process to exit.
     let status = child.wait().await?;
 
-    // Notify daemon of turn completion.
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 5. EXTERNALIZE LARGE BLOBS TO ECS
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    let mut artifacts: Vec<Value> = vec![];
+    
+    // If output exceeds 8KB, externalize to ECS.
+    if output_buffer.len() > 8192 {
+        let ecs_resp = client.post("/v1/ecs/store", &json!({
+            "kind": "transcript",
+            "label": format!("turn-{}-output", &turn_id[..8]),
+            "content": output_buffer,
+            "mime_type": "text/plain"
+        })).await;
+
+        if let Ok(resp) = ecs_resp {
+            if let Some(handle_id) = resp.get("handle_id").and_then(|v| v.as_str()) {
+                artifacts.push(json!({"handle_id": handle_id, "kind": "transcript"}));
+                tracing::debug!("Output externalized to ECS: {}", handle_id);
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 6. TURN COMPLETE — send transcript to ASCC
+    // ═══════════════════════════════════════════════════════════════════════════
+    
     let errors: Vec<String> = if status.success() {
         vec![]
     } else {
-        vec![format!("Process exited with: {}", status)]
+        vec![format!("Exit code: {}", status.code().unwrap_or(-1))]
     };
 
-    let _ = client.post("/v1/turn/complete", &serde_json::json!({
+    // Truncate output for ASCC if not externalized.
+    let transcript = if output_buffer.len() <= 8192 {
+        output_buffer.clone()
+    } else {
+        format!("[externalized to ECS — {} bytes]", output_buffer.len())
+    };
+
+    let _ = client.post("/v1/turn/complete", &json!({
         "turn_id": turn_id,
-        "assistant_output": output_buffer,
-        "artifacts": [],
+        "assistant_output": transcript,
+        "artifacts": artifacts,
         "errors": errors
     })).await;
+
+    // Update focus state with turn summary (ASCC).
+    if !user_input.is_empty() {
+        let _ = client.post("/v1/focus/update", &json!({
+            "delta": {
+                "recent_results": [truncate(&output_buffer, 500)]
+            }
+        })).await;
+    }
 
     if !status.success() {
         std::process::exit(status.code().unwrap_or(1));
@@ -129,28 +338,35 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Detect harness type and return appropriate environment variables.
-fn detect_harness_env(harness: &str) -> Vec<(String, String)> {
-    let mut vars = vec![];
-
-    // Harness-specific configuration.
-    match harness {
-        "pi" | "claude" => {
-            // Pi/Claude Code use Anthropic API.
-            // Proxy is set via ANTHROPIC_BASE_URL.
+/// Extract assembled prompt from response.
+fn extract_assembled_prompt(resp: &Value) -> Option<String> {
+    // Try messages format first.
+    if let Some(messages) = resp.get("assembled_prompt").and_then(|v| v.as_array()) {
+        // Find user message content (the enhanced prompt).
+        for msg in messages {
+            if msg.get("role").and_then(|r| r.as_str()) == Some("user") {
+                return msg.get("content").and_then(|c| c.as_str()).map(String::from);
+            }
         }
-        "letta" => {
-            // Letta may use various backends.
-            vars.push(("LETTA_FOCUSA_ENABLED".to_string(), "1".to_string()));
-        }
-        "codex" => {
-            // Codex CLI uses OpenAI.
-            // Proxy is set via OPENAI_BASE_URL.
-        }
-        _ => {
-            // Generic — set both proxy URLs.
+        // Fall back to system message.
+        for msg in messages {
+            if msg.get("role").and_then(|r| r.as_str()) == Some("system") {
+                return msg.get("content").and_then(|c| c.as_str()).map(String::from);
+            }
         }
     }
 
-    vars
+    // Try plain string format.
+    resp.get("assembled_prompt")
+        .and_then(|v| v.as_str())
+        .map(String::from)
+}
+
+/// Truncate string to max length.
+fn truncate(s: &str, max: usize) -> String {
+    if s.len() <= max {
+        s.to_string()
+    } else {
+        format!("{}…", &s[..max])
+    }
 }

@@ -4,15 +4,17 @@
 //! POST /v1/focus/push    — push a new frame
 //! POST /v1/focus/pop     — pop (complete) active frame
 //! POST /v1/focus/set-active — switch active frame
+//! POST /v1/focus/update  — update focus state delta (ASCC)
 
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::{get, post}};
-use focusa_core::types::{Action, CompletionReason};
+use focusa_core::types::{Action, CompletionReason, FocusStateDelta};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use uuid::Uuid;
 
 async fn get_stack(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
@@ -97,10 +99,46 @@ async fn set_active(
     Ok(Json(json!({"status": "accepted"})))
 }
 
+/// POST /v1/focus/update — update focus state delta (ASCC).
+///
+/// Per spec: adapters provide transcript summaries to ASCC.
+#[derive(Deserialize)]
+struct UpdateDeltaBody {
+    delta: FocusStateDelta,
+}
+
+async fn update_delta(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<UpdateDeltaBody>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    // Get active frame ID.
+    let frame_id = {
+        let focusa = state.focusa.read().await;
+        focusa.focus_stack.active_id
+    };
+
+    let Some(fid) = frame_id else {
+        return Ok(Json(json!({"status": "no_active_frame"})));
+    };
+
+    state
+        .command_tx
+        .send(Action::UpdateCheckpointDelta {
+            frame_id: fid,
+            turn_id: Uuid::now_v7().to_string(),
+            delta: body.delta,
+        })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({"status": "accepted"})))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/focus/stack", get(get_stack))
         .route("/v1/focus/push", post(push_frame))
         .route("/v1/focus/pop", post(pop_frame))
         .route("/v1/focus/set-active", post(set_active))
+        .route("/v1/focus/update", post(update_delta))
 }

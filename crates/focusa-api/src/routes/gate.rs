@@ -3,15 +3,18 @@
 //! GET  /v1/focus-gate/candidates     — list candidates
 //! POST /v1/focus-gate/suppress       — suppress a candidate
 //! POST /v1/focus-gate/pin            — pin a candidate
+//! POST /v1/gate/signal               — emit signal from adapter
 
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::{get, post}};
-use focusa_core::types::Action;
+use chrono::Utc;
+use focusa_core::types::{Action, Signal, SignalKind, SignalOrigin};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use uuid::Uuid;
 
 async fn candidates(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
@@ -73,9 +76,53 @@ async fn pin(
     Ok(Json(json!({"status": "accepted"})))
 }
 
+/// POST /v1/gate/signal — emit signal from adapter.
+///
+/// Per spec: adapters emit signals for user input, tool output, errors.
+#[derive(Deserialize)]
+struct SignalBody {
+    kind: String,
+    summary: String,
+    #[serde(default)]
+    frame_context: Option<Uuid>,
+}
+
+async fn emit_signal(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<SignalBody>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let kind = match body.kind.as_str() {
+        "user_input_received" => SignalKind::UserInput,
+        "tool_output_captured" => SignalKind::ToolOutput,
+        "error_observed" => SignalKind::Error,
+        "repeated_warning" => SignalKind::Warning,
+        _ => SignalKind::UserInput,
+    };
+
+    let signal = Signal {
+        id: Uuid::now_v7(),
+        ts: Utc::now(),
+        origin: SignalOrigin::Adapter,
+        kind,
+        frame_context: body.frame_context,
+        summary: body.summary,
+        payload_ref: None,
+        tags: vec![],
+    };
+
+    state
+        .command_tx
+        .send(Action::IngestSignal { signal })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({"status": "accepted"})))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/focus-gate/candidates", get(candidates))
         .route("/v1/focus-gate/suppress", post(suppress))
         .route("/v1/focus-gate/pin", post(pin))
+        .route("/v1/gate/signal", post(emit_signal))
 }

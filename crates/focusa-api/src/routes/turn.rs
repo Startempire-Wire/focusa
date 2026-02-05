@@ -1,6 +1,7 @@
 //! Turn lifecycle routes — Mode A adapter integration.
 //!
 //! POST /v1/turn/start — Begin a new turn
+//! POST /v1/turn/append — Append streaming chunk (optional)
 //! POST /v1/turn/complete — End turn with assistant output
 //! POST /v1/prompt/assemble — Get Focusa-enhanced prompt
 //!
@@ -147,6 +148,36 @@ async fn prompt_assemble(
     }))
 }
 
+/// POST /v1/turn/append — streaming chunk (optional).
+///
+/// For adapters that support streaming, append chunks during turn.
+async fn turn_append(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<TurnAppend>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    tracing::trace!(turn_id = %req.turn_id, chunk_len = req.chunk.len(), "Turn chunk appended");
+
+    // Append to active turn's assembled_prompt (accumulating response).
+    {
+        let mut focusa = state.focusa.write().await;
+        if let Some(ref mut turn) = focusa.active_turn {
+            if turn.turn_id == req.turn_id {
+                let existing = turn.assembled_prompt.take().unwrap_or_default();
+                turn.assembled_prompt = Some(format!("{}{}", existing, req.chunk));
+            }
+        }
+    }
+
+    Ok(Json(json!({"status": "accepted"})))
+}
+
+/// Streaming append request.
+#[derive(Debug, Clone, serde::Deserialize)]
+struct TurnAppend {
+    turn_id: String,
+    chunk: String,
+}
+
 /// POST /v1/turn/complete
 ///
 /// Adapter calls this when the turn ends.
@@ -218,6 +249,7 @@ async fn turn_complete(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/turn/start", post(turn_start))
+        .route("/v1/turn/append", post(turn_append))
         .route("/v1/turn/complete", post(turn_complete))
         .route("/v1/prompt/assemble", post(prompt_assemble))
 }
