@@ -18,9 +18,17 @@ struct Cli {
     #[arg(long, global = true)]
     json: bool,
 
+    /// Config file path.
+    #[arg(long, global = true)]
+    config: Option<String>,
+
     /// Verbose output.
     #[arg(long, global = true)]
     verbose: bool,
+
+    /// Quiet mode — suppress non-essential output.
+    #[arg(long, global = true)]
+    quiet: bool,
 
     #[command(subcommand)]
     command: Commands,

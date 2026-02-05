@@ -11,8 +11,9 @@ pub enum GateCmd {
     /// Suppress a candidate.
     Suppress {
         candidate_id: String,
-        #[arg(long, default_value = "session")]
-        scope: String,
+        /// Duration to suppress (e.g., "10m", "1h", "session", "permanent").
+        #[arg(long = "for", default_value = "session")]
+        duration: String,
     },
     /// Pin a candidate.
     Pin { candidate_id: String },
@@ -55,8 +56,14 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         GateCmd::Suppress {
             candidate_id,
-            scope,
+            duration,
         } => {
+            // Map duration to scope (API uses scope internally).
+            let scope = match duration.as_str() {
+                "permanent" | "forever" => "permanent",
+                "session" => "session",
+                _ => &duration, // Pass through duration strings like "10m", "1h"
+            };
             let resp = api
                 .post(
                     "/v1/focus-gate/suppress",
@@ -66,7 +73,7 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("✓ Suppressed {}", candidate_id);
+                println!("✓ Suppressed {} for {}", candidate_id, duration);
             }
         }
         GateCmd::Pin { candidate_id } => {

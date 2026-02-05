@@ -24,6 +24,11 @@ pub enum EcsCmd {
         /// Handle ID.
         handle_id: String,
     },
+    /// Show handle metadata (alias for resolve).
+    Meta {
+        /// Handle ID.
+        handle_id: String,
+    },
     /// Show artifact content.
     Cat {
         /// Handle ID.
@@ -65,7 +70,7 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("✓ Stored {} ({} bytes)", label, content.len());
             }
         }
-        EcsCmd::Resolve { handle_id } => {
+        EcsCmd::Resolve { handle_id } | EcsCmd::Meta { handle_id } => {
             let resp = api
                 .get(&format!("/v1/ecs/resolve/{}", handle_id))
                 .await?;
