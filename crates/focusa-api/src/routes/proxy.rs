@@ -1,14 +1,20 @@
-//! Proxy routes — OpenAI-compatible HTTP proxy.
+//! Proxy routes — HTTP proxy for AI providers.
 //!
-//! POST /proxy/v1/chat/completions — proxied chat completion
+//! POST /proxy/v1/chat/completions — OpenAI-compatible (GPT, etc.)
+//! POST /proxy/v1/messages — Anthropic (Claude)
+//! POST /proxy/acp — ACP JSON-RPC
 //!
-//! Configure harness to use: http://127.0.0.1:8787/proxy/v1/chat/completions
-//! Set FOCUSA_UPSTREAM_URL and FOCUSA_API_KEY env vars.
+//! Configure harness:
+//!   OpenAI: OPENAI_BASE_URL=http://127.0.0.1:8787/proxy/v1
+//!   Anthropic: ANTHROPIC_BASE_URL=http://127.0.0.1:8787/proxy
+//!
+//! Set FOCUSA_UPSTREAM_URL / FOCUSA_ANTHROPIC_KEY / FOCUSA_API_KEY env vars.
 
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::{Json, Router, routing::post};
+use focusa_core::adapters::anthropic::{self, MessagesRequest};
 use focusa_core::adapters::openai::{
     self, ChatCompletionRequest, extract_assistant_output, extract_usage,
 };
@@ -21,6 +27,9 @@ use std::sync::Arc;
 /// Default upstream URL (OpenAI).
 const DEFAULT_UPSTREAM: &str = "https://api.openai.com/v1/chat/completions";
 
+/// Default Anthropic upstream URL.
+const DEFAULT_ANTHROPIC_UPSTREAM: &str = "https://api.anthropic.com/v1/messages";
+
 /// Lazy-initialized HTTP client for upstream requests.
 static UPSTREAM_CLIENT: std::sync::OnceLock<Client> = std::sync::OnceLock::new();
 
@@ -31,6 +40,23 @@ fn get_client() -> &'static Client {
 /// Get upstream URL from env or default.
 fn upstream_url() -> String {
     std::env::var("FOCUSA_UPSTREAM_URL").unwrap_or_else(|_| DEFAULT_UPSTREAM.into())
+}
+
+/// Get Anthropic upstream URL from env or default.
+fn anthropic_upstream_url() -> String {
+    std::env::var("FOCUSA_ANTHROPIC_UPSTREAM").unwrap_or_else(|_| DEFAULT_ANTHROPIC_UPSTREAM.into())
+}
+
+/// Get Anthropic API key from env or request header.
+fn anthropic_api_key(headers: &HeaderMap) -> Option<String> {
+    if let Ok(key) = std::env::var("FOCUSA_ANTHROPIC_KEY") {
+        return Some(key);
+    }
+    // Anthropic uses x-api-key header.
+    headers
+        .get("x-api-key")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
 }
 
 /// Get API key from env (or from request Authorization header).
@@ -134,6 +160,89 @@ async fn chat_completions(
     Ok(Json(response))
 }
 
+/// POST /proxy/v1/messages — Anthropic messages proxy.
+///
+/// 1. Read Focusa state
+/// 2. Assemble enhanced prompt via Expression Engine
+/// 3. Inject into system prompt
+/// 4. Forward to Anthropic
+/// 5. Return response unchanged
+async fn anthropic_messages(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(request): Json<MessagesRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let key = anthropic_api_key(&headers).ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"error": "No API key — set FOCUSA_ANTHROPIC_KEY or pass x-api-key header"})),
+        )
+    })?;
+
+    let url = anthropic_upstream_url();
+    let client = get_client();
+
+    // Try to enhance the request with Focusa state.
+    let focusa_state = state.focusa.read().await;
+    let result = anthropic::process_request(request.clone(), &focusa_state, &state.config);
+    drop(focusa_state);
+
+    let response = match result {
+        Some(proxy_result) => {
+            match anthropic::forward_request(client, &url, &key, &proxy_result.request).await {
+                Ok(resp) => resp,
+                Err(e) => {
+                    tracing::error!("Anthropic upstream failed: {}", e);
+                    return Err((
+                        StatusCode::BAD_GATEWAY,
+                        Json(json!({"error": format!("Upstream error: {}", e)})),
+                    ));
+                }
+            }
+        }
+        None => {
+            // Passthrough — forward original request.
+            match anthropic::forward_request(client, &url, &key, &request).await {
+                Ok(resp) => resp,
+                Err(e) => {
+                    return Err((
+                        StatusCode::BAD_GATEWAY,
+                        Json(json!({"error": format!("Upstream error: {}", e)})),
+                    ));
+                }
+            }
+        }
+    };
+
+    // Emit turn events.
+    let assistant_output = anthropic::extract_assistant_output(&response);
+    let (input_tokens, output_tokens) = anthropic::extract_usage(&response);
+
+    if assistant_output.is_some() {
+        let frame_id = {
+            let focusa = state.focusa.read().await;
+            focusa.focus_stack.active_id
+        };
+
+        if let Some(fid) = frame_id {
+            let delta = focusa_core::types::FocusStateDelta {
+                current_state: Some(format!(
+                    "Last turn: {} input tokens, {} output tokens",
+                    input_tokens, output_tokens,
+                )),
+                ..Default::default()
+            };
+            let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
+                frame_id: fid,
+                turn_id: uuid::Uuid::now_v7().to_string(),
+                delta,
+            }).await;
+        }
+    }
+
+    Ok(Json(response))
+}
+
 /// POST /proxy/acp — ACP JSON-RPC proxy endpoint.
 ///
 /// ACP clients can point to this endpoint for Mode B (Active Cognitive Proxy).
@@ -185,5 +294,6 @@ async fn acp_proxy(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/proxy/v1/chat/completions", post(chat_completions))
+        .route("/proxy/v1/messages", post(anthropic_messages))
         .route("/proxy/acp", post(acp_proxy))
 }

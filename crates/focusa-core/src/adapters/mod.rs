@@ -17,6 +17,7 @@
 //! Performance: <20ms overhead typical.
 
 pub mod acp;
+pub mod anthropic;
 pub mod letta;
 pub mod openai;
 pub mod passthrough;
