@@ -359,16 +359,18 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
 }
 
 /// Extract assembled prompt from response.
+///
+/// The assembled prompt contains Focusa context (Focus State, rules, handles)
+/// plus the original user input. For messages format, this is in the "system"
+/// role. The "user" role just contains the raw input (no enhancement).
 fn extract_assembled_prompt(resp: &Value) -> Option<String> {
-    // Try messages format first.
+    // Try plain string format first (preferred for Mode A).
+    if let Some(plain) = resp.get("assembled_prompt").and_then(|v| v.as_str()) {
+        return Some(plain.to_string());
+    }
+
+    // Try messages format — extract system message (contains full assembled prompt).
     if let Some(messages) = resp.get("assembled_prompt").and_then(|v| v.as_array()) {
-        // Find user message content (the enhanced prompt).
-        for msg in messages {
-            if msg.get("role").and_then(|r| r.as_str()) == Some("user") {
-                return msg.get("content").and_then(|c| c.as_str()).map(String::from);
-            }
-        }
-        // Fall back to system message.
         for msg in messages {
             if msg.get("role").and_then(|r| r.as_str()) == Some("system") {
                 return msg.get("content").and_then(|c| c.as_str()).map(String::from);
@@ -376,10 +378,7 @@ fn extract_assembled_prompt(resp: &Value) -> Option<String> {
         }
     }
 
-    // Try plain string format.
-    resp.get("assembled_prompt")
-        .and_then(|v| v.as_str())
-        .map(String::from)
+    None
 }
 
 /// Truncate string to max length (UTF-8 safe).
