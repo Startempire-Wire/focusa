@@ -119,6 +119,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 39 | [39-thread-lifecycle-spec.md](39-thread-lifecycle-spec.md) | Thread lifecycle |
 | 40 | [40-instance-session-attachment-spec.md](40-instance-session-attachment-spec.md) | Instance/Session/Attachment concurrency |
 | 41 | [41-proposal-resolution-engine.md](41-proposal-resolution-engine.md) | Proposal Resolution Engine (PRE) |
+| 43 | [43-multi-device-sync.md](43-multi-device-sync.md) | Multi-device local-first sync (observations + per-thread ownership) |
 
 ---
 
@@ -132,7 +133,7 @@ These docs from the initial spec cover topics that were NOT rewritten in the Gen
 | [G1-09-memory.md](G1-09-memory.md) | Semantic + Procedural Memory | + Trust Model update |
 | [G1-10-workers.md](G1-10-workers.md) | Background Workers & Async Cognition | |
 | [G1-12-api.md](G1-12-api.md) | Local HTTP API Specification | |
-| [G1-13-cli.md](G1-13-cli.md) | CLI Contract | |
+| [G1-13-cli.md](G1-13-cli.md) | CLI Contract | Includes export + multi-device sync commands |
 | [G1-16-testing.md](G1-16-testing.md) | Testing & Acceptance | + New Acceptance Criteria update |
 
 ---

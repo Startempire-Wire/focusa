@@ -4,6 +4,9 @@
 
 The menubar UI provides **ambient cognitive awareness** without interrupting work.
 
+It must also make **multi-device sync** legible without becoming a control surface.
+See: `docs/43-multi-device-sync.md`.
+
 It is:
 - calm
 - organic
@@ -12,6 +15,26 @@ It is:
 - never modal
 
 The UI **never becomes the primary interface**.
+
+---
+
+## Multi-Device Sync (Local-first)
+
+Focusa supports multiple machines (e.g. MacBook + VPS) with **bidirectional sync**.
+
+Menubar must make sync legible while staying calm:
+- show local daemon status
+- show configured peers and last sync time
+- show backlog + errors (no alerts; only ambient indicators)
+- show per-thread ownership (owner machine) and local attachment role
+- show proposal count when contention/conflicts exist
+
+Menubar must NOT:
+- silently merge cognitive state
+- auto-transfer thread ownership
+- auto-resolve proposals
+
+Authoritative policy: `docs/43-multi-device-sync.md`
 
 ---
 

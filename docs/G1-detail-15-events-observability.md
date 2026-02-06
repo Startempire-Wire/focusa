@@ -86,7 +86,8 @@ Payload:
 - `turn.failed`
 
 ## Storage
-- append-only JSONL at `~/.focusa/log/events.jsonl`
+- append-only events in SQLite (canonical)
+- JSONL export supported at `~/.focusa/log/events.jsonl` (optional)
 - rotation policy:
   - size cap (config, default 50MB)
   - keep last N rotated files (default 5)

@@ -281,18 +281,21 @@ Async “subconscious” processes.
 
 ## 11. Persistence & State
 
-**Stored Locally:**
-- Focus stack
-- ASCC checkpoints
-- ECS artifacts
+**Stored Locally-first (per machine):**
+- SQLite (canonical):
+  - append-only events
+  - versioned snapshots
+  - telemetry/UXP/UFI indices
+- ECS artifacts (filesystem)
 - Memory
 - Sessions
-- Event log
 
 **Requirements:**
 - Survive restarts
 - No cross-session leakage
 - Deterministic recovery
+- Multi-device sync exchanges events/artifacts without silent merges (post-MVP)
+  See: `docs/43-multi-device-sync.md`
 
 ---
 
@@ -315,7 +318,7 @@ The MVP is successful when:
 - Multi-agent orchestration
 - Model fine-tuning
 - Attention kernel optimization
-- Cloud sync
+- Multi-device local-first sync (bidirectional; ownership + observations)
 - Infinite canvas visualization
 - Autonomous planning
 

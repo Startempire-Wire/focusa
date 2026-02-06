@@ -21,8 +21,10 @@ No harness internals are modified.
 
 ## Supported Harnesses (MVP)
 
+- Pi (via Mode A wrap)
+- Claude Code (via Mode A wrap)
+- OpenCode (via Mode A wrap; best-effort)
 - Letta
-- Claude Code
 - Codex CLI
 - Gemini CLI
 - Generic OpenAI-compatible APIs

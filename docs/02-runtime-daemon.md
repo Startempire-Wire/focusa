@@ -135,9 +135,13 @@ Events provide:
 - Events
 
 ### Storage Model
-- JSON snapshots for state
-- Append-only JSONL for events
-- File-backed Reference Store
+- SQLite (canonical) for:
+  - append-only events
+  - versioned snapshots
+  - UXP/UFI + telemetry indices
+- File-backed Reference Store (ECS objects)
+
+JSON/JSONL remain supported for export/import, but are not the canonical store.
 
 ### Guarantees
 - Crash-safe writes

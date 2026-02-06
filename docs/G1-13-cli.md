@@ -31,6 +31,19 @@ It must be:
 - `focusa stop`
 - `focusa status`
 
+### Export (Datasets)
+- `focusa export <dataset_type> --output <path> [--format jsonl|parquet ...]`
+  - See: `docs/21-data-export-cli.md`
+
+### Multi-device Sync (Local-first)
+- `focusa sync peers list`
+- `focusa sync peers add <url>`
+- `focusa sync push [--peer <id>]`
+- `focusa sync pull [--peer <id>]`
+- `focusa sync now [--peer <id>]`
+  - Policy: bidirectional sync; imports as observations; per-thread ownership.
+  - See: `docs/43-multi-device-sync.md`
+
 ---
 
 ### Focus Stack

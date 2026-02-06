@@ -51,7 +51,7 @@ This results in:
 - Agent orchestration
 - Model training or RL
 - Attention kernel optimization
-- Cloud sync
+- Multi-device local-first sync (post-MVP; ownership + observations)
 - CI/CD automation
 - Infinite canvas UI
 

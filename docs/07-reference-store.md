@@ -35,7 +35,8 @@ It prevents token overload while preserving full fidelity.
 
 - Local filesystem (default)
 - Workspace-relative paths
-- No remote storage
+- No remote storage (canonical). Remote transfer occurs only via explicit multi-device sync.
+  See: `docs/43-multi-device-sync.md`
 
 All writes are atomic.
 

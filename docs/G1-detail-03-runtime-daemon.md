@@ -49,11 +49,15 @@ Persist these on mutation (debounced/batched):
 
 Persist mechanism:
 - local directory (default: `~/.focusa/`)
-- JSON files for state + append-only JSONL event log
+- SQLite (canonical) for:
+  - append-only events
+  - versioned snapshots
+  - telemetry/UXP/UFI indices
+- JSON/JSONL supported for export/import and debugging, not canonical persistence
 - ECS artifacts stored as files under `~/.focusa/ecs/`
 
 ## Event Log (MVP)
-Append-only JSONL:
+Append-only events (SQLite canonical; JSONL export optional):
 - every state mutation must emit an event
 - events have:
   - id (monotonic or UUIDv7)
@@ -63,9 +67,11 @@ Append-only JSONL:
   - correlation_id (request/turn id)
   - origin (cli/gui/adapter/worker)
 
-Event log is bounded:
-- keep last N MB or last N days (config)
-- older logs can be compacted later (non-MVP)
+Event log retention is configurable.
+
+Canonical events are append-only in SQLite.
+Optionally export JSONL for interoperability and debugging.
+Retention policies must never break auditability without explicit configuration.
 
 ## Concurrency & Locking
 Use a single state owner model:

@@ -17,6 +17,14 @@ No harness internals required.
 ### Mode A — Wrap Harness CLI (MVP Primary)
 Focusa adapter starts a harness CLI process and mediates I/O.
 
+#### "Magic" UX (Desired)
+Users should be able to run harness CLIs directly (e.g. `pi`, `claude`) and still have Focusa capture turns.
+
+Recommended implementation: PATH shims that transparently exec:
+- `focusa wrap -- <harness> <args...>`
+
+See: `docs/42-magic-harness-shims.md`
+
 Example:
 - Harness: `letta run ...` (or equivalent)
 - Focusa wrapper:

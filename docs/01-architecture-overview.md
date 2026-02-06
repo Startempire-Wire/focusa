@@ -70,13 +70,13 @@ Model Endpoint / Harness Backend
   - local file store operations should be batched where possible.
 
 ## Data Persistence (MVP)
-- All persistence is local.
-- Must survive daemon restart:
-  - focus stack state
-  - ASCC checkpoints
-  - ECS artifacts + index
-  - semantic/procedural memory
-  - event log (bounded)
+- All persistence is local-first.
+- Canonical storage:
+  - SQLite (append-only events + versioned snapshots + telemetry/UXP/UFI indices)
+  - filesystem ECS objects (blobs)
+- Must survive daemon restart.
+- Multi-device sync is supported via event exchange (no silent merges).
+  See: `docs/43-multi-device-sync.md`
 
 ## Configuration (MVP)
 Single config file + env overrides:

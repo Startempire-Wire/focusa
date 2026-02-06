@@ -11,7 +11,7 @@ Your primary tools are:
 - explicit state machines
 - deterministic reducers
 - async execution
-- filesystem-backed persistence
+- SQLite-backed persistence (canonical)
 
 ---
 
@@ -110,9 +110,12 @@ You MUST:
 - Enforce invariants with types where possible
 
 ### Persistence
-- JSON snapshots for state
-- JSONL append-only for events
-- Atomic writes (`write + rename`)
+- SQLite is canonical for:
+  - append-only events
+  - versioned snapshots
+  - telemetry/UXP/UFI indices
+- JSON/JSONL supported for export/import and debugging
+- Atomic writes for filesystem ECS objects
 - Recovery must replay cleanly
 
 ### Events

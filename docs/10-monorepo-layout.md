@@ -21,7 +21,7 @@ This layout is **authoritative** for MVP implementation.
 | CLI | Rust |
 | UI | SvelteKit |
 | Desktop Shell | Tauri |
-| State Storage | Local filesystem (JSON + JSONL) |
+| State Storage | Local SQLite (canonical) + filesystem ECS blobs (export/import via JSONL) |
 | Task Memory | Beads |
 
 ---
