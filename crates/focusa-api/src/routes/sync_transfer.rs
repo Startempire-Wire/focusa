@@ -34,8 +34,7 @@ struct TransferEvent {
     event_id: String,
     timestamp: String,
     machine_id: String,
-    /// The actual event data (flattened)
-    #[serde(flatten)]
+    /// The event payload (FocusaEvent as JSON)
     event: serde_json::Value,
 }
 

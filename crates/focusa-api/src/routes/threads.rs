@@ -6,8 +6,7 @@
 //! POST /v1/threads/:id/transfer — transfer thread ownership
 
 use crate::server::AppState;
-use focusa_core::runtime::events::create_entry;
-use focusa_core::types::{SignalOrigin, FocusaEvent};
+use focusa_core::types::{EventLogEntry, SignalOrigin, FocusaEvent};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -66,9 +65,24 @@ async fn create_thread(
         false,
     ) {
         Ok(result) => {
+            // Generate event ID explicitly (consistent with what create_entry does)
+            let event_id = Uuid::now_v7();
+            
             // Persist the event FIRST, then update state
             // This ensures event log is always the source of truth
-            let entry = create_entry(event, SignalOrigin::Cli, None);
+            // Note: We construct EventLogEntry directly to preserve thread_id
+            let entry = EventLogEntry {
+                id: event_id,
+                timestamp: chrono::Utc::now(),
+                event,
+                correlation_id: Some("cli:create_thread".to_string()),
+                origin: SignalOrigin::Cli,
+                machine_id: None,
+                instance_id: None,
+                session_id: None,
+                thread_id: Some(thread_id),
+                is_observation: false,
+            };
             if let Err(e) = state.persistence.append_event(&entry) {
                 tracing::warn!("Failed to persist thread creation event: {}", e);
             }
@@ -148,6 +162,11 @@ async fn transfer_ownership(
     Path(id): Path<String>,
     Json(body): Json<TransferBody>,
 ) -> AppResult<Json<Value>> {
+    // Validate to_machine_id is not empty
+    if body.to_machine_id.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "to_machine_id cannot be empty"}))));
+    }
+    
     // Parse thread_id
     let thread_id = match id.parse::<uuid::Uuid>() {
         Ok(id) => id,
@@ -190,8 +209,22 @@ async fn transfer_ownership(
         false,
     ) {
         Ok(result) => {
+            // Generate event ID explicitly (consistent with what create_entry does)
+            let event_id = Uuid::now_v7();
+            
             // Persist the event FIRST, then update state
-            let entry = create_entry(event, SignalOrigin::Cli, None);
+            let entry = EventLogEntry {
+                id: event_id,
+                timestamp: chrono::Utc::now(),
+                event,
+                correlation_id: Some("cli:transfer_ownership".to_string()),
+                origin: SignalOrigin::Cli,
+                machine_id: Some(caller_machine_id.to_string()),
+                instance_id: None,
+                session_id: None,
+                thread_id: Some(thread_id),
+                is_observation: false,
+            };
             if let Err(e) = state.persistence.append_event(&entry) {
                 tracing::warn!("Failed to persist ownership transfer event: {}", e);
             }
