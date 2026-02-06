@@ -3,6 +3,7 @@ pub mod attachments;
 pub mod autonomy;
 pub mod sync;
 pub mod sync_receive;
+pub mod sync_transfer;
 pub mod clt;
 pub mod constitution;
 pub mod ecs;

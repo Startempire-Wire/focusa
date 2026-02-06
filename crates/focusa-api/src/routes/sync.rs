@@ -218,6 +218,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/sync/pull/{peer_id}", post(pull_from_peer))
         .route("/v1/sync/push/{peer_id}", post(push_to_peer))
         .route("/v1/sync/receive", post(receive))
+        .route("/v1/sync/transfer", post(transfer))
 }
 
 async fn receive(
@@ -229,4 +230,15 @@ async fn receive(
         .map_err(|_| StatusCode::BAD_REQUEST)?;
     // Delegate to sync_receive module
     crate::routes::sync_receive::receive_impl(State(state), Json(body)).await
+}
+
+async fn transfer(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    // Parse body into TransferBody
+    let body: crate::routes::sync_transfer::TransferBody = serde_json::from_value(body)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    // Delegate to sync_transfer module
+    crate::routes::sync_transfer::transfer_impl(State(state), Json(body)).await
 }
