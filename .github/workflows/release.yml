@@ -94,35 +94,32 @@ jobs:
           - **Performance budget** — hot path <20ms, worker jobs <200ms, gate signal ingest <5ms
           - **Edition 2024** (Rust nightly 1.94.0)
 
-          ### 📦 Downloads
+          ### 📦 Downloads (macOS only for testing)
 
           | Platform | Binary | Description |
           |----------|--------|-------------|
-          | **Linux x86_64** | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI + daemon |
           | **macOS Apple Silicon** | \`focusa-${TAG}-aarch64-apple-darwin\` | CLI + daemon |
           | **macOS Intel** | \`focusa-${TAG}-x86_64-apple-darwin\` | CLI + daemon |
-          | **Linux x86_64** | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
           | **macOS Apple Silicon** | \`focusa-tui-${TAG}-aarch64-apple-darwin\` | TUI dashboard |
           | **macOS Intel** | \`focusa-tui-${TAG}-x86_64-apple-darwin\` | TUI dashboard |
 
-          > **Menubar desktop app** (.dmg / .AppImage / .msi) coming in a future release.
-
-          ### 🚀 Quick Start
+          ### 🚀 Quick Start (macOS)
           \`\`\`bash
-          # Download the binary for your platform
-          chmod +x focusa-${TAG}-*
+          # Download and extract the binary
+          tar -xzf focusa-v0.2.10-*.tar.gz
+          tar -xzf focusa-tui-v0.2.10-*.tar.gz
           
           # Start the daemon
-          ./focusa-daemon-${TAG}-<your-platform>
+          ./focusa-daemon-v0.2.10-<your-platform>
           
           # In another terminal — push a focus frame
-          ./focusa-${TAG}-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
+          ./focusa-v0.2.10-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
           
           # Check status
-          ./focusa-${TAG}-<your-platform> status
+          ./focusa-v0.2.10-<your-platform> status
           
           # Launch TUI dashboard
-          ./focusa-tui-${TAG}-<your-platform>
+          ./focusa-tui-v0.2.10-<your-platform>
           \`\`\`
 
           ### Commits
@@ -145,7 +142,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Build Tauri desktop app for all platforms
+  # Build Tauri desktop app for macOS only (testing)
   tauri-build:
     name: Build Menubar (${{ matrix.platform }})
     needs: create-release
@@ -159,22 +156,10 @@ jobs:
           - platform: macos-latest
             args: '--target x86_64-apple-darwin'
             rust_target: x86_64-apple-darwin
-          - platform: ubuntu-22.04
-            args: ''
-            rust_target: ''
-          - platform: windows-latest
-            args: ''
-            rust_target: ''
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install system deps (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
@@ -219,15 +204,13 @@ jobs:
           tauriScript: bunx tauri
           args: ${{ matrix.args }}
 
-  # Publish Rust binaries
+  # Publish Rust binaries - macOS only for testing
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
     needs: create-release
     strategy:
       matrix:
         include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
           - target: aarch64-apple-darwin
             os: macos-latest
           - target: x86_64-apple-darwin
@@ -239,12 +222,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: ${{ matrix.target }}
-
-      - name: Install system deps (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config
 
       - name: Build release binaries
         run: cargo build --release --target ${{ matrix.target }}
