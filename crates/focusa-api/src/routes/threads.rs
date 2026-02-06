@@ -47,6 +47,14 @@ async fn create_thread(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateThreadBody>,
 ) -> impl IntoResponse {
+    // Validate required fields
+    if body.name.trim().is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "name cannot be empty"})));
+    }
+    if body.primary_intent.trim().is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "primary_intent cannot be empty"})));
+    }
+
     // Create thread through reducer for proper event logging and state management.
     let thread_id = Uuid::now_v7();
     let event = FocusaEvent::ThreadCreated {

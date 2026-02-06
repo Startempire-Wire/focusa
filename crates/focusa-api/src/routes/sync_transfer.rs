@@ -82,9 +82,16 @@ pub async fn transfer_impl(
             }
         };
 
-        // Extract thread_id from event for tracking
-        let thread_id = match &event {
-            FocusaEvent::ThreadOwnershipTransferred { thread_id, .. } => Some(*thread_id),
+        // Extract thread_id and validate to_machine_id from event
+        let (thread_id, from_machine_id) = match &event {
+            FocusaEvent::ThreadOwnershipTransferred { thread_id, from_machine_id, to_machine_id, .. } => {
+                if to_machine_id.is_empty() {
+                    tracing::warn!(event_id = %event_id, "Rejected transfer with empty to_machine_id");
+                    rejected += 1;
+                    continue;
+                }
+                (*thread_id, from_machine_id.clone())
+            }
             _ => {
                 tracing::warn!(event_id = %event_id, "Rejected non-ownership event via /v1/sync/transfer");
                 rejected += 1;
@@ -101,20 +108,22 @@ pub async fn transfer_impl(
             event,
             correlation_id: Some(format!("sync:transfer:from:{}", body.peer_id)),
             origin: SignalOrigin::Sync,
-            machine_id: Some(remote.machine_id.clone()),
+            // Use from_machine_id for the log (who's transferring ownership)
+            machine_id: from_machine_id.as_ref().cloned().or(Some(remote.machine_id.clone())),
             instance_id: None,
             session_id: None,
-            thread_id,
+            thread_id: Some(thread_id),
             is_observation: false, // CRITICAL: Must mutate state!
         };
 
         // Run through reducer to apply ownership change
+        // Use from_machine_id for ownership validation (not remote.machine_id)
         let focusa_state = state.focusa.read().await;
         match reducer::reduce_with_meta(
             focusa_state.clone(),
             entry.event.clone(),
-            Some(&remote.machine_id),
-            thread_id,
+            from_machine_id.as_deref(),
+            Some(thread_id),
             false, // Not an observation
         ) {
             Ok(result) => {
