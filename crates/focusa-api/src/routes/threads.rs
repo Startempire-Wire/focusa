@@ -68,9 +68,8 @@ async fn create_thread(
             // Generate event ID explicitly (consistent with what create_entry does)
             let event_id = Uuid::now_v7();
             
-            // Persist the event FIRST, then update state
+            // Persist the event FIRST
             // This ensures event log is always the source of truth
-            // Note: We construct EventLogEntry directly to preserve thread_id
             let entry = EventLogEntry {
                 id: event_id,
                 timestamp: chrono::Utc::now(),
@@ -89,9 +88,9 @@ async fn create_thread(
 
             // Clone the new state for the response (before moving into focusa)
             let thread = result.new_state.threads.iter().find(|t| t.id == thread_id).cloned();
+            
+            // NOW update in-memory state (only after persistence succeeds)
             let state_to_save = result.new_state.clone();
-
-            // Now update in-memory state
             drop(focusa_state);
             {
                 let mut focusa_state = state.focusa.write().await;
@@ -212,7 +211,8 @@ async fn transfer_ownership(
             // Generate event ID explicitly (consistent with what create_entry does)
             let event_id = Uuid::now_v7();
             
-            // Persist the event FIRST, then update state
+            // Persist the event FIRST
+            // This ensures event log is always the source of truth
             let entry = EventLogEntry {
                 id: event_id,
                 timestamp: chrono::Utc::now(),
@@ -229,10 +229,8 @@ async fn transfer_ownership(
                 tracing::warn!("Failed to persist ownership transfer event: {}", e);
             }
 
-            // Clone the state for saving
+            // NOW update in-memory state (only after persistence succeeds)
             let state_to_save = result.new_state.clone();
-
-            // Now update in-memory state
             drop(focusa_state);
             {
                 let mut focusa_state = state.focusa.write().await;

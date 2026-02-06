@@ -118,7 +118,7 @@ pub async fn transfer_impl(
             false, // Not an observation
         ) {
             Ok(result) => {
-                // Persist the event FIRST, then update state
+                // Persist the event FIRST
                 // This ensures event log is always the source of truth
                 if let Err(e) = state.persistence.append_event(&entry) {
                     tracing::warn!("Failed to persist transfer event: {}", e);
@@ -126,10 +126,8 @@ pub async fn transfer_impl(
                     continue;
                 }
 
-                // Clone the new state for saving (after we move it into focusa_state)
+                // NOW update in-memory state (only after persistence succeeds)
                 let state_to_save = result.new_state.clone();
-
-                // Now update in-memory state with the reducer result
                 drop(focusa_state);
                 {
                     let mut focusa_state = state.focusa.write().await;
