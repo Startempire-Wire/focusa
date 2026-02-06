@@ -102,6 +102,10 @@ enum Commands {
     #[command(subcommand)]
     Skills(commands::skills::SkillsCmd),
 
+    /// Thread operations (docs/38).
+    #[command(subcommand)]
+    Thread(commands::threads::ThreadCmd),
+
     /// Wrap a harness CLI (Mode A proxy).
     ///
     /// Usage: focusa wrap -- <command> [args...]
@@ -209,6 +213,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await?,
         Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await?,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await?,
+        Commands::Thread(cmd) => commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await?,
         Commands::Wrap { command } => commands::wrap::run(command).await?,
     }
 

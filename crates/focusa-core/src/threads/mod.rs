@@ -18,8 +18,8 @@ use crate::types::*;
 use chrono::Utc;
 use uuid::Uuid;
 
-/// Create a new thread.
-pub fn create_thread(name: &str, primary_intent: &str) -> Thread {
+/// Create a new thread with optional ownership.
+pub fn create_thread(name: &str, primary_intent: &str, owner_machine_id: Option<&str>) -> Thread {
     Thread {
         id: Uuid::now_v7(),
         name: name.into(),
@@ -33,18 +33,20 @@ pub fn create_thread(name: &str, primary_intent: &str) -> Thread {
         },
         clt_head: None,
         autonomy_history: vec![],
-        owner_machine_id: None,
+        owner_machine_id: owner_machine_id.map(|s| s.to_string()),
     }
 }
 
 /// Fork a thread (creates a copy with new ID).
-pub fn fork_thread(source: &Thread, new_name: &str) -> Thread {
+/// If owner is provided, it overrides the source's owner.
+pub fn fork_thread(source: &Thread, new_name: &str, new_owner: Option<&str>) -> Thread {
     let mut forked = source.clone();
     forked.id = Uuid::now_v7();
     forked.name = new_name.into();
     forked.created_at = Utc::now();
     forked.updated_at = Utc::now();
     forked.status = ThreadStatus::Forked;
+    forked.owner_machine_id = new_owner.map(|s| s.to_string());
     forked
 }
 
@@ -116,22 +118,36 @@ mod tests {
 
     #[test]
     fn test_create_thread() {
-        let t = create_thread("my-task", "Build auth module");
+        let t = create_thread("my-task", "Build auth module", None);
         assert_eq!(t.status, ThreadStatus::Active);
         assert_eq!(t.thesis.primary_intent, "Build auth module");
+        assert_eq!(t.owner_machine_id, None);
+    }
+
+    #[test]
+    fn test_create_thread_with_owner() {
+        let t = create_thread("my-task", "Build auth module", Some("machine-123"));
+        assert_eq!(t.owner_machine_id, Some("machine-123".to_string()));
     }
 
     #[test]
     fn test_fork_gets_new_id() {
-        let t = create_thread("original", "intent");
-        let forked = fork_thread(&t, "fork-1");
+        let t = create_thread("original", "intent", None);
+        let forked = fork_thread(&t, "fork-1", None);
         assert_ne!(t.id, forked.id);
         assert_eq!(forked.status, ThreadStatus::Forked);
     }
 
     #[test]
+    fn test_fork_with_new_owner() {
+        let t = create_thread("original", "intent", Some("machine-a"));
+        let forked = fork_thread(&t, "fork-1", Some("machine-b"));
+        assert_eq!(forked.owner_machine_id, Some("machine-b".to_string()));
+    }
+
+    #[test]
     fn test_archive_and_resume() {
-        let mut t = create_thread("test", "intent");
+        let mut t = create_thread("test", "intent", None);
         archive_thread(&mut t);
         assert_eq!(t.status, ThreadStatus::Archived);
         resume_thread(&mut t);
