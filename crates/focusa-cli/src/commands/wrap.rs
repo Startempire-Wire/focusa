@@ -81,7 +81,7 @@ fn detect_harness(cmd: &str) -> HarnessConfig {
                 structured_messages: true,
             },
         },
-        "claude" => HarnessConfig {
+        "claude" | "claude-code" => HarnessConfig {
             name: "claude",
             prompt_arg: PromptArg::Positional(0),
             env_vars: &[],
@@ -90,6 +90,17 @@ fn detect_harness(cmd: &str) -> HarnessConfig {
                 streaming: true,
                 tool_output_capture: true,
                 structured_messages: true,
+            },
+        },
+        "opencode" => HarnessConfig {
+            name: "opencode",
+            prompt_arg: PromptArg::Unknown,
+            env_vars: &[],
+            provider: Provider::Unknown,
+            capabilities: AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: false,
+                structured_messages: false,
             },
         },
         "aider" => HarnessConfig {
