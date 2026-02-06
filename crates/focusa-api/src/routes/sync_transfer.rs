@@ -47,6 +47,11 @@ pub async fn transfer_impl(
     let mut rejected = 0;
     let start = std::time::Instant::now();
 
+    // Track the last successfully applied event for cursor update.
+    // Only advance cursor to events we've actually persisted.
+    let mut last_applied_id: Option<String> = None;
+    let mut last_applied_ts: Option<String> = None;
+
     for remote in &body.events {
         // Parse event_id for idempotency check
         let event_id = match remote.event_id.parse::<Uuid>() {
@@ -137,6 +142,10 @@ pub async fn transfer_impl(
                     tracing::warn!("Failed to save state after transfer: {}", e);
                 }
 
+                // Track last successfully applied event for cursor update
+                last_applied_id = Some(remote.event_id.clone());
+                last_applied_ts = Some(remote.timestamp.clone());
+
                 // Broadcast to SSE subscribers
                 if let Ok(json) = serde_json::to_string(&entry) {
                     let _ = state.events_tx.send(json);
@@ -150,6 +159,14 @@ pub async fn transfer_impl(
                 continue;
             }
         }
+    }
+
+    // Update peer cursor to the last successfully applied event.
+    // This ensures we don't skip events if some fail to import.
+    if let (Some(last_id), Some(last_ts)) = (last_applied_id, last_applied_ts) {
+        let _ = state
+            .persistence
+            .set_cursor(&body.peer_id, Some(&last_id), Some(&last_ts));
     }
 
     let elapsed_ms = start.elapsed().as_millis();

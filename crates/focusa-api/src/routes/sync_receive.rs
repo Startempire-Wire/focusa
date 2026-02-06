@@ -34,7 +34,7 @@ pub struct RemoteEvent {
     session_id: Option<String>,
     #[serde(default)]
     thread_id: Option<String>,
-    #[serde(flatten)]
+    /// The event payload (FocusaEvent as JSON)
     event: serde_json::Value,
 }
 
