@@ -61,17 +61,25 @@ pub fn reduce_with_meta(
 
     // Policy #5: Per-thread ownership enforcement
     if let Some(tid) = thread_id {
-        if let Some(thread) = state.threads.iter().find(|t| t.id == tid) {
-            if let Some(owner) = &thread.owner_machine_id {
-                if machine_id != Some(owner.as_str()) {
-                    // Non-owner attempting to mutate canonical state — reject
-                    return Err(ReducerError::OwnershipViolation {
-                        thread_id: tid,
-                        owner: owner.clone(),
-                        attempted_by: machine_id.map(|s| s.to_string()),
-                    });
-                }
+        let thread = state.threads.iter().find(|t| t.id == tid);
+        if let Some(owner) = thread.and_then(|t| t.owner_machine_id.as_ref()) {
+            // Thread has an owner — verify the machine_id matches
+            if machine_id != Some(owner.as_str()) {
+                // Non-owner attempting to mutate canonical state — reject
+                return Err(ReducerError::OwnershipViolation {
+                    thread_id: tid,
+                    owner: owner.clone(),
+                    attempted_by: machine_id.map(|s| s.to_string()),
+                });
             }
+        }
+        // If thread exists but has no owner, mutation is allowed (unowned threads)
+        // If thread doesn't exist in state, reject (can't verify ownership)
+        if thread.is_none() {
+            return Err(ReducerError::InvalidEvent(format!(
+                "Thread {} not found in state — cannot verify ownership for mutation",
+                tid
+            )));
         }
     }
 
