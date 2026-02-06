@@ -12,7 +12,7 @@ use axum::Router;
 use axum::middleware as axum_mw;
 use focusa_core::types::{Action, FocusaConfig, FocusaState};
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{broadcast, mpsc, RwLock};
 
 /// Shared state between API server and daemon.
 pub struct AppState {
@@ -20,6 +20,8 @@ pub struct AppState {
     pub focusa: Arc<RwLock<FocusaState>>,
     /// Command channel to the daemon event loop.
     pub command_tx: mpsc::Sender<Action>,
+    /// Event broadcast channel (SSE clients subscribe).
+    pub events_tx: broadcast::Sender<String>,
     pub config: FocusaConfig,
 }
 
@@ -27,11 +29,14 @@ pub struct AppState {
 pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
         .merge(routes::health::router())
+        .merge(routes::info::router())
+        .merge(routes::instances::router())
         .merge(routes::focus::router())
         .merge(routes::gate::router())
         .merge(routes::ecs::router())
         .merge(routes::memory::router())
-        .merge(routes::events::router())
+        .merge(routes::events_sqlite::router())
+        .merge(routes::events_stream::router())
         .merge(routes::session::router())
         .merge(routes::proxy::router())
         .merge(routes::clt::router())
@@ -54,6 +59,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 pub async fn run(
     focusa: Arc<RwLock<FocusaState>>,
     command_tx: mpsc::Sender<Action>,
+    events_tx: broadcast::Sender<String>,
     config: FocusaConfig,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
@@ -61,6 +67,7 @@ pub async fn run(
     let state = Arc::new(AppState {
         focusa,
         command_tx,
+        events_tx,
         config,
     });
 

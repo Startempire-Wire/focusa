@@ -9,5 +9,10 @@
 //!   - Concurrency: single owner task with mpsc command channel
 
 pub mod daemon;
+pub mod event_bus;
 pub mod events;
 pub mod persistence;
+pub mod persistence_sqlite;
+
+#[cfg(test)]
+mod persistence_sqlite_test;

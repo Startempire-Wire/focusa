@@ -1,62 +1,49 @@
-//! Persistence — local filesystem (JSON + JSONL).
+//! Persistence — compatibility helpers.
 //!
-//! Layout: ~/.focusa/
-//!   state/           — JSON snapshots
-//!   events/          — JSONL append-only log
-//!   ecs/objects/     — content-addressed blobs
-//!   ecs/handles/     — handle metadata
-//!   sessions/        — session metadata
+//! Canonical persistence is SQLite (see persistence_sqlite.rs).
 //!
-//! Writes use atomic write-then-rename pattern.
+//! This module provides export/import helpers for interoperability and debugging:
+//! - export state snapshot as JSON
+//! - export events as JSONL
+//!
+//! ECS objects remain filesystem-backed.
 
 use crate::types::{EventLogEntry, FocusaConfig, FocusaState};
 use std::path::{Path, PathBuf};
 
-/// Persistence layer for Focusa state.
+/// Export helper rooted at the Focusa data dir.
 pub struct Persistence {
     pub data_dir: PathBuf,
 }
 
 impl Persistence {
-    /// Create a new persistence layer, ensuring directories exist.
+    /// Create helper rooted at configured data_dir.
     pub fn new(config: &FocusaConfig) -> anyhow::Result<Self> {
         let data_dir = shellexpand(config.data_dir.as_str());
-        std::fs::create_dir_all(data_dir.join("state"))?;
-        std::fs::create_dir_all(data_dir.join("events"))?;
-        std::fs::create_dir_all(data_dir.join("ecs/objects"))?;
-        std::fs::create_dir_all(data_dir.join("ecs/handles"))?;
-        std::fs::create_dir_all(data_dir.join("sessions"))?;
+        std::fs::create_dir_all(&data_dir)?;
         Ok(Self { data_dir })
     }
 
-    /// Save state snapshot (atomic write + rename).
-    pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
+    /// Export a state snapshot to JSON (atomic write + rename).
+    pub fn export_state_json(&self, state: &FocusaState) -> anyhow::Result<PathBuf> {
         let path = self.data_dir.join("state/focusa.json");
-        atomic_write_json(&path, state)
+        std::fs::create_dir_all(self.data_dir.join("state"))?;
+        atomic_write_json(&path, state)?;
+        Ok(path)
     }
 
-    /// Load state snapshot.
-    pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
-        let path = self.data_dir.join("state/focusa.json");
-        if path.exists() {
-            let data = std::fs::read_to_string(&path)?;
-            Ok(Some(serde_json::from_str(&data)?))
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Append event to log (JSONL).
-    pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
+    /// Export an event entry to JSONL (append-only).
+    pub fn export_event_jsonl(&self, entry: &EventLogEntry) -> anyhow::Result<PathBuf> {
         use std::io::Write;
+        std::fs::create_dir_all(self.data_dir.join("events"))?;
         let path = self.data_dir.join("events/log.jsonl");
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(path)?;
+            .open(&path)?;
         let line = serde_json::to_string(entry)?;
         writeln!(file, "{}", line)?;
-        Ok(())
+        Ok(path)
     }
 }
 

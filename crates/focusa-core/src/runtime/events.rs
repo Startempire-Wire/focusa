@@ -25,5 +25,9 @@ pub fn create_entry(
         event,
         correlation_id,
         origin,
+        machine_id: None,
+        instance_id: None,
+        session_id: None,
+        thread_id: None,
     }
 }

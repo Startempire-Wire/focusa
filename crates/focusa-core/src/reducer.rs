@@ -38,6 +38,12 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
     let emitted_event = event.clone();
 
     match event {
+        // ─── Instance Lifecycle ─────────────────────────────────────────
+
+        FocusaEvent::InstanceConnected { .. } | FocusaEvent::InstanceDisconnected { .. } => {
+            // Observability only in MVP — no mutation of canonical cognitive state.
+        }
+
         // ─── Session Lifecycle ───────────────────────────────────────────
 
         FocusaEvent::SessionStarted {

@@ -459,6 +459,16 @@ pub struct AsccSections {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum FocusaEvent {
+    // Instance lifecycle (multi-device / multi-surface observability)
+    InstanceConnected {
+        instance_id: Uuid,
+        kind: InstanceKind,
+    },
+    InstanceDisconnected {
+        instance_id: Uuid,
+        reason: String,
+    },
+
     // Session lifecycle
     SessionStarted {
         session_id: SessionId,
@@ -606,6 +616,17 @@ pub struct EventLogEntry {
     pub event: FocusaEvent,
     pub correlation_id: Option<String>,
     pub origin: SignalOrigin,
+
+    /// Multi-device sync fields (docs/40 + docs/43).
+    /// These are duplicated into indexed SQLite columns for efficient sync.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub machine_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<SessionId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread_id: Option<Uuid>,
 }
 
 // ─── Workers (from G1-10-workers.md) ────────────────────────────────────────
@@ -714,13 +735,23 @@ pub enum Action {
         job_id: Uuid,
     },
 
-    // Session
+    // Instance/Session
+    InstanceConnect {
+        kind: InstanceKind,
+    },
+    InstanceDisconnect {
+        instance_id: Uuid,
+        reason: String,
+    },
+
     StartSession {
         adapter_id: Option<String>,
         workspace_id: Option<String>,
+        instance_id: Option<Uuid>,
     },
     CloseSession {
         reason: String,
+        instance_id: Option<Uuid>,
     },
 
     // Proposals

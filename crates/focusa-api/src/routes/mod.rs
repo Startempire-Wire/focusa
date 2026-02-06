@@ -3,10 +3,14 @@ pub mod autonomy;
 pub mod clt;
 pub mod constitution;
 pub mod ecs;
-pub mod events;
+// pub mod events; // deprecated JSONL event tailing
+pub mod events_sqlite;
+pub mod events_stream;
 pub mod focus;
 pub mod gate;
 pub mod health;
+pub mod info;
+pub mod instances;
 pub mod memory;
 pub mod proposals;
 pub mod proxy;

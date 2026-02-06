@@ -25,7 +25,7 @@ use crate::intuition::engine::IntuitionEngine;
 use crate::reducer::{self, ReducerError};
 use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
-use crate::runtime::persistence::Persistence;
+use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
@@ -46,6 +46,7 @@ pub struct Daemon {
     signal_rx: mpsc::Receiver<Signal>,
     command_tx: mpsc::Sender<Action>,
     command_rx: mpsc::Receiver<Action>,
+    event_bus: Option<crate::runtime::event_bus::EventBus>,
 }
 
 impl Daemon {
@@ -87,12 +88,18 @@ impl Daemon {
             signal_rx,
             command_tx,
             command_rx,
+            event_bus: None,
         })
     }
 
     /// Get a clone of the command sender (for API server, CLI, etc.).
     pub fn command_sender(&self) -> mpsc::Sender<Action> {
         self.command_tx.clone()
+    }
+
+    /// Attach an in-process event bus (used for SSE).
+    pub fn attach_event_bus(&mut self, bus: crate::runtime::event_bus::EventBus) {
+        self.event_bus = Some(bus);
     }
 
     /// Run the main event loop. Blocks until the channel is closed.
@@ -151,10 +158,13 @@ impl Daemon {
 
                     // Persist each emitted event to the log.
                     for emitted in &result.emitted_events {
-                        let entry =
-                            create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        let entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
                         if let Err(e) = self.persistence.append_event(&entry) {
                             tracing::error!("Failed to persist event: {}", e);
+                        } else if let Ok(json) = serde_json::to_string(&entry) {
+                            if let Some(bus) = &self.event_bus {
+                                bus.publish(json);
+                            }
                         }
                     }
 
@@ -168,6 +178,7 @@ impl Daemon {
                     if let Err(e) = self.persistence.save_state(&self.state) {
                         tracing::error!("Failed to save state snapshot: {}", e);
                     }
+
 
                     // Sync to shared handle so the API sees all updates.
                     self.sync_shared_state().await;
@@ -206,6 +217,10 @@ impl Daemon {
                         let entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
                         if let Err(e) = self.persistence.append_event(&entry) {
                             tracing::error!("Failed to persist intuition signal: {}", e);
+                        } else if let Ok(json) = serde_json::to_string(&entry) {
+                            if let Some(bus) = &self.event_bus {
+                                bus.publish(json);
+                            }
                         }
                     }
 
@@ -233,16 +248,26 @@ impl Daemon {
         match action {
             // ─── Session ─────────────────────────────────────────────────
 
+            Action::InstanceConnect { kind } => Ok(vec![FocusaEvent::InstanceConnected {
+                instance_id: Uuid::now_v7(),
+                kind,
+            }]),
+
+            Action::InstanceDisconnect { instance_id, reason } => {
+                Ok(vec![FocusaEvent::InstanceDisconnected { instance_id, reason }])
+            }
+
             Action::StartSession {
                 adapter_id,
                 workspace_id,
+                instance_id: _,
             } => Ok(vec![FocusaEvent::SessionStarted {
                 session_id: Uuid::now_v7(),
                 adapter_id,
                 workspace_id,
             }]),
 
-            Action::CloseSession { reason } => {
+            Action::CloseSession { reason, instance_id: _ } => {
                 Ok(vec![FocusaEvent::SessionClosed { reason }])
             }
 
@@ -434,6 +459,11 @@ impl Daemon {
         };
         let entry = create_entry(violation_event, SignalOrigin::Daemon, None);
         self.persistence.append_event(&entry)?;
+        if let Ok(json) = serde_json::to_string(&entry) {
+            if let Some(bus) = &self.event_bus {
+                bus.publish(json);
+            }
+        }
         Ok(())
     }
 

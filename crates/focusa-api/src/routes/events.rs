@@ -1,8 +1,8 @@
 //! Event routes.
 //!
-//! GET /v1/events/recent?limit=200    — read recent events from JSONL log
-//! GET /v1/events/stream              — SSE event stream (Server-Sent Events)
-//! GET /v1/events/:event_id           — get a specific event by ID
+//! NOTE: SQLite is canonical; JSONL tailing is deprecated.
+//! This module is retained temporarily until SSE is re-implemented
+//! using an in-process broadcast channel.
 
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};

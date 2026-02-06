@@ -34,6 +34,7 @@ async fn state_dump(State(state): State<Arc<AppState>>) -> Json<serde_json::Valu
 struct StartSessionBody {
     adapter_id: Option<String>,
     workspace_id: Option<String>,
+    instance_id: Option<String>,
 }
 
 async fn start_session(
@@ -45,6 +46,7 @@ async fn start_session(
         .send(Action::StartSession {
             adapter_id: body.adapter_id,
             workspace_id: body.workspace_id,
+            instance_id: body.instance_id.and_then(|s| uuid::Uuid::parse_str(&s).ok()),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -56,6 +58,7 @@ async fn start_session(
 struct CloseSessionBody {
     #[serde(default = "default_reason")]
     reason: String,
+    instance_id: Option<String>,
 }
 
 fn default_reason() -> String {
@@ -70,6 +73,7 @@ async fn close_session(
         .command_tx
         .send(Action::CloseSession {
             reason: body.reason,
+            instance_id: body.instance_id.and_then(|s| uuid::Uuid::parse_str(&s).ok()),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

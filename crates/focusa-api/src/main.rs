@@ -38,9 +38,15 @@ async fn main() -> anyhow::Result<()> {
     // Shared state: daemon writes after every reduction, API reads.
     let shared_state = Arc::new(RwLock::new(FocusaState::default()));
 
+    // Event bus for SSE.
+    let (events_tx, _events_rx) = tokio::sync::broadcast::channel::<String>(1024);
+
     // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
     let mut daemon = Daemon::new(config.clone(), shared_state.clone())?;
+    daemon.attach_event_bus(focusa_core::runtime::event_bus::EventBus::new(events_tx.clone()));
     let command_tx = daemon.command_sender();
+    let events_tx_for_api = events_tx.clone();
+
 
     // Spawn daemon event loop.
     let daemon_handle = tokio::spawn(async move {
@@ -51,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Start API server (blocks until shutdown).
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = server::run(shared_state, command_tx, config).await {
+        if let Err(e) = server::run(shared_state, command_tx, events_tx_for_api, config).await {
             tracing::error!("API server error: {}", e);
         }
     });
