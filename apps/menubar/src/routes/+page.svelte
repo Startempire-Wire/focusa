@@ -6,7 +6,9 @@
   import Settings from '$lib/components/Settings.svelte';
   import { onMount } from 'svelte';
 
-  type Tab = 'focus' | 'gate' | 'settings';
+  import SyncPanel from '$lib/components/SyncPanel.svelte';
+
+  type Tab = 'focus' | 'gate' | 'sync' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -63,6 +65,9 @@
         <span class="badge">{gateStore.surfacedCount}</span>
       {/if}
     </button>
+    <button class="tab" class:active={activeTab === 'sync'} onclick={() => activeTab = 'sync'}>
+      Sync
+    </button>
     <button class="tab" class:active={activeTab === 'settings'} onclick={() => activeTab = 'settings'}>
       ⚙
     </button>
@@ -75,6 +80,8 @@
     <FocusView />
   {:else if activeTab === 'gate'}
     <GatePanel />
+  {:else if activeTab === 'sync'}
+    <SyncPanel />
   {:else if activeTab === 'settings'}
     <Settings />
   {/if}
