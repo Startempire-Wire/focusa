@@ -114,26 +114,28 @@ pub async fn transfer_impl(
             false, // Not an observation
         ) {
             Ok(result) => {
-                // Update state with ownership change
-                drop(focusa_state);
-                {
-                    let mut focusa_state = state.focusa.write().await;
-                    *focusa_state = result.new_state;
-                }
-
-                // Persist the event
+                // Persist the event FIRST, then update state
+                // This ensures event log is always the source of truth
                 if let Err(e) = state.persistence.append_event(&entry) {
                     tracing::warn!("Failed to persist transfer event: {}", e);
                     rejected += 1;
                     continue;
                 }
 
+                // Clone the new state for saving (after we move it into focusa_state)
+                let state_to_save = result.new_state.clone();
+
+                // Now update in-memory state with the reducer result
+                drop(focusa_state);
+                {
+                    let mut focusa_state = state.focusa.write().await;
+                    *focusa_state = result.new_state;
+                }
+
                 // Save state snapshot
-                let current_state = state.focusa.read().await;
-                if let Err(e) = state.persistence.save_state(&current_state) {
+                if let Err(e) = state.persistence.save_state(&state_to_save) {
                     tracing::warn!("Failed to save state after transfer: {}", e);
                 }
-                drop(current_state);
 
                 // Broadcast to SSE subscribers
                 if let Ok(json) = serde_json::to_string(&entry) {
