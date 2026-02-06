@@ -29,5 +29,6 @@ pub fn create_entry(
         instance_id: None,
         session_id: None,
         thread_id: None,
+        is_observation: false,
     }
 }

@@ -62,9 +62,9 @@ async fn disconnect(
     Ok(Json(json!({"status": "accepted"})))
 }
 
-async fn list() -> Json<serde_json::Value> {
-    // MVP stub: instance tracking is observability-only for now.
-    Json(json!({"instances": []}))
+async fn list(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let focusa = state.focusa.read().await;
+    Json(json!({"instances": focusa.instances}))
 }
 
 pub fn router() -> Router<Arc<AppState>> {

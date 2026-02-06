@@ -47,6 +47,8 @@ async fn main() -> anyhow::Result<()> {
     let command_tx = daemon.command_sender();
     let events_tx_for_api = events_tx.clone();
 
+    // Clone persistence for API server (sync routes need direct DB access).
+    let persistence = daemon.persistence();
 
     // Spawn daemon event loop.
     let daemon_handle = tokio::spawn(async move {
@@ -57,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Start API server (blocks until shutdown).
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = server::run(shared_state, command_tx, events_tx_for_api, config).await {
+        if let Err(e) = server::run(shared_state, command_tx, events_tx_for_api, config, persistence).await {
             tracing::error!("API server error: {}", e);
         }
     });

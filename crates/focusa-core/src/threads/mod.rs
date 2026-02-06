@@ -33,6 +33,7 @@ pub fn create_thread(name: &str, primary_intent: &str) -> Thread {
         },
         clt_head: None,
         autonomy_history: vec![],
+        owner_machine_id: None,
     }
 }
 

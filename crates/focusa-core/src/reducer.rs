@@ -25,6 +25,7 @@ use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::types::*;
 use chrono::Utc;
+use uuid::Uuid;
 
 /// Core reducer: apply an event to state, producing new state + emitted events.
 ///
@@ -32,7 +33,47 @@ use chrono::Utc;
 ///
 /// The input event is included in emitted_events on success (for event log persistence).
 pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult, ReducerError> {
+    // Default: no ownership enforcement (local events)
+    reduce_with_meta(state, event, None, None, false)
+}
+
+/// Reduce with ownership metadata (docs/43 Policy #5).
+///
+/// If `is_observation` is true, the event is recorded but does not mutate canonical state.
+/// If `machine_id` and `thread_id` are provided, enforces that only the thread owner
+/// can mutate canonical Focus Stack / Focus State.
+pub fn reduce_with_meta(
+    state: FocusaState,
+    event: FocusaEvent,
+    machine_id: Option<&str>,
+    thread_id: Option<Uuid>,
+    is_observation: bool,
+) -> Result<ReductionResult, ReducerError> {
     check_invariants(&state)?;
+
+    // Policy #2: Observations don't mutate canonical state
+    if is_observation {
+        return Ok(ReductionResult {
+            new_state: state,
+            emitted_events: vec![event],
+        });
+    }
+
+    // Policy #5: Per-thread ownership enforcement
+    if let Some(tid) = thread_id {
+        if let Some(thread) = state.threads.iter().find(|t| t.id == tid) {
+            if let Some(owner) = &thread.owner_machine_id {
+                if machine_id != Some(owner.as_str()) {
+                    // Non-owner attempting to mutate canonical state — reject
+                    return Err(ReducerError::OwnershipViolation {
+                        thread_id: tid,
+                        owner: owner.clone(),
+                        attempted_by: machine_id.map(|s| s.to_string()),
+                    });
+                }
+            }
+        }
+    }
 
     let mut state = state;
     let emitted_event = event.clone();
@@ -40,8 +81,58 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
     match event {
         // ─── Instance Lifecycle ─────────────────────────────────────────
 
-        FocusaEvent::InstanceConnected { .. } | FocusaEvent::InstanceDisconnected { .. } => {
-            // Observability only in MVP — no mutation of canonical cognitive state.
+        FocusaEvent::InstanceConnected { instance_id, kind } => {
+            if !state.instances.iter().any(|i| i.id == instance_id) {
+                state.instances.push(Instance {
+                    id: instance_id,
+                    kind,
+                    created_at: Utc::now(),
+                    thread_id: None,
+                });
+            }
+        }
+
+        FocusaEvent::InstanceDisconnected { instance_id, reason: _ } => {
+            // Keep instances for auditability; mark offline later when schema supports it.
+            // For now, remove to avoid stale UI.
+            state.instances.retain(|i| i.id != instance_id);
+            // NOTE: attachments are keyed by session_id, not instance_id.
+            // Removal on disconnect will happen once session<->instance mapping is stored.
+
+        }
+
+        // ─── Thread Attachments (docs/40) ───────────────────────────────
+
+        FocusaEvent::ThreadAttached {
+            instance_id: _,
+            session_id,
+            thread_id,
+            role,
+        } => {
+            // One attachment per (session_id, thread_id) pair.
+            if !state
+                .attachments
+                .iter()
+                .any(|a| a.session_id == session_id && a.thread_id == thread_id)
+            {
+                state.attachments.push(Attachment {
+                    session_id,
+                    thread_id,
+                    role,
+                    attached_at: Utc::now(),
+                });
+            }
+        }
+
+        FocusaEvent::ThreadDetached {
+            instance_id: _,
+            session_id,
+            thread_id,
+            reason: _,
+        } => {
+            state
+                .attachments
+                .retain(|a| !(a.session_id == session_id && a.thread_id == thread_id));
         }
 
         // ─── Session Lifecycle ───────────────────────────────────────────
@@ -480,6 +571,21 @@ pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult,
             // Log-only event — no state mutation.
             // The event itself is recorded in the event log via emitted_events.
         }
+
+        // ─── Thread Ownership ────────────────────────────────────────────
+
+        FocusaEvent::ThreadOwnershipTransferred {
+            thread_id,
+            from_machine_id: _,
+            to_machine_id,
+            reason: _,
+        } => {
+            // Update owner_machine_id on the thread if it exists in state.
+            // Threads are stored separately; this is a placeholder for when
+            // threads are loaded into state (future: ThreadIndex in FocusaState).
+            // For now, no-op — ownership is enforced at import time, not here.
+            let _ = (thread_id, to_machine_id);
+        }
     }
 
     state.version += 1;
@@ -609,6 +715,13 @@ pub enum ReducerError {
 
     #[error("Session error: {0}")]
     SessionError(String),
+
+    #[error("Ownership violation: thread {thread_id} owned by {owner}, attempted by {attempted_by:?}")]
+    OwnershipViolation {
+        thread_id: Uuid,
+        owner: String,
+        attempted_by: Option<String>,
+    },
 }
 
 #[cfg(test)]

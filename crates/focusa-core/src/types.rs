@@ -52,6 +52,15 @@ pub struct FocusaState {
     pub rfm: RfmState,
     pub pre: PreState,
     pub contribution: ContributionState,
+
+    /// Runtime reality (docs/40): instances, sessions, attachments.
+    pub instances: Vec<Instance>,
+    pub attachments: Vec<Attachment>,
+
+    /// Thread index for ownership enforcement (docs/43 Policy #5).
+    /// Threads are the unit of ownership; each has an owner_machine_id.
+    pub threads: Vec<Thread>,
+
     /// Active turn from Mode A adapter (if any).
     pub active_turn: Option<ActiveTurn>,
     /// Monotonic version — incremented on every successful reduction.
@@ -76,6 +85,9 @@ impl FocusaState {
             rfm: RfmState::default(),
             pre: PreState::default(),
             contribution: ContributionState::default(),
+            instances: vec![],
+            attachments: vec![],
+            threads: vec![],
             active_turn: None,
             version: 0,
         }
@@ -260,6 +272,9 @@ pub enum SignalOrigin {
     Daemon,
     Cli,
     Gui,
+    /// Remote sync import (docs/43 Policy #2).
+    /// Events from peers are tagged with Sync origin and is_observation=true.
+    Sync,
 }
 
 /// MVP — 9 signal kinds.
@@ -469,6 +484,26 @@ pub enum FocusaEvent {
         reason: String,
     },
 
+    ThreadAttached {
+        instance_id: Uuid,
+        session_id: SessionId,
+        thread_id: Uuid,
+        role: AttachmentRole,
+    },
+    ThreadDetached {
+        instance_id: Uuid,
+        session_id: SessionId,
+        thread_id: Uuid,
+        reason: String,
+    },
+
+    ThreadOwnershipTransferred {
+        thread_id: Uuid,
+        from_machine_id: Option<String>,
+        to_machine_id: String,
+        reason: String,
+    },
+
     // Session lifecycle
     SessionStarted {
         session_id: SessionId,
@@ -627,6 +662,12 @@ pub struct EventLogEntry {
     pub session_id: Option<SessionId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thread_id: Option<Uuid>,
+
+    /// Policy #2: observations-only import (docs/43).
+    /// Remote events imported from peers are tagged as observations.
+    /// Observations are recorded but do not mutate canonical Focus Stack/State.
+    #[serde(default)]
+    pub is_observation: bool,
 }
 
 // ─── Workers (from G1-10-workers.md) ────────────────────────────────────────
@@ -752,6 +793,19 @@ pub enum Action {
     CloseSession {
         reason: String,
         instance_id: Option<Uuid>,
+    },
+
+    ThreadAttach {
+        instance_id: Uuid,
+        session_id: SessionId,
+        thread_id: Uuid,
+        role: AttachmentRole,
+    },
+    ThreadDetach {
+        instance_id: Uuid,
+        session_id: SessionId,
+        thread_id: Uuid,
+        reason: String,
     },
 
     // Proposals
@@ -1095,6 +1149,8 @@ pub struct Thread {
     pub thesis: ThreadThesis,
     pub clt_head: Option<String>,
     pub autonomy_history: Vec<AutonomyEvent>,
+    /// Per-thread ownership (docs/43): machine_id of the canonical writer.
+    pub owner_machine_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

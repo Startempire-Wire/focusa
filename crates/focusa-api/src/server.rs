@@ -10,6 +10,7 @@ use crate::middleware;
 use crate::routes;
 use axum::Router;
 use axum::middleware as axum_mw;
+use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
 use focusa_core::types::{Action, FocusaConfig, FocusaState};
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
@@ -23,6 +24,8 @@ pub struct AppState {
     /// Event broadcast channel (SSE clients subscribe).
     pub events_tx: broadcast::Sender<String>,
     pub config: FocusaConfig,
+    /// Direct persistence access for sync routes.
+    pub persistence: SqlitePersistence,
 }
 
 /// Build the axum Router with all routes.
@@ -31,6 +34,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::health::router())
         .merge(routes::info::router())
         .merge(routes::instances::router())
+        .merge(routes::attachments::router())
+        .merge(routes::sync::router())
         .merge(routes::focus::router())
         .merge(routes::gate::router())
         .merge(routes::ecs::router())
@@ -61,6 +66,7 @@ pub async fn run(
     command_tx: mpsc::Sender<Action>,
     events_tx: broadcast::Sender<String>,
     config: FocusaConfig,
+    persistence: SqlitePersistence,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
 
@@ -69,6 +75,7 @@ pub async fn run(
         command_tx,
         events_tx,
         config,
+        persistence,
     });
 
     let app = build_router(state);
