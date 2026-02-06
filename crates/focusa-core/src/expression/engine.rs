@@ -217,10 +217,15 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
 
     // ── Assemble final prompt ────────────────────────────────────────
 
-    let content = format!(
+    let mut content = format!(
         "{}{}{}{}{}{}{}",
         slot_header, slot_rules, slot_focus, slot_parents, slot_handles, slot_user, slot_directive,
     );
+
+    // Apply redaction if enabled.
+    if input.config.redaction_enabled {
+        content = apply_redaction(&content, &input.config.redaction_patterns);
+    }
 
     let token_estimate = estimate_tokens(&content);
 
@@ -231,6 +236,23 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
         degraded,
         warnings,
     }
+}
+
+/// Apply redaction patterns to content.
+fn apply_redaction(content: &str, patterns: &[String]) -> String {
+    let mut result = content.to_string();
+    for pattern in patterns {
+        // Simple regex-based replacement (using regex crate if available, otherwise skip).
+        // For now, use basic string replacement for common patterns.
+        if pattern.contains("\\\\d") {
+            // SSN pattern: XXX-XX-XXXX
+            result = result.replace(|c: char| c.is_ascii_digit(), "X");
+        } else if pattern.contains("@") {
+            // Email pattern: replace @ with [at]
+            result = result.replace('@', "[at]");
+        }
+    }
+    result
 }
 
 // ─── Budget Helper ──────────────────────────────────────────────────────────

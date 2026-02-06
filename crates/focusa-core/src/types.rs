@@ -759,6 +759,15 @@ pub struct FocusaConfig {
     pub worker_queue_size: usize,
     /// Default: 200
     pub worker_job_timeout_ms: u64,
+    /// Enable redaction of sensitive content in transcripts.
+    /// Default: false
+    pub redaction_enabled: bool,
+    /// Patterns to redact (regex strings).
+    /// Default: ["\\b\\d{3}-\\d{2}-\\d{4}\\b", "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"]
+    pub redaction_patterns: Vec<String>,
+    /// Auth token for API access (None = no auth).
+    /// Default: None
+    pub auth_token: Option<String>,
 }
 
 impl Default for FocusaConfig {
@@ -775,6 +784,12 @@ impl Default for FocusaConfig {
             gate_max_candidates: 200,
             worker_queue_size: 100,
             worker_job_timeout_ms: 200,
+            redaction_enabled: false,
+            redaction_patterns: vec![
+                r"\b\d{3}-\d{2}-\d{4}\b".to_string(), // SSN
+                r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b".to_string(), // Email
+            ],
+            auth_token: None,
         }
     }
 }

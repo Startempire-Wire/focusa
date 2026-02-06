@@ -189,21 +189,21 @@ async fn turn_complete(
         "Turn completed"
     );
 
-    // Get active turn and clear it.
-    let active_turn = {
+    // Validate turn_id matches before clearing active_turn.
+    {
         let mut focusa = state.focusa.write().await;
-        focusa.active_turn.take()
-    };
-
-    // Validate turn_id matches.
-    if let Some(turn) = &active_turn
-        && turn.turn_id != req.turn_id {
-            tracing::warn!(
-                expected = %turn.turn_id,
-                got = %req.turn_id,
-                "Turn ID mismatch"
-            );
+        if let Some(ref turn) = focusa.active_turn {
+            if turn.turn_id == req.turn_id {
+                focusa.active_turn.take();
+            } else {
+                tracing::warn!(
+                    expected = %turn.turn_id,
+                    got = %req.turn_id,
+                    "Turn ID mismatch - not clearing active_turn"
+                );
+            }
         }
+    }
 
     // Update frame stats if we have an active frame.
     let frame_id = {

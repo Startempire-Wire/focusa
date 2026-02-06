@@ -98,11 +98,10 @@ async fn get_content(
 
 /// Expand ~ in path.
 fn expand_data_path(path: &str) -> std::path::PathBuf {
-    if let Some(rest) = path.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
+    if let Some(rest) = path.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME") {
             return std::path::PathBuf::from(home).join(rest);
         }
-    }
     std::path::PathBuf::from(path)
 }
 

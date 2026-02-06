@@ -1,14 +1,14 @@
-//! Proxy routes — HTTP proxy for AI providers.
+//! Proxy routes — HTTP proxy for AI providers with full turn tracking.
 //!
-//! POST /proxy/v1/chat/completions — OpenAI-compatible (GPT, etc.)
+//! POST /proxy/v1/chat/completions — OpenAI-compatible
 //! POST /proxy/v1/messages — Anthropic (Claude)
-//! POST /proxy/acp — ACP JSON-RPC
 //!
-//! Configure harness:
-//!   OpenAI: OPENAI_BASE_URL=http://127.0.0.1:8787/proxy/v1
-//!   Anthropic: ANTHROPIC_BASE_URL=http://127.0.0.1:8787/proxy
-//!
-//! Set FOCUSA_UPSTREAM_URL / FOCUSA_ANTHROPIC_KEY / FOCUSA_API_KEY env vars.
+//! Per spec G1-detail-04-proxy-adapter.md:
+//! 1. TurnStart — record turn beginning
+//! 2. PromptAssemble — enhance with Focusa context
+//! 3. Forward to upstream
+//! 4. TurnComplete — record result (success or failure)
+//! 5. Emit signals to Focus Gate
 
 use crate::server::AppState;
 use axum::extract::State;
@@ -19,49 +19,45 @@ use focusa_core::adapters::openai::{
     self, ChatCompletionRequest, extract_assistant_output, extract_usage,
 };
 use focusa_core::adapters::passthrough;
-use focusa_core::types::Action;
+use focusa_core::types::*;
 use reqwest::Client;
 use serde_json::{json, Value};
 use std::sync::Arc;
+use chrono::Utc;
 
-/// Default upstream URL (OpenAI).
 const DEFAULT_UPSTREAM: &str = "https://api.openai.com/v1/chat/completions";
-
-/// Default Anthropic upstream URL.
 const DEFAULT_ANTHROPIC_UPSTREAM: &str = "https://api.anthropic.com/v1/messages";
 
-/// Lazy-initialized HTTP client for upstream requests.
 static UPSTREAM_CLIENT: std::sync::OnceLock<Client> = std::sync::OnceLock::new();
 
 fn get_client() -> &'static Client {
-    UPSTREAM_CLIENT.get_or_init(Client::new)
+    UPSTREAM_CLIENT.get_or_init(|| {
+        Client::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("failed to build HTTP client")
+    })
 }
 
-/// Get upstream URL from env or default.
 fn upstream_url() -> String {
     std::env::var("FOCUSA_UPSTREAM_URL").unwrap_or_else(|_| DEFAULT_UPSTREAM.into())
 }
 
-/// Get Anthropic upstream URL from env or default.
 fn anthropic_upstream_url() -> String {
     std::env::var("FOCUSA_ANTHROPIC_UPSTREAM").unwrap_or_else(|_| DEFAULT_ANTHROPIC_UPSTREAM.into())
 }
 
-/// Get Anthropic API key from env or request header.
 fn anthropic_api_key(headers: &HeaderMap) -> Option<String> {
     if let Ok(key) = std::env::var("FOCUSA_ANTHROPIC_KEY") {
         return Some(key);
     }
-    // Anthropic uses x-api-key header.
     headers
         .get("x-api-key")
         .and_then(|v| v.to_str().ok())
         .map(String::from)
 }
 
-/// Get API key from env (or from request Authorization header).
 fn api_key(headers: &HeaderMap) -> Option<String> {
-    // Check env first, then request header.
     if let Ok(key) = std::env::var("FOCUSA_API_KEY") {
         return Some(key);
     }
@@ -72,15 +68,21 @@ fn api_key(headers: &HeaderMap) -> Option<String> {
         .map(String::from)
 }
 
-/// POST /proxy/v1/chat/completions
-///
-/// 1. Read Focusa state
-/// 2. Assemble enhanced prompt via Expression Engine
-/// 3. Forward to upstream
-/// 4. Return response unchanged
-/// 5. Emit turn events
-///
-/// On failure: passthrough raw request (fail-safe).
+/// Create a signal for the Focus Gate.
+fn create_signal(kind: SignalKind, summary: impl Into<String>) -> Signal {
+    Signal {
+        id: uuid::Uuid::now_v7(),
+        ts: Utc::now(),
+        origin: SignalOrigin::Adapter,
+        kind,
+        frame_context: None,
+        summary: summary.into(),
+        payload_ref: None,
+        tags: vec![],
+    }
+}
+
+/// POST /proxy/v1/chat/completions — OpenAI proxy with turn tracking.
 async fn chat_completions(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -93,80 +95,142 @@ async fn chat_completions(
         )
     })?;
 
+    let turn_id = uuid::Uuid::now_v7().to_string();
+
+    // 1. TURN START — Record in state.
+    let user_input = request.messages.iter()
+        .find(|m| m.role == "user")
+        .map(|m| m.content.clone())
+        .unwrap_or_default();
+
+    {
+        let mut focusa = state.focusa.write().await;
+        focusa.active_turn = Some(ActiveTurn {
+            turn_id: turn_id.clone(),
+            adapter_id: "openai-proxy".to_string(),
+            harness_name: "openai".to_string(),
+            started_at: Utc::now(),
+            raw_user_input: Some(user_input.clone()),
+            assembled_prompt: None,
+        });
+    }
+    tracing::info!(turn_id = %turn_id, harness = "openai", "Turn started");
+
+    // Emit user_input signal to Focus Gate (summary max 200 chars).
+    if !user_input.is_empty() {
+        let summary: String = user_input.chars().take(200).collect();
+        let signal = create_signal(SignalKind::UserInput, summary);
+        let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+    }
+
     let url = upstream_url();
     let client = get_client();
 
-    // Try to enhance the request with Focusa state.
+    // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
     let focusa_state = state.focusa.read().await;
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);
-    drop(focusa_state); // Release read lock before HTTP call.
+    drop(focusa_state);
 
-    let response = match result {
+    // Update active turn with assembled prompt if enhancement occurred.
+    if let Some(ref proxy_result) = result {
+        let mut focusa = state.focusa.write().await;
+        if let Some(ref mut turn) = focusa.active_turn {
+            // Verify turn_id hasn't changed (prevent race with concurrent requests).
+            if turn.turn_id == turn_id {
+                turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
+            }
+        }
+    }
+
+    // 3. FORWARD TO UPSTREAM.
+    let (response, error_str) = match result {
         Some(proxy_result) => {
-            // Enhanced request — forward with Focusa context.
             match openai::forward_request(client, &url, &key, &proxy_result.request).await {
-                Ok(resp) => resp,
+                Ok(resp) => (resp, None),
                 Err(e) => {
-                    tracing::error!("Upstream request failed: {}", e);
-                    return Err((
-                        StatusCode::BAD_GATEWAY,
-                        Json(json!({"error": format!("Upstream error: {}", e)})),
-                    ));
+                    tracing::error!("Upstream failed: {}", e);
+                    (json!({"error": e.to_string()}), Some(e.to_string()))
                 }
             }
         }
         None => {
-            // Passthrough — no enhancement possible.
             match passthrough::passthrough(client, &url, &key, &request).await {
-                Ok(resp) => resp,
-                Err(e) => {
-                    return Err((
-                        StatusCode::BAD_GATEWAY,
-                        Json(json!({"error": format!("Upstream error: {}", e)})),
-                    ));
-                }
+                Ok(resp) => (resp, None),
+                Err(e) => (json!({"error": e.to_string()}), Some(e.to_string()))
             }
         }
     };
 
-    // Emit turn events to daemon (fire-and-forget).
-    let assistant_output = extract_assistant_output(&response);
+    // 4. TURN COMPLETE — Record result.
+    let assistant_output = extract_assistant_output(&response).unwrap_or_default();
     let (prompt_tokens, completion_tokens) = extract_usage(&response);
 
-    // Notify the intuition engine about this turn.
-    if assistant_output.is_some() {
+    // Emit error signal if failed (summary max 200 chars).
+    if let Some(ref err) = error_str {
+        let summary: String = err.chars().take(200).collect();
+        let signal = create_signal(SignalKind::Error, summary);
+        let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+    }
+
+    // Emit assistant_output signal if success (summary max 200 chars).
+    if error_str.is_none() && !assistant_output.is_empty() {
+        let summary: String = assistant_output.chars().take(200).collect();
+        let signal = create_signal(SignalKind::AssistantOutput, summary);
+        let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+    }
+
+    tracing::info!(
+        turn_id = %turn_id,
+        success = error_str.is_none(),
+        output_len = assistant_output.len(),
+        "Turn completed"
+    );
+
+    // Clear active_turn to prevent stale data.
+    {
+        let mut focusa = state.focusa.write().await;
+        if let Some(ref turn) = focusa.active_turn
+            && turn.turn_id == turn_id
+        {
+            focusa.active_turn.take();
+        }
+    }
+
+    // 5. UPDATE FRAME CHECKPOINT.
+    if error_str.is_none() {
         let frame_id = {
             let focusa = state.focusa.read().await;
             focusa.focus_stack.active_id
         };
 
-        // Update frame stats.
         if let Some(fid) = frame_id {
-            let delta = focusa_core::types::FocusStateDelta {
+            let delta = FocusStateDelta {
                 current_state: Some(format!(
-                    "Last turn: {} prompt tokens, {} completion tokens",
-                    prompt_tokens, completion_tokens,
+                    "Turn {}: {} prompt + {} completion tokens",
+                    turn_id, prompt_tokens, completion_tokens
                 )),
                 ..Default::default()
             };
             let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
                 frame_id: fid,
-                turn_id: uuid::Uuid::now_v7().to_string(),
+                turn_id: turn_id.clone(),
                 delta,
             }).await;
         }
     }
 
+    // Return error if upstream failed.
+    if let Some(err) = error_str {
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            Json(json!({"error": err})),
+        ));
+    }
+
     Ok(Json(response))
 }
 
-/// POST /proxy/v1/messages — Anthropic messages proxy.
-///
-/// 1. Read Focusa state
-/// 2. Assemble enhanced prompt via Expression Engine
-/// 3. Inject into system prompt
-/// 4. Forward to Anthropic
-/// 5. Return response unchanged
+/// POST /proxy/v1/messages — Anthropic proxy with turn tracking.
 async fn anthropic_messages(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -179,93 +243,151 @@ async fn anthropic_messages(
         )
     })?;
 
+    let turn_id = uuid::Uuid::now_v7().to_string();
+
+    // 1. TURN START.
+    let user_input = anthropic::extract_user_input(&request.messages);
+
+    {
+        let mut focusa = state.focusa.write().await;
+        focusa.active_turn = Some(ActiveTurn {
+            turn_id: turn_id.clone(),
+            adapter_id: "anthropic-proxy".to_string(),
+            harness_name: "anthropic".to_string(),
+            started_at: Utc::now(),
+            raw_user_input: Some(user_input.clone()),
+            assembled_prompt: None,
+        });
+    }
+    tracing::info!(turn_id = %turn_id, harness = "anthropic", "Turn started");
+
+    // Emit user_input signal (summary max 200 chars).
+    if !user_input.is_empty() {
+        let summary: String = user_input.chars().take(200).collect();
+        let signal = create_signal(SignalKind::UserInput, summary);
+        let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+    }
+
     let url = anthropic_upstream_url();
     let client = get_client();
 
-    // Try to enhance the request with Focusa state.
+    // 2. PROMPT ASSEMBLY.
     let focusa_state = state.focusa.read().await;
     let result = anthropic::process_request(request.clone(), &focusa_state, &state.config);
     drop(focusa_state);
 
-    let response = match result {
+    // Update active turn with assembled prompt if enhancement occurred.
+    if let Some(ref proxy_result) = result {
+        let mut focusa = state.focusa.write().await;
+        if let Some(ref mut turn) = focusa.active_turn {
+            // Verify turn_id hasn't changed (prevent race with concurrent requests).
+            if turn.turn_id == turn_id {
+                turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
+            }
+        }
+    }
+
+    // 3. FORWARD.
+    let (response, error_str) = match result {
         Some(proxy_result) => {
             match anthropic::forward_request(client, &url, &key, &proxy_result.request).await {
-                Ok(resp) => resp,
+                Ok(resp) => (resp, None),
                 Err(e) => {
                     tracing::error!("Anthropic upstream failed: {}", e);
-                    return Err((
-                        StatusCode::BAD_GATEWAY,
-                        Json(json!({"error": format!("Upstream error: {}", e)})),
-                    ));
+                    (json!({"error": e.to_string()}), Some(e.to_string()))
                 }
             }
         }
         None => {
-            // Passthrough — forward original request.
             match anthropic::forward_request(client, &url, &key, &request).await {
-                Ok(resp) => resp,
-                Err(e) => {
-                    return Err((
-                        StatusCode::BAD_GATEWAY,
-                        Json(json!({"error": format!("Upstream error: {}", e)})),
-                    ));
-                }
+                Ok(resp) => (resp, None),
+                Err(e) => (json!({"error": e.to_string()}), Some(e.to_string()))
             }
         }
     };
 
-    // Emit turn events.
-    let assistant_output = anthropic::extract_assistant_output(&response);
+    // 4. TURN COMPLETE.
+    let assistant_output = anthropic::extract_assistant_output(&response).unwrap_or_default();
     let (input_tokens, output_tokens) = anthropic::extract_usage(&response);
 
-    if assistant_output.is_some() {
+    // Emit error or assistant signal (summary max 200 chars).
+    if let Some(ref err) = error_str {
+        let summary: String = err.chars().take(200).collect();
+        let signal = create_signal(SignalKind::Error, summary);
+        let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+    } else if !assistant_output.is_empty() {
+        let summary: String = assistant_output.chars().take(200).collect();
+        let signal = create_signal(SignalKind::AssistantOutput, summary);
+        let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+    }
+
+    tracing::info!(
+        turn_id = %turn_id,
+        success = error_str.is_none(),
+        output_len = assistant_output.len(),
+        "Turn completed"
+    );
+
+    // Clear active_turn to prevent stale data.
+    {
+        let mut focusa = state.focusa.write().await;
+        if let Some(ref turn) = focusa.active_turn
+            && turn.turn_id == turn_id
+        {
+            focusa.active_turn.take();
+        }
+    }
+
+    // 5. UPDATE FRAME.
+    if error_str.is_none() {
         let frame_id = {
             let focusa = state.focusa.read().await;
             focusa.focus_stack.active_id
         };
 
         if let Some(fid) = frame_id {
-            let delta = focusa_core::types::FocusStateDelta {
+            let delta = FocusStateDelta {
                 current_state: Some(format!(
-                    "Last turn: {} input tokens, {} output tokens",
-                    input_tokens, output_tokens,
+                    "Turn {}: {} input + {} output tokens",
+                    turn_id, input_tokens, output_tokens
                 )),
                 ..Default::default()
             };
             let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
                 frame_id: fid,
-                turn_id: uuid::Uuid::now_v7().to_string(),
+                turn_id: turn_id.clone(),
                 delta,
             }).await;
         }
     }
 
+    if let Some(err) = error_str {
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            Json(json!({"error": err})),
+        ));
+    }
+
     Ok(Json(response))
 }
 
-/// POST /proxy/acp — ACP JSON-RPC proxy endpoint.
-///
-/// ACP clients can point to this endpoint for Mode B (Active Cognitive Proxy).
-/// Focusa applies Focus Gate + Prompt Assembly + CLT tracking.
+/// POST /proxy/acp — ACP JSON-RPC proxy.
 async fn acp_proxy(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     use focusa_core::adapters::acp;
 
-    // Parse ACP message.
     let bytes = serde_json::to_vec(&body).unwrap_or_default();
     let mut msg = acp::parse_message(&bytes).map_err(|e| {
         (StatusCode::BAD_REQUEST, Json(json!({ "error": e })))
     })?;
 
-    // Record telemetry (logged; persistence via telemetry subsystem).
     let s = state.focusa.read().await;
     let session_id = s.session.as_ref().map(|s| s.session_id.to_string()).unwrap_or_default();
     let telemetry = acp::observe_message(&session_id, &msg, acp::AcpDirection::ClientToAgent);
     tracing::debug!(method = ?telemetry.method, direction = ?telemetry.direction, "ACP message observed");
 
-    // Apply cognition (Mode B) — use active frame, not first frame.
     if let Some(active_id) = s.focus_stack.active_id
         && let Some(frame_record) = s.focus_stack.frames.iter().find(|f| f.id == active_id)
     {
@@ -273,7 +395,6 @@ async fn acp_proxy(
     }
     drop(s);
 
-    // Forward to upstream ACP server.
     let upstream = std::env::var("FOCUSA_ACP_UPSTREAM").unwrap_or_else(|_| "http://127.0.0.1:4000".into());
     let client = get_client();
     let resp = client.post(&upstream)

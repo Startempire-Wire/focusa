@@ -330,13 +330,12 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         .spawn()?;
 
     // Write enhanced prompt to stdin if needed.
-    if let Some(prompt) = stdin_prompt {
-        if let Some(mut stdin) = child.stdin.take() {
+    if let Some(prompt) = stdin_prompt
+        && let Some(mut stdin) = child.stdin.take() {
             use tokio::io::AsyncWriteExt;
             let _ = stdin.write_all(prompt.as_bytes()).await;
             let _ = stdin.shutdown().await;
         }
-    }
 
     let stdout = child.stdout.take().expect("stdout");
     let stderr = child.stderr.take().expect("stderr");

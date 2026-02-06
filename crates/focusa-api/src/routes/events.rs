@@ -163,14 +163,12 @@ async fn get_event(
     for line in reader.lines() {
         if let Ok(l) = line
             && !l.trim().is_empty()
-        {
-            if let Ok(v) = serde_json::from_str::<Value>(&l) {
+            && let Ok(v) = serde_json::from_str::<Value>(&l) {
                 // Check if this event matches the ID.
                 if v.get("id").and_then(|id| id.as_str()) == Some(&event_id) {
                     return Json(json!({ "event": v }));
                 }
             }
-        }
     }
 
     Json(json!({ "error": "Event not found" }))

@@ -128,8 +128,8 @@ pub async fn forward_request(
     Ok(resp.json().await?)
 }
 
-/// Extract user input from messages.
-fn extract_user_input(messages: &[AnthropicMessage]) -> String {
+/// Extract user input from messages (public for proxy use).
+pub fn extract_user_input(messages: &[AnthropicMessage]) -> String {
     messages
         .iter()
         .filter(|m| m.role == "user")
