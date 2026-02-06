@@ -44,6 +44,8 @@ pub async fn receive_impl(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let mut imported = 0;
     let mut skipped = 0;
+    let mut parse_failures = 0;
+    let start = std::time::Instant::now();
 
     for remote in &body.events {
         // Parse event_id for idempotency check
@@ -66,11 +68,18 @@ pub async fn receive_impl(
             continue;
         }
 
-        // Parse the event payload
+        // Parse the event payload with detailed error logging
         let event: FocusaEvent = match serde_json::from_value(remote.event.clone()) {
             Ok(e) => e,
-            Err(_) => {
-                // Unknown event type — store as raw observation
+            Err(e) => {
+                // Unknown or malformed event type
+                tracing::warn!(
+                    event_id = %event_id,
+                    error = %e,
+                    payload_len = remote.event.to_string().len(),
+                    "Failed to parse remote event"
+                );
+                parse_failures += 1;
                 skipped += 1;
                 continue;
             }
@@ -114,10 +123,22 @@ pub async fn receive_impl(
             .set_cursor(&body.peer_id, Some(&last.event_id), Some(&last.timestamp));
     }
 
+    let elapsed_ms = start.elapsed().as_millis();
+    tracing::info!(
+        peer_id = %body.peer_id,
+        imported,
+        skipped,
+        parse_failures,
+        elapsed_ms,
+        "Sync receive completed"
+    );
+
     Ok(Json(json!({
         "imported": imported,
         "skipped": skipped,
+        "parse_failures": parse_failures,
         "peer_id": body.peer_id,
+        "elapsed_ms": elapsed_ms,
     })))
 }
 

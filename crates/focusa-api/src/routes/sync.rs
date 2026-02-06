@@ -147,18 +147,66 @@ async fn push_to_peer(
     State(state): State<Arc<AppState>>,
     Path(peer_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    // MVP stub: in real implementation, this would POST to remote peer's /v1/sync/receive.
-    // For now, update cursor to "now" to acknowledge sync attempt.
+    // Get peer info to find endpoint
+    let peers = state.persistence.list_peers().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let peer = peers.into_iter().find(|p| p.peer_id == peer_id)
+        .ok_or_else(|| StatusCode::NOT_FOUND)?;
+
+    // Get local events since cursor
+    let cursor = state.persistence.get_cursor(&peer_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let events = state.persistence.events_since(
+        cursor.as_ref().and_then(|c| c.last_event_ts.as_deref()),
+        cursor.as_ref().and_then(|c| c.last_event_id.as_deref()),
+        100, // Batch size limit
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Prepare payload for remote
+    let payload = json!({
+        "peer_id": "self", // Will be replaced by peer_id in request
+        "events": events.iter().map(|e| json!({
+            "event_id": e.id.to_string(),
+            "timestamp": e.timestamp.to_rfc3339(),
+            "machine_id": e.machine_id.clone().unwrap_or_else(|| "unknown".to_string()),
+            "instance_id": e.instance_id.map(|v| v.to_string()),
+            "session_id": e.session_id.map(|v| v.to_string()),
+            "thread_id": e.thread_id.map(|v| v.to_string()),
+            "event": e.event,
+        })).collect::<Vec<_>>(),
+    });
+
+    // POST to remote peer's receive endpoint
+    let client = reqwest::Client::new();
+    let receive_url = format!("{}/v1/sync/receive", peer.endpoint);
+
+    let response = client
+        .post(&receive_url)
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to push to peer {}: {}", peer_id, e);
+            StatusCode::BAD_GATEWAY
+        })?;
+
+    if !response.status().is_success() {
+        tracing::error!("Peer {} returned status {}", peer_id, response.status());
+        return Err(StatusCode::BAD_GATEWAY);
+    }
+
+    // Update cursor to mark sync attempt
     let now = chrono::Utc::now().to_rfc3339();
-    state
-        .persistence
-        .set_cursor(&peer_id, None, Some(&now))
+    state.persistence.set_cursor(&peer_id, None, Some(&now))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let result = response.json::<serde_json::Value>().await
+        .map_err(|_| StatusCode::BAD_GATEWAY)?;
 
     Ok(Json(json!({
         "peer_id": peer_id,
-        "status": "acknowledged",
-        "note": "MVP: push is a stub; implement remote POST to peer endpoint for full sync",
+        "status": "pushed",
+        "events_sent": events.len(),
+        "remote_response": result,
     })))
 }
 

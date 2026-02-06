@@ -301,15 +301,28 @@ impl SqlitePersistence {
         let rows = stmt.query_map(
             params![since_ts, since_id, limit as i64],
             |r| {
+                let event_id: String = r.get(0)?;
                 let payload: String = r.get(4)?;
-                let mut entry: EventLogEntry = serde_json::from_str(&payload)
-                    .map_err(|e| rusqlite::Error::FromSqlConversionFailure(
-                        4,
-                        rusqlite::types::Type::Text,
-                        Box::new(e),
-                    ))?;
+
+                let mut entry: EventLogEntry = match serde_json::from_str(&payload) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        tracing::error!(
+                            event_id = %event_id,
+                            payload_len = payload.len(),
+                            error = %e,
+                            "Corrupted event payload in database"
+                        );
+                        return Err(rusqlite::Error::FromSqlConversionFailure(
+                            4,
+                            rusqlite::types::Type::Text,
+                            Box::new(e),
+                        ));
+                    }
+                };
+
                 // Override stored columns with authoritative DB values
-                entry.id = r.get::<_, String>(0)?.parse().map_err(|_| rusqlite::Error::InvalidColumnType(0, "event_id".into(), rusqlite::types::Type::Text))?;
+                entry.id = event_id.parse().map_err(|_| rusqlite::Error::InvalidColumnType(0, "event_id".into(), rusqlite::types::Type::Text))?;
                 entry.timestamp = DateTime::parse_from_rfc3339(&r.get::<_, String>(1)?)
                     .map_err(|_| rusqlite::Error::InvalidColumnType(1, "ts".into(), rusqlite::types::Type::Text))?
                     .with_timezone(&Utc);
