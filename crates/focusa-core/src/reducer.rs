@@ -590,9 +590,23 @@ pub fn reduce_with_meta(
         } => {
             // Validate that from_machine_id matches current owner (if specified).
             // This prevents unauthorized ownership transfers.
+            let thread = state.threads.iter().find(|t| t.id == thread_id);
+
+            // If thread doesn't exist, reject the transfer.
+            // Ownership transfers require the thread to exist so we can verify ownership
+            // and apply the ownership change atomically.
+            let thread = match thread {
+                Some(t) => t,
+                None => {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "Thread {} not found — cannot transfer ownership of non-existent thread",
+                        thread_id
+                    )));
+                }
+            };
+
             if let Some(from_id) = &from_machine_id {
-                let thread = state.threads.iter().find(|t| t.id == thread_id);
-                if let Some(current_owner) = thread.and_then(|t| t.owner_machine_id.as_ref()) {
+                if let Some(current_owner) = &thread.owner_machine_id {
                     if current_owner != from_id {
                         return Err(ReducerError::OwnershipViolation {
                             thread_id,
@@ -600,10 +614,9 @@ pub fn reduce_with_meta(
                             attempted_by: Some(from_id.clone()),
                         });
                     }
-                }
-                // If thread exists but has no owner, from_machine_id must be None (new thread).
-                // Reject if from_machine_id is specified but no current owner.
-                if thread.is_some() && thread.unwrap().owner_machine_id.is_none() {
+                } else {
+                    // Thread has no owner but from_machine_id is specified — reject.
+                    // This prevents claiming a thread's ownership when you never owned it.
                     return Err(ReducerError::InvalidEvent(format!(
                         "Thread {} has no owner but transfer specifies from_machine_id '{}'",
                         thread_id, from_id
@@ -611,13 +624,11 @@ pub fn reduce_with_meta(
                 }
             }
 
-            // Update owner_machine_id on the thread if it exists in state.
+            // Update owner_machine_id on the thread.
             if let Some(thread) = state.threads.iter_mut().find(|t| t.id == thread_id) {
                 thread.owner_machine_id = Some(to_machine_id);
                 thread.updated_at = Utc::now();
             }
-            // If thread not in state, event is still recorded but no mutation occurs.
-            // This handles races where thread hasn't been synced yet.
         }
 
         FocusaEvent::ThreadCreated {
@@ -1204,5 +1215,211 @@ mod tests {
 
         let state = start_session(state);
         assert_eq!(state.version, 2);
+    }
+
+    // ─── Thread Creation ─────────────────────────────────────────────
+
+    #[test]
+    fn test_thread_created() {
+        let thread_id = Uuid::now_v7();
+        let event = FocusaEvent::ThreadCreated {
+            thread_id,
+            name: "Test Thread".into(),
+            primary_intent: "Testing thread creation".into(),
+            owner_machine_id: Some("machine-a".into()),
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+
+        assert_eq!(state.threads.len(), 1);
+        let thread = &state.threads[0];
+        assert_eq!(thread.id, thread_id);
+        assert_eq!(thread.name, "Test Thread");
+        assert_eq!(thread.owner_machine_id, Some("machine-a".into()));
+        assert_eq!(thread.status, ThreadStatus::Active);
+        assert_eq!(thread.thesis.primary_intent, "Testing thread creation");
+    }
+
+    #[test]
+    fn test_thread_created_duplicate_rejected() {
+        let thread_id = Uuid::now_v7();
+
+        // Create thread
+        let event = FocusaEvent::ThreadCreated {
+            thread_id,
+            name: "First".into(),
+            primary_intent: "First intent".into(),
+            owner_machine_id: None,
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+        assert_eq!(state.threads.len(), 1);
+
+        // Try to create duplicate
+        let event = FocusaEvent::ThreadCreated {
+            thread_id,
+            name: "Second".into(),
+            primary_intent: "Second intent".into(),
+            owner_machine_id: None,
+        };
+        let result = reduce(state, event);
+        assert!(result.is_err());
+    }
+
+    // ─── Thread Ownership Transfer ───────────────────────────────────
+
+    fn create_thread_with_owner(state: FocusaState, thread_id: Uuid, owner: &str) -> FocusaState {
+        let event = FocusaEvent::ThreadCreated {
+            thread_id,
+            name: "Owned Thread".into(),
+            primary_intent: "Testing ownership".into(),
+            owner_machine_id: Some(owner.into()),
+        };
+        reduce(state, event).unwrap().new_state
+    }
+
+    #[test]
+    fn test_ownership_transfer_by_owner() {
+        let thread_id = Uuid::now_v7();
+        let state = fresh_state();
+        let state = create_thread_with_owner(state, thread_id, "machine-a");
+
+        // Transfer ownership from machine-a to machine-b
+        let event = FocusaEvent::ThreadOwnershipTransferred {
+            thread_id,
+            from_machine_id: Some("machine-a".into()),
+            to_machine_id: "machine-b".into(),
+            reason: "Testing transfer".into(),
+        };
+        let state = reduce(state, event).unwrap().new_state;
+
+        let thread = state.threads.iter().find(|t| t.id == thread_id).unwrap();
+        assert_eq!(thread.owner_machine_id, Some("machine-b".into()));
+    }
+
+    #[test]
+    fn test_ownership_transfer_by_non_owner_rejected() {
+        let thread_id = Uuid::now_v7();
+        let state = fresh_state();
+        let state = create_thread_with_owner(state, thread_id, "machine-a");
+
+        // Try to transfer from machine-b (not the owner)
+        let event = FocusaEvent::ThreadOwnershipTransferred {
+            thread_id,
+            from_machine_id: Some("machine-b".into()),
+            to_machine_id: "machine-c".into(),
+            reason: "Unauthorized transfer".into(),
+        };
+        let result = reduce(state, event);
+        assert!(result.is_err());
+
+        // Check it's an ownership violation
+        match result {
+            Err(ReducerError::OwnershipViolation { owner, .. }) => {
+                assert_eq!(owner, "machine-a");
+            }
+            _ => panic!("Expected OwnershipViolation error"),
+        }
+    }
+
+    #[test]
+    fn test_ownership_transfer_no_from_id_allowed() {
+        // Transfer with no from_machine_id should work for unowned threads
+        let thread_id = Uuid::now_v7();
+        let event = FocusaEvent::ThreadCreated {
+            thread_id,
+            name: "Unowned Thread".into(),
+            primary_intent: "No owner".into(),
+            owner_machine_id: None,
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+
+        // Transfer with no from_machine_id
+        let event = FocusaEvent::ThreadOwnershipTransferred {
+            thread_id,
+            from_machine_id: None,
+            to_machine_id: "machine-a".into(),
+            reason: "Claiming thread".into(),
+        };
+        let state = reduce(state, event).unwrap().new_state;
+
+        let thread = state.threads.iter().find(|t| t.id == thread_id).unwrap();
+        assert_eq!(thread.owner_machine_id, Some("machine-a".into()));
+    }
+
+    #[test]
+    fn test_ownership_transfer_from_id_on_unowned_thread_rejected() {
+        // If thread has no owner, from_machine_id must be None
+        let thread_id = Uuid::now_v7();
+        let event = FocusaEvent::ThreadCreated {
+            thread_id,
+            name: "Unowned Thread".into(),
+            primary_intent: "No owner".into(),
+            owner_machine_id: None,
+        };
+        let state = reduce(fresh_state(), event).unwrap().new_state;
+
+        // Try to transfer with from_machine_id specified on unowned thread
+        let event = FocusaEvent::ThreadOwnershipTransferred {
+            thread_id,
+            from_machine_id: Some("machine-a".into()),  // Can't claim with from_id
+            to_machine_id: "machine-b".into(),
+            reason: "Invalid claim".into(),
+        };
+        let result = reduce(state, event);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_ownership_transfer_nonexistent_thread_rejected() {
+        let thread_id = Uuid::now_v7();  // Thread doesn't exist
+
+        let event = FocusaEvent::ThreadOwnershipTransferred {
+            thread_id,
+            from_machine_id: None,
+            to_machine_id: "machine-a".into(),
+            reason: "Transfer non-existent thread".into(),
+        };
+        let result = reduce(fresh_state(), event);
+        assert!(result.is_err());
+    }
+
+    // ─── Ownership Enforcement in reduce_with_meta ─────────────────────
+
+    #[test]
+    fn test_reduce_with_meta_ownership_enforcement() {
+        let thread_id = Uuid::now_v7();
+        let state = fresh_state();
+        let state = create_thread_with_owner(state, thread_id, "owner-machine");
+
+        // Owner can mutate
+        let event = FocusaEvent::ThreadCreated {
+            thread_id: Uuid::now_v7(),
+            name: "New Thread".into(),
+            primary_intent: "Test".into(),
+            owner_machine_id: None,
+        };
+        let result = reduce_with_meta(
+            state.clone(),
+            event,
+            Some("owner-machine"),
+            Some(thread_id),
+            false,
+        );
+        assert!(result.is_ok());
+
+        // Non-owner is rejected
+        let event = FocusaEvent::ThreadCreated {
+            thread_id: Uuid::now_v7(),
+            name: "Another Thread".into(),
+            primary_intent: "Test".into(),
+            owner_machine_id: None,
+        };
+        let result = reduce_with_meta(
+            state,
+            event,
+            Some("attacker-machine"),
+            Some(thread_id),
+            false,
+        );
+        assert!(result.is_err());
     }
 }

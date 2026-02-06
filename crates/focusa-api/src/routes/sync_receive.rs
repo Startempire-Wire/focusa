@@ -47,6 +47,11 @@ pub async fn receive_impl(
     let mut parse_failures = 0;
     let start = std::time::Instant::now();
 
+    // Track the last successfully imported event for cursor update.
+    // Only advance cursor to events we've actually persisted.
+    let mut last_imported_id: Option<String> = None;
+    let mut last_imported_ts: Option<String> = None;
+
     for remote in &body.events {
         // Parse event_id for idempotency check
         let event_id = match remote.event_id.parse::<Uuid>() {
@@ -108,6 +113,10 @@ pub async fn receive_impl(
             continue;
         }
 
+        // Track last successfully imported event
+        last_imported_id = Some(remote.event_id.clone());
+        last_imported_ts = Some(remote.timestamp.clone());
+
         // Broadcast to SSE subscribers
         if let Ok(json) = serde_json::to_string(&entry) {
             let _ = state.events_tx.send(json);
@@ -116,11 +125,12 @@ pub async fn receive_impl(
         imported += 1;
     }
 
-    // Update peer cursor
-    if let Some(last) = body.events.last() {
+    // Update peer cursor to the last successfully imported event.
+    // This ensures we don't skip events if some fail to import.
+    if let (Some(last_id), Some(last_ts)) = (last_imported_id, last_imported_ts) {
         let _ = state
             .persistence
-            .set_cursor(&body.peer_id, Some(&last.event_id), Some(&last.timestamp));
+            .set_cursor(&body.peer_id, Some(&last_id), Some(&last_ts));
     }
 
     let elapsed_ms = start.elapsed().as_millis();
