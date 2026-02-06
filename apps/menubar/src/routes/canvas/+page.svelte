@@ -3,28 +3,68 @@
   import FocusCanvas from '$lib/canvas/FocusCanvas.svelte';
   import AsccPanel from '$lib/canvas/AsccPanel.svelte';
   import Timeline from '$lib/canvas/Timeline.svelte';
-  import { focusStore } from '$lib/stores/focus.svelte';
+  import { focusCanvasStore } from '$lib/stores/focus-canvas.svelte';
   
-  let selectedFrameId: string | null = null;
   let selectedEventId: string | null = null;
   let showAscc = true;
   let showTimeline = true;
   
-  // Mock events for demo - in real app, fetch from API
+  // Demo-only events. Real implementation should fetch from the daemon.
+  const nowMs = Date.now();
   const mockEvents = [
-    { id: 'evt-001', timestamp: new Date(Date.now() - 3600000).toISOString(), type: 'focus_frame_pushed', summary: 'Started implementing auth module', frame_id: 'frame-001' },
-    { id: 'evt-002', timestamp: new Date(Date.now() - 3000000).toISOString(), type: 'turn_completed', summary: 'Completed turn with 150 tokens output', frame_id: 'frame-001' },
-    { id: 'evt-003', timestamp: new Date(Date.now() - 2400000).toISOString(), type: 'checkpoint_updated', summary: 'ASCC updated with new decisions', frame_id: 'frame-001' },
-    { id: 'evt-004', timestamp: new Date(Date.now() - 1800000).toISOString(), type: 'focus_frame_pushed', summary: 'Setup OAuth provider integration', frame_id: 'frame-002' },
-    { id: 'evt-005', timestamp: new Date(Date.now() - 1200000).toISOString(), type: 'signal_ingested', summary: 'Error signal: API rate limit exceeded', frame_id: 'frame-002' },
-    { id: 'evt-006', timestamp: new Date(Date.now() - 600000).toISOString(), type: 'candidate_surfaced', summary: 'Consider retry with exponential backoff', frame_id: 'frame-002' },
-    { id: 'evt-007', timestamp: new Date(Date.now() - 300000).toISOString(), type: 'turn_completed', summary: 'Completed turn with 280 tokens output', frame_id: 'frame-002' },
+    {
+      id: 'evt-001',
+      timestamp: new Date(nowMs - 3600000).toISOString(),
+      type: 'focus_frame_pushed',
+      summary: 'Started implementing auth module',
+      frame_id: 'frame-001'
+    },
+    {
+      id: 'evt-002',
+      timestamp: new Date(nowMs - 3000000).toISOString(),
+      type: 'turn_completed',
+      summary: 'Completed turn with 150 tokens output',
+      frame_id: 'frame-001'
+    },
+    {
+      id: 'evt-003',
+      timestamp: new Date(nowMs - 2400000).toISOString(),
+      type: 'checkpoint_updated',
+      summary: 'ASCC updated with new decisions',
+      frame_id: 'frame-001'
+    },
+    {
+      id: 'evt-004',
+      timestamp: new Date(nowMs - 1800000).toISOString(),
+      type: 'focus_frame_pushed',
+      summary: 'Setup OAuth provider integration',
+      frame_id: 'frame-002'
+    },
+    {
+      id: 'evt-005',
+      timestamp: new Date(nowMs - 1200000).toISOString(),
+      type: 'signal_ingested',
+      summary: 'Error signal: API rate limit exceeded',
+      frame_id: 'frame-002'
+    },
+    {
+      id: 'evt-006',
+      timestamp: new Date(nowMs - 600000).toISOString(),
+      type: 'candidate_surfaced',
+      summary: 'Consider retry with exponential backoff',
+      frame_id: 'frame-002'
+    },
+    {
+      id: 'evt-007',
+      timestamp: new Date(nowMs - 300000).toISOString(),
+      type: 'turn_completed',
+      summary: 'Completed turn with 280 tokens output',
+      frame_id: 'frame-002'
+    }
   ];
   
   function handleFrameSelect(frameId: string) {
-    selectedFrameId = frameId;
-    // Update active frame in store
-    focusStore.setActiveFrame(frameId);
+    focusCanvasStore.setActiveFrame(frameId);
   }
   
   function handleEventSelect(event: CustomEvent<{ eventId: string }>) {
@@ -32,16 +72,16 @@
   }
   
   function handleEventReplay(event: CustomEvent<{ eventId: string }>) {
-    const evt = mockEvents.find(e => e.id === event.detail.eventId);
-    if (evt) {
-      // Replay to this point - would restore state in real implementation
-      console.log('Replaying to:', evt);
-    }
+    const evt = mockEvents.find((e) => e.id === event.detail.eventId);
+    if (!evt) return;
+
+    // Demo-only handler. Intentionally no side effects.
+    evt;
   }
   
   onMount(() => {
     // Load initial data
-    focusStore.loadStack();
+    focusCanvasStore.loadMock();
   });
 </script>
 
@@ -75,8 +115,8 @@
   <div class="canvas-layout">
     <main class="canvas-main">
       <FocusCanvas 
-        frames={$focusStore.stack.frames}
-        activeFrameId={$focusStore.stack.active_id}
+        frames={$focusCanvasStore.stack.frames}
+        activeFrameId={$focusCanvasStore.stack.active_id}
         onFrameSelect={handleFrameSelect}
       />
     </main>
@@ -84,7 +124,7 @@
     {#if showAscc}
       <aside class="panel-sidebar">
         <AsccPanel 
-          sections={$focusStore.activeFrame?.ascc_preview || null}
+          sections={$focusCanvasStore.activeFrame?.ascc || null}
           compact={false}
         />
       </aside>
@@ -172,18 +212,6 @@
     overflow: hidden;
   }
   
-  .canvas-layout:has(.panel-sidebar.hidden) {
-    grid-template-columns: 1fr 0 280px;
-  }
-  
-  .canvas-layout:has(.timeline-sidebar.hidden) {
-    grid-template-columns: 1fr 320px 0;
-  }
-  
-  .canvas-layout:has(.panel-sidebar.hidden):has(.timeline-sidebar.hidden) {
-    grid-template-columns: 1fr;
-  }
-  
   .canvas-main {
     overflow: hidden;
     position: relative;
@@ -200,9 +228,5 @@
     border-left: 1px solid var(--sidebar-border, #2d3a4a);
     background: var(--sidebar-bg, rgba(10, 10, 15, 0.8));
     overflow: hidden;
-  }
-  
-  .hidden {
-    display: none;
   }
 </style>

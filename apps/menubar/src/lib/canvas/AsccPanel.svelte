@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AsccSections } from '$lib/types/focus';
+  import type { CanvasAsccSections as AsccSections } from '$lib/types/focus-canvas';
   
   export let sections: AsccSections | null = null;
   export let compact = false;
@@ -17,22 +17,35 @@
     { key: 'notes', label: 'Notes', icon: '📝', color: '#9ca3af' },
   ];
   
-  function getSlotContent(key: string, sections: AsccSections | null): string[] {
+  type SlotKey = typeof slots[number]['key'];
+
+  function getSlotContent(key: SlotKey, sections: AsccSections | null): string[] {
     if (!sections) return [];
-    
+
     switch (key) {
-      case 'intent': return sections.intent ? [sections.intent] : [];
-      case 'current_focus': return sections.current_focus ? [sections.current_focus] : [];
-      case 'decisions': return sections.decisions || [];
-      case 'artifacts': return sections.artifacts?.map(a => a.label) || [];
-      case 'constraints': return sections.constraints || [];
-      case 'open_questions': return sections.open_questions || [];
-      case 'next_steps': return sections.next_steps || [];
-      case 'recent_results': return sections.recent_results || [];
-      case 'failures': return sections.failures || [];
-      case 'notes': return sections.notes || [];
-      default: return [];
+      case 'intent':
+        return sections.intent ? [sections.intent] : [];
+      case 'current_focus':
+        return sections.current_focus ? [sections.current_focus] : [];
+      case 'decisions':
+        return sections.decisions;
+      case 'artifacts':
+        return sections.artifacts.map((a) => a.label);
+      case 'constraints':
+        return sections.constraints;
+      case 'open_questions':
+        return sections.open_questions;
+      case 'next_steps':
+        return sections.next_steps;
+      case 'recent_results':
+        return sections.recent_results;
+      case 'failures':
+        return sections.failures;
+      case 'notes':
+        return sections.notes;
     }
+
+    return [];
   }
   
   function truncate(text: string, maxLen: number): string {
@@ -48,7 +61,9 @@
     </svg>
     <span>Anchored Structured Context</span>
     {#if sections}
-      <span class="slot-count">{slots.filter(s => getSlotContent(s.key, sections).length > 0).length}/10 slots</span>
+      <span class="slot-count">
+        {slots.filter((s) => getSlotContent(s.key, sections).length > 0).length}/10 slots
+      </span>
     {/if}
   </header>
   

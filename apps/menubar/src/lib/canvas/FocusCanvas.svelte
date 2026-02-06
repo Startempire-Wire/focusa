@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { zoom, zoomIdentity, type ZoomBehavior } from 'd3-zoom';
   import { select, type Selection } from 'd3-selection';
-  import type { FocusFrame, AsccSections } from '$lib/types/focus';
+  import type { CanvasFocusFrame as FocusFrame } from '$lib/types/focus-canvas';
   
   // Props
   export let frames: FocusFrame[] = [];
@@ -10,15 +10,14 @@
   export let onFrameSelect: (frameId: string) => void = () => {};
   
   // Canvas state
-  let svg: SVGSVGElement;
-  let g: SVGGElement;
-  let zoomBehavior: ZoomBehavior<SVGSVGElement, unknown>;
+  let svg: SVGSVGElement | null = null;
+  let g: SVGGElement | null = null;
+  let zoomBehavior: ZoomBehavior<SVGSVGElement, unknown> | null = null;
   let transform = zoomIdentity;
   
   // Layout constants
   const FRAME_WIDTH = 280;
   const FRAME_HEIGHT = 180;
-  const FRAME_GAP_X = 40;
   const FRAME_GAP_Y = 100;
   const STACK_OFFSET_X = 30;
   
@@ -39,8 +38,7 @@
   
   function computeLayout(frames: FocusFrame[], activeId: string | null): FrameNode[] {
     const nodes: FrameNode[] = [];
-    const activeIndex = frames.findIndex(f => f.id === activeId);
-    
+
     frames.forEach((frame, index) => {
       const depth = index;
       const isActive = frame.id === activeId;
@@ -73,18 +71,20 @@
   }
   
   onMount(() => {
+    if (!svg || !g) return;
+
     const svgSel: Selection<SVGSVGElement, unknown, null, undefined> = select(svg);
     const gSel: Selection<SVGGElement, unknown, null, undefined> = select(g);
-    
+
     zoomBehavior = zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
         transform = event.transform;
         gSel.attr('transform', transform.toString());
       });
-    
+
     svgSel.call(zoomBehavior);
-    
+
     // Initial center
     const bbox = svg.getBoundingClientRect();
     const initialTransform = zoomIdentity
@@ -97,9 +97,15 @@
     onFrameSelect(frameId);
   }
   
+  const timeFmt = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   function formatTimestamp(iso: string): string {
-    const date = new Date(iso);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms)) return '';
+    return timeFmt.format(ms);
   }
 </script>
 
@@ -108,7 +114,7 @@
     bind:this={svg}
     class="focus-canvas"
     viewBox="0 0 1000 800"
-    preserveAspectRatio="xMidYMid slice"
+    preserveAspectRatio="xMidYMid meet"
   >
     <defs>
       <!-- Gradients -->
@@ -180,7 +186,7 @@
             class:active={node.isActive}
             transform={`translate(${node.x}, ${node.y})`}
             on:click={() => handleFrameClick(node.id)}
-            on:keypress={(e) => e.key === 'Enter' && handleFrameClick(node.id)}
+            on:keydown={(e) => e.key === 'Enter' && handleFrameClick(node.id)}
             tabindex="0"
             role="button"
             aria-label={`Focus frame: ${node.frame.title}`}
@@ -259,7 +265,7 @@
               </text>
               
               <!-- ASCC preview if available -->
-              {#if node.frame.ascc_preview}
+              {#if node.frame.ascc}
                 <rect
                   x="0"
                   y={FRAME_HEIGHT - 60}
@@ -275,7 +281,7 @@
                   font-size="9"
                   font-family="system-ui, -apple-system, sans-serif"
                 >
-                  ASCC: {node.frame.ascc_preview.slice(0, 25)}...
+                  ASCC: {node.frame.ascc.current_focus.slice(0, 25)}...
                 </text>
               {/if}
             </g>
@@ -313,7 +319,11 @@
   
   <!-- Controls overlay -->
   <div class="canvas-controls">
-    <button class="control-btn" on:click={() => select(svg).call(zoomBehavior.transform, zoomIdentity)} title="Reset view">
+    <button
+      class="control-btn"
+      on:click={() => zoomBehavior && svg && select(svg).call(zoomBehavior.transform, zoomIdentity)}
+      title="Reset view"
+    >
       <svg viewBox="0 0 24 24" width="20" height="20">
         <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" fill="currentColor"/>
       </svg>
