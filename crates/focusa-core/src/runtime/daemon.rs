@@ -36,6 +36,8 @@ use uuid::Uuid;
 pub struct Daemon {
     config: FocusaConfig,
     state: FocusaState,
+    current_instance_id: Option<Uuid>,
+    current_thread_id: Option<Uuid>,
     /// Shared state handle — written after every successful reduction so the API
     /// server (and any other reader) always sees current state.
     shared_state: Arc<RwLock<FocusaState>>,
@@ -81,6 +83,8 @@ impl Daemon {
         Ok(Self {
             config,
             state,
+            current_instance_id: None,
+            current_thread_id: None,
             shared_state,
             persistence,
             ecs,
@@ -95,6 +99,11 @@ impl Daemon {
     /// Get a clone of the command sender (for API server, CLI, etc.).
     pub fn command_sender(&self) -> mpsc::Sender<Action> {
         self.command_tx.clone()
+    }
+
+    /// Get a clone of the persistence handle (for API server sync routes).
+    pub fn persistence(&self) -> Persistence {
+        self.persistence.clone()
     }
 
     /// Attach an in-process event bus (used for SSE).
@@ -158,7 +167,11 @@ impl Daemon {
 
                     // Persist each emitted event to the log.
                     for emitted in &result.emitted_events {
-                        let entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        let mut entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        entry.instance_id = self.current_instance_id;
+                        entry.thread_id = self.current_thread_id;
+                        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
+
                         if let Err(e) = self.persistence.append_event(&entry) {
                             tracing::error!("Failed to persist event: {}", e);
                         } else if let Ok(json) = serde_json::to_string(&entry) {
@@ -214,7 +227,11 @@ impl Daemon {
                 Ok(result) => {
                     self.state = result.new_state;
                     for emitted in &result.emitted_events {
-                        let entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        let mut entry = create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        entry.instance_id = self.current_instance_id;
+                        entry.thread_id = self.current_thread_id;
+                        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
+
                         if let Err(e) = self.persistence.append_event(&entry) {
                             tracing::error!("Failed to persist intuition signal: {}", e);
                         } else if let Ok(json) = serde_json::to_string(&entry) {
@@ -248,28 +265,65 @@ impl Daemon {
         match action {
             // ─── Session ─────────────────────────────────────────────────
 
-            Action::InstanceConnect { kind } => Ok(vec![FocusaEvent::InstanceConnected {
-                instance_id: Uuid::now_v7(),
-                kind,
-            }]),
+            Action::InstanceConnect { kind } => {
+                let instance_id = Uuid::now_v7();
+                self.current_instance_id = Some(instance_id);
+                Ok(vec![FocusaEvent::InstanceConnected { instance_id, kind }])
+            },
 
             Action::InstanceDisconnect { instance_id, reason } => {
+                if self.current_instance_id == Some(instance_id) {
+                    self.current_instance_id = None;
+                }
                 Ok(vec![FocusaEvent::InstanceDisconnected { instance_id, reason }])
             }
 
             Action::StartSession {
                 adapter_id,
                 workspace_id,
-                instance_id: _,
-            } => Ok(vec![FocusaEvent::SessionStarted {
-                session_id: Uuid::now_v7(),
-                adapter_id,
-                workspace_id,
-            }]),
+                instance_id,
+            } => {
+                if instance_id.is_some() {
+                    self.current_instance_id = instance_id;
+                }
+                Ok(vec![FocusaEvent::SessionStarted {
+                    session_id: Uuid::now_v7(),
+                    adapter_id,
+                    workspace_id,
+                }])
+            },
 
             Action::CloseSession { reason, instance_id: _ } => {
                 Ok(vec![FocusaEvent::SessionClosed { reason }])
             }
+
+            Action::ThreadAttach {
+                instance_id,
+                session_id,
+                thread_id,
+                role,
+            } => {
+                self.current_instance_id = Some(instance_id);
+                self.current_thread_id = Some(thread_id);
+                Ok(vec![FocusaEvent::ThreadAttached {
+                    instance_id,
+                    session_id,
+                    thread_id,
+                    role,
+                }])
+            },
+
+            Action::ThreadDetach {
+                instance_id,
+                session_id,
+                thread_id,
+                reason,
+            } => Ok(vec![FocusaEvent::ThreadDetached {
+                instance_id,
+                session_id,
+                thread_id,
+                reason,
+            }]),
 
             Action::SubmitProposal { kind, source, payload, deadline_ms } => {
                 crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);

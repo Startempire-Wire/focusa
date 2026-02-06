@@ -581,10 +581,12 @@ pub fn reduce_with_meta(
             reason: _,
         } => {
             // Update owner_machine_id on the thread if it exists in state.
-            // Threads are stored separately; this is a placeholder for when
-            // threads are loaded into state (future: ThreadIndex in FocusaState).
-            // For now, no-op — ownership is enforced at import time, not here.
-            let _ = (thread_id, to_machine_id);
+            if let Some(thread) = state.threads.iter_mut().find(|t| t.id == thread_id) {
+                thread.owner_machine_id = Some(to_machine_id);
+                thread.updated_at = Utc::now();
+            }
+            // If thread not in state, event is still recorded but no mutation occurs.
+            // This handles races where thread hasn't been synced yet.
         }
     }
 

@@ -12,7 +12,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use focusa_core::runtime::persistence_sqlite::{PeerRecord, SyncCursor};
+use focusa_core::runtime::persistence_sqlite::SyncCursor;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -130,6 +130,7 @@ async fn pull_from_peer(
                 "session_id": e.session_id,
                 "thread_id": e.thread_id,
                 "origin": format!("{:?}", e.origin),
+                "is_observation": e.is_observation,
                 "event": e.event,
             })
         })

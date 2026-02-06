@@ -68,7 +68,8 @@ impl SqlitePersistence {
               machine_id TEXT,
               instance_id TEXT,
               session_id TEXT,
-              thread_id TEXT
+              thread_id TEXT,
+              is_observation INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
@@ -290,7 +291,7 @@ impl SqlitePersistence {
         let mut stmt = conn.prepare(
             r#"
             SELECT event_id, ts, origin, correlation_id, payload_json,
-                   machine_id, instance_id, session_id, thread_id
+                   machine_id, instance_id, session_id, thread_id, is_observation
             FROM events
             WHERE (?1 IS NULL OR ts > ?1 OR (ts = ?1 AND event_id > ?2))
             ORDER BY ts, event_id
@@ -316,6 +317,7 @@ impl SqlitePersistence {
                 entry.instance_id = r.get::<_, Option<String>>(6)?.and_then(|s| s.parse().ok());
                 entry.session_id = r.get::<_, Option<String>>(7)?.and_then(|s| s.parse().ok());
                 entry.thread_id = r.get::<_, Option<String>>(8)?.and_then(|s| s.parse().ok());
+                entry.is_observation = r.get::<_, i32>(9)? != 0;
                 Ok(entry)
             },
         )?;
@@ -403,9 +405,9 @@ impl SqlitePersistence {
             r#"
             INSERT INTO events(
               event_id, ts, origin, correlation_id, payload_json,
-              machine_id, instance_id, session_id, thread_id
+              machine_id, instance_id, session_id, thread_id, is_observation
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             "#,
             params![
                 entry.id.to_string(),
@@ -417,6 +419,7 @@ impl SqlitePersistence {
                 entry.instance_id.map(|v| v.to_string()),
                 entry.session_id.map(|v| v.to_string()),
                 entry.thread_id.map(|v| v.to_string()),
+                entry.is_observation as i32,
             ],
         )?;
 
