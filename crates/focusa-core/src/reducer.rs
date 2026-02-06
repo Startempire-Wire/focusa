@@ -584,10 +584,33 @@ pub fn reduce_with_meta(
 
         FocusaEvent::ThreadOwnershipTransferred {
             thread_id,
-            from_machine_id: _,
+            from_machine_id,
             to_machine_id,
             reason: _,
         } => {
+            // Validate that from_machine_id matches current owner (if specified).
+            // This prevents unauthorized ownership transfers.
+            if let Some(from_id) = &from_machine_id {
+                let thread = state.threads.iter().find(|t| t.id == thread_id);
+                if let Some(current_owner) = thread.and_then(|t| t.owner_machine_id.as_ref()) {
+                    if current_owner != from_id {
+                        return Err(ReducerError::OwnershipViolation {
+                            thread_id,
+                            owner: current_owner.clone(),
+                            attempted_by: Some(from_id.clone()),
+                        });
+                    }
+                }
+                // If thread exists but has no owner, from_machine_id must be None (new thread).
+                // Reject if from_machine_id is specified but no current owner.
+                if thread.is_some() && thread.unwrap().owner_machine_id.is_none() {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "Thread {} has no owner but transfer specifies from_machine_id '{}'",
+                        thread_id, from_id
+                    )));
+                }
+            }
+
             // Update owner_machine_id on the thread if it exists in state.
             if let Some(thread) = state.threads.iter_mut().find(|t| t.id == thread_id) {
                 thread.owner_machine_id = Some(to_machine_id);
@@ -595,6 +618,38 @@ pub fn reduce_with_meta(
             }
             // If thread not in state, event is still recorded but no mutation occurs.
             // This handles races where thread hasn't been synced yet.
+        }
+
+        FocusaEvent::ThreadCreated {
+            thread_id,
+            name,
+            primary_intent,
+            owner_machine_id,
+        } => {
+            // Reject duplicate thread IDs.
+            if state.threads.iter().any(|t| t.id == thread_id) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Thread {} already exists",
+                    thread_id
+                )));
+            }
+            // Create thread record using the same structure as threads::create_thread.
+            use crate::types::{Thread, ThreadStatus, ThreadThesis};
+            state.threads.push(Thread {
+                id: thread_id,
+                name,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                status: ThreadStatus::Active,
+                thesis: ThreadThesis {
+                    primary_intent,
+                    updated_at: Some(Utc::now()),
+                    ..Default::default()
+                },
+                clt_head: None,
+                autonomy_history: vec![],
+                owner_machine_id,
+            });
         }
     }
 

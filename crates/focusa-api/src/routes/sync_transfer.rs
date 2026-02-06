@@ -48,7 +48,7 @@ pub async fn transfer_impl(
     let start = std::time::Instant::now();
 
     for remote in &body.events {
-        // Parse event_id
+        // Parse event_id for idempotency check
         let event_id = match remote.event_id.parse::<Uuid>() {
             Ok(id) => id,
             Err(_) => {
@@ -57,19 +57,32 @@ pub async fn transfer_impl(
             }
         };
 
+        // Check if already exists (idempotency)
+        let exists = state
+            .persistence
+            .event_exists(&event_id.to_string())
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if exists {
+            rejected += 1;
+            continue;
+        }
+
         // Parse the event - only accept ownership transfer events
         let event: FocusaEvent = match serde_json::from_value(remote.event.clone()) {
-            Ok(FocusaEvent::ThreadOwnershipTransferred { .. }) => {
-                serde_json::from_value(remote.event.clone()).map_err(|_| StatusCode::BAD_REQUEST)?
-            }
-            Ok(_) => {
-                // Only ownership transfers allowed via this endpoint
-                tracing::warn!(event_id = %event_id, "Rejected non-ownership event via /v1/sync/transfer");
+            Ok(e) => e,
+            Err(e) => {
+                tracing::warn!(event_id = %event_id, error = %e, "Failed to parse transfer event");
                 rejected += 1;
                 continue;
             }
-            Err(e) => {
-                tracing::warn!(event_id = %event_id, error = %e, "Failed to parse transfer event");
+        };
+
+        // Extract thread_id from event for tracking
+        let thread_id = match &event {
+            FocusaEvent::ThreadOwnershipTransferred { thread_id, .. } => Some(*thread_id),
+            _ => {
+                tracing::warn!(event_id = %event_id, "Rejected non-ownership event via /v1/sync/transfer");
                 rejected += 1;
                 continue;
             }
@@ -87,7 +100,7 @@ pub async fn transfer_impl(
             machine_id: Some(remote.machine_id.clone()),
             instance_id: None,
             session_id: None,
-            thread_id: None,
+            thread_id,
             is_observation: false, // CRITICAL: Must mutate state!
         };
 
@@ -97,7 +110,7 @@ pub async fn transfer_impl(
             focusa_state.clone(),
             entry.event.clone(),
             Some(&remote.machine_id),
-            None, // ThreadOwnershipTransferred doesn't target a specific thread
+            thread_id,
             false, // Not an observation
         ) {
             Ok(result) => {
@@ -114,6 +127,13 @@ pub async fn transfer_impl(
                     rejected += 1;
                     continue;
                 }
+
+                // Save state snapshot
+                let current_state = state.focusa.read().await;
+                if let Err(e) = state.persistence.save_state(&current_state) {
+                    tracing::warn!("Failed to save state after transfer: {}", e);
+                }
+                drop(current_state);
 
                 // Broadcast to SSE subscribers
                 if let Ok(json) = serde_json::to_string(&entry) {

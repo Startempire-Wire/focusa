@@ -194,10 +194,15 @@ async fn push_to_peer(
         return Err(StatusCode::BAD_GATEWAY);
     }
 
-    // Update cursor to mark sync attempt
-    let now = chrono::Utc::now().to_rfc3339();
-    state.persistence.set_cursor(&peer_id, None, Some(&now))
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // Update cursor to last event sent (not just now())
+    let last_event = events.last();
+    let last_event_id = last_event.map(|e| e.id.to_string());
+    let last_event_ts = last_event.map(|e| e.timestamp.to_rfc3339());
+    state.persistence.set_cursor(
+        &peer_id,
+        last_event_id.as_deref(),
+        last_event_ts.as_deref(),
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let result = response.json::<serde_json::Value>().await
         .map_err(|_| StatusCode::BAD_GATEWAY)?;

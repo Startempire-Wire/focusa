@@ -504,6 +504,13 @@ pub enum FocusaEvent {
         reason: String,
     },
 
+    ThreadCreated {
+        thread_id: Uuid,
+        name: String,
+        primary_intent: String,
+        owner_machine_id: Option<String>,
+    },
+
     // Session lifecycle
     SessionStarted {
         session_id: SessionId,
