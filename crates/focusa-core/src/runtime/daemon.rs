@@ -36,6 +36,8 @@ use uuid::Uuid;
 pub struct Daemon {
     config: FocusaConfig,
     state: FocusaState,
+    /// This daemon's machine ID (for ownership enforcement).
+    machine_id: String,
     current_instance_id: Option<Uuid>,
     current_thread_id: Option<Uuid>,
     /// Shared state handle — written after every successful reduction so the API
@@ -80,9 +82,14 @@ impl Daemon {
         let intuition = IntuitionEngine::new(signal_tx);
 
         let (command_tx, command_rx) = mpsc::channel(256);
+
+        // Get this daemon's machine ID for ownership enforcement.
+        let machine_id = persistence.machine_id()?;
+
         Ok(Self {
             config,
             state,
+            machine_id,
             current_instance_id: None,
             current_thread_id: None,
             shared_state,
@@ -161,7 +168,18 @@ impl Daemon {
         let events = self.translate_action(action).await?;
 
         for event in events {
-            match reducer::reduce(self.state.clone(), event.clone()) {
+            // Determine thread_id for ownership enforcement.
+            // current_thread_id is set during ThreadAttach actions.
+            let thread_id = self.current_thread_id;
+
+            // Use reduce_with_meta for ownership enforcement (Policy #5).
+            match reducer::reduce_with_meta(
+                self.state.clone(),
+                event.clone(),
+                Some(&self.machine_id),
+                thread_id,
+                false, // Daemon events are never observations
+            ) {
                 Ok(result) => {
                     self.state = result.new_state;
 
@@ -223,7 +241,14 @@ impl Daemon {
                 summary: signal.summary.clone(),
                 related_frame_id: signal.frame_context,
             };
-            match reducer::reduce(self.state.clone(), event.clone()) {
+            // Use reduce_with_meta for ownership enforcement.
+            match reducer::reduce_with_meta(
+                self.state.clone(),
+                event.clone(),
+                Some(&self.machine_id),
+                self.current_thread_id,
+                false,
+            ) {
                 Ok(result) => {
                     self.state = result.new_state;
                     for emitted in &result.emitted_events {
