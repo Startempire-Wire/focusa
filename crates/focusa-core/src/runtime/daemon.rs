@@ -192,10 +192,10 @@ impl Daemon {
 
                         if let Err(e) = self.persistence.append_event(&entry) {
                             tracing::error!("Failed to persist event: {}", e);
-                        } else if let Ok(json) = serde_json::to_string(&entry) {
-                            if let Some(bus) = &self.event_bus {
-                                bus.publish(json);
-                            }
+                        } else if let Ok(json) = serde_json::to_string(&entry)
+                            && let Some(bus) = &self.event_bus
+                        {
+                            bus.publish(json);
                         }
                     }
 
@@ -259,10 +259,10 @@ impl Daemon {
 
                         if let Err(e) = self.persistence.append_event(&entry) {
                             tracing::error!("Failed to persist intuition signal: {}", e);
-                        } else if let Ok(json) = serde_json::to_string(&entry) {
-                            if let Some(bus) = &self.event_bus {
-                                bus.publish(json);
-                            }
+                        } else if let Ok(json) = serde_json::to_string(&entry)
+                            && let Some(bus) = &self.event_bus
+                        {
+                            bus.publish(json);
                         }
                     }
 
@@ -538,10 +538,10 @@ impl Daemon {
         };
         let entry = create_entry(violation_event, SignalOrigin::Daemon, None);
         self.persistence.append_event(&entry)?;
-        if let Ok(json) = serde_json::to_string(&entry) {
-            if let Some(bus) = &self.event_bus {
-                bus.publish(json);
-            }
+        if let Ok(json) = serde_json::to_string(&entry)
+            && let Some(bus) = &self.event_bus
+        {
+            bus.publish(json);
         }
         Ok(())
     }

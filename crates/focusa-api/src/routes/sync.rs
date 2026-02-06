@@ -150,7 +150,7 @@ async fn push_to_peer(
     // Get peer info to find endpoint
     let peers = state.persistence.list_peers().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let peer = peers.into_iter().find(|p| p.peer_id == peer_id)
-        .ok_or_else(|| StatusCode::NOT_FOUND)?;
+        .ok_or(StatusCode::NOT_FOUND)?;
 
     // Get local events since cursor
     let cursor = state.persistence.get_cursor(&peer_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

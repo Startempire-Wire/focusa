@@ -111,10 +111,10 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 fn focusa_db_path(data_dir: &str) -> PathBuf {
-    if let Some(rest) = data_dir.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home).join(rest).join("focusa.sqlite");
-        }
+    if let Some(rest) = data_dir.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return PathBuf::from(home).join(rest).join("focusa.sqlite");
     }
     PathBuf::from(data_dir).join("focusa.sqlite")
 }

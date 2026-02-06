@@ -63,7 +63,7 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
             }
 
             println!("Threads:");
-            println!("{:>36} {:<20} {:<12} {}", "ID", "Name", "Status", "Owner");
+            println!("{:>36} {:<20} {:<12} Owner", "ID", "Name", "Status");
             println!("{}", "-".repeat(80));
             for thread in threads {
                 let id = thread["id"].as_str().unwrap_or("?");
