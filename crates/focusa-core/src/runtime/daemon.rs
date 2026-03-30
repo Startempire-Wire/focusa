@@ -219,10 +219,12 @@ impl Daemon {
 
                     // Intuition: observe turn completions for signals.
                     if let FocusaEvent::TurnCompleted {
-                        assistant_output,
-                        errors,
+                        ref turn_id,
+                        ref assistant_output,
+                        ref raw_user_input,
+                        ref errors,
                         ..
-                    } = &event
+                    } = event
                     {
                         let frame_id = self.state.focus_stack.active_id;
                         if let Some(output) = assistant_output.as_deref() {
@@ -233,6 +235,17 @@ impl Daemon {
                         for err in errors {
                             self.intuition.observe_turn(frame_id, err);
                         }
+
+                        // Background workers: enqueue jobs per G1-10-workers.
+                        // Workers are advisory — results flow through
+                        // apply_worker_result → FocusStateDelta / gate signals.
+                        self.enqueue_turn_workers(
+                            turn_id,
+                            frame_id,
+                            assistant_output.as_deref(),
+                            raw_user_input.as_deref(),
+                            errors,
+                        );
                     }
 
                     // CLT: track interaction nodes for each event.
@@ -312,6 +325,123 @@ impl Daemon {
                 }
                 Err(e) => {
                     tracing::warn!("Intuition signal rejected by reducer: {}", e);
+                }
+            }
+        }
+    }
+
+    /// Enqueue background worker jobs after a turn completes.
+    ///
+    /// Per G1-10-workers: workers are advisory, async, non-blocking.
+    /// Job kinds per spec: extract_ascc_delta, scan_for_errors,
+    /// detect_repetition, classify_turn, suggest_memory.
+    ///
+    /// Content is passed via correlation_id (MVP inline transport).
+    /// Worker results flow through handle_worker_job → apply_worker_result.
+    fn enqueue_turn_workers(
+        &self,
+        turn_id: &str,
+        frame_id: Option<FrameId>,
+        assistant_output: Option<&str>,
+        raw_user_input: Option<&str>,
+        _errors: &[String],
+    ) {
+        let now = Utc::now();
+        let timeout = self.config.worker_job_timeout_ms;
+
+        // extract_ascc_delta: extract decisions/constraints/failures/next_steps
+        // from assistant output into structured FocusStateDelta.
+        if let Some(output) = assistant_output {
+            if !output.is_empty() {
+                let job = WorkerJob {
+                    id: Uuid::now_v7(),
+                    kind: WorkerJobKind::ExtractAsccDelta,
+                    created_at: now,
+                    priority: JobPriority::High,
+                    payload_ref: None,
+                    frame_context: frame_id,
+                    correlation_id: Some(output.chars().take(4000).collect()),
+                    timeout_ms: timeout,
+                };
+                if self.worker_tx.try_send(job).is_err() {
+                    tracing::warn!(turn_id, "Worker queue full: dropped ExtractAsccDelta job");
+                }
+            }
+        }
+
+        // scan_for_errors: detect error patterns in assistant output.
+        if let Some(output) = assistant_output {
+            if !output.is_empty() {
+                let job = WorkerJob {
+                    id: Uuid::now_v7(),
+                    kind: WorkerJobKind::ScanForErrors,
+                    created_at: now,
+                    priority: JobPriority::Normal,
+                    payload_ref: None,
+                    frame_context: frame_id,
+                    correlation_id: Some(output.chars().take(4000).collect()),
+                    timeout_ms: timeout,
+                };
+                if self.worker_tx.try_send(job).is_err() {
+                    tracing::warn!(turn_id, "Worker queue full: dropped ScanForErrors job");
+                }
+            }
+        }
+
+        // detect_repetition: check for repeated content patterns.
+        if let Some(output) = assistant_output {
+            if !output.is_empty() {
+                let job = WorkerJob {
+                    id: Uuid::now_v7(),
+                    kind: WorkerJobKind::DetectRepetition,
+                    created_at: now,
+                    priority: JobPriority::Low,
+                    payload_ref: None,
+                    frame_context: frame_id,
+                    correlation_id: Some(output.chars().take(4000).collect()),
+                    timeout_ms: timeout,
+                };
+                if self.worker_tx.try_send(job).is_err() {
+                    tracing::debug!(turn_id, "Worker queue full: dropped DetectRepetition job");
+                }
+            }
+        }
+
+        // classify_turn: classify user input as task/question/correction/meta.
+        if let Some(input) = raw_user_input {
+            if !input.is_empty() {
+                let job = WorkerJob {
+                    id: Uuid::now_v7(),
+                    kind: WorkerJobKind::ClassifyTurn,
+                    created_at: now,
+                    priority: JobPriority::Low,
+                    payload_ref: None,
+                    frame_context: frame_id,
+                    correlation_id: Some(input.chars().take(2000).collect()),
+                    timeout_ms: timeout,
+                };
+                if self.worker_tx.try_send(job).is_err() {
+                    tracing::debug!(turn_id, "Worker queue full: dropped ClassifyTurn job");
+                }
+            }
+        }
+
+        // suggest_memory: look for stable patterns worth remembering.
+        // Only run if there's substantial output.
+        if let Some(output) = assistant_output {
+            if output.len() > 200 {
+                let job = WorkerJob {
+                    id: Uuid::now_v7(),
+                    kind: WorkerJobKind::SuggestMemory,
+                    created_at: now,
+                    priority: JobPriority::Low,
+                    payload_ref: None,
+                    frame_context: frame_id,
+                    correlation_id: Some(output.chars().take(4000).collect()),
+                    timeout_ms: timeout,
+                };
+                if self.worker_tx.try_send(job).is_err() {
+                    tracing::debug!(turn_id, "Worker queue full: dropped SuggestMemory job");
                 }
             }
         }
