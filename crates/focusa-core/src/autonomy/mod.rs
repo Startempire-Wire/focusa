@@ -75,6 +75,51 @@ pub fn grant_level(
     state.granted_ttl = ttl;
 }
 
+/// Derive autonomy observation scores from a completed turn.
+///
+/// Per docs/12 §Outcome Signals:
+///   - Correctness: no errors = high, errors = low
+///   - Stability: consistent focus (no frame thrashing)
+///   - Efficiency: reasonable token usage
+///   - Trust: task completion without regressions
+///   - Grounding: proper state updates (Focus State non-empty)
+///   - Recovery: errors handled gracefully
+pub fn observe_turn(
+    state: &mut AutonomyState,
+    had_errors: bool,
+    focus_state_populated: bool,
+    stack_depth: usize,
+    prompt_tokens: u32,
+    completion_tokens: u32,
+) {
+    // Correctness: 1.0 if no errors, 0.3 if errors present.
+    let correctness = if had_errors { 0.3 } else { 1.0 };
+
+    // Stability: penalize deep nesting (>3 = thrashing risk).
+    let stability = if stack_depth <= 3 { 0.9 } else { 0.5 };
+
+    // Efficiency: penalize excessive token usage (>4000 total = expensive).
+    let total_tokens = prompt_tokens + completion_tokens;
+    let efficiency = if total_tokens < 2000 {
+        1.0
+    } else if total_tokens < 4000 {
+        0.8
+    } else {
+        0.5
+    };
+
+    // Trust: high if no errors (task proceeding correctly).
+    let trust = if had_errors { 0.4 } else { 0.9 };
+
+    // Grounding: Focus State populated = agent is maintaining state.
+    let grounding = if focus_state_populated { 0.9 } else { 0.3 };
+
+    // Recovery: if errors occurred and we're still running, partial recovery.
+    let recovery = if had_errors { 0.6 } else { 0.9 };
+
+    record_observation(state, correctness, stability, efficiency, trust, grounding, recovery);
+}
+
 /// Record an observation for autonomy scoring.
 pub fn record_observation(
     state: &mut AutonomyState,

@@ -231,6 +231,8 @@ impl Daemon {
                         ref assistant_output,
                         ref raw_user_input,
                         ref errors,
+                        ref prompt_tokens,
+                        ref completion_tokens,
                         ..
                     } = event
                     {
@@ -253,6 +255,26 @@ impl Daemon {
                             assistant_output.as_deref(),
                             raw_user_input.as_deref(),
                             errors,
+                        );
+
+                        // Autonomy: record observation from turn (docs/12, docs/37).
+                        let had_errors = !errors.is_empty();
+                        let focus_populated = frame_id
+                            .and_then(|fid| {
+                                self.state.focus_stack.frames.iter().find(|f| f.id == fid)
+                            })
+                            .map(|f| !f.focus_state.intent.is_empty() || !f.focus_state.decisions.is_empty())
+                            .unwrap_or(false);
+                        let stack_depth = self.state.focus_stack.stack_path_cache.len();
+                        let pt = prompt_tokens.unwrap_or(0);
+                        let ct = completion_tokens.unwrap_or(0);
+                        crate::autonomy::observe_turn(
+                            &mut self.state.autonomy,
+                            had_errors,
+                            focus_populated,
+                            stack_depth,
+                            pt,
+                            ct,
                         );
                     }
 
