@@ -122,6 +122,53 @@ pub fn assemble(
     assemble_from(input)
 }
 
+/// Build parent context from the focus stack for prompt assembly.
+///
+/// Per G1-detail-05: "Prompt assembly always includes: Active frame ASCC
+/// checkpoint slots. Optionally includes parent ASCC checkpoints (bounded
+/// by budget). Never includes siblings or unrelated frames in MVP."
+///
+/// Per G1-detail-11 §Slot 4: "Include up to N ancestors (default 2). Rules:
+/// include only intent, decisions, constraints."
+///
+/// Returns up to `MAX_PARENT_FRAMES` (2) parent contexts, ordered root → parent.
+pub fn build_parent_contexts(stack: &FocusStackState) -> Vec<ParentContext> {
+    let active_id = match stack.active_id {
+        Some(id) => id,
+        None => return vec![],
+    };
+
+    let active_frame = match stack.frames.iter().find(|f| f.id == active_id) {
+        Some(f) => f,
+        None => return vec![],
+    };
+
+    // Walk up parent chain, collecting up to MAX_PARENT_FRAMES ancestors.
+    let mut parents = Vec::new();
+    let mut current_parent_id = active_frame.parent_id;
+
+    while let Some(pid) = current_parent_id {
+        if parents.len() >= MAX_PARENT_FRAMES {
+            break;
+        }
+        if let Some(parent) = stack.frames.iter().find(|f| f.id == pid) {
+            parents.push(ParentContext {
+                title: parent.title.clone(),
+                intent: parent.focus_state.intent.clone(),
+                decisions: parent.focus_state.decisions.clone(),
+                constraints: parent.focus_state.constraints.clone(),
+            });
+            current_parent_id = parent.parent_id;
+        } else {
+            break;
+        }
+    }
+
+    // Reverse so order is root → immediate parent (spec: "root -> active").
+    parents.reverse();
+    parents
+}
+
 /// Full assembly from explicit input context.
 pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     let budget = available_tokens(

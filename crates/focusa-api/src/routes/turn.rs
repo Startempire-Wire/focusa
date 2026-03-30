@@ -11,7 +11,6 @@ use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::post};
-use focusa_core::expression::engine::assemble;
 use focusa_core::memory::procedural;
 use focusa_core::types::*;
 use serde_json::{Value, json};
@@ -132,15 +131,30 @@ async fn prompt_assemble(
     let ascc = focusa_core::types::AsccSections::from(&focus_state);
     let ascc_ref = if ascc.is_empty() { None } else { Some(&ascc) };
 
-    // Assemble prompt.
-    let assembly = assemble(
-        &focus_state,
-        ascc_ref,
-        &rules_owned,
-        &handles_owned,
-        &req.raw_user_input,
-        &state.config,
-    );
+    // Build parent context from stack (G1-detail-05, G1-detail-11 §Slot 4).
+    let parents = focusa_core::expression::engine::build_parent_contexts(&focusa.focus_stack);
+
+    // Get active frame title.
+    let frame_title = focusa
+        .focus_stack
+        .active_id
+        .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid))
+        .map(|f| f.title.as_str())
+        .unwrap_or(&focus_state.intent);
+
+    // Assemble prompt with full context.
+    let input = focusa_core::expression::engine::AssemblyInput {
+        focus_state: &focus_state,
+        frame_title,
+        ascc: ascc_ref,
+        parent_frames: &parents,
+        rules: &rules_owned,
+        handles: &handles_owned,
+        user_input: &req.raw_user_input,
+        directive: None,
+        config: &state.config,
+    };
+    let assembly = focusa_core::expression::engine::assemble_from(input);
 
     // Estimate token counts (rough: 4 chars per token).
     let estimate_tokens = |s: &str| (s.len() / 4) as u32;

@@ -16,7 +16,7 @@
 //! Failure: passthrough raw request (fail-safe).
 //! Performance: <20ms overhead target.
 
-use crate::expression::engine::{AssembledPrompt, assemble};
+use crate::expression::engine::AssembledPrompt;
 use crate::memory::procedural;
 use crate::types::*;
 use reqwest::Client;
@@ -134,15 +134,30 @@ pub fn process_request(
     let ascc = crate::types::AsccSections::from(&focus_state);
     let ascc_ref = if ascc.is_empty() { None } else { Some(&ascc) };
 
-    // Assemble prompt.
-    let assembly = assemble(
-        &focus_state,
-        ascc_ref,
-        &rules_owned,
-        &handles_owned,
-        &user_input,
+    // Build parent context from stack (G1-detail-05, G1-detail-11 §Slot 4).
+    let parents = crate::expression::engine::build_parent_contexts(&state.focus_stack);
+
+    // Get active frame title.
+    let frame_title = state
+        .focus_stack
+        .active_id
+        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))
+        .map(|f| f.title.as_str())
+        .unwrap_or(&focus_state.intent);
+
+    // Assemble prompt with full context.
+    let input = crate::expression::engine::AssemblyInput {
+        focus_state: &focus_state,
+        frame_title,
+        ascc: ascc_ref,
+        parent_frames: &parents,
+        rules: &rules_owned,
+        handles: &handles_owned,
+        user_input: &user_input,
+        directive: None,
         config,
-    );
+    };
+    let assembly = crate::expression::engine::assemble_from(input);
 
     // Inject assembled prompt as system message.
     inject_system_message(&mut request.messages, &assembly.content);
