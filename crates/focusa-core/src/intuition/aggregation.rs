@@ -73,7 +73,14 @@ pub fn aggregate_signals(signals: &[Signal], window_secs: i64) -> Vec<SignalGrou
 
 /// Map a signal group to a candidate kind for the Focus Gate.
 pub fn suggest_candidate_kind(group: &SignalGroup) -> CandidateKind {
-    match group.kind {
+    suggest_candidate_kind_from_signal(group.kind)
+}
+
+/// Map a signal kind directly to a candidate kind.
+///
+/// Used by both aggregation (group-level) and the gate pipeline (signal-level).
+pub fn suggest_candidate_kind_from_signal(kind: SignalKind) -> CandidateKind {
+    match kind {
         SignalKind::Error => CandidateKind::SuggestFixError,
         SignalKind::Warning => CandidateKind::SuggestFixError,
         SignalKind::RepeatedPattern => CandidateKind::SuggestPinMemory,

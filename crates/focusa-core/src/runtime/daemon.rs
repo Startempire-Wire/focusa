@@ -148,6 +148,7 @@ impl Daemon {
                                 tracing::error!("Action processing failed: {}", e);
                             }
                             self.drain_intuition_signals().await;
+                            self.run_gate_pipeline();
                         }
                         None => break, // Channel closed.
                     }
@@ -158,6 +159,7 @@ impl Daemon {
                             tracing::error!("Worker job failed: {}", e);
                         }
                         self.drain_intuition_signals().await;
+                        self.run_gate_pipeline();
                     }
                 }
                 _ = decay_interval.tick() => {
@@ -165,6 +167,8 @@ impl Daemon {
                     if let Err(e) = self.process_action(Action::DecayTick).await {
                         tracing::debug!("Decay tick failed: {}", e);
                     }
+                    // Run gate pipeline after decay to re-check surfacing thresholds.
+                    self.run_gate_pipeline();
                 }
             }
         }
@@ -327,6 +331,32 @@ impl Daemon {
                     tracing::warn!("Intuition signal rejected by reducer: {}", e);
                 }
             }
+        }
+    }
+
+    /// Run the Focus Gate 5-step pipeline (G1-detail-06).
+    ///
+    /// Aggregates signals into candidates, applies pressure modifiers,
+    /// surfaces candidates above threshold. Called after signal ingestion
+    /// and on periodic decay tick.
+    fn run_gate_pipeline(&mut self) {
+        let active_id = self.state.focus_stack.active_id;
+        let stack_path = self.state.focus_stack.stack_path_cache.clone();
+        let threshold = self.config.gate_surface_threshold;
+
+        let newly_surfaced = crate::gate::focus_gate::run_gate_pipeline(
+            &mut self.state.focus_gate,
+            active_id,
+            &stack_path,
+            threshold,
+        );
+
+        if newly_surfaced > 0 {
+            tracing::info!(
+                newly_surfaced,
+                total_candidates = self.state.focus_gate.candidates.len(),
+                "Focus Gate: candidates surfaced"
+            );
         }
     }
 
