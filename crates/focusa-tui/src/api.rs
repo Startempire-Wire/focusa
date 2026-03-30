@@ -64,15 +64,18 @@ impl ApiClient {
         if let Some(arr) = entries {
             for entry in arr {
                 events.push(EventInfo {
-                    timestamp: entry.get("timestamp")
+                    timestamp: entry
+                        .get("timestamp")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string(),
-                    event_type: entry.get("type")
+                    event_type: entry
+                        .get("type")
                         .and_then(|v| v.as_str())
                         .unwrap_or("unknown")
                         .to_string(),
-                    event_id: entry.get("id")
+                    event_id: entry
+                        .get("id")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .chars()
@@ -91,34 +94,60 @@ fn parse_stack(resp: &Value) -> StackInfo {
         None => return StackInfo::default(),
     };
 
-    let active_id = stack.get("active_id")
+    let active_id = stack
+        .get("active_id")
         .and_then(|v| v.as_str())
         .map(String::from);
 
-    let frames = stack.get("frames")
+    let frames = stack
+        .get("frames")
         .and_then(|f| f.as_array())
         .map(|arr| {
-            arr.iter().map(|f| FrameInfo {
-                frame_id: f.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                beads_id: f.get("beads_issue_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                intent: f.get("focus_state")
-                    .and_then(|fs| fs.get("intent"))
-                    .and_then(|v| v.as_str())
-                    .or_else(|| f.get("title").and_then(|v| v.as_str()))
-                    .unwrap_or("")
-                    .to_string(),
-                status: f.get("status").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                depth: 0, // Computed from stack_path_cache position, not stored.
-            }).collect()
+            arr.iter()
+                .map(|f| FrameInfo {
+                    frame_id: f
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    beads_id: f
+                        .get("beads_issue_id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    intent: f
+                        .get("focus_state")
+                        .and_then(|fs| fs.get("intent"))
+                        .and_then(|v| v.as_str())
+                        .or_else(|| f.get("title").and_then(|v| v.as_str()))
+                        .unwrap_or("")
+                        .to_string(),
+                    status: f
+                        .get("status")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    depth: 0, // Computed from stack_path_cache position, not stored.
+                })
+                .collect()
         })
         .unwrap_or_default();
 
-    let stack_path = stack.get("stack_path_cache")
+    let stack_path = stack
+        .get("stack_path_cache")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
 
-    StackInfo { active_id, frames, stack_path }
+    StackInfo {
+        active_id,
+        frames,
+        stack_path,
+    }
 }
 
 fn parse_focus_state(resp: &Value) -> Option<FocusStateInfo> {
@@ -126,18 +155,25 @@ fn parse_focus_state(resp: &Value) -> Option<FocusStateInfo> {
     let stack = resp.get("focus_stack")?;
     let active_id = stack.get("active_id")?.as_str()?;
     let frames = stack.get("frames")?.as_array()?;
-    let active = frames.iter().find(|f| {
-        f.get("id").and_then(|v| v.as_str()) == Some(active_id)
-    })?;
+    let active = frames
+        .iter()
+        .find(|f| f.get("id").and_then(|v| v.as_str()) == Some(active_id))?;
 
     let fs = active.get("focus_state")?;
 
     Some(FocusStateInfo {
-        intent: fs.get("intent").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        intent: fs
+            .get("intent")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
         constraints: parse_string_array(fs.get("constraints")),
         decisions: parse_string_array(fs.get("decisions")),
         next_steps: parse_string_array(fs.get("next_steps")),
-        current_state: fs.get("current_state").and_then(|v| v.as_str()).map(String::from),
+        current_state: fs
+            .get("current_state")
+            .and_then(|v| v.as_str())
+            .map(String::from),
     })
 }
 
@@ -150,20 +186,42 @@ fn parse_candidates(resp: &Value) -> Vec<CandidateInfo> {
     gate.get("candidates")
         .and_then(|c| c.as_array())
         .map(|arr| {
-            arr.iter().map(|c| CandidateInfo {
-                id: c.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                kind: c.get("kind").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                label: c.get("label").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                pressure: c.get("pressure").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                pinned: c.get("pinned").and_then(|v| v.as_bool()).unwrap_or(false),
-                status: c.get("state").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            }).collect()
+            arr.iter()
+                .map(|c| CandidateInfo {
+                    id: c
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    kind: c
+                        .get("kind")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    label: c
+                        .get("label")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    pressure: c.get("pressure").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                    pinned: c.get("pinned").and_then(|v| v.as_bool()).unwrap_or(false),
+                    status: c
+                        .get("state")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                })
+                .collect()
         })
         .unwrap_or_default()
 }
 
 fn parse_string_array(val: Option<&Value>) -> Vec<String> {
     val.and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default()
 }

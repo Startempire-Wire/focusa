@@ -45,7 +45,10 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
                 let tp = t["prompt_tokens"].as_u64().unwrap_or(0);
                 let tc = t["completion_tokens"].as_u64().unwrap_or(0);
                 let turns = t["turns"].as_u64().unwrap_or(0);
-                lines.push(Line::from(format!("    {id}: {tp}+{tc} tokens, {turns} turns")).style(theme::value()));
+                lines.push(
+                    Line::from(format!("    {id}: {tp}+{tc} tokens, {turns} turns"))
+                        .style(theme::value()),
+                );
             }
         }
     } else {

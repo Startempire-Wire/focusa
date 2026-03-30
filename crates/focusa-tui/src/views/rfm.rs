@@ -30,7 +30,12 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
         lines.push(Line::from(vec![
             Span::styled("Level: ", theme::label()),
-            Span::styled(level, Style::default().fg(level_color).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                level,
+                Style::default()
+                    .fg(level_color)
+                    .add_modifier(Modifier::BOLD),
+            ),
         ]));
         lines.push(Line::from(vec![
             Span::styled("AIS: ", theme::label()),
@@ -42,7 +47,10 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         ]));
         lines.push(Line::from(vec![
             Span::styled("Ensemble: ", theme::label()),
-            Span::styled(if ensemble { "needed" } else { "not needed" }, theme::value()),
+            Span::styled(
+                if ensemble { "needed" } else { "not needed" },
+                theme::value(),
+            ),
         ]));
 
         if let Some(results) = d["validator_results"].as_array() {

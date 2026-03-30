@@ -37,7 +37,14 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         if let Some(dims) = d.get("dimensions") {
             lines.push(Line::default());
             lines.push(Line::from("  Dimensions:").style(theme::label()));
-            for dim in ["correctness", "stability", "efficiency", "trust", "grounding", "recovery"] {
+            for dim in [
+                "correctness",
+                "stability",
+                "efficiency",
+                "trust",
+                "grounding",
+                "recovery",
+            ] {
                 let val = dims[dim].as_f64().unwrap_or(0.0);
                 let bar_len = (val * 20.0) as usize;
                 let bar = "█".repeat(bar_len) + &"░".repeat(20 - bar_len);

@@ -3,10 +3,10 @@
 //! Read-only, event-driven, calm.
 //! Polls the Focusa API and renders live state.
 
-mod app;
 mod api;
-mod views;
+mod app;
 mod theme;
+mod views;
 
 use anyhow::Result;
 use crossterm::{
@@ -20,8 +20,8 @@ use std::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let api_url = std::env::var("FOCUSA_API_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8787".into());
+    let api_url =
+        std::env::var("FOCUSA_API_URL").unwrap_or_else(|_| "http://127.0.0.1:8787".into());
 
     let mut app = app::App::new(api_url);
 

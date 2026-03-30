@@ -26,8 +26,15 @@ fn render_uxp(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let mut lines = Vec::new();
 
     if let Some(Some(d)) = data {
-        for dim in ["autonomy_tolerance", "verbosity_preference", "interruption_sensitivity",
-                     "explanation_depth", "confirmation_preference", "risk_tolerance", "review_cadence"] {
+        for dim in [
+            "autonomy_tolerance",
+            "verbosity_preference",
+            "interruption_sensitivity",
+            "explanation_depth",
+            "confirmation_preference",
+            "risk_tolerance",
+            "review_cadence",
+        ] {
             if let Some(dim_data) = d.get(dim) {
                 let val = dim_data["value"].as_f64().unwrap_or(0.5);
                 let conf = dim_data["confidence"].as_f64().unwrap_or(0.0);
@@ -38,7 +45,10 @@ fn render_uxp(app: &App, frame: &mut ratatui::Frame, area: Rect) {
                 lines.push(Line::from(vec![
                     Span::styled(format!("{:24} ", dim.replace('_', " ")), theme::label()),
                     Span::styled(bar, theme::value()),
-                    Span::styled(format!(" {val:.2} c={conf:.2}{freeze_icon}"), Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        format!(" {val:.2} c={conf:.2}{freeze_icon}"),
+                        Style::default().fg(Color::DarkGray),
+                    ),
                 ]));
             }
         }

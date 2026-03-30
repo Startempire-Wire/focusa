@@ -222,8 +222,12 @@ impl App {
 
         for (key, endpoint) in endpoints {
             match self.client.fetch_json(endpoint).await {
-                Ok(data) => { self.extra_data.insert(key.to_string(), Some(data)); }
-                Err(_) => { self.extra_data.insert(key.to_string(), None); }
+                Ok(data) => {
+                    self.extra_data.insert(key.to_string(), Some(data));
+                }
+                Err(_) => {
+                    self.extra_data.insert(key.to_string(), None);
+                }
             }
         }
     }

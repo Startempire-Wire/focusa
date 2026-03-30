@@ -3,8 +3,8 @@
 mod autonomy;
 mod constitution;
 mod events;
-mod focus_state;
 mod focus_stack;
+mod focus_state;
 mod gate;
 mod lineage;
 mod metrics;
@@ -110,21 +110,34 @@ fn render_status_bar(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Span::styled("○ disconnected", theme::status_err())
     };
 
-    let session = app.state.session.as_ref().map(|s| {
-        format!("session: {}…", &s.session_id[..8.min(s.session_id.len())])
-    }).unwrap_or_else(|| "no session".into());
+    let session = app
+        .state
+        .session
+        .as_ref()
+        .map(|s| format!("session: {}…", &s.session_id[..8.min(s.session_id.len())]))
+        .unwrap_or_else(|| "no session".into());
 
-    let active = app.state.focus_stack.active_id.as_ref().map(|id| {
-        format!("frame: {}…", &id[..8.min(id.len())])
-    }).unwrap_or_else(|| "no active frame".into());
+    let active = app
+        .state
+        .focus_stack
+        .active_id
+        .as_ref()
+        .map(|id| format!("frame: {}…", &id[..8.min(id.len())]))
+        .unwrap_or_else(|| "no active frame".into());
 
     let version = format!("v{}", app.state.version);
 
     let line = Line::from(vec![
         Span::raw(" "),
         conn,
-        Span::styled(format!("  │  {session}  │  {active}  │  {version}"), theme::label()),
-        Span::styled("  │  q:quit  Tab:switch  r:refresh  j/k:scroll ", theme::label()),
+        Span::styled(
+            format!("  │  {session}  │  {active}  │  {version}"),
+            theme::label(),
+        ),
+        Span::styled(
+            "  │  q:quit  Tab:switch  r:refresh  j/k:scroll ",
+            theme::label(),
+        ),
     ]);
 
     let block = Block::default()

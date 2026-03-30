@@ -36,7 +36,11 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
                 let name = s["name"].as_str().unwrap_or("?");
                 let enabled = s["enabled"].as_bool().unwrap_or(false);
                 let icon = if enabled { "✓" } else { "✗" };
-                let color = if enabled { Color::Green } else { Color::DarkGray };
+                let color = if enabled {
+                    Color::Green
+                } else {
+                    Color::DarkGray
+                };
                 lines.push(Line::from(vec![
                     Span::styled(format!("    {icon} "), Style::default().fg(color)),
                     Span::styled(format!("{id:20} "), theme::value()),

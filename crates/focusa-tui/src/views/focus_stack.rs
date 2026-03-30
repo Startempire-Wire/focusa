@@ -30,10 +30,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
     // Header.
     lines.push(Line::from(vec![
-        Span::styled(
-            format!("  {} frames", frames.len()),
-            theme::label(),
-        ),
+        Span::styled(format!("  {} frames", frames.len()), theme::label()),
         Span::styled("  │  ", theme::label()),
         Span::styled(
             format!("path: [{}]", app.state.focus_stack.stack_path.join(" → ")),
@@ -59,21 +56,37 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         let id_short = &f.frame_id[..8.min(f.frame_id.len())];
 
         lines.push(Line::from(vec![
-            Span::styled(marker, if is_active { theme::highlight() } else { theme::label() }),
+            Span::styled(
+                marker,
+                if is_active {
+                    theme::highlight()
+                } else {
+                    theme::label()
+                },
+            ),
             Span::styled(format!("{indent}{connector}"), theme::label()),
             Span::styled(format!("[{id_short}…] "), theme::highlight()),
-            Span::styled(&f.intent, if is_active { theme::highlight() } else { theme::value() }),
+            Span::styled(
+                &f.intent,
+                if is_active {
+                    theme::highlight()
+                } else {
+                    theme::value()
+                },
+            ),
         ]));
 
         lines.push(Line::from(vec![
             Span::raw("    "),
             Span::styled(format!("{indent}   "), theme::label()),
             Span::styled(&f.status, status_style),
-            Span::styled(format!("  beads:{}", &f.beads_id[..8.min(f.beads_id.len())]), theme::label()),
+            Span::styled(
+                format!("  beads:{}", &f.beads_id[..8.min(f.beads_id.len())]),
+                theme::label(),
+            ),
         ]));
     }
 
-    let para = Paragraph::new(lines)
-        .scroll((app.scroll_offset, 0));
+    let para = Paragraph::new(lines).scroll((app.scroll_offset, 0));
     frame.render_widget(para, inner);
 }

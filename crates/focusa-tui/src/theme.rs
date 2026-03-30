@@ -14,10 +14,10 @@ pub const _BG: Color = Color::Reset;
 pub const FG: Color = Color::Gray;
 pub const FG_DIM: Color = Color::DarkGray;
 pub const ACCENT: Color = Color::Rgb(100, 130, 180); // light navy
-pub const ACTIVE: Color = Color::Rgb(180, 200, 230);  // bright focus
-pub const WARN: Color = Color::Rgb(200, 160, 80);     // warm amber
-pub const ERROR: Color = Color::Rgb(180, 80, 80);     // soft red
-pub const SUCCESS: Color = Color::Rgb(80, 160, 100);  // calm green
+pub const ACTIVE: Color = Color::Rgb(180, 200, 230); // bright focus
+pub const WARN: Color = Color::Rgb(200, 160, 80); // warm amber
+pub const ERROR: Color = Color::Rgb(180, 80, 80); // soft red
+pub const SUCCESS: Color = Color::Rgb(80, 160, 100); // calm green
 pub const BORDER: Color = Color::DarkGray;
 
 pub fn title() -> Style {

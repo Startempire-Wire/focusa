@@ -18,18 +18,41 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let s = &app.state;
 
     let total_frames = s.focus_stack.frames.len();
-    let active_frames = s.focus_stack.frames.iter()
-        .filter(|f| f.status == "Active").count();
-    let paused_frames = s.focus_stack.frames.iter()
-        .filter(|f| f.status == "Paused" || f.status == "Suspended").count();
-    let completed_frames = s.focus_stack.frames.iter()
-        .filter(|f| f.status == "Completed" || f.status == "Archived").count();
+    let active_frames = s
+        .focus_stack
+        .frames
+        .iter()
+        .filter(|f| f.status == "Active")
+        .count();
+    let paused_frames = s
+        .focus_stack
+        .frames
+        .iter()
+        .filter(|f| f.status == "Paused" || f.status == "Suspended")
+        .count();
+    let completed_frames = s
+        .focus_stack
+        .frames
+        .iter()
+        .filter(|f| f.status == "Completed" || f.status == "Archived")
+        .count();
     let total_candidates = s.candidates.len();
-    let surfaced = s.candidates.iter().filter(|c| c.status == "Surfaced").count();
-    let suppressed = s.candidates.iter().filter(|c| c.status == "Suppressed").count();
+    let surfaced = s
+        .candidates
+        .iter()
+        .filter(|c| c.status == "Surfaced")
+        .count();
+    let suppressed = s
+        .candidates
+        .iter()
+        .filter(|c| c.status == "Suppressed")
+        .count();
     let pinned = s.candidates.iter().filter(|c| c.pinned).count();
-    let max_pressure = s.candidates.iter()
-        .map(|c| c.pressure).fold(0.0f64, f64::max);
+    let max_pressure = s
+        .candidates
+        .iter()
+        .map(|c| c.pressure)
+        .fold(0.0f64, f64::max);
     let has_session = s.session.is_some();
     let event_count = s.events.len();
     let stack_depth = s.focus_stack.stack_path.len();
@@ -51,8 +74,15 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let lines = vec![
         Line::raw(""),
         section("SESSION"),
-        metric("  Status", if has_session { "Active" } else { "None" },
-               if has_session { theme::status_ok() } else { theme::label() }),
+        metric(
+            "  Status",
+            if has_session { "Active" } else { "None" },
+            if has_session {
+                theme::status_ok()
+            } else {
+                theme::label()
+            },
+        ),
         metric("  Version", &version_str, theme::value()),
         Line::raw(""),
         section("FOCUS STACK"),
@@ -67,7 +97,11 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         metric("  Surfaced", &surfaced_str, theme::highlight()),
         metric("  Suppressed", &suppressed_str, theme::label()),
         metric("  Pinned", &pinned_str, theme::status_warn()),
-        metric("  Max pressure", &pressure_str, pressure_style(max_pressure)),
+        metric(
+            "  Max pressure",
+            &pressure_str,
+            pressure_style(max_pressure),
+        ),
         Line::raw(""),
         section("EVENTS"),
         metric("  Recent count", &events_str, theme::value()),
@@ -89,7 +123,11 @@ fn metric<'a>(label: &'a str, value: &'a str, style: Style) -> Line<'a> {
 }
 
 fn pressure_style(p: f64) -> Style {
-    if p >= 0.8 { theme::status_err() }
-    else if p >= 0.5 { theme::status_warn() }
-    else { theme::value() }
+    if p >= 0.8 {
+        theme::status_err()
+    } else if p >= 0.5 {
+        theme::status_warn()
+    } else {
+        theme::value()
+    }
 }

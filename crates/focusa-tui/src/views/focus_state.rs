@@ -30,11 +30,11 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3), // Intent
+            Constraint::Length(3),                                         // Intent
             Constraint::Length(2 + state.constraints.len().min(5) as u16), // Constraints
-            Constraint::Length(2 + state.decisions.len().min(5) as u16),  // Decisions
-            Constraint::Length(2 + state.next_steps.len().min(5) as u16), // Next steps
-            Constraint::Min(3),   // Current state
+            Constraint::Length(2 + state.decisions.len().min(5) as u16),   // Decisions
+            Constraint::Length(2 + state.next_steps.len().min(5) as u16),  // Next steps
+            Constraint::Min(3),                                            // Current state
         ])
         .split(inner);
 

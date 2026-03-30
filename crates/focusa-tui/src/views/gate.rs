@@ -14,9 +14,10 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
     let candidates = &app.state.candidates;
     if candidates.is_empty() {
-        let para = Paragraph::new("\n  No gate candidates.\n  Candidates emerge from intuition signals.")
-            .style(theme::label())
-            .block(block);
+        let para =
+            Paragraph::new("\n  No gate candidates.\n  Candidates emerge from intuition signals.")
+                .style(theme::label())
+                .block(block);
         frame.render_widget(para, area);
         return;
     }
@@ -27,10 +28,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     // Split: header + table.
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(2),
-            Constraint::Min(0),
-        ])
+        .constraints([Constraint::Length(2), Constraint::Min(0)])
         .split(inner);
 
     // Header.
