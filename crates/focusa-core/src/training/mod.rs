@@ -79,7 +79,46 @@ pub fn to_jsonl(example: &TrainingExample) -> Result<String, serde_json::Error> 
     serde_json::to_string(example)
 }
 
-/// Batch export with PII check. Returns (exported, rejected_count).
+/// Strip provider phrasing from text per docs/20 §6 Decontamination.
+///
+/// "Before export: Strip provider phrasing, Remove system messages,
+///  Normalize tool output formats"
+pub fn decontaminate(text: &str) -> String {
+    let mut result = text.to_string();
+    // Strip common provider signatures.
+    let provider_phrases = [
+        "As an AI language model",
+        "As a large language model",
+        "I'm Claude",
+        "I'm ChatGPT",
+        "I'm an AI",
+        "As an AI assistant",
+        "I don't have personal opinions",
+        "I cannot browse the internet",
+        "my training data",
+        "my knowledge cutoff",
+        "I was trained by",
+        "I'm made by",
+    ];
+    for phrase in &provider_phrases {
+        result = result.replace(phrase, "[REDACTED]");
+        // Case-insensitive.
+        let lower = phrase.to_lowercase();
+        let result_lower = result.to_lowercase();
+        if let Some(pos) = result_lower.find(&lower) {
+            result.replace_range(pos..pos + phrase.len(), "[REDACTED]");
+        }
+    }
+    // Strip system message markers.
+    result = result.replace("<|system|>", "");
+    result = result.replace("<|user|>", "");
+    result = result.replace("<|assistant|>", "");
+    result = result.replace("[INST]", "");
+    result = result.replace("[/INST]", "");
+    result
+}
+
+/// Batch export with PII check + decontamination. Returns (exported, rejected_count).
 pub fn export_batch(examples: &[TrainingExample]) -> (Vec<String>, usize) {
     let mut lines = Vec::new();
     let mut rejected = 0;

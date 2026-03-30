@@ -540,6 +540,10 @@ impl Daemon {
                     anchor = %cp.anchor_turn_id,
                     "ASCC checkpoint updated"
                 );
+                // Persist to file (G1-07 §Persistence).
+                if let Err(e) = crate::ascc::save_checkpoint(&self.config.data_dir, cp) {
+                    tracing::warn!("Failed to persist ASCC checkpoint: {}", e);
+                }
             }
             None => {
                 let cp = CheckpointRecord::from_frame(frame, &turn_id);
@@ -548,6 +552,10 @@ impl Daemon {
                     revision = cp.revision,
                     "ASCC checkpoint created"
                 );
+                // Persist to file (G1-07 §Persistence).
+                if let Err(e) = crate::ascc::save_checkpoint(&self.config.data_dir, &cp) {
+                    tracing::warn!("Failed to persist ASCC checkpoint: {}", e);
+                }
                 self.checkpoints.insert(frame_id, cp);
             }
         }

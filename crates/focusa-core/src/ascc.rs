@@ -172,6 +172,47 @@ fn artifact_kind_str(kind: ArtifactLineKind) -> &'static str {
     }
 }
 
+// ─── File Persistence (G1-07 §Persistence) ─────────────────────────────────────
+
+/// Save a checkpoint to ~/.focusa/ascc/<frame_id>.json
+///
+/// Per G1-07: "Checkpoint per frame stored in: ~/.focusa/ascc/<frame_id>.json.
+/// MVP: only current checkpoint required."
+pub fn save_checkpoint(data_dir: &str, checkpoint: &CheckpointRecord) -> std::io::Result<()> {
+    let expanded = if data_dir.starts_with('~') {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+        data_dir.replacen('~', &home, 1)
+    } else {
+        data_dir.to_string()
+    };
+    let dir = std::path::PathBuf::from(&expanded).join("ascc");
+    std::fs::create_dir_all(&dir)?;
+    let path = dir.join(format!("{}.json", checkpoint.frame_id));
+    let json = serde_json::to_string_pretty(checkpoint)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    std::fs::write(path, json)
+}
+
+/// Load a checkpoint from ~/.focusa/ascc/<frame_id>.json
+pub fn load_checkpoint(data_dir: &str, frame_id: uuid::Uuid) -> std::io::Result<Option<CheckpointRecord>> {
+    let expanded = if data_dir.starts_with('~') {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+        data_dir.replacen('~', &home, 1)
+    } else {
+        data_dir.to_string()
+    };
+    let path = std::path::PathBuf::from(&expanded)
+        .join("ascc")
+        .join(format!("{}.json", frame_id));
+    if !path.exists() {
+        return Ok(None);
+    }
+    let json = std::fs::read_to_string(path)?;
+    let cp: CheckpointRecord = serde_json::from_str(&json)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    Ok(Some(cp))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
