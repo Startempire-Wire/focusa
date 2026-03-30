@@ -90,15 +90,63 @@ async fn autonomy_explain(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "autonomy:read")?;
     let s = state.focusa.read().await;
+    let a = &s.autonomy;
     let event = q
         .event_id
-        .and_then(|idx| s.autonomy.history.get(idx).cloned())
-        .or_else(|| s.autonomy.history.last().cloned());
+        .and_then(|idx| a.history.get(idx).cloned())
+        .or_else(|| a.history.last().cloned());
 
+    // Confidence band per docs/12 §Confidence & Sample Size.
+    let confidence_band = if a.sample_count < 5 {
+        "low"
+    } else if a.sample_count < 30 {
+        "medium"
+    } else {
+        "high"
+    };
+
+    // Weighted contributions per docs/12 §Scoring Categories.
+    let outcome = (a.dimensions.correctness + a.dimensions.trust) / 2.0;
+    let efficiency = a.dimensions.efficiency;
+    let discipline = a.dimensions.grounding;
+    let safety = (a.dimensions.stability + a.dimensions.recovery) / 2.0;
+
+    let recommendation = focusa_core::autonomy::should_recommend_promotion(a);
+
+    // Per docs/12 §Explainability Requirement:
+    // "Every ARI value MUST be explainable by: listing contributing events,
+    //  showing penalties applied, showing normalization factors.
+    //  No opaque aggregation is allowed."
     Ok(Json(json!({
-        "event_id": q.event_id,
-        "event": event,
-        "note": "explain returns selected autonomy event with raw evidence",
+        "ari_score": a.ari_score,
+        "sample_count": a.sample_count,
+        "confidence_band": confidence_band,
+        "level": a.level,
+        "recommendation": recommendation,
+        "dimension_scores": {
+            "correctness": a.dimensions.correctness,
+            "stability": a.dimensions.stability,
+            "efficiency": a.dimensions.efficiency,
+            "trust": a.dimensions.trust,
+            "grounding": a.dimensions.grounding,
+            "recovery": a.dimensions.recovery,
+        },
+        "weighted_contributions": {
+            "outcome": { "weight": 0.50, "score": outcome, "sources": ["correctness", "trust"] },
+            "efficiency": { "weight": 0.20, "score": efficiency, "sources": ["efficiency"] },
+            "discipline": { "weight": 0.15, "score": discipline, "sources": ["grounding"] },
+            "safety": { "weight": 0.15, "score": safety, "sources": ["stability", "recovery"] },
+        },
+        "scoring_formula": "ARI = clamp((outcome*0.50 + efficiency*0.20 + discipline*0.15 + safety*0.15) * 100, 0, 100)",
+        "promotion_ladder": [
+            { "from": "AL0", "to": "AL1", "requires_ari": 40.0, "requires_samples": 10 },
+            { "from": "AL1", "to": "AL2", "requires_ari": 55.0, "requires_samples": 25 },
+            { "from": "AL2", "to": "AL3", "requires_ari": 70.0, "requires_samples": 50 },
+            { "from": "AL3", "to": "AL4", "requires_ari": 80.0, "requires_samples": 100 },
+            { "from": "AL4", "to": "AL5", "requires_ari": 90.0, "requires_samples": 200 },
+        ],
+        "selected_event": event,
+        "recent_events": &a.history[a.history.len().saturating_sub(10)..],
     })))
 }
 
