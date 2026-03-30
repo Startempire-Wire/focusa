@@ -283,6 +283,29 @@ impl Daemon {
                             ct,
                         );
 
+                        // RFM: run validators on assistant output (docs/36 §6).
+                        if let Some(output) = assistant_output.as_deref() {
+                            if !output.is_empty() {
+                                let frame_constraints: Vec<String> = frame_id
+                                    .and_then(|fid| {
+                                        self.state.focus_stack.frames.iter().find(|f| f.id == fid)
+                                    })
+                                    .map(|f| f.constraints.clone())
+                                    .unwrap_or_default();
+                                let results =
+                                    crate::rfm::validate(output, &frame_constraints);
+                                let level_changed =
+                                    crate::rfm::update_rfm(&mut self.state.rfm, results);
+                                if level_changed {
+                                    tracing::info!(
+                                        level = ?self.state.rfm.level,
+                                        ais = self.state.rfm.ais_score,
+                                        "RFM level changed"
+                                    );
+                                }
+                            }
+                        }
+
                         // UFI/UXP: detect friction signals from user input (docs/14).
                         if let Some(input) = raw_user_input.as_deref() {
                             if !input.is_empty() {
