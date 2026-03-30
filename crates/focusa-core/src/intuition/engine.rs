@@ -51,6 +51,12 @@ pub struct IntuitionEngine {
     error_counts: HashMap<FrameId, usize>,
     /// Last time a turn was observed (for inactivity detection).
     last_activity: Option<DateTime<Utc>>,
+    /// Recent content hashes for repetition detection (docs/05 §Repetition Signals).
+    recent_content_hashes: Vec<u64>,
+    /// Frame switch count in observation window (docs/05 §Structural Signals).
+    frame_switches: Vec<(DateTime<Utc>, FrameId)>,
+    /// Last seen frame for switch detection.
+    last_frame_id: Option<FrameId>,
 }
 
 /// Timestamp of a turn observation — tracks activity for inactivity detection.
@@ -65,6 +71,9 @@ impl IntuitionEngine {
             observations: Vec::new(),
             error_counts: HashMap::new(),
             last_activity: None,
+            recent_content_hashes: Vec::new(),
+            frame_switches: Vec::new(),
+            last_frame_id: None,
         }
     }
 
@@ -95,8 +104,38 @@ impl IntuitionEngine {
 
         // ── Run detectors ────────────────────────────────────────────
 
+        // Repetition detection (docs/05 §Repetition Signals: "Repeated edits").
+        let content_hash = {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut h = DefaultHasher::new();
+            content.hash(&mut h);
+            h.finish()
+        };
+        let repeat_count = self
+            .recent_content_hashes
+            .iter()
+            .filter(|&&h| h == content_hash)
+            .count();
+        self.recent_content_hashes.push(content_hash);
+        if self.recent_content_hashes.len() > MAX_OBSERVATION_WINDOW {
+            self.recent_content_hashes.remove(0);
+        }
+
+        // Frame switch tracking (docs/05 §Structural Signals: "Frequent frame switching").
+        if let Some(fid) = frame_id {
+            if self.last_frame_id.is_some() && self.last_frame_id != Some(fid) {
+                self.frame_switches.push((now, fid));
+            }
+            self.last_frame_id = Some(fid);
+        }
+        let switch_cutoff = now - Duration::seconds(300);
+        self.frame_switches.retain(|(ts, _)| *ts > switch_cutoff);
+
         self.detect_error_repetition(frame_id);
         self.detect_inactivity(now, frame_id);
+        self.detect_content_repetition(frame_id, repeat_count);
+        self.detect_frequent_switching(frame_id);
 
         self.last_activity = Some(now);
     }
@@ -186,6 +225,43 @@ impl IntuitionEngine {
                 ),
                 None,
                 vec!["temporal".into(), "inactivity".into()],
+            );
+            let _ = self.signal_tx.try_send(signal);
+        }
+    }
+
+    /// Detect repeated content in observation window (docs/05 §Repetition Signals).
+    fn detect_content_repetition(&self, frame_id: Option<FrameId>, repeat_count: usize) {
+        if repeat_count >= 2 {
+            let signal = create_signal(
+                SignalOrigin::Daemon,
+                SignalKind::RepeatedPattern,
+                frame_id,
+                format!(
+                    "Repeated content detected: {} duplicates in observation window",
+                    repeat_count + 1,
+                ),
+                None,
+                vec!["repetition".into(), "content_repeat".into()],
+            );
+            let _ = self.signal_tx.try_send(signal);
+        }
+    }
+
+    /// Detect frequent frame switching (docs/05 §Structural Signals).
+    fn detect_frequent_switching(&self, frame_id: Option<FrameId>) {
+        // Signal if >4 frame switches in the last 5 minutes.
+        if self.frame_switches.len() > 4 {
+            let signal = create_signal(
+                SignalOrigin::Daemon,
+                SignalKind::Warning,
+                frame_id,
+                format!(
+                    "Frequent frame switching: {} switches in last 5 minutes",
+                    self.frame_switches.len(),
+                ),
+                None,
+                vec!["structural".into(), "frequent_switching".into()],
             );
             let _ = self.signal_tx.try_send(signal);
         }
