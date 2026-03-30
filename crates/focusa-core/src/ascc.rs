@@ -30,6 +30,7 @@ impl From<&FocusState> for AsccSections {
             recent_results: fs.recent_results.clone(),
             failures: fs.failures.clone(),
             notes: fs.notes.clone(),
+            slot_meta: AsccSlotMetadata::default(),
         }
     }
 }
@@ -161,7 +162,7 @@ fn append_list(out: &mut String, label: &str, items: &[String]) {
     }
 }
 
-fn artifact_kind_str(kind: ArtifactLineKind) -> &'static str {
+pub fn artifact_kind_str(kind: ArtifactLineKind) -> &'static str {
     match kind {
         ArtifactLineKind::File => "file",
         ArtifactLineKind::Diff => "diff",

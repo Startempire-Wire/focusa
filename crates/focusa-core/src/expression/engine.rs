@@ -25,6 +25,7 @@
 //!   - No silent truncation (all drops logged in warnings)
 //!   - No reasoning, planning, or implicit summarization
 
+use crate::ascc::artifact_kind_str;
 use crate::expression::budget::{available_tokens, estimate_tokens};
 use crate::reference::artifact::to_prompt_ref;
 use crate::types::*;
@@ -454,7 +455,9 @@ fn build_focus_slot(title: &str, state: &FocusState, ascc: Option<&AsccSections>
     out
 }
 
-/// Slot 3 (degraded): Only high-priority sections (intent + constraints + decisions).
+/// Slot 3 (degraded): Only high-priority sections + pinned sections.
+///
+/// Per G1-07 UPDATE §Pinning: Pinned sections are immune to slot-priority eviction.
 fn build_focus_slot_reduced(
     title: &str,
     state: &FocusState,
@@ -464,9 +467,36 @@ fn build_focus_slot_reduced(
 
     match ascc {
         Some(sections) => {
+            // Always include high-priority sections.
             append_if_nonempty(&mut out, "INTENT", &sections.intent);
             append_list(&mut out, "CONSTRAINTS", &sections.constraints);
             append_list(&mut out, "DECISIONS", &sections.decisions);
+
+            // Include pinned sections even in reduced mode.
+            if sections.slot_meta.current_focus.pinned && !sections.current_focus.is_empty() {
+                append_if_nonempty(&mut out, "CURRENT_FOCUS", &sections.current_focus);
+            }
+            if sections.slot_meta.open_questions.pinned && !sections.open_questions.is_empty() {
+                append_list(&mut out, "OPEN_QUESTIONS", &sections.open_questions);
+            }
+            if sections.slot_meta.next_steps.pinned && !sections.next_steps.is_empty() {
+                append_list(&mut out, "NEXT_STEPS", &sections.next_steps);
+            }
+            if sections.slot_meta.recent_results.pinned && !sections.recent_results.is_empty() {
+                append_list(&mut out, "RECENT_RESULTS", &sections.recent_results);
+            }
+            if sections.slot_meta.failures.pinned && !sections.failures.is_empty() {
+                append_list(&mut out, "FAILURES", &sections.failures);
+            }
+            if sections.slot_meta.notes.pinned && !sections.notes.is_empty() {
+                append_list(&mut out, "NOTES", &sections.notes);
+            }
+            if sections.slot_meta.artifacts.pinned && !sections.artifacts.is_empty() {
+                out.push_str("ARTIFACTS:\n");
+                for a in &sections.artifacts {
+                    out.push_str(&format!("  - [{}] {}\n", artifact_kind_str(a.kind), a.label));
+                }
+            }
         }
         None => {
             append_if_nonempty(&mut out, "INTENT", &state.intent);

@@ -448,7 +448,19 @@ pub struct CheckpointRecord {
     pub breadcrumbs: Vec<HandleRef>,
 }
 
-/// 10 fixed semantic slots.
+/// Per-section pinning metadata.
+///
+/// Per G1-07 UPDATE §Pinning: Any ASCC section may be marked pinned.
+/// Pinned sections cannot be dropped during prompt degradation.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AsccSlotMeta {
+    pub pinned: bool,
+    pub last_updated_at: Option<DateTime<Utc>>,
+}
+
+/// 10 fixed semantic slots with pinning metadata.
+///
+/// Per G1-07 UPDATE §Pinning: Each slot has pinned: bool and last_updated_at.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AsccSections {
     /// 1–3 sentences.
@@ -471,6 +483,24 @@ pub struct AsccSections {
     pub failures: Vec<String>,
     /// Misc, bounded. Cap: 20.
     pub notes: Vec<String>,
+    /// Per-section pinning metadata (G1-07 UPDATE §Pinning).
+    #[serde(default)]
+    pub slot_meta: AsccSlotMetadata,
+}
+
+/// Pinning metadata for all ASCC slots.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AsccSlotMetadata {
+    pub intent: AsccSlotMeta,
+    pub current_focus: AsccSlotMeta,
+    pub decisions: AsccSlotMeta,
+    pub artifacts: AsccSlotMeta,
+    pub constraints: AsccSlotMeta,
+    pub open_questions: AsccSlotMeta,
+    pub next_steps: AsccSlotMeta,
+    pub recent_results: AsccSlotMeta,
+    pub failures: AsccSlotMeta,
+    pub notes: AsccSlotMeta,
 }
 
 // ─── Events (from core-reducer.md) ──────────────────────────────────────────
