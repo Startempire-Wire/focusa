@@ -276,6 +276,33 @@ impl Daemon {
                             pt,
                             ct,
                         );
+
+                        // UFI/UXP: detect friction signals from user input (docs/14).
+                        if let Some(input) = raw_user_input.as_deref() {
+                            if !input.is_empty() {
+                                let ufi_signals =
+                                    crate::workers::executor::detect_ufi_signals(input);
+                                let session_id =
+                                    self.state.session.as_ref().map(|s| s.session_id);
+                                for sig_type in &ufi_signals {
+                                    crate::uxp::record_ufi_signal(
+                                        &mut self.state.ufi,
+                                        *sig_type,
+                                        session_id,
+                                    );
+                                }
+                                // Bridge UFI → UXP if signals detected.
+                                if !ufi_signals.is_empty() {
+                                    let ufi_agg = self.state.ufi.aggregate;
+                                    // Update interruption_sensitivity dimension
+                                    // (most directly affected by user friction).
+                                    crate::uxp::bridge_ufi_to_uxp(
+                                        &mut self.state.uxp.interruption_sensitivity,
+                                        ufi_agg,
+                                    );
+                                }
+                            }
+                        }
                     }
 
                     // ECS: auto-externalize large turn content (G1-detail-08 §Threshold Policy).
