@@ -156,6 +156,9 @@ pub fn process_request(
         .map(|f| f.title.as_str())
         .unwrap_or(&focus_state.intent);
 
+    // Extract constitution principles (docs/16 §2, §5).
+    let (principles, safety) = crate::expression::engine::extract_constitution(&state.constitution);
+
     // Assemble prompt with full context.
     let input = crate::expression::engine::AssemblyInput {
         focus_state: &focus_state,
@@ -166,6 +169,8 @@ pub fn process_request(
         handles: &handles_owned,
         user_input: &user_input,
         directive: None,
+        constitution_principles: &principles,
+        safety_rules: &safety,
         config,
     };
     let assembly = crate::expression::engine::assemble_from(input);

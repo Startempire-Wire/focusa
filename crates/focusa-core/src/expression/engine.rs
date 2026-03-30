@@ -82,6 +82,10 @@ pub struct AssemblyInput<'a> {
     pub user_input: &'a str,
     /// Custom execution directive (None → default).
     pub directive: Option<&'a str>,
+    /// Active constitution principles (docs/16 §2). Injected into system header.
+    pub constitution_principles: &'a [String],
+    /// Safety rules from constitution (docs/16 §5).
+    pub safety_rules: &'a [String],
     /// Runtime config (budget limits).
     pub config: &'a FocusaConfig,
 }
@@ -117,9 +121,26 @@ pub fn assemble(
         handles,
         user_input,
         directive: None,
+        constitution_principles: &[],
+        safety_rules: &[],
         config,
     };
     assemble_from(input)
+}
+
+/// Extract constitution principles and safety rules from state for prompt injection.
+///
+/// Per docs/16 §2: behavioral principles. §5: safety rules.
+/// Returns (principles, safety_rules) as owned Vecs.
+pub fn extract_constitution(state: &crate::types::ConstitutionState) -> (Vec<String>, Vec<String>) {
+    let active = crate::constitution::active(state);
+    match active {
+        Some(c) => (
+            c.principles.iter().map(|p| p.text.clone()).collect(),
+            c.safety_rules.clone(),
+        ),
+        None => (vec![], vec![]),
+    }
 }
 
 /// Build parent context from the focus stack for prompt assembly.
@@ -181,7 +202,21 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // ── Build each slot ──────────────────────────────────────────────
 
     // Slot 1: System header (always included — small, static).
-    let slot_header = format!("{}\n\n", SYSTEM_HEADER);
+    // Slot 1: System header + constitution (docs/16 §2 principles, §5 safety, §6 expression).
+    let mut slot_header = format!("{}\n", SYSTEM_HEADER);
+    if !input.constitution_principles.is_empty() {
+        slot_header.push_str("\nCONSTITUTION PRINCIPLES:\n");
+        for p in input.constitution_principles {
+            slot_header.push_str(&format!("- {}\n", p));
+        }
+    }
+    if !input.safety_rules.is_empty() {
+        slot_header.push_str("\nSAFETY RULES:\n");
+        for r in input.safety_rules {
+            slot_header.push_str(&format!("- {}\n", r));
+        }
+    }
+    slot_header.push('\n');
 
     // Slot 2: Operating rules.
     let mut slot_rules = build_rules_slot(input.rules);

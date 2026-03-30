@@ -142,6 +142,10 @@ async fn prompt_assemble(
         .map(|f| f.title.as_str())
         .unwrap_or(&focus_state.intent);
 
+    // Extract constitution principles (docs/16 §2, §5).
+    let (principles, safety) =
+        focusa_core::expression::engine::extract_constitution(&focusa.constitution);
+
     // Assemble prompt with full context.
     let input = focusa_core::expression::engine::AssemblyInput {
         focus_state: &focus_state,
@@ -152,6 +156,8 @@ async fn prompt_assemble(
         handles: &handles_owned,
         user_input: &req.raw_user_input,
         directive: None,
+        constitution_principles: &principles,
+        safety_rules: &safety,
         config: &state.config,
     };
     let assembly = focusa_core::expression::engine::assemble_from(input);
