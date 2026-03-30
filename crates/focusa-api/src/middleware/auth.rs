@@ -36,7 +36,9 @@ pub async fn auth_layer(req: Request, next: Next) -> Result<Response, StatusCode
     };
 
     // Extract Bearer token from Authorization header.
-    let auth_header = req.headers().get("authorization")
+    let auth_header = req
+        .headers()
+        .get("authorization")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
