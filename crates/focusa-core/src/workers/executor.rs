@@ -22,22 +22,55 @@ pub struct JobResult {
     pub success: bool,
 }
 
-/// Execute a worker job. Returns result (never panics).
+/// Execute a worker job with panic isolation.
 ///
-/// The actual content is resolved from payload_ref via the reference store.
-/// For MVP, the correlation_id carries the content inline.
+/// Per G1-10 §Safety: "workers must be panic-isolated, failure does not
+/// affect daemon state"
+///
+/// Uses std::panic::catch_unwind to isolate panics. Returns failed result
+/// if job panics.
 pub fn execute_job(job: &WorkerJob) -> JobResult {
-    let content = job.correlation_id.as_deref().unwrap_or("");
-    let mut result = match job.kind {
-        WorkerJobKind::ClassifyTurn => classify_turn(content),
-        WorkerJobKind::ExtractAsccDelta => extract_ascc_delta(content),
-        WorkerJobKind::DetectRepetition => detect_repetition(content),
-        WorkerJobKind::ScanForErrors => scan_for_errors(content),
-        WorkerJobKind::SuggestMemory => suggest_memory(content),
-    };
-    // Preserve the input job's ID so callers can correlate results.
-    result.job_id = job.id;
-    result
+    let job_id = job.id;
+    let job_kind = job.kind;
+    
+    // Catch panics to isolate worker failures from daemon.
+    let result = std::panic::catch_unwind(|| {
+        let content = job.correlation_id.as_deref().unwrap_or("");
+        match job.kind {
+            WorkerJobKind::ClassifyTurn => classify_turn(content),
+            WorkerJobKind::ExtractAsccDelta => extract_ascc_delta(content),
+            WorkerJobKind::DetectRepetition => detect_repetition(content),
+            WorkerJobKind::ScanForErrors => scan_for_errors(content),
+            WorkerJobKind::SuggestMemory => suggest_memory(content),
+        }
+    });
+    
+    match result {
+        Ok(mut job_result) => {
+            // Preserve the input job's ID so callers can correlate results.
+            job_result.job_id = job_id;
+            job_result
+        }
+        Err(panic_info) => {
+            // Convert panic to failed result.
+            let panic_msg = if let Some(s) = panic_info.downcast_ref::<String>() {
+                s.clone()
+            } else if let Some(s) = panic_info.downcast_ref::<&str>() {
+                s.to_string()
+            } else {
+                "worker job panicked".to_string()
+            };
+            
+            tracing::error!(job_id = %job_id, kind = ?job_kind, "Worker job panicked: {}", panic_msg);
+            
+            JobResult {
+                job_id,
+                job_type: format!("{:?}", job_kind),
+                payload: serde_json::json!({"error": format!("panic: {}", panic_msg)}),
+                success: false,
+            }
+        }
+    }
 }
 
 /// Classify a turn based on content heuristics.
@@ -373,6 +406,9 @@ pub fn detect_ufi_signals(content: &str) -> Vec<UfiSignalType> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::{JobPriority, WorkerJob};
+    use chrono::Utc;
+    use uuid::Uuid;
 
     #[test]
     fn test_classify_question() {
