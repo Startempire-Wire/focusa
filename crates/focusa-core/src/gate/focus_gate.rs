@@ -45,6 +45,10 @@ pub fn base_pressure(kind: SignalKind) -> f32 {
         SignalKind::ManualPin => 2.0,
         SignalKind::ArtifactChanged => 0.4,
         SignalKind::DeadlineTick => 0.5,
+        // Per G1-detail-06 UPDATE §Time as First-Class Signal:
+        // Time signals have low base pressure but accumulate over time.
+        SignalKind::InactivityTick => 0.3,
+        SignalKind::LongRunningFrame => 0.4,
     }
 }
 

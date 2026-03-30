@@ -177,6 +177,10 @@ impl Daemon {
                     if let Err(e) = self.process_action(Action::DecayTick).await {
                         tracing::debug!("Decay tick failed: {}", e);
                     }
+
+                    // Emit temporal signals per G1-detail-06 UPDATE §Time as First-Class Signal.
+                    self.emit_temporal_signals().await;
+
                     // Run gate pipeline after decay to re-check surfacing thresholds.
                     self.run_gate_pipeline();
                 }
@@ -564,6 +568,71 @@ impl Daemon {
     /// Get the ASCC checkpoint for a frame (if it exists).
     pub fn checkpoint_for_frame(&self, frame_id: FrameId) -> Option<&CheckpointRecord> {
         self.checkpoints.get(&frame_id)
+    }
+
+    /// Emit temporal signals per G1-detail-06 UPDATE §Time as First-Class Signal.
+    ///
+    /// Checks for:
+    ///   - Inactivity: no user input for threshold period (default 5 min)
+    ///   - Long-running frames: frame open > threshold (default 30 min)
+    ///
+    /// These signals accumulate slowly and can surface candidates for
+    /// frame review or session management.
+    async fn emit_temporal_signals(&mut self) {
+        let now = Utc::now();
+        let inactivity_threshold = chrono::Duration::seconds(
+            self.config.inactivity_threshold_secs.unwrap_or(300)
+        );
+        let long_running_threshold = chrono::Duration::seconds(
+            self.config.long_running_frame_secs.unwrap_or(1800)
+        );
+        let active_id = self.state.focus_stack.active_id;
+
+        // Check for inactivity (no turn completed recently).
+        if let Some(ref turn) = self.state.active_turn {
+            let inactive_for = now - turn.started_at;
+            if inactive_for > inactivity_threshold {
+                let _ = self.process_action(Action::EmitEvent {
+                    event: FocusaEvent::IntuitionSignalObserved {
+                        signal_id: Uuid::now_v7(),
+                        signal_type: SignalKind::InactivityTick,
+                        severity: "0.3".to_string(),
+                        summary: format!("No activity for {}s", inactive_for.num_seconds()),
+                        related_frame_id: active_id,
+                    },
+                }).await;
+            }
+        }
+
+        // Collect long-running frame info first (to avoid borrow issues).
+        let long_running: Vec<(FrameId, String, i64)> = self
+            .state
+            .focus_stack
+            .frames
+            .iter()
+            .filter(|f| f.status == FrameStatus::Active)
+            .filter_map(|f| {
+                let running_for = now - f.created_at;
+                if running_for > long_running_threshold {
+                    Some((f.id, f.title.clone(), running_for.num_minutes()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Emit signals for long-running frames.
+        for (frame_id, title, minutes) in long_running {
+            let _ = self.process_action(Action::EmitEvent {
+                event: FocusaEvent::IntuitionSignalObserved {
+                    signal_id: Uuid::now_v7(),
+                    signal_type: SignalKind::LongRunningFrame,
+                    severity: "0.4".to_string(),
+                    summary: format!("Frame '{}' running for {}m", title, minutes),
+                    related_frame_id: Some(frame_id),
+                },
+            }).await;
+        }
     }
 
     /// Enqueue background worker jobs after a turn completes.

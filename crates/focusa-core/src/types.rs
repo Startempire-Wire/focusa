@@ -296,6 +296,12 @@ pub enum SignalKind {
     RepeatedPattern,
     DeadlineTick,
     ManualPin,
+    /// Per G1-detail-06 UPDATE §Time as First-Class Signal:
+    /// Emitted when no user activity for threshold period.
+    InactivityTick,
+    /// Per G1-detail-06 UPDATE §Time as First-Class Signal:
+    /// Emitted when frame open > N minutes.
+    LongRunningFrame,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -943,6 +949,12 @@ pub struct FocusaConfig {
     /// Auth token for API access (None = no auth).
     /// Default: None
     pub auth_token: Option<String>,
+    /// Seconds of inactivity before emitting InactivityTick signal.
+    /// Default: 300 (5 minutes)
+    pub inactivity_threshold_secs: Option<i64>,
+    /// Seconds before a frame is considered long-running.
+    /// Default: 1800 (30 minutes)
+    pub long_running_frame_secs: Option<i64>,
 }
 
 impl Default for FocusaConfig {
@@ -965,6 +977,8 @@ impl Default for FocusaConfig {
                 r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b".to_string(), // Email
             ],
             auth_token: None,
+            inactivity_threshold_secs: Some(300),
+            long_running_frame_secs: Some(1800),
         }
     }
 }
