@@ -33,21 +33,28 @@ pub fn create_version(
 }
 
 /// Activate a specific version. Deactivates all others.
-pub fn activate_version(state: &mut ConstitutionState, version: &str) -> Result<(), String> {
+///
+/// Per docs/18 §6: "Constitution version changed" is a hard invalidation trigger.
+/// Returns true on success. Caller MUST bust C1/C2 caches.
+pub fn activate_version(state: &mut ConstitutionState, version: &str) -> Result<bool, String> {
     let found = state.versions.iter().any(|c| c.version == version);
     if !found {
         return Err(format!("Constitution version '{}' not found", version));
     }
 
+    let was_different = state.active_version.as_deref() != Some(version);
+
     for c in &mut state.versions {
         c.active = c.version == version;
     }
     state.active_version = Some(version.into());
-    Ok(())
+    Ok(was_different) // true if version actually changed
 }
 
 /// Rollback to a previous version (one-click).
-pub fn rollback(state: &mut ConstitutionState, version: &str) -> Result<(), String> {
+///
+/// Returns true if version changed. Caller MUST bust caches (docs/18 §6).
+pub fn rollback(state: &mut ConstitutionState, version: &str) -> Result<bool, String> {
     activate_version(state, version)
 }
 
