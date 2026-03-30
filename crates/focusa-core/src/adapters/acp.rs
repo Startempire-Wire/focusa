@@ -101,8 +101,7 @@ pub fn is_completion_request(msg: &AcpMessage) -> bool {
 
 /// Check if a message is a tool call.
 pub fn is_tool_call(msg: &AcpMessage) -> bool {
-    msg.method.as_deref() == Some("tools/call")
-        || msg.method.as_deref() == Some("tool/execute")
+    msg.method.as_deref() == Some("tools/call") || msg.method.as_deref() == Some("tool/execute")
 }
 
 /// Extract token stats from a completion response (if available).

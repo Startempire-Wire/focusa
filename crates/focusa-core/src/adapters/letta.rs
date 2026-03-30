@@ -71,7 +71,10 @@ impl HarnessType {
 /// Build the subprocess command for wrapping a harness through Focusa.
 ///
 /// Returns (command, args) for `Command::new(command).args(args)`.
-pub fn build_subprocess_command(harness: &HarnessType, extra_args: &[String]) -> (String, Vec<String>) {
+pub fn build_subprocess_command(
+    harness: &HarnessType,
+    extra_args: &[String],
+) -> (String, Vec<String>) {
     let cmd = harness.command().to_string();
     let mut args = Vec::new();
 
@@ -117,7 +120,13 @@ mod tests {
     #[test]
     fn test_parse_harness() {
         assert!(matches!(parse_harness("letta"), HarnessType::Letta));
-        assert!(matches!(parse_harness("claude-code"), HarnessType::ClaudeCode));
-        assert!(matches!(parse_harness("custom-cli"), HarnessType::Generic(_)));
+        assert!(matches!(
+            parse_harness("claude-code"),
+            HarnessType::ClaudeCode
+        ));
+        assert!(matches!(
+            parse_harness("custom-cli"),
+            HarnessType::Generic(_)
+        ));
     }
 }

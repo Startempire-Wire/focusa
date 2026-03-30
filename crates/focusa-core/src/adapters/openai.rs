@@ -16,7 +16,7 @@
 //! Failure: passthrough raw request (fail-safe).
 //! Performance: <20ms overhead target.
 
-use crate::expression::engine::{assemble, AssembledPrompt};
+use crate::expression::engine::{AssembledPrompt, assemble};
 use crate::memory::procedural;
 use crate::types::*;
 use reqwest::Client;
@@ -34,7 +34,7 @@ pub struct AdapterCapabilities {
 impl Default for AdapterCapabilities {
     fn default() -> Self {
         Self {
-            streaming: false,          // MVP: non-streaming only
+            streaming: false,           // MVP: non-streaming only
             tool_output_capture: false, // best-effort
             structured_messages: true,  // OpenAI chat format
         }
@@ -99,9 +99,22 @@ pub fn process_request(
         .unwrap_or_default();
 
     // Select procedural rules.
+    let project_id = state
+        .focus_stack
+        .active_id
+        .and_then(|fid| state.focus_stack.frames.iter().find(|f| f.id == fid))
+        .and_then(|frame| {
+            frame
+                .tags
+                .iter()
+                .find(|t| t.starts_with("project:"))
+                .map(|t| t.trim_start_matches("project:").to_string())
+        });
+
     let rules = procedural::select_for_prompt(
         &state.memory,
         state.focus_stack.active_id,
+        project_id.as_deref(),
         5,
     );
     let rules_owned: Vec<RuleRecord> = rules.into_iter().cloned().collect();
@@ -183,10 +196,13 @@ fn inject_system_message(messages: &mut Vec<ChatMessage>, content: &str) {
         sys.content = format!("{}\n\n---\n\n{}", content, sys.content);
     } else {
         // Insert system message at the front.
-        messages.insert(0, ChatMessage {
-            role: "system".into(),
-            content: content.into(),
-        });
+        messages.insert(
+            0,
+            ChatMessage {
+                role: "system".into(),
+                content: content.into(),
+            },
+        );
     }
 }
 
