@@ -264,6 +264,8 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: sample_state(),
+            completed_at: None,
+            completion_reason: None,
         };
         let cp = CheckpointRecord::from_frame(&frame, "turn-001");
         assert_eq!(cp.frame_id, frame.id);
@@ -289,6 +291,8 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: sample_state(),
+            completed_at: None,
+            completion_reason: None,
         };
         let mut cp = CheckpointRecord::from_frame(&frame, "turn-001");
         assert_eq!(cp.revision, 1);

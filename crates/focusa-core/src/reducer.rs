@@ -267,6 +267,15 @@ pub fn reduce_with_meta(
                 state.telemetry.total_completion_tokens += tokens as u64;
             }
 
+            // Update FrameStats on active frame (G1-detail-05 §FrameStats).
+            if let Some(active_id) = state.focus_stack.active_id {
+                if let Some(frame) = state.focus_stack.frames.iter_mut().find(|f| f.id == active_id) {
+                    frame.stats.turn_count += 1;
+                    frame.stats.last_turn_id = Some(turn_id.clone());
+                    frame.stats.last_token_estimate = prompt_tokens;
+                }
+            }
+
             // Emit errors as intuition signals.
             for err in errors {
                 let signal_id = Uuid::now_v7();
@@ -333,6 +342,8 @@ pub fn reduce_with_meta(
                 stats: FrameStats::default(),
                 constraints,
                 focus_state: FocusState::default(),
+                completed_at: None,
+                completion_reason: None,
             });
 
             stack.active_id = Some(frame_id);
@@ -345,7 +356,7 @@ pub fn reduce_with_meta(
 
         FocusaEvent::FocusFrameCompleted {
             frame_id,
-            completion_reason: _,
+            completion_reason,
         } => {
             let stack = &mut state.focus_stack;
 
@@ -384,6 +395,39 @@ pub fn reduce_with_meta(
             let now = Utc::now();
             stack.frames[active_idx].status = FrameStatus::Completed;
             stack.frames[active_idx].updated_at = now;
+            // G1-detail-05 UPDATE: store completed_at + completion_reason on FrameRecord.
+            stack.frames[active_idx].completed_at = Some(now);
+            stack.frames[active_idx].completion_reason = Some(completion_reason);
+
+            // G1-detail-05 UPDATE §Focus Gate Integration:
+            // "blocked → raises surface pressure on related candidates"
+            // "abandoned → suppress related candidates"
+            match completion_reason {
+                CompletionReason::Blocked => {
+                    // Raise pressure on candidates related to this frame.
+                    for candidate in &mut state.focus_gate.candidates {
+                        if candidate.related_frame_id == Some(frame_id)
+                            && candidate.state != CandidateState::Resolved
+                        {
+                            candidate.pressure += 1.0;
+                            candidate.updated_at = now;
+                        }
+                    }
+                }
+                CompletionReason::Abandoned => {
+                    // Suppress candidates related to this frame.
+                    for candidate in &mut state.focus_gate.candidates {
+                        if candidate.related_frame_id == Some(frame_id)
+                            && candidate.state != CandidateState::Resolved
+                        {
+                            candidate.state = CandidateState::Suppressed;
+                            candidate.pressure = 0.0;
+                            candidate.updated_at = now;
+                        }
+                    }
+                }
+                _ => {}
+            }
 
             if let Some(pid) = parent_id {
                 if let Some(parent) = stack.frames.iter_mut().find(|f| f.id == pid) {
@@ -1377,6 +1421,8 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: FocusState::default(),
+            completed_at: None,
+            completion_reason: None,
         });
         // active_id is None but a frame has Active status.
         let result = check_invariants(&state);

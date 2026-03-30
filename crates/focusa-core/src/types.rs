@@ -156,6 +156,12 @@ pub struct FrameRecord {
     pub constraints: Vec<String>,
     /// The frame's current cognitive state (updated incrementally via deltas).
     pub focus_state: FocusState,
+    /// When the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
+    #[serde(default)]
+    pub completed_at: Option<DateTime<Utc>>,
+    /// Why the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
+    #[serde(default)]
+    pub completion_reason: Option<CompletionReason>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
