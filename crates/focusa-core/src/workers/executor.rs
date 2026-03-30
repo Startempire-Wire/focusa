@@ -94,48 +94,148 @@ fn classify_turn(content: &str) -> JobResult {
 
 /// Extract ASCC delta from assistant response.
 ///
-/// Heuristic extraction of decisions, constraints, next steps, etc.
+/// Heuristic extraction per G1-07-ascc §Delta Summarization Rule:
+/// "MVP can start with rule-based extraction (regex for file paths/errors)"
+///
+/// Extracts all 10 ASCC slots where detectable:
+///   intent, current_state, decisions, constraints, failures,
+///   next_steps, open_questions, recent_results, notes, artifacts
 fn extract_ascc_delta(content: &str) -> JobResult {
     let mut decisions = Vec::new();
     let mut next_steps = Vec::new();
     let mut constraints = Vec::new();
     let mut failures = Vec::new();
+    let mut open_questions = Vec::new();
+    let mut recent_results = Vec::new();
+    let mut notes = Vec::new();
+
+    // Extract a brief summary as current_state (first meaningful line, capped).
+    let current_state: String = content
+        .lines()
+        .map(|l| l.trim())
+        .find(|l| l.len() > 10 && !l.starts_with('#') && !l.starts_with("```"))
+        .unwrap_or("")
+        .chars()
+        .take(200)
+        .collect();
 
     for line in content.lines() {
         let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.len() < 5 {
+            continue;
+        }
         let lower = trimmed.to_lowercase();
 
-        // Detect decisions.
+        // Decisions: explicit markers + common LLM phrasing.
         if lower.starts_with("decided")
             || lower.starts_with("decision:")
-            || lower.contains("choosing")
+            || lower.contains("choosing ")
             || lower.contains("we'll use")
+            || lower.contains("i'll use")
+            || lower.contains("going with")
+            || lower.contains("selected ")
+            || lower.contains("opted for")
+            || lower.contains("approach:")
         {
-            decisions.push(trimmed.to_string());
+            decisions.push(truncate_line(trimmed, 160));
         }
-        // Detect next steps.
-        if lower.starts_with("next") || lower.starts_with("todo") || lower.starts_with("- [ ]") {
-            next_steps.push(trimmed.to_string());
+
+        // Next steps: task-oriented phrasing.
+        if lower.starts_with("next")
+            || lower.starts_with("todo")
+            || lower.starts_with("- [ ]")
+            || lower.starts_with("then ")
+            || lower.starts_with("after that")
+            || lower.contains("need to ")
+            || lower.contains("should ")
+            || lower.contains("will ")
+            && (lower.contains("implement")
+                || lower.contains("add")
+                || lower.contains("fix")
+                || lower.contains("update")
+                || lower.contains("create"))
+        {
+            next_steps.push(truncate_line(trimmed, 160));
         }
-        // Detect constraints.
-        if lower.contains("must")
-            || lower.contains("cannot")
+
+        // Constraints: boundary language.
+        if lower.contains("must ")
+            || lower.contains("must not")
+            || lower.contains("cannot ")
             || lower.contains("constraint")
             || lower.contains("requirement")
+            || lower.contains("not allowed")
+            || lower.contains("forbidden")
+            || lower.contains("required ")
         {
-            constraints.push(trimmed.to_string());
+            constraints.push(truncate_line(trimmed, 160));
         }
-        // Detect failures.
-        if lower.contains("failed") || lower.contains("error:") || lower.contains("doesn't work") {
-            failures.push(trimmed.to_string());
+
+        // Failures: error indicators.
+        if lower.contains("failed")
+            || lower.contains("error:")
+            || lower.contains("error -")
+            || lower.contains("doesn't work")
+            || lower.contains("broken")
+            || lower.contains("panic")
+            || lower.contains("exception")
+            || lower.contains("traceback")
+            || lower.starts_with("err ")
+        {
+            failures.push(truncate_line(trimmed, 160));
+        }
+
+        // Open questions: interrogative patterns.
+        if (trimmed.ends_with('?')
+            && (lower.starts_with("should")
+                || lower.starts_with("do we")
+                || lower.starts_with("how")
+                || lower.starts_with("what")
+                || lower.starts_with("why")
+                || lower.starts_with("is there")
+                || lower.starts_with("can we")))
+            || lower.starts_with("open question:")
+            || lower.starts_with("question:")
+            || lower.starts_with("unclear:")
+        {
+            open_questions.push(truncate_line(trimmed, 160));
+        }
+
+        // Recent results: completion indicators.
+        if lower.starts_with("done:")
+            || lower.starts_with("completed:")
+            || lower.starts_with("✅")
+            || lower.starts_with("implemented")
+            || lower.starts_with("fixed")
+            || lower.starts_with("created ")
+            || lower.contains("successfully")
+            || lower.contains("passes")
+            || lower.contains("working now")
+            || lower.contains("compiled")
+        {
+            recent_results.push(truncate_line(trimmed, 160));
+        }
+
+        // Notes: metadata / informational markers.
+        if lower.starts_with("note:")
+            || lower.starts_with("nb:")
+            || lower.starts_with("caveat:")
+            || lower.starts_with("fyi:")
+            || lower.starts_with("important:")
+        {
+            notes.push(truncate_line(trimmed, 160));
         }
     }
 
     let delta = json!({
+        "current_state": current_state,
         "decisions": decisions,
         "next_steps": next_steps,
         "constraints": constraints,
         "failures": failures,
+        "open_questions": open_questions,
+        "recent_results": recent_results,
+        "notes": notes,
     });
 
     JobResult {
@@ -144,6 +244,15 @@ fn extract_ascc_delta(content: &str) -> JobResult {
         payload: delta,
         success: true,
     }
+}
+
+/// Truncate a line to max chars, preserving word boundary where possible.
+fn truncate_line(s: &str, max: usize) -> String {
+    if s.len() <= max {
+        return s.to_string();
+    }
+    let truncated = &s[..s.floor_char_boundary(max.saturating_sub(3))];
+    format!("{}...", truncated)
 }
 
 /// Detect repetition in content.

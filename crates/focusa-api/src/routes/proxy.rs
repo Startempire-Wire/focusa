@@ -478,18 +478,35 @@ async fn chat_completions(
     }
 
     // 5. UPDATE FRAME CHECKPOINT.
-    if error_str.is_none() {
+    {
         let frame_id = {
             let focusa = state.focusa.read().await;
             focusa.focus_stack.active_id
         };
 
         if let Some(fid) = frame_id {
+            // Provide meaningful current_state + recent_results per G1-07.
+            // Workers (ExtractAsccDelta) will add decisions/constraints/etc.
+            let (current_state, recent_results, failures) = if error_str.is_some() {
+                let err_msg = error_str.as_deref().unwrap_or("unknown error");
+                (
+                    format!("Turn {} failed: {}", turn_id, &err_msg[..err_msg.len().min(150)]),
+                    None,
+                    Some(vec![format!("Turn {} error: {}", turn_id, &err_msg[..err_msg.len().min(150)])]),
+                )
+            } else {
+                let summary: String = assistant_output.chars().take(150).collect();
+                (
+                    format!("Turn {} ({}+{} tokens): {}", turn_id, prompt_tokens, completion_tokens, summary),
+                    Some(vec![format!("Turn {}: {} tokens used", turn_id, prompt_tokens + completion_tokens)]),
+                    None,
+                )
+            };
+
             let delta = FocusStateDelta {
-                current_state: Some(format!(
-                    "Turn {}: {} prompt + {} completion tokens",
-                    turn_id, prompt_tokens, completion_tokens
-                )),
+                current_state: Some(current_state),
+                recent_results,
+                failures,
                 ..Default::default()
             };
             let _ = state
@@ -510,7 +527,7 @@ async fn chat_completions(
     Ok(Json(response).into_response())
 }
 
-/// POST /proxy/v1/messages — Anthropic proxy with turn tracking. — Anthropic proxy with turn tracking.
+/// POST /proxy/v1/messages — Anthropic proxy with turn tracking.
 async fn anthropic_messages(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -733,18 +750,33 @@ async fn anthropic_messages(
     }
 
     // 5. UPDATE FRAME.
-    if error_str.is_none() {
+    {
         let frame_id = {
             let focusa = state.focusa.read().await;
             focusa.focus_stack.active_id
         };
 
         if let Some(fid) = frame_id {
+            let (current_state, recent_results, failures) = if error_str.is_some() {
+                let err_msg = error_str.as_deref().unwrap_or("unknown error");
+                (
+                    format!("Turn {} failed: {}", turn_id, &err_msg[..err_msg.len().min(150)]),
+                    None,
+                    Some(vec![format!("Turn {} error: {}", turn_id, &err_msg[..err_msg.len().min(150)])]),
+                )
+            } else {
+                let summary: String = assistant_output.chars().take(150).collect();
+                (
+                    format!("Turn {} ({}+{} tokens): {}", turn_id, input_tokens, output_tokens, summary),
+                    Some(vec![format!("Turn {}: {} tokens used", turn_id, input_tokens + output_tokens)]),
+                    None,
+                )
+            };
+
             let delta = FocusStateDelta {
-                current_state: Some(format!(
-                    "Turn {}: {} input + {} output tokens",
-                    turn_id, input_tokens, output_tokens
-                )),
+                current_state: Some(current_state),
+                recent_results,
+                failures,
                 ..Default::default()
             };
             let _ = state

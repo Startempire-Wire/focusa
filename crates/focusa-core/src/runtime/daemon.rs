@@ -812,43 +812,38 @@ impl Daemon {
         match job.kind {
             WorkerJobKind::ExtractAsccDelta => {
                 if let Some(frame_id) = job.frame_context {
+                    // Helper: extract string array from JSON payload.
+                    let extract_strings = |key: &str| -> Option<Vec<String>> {
+                        result
+                            .payload
+                            .get(key)
+                            .and_then(|v| v.as_array())
+                            .map(|v| {
+                                v.iter()
+                                    .filter_map(|d| d.as_str().map(String::from))
+                                    .filter(|s| !s.is_empty())
+                                    .collect()
+                            })
+                            .filter(|v: &Vec<String>| !v.is_empty())
+                    };
+
+                    // Extract current_state as a string.
+                    let current_state = result
+                        .payload
+                        .get("current_state")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(String::from);
+
                     let delta = FocusStateDelta {
-                        decisions: result
-                            .payload
-                            .get("decisions")
-                            .and_then(|v| v.as_array())
-                            .map(|v| {
-                                v.iter()
-                                    .filter_map(|d| d.as_str().map(String::from))
-                                    .collect()
-                            }),
-                        next_steps: result
-                            .payload
-                            .get("next_steps")
-                            .and_then(|v| v.as_array())
-                            .map(|v| {
-                                v.iter()
-                                    .filter_map(|d| d.as_str().map(String::from))
-                                    .collect()
-                            }),
-                        constraints: result
-                            .payload
-                            .get("constraints")
-                            .and_then(|v| v.as_array())
-                            .map(|v| {
-                                v.iter()
-                                    .filter_map(|d| d.as_str().map(String::from))
-                                    .collect()
-                            }),
-                        failures: result
-                            .payload
-                            .get("failures")
-                            .and_then(|v| v.as_array())
-                            .map(|v| {
-                                v.iter()
-                                    .filter_map(|d| d.as_str().map(String::from))
-                                    .collect()
-                            }),
+                        current_state,
+                        decisions: extract_strings("decisions"),
+                        next_steps: extract_strings("next_steps"),
+                        constraints: extract_strings("constraints"),
+                        failures: extract_strings("failures"),
+                        open_questions: extract_strings("open_questions"),
+                        recent_results: extract_strings("recent_results"),
+                        notes: extract_strings("notes"),
                         ..Default::default()
                     };
 

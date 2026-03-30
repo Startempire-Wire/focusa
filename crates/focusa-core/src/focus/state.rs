@@ -78,6 +78,7 @@ pub fn apply_delta(state: &mut FocusState, delta: &FocusStateDelta) {
     }
 
     // Slot 6: open_questions — append unique, cap 20.
+    // Per G1-07: "if question is answered in delta, remove it (simple match heuristic)"
     if let Some(ref questions) = delta.open_questions {
         for q in questions {
             if !state.open_questions.contains(q) {
@@ -85,6 +86,35 @@ pub fn apply_delta(state: &mut FocusState, delta: &FocusStateDelta) {
             }
         }
         state.open_questions.truncate(ascc_caps::OPEN_QUESTIONS);
+    }
+    // Remove answered questions: if decisions, recent_results, or current_state
+    // contain keywords from an open question, consider it answered.
+    if delta.decisions.is_some() || delta.recent_results.is_some() || delta.current_state.is_some() {
+        let answer_text = [
+            delta.decisions.as_ref().map(|v| v.join(" ")).unwrap_or_default(),
+            delta.recent_results.as_ref().map(|v| v.join(" ")).unwrap_or_default(),
+            delta.current_state.as_deref().unwrap_or_default().to_string(),
+        ].join(" ").to_lowercase();
+        if !answer_text.is_empty() {
+            state.open_questions.retain(|q| {
+                let q_lower = q.to_lowercase();
+                // Extract key nouns/verbs from the question (words > 4 chars, stripped of punctuation).
+                let stripped: Vec<String> = q_lower
+                    .split_whitespace()
+                    .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_string())
+                    .filter(|w| w.len() > 4)
+                    .filter(|w| !matches!(w.as_str(), "should" | "which" | "where" | "there" | "about" | "would" | "could"))
+                    .collect();
+                let key_words: Vec<&str> = stripped.iter().map(|s| s.as_str()).collect();
+                // If most key words appear in the answer text, consider answered.
+                if key_words.is_empty() {
+                    return true; // Can't determine — keep.
+                }
+                let matched = key_words.iter().filter(|w| answer_text.contains(**w)).count();
+                let ratio = matched as f64 / key_words.len() as f64;
+                ratio < 0.6 // Keep if less than 60% of key words match.
+            });
+        }
     }
 
     // Slot 7: next_steps — replace entirely, cap 15.
@@ -186,6 +216,31 @@ mod tests {
         assert_eq!(state.notes.last().unwrap(), "newest");
         // Oldest was decayed.
         assert!(!state.notes.contains(&"note_0".to_string()));
+    }
+
+    #[test]
+    fn test_open_questions_removed_when_answered() {
+        let mut state = FocusState::default();
+        state.open_questions = vec![
+            "Should we use SQLite for data persistence?".into(),
+            "How to handle authentication?".into(),
+        ];
+        // Delta with a decision that answers the SQLite question.
+        let delta = FocusStateDelta {
+            decisions: Some(vec!["Using SQLite for local persistence layer".into()]),
+            ..Default::default()
+        };
+        apply_delta(&mut state, &delta);
+        // The SQLite/persistence question should be removed (key words match).
+        assert!(
+            !state.open_questions.iter().any(|q| q.contains("SQLite")),
+            "Answered question should be removed"
+        );
+        // The authentication question should remain.
+        assert!(
+            state.open_questions.iter().any(|q| q.contains("authentication")),
+            "Unanswered question should remain"
+        );
     }
 
     #[test]
