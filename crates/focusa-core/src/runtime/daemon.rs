@@ -29,7 +29,7 @@ use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
-use crate::workers::executor;
+use crate::workers::{executor, priority_queue};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use std::time::Instant;
@@ -59,8 +59,8 @@ pub struct Daemon {
     signal_rx: mpsc::Receiver<Signal>,
     command_tx: mpsc::Sender<Action>,
     command_rx: mpsc::Receiver<Action>,
-    worker_tx: mpsc::Sender<WorkerJob>,
-    worker_rx: mpsc::Receiver<WorkerJob>,
+    worker_tx: priority_queue::PrioritySender,
+    worker_rx: priority_queue::PriorityReceiver,
     event_bus: Option<crate::runtime::event_bus::EventBus>,
 }
 
@@ -94,7 +94,7 @@ impl Daemon {
         let intuition = IntuitionEngine::new(signal_tx);
 
         let (command_tx, command_rx) = mpsc::channel(256);
-        let (worker_tx, worker_rx) = mpsc::channel(config.worker_queue_size);
+        let (worker_tx, worker_rx) = priority_queue::priority_channel(config.worker_queue_size);
 
         // Get this daemon's machine ID for ownership enforcement.
         let machine_id = persistence.machine_id()?;
@@ -261,7 +261,7 @@ impl Daemon {
                             assistant_output.as_deref(),
                             raw_user_input.as_deref(),
                             errors,
-                        );
+                        ).await;
 
                         // Autonomy: record observation from turn (docs/12, docs/37).
                         let had_errors = !errors.is_empty();
@@ -574,7 +574,9 @@ impl Daemon {
     ///
     /// Content is passed via correlation_id (MVP inline transport).
     /// Worker results flow through handle_worker_job → apply_worker_result.
-    fn enqueue_turn_workers(
+    ///
+    /// Jobs are queued by priority (High > Normal > Low) per G1-10 §Scheduling.
+    async fn enqueue_turn_workers(
         &self,
         turn_id: &str,
         frame_id: Option<FrameId>,
@@ -599,7 +601,7 @@ impl Daemon {
                     correlation_id: Some(output.chars().take(4000).collect()),
                     timeout_ms: timeout,
                 };
-                if self.worker_tx.try_send(job).is_err() {
+                if !self.worker_tx.try_send(job).await {
                     tracing::warn!(turn_id, "Worker queue full: dropped ExtractAsccDelta job");
                 }
             }
@@ -618,7 +620,7 @@ impl Daemon {
                     correlation_id: Some(output.chars().take(4000).collect()),
                     timeout_ms: timeout,
                 };
-                if self.worker_tx.try_send(job).is_err() {
+                if !self.worker_tx.try_send(job).await {
                     tracing::warn!(turn_id, "Worker queue full: dropped ScanForErrors job");
                 }
             }
@@ -637,7 +639,7 @@ impl Daemon {
                     correlation_id: Some(output.chars().take(4000).collect()),
                     timeout_ms: timeout,
                 };
-                if self.worker_tx.try_send(job).is_err() {
+                if !self.worker_tx.try_send(job).await {
                     tracing::debug!(turn_id, "Worker queue full: dropped DetectRepetition job");
                 }
             }
@@ -656,7 +658,7 @@ impl Daemon {
                     correlation_id: Some(input.chars().take(2000).collect()),
                     timeout_ms: timeout,
                 };
-                if self.worker_tx.try_send(job).is_err() {
+                if !self.worker_tx.try_send(job).await {
                     tracing::debug!(turn_id, "Worker queue full: dropped ClassifyTurn job");
                 }
             }
@@ -676,7 +678,7 @@ impl Daemon {
                     correlation_id: Some(output.chars().take(4000).collect()),
                     timeout_ms: timeout,
                 };
-                if self.worker_tx.try_send(job).is_err() {
+                if !self.worker_tx.try_send(job).await {
                     tracing::debug!(turn_id, "Worker queue full: dropped SuggestMemory job");
                 }
             }
@@ -930,7 +932,7 @@ impl Daemon {
 
             // ─── Workers ─────────────────────────────────────────────────
             Action::WorkerEnqueue { job } => {
-                let enqueued = self.worker_tx.try_send(job.clone()).is_ok();
+                let enqueued = self.worker_tx.try_send(job.clone()).await;
                 if enqueued {
                     Ok(vec![FocusaEvent::WorkerJobEnqueued {
                         job_id: job.id,

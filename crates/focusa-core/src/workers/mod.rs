@@ -9,4 +9,5 @@
 //! Reducer decides whether to accept results.
 
 pub mod executor;
+pub mod priority_queue;
 pub mod queue;
