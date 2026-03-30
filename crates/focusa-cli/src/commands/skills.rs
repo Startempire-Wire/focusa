@@ -20,8 +20,13 @@ pub async fn run(cmd: SkillsCmd, json: bool) -> anyhow::Result<()> {
                 if let Some(skills) = resp["skills"].as_array() {
                     println!("Agent Skills ({} total):", skills.len());
                     for s in skills {
-                        let enabled = if s["enabled"].as_bool().unwrap_or(false) { "✓" } else { "✗" };
-                        println!("  {} {} — {} ({})",
+                        let enabled = if s["enabled"].as_bool().unwrap_or(false) {
+                            "✓"
+                        } else {
+                            "✗"
+                        };
+                        println!(
+                            "  {} {} — {} ({})",
                             enabled,
                             s["id"].as_str().unwrap_or("?"),
                             s["name"].as_str().unwrap_or("?"),

@@ -78,10 +78,7 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         GateCmd::Pin { candidate_id } => {
             let resp = api
-                .post(
-                    "/v1/focus-gate/pin",
-                    &json!({"candidate_id": candidate_id}),
-                )
+                .post("/v1/focus-gate/pin", &json!({"candidate_id": candidate_id}))
                 .await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
@@ -103,7 +100,10 @@ pub async fn run(cmd: GateCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("✓ Resolved {}", candidate_id);
             }
         }
-        GateCmd::Promote { candidate_id, beads_issue_id } => {
+        GateCmd::Promote {
+            candidate_id,
+            beads_issue_id,
+        } => {
             // Get candidate info first.
             let candidates_resp = api.get("/v1/focus-gate/candidates").await?;
             let candidate = candidates_resp["candidates"]

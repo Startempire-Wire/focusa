@@ -1,611 +1,535 @@
-//! Mode A — Wrap harness CLI subprocess.
+//! Mode A — Wrap harness CLI with full session capture.
 //!
 //! Usage: focusa wrap -- <command> [args...]
 //!
-//! Per spec (docs/G1-detail-04-proxy-adapter.md):
-//! 1. Parse command to find user prompt
-//! 2. Call daemon to assemble enhanced prompt
-//! 3. Run harness with enhanced prompt
-//! 4. Emit signals to Focus Gate
-//! 5. Provide transcript to ASCC
-//! 6. Externalize large blobs to ECS
+//! This implementation uses the `script` command to record full terminal sessions,
+//! then parses the recording for observability.
+//!
+//! Responsibilities:
+//! 1. Ensures daemon is running (auto-start)
+//! 2. Records harness session with `script`
+//! 3. Parses recording to extract user input and assistant output
+//! 4. Sends parsed data to daemon
 
 use crate::api_client::ApiClient;
+use anyhow::{Context, Result};
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::process::Stdio;
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::Command;
-use tokio::signal;
-use uuid::Uuid;
+use rand::random;
+use serde_json::{Value, json};
+use shlex::try_quote;
+use std::fs;
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
-/// Adapter capability declaration per spec.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AdapterCapabilities {
-    pub streaming: bool,
-    pub tool_output_capture: bool,
-    pub structured_messages: bool,
-}
+/// Fire-and-forget POST - doesn't block on daemon response.
+async fn fire_and_forget(client: &ApiClient, path: &str, body: Value) {
+    let url = format!("{}{}", client.base_url(), path);
+    let client = client.http_client().clone();
+    let body = body.clone();
+    let path = path.to_string();
 
-/// Harness configuration — how each harness takes prompts.
-struct HarnessConfig {
-    name: &'static str,
-    /// How to find the prompt in args.
-    prompt_arg: PromptArg,
-    /// Environment variables to set.
-    env_vars: &'static [(&'static str, &'static str)],
-    /// API provider (for HTTP proxy fallback).
-    provider: Provider,
-    /// Adapter capabilities.
-    capabilities: AdapterCapabilities,
-}
-
-/// ECS externalization thresholds per spec.
-const ECS_BYTE_THRESHOLD: usize = 8192; // 8KB
-const ECS_TOKEN_THRESHOLD: usize = 800; // ~800 tokens
-
-enum PromptArg {
-    /// Prompt is a positional argument at given index.
-    Positional(usize),
-    /// Prompt follows a flag (e.g., -p "prompt").
-    Flag(&'static str),
-    /// Prompt is read from stdin.
-    Stdin,
-    /// Unknown — use HTTP proxy only.
-    Unknown,
-}
-
-enum Provider {
-    Anthropic,
-    OpenAI,
-    Unknown,
-}
-
-/// Detect harness type from command name.
-fn detect_harness(cmd: &str) -> HarnessConfig {
-    let base = std::path::Path::new(cmd)
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or(cmd);
-
-    match base {
-        "pi" => HarnessConfig {
-            name: "pi",
-            prompt_arg: PromptArg::Positional(0), // pi "prompt"
-            env_vars: &[],
-            provider: Provider::Anthropic,
-            capabilities: AdapterCapabilities {
-                streaming: true,
-                tool_output_capture: true,
-                structured_messages: true,
-            },
-        },
-        "claude" | "claude-code" => HarnessConfig {
-            name: "claude",
-            prompt_arg: PromptArg::Positional(0),
-            env_vars: &[],
-            provider: Provider::Anthropic,
-            capabilities: AdapterCapabilities {
-                streaming: true,
-                tool_output_capture: true,
-                structured_messages: true,
-            },
-        },
-        "opencode" => HarnessConfig {
-            name: "opencode",
-            prompt_arg: PromptArg::Unknown,
-            env_vars: &[],
-            provider: Provider::Unknown,
-            capabilities: AdapterCapabilities {
-                streaming: true,
-                tool_output_capture: false,
-                structured_messages: false,
-            },
-        },
-        "aider" => HarnessConfig {
-            name: "aider",
-            prompt_arg: PromptArg::Stdin, // aider reads from stdin
-            env_vars: &[],
-            provider: Provider::OpenAI,
-            capabilities: AdapterCapabilities {
-                streaming: true,
-                tool_output_capture: false, // aider doesn't print tool outputs clearly
-                structured_messages: false,
-            },
-        },
-        "codex" => HarnessConfig {
-            name: "codex",
-            prompt_arg: PromptArg::Positional(0),
-            env_vars: &[],
-            provider: Provider::OpenAI,
-            capabilities: AdapterCapabilities {
-                streaming: true,
-                tool_output_capture: true,
-                structured_messages: true,
-            },
-        },
-        "letta" => HarnessConfig {
-            name: "letta",
-            prompt_arg: PromptArg::Flag("-m"), // letta run -m "message"
-            env_vars: &[("LETTA_FOCUSA_ENABLED", "1")],
-            provider: Provider::OpenAI,
-            capabilities: AdapterCapabilities {
-                streaming: true,
-                tool_output_capture: true,
-                structured_messages: true,
-            },
-        },
-        _ => HarnessConfig {
-            name: "generic",
-            prompt_arg: PromptArg::Unknown,
-            env_vars: &[],
-            provider: Provider::Unknown,
-            capabilities: AdapterCapabilities {
-                streaming: false,
-                tool_output_capture: false,
-                structured_messages: false,
-            },
-        },
-    }
-}
-
-/// Extract prompt from command args based on harness config.
-fn extract_prompt(args: &[String], config: &HarnessConfig) -> Option<(usize, String)> {
-    match config.prompt_arg {
-        PromptArg::Positional(idx) => {
-            args.get(idx).map(|s| (idx, s.clone()))
+    tokio::spawn(async move {
+        if let Err(e) = client.post(&url).json(&body).send().await {
+            eprintln!("[DEBUG] POST {} failed: {}", path, e);
         }
-        PromptArg::Flag(flag) => {
-            for (i, arg) in args.iter().enumerate() {
-                if arg == flag && i + 1 < args.len() {
-                    return Some((i + 1, args[i + 1].clone()));
+    });
+}
+
+/// Fire-and-forget POST using curl.
+fn fire_blocking(client: &ApiClient, path: &str, body: Value, timeout_secs: u64) {
+    client.post_blocking(path, &body, timeout_secs);
+}
+
+/// Check if daemon is running.
+async fn is_daemon_running(client: &ApiClient) -> bool {
+    client.get("/v1/health").await.is_ok()
+}
+
+/// Start daemon as background process using setsid.
+async fn start_daemon() -> Result<()> {
+    let daemon_path = which::which("focusa-daemon")
+        .or_else(|_| {
+            let exe = std::env::current_exe()?;
+            let dir = exe.parent().unwrap_or(std::path::Path::new("."));
+            let candidate = dir.join("focusa-daemon");
+            if candidate.exists() {
+                Ok(candidate)
+            } else {
+                Err(anyhow::anyhow!("not found"))
+            }
+        })
+        .or_else(|_| {
+            let candidate = std::path::PathBuf::from("/usr/local/bin/focusa-daemon");
+            if candidate.exists() {
+                Ok(candidate)
+            } else {
+                Err(anyhow::anyhow!("not found"))
+            }
+        })?;
+
+    eprintln!("[DEBUG] Starting daemon: {:?}", daemon_path);
+
+    // Use setsid to create new session - no need for exec or shell redirections
+    std::process::Command::new("/usr/bin/setsid")
+        .arg("-f")
+        .arg(&daemon_path)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .context("Failed to spawn daemon")?;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    Ok(())
+}
+
+/// Parse a terminal recording to extract user input and assistant output.
+///
+/// Looks for speaker markers like "You:", "Human:", "User:", or "> " to distinguish
+/// user input from assistant responses. Content on the same line as a marker
+/// (after the colon or "> ") is included in that speaker's content.
+fn parse_transcript(transcript: &str) -> (String, String) {
+    let mut user_input = String::new();
+    let mut assistant_output = String::new();
+
+    let lines: Vec<&str> = transcript.lines().collect();
+    let mut current_speaker = String::new();
+    let mut current_content = String::new();
+
+    for line in &lines {
+        let trimmed = line.trim();
+
+        // Skip empty lines
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        // Extract marker (before colon) and content (after colon)
+        let (marker_part, content_after_marker) = if let Some(idx) = trimmed.find(':') {
+            (&trimmed[..=idx], Some(&trimmed[idx + 1..]))
+        } else {
+            ("", None)
+        };
+
+        // Check for simple marker first (no colon needed)
+        let simple_marker_content = if trimmed.starts_with("> ") && trimmed.len() > 2 {
+            Some(&trimmed[2..])
+        } else {
+            None
+        };
+
+        // Detect marker types - order matters for disambiguation
+        let is_user_marker = matches!(marker_part, "You:" | "Human:" | "User:");
+        let is_assistant_marker =
+            marker_part.ends_with(':') && !is_user_marker && !marker_part.is_empty();
+        let has_simple_marker = simple_marker_content.is_some();
+
+        if is_user_marker {
+            // Flush previous content if any (content before any marker goes to assistant)
+            if !current_content.is_empty() {
+                // Content is user input only if we had a previous user speaker
+                let prev_is_user = !current_speaker.is_empty()
+                    && (current_speaker == "You:"
+                        || current_speaker == "Human:"
+                        || current_speaker == "User:"
+                        || current_speaker.starts_with("You:")
+                        || current_speaker.starts_with("Human:")
+                        || current_speaker.starts_with("User:"));
+
+                if prev_is_user {
+                    if !user_input.is_empty() {
+                        user_input.push('\n');
+                    }
+                    user_input.push_str(&current_content);
+                } else {
+                    if !assistant_output.is_empty() {
+                        assistant_output.push('\n');
+                    }
+                    assistant_output.push_str(&current_content);
                 }
             }
-            None
+
+            // Start new speaker
+            current_speaker = marker_part.to_string();
+            current_content = String::new();
+
+            // Add content from same line after marker
+            if let Some(content) = content_after_marker {
+                let trimmed_content = content.trim_start();
+                if !trimmed_content.is_empty() {
+                    current_content.push_str(trimmed_content);
+                }
+            }
+        } else if is_assistant_marker {
+            // Flush previous content if any (content before any marker goes to assistant)
+            if !current_content.is_empty() {
+                // Content is user input only if we had a previous user speaker
+                let prev_is_user = !current_speaker.is_empty()
+                    && (current_speaker == "You:"
+                        || current_speaker == "Human:"
+                        || current_speaker == "User:"
+                        || current_speaker == "> "
+                        || current_speaker.starts_with("You:")
+                        || current_speaker.starts_with("Human:")
+                        || current_speaker.starts_with("User:"));
+
+                if prev_is_user {
+                    if !user_input.is_empty() {
+                        user_input.push('\n');
+                    }
+                    user_input.push_str(&current_content);
+                } else {
+                    if !assistant_output.is_empty() {
+                        assistant_output.push('\n');
+                    }
+                    assistant_output.push_str(&current_content);
+                }
+            }
+
+            // Start new assistant speaker
+            current_speaker = marker_part.to_string();
+            current_content = String::new();
+
+            // Add content from same line after marker
+            if let Some(content) = content_after_marker {
+                let trimmed_content = content.trim_start();
+                if !trimmed_content.is_empty() {
+                    current_content.push_str(trimmed_content);
+                }
+            }
+        } else if has_simple_marker {
+            // Flush previous content if any (content before any marker goes to assistant)
+            if !current_content.is_empty() {
+                // Content is user input only if we had a previous user speaker
+                let prev_is_user = !current_speaker.is_empty()
+                    && (current_speaker == "You:"
+                        || current_speaker == "Human:"
+                        || current_speaker == "User:"
+                        || current_speaker.starts_with("You:")
+                        || current_speaker.starts_with("Human:")
+                        || current_speaker.starts_with("User:"));
+
+                if prev_is_user {
+                    if !user_input.is_empty() {
+                        user_input.push('\n');
+                    }
+                    user_input.push_str(&current_content);
+                } else {
+                    if !assistant_output.is_empty() {
+                        assistant_output.push('\n');
+                    }
+                    assistant_output.push_str(&current_content);
+                }
+            }
+
+            current_speaker = "> ".to_string();
+            current_content = String::new();
+
+            // Add content after "> "
+            let simple_content = simple_marker_content.unwrap().trim_start();
+            if !simple_content.is_empty() {
+                current_content.push_str(simple_content);
+            }
+        } else {
+            // Regular content line - add to current speaker or default to assistant
+            if !current_content.is_empty() {
+                current_content.push('\n');
+            }
+            current_content.push_str(trimmed);
         }
-        PromptArg::Stdin | PromptArg::Unknown => None,
     }
+
+    // Handle last speaker - or default to assistant if no markers at all
+    if !current_speaker.is_empty() {
+        // Simple marker "> " counts as user input
+        let is_user = current_speaker.starts_with("You:")
+            || current_speaker.starts_with("Human:")
+            || current_speaker.starts_with("User:")
+            || current_speaker == "> ";
+
+        if is_user {
+            if !user_input.is_empty() {
+                user_input.push('\n');
+            }
+            user_input.push_str(&current_content);
+        } else {
+            if !assistant_output.is_empty() {
+                assistant_output.push('\n');
+            }
+            assistant_output.push_str(&current_content);
+        }
+    } else if !current_content.is_empty() {
+        // No markers at all - default to assistant output
+        if !assistant_output.is_empty() {
+            assistant_output.push('\n');
+        }
+        assistant_output.push_str(&current_content);
+    }
+
+    (user_input, assistant_output)
 }
 
-/// Run the wrap command.
+/// Run harness with full session recording using `script` command.
+///
+/// Uses `script -q -c "command"` to record full terminal session including TUI.
+/// Arguments are properly shell-quoted using shlex to prevent injection.
+fn run_with_recording(
+    harness_path: &str,
+    args: &[String],
+    env_vars: &[(&str, &str)],
+) -> Result<(i32, String)> {
+    // Create temp directory for recording
+    let temp_dir = PathBuf::from("/tmp");
+    let timestamp = Utc::now().timestamp_millis();
+    let session_file = temp_dir.join(format!("focusa-session-{}.txt", timestamp));
+
+    // Properly quote each argument to prevent shell injection
+    let harness_args: Vec<String> = args
+        .iter()
+        .map(|a| {
+            try_quote(a)
+                .map(|q| q.to_string())
+                .unwrap_or_else(|_| a.clone())
+        })
+        .collect();
+    let harness_cmd = format!("{} {}", harness_path, harness_args.join(" "));
+
+    let status = Command::new("script")
+        .args(["-q", "-c", &harness_cmd])
+        .arg("-a")
+        .arg(&session_file)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .envs(env_vars.iter().copied())
+        .status()
+        .context("Failed to run script command")?;
+
+    // Read the recording (script writes to session_file, not stdout)
+    let transcript = if session_file.exists() {
+        fs::read_to_string(&session_file)?
+    } else {
+        String::new()
+    };
+
+    // Clean up temp file (log error if fails)
+    if let Err(e) = fs::remove_file(&session_file) {
+        eprintln!("[DEBUG] Failed to remove session file: {}", e);
+    }
+
+    let exit_code = status.code().unwrap_or(1);
+
+    Ok((exit_code, transcript))
+}
+
+/// Simple harness runner (non-PTY) for command-line only mode.
+/// Returns exit code and combined stdout+stderr.
+fn run_simple(
+    harness_path: &str,
+    args: &[String],
+    env_vars: &[(&str, &str)],
+) -> Result<(i32, String)> {
+    let output = Command::new(harness_path)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .envs(env_vars.iter().copied())
+        .output()
+        .context("Failed to run harness")?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+
+    let combined = if stderr.is_empty() {
+        stdout
+    } else {
+        format!("{}\n{}", stdout, stderr)
+    };
+
+    Ok((output.status.code().unwrap_or(1), combined))
+}
+
+/// Detect if we're in TUI mode (no prompt argument) or CLI mode (has prompt).
+fn detect_mode(args: &[String]) -> (&str, &[String], bool) {
+    if args.is_empty() {
+        return ("", args, true); // TUI mode
+    }
+
+    let first = &args[0];
+    if first.starts_with('-') || first.contains(' ') || first.len() > 50 {
+        return (first, &args[1..], false); // CLI mode with prompt
+    }
+
+    ("", args, true) // Default to TUI
+}
+
+/// Run the wrap command with full session capture.
 pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     if command.is_empty() {
         anyhow::bail!("Usage: focusa wrap -- <command> [args...]");
     }
 
     let client = ApiClient::new();
-    
-    // Get Focusa API URL.
-    let focusa_url = std::env::var("FOCUSA_API_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8787".into());
+    let harness_path = &command[0];
+    let args: Vec<String> = command[1..].to_vec();
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 0. ENSURE DAEMON IS RUNNING (magic auto-start)
-    // ═══════════════════════════════════════════════════════════════════════════
-    
+    // Detect mode and extract prompt/args
+    let (prompt, remaining_args, is_tui) = detect_mode(&args);
+    let harness_name = std::path::Path::new(harness_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown");
+
+    eprintln!("[DEBUG] Mode: {} (TUI={})", harness_name, is_tui);
+
+    // 0. Ensure daemon is running
     if !is_daemon_running(&client).await {
         eprintln!("🚀 Starting Focusa daemon...");
-        start_daemon(&focusa_url).await?;
-        
-        // Wait for daemon to be ready (max 5s).
+        start_daemon().await?;
+
         for _ in 0..50 {
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
             if is_daemon_running(&client).await {
                 break;
             }
         }
-        
-        if !is_daemon_running(&client).await {
-            anyhow::bail!("Failed to start Focusa daemon");
-        }
         eprintln!("✓ Daemon ready");
     }
 
-    let adapter_id = format!("wrap-{}", &Uuid::now_v7().to_string()[..8]);
-    let harness = detect_harness(&command[0]);
-    let turn_id = Uuid::now_v7().to_string();
+    // 1. Turn start (fire-and-forget)
+    let timestamp_ms = Utc::now().timestamp_millis();
+    let random_suffix: u32 = random();
+    let turn_id = format!("{:x}{:08x}", timestamp_ms, random_suffix);
+    eprintln!("[DEBUG] Turn ID: {}", turn_id);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 1. TURN START — notify daemon
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    let _ = client.post("/v1/turn/start", &json!({
-        "turn_id": turn_id,
-        "adapter_id": adapter_id,
-        "harness_name": harness.name,
-        "timestamp": Utc::now().to_rfc3339()
-    })).await;
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 2. EXTRACT & ENHANCE PROMPT (Mode A core)
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    let args: Vec<String> = command[1..].to_vec();
-    let mut final_args = args.clone();
-    let mut user_input = String::new();
-
-    // Track if we need to pipe stdin.
-    let mut stdin_prompt: Option<String> = None;
-
-    if let Some((idx, prompt)) = extract_prompt(&args, &harness) {
-        user_input = prompt.clone();
-
-        // Emit signal: user input received.
-        let _ = client.post("/v1/gate/signal", &json!({
-            "kind": "user_input_received",
-            "summary": format!("User input: {} chars", prompt.len()),
-            "frame_context": null
-        })).await;
-
-        // Call daemon to assemble enhanced prompt.
-        let assemble_resp = client.post("/v1/prompt/assemble", &json!({
+    fire_and_forget(
+        &client,
+        "/v1/turn/start",
+        json!({
             "turn_id": turn_id,
-            "raw_user_input": prompt,
-            "format": "string",
-            "budget": null
-        })).await;
+            "adapter_id": format!("wrap-{}", &turn_id[..8]),
+            "harness_name": harness_name,
+            "timestamp": Utc::now().to_rfc3339()
+        }),
+    )
+    .await;
 
-        if let Ok(resp) = assemble_resp {
-            // Extract assembled prompt.
-            if let Some(assembled) = extract_assembled_prompt(&resp) {
-                // Replace prompt in args with enhanced version.
-                final_args[idx] = assembled;
-                tracing::debug!("Prompt enhanced via Expression Engine");
-            }
-        }
-    } else if matches!(harness.prompt_arg, PromptArg::Stdin) {
-        // For stdin-based harnesses, read from stdin and enhance.
-        use std::io::Read;
-        let mut raw_input = String::new();
-        if std::io::stdin().read_to_string(&mut raw_input).is_ok() && !raw_input.is_empty() {
-            user_input = raw_input.clone();
+    // 2. For CLI mode: try prompt assembly
+    let mut final_args = remaining_args.to_vec();
 
-            // Emit signal: user input received.
-            let _ = client.post("/v1/gate/signal", &json!({
-                "kind": "user_input_received",
-                "summary": format!("User input (stdin): {} chars", raw_input.len()),
-                "frame_context": null
-            })).await;
+    if !is_tui && !prompt.is_empty() {
+        // For CLI mode with pi harness, use --print mode with raw prompt
+        // This bypasses Focusa prompt assembly which is meant for TUI mode
+        if harness_name == "pi" {
+            final_args = vec!["--print".to_string(), prompt.to_string()];
+            eprintln!("[DEBUG] Using --print mode for pi");
+        } else {
+            // For other harnesses, try prompt assembly
+            eprintln!("[DEBUG] Assembling prompt for: {} chars", prompt.len());
 
-            // Call daemon to assemble enhanced prompt.
-            let assemble_resp = client.post("/v1/prompt/assemble", &json!({
-                "turn_id": turn_id,
-                "raw_user_input": raw_input,
-                "format": "string",
-                "budget": null
-            })).await;
-
-            if let Ok(resp) = assemble_resp {
-                if let Some(assembled) = extract_assembled_prompt(&resp) {
-                    stdin_prompt = Some(assembled);
-                    tracing::debug!("Stdin prompt enhanced via Expression Engine");
-                } else {
-                    stdin_prompt = Some(raw_input);
-                }
-            } else {
-                stdin_prompt = Some(raw_input);
+            if let Ok(resp) = client
+                .post(
+                    "/v1/prompt/assemble",
+                    &json!({
+                        "turn_id": turn_id,
+                        "raw_user_input": prompt,
+                        "format": "string",
+                        "budget": null
+                    }),
+                )
+                .await
+                && let Some(assembled) = resp.get("assembled_prompt").and_then(|v| v.as_str())
+            {
+                final_args = vec![assembled.to_string()];
+                eprintln!("[DEBUG] Prompt assembled: {} chars", assembled.len());
             }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 3. SET UP HTTP PROXY (Mode B fallback)
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    let mut env_vars: Vec<(String, String)> = harness.env_vars
-        .iter()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect();
+    // 3. Run the harness with full session capture
+    let env_vars = vec![("FOCUSA_MAGIC_DISABLE", "1"), ("FOCUSA_TURN_ID", &turn_id)];
 
-    // Set proxy URLs based on provider.
-    let proxy_base = format!("{}/proxy", focusa_url);
-    match harness.provider {
-        Provider::Anthropic => {
-            env_vars.push(("ANTHROPIC_BASE_URL".into(), proxy_base));
-        }
-        Provider::OpenAI => {
-            env_vars.push(("OPENAI_BASE_URL".into(), format!("{}/v1", proxy_base)));
-        }
-        Provider::Unknown => {
-            // Set both.
-            env_vars.push(("ANTHROPIC_BASE_URL".into(), proxy_base.clone()));
-            env_vars.push(("OPENAI_BASE_URL".into(), format!("{}/v1", proxy_base)));
-        }
-    }
+    eprintln!("[DEBUG] Running: {} {}", harness_path, final_args.join(" "));
 
-    // Pass through API keys.
-    for key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"] {
-        if let Ok(val) = std::env::var(key) {
-            env_vars.push((key.into(), val));
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 4. RUN SUBPROCESS
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    // For stdin-based harnesses, pipe stdin; otherwise inherit.
-    let stdin_mode = if stdin_prompt.is_some() {
-        Stdio::piped()
-    } else {
-        Stdio::inherit()
-    };
-
-    let mut child = Command::new(&command[0])
-        .args(&final_args)
-        .envs(env_vars)
-        .stdin(stdin_mode)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-
-    // Write enhanced prompt to stdin if needed.
-    if let Some(prompt) = stdin_prompt
-        && let Some(mut stdin) = child.stdin.take() {
-            use tokio::io::AsyncWriteExt;
-            let _ = stdin.write_all(prompt.as_bytes()).await;
-            let _ = stdin.shutdown().await;
-        }
-
-    let stdout = child.stdout.take().expect("stdout");
-    let stderr = child.stderr.take().expect("stderr");
-
-    let mut stdout_reader = BufReader::new(stdout).lines();
-    let mut stderr_reader = BufReader::new(stderr).lines();
-
-    let mut output_buffer = String::new();
-    let mut stdout_done = false;
-    let mut stderr_done = false;
-    let mut cancelled = false;
-    let mut seen_warnings: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
-
-    // Stream output from both stdout and stderr until both close.
-    // Handle Ctrl-C gracefully per spec.
-    loop {
-        tokio::select! {
-            _ = signal::ctrl_c() => {
-                // Graceful cancellation — forward SIGINT to child.
-                eprintln!("\n⚠ Interrupted — cleaning up...");
-                cancelled = true;
-                // Kill the child process.
-                let _ = child.kill().await;
-                break;
-            }
-            line = stdout_reader.next_line(), if !stdout_done => {
-                match line {
-                    Ok(Some(text)) => {
-                        println!("{}", text);
-                        output_buffer.push_str(&text);
-                        output_buffer.push('\n');
-
-                        // Check for tool output patterns (best effort).
-                        if harness.capabilities.tool_output_capture
-                            && (text.contains("```") || text.starts_with("Tool:"))
-                        {
-                            let _ = client.post("/v1/gate/signal", &json!({
-                                "kind": "tool_output_captured",
-                                "summary": format!("Tool output detected: {} chars", text.len()),
-                                "frame_context": null
-                            })).await;
-                        }
-                    }
-                    Ok(None) => stdout_done = true,
+    let (exit_code, transcript) = if is_tui {
+        // TUI mode: use script to record full session
+        match run_with_recording(harness_path, &final_args, &env_vars) {
+            Ok(result) => result,
+            Err(e) => {
+                eprintln!("[DEBUG] Recording failed ({}), falling back to simple", e);
+                match run_simple(harness_path, &final_args, &env_vars) {
+                    Ok(result) => result,
                     Err(e) => {
-                        eprintln!("stdout error: {}", e);
-                        stdout_done = true;
+                        eprintln!("[ERROR] Harness failed: {}", e);
+                        (1, String::new())
                     }
                 }
             }
-            line = stderr_reader.next_line(), if !stderr_done => {
-                match line {
-                    Ok(Some(text)) => {
-                        eprintln!("{}", text);
-
-                        // Track warning repetition.
-                        let warning_key = truncate(&text, 50);
-                        let count = seen_warnings.entry(warning_key.clone()).or_insert(0);
-                        *count += 1;
-
-                        // Emit repeated_warning if seen multiple times.
-                        if *count > 1 {
-                            let _ = client.post("/v1/gate/signal", &json!({
-                                "kind": "repeated_warning",
-                                "summary": format!("Warning repeated {} times: {}", count, truncate(&text, 80)),
-                                "frame_context": null
-                            })).await;
-                        } else {
-                            // First occurrence — emit error_observed.
-                            let _ = client.post("/v1/gate/signal", &json!({
-                                "kind": "error_observed",
-                                "summary": format!("stderr: {}", truncate(&text, 100)),
-                                "frame_context": null
-                            })).await;
-                        }
-                    }
-                    Ok(None) => stderr_done = true,
-                    Err(_) => stderr_done = true,
-                }
-            }
-            else => break, // Both streams closed
         }
-    }
-
-    let status = child.wait().await?;
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 5. EXTERNALIZE LARGE BLOBS TO ECS
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    let mut artifacts: Vec<Value> = vec![];
-    
-    // Estimate token count (rough: 4 chars per token).
-    let estimated_tokens = output_buffer.len() / 4;
-    
-    // Per spec: externalize if > 8KB OR > 800 tokens.
-    let should_externalize = output_buffer.len() > ECS_BYTE_THRESHOLD
-        || estimated_tokens > ECS_TOKEN_THRESHOLD;
-    
-    if should_externalize {
-        let ecs_resp = client.post("/v1/ecs/store", &json!({
-            "kind": "transcript",
-            "label": format!("turn-{}-output", &turn_id[..8]),
-            "content": output_buffer,
-            "mime_type": "text/plain"
-        })).await;
-
-        if let Ok(resp) = ecs_resp
-            && let Some(handle_id) = resp.get("handle_id").and_then(|v| v.as_str()) {
-                artifacts.push(json!({"handle_id": handle_id, "kind": "transcript"}));
-                tracing::debug!("Output externalized to ECS: {}", handle_id);
+    } else {
+        // CLI mode: capture stdout/stderr directly
+        match run_simple(harness_path, &final_args, &env_vars) {
+            Ok(result) => result,
+            Err(e) => {
+                eprintln!("[ERROR] Harness failed: {}", e);
+                (1, String::new())
             }
-    }
+        }
+    };
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 6. TURN COMPLETE — send transcript to ASCC
-    // ═══════════════════════════════════════════════════════════════════════════
-    
-    let mut errors: Vec<String> = if status.success() {
+    eprintln!("[DEBUG] Harness exited with code: {}", exit_code);
+    eprintln!("[DEBUG] Transcript length: {} chars", transcript.len());
+
+    // 4. Parse transcript to extract user/assistant content (for TUI observability)
+    let (user_input, assistant_output) = if is_tui {
+        let parsed = parse_transcript(&transcript);
+        eprintln!("[DEBUG] Extracted user_input: {} chars", parsed.0.len());
+        eprintln!(
+            "[DEBUG] Extracted assistant_output: {} chars",
+            parsed.1.len()
+        );
+        parsed
+    } else {
+        // CLI mode: use captured output directly (no speaker markers to parse)
+        eprintln!("[DEBUG] CLI mode: using captured output directly");
+        (String::new(), transcript.clone())
+    };
+
+    // 5. Turn complete - send everything to daemon
+    let errors = if exit_code != 0 {
+        vec![format!("Harness exited with code {}", exit_code)]
+    } else {
         vec![]
-    } else {
-        vec![format!("Exit code: {}", status.code().unwrap_or(-1))]
-    };
-    
-    // Add cancellation to errors if interrupted.
-    if cancelled {
-        errors.push("Interrupted by user (Ctrl-C)".into());
-    }
-
-    // Truncate output for ASCC if not externalized.
-    let transcript = if !should_externalize {
-        output_buffer.clone()
-    } else {
-        format!("[externalized to ECS — {} bytes, ~{} tokens]", output_buffer.len(), estimated_tokens)
     };
 
-    let _ = client.post("/v1/turn/complete", &json!({
-        "turn_id": turn_id,
-        "assistant_output": transcript,
-        "artifacts": artifacts,
-        "errors": errors
-    })).await;
-
-    // Update focus state with turn summary (ASCC).
-    if !user_input.is_empty() {
-        let _ = client.post("/v1/focus/update", &json!({
-            "delta": {
-                "recent_results": [truncate(&output_buffer, 500)]
-            }
-        })).await;
-    }
-
-    if !status.success() {
-        std::process::exit(status.code().unwrap_or(1));
-    }
-
-    Ok(())
-}
-
-/// Extract assembled prompt from response.
-///
-/// The assembled prompt contains Focusa context (Focus State, rules, handles)
-/// plus the original user input. For messages format, this is in the "system"
-/// role. The "user" role just contains the raw input (no enhancement).
-fn extract_assembled_prompt(resp: &Value) -> Option<String> {
-    // Try plain string format first (preferred for Mode A).
-    if let Some(plain) = resp.get("assembled_prompt").and_then(|v| v.as_str()) {
-        return Some(plain.to_string());
-    }
-
-    // Try messages format — extract system message (contains full assembled prompt).
-    if let Some(messages) = resp.get("assembled_prompt").and_then(|v| v.as_array()) {
-        for msg in messages {
-            if msg.get("role").and_then(|r| r.as_str()) == Some("system") {
-                return msg.get("content").and_then(|c| c.as_str()).map(String::from);
-            }
-        }
-    }
-
-    None
-}
-
-/// Truncate string to max length (UTF-8 safe).
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
+    // For TUI: use full transcript for assistant_output
+    // For CLI: use captured output
+    let final_output = if is_tui {
+        transcript
     } else {
-        // Find a safe UTF-8 boundary at or before max.
-        let boundary = s
-            .char_indices()
-            .take_while(|(i, _)| *i < max)
-            .last()
-            .map(|(i, c)| i + c.len_utf8())
-            .unwrap_or(0);
-        format!("{}…", &s[..boundary])
-    }
-}
+        assistant_output.clone()
+    };
 
-/// Check if daemon is running by hitting health endpoint.
-async fn is_daemon_running(client: &ApiClient) -> bool {
-    client.get("/v1/health").await.is_ok()
-}
+    // raw_user_input: CLI mode uses the prompt, TUI mode uses parsed input (may be empty)
+    let final_user_input = if is_tui {
+        user_input
+    } else {
+        prompt.to_string()
+    };
 
-/// Start daemon as background process.
-async fn start_daemon(focusa_url: &str) -> anyhow::Result<()> {
-    // Parse bind address from URL.
-    let bind = focusa_url
-        .strip_prefix("http://")
-        .unwrap_or("127.0.0.1:8787");
+    fire_blocking(
+        &client,
+        "/v1/turn/complete",
+        json!({
+            "turn_id": turn_id,
+            "raw_user_input": if final_user_input.is_empty() { None } else { Some(final_user_input) },
+            "assistant_output": final_output,
+            "artifacts": [],
+            "errors": errors
+        }),
+        2,
+    );
 
-    // Find daemon binary — check common locations.
-    let daemon_path = find_daemon_binary()?;
-
-    // Start daemon in background.
-    let mut cmd = std::process::Command::new(&daemon_path);
-    cmd.env("FOCUSA_BIND", bind);
-    
-    // Pass through API keys.
-    for key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "FOCUSA_ANTHROPIC_KEY", "FOCUSA_API_KEY"] {
-        if let Ok(val) = std::env::var(key) {
-            cmd.env(key, val);
-        }
-    }
-
-    // Redirect output to avoid cluttering terminal.
-    cmd.stdout(std::process::Stdio::null());
-    cmd.stderr(std::process::Stdio::null());
-
-    cmd.spawn()?;
-    Ok(())
-}
-
-/// Find the daemon binary.
-fn find_daemon_binary() -> anyhow::Result<std::path::PathBuf> {
-    // Check if focusa-daemon is in PATH.
-    if let Ok(path) = which::which("focusa-daemon") {
-        return Ok(path);
-    }
-
-    // Check relative to current executable.
-    if let Ok(exe) = std::env::current_exe() {
-        let dir = exe.parent().unwrap_or(std::path::Path::new("."));
-        let candidate = dir.join("focusa-daemon");
-        if candidate.exists() {
-            return Ok(candidate);
-        }
-    }
-
-    // Check common dev locations.
-    for path in [
-        "./target/release/focusa-daemon",
-        "./target/debug/focusa-daemon",
-        "/usr/local/bin/focusa-daemon",
-    ] {
-        let p = std::path::PathBuf::from(path);
-        if p.exists() {
-            return Ok(p);
-        }
-    }
-
-    anyhow::bail!("Could not find focusa-daemon binary. Install it or add to PATH.")
+    // Exit with harness exit code
+    std::process::exit(exit_code);
 }

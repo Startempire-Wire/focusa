@@ -26,7 +26,11 @@ pub async fn run(cmd: ConstitutionCmd, json: bool) -> anyhow::Result<()> {
                 if let Some(principles) = resp["principles"].as_array() {
                     println!("  Principles ({}):", principles.len());
                     for p in principles {
-                        println!("    [{}] {}", p["id"].as_str().unwrap_or("?"), p["text"].as_str().unwrap_or("?"));
+                        println!(
+                            "    [{}] {}",
+                            p["id"].as_str().unwrap_or("?"),
+                            p["text"].as_str().unwrap_or("?")
+                        );
                     }
                 }
             }
@@ -41,7 +45,11 @@ pub async fn run(cmd: ConstitutionCmd, json: bool) -> anyhow::Result<()> {
                 if let Some(versions) = resp["versions"].as_array() {
                     println!("Versions:");
                     for v in versions {
-                        let marker = if v.as_str() == Some(active) { "►" } else { " " };
+                        let marker = if v.as_str() == Some(active) {
+                            "►"
+                        } else {
+                            " "
+                        };
                         println!("  {} {}", marker, v.as_str().unwrap_or("?"));
                     }
                 }

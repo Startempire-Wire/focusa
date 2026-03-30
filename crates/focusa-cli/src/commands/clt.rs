@@ -52,7 +52,8 @@ pub async fn run(cmd: CltCmd, json: bool) -> anyhow::Result<()> {
                 println!("CLT Nodes ({} total):", total);
                 if let Some(nodes) = resp["nodes"].as_array() {
                     for n in nodes {
-                        println!("  {} [{}] parent={}",
+                        println!(
+                            "  {} [{}] parent={}",
                             n["node_id"].as_str().unwrap_or("?"),
                             n["node_type"].as_str().unwrap_or("?"),
                             n["parent_id"].as_str().unwrap_or("root"),

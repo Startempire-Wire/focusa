@@ -30,7 +30,8 @@ pub async fn run(cmd: ProposalCmd, json: bool) -> anyhow::Result<()> {
                 println!("Pending proposals: {}", pending);
                 if let Some(proposals) = resp["proposals"].as_array() {
                     for p in proposals {
-                        println!("  {} [{}] score={:.2} status={}",
+                        println!(
+                            "  {} [{}] score={:.2} status={}",
                             p["id"].as_str().unwrap_or("?"),
                             p["kind"].as_str().unwrap_or("?"),
                             p["score"].as_f64().unwrap_or(0.0),

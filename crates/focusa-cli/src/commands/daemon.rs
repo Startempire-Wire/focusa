@@ -14,8 +14,8 @@ pub async fn start() -> anyhow::Result<()> {
 
     // Find and start daemon.
     let daemon_path = find_daemon_binary()?;
-    let focusa_url = std::env::var("FOCUSA_API_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8787".into());
+    let focusa_url =
+        std::env::var("FOCUSA_API_URL").unwrap_or_else(|_| "http://127.0.0.1:8787".into());
     let bind = focusa_url
         .strip_prefix("http://")
         .unwrap_or("127.0.0.1:8787");
@@ -63,7 +63,11 @@ pub async fn stop() -> anyhow::Result<()> {
 
     // Send shutdown request (if endpoint exists).
     // For now, use pkill as fallback.
-    if client.post("/v1/shutdown", &serde_json::json!({})).await.is_err() {
+    if client
+        .post("/v1/shutdown", &serde_json::json!({}))
+        .await
+        .is_err()
+    {
         // Fallback: kill by name.
         let _ = std::process::Command::new("pkill")
             .arg("-f")

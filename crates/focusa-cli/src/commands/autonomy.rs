@@ -20,7 +20,10 @@ pub async fn run(cmd: AutonomyCmd, json: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("Autonomy Level: {:?}", resp["level"]);
-                println!("  ARI score:    {:.1}", resp["ari_score"].as_f64().unwrap_or(0.0));
+                println!(
+                    "  ARI score:    {:.1}",
+                    resp["ari_score"].as_f64().unwrap_or(0.0)
+                );
                 println!("  Samples:      {}", resp["sample_count"]);
                 if let Some(rec) = resp.get("recommendation")
                     && !rec.is_null()
@@ -36,8 +39,12 @@ pub async fn run(cmd: AutonomyCmd, json: bool) -> anyhow::Result<()> {
             } else if let Some(events) = resp["history"].as_array() {
                 println!("Autonomy History ({} events):", events.len());
                 for e in events {
-                    println!("  {} → {} ({})",
-                        e["from_level"], e["to_level"], e["reason"].as_str().unwrap_or("?"));
+                    println!(
+                        "  {} → {} ({})",
+                        e["from_level"],
+                        e["to_level"],
+                        e["reason"].as_str().unwrap_or("?")
+                    );
                 }
             }
         }

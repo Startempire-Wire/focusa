@@ -54,9 +54,7 @@ pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         EventsCmd::Show { event_id } => {
-            let resp = api
-                .get(&format!("/v1/events/{}", event_id))
-                .await?;
+            let resp = api.get(&format!("/v1/events/{}", event_id)).await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else if let Some(event) = resp.get("event") {

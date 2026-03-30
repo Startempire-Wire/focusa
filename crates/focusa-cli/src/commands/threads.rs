@@ -74,7 +74,11 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
             }
         }
 
-        ThreadCmd::Create { name, intent, owner } => {
+        ThreadCmd::Create {
+            name,
+            intent,
+            owner,
+        } => {
             let payload = serde_json::json!({
                 "name": name,
                 "primary_intent": intent,
@@ -104,14 +108,24 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
             let thread = &response["thread"];
             println!("Thread: {}", thread["name"].as_str().unwrap_or("?"));
             println!("  ID:           {}", thread["id"].as_str().unwrap_or("?"));
-            println!("  Status:       {}", thread["status"].as_str().unwrap_or("?"));
-            println!("  Created:      {}", thread["created_at"].as_str().unwrap_or("?"));
+            println!(
+                "  Status:       {}",
+                thread["status"].as_str().unwrap_or("?")
+            );
+            println!(
+                "  Created:      {}",
+                thread["created_at"].as_str().unwrap_or("?")
+            );
             if let Some(owner) = thread["owner_machine_id"].as_str() {
                 println!("  Owner:        {}", owner);
             }
         }
 
-        ThreadCmd::Transfer { thread_id, to, reason } => {
+        ThreadCmd::Transfer {
+            thread_id,
+            to,
+            reason,
+        } => {
             let payload = serde_json::json!({
                 "to_machine_id": to,
                 "reason": reason
@@ -123,12 +137,18 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
                 .context("Failed to transfer thread ownership")?;
 
             println!("Transferred ownership:");
-            println!("  Thread ID:    {}", response["thread_id"].as_str().unwrap_or("?"));
+            println!(
+                "  Thread ID:    {}",
+                response["thread_id"].as_str().unwrap_or("?")
+            );
             println!(
                 "  Previous:     {}",
                 response["previous_owner"].as_str().unwrap_or("none")
             );
-            println!("  New Owner:    {}", response["new_owner"].as_str().unwrap_or("?"));
+            println!(
+                "  New Owner:    {}",
+                response["new_owner"].as_str().unwrap_or("?")
+            );
             if let Some(reason) = response["reason"].as_str() {
                 println!("  Reason:       {}", reason);
             }

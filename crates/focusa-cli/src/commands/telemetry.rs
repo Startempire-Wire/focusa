@@ -30,7 +30,10 @@ pub async fn run(cmd: TelemetryCmd, json: bool) -> anyhow::Result<()> {
             if json {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("Cost Estimate: ${:.4}", resp["estimated_cost_usd"].as_f64().unwrap_or(0.0));
+                println!(
+                    "Cost Estimate: ${:.4}",
+                    resp["estimated_cost_usd"].as_f64().unwrap_or(0.0)
+                );
                 println!("  prompt tokens:     {}", resp["prompt_tokens"]);
                 println!("  completion tokens: {}", resp["completion_tokens"]);
             }

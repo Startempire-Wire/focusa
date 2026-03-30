@@ -18,7 +18,10 @@ pub async fn run(cmd: RfmCmd, json: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("RFM Level:  {:?}", resp["level"]);
-                println!("  AIS:      {:.2}", resp["ais_score"].as_f64().unwrap_or(1.0));
+                println!(
+                    "  AIS:      {:.2}",
+                    resp["ais_score"].as_f64().unwrap_or(1.0)
+                );
                 println!("  regen:    {}", resp["needs_regeneration"]);
                 println!("  ensemble: {}", resp["needs_ensemble"]);
             }

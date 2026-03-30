@@ -71,28 +71,14 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         EcsCmd::Resolve { handle_id } | EcsCmd::Meta { handle_id } => {
-            let resp = api
-                .get(&format!("/v1/ecs/resolve/{}", handle_id))
-                .await?;
+            let resp = api.get(&format!("/v1/ecs/resolve/{}", handle_id)).await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else if let Some(handle) = resp.get("handle") {
-                println!(
-                    "  id:    {}",
-                    handle["id"].as_str().unwrap_or("?")
-                );
-                println!(
-                    "  kind:  {}",
-                    handle["kind"].as_str().unwrap_or("?")
-                );
-                println!(
-                    "  label: {}",
-                    handle["label"].as_str().unwrap_or("?")
-                );
-                println!(
-                    "  size:  {} bytes",
-                    handle["size"].as_u64().unwrap_or(0)
-                );
+                println!("  id:    {}", handle["id"].as_str().unwrap_or("?"));
+                println!("  kind:  {}", handle["kind"].as_str().unwrap_or("?"));
+                println!("  label: {}", handle["label"].as_str().unwrap_or("?"));
+                println!("  size:  {} bytes", handle["size"].as_u64().unwrap_or(0));
             } else {
                 println!("Handle not found");
             }
@@ -122,9 +108,7 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         EcsCmd::Cat { handle_id } => {
-            let resp = api
-                .get(&format!("/v1/ecs/content/{}", handle_id))
-                .await?;
+            let resp = api.get(&format!("/v1/ecs/content/{}", handle_id)).await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else if let Some(content_b64) = resp["content_b64"].as_str() {
@@ -137,7 +121,10 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
                 eprintln!("Error: {}", resp["error"].as_str().unwrap_or("unknown"));
             }
         }
-        EcsCmd::Rehydrate { handle_id, max_tokens } => {
+        EcsCmd::Rehydrate {
+            handle_id,
+            max_tokens,
+        } => {
             let resp = api
                 .post(
                     &format!("/v1/ecs/rehydrate/{}?max_tokens={}", handle_id, max_tokens),

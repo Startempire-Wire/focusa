@@ -77,10 +77,7 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         FocusCmd::Pop { reason } => {
             let resp = api
-                .post(
-                    "/v1/focus/pop",
-                    &json!({"completion_reason": reason}),
-                )
+                .post("/v1/focus/pop", &json!({"completion_reason": reason}))
                 .await?;
 
             if json_mode {
@@ -105,10 +102,7 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         FocusCmd::Set { frame_id } => {
             let resp = api
-                .post(
-                    "/v1/focus/set-active",
-                    &json!({"frame_id": frame_id}),
-                )
+                .post("/v1/focus/set-active", &json!({"frame_id": frame_id}))
                 .await?;
 
             if json_mode {
