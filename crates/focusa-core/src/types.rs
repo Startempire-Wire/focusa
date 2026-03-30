@@ -416,6 +416,8 @@ pub struct RuleRecord {
     pub scope: RuleScope,
     pub enabled: bool,
     pub pinned: bool,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -524,6 +526,24 @@ pub enum FocusaEvent {
         reason: String,
     },
 
+    // Turn lifecycle (Mode A adapter integration)
+    TurnStarted {
+        turn_id: TurnId,
+        harness_name: String,
+        adapter_id: String,
+        raw_user_input: Option<String>,
+    },
+    TurnCompleted {
+        turn_id: TurnId,
+        harness_name: String,
+        raw_user_input: Option<String>,
+        assistant_output: Option<String>,
+        artifacts_used: Vec<HandleRef>,
+        errors: Vec<String>,
+        prompt_tokens: Option<u32>,
+        completion_tokens: Option<u32>,
+    },
+
     // Focus Stack
     FocusFramePushed {
         frame_id: FrameId,
@@ -589,6 +609,28 @@ pub enum FocusaEvent {
     },
     ArtifactGarbageCollected {
         artifact_id: ArtifactId,
+    },
+
+    // Workers
+    WorkerJobEnqueued {
+        job_id: Uuid,
+        kind: WorkerJobKind,
+        correlation_id: Option<String>,
+    },
+    WorkerJobStarted {
+        job_id: Uuid,
+        kind: WorkerJobKind,
+    },
+    WorkerJobCompleted {
+        job_id: Uuid,
+        kind: WorkerJobKind,
+        duration_ms: u64,
+    },
+    WorkerJobFailed {
+        job_id: Uuid,
+        kind: WorkerJobKind,
+        duration_ms: u64,
+        error: String,
     },
 
     // Errors
@@ -821,6 +863,11 @@ pub enum Action {
         source: String,
         payload: serde_json::Value,
         deadline_ms: u64,
+    },
+
+    // Events
+    EmitEvent {
+        event: FocusaEvent,
     },
 }
 
@@ -1634,6 +1681,10 @@ pub struct ContextStats {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TurnComplete {
     pub turn_id: TurnId,
+    /// The user's original input for this turn (if available).
+    #[serde(default)]
+    pub raw_user_input: Option<String>,
+    /// The assistant's output for this turn.
     pub assistant_output: String,
     #[serde(default)]
     pub artifacts: Vec<HandleRef>,

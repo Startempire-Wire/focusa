@@ -88,7 +88,6 @@ pub fn reduce_with_meta(
 
     match event {
         // ─── Instance Lifecycle ─────────────────────────────────────────
-
         FocusaEvent::InstanceConnected { instance_id, kind } => {
             if !state.instances.iter().any(|i| i.id == instance_id) {
                 state.instances.push(Instance {
@@ -100,17 +99,18 @@ pub fn reduce_with_meta(
             }
         }
 
-        FocusaEvent::InstanceDisconnected { instance_id, reason: _ } => {
+        FocusaEvent::InstanceDisconnected {
+            instance_id,
+            reason: _,
+        } => {
             // Keep instances for auditability; mark offline later when schema supports it.
             // For now, remove to avoid stale UI.
             state.instances.retain(|i| i.id != instance_id);
             // NOTE: attachments are keyed by session_id, not instance_id.
             // Removal on disconnect will happen once session<->instance mapping is stored.
-
         }
 
         // ─── Thread Attachments (docs/40) ───────────────────────────────
-
         FocusaEvent::ThreadAttached {
             instance_id: _,
             session_id,
@@ -144,7 +144,6 @@ pub fn reduce_with_meta(
         }
 
         // ─── Session Lifecycle ───────────────────────────────────────────
-
         FocusaEvent::SessionStarted {
             session_id,
             adapter_id,
@@ -200,8 +199,91 @@ pub fn reduce_with_meta(
             session.status = SessionStatus::Closed;
         }
 
-        // ─── Focus Stack ─────────────────────────────────────────────────
+        // ─── Turn Lifecycle ───────────────────────────────────────────────
+        FocusaEvent::TurnStarted {
+            turn_id,
+            harness_name,
+            adapter_id,
+            raw_user_input,
+        } => {
+            // Store turn in active_turn for correlation.
+            state.active_turn = Some(ActiveTurn {
+                turn_id,
+                adapter_id,
+                harness_name,
+                started_at: Utc::now(),
+                raw_user_input,
+                assembled_prompt: None,
+            });
+        }
 
+        FocusaEvent::TurnCompleted {
+            turn_id,
+            harness_name: _,
+            raw_user_input: _,
+            assistant_output,
+            artifacts_used: _,
+            errors,
+            prompt_tokens,
+            completion_tokens,
+        } => {
+            // Validate turn_id matches before clearing.
+            // Note: active_turn might already be None if turn_complete API cleared it.
+            if let Some(ref turn) = state.active_turn
+                && turn.turn_id != turn_id
+            {
+                tracing::warn!(
+                    expected = %turn.turn_id,
+                    got = %turn_id,
+                    "TurnCompleted with mismatched turn_id"
+                );
+            }
+
+            // Clear active turn only if IDs match and turn exists.
+            if state
+                .active_turn
+                .as_ref()
+                .is_some_and(|t| t.turn_id == turn_id)
+            {
+                state.active_turn.take();
+            }
+
+            // Record turn completion in CLT (conversation depth tracking).
+            {
+                use crate::clt;
+                clt::append_interaction(
+                    &mut state.clt,
+                    state.session.as_ref().map(|s| s.session_id),
+                    "assistant",
+                    assistant_output.as_deref(),
+                    CltMetadata::default(),
+                );
+            }
+
+            if let Some(tokens) = prompt_tokens {
+                state.telemetry.total_prompt_tokens += tokens as u64;
+            }
+            if let Some(tokens) = completion_tokens {
+                state.telemetry.total_completion_tokens += tokens as u64;
+            }
+
+            // Emit errors as intuition signals.
+            for err in errors {
+                let signal_id = Uuid::now_v7();
+                state.focus_gate.signals.push(Signal {
+                    id: signal_id,
+                    ts: Utc::now(),
+                    origin: SignalOrigin::Daemon,
+                    kind: SignalKind::Error,
+                    frame_context: state.focus_stack.active_id,
+                    summary: err,
+                    payload_ref: None,
+                    tags: vec![],
+                });
+            }
+        }
+
+        // ─── Focus Stack ─────────────────────────────────────────────────
         FocusaEvent::FocusFramePushed {
             frame_id,
             beads_issue_id,
@@ -385,7 +467,6 @@ pub fn reduce_with_meta(
         }
 
         // ─── Focus State ─────────────────────────────────────────────────
-
         FocusaEvent::FocusStateUpdated { frame_id, delta } => {
             if state.focus_stack.active_id != Some(frame_id) {
                 return Err(ReducerError::InvalidEvent(format!(
@@ -406,7 +487,6 @@ pub fn reduce_with_meta(
         }
 
         // ─── Intuition → Gate ────────────────────────────────────────────
-
         FocusaEvent::IntuitionSignalObserved {
             signal_id,
             signal_type,
@@ -504,7 +584,6 @@ pub fn reduce_with_meta(
         }
 
         // ─── Reference Store ─────────────────────────────────────────────
-
         FocusaEvent::ArtifactRegistered {
             artifact_id,
             artifact_type,
@@ -570,8 +649,15 @@ pub fn reduce_with_meta(
             state.reference_index.handles.remove(idx);
         }
 
-        // ─── Errors ──────────────────────────────────────────────────────
+        // ─── Workers ─────────────────────────────────────────────────────
+        FocusaEvent::WorkerJobEnqueued { .. }
+        | FocusaEvent::WorkerJobStarted { .. }
+        | FocusaEvent::WorkerJobCompleted { .. }
+        | FocusaEvent::WorkerJobFailed { .. } => {
+            // Worker events are advisory/telemetry only.
+        }
 
+        // ─── Errors ──────────────────────────────────────────────────────
         FocusaEvent::InvariantViolation {
             invariant: _,
             details: _,
@@ -581,7 +667,6 @@ pub fn reduce_with_meta(
         }
 
         // ─── Thread Ownership ────────────────────────────────────────────
-
         FocusaEvent::ThreadOwnershipTransferred {
             thread_id,
             from_machine_id,
@@ -691,23 +776,21 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
         )));
     }
     match state.focus_stack.active_id {
-        Some(aid) => {
-            match state.focus_stack.frames.iter().find(|f| f.id == aid) {
-                None => {
-                    return Err(ReducerError::InvariantViolation(format!(
-                        "active_id {} points to nonexistent frame",
-                        aid
-                    )));
-                }
-                Some(f) if f.status != FrameStatus::Active => {
-                    return Err(ReducerError::InvariantViolation(format!(
-                        "active_id {} points to frame with status {:?}, expected Active",
-                        aid, f.status
-                    )));
-                }
-                _ => {}
+        Some(aid) => match state.focus_stack.frames.iter().find(|f| f.id == aid) {
+            None => {
+                return Err(ReducerError::InvariantViolation(format!(
+                    "active_id {} points to nonexistent frame",
+                    aid
+                )));
             }
-        }
+            Some(f) if f.status != FrameStatus::Active => {
+                return Err(ReducerError::InvariantViolation(format!(
+                    "active_id {} points to frame with status {:?}, expected Active",
+                    aid, f.status
+                )));
+            }
+            _ => {}
+        },
         None => {
             if active_count != 0 {
                 return Err(ReducerError::InvariantViolation(format!(
@@ -792,7 +875,9 @@ pub enum ReducerError {
     #[error("Session error: {0}")]
     SessionError(String),
 
-    #[error("Ownership violation: thread {thread_id} owned by {owner}, attempted by {attempted_by:?}")]
+    #[error(
+        "Ownership violation: thread {thread_id} owned by {owner}, attempted by {attempted_by:?}"
+    )]
     OwnershipViolation {
         thread_id: Uuid,
         owner: String,
@@ -839,7 +924,10 @@ mod tests {
         let state = fresh_state();
         let state = start_session(state);
         assert!(state.session.is_some());
-        assert_eq!(state.session.as_ref().unwrap().status, SessionStatus::Active);
+        assert_eq!(
+            state.session.as_ref().unwrap().status,
+            SessionStatus::Active
+        );
         assert_eq!(state.version, 1);
     }
 
@@ -859,26 +947,50 @@ mod tests {
     fn test_session_close_and_restart() {
         let state = start_session(fresh_state());
         // Close
-        let event = FocusaEvent::SessionClosed { reason: "done".into() };
+        let event = FocusaEvent::SessionClosed {
+            reason: "done".into(),
+        };
         let state = reduce(state, event).unwrap().new_state;
-        assert_eq!(state.session.as_ref().unwrap().status, SessionStatus::Closed);
+        assert_eq!(
+            state.session.as_ref().unwrap().status,
+            SessionStatus::Closed
+        );
         // Restart — should succeed (not reject closed session)
         let state = start_session(state);
-        assert_eq!(state.session.as_ref().unwrap().status, SessionStatus::Active);
+        assert_eq!(
+            state.session.as_ref().unwrap().status,
+            SessionStatus::Active
+        );
     }
 
     #[test]
     fn test_session_close_without_session_errors() {
-        let result = reduce(fresh_state(), FocusaEvent::SessionClosed { reason: "test".into() });
+        let result = reduce(
+            fresh_state(),
+            FocusaEvent::SessionClosed {
+                reason: "test".into(),
+            },
+        );
         assert!(result.is_err());
     }
 
     #[test]
     fn test_session_double_close_errors() {
         let state = start_session(fresh_state());
-        let state = reduce(state, FocusaEvent::SessionClosed { reason: "first".into() })
-            .unwrap().new_state;
-        let result = reduce(state, FocusaEvent::SessionClosed { reason: "second".into() });
+        let state = reduce(
+            state,
+            FocusaEvent::SessionClosed {
+                reason: "first".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        let result = reduce(
+            state,
+            FocusaEvent::SessionClosed {
+                reason: "second".into(),
+            },
+        );
         assert!(result.is_err());
     }
 
@@ -901,9 +1013,19 @@ mod tests {
         let (state, child_id) = push_frame(state, "Child");
 
         assert_eq!(state.focus_stack.active_id, Some(child_id));
-        let parent = state.focus_stack.frames.iter().find(|f| f.id == parent_id).unwrap();
+        let parent = state
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| f.id == parent_id)
+            .unwrap();
         assert_eq!(parent.status, FrameStatus::Paused);
-        let child = state.focus_stack.frames.iter().find(|f| f.id == child_id).unwrap();
+        let child = state
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| f.id == child_id)
+            .unwrap();
         assert_eq!(child.status, FrameStatus::Active);
     }
 
@@ -920,9 +1042,19 @@ mod tests {
         let state = reduce(state, event).unwrap().new_state;
 
         assert_eq!(state.focus_stack.active_id, Some(parent_id));
-        let parent = state.focus_stack.frames.iter().find(|f| f.id == parent_id).unwrap();
+        let parent = state
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| f.id == parent_id)
+            .unwrap();
         assert_eq!(parent.status, FrameStatus::Active);
-        let child = state.focus_stack.frames.iter().find(|f| f.id == child_id).unwrap();
+        let child = state
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| f.id == child_id)
+            .unwrap();
         assert_eq!(child.status, FrameStatus::Completed);
     }
 
@@ -1011,7 +1143,12 @@ mod tests {
         };
         let state = reduce(state, event).unwrap().new_state;
         assert_eq!(state.focus_stack.active_id, None);
-        let frame = state.focus_stack.frames.iter().find(|f| f.id == frame_id).unwrap();
+        let frame = state
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| f.id == frame_id)
+            .unwrap();
         assert_eq!(frame.status, FrameStatus::Paused);
     }
 
@@ -1029,7 +1166,10 @@ mod tests {
         };
         let state = reduce(fresh_state(), event).unwrap().new_state;
         assert_eq!(state.focus_gate.candidates.len(), 1);
-        assert_eq!(state.focus_gate.candidates[0].state, CandidateState::Surfaced);
+        assert_eq!(
+            state.focus_gate.candidates[0].state,
+            CandidateState::Surfaced
+        );
         assert_eq!(state.focus_gate.candidates[0].pressure, 2.5);
     }
 
@@ -1064,45 +1204,67 @@ mod tests {
     #[test]
     fn test_candidate_pin() {
         let cid = Uuid::now_v7();
-        let state = reduce(fresh_state(), FocusaEvent::CandidateSurfaced {
-            candidate_id: cid,
-            kind: CandidateKind::SuggestFixError,
-            description: "test".into(),
-            pressure: 1.0,
-            related_frame_id: None,
-        }).unwrap().new_state;
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::CandidateSurfaced {
+                candidate_id: cid,
+                kind: CandidateKind::SuggestFixError,
+                description: "test".into(),
+                pressure: 1.0,
+                related_frame_id: None,
+            },
+        )
+        .unwrap()
+        .new_state;
 
         let state = reduce(state, FocusaEvent::CandidatePinned { candidate_id: cid })
-            .unwrap().new_state;
+            .unwrap()
+            .new_state;
         assert!(state.focus_gate.candidates[0].pinned);
     }
 
     #[test]
     fn test_candidate_suppress() {
         let cid = Uuid::now_v7();
-        let state = reduce(fresh_state(), FocusaEvent::CandidateSurfaced {
-            candidate_id: cid,
-            kind: CandidateKind::SuggestFixError,
-            description: "test".into(),
-            pressure: 2.0,
-            related_frame_id: None,
-        }).unwrap().new_state;
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::CandidateSurfaced {
+                candidate_id: cid,
+                kind: CandidateKind::SuggestFixError,
+                description: "test".into(),
+                pressure: 2.0,
+                related_frame_id: None,
+            },
+        )
+        .unwrap()
+        .new_state;
 
-        let state = reduce(state, FocusaEvent::CandidateSuppressed {
-            candidate_id: cid,
-            scope: "session".into(),
-            suppressed_until: None,
-        }).unwrap().new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::CandidateSuppressed {
+                candidate_id: cid,
+                scope: "session".into(),
+                suppressed_until: None,
+            },
+        )
+        .unwrap()
+        .new_state;
 
-        assert_eq!(state.focus_gate.candidates[0].state, CandidateState::Suppressed);
+        assert_eq!(
+            state.focus_gate.candidates[0].state,
+            CandidateState::Suppressed
+        );
         assert_eq!(state.focus_gate.candidates[0].pressure, 0.0);
     }
 
     #[test]
     fn test_nonexistent_candidate_pin_errors() {
-        let result = reduce(fresh_state(), FocusaEvent::CandidatePinned {
-            candidate_id: Uuid::now_v7(),
-        });
+        let result = reduce(
+            fresh_state(),
+            FocusaEvent::CandidatePinned {
+                candidate_id: Uuid::now_v7(),
+            },
+        );
         assert!(result.is_err());
     }
 
@@ -1147,32 +1309,50 @@ mod tests {
     #[test]
     fn test_artifact_gc_removes() {
         let aid = Uuid::now_v7();
-        let state = reduce(fresh_state(), FocusaEvent::ArtifactRegistered {
-            artifact_id: aid,
-            artifact_type: "text".into(),
-            summary: "temp".into(),
-            storage_uri: "ecs://abc".into(),
-        }).unwrap().new_state;
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::ArtifactRegistered {
+                artifact_id: aid,
+                artifact_type: "text".into(),
+                summary: "temp".into(),
+                storage_uri: "ecs://abc".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
 
-        let state = reduce(state, FocusaEvent::ArtifactGarbageCollected { artifact_id: aid })
-            .unwrap().new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::ArtifactGarbageCollected { artifact_id: aid },
+        )
+        .unwrap()
+        .new_state;
         assert!(state.reference_index.handles.is_empty());
     }
 
     #[test]
     fn test_pinned_artifact_gc_blocked() {
         let aid = Uuid::now_v7();
-        let state = reduce(fresh_state(), FocusaEvent::ArtifactRegistered {
-            artifact_id: aid,
-            artifact_type: "log".into(),
-            summary: "important".into(),
-            storage_uri: "ecs://abc".into(),
-        }).unwrap().new_state;
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::ArtifactRegistered {
+                artifact_id: aid,
+                artifact_type: "log".into(),
+                summary: "important".into(),
+                storage_uri: "ecs://abc".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
 
         let state = reduce(state, FocusaEvent::ArtifactPinned { artifact_id: aid })
-            .unwrap().new_state;
+            .unwrap()
+            .new_state;
 
-        let result = reduce(state, FocusaEvent::ArtifactGarbageCollected { artifact_id: aid });
+        let result = reduce(
+            state,
+            FocusaEvent::ArtifactGarbageCollected { artifact_id: aid },
+        );
         assert!(result.is_err()); // Pinned — cannot GC.
     }
 
@@ -1360,7 +1540,7 @@ mod tests {
         // Try to transfer with from_machine_id specified on unowned thread
         let event = FocusaEvent::ThreadOwnershipTransferred {
             thread_id,
-            from_machine_id: Some("machine-a".into()),  // Can't claim with from_id
+            from_machine_id: Some("machine-a".into()), // Can't claim with from_id
             to_machine_id: "machine-b".into(),
             reason: "Invalid claim".into(),
         };
@@ -1370,7 +1550,7 @@ mod tests {
 
     #[test]
     fn test_ownership_transfer_nonexistent_thread_rejected() {
-        let thread_id = Uuid::now_v7();  // Thread doesn't exist
+        let thread_id = Uuid::now_v7(); // Thread doesn't exist
 
         let event = FocusaEvent::ThreadOwnershipTransferred {
             thread_id,
