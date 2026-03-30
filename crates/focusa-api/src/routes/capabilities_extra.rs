@@ -503,6 +503,146 @@ async fn constitution_drafts(
     Ok(Json(json!({"agent_id": q.agent_id, "drafts": []})))
 }
 
+// ─── Missing skill-mapped endpoints (docs/34) ─────────────────────────────
+
+/// GET /v1/state/explain — docs/34 §5.1 focusa.explain_last_decision
+async fn state_explain(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "state:read")?;
+    let s = state.focusa.read().await;
+    let active = s.focus_stack.active_id
+        .and_then(|aid| s.focus_stack.frames.iter().find(|f| f.id == aid));
+    Ok(Json(json!({
+        "active_frame": active.map(|f| json!({
+            "title": f.title,
+            "goal": f.goal,
+            "focus_state": f.focus_state,
+        })),
+        "recent_decisions": active.map(|f| &f.focus_state.decisions).unwrap_or(&vec![]),
+        "recent_failures": active.map(|f| &f.focus_state.failures).unwrap_or(&vec![]),
+        "gate_candidates": s.focus_gate.candidates.iter()
+            .filter(|c| c.state == focusa_core::types::CandidateState::Surfaced)
+            .map(|c| json!({"id": c.id, "label": c.label, "pressure": c.pressure}))
+            .collect::<Vec<_>>(),
+    })))
+}
+
+/// GET /v1/references/salient — docs/34 §3.5 focusa.get_salient_references
+async fn references_salient(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "references:read")?;
+    let s = state.focusa.read().await;
+    let session_id = s.session.as_ref().map(|sess| sess.session_id);
+    let salient: Vec<&focusa_core::types::HandleRef> = s.reference_index.handles.iter()
+        .filter(|h| h.pinned || h.session_id == session_id)
+        .collect();
+    Ok(Json(json!({ "references": salient })))
+}
+
+/// GET /v1/references/trace — docs/34 §5.2 focusa.trace_reference_usage
+#[derive(Debug, Deserialize)]
+struct TraceQuery {
+    ref_id: String,
+}
+
+async fn references_trace(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(q): Query<TraceQuery>,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "references:read")?;
+    let s = state.focusa.read().await;
+    // Find CLT nodes that reference this artifact.
+    let ref_id = &q.ref_id;
+    let used_in: Vec<&str> = s.clt.nodes.iter()
+        .filter(|n| {
+            if let focusa_core::types::CltPayload::Interaction { content_ref, .. } = &n.payload {
+                content_ref.as_deref() == Some(ref_id)
+            } else {
+                false
+            }
+        })
+        .map(|n| n.node_id.as_str())
+        .collect();
+    Ok(Json(json!({ "ref_id": ref_id, "used_in": used_in })))
+}
+
+/// GET /v1/telemetry/process — docs/34 §4.2 focusa.get_cognitive_metrics
+async fn telemetry_process(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "metrics:read")?;
+    let s = state.focusa.read().await;
+    let stack_depth = s.focus_stack.stack_path_cache.len();
+    let completed = s.focus_stack.frames.iter()
+        .filter(|f| f.status == focusa_core::types::FrameStatus::Completed).count();
+    let abandoned = s.focus_stack.frames.iter()
+        .filter(|f| f.completion_reason == Some(focusa_core::types::CompletionReason::Abandoned)).count();
+    let total_frames = s.focus_stack.frames.len().max(1);
+    Ok(Json(json!({
+        "avg_focus_depth": stack_depth,
+        "abandonment_rate": abandoned as f64 / total_frames as f64,
+        "gate_acceptance": s.focus_gate.candidates.iter()
+            .filter(|c| c.state == focusa_core::types::CandidateState::Surfaced).count(),
+        "total_frames": total_frames,
+        "completed_frames": completed,
+    })))
+}
+
+/// GET /v1/telemetry/ux — docs/34 §4.3 focusa.get_ux_signals
+async fn telemetry_ux(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "metrics:read")?;
+    let s = state.focusa.read().await;
+    Ok(Json(json!({
+        "uxp": {
+            "autonomy_tolerance": s.uxp.autonomy_tolerance.value,
+            "verbosity_preference": s.uxp.verbosity_preference.value,
+            "interruption_sensitivity": s.uxp.interruption_sensitivity.value,
+        },
+        "ufi": {
+            "aggregate": s.ufi.aggregate,
+            "signal_count": s.ufi.signals.len(),
+        },
+    })))
+}
+
+/// POST /v1/constitution/propose — docs/34 §6.3 focusa.propose_constitution_update
+#[derive(Debug, Deserialize)]
+struct ConstitutionProposeBody {
+    draft: String,
+    justification: String,
+}
+
+async fn constitution_propose(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<ConstitutionProposeBody>,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "constitution:propose")?;
+    // Submit as a proposal via PRE (docs/41).
+    let _ = state.command_tx.send(focusa_core::types::Action::SubmitProposal {
+        kind: focusa_core::types::ProposalKind::ConstitutionRevision,
+        source: "agent".into(),
+        payload: serde_json::json!({
+            "draft": body.draft,
+            "justification": body.justification,
+        }),
+        deadline_ms: 3600_000, // 1 hour.
+    }).await.map_err(|_| (
+        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({"error": "failed to submit proposal"})),
+    ))?;
+    Ok(Json(json!({ "status": "proposed" })))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         // Autonomy
@@ -536,4 +676,11 @@ pub fn router() -> Router<Arc<AppState>> {
         // Constitution extras
         .route("/v1/constitution/diff", get(constitution_diff))
         .route("/v1/constitution/drafts", get(constitution_drafts))
+        .route("/v1/constitution/propose", post(constitution_propose))
+        // Skill-mapped endpoints (docs/34)
+        .route("/v1/state/explain", get(state_explain))
+        .route("/v1/references/salient", get(references_salient))
+        .route("/v1/references/trace", get(references_trace))
+        .route("/v1/telemetry/process", get(telemetry_process))
+        .route("/v1/telemetry/ux", get(telemetry_ux))
 }
