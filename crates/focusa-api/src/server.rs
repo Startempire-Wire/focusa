@@ -60,6 +60,8 @@ pub struct AppState {
     pub persistence: SqlitePersistence,
     /// In-memory command write-model state for /v1/commands/* endpoints.
     pub command_store: CommandStore,
+    /// Token store for capability permissions (docs/25-26).
+    pub token_store: Arc<RwLock<focusa_core::permissions::TokenStore>>,
     /// Process start time for uptime reporting.
     pub started_at: Instant,
 }
@@ -97,6 +99,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::training::router())
         .merge(routes::turn::router())
         .merge(routes::ascc::router())
+        .merge(routes::tokens::router())
         .layer(axum_mw::from_fn(middleware::auth::auth_layer))
         .layer(axum_mw::from_fn(
             middleware::error_envelope::error_envelope_layer,
@@ -170,6 +173,7 @@ pub async fn run(
         config,
         persistence,
         command_store: Arc::new(RwLock::new(HashMap::new())),
+        token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
         started_at: Instant::now(),
     });
 

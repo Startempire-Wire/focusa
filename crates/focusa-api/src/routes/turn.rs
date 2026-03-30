@@ -376,6 +376,7 @@ mod tests {
             config: cfg,
             persistence: persistence.clone(),
             command_store: Arc::new(RwLock::new(HashMap::new())),
+            token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
             started_at: Instant::now(),
         });
 
