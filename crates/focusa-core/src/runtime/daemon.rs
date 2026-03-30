@@ -53,6 +53,8 @@ pub struct Daemon {
     /// ASCC checkpoints per frame (G1-07-ascc).
     /// Persisted via state snapshot; keyed by frame_id.
     checkpoints: std::collections::HashMap<Uuid, crate::types::CheckpointRecord>,
+    /// Cache store (docs/18-19).
+    cache: crate::cache::CacheStore,
     /// Receive signals from the intuition engine.
     signal_rx: mpsc::Receiver<Signal>,
     command_tx: mpsc::Sender<Action>,
@@ -113,6 +115,7 @@ impl Daemon {
             worker_tx,
             worker_rx,
             checkpoints: std::collections::HashMap::new(),
+            cache: crate::cache::CacheStore::new(),
             event_bus: None,
         })
     }
@@ -363,6 +366,8 @@ impl Daemon {
                     // ASCC: update checkpoint after FocusState changes (G1-07).
                     if let FocusaEvent::FocusStateUpdated { frame_id, .. } = &event {
                         self.update_checkpoint(*frame_id);
+                        // docs/18 §6: Focus State revision changed → bust C1/C2.
+                        self.cache.bust(CacheBustCategory::FreshEvidence);
                     }
 
                     // CLT: track interaction nodes for each event.
@@ -389,6 +394,8 @@ impl Daemon {
         // Post-action: run intuition observers.
         if is_stack_action {
             self.intuition.observe_stack(&self.state.focus_stack);
+            // docs/18 §6: Focus Stack push/pop → bust C1/C2 caches.
+            self.cache.bust(CacheBustCategory::AuthorityChange);
         }
 
         Ok(())
