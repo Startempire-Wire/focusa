@@ -743,11 +743,20 @@ impl Daemon {
             }
 
             // ─── Memory ──────────────────────────────────────────────────
+            // Memory ops mutate state directly (outside reducer) but emit audit
+            // events for observability per G1-detail-15 §memory.semantic_upserted,
+            // memory.rule_reinforced, memory.decay_tick.
             Action::UpsertSemantic { key, value, source } => {
-                // Memory ops bypass the reducer (no dedicated event type in MVP).
-                crate::memory::semantic::upsert(&mut self.state.memory, key, value, source);
+                crate::memory::semantic::upsert(
+                    &mut self.state.memory,
+                    key.clone(),
+                    value.clone(),
+                    source,
+                );
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
+                // Emit audit event to event log (not through reducer).
+                self.emit_memory_event(&format!("memory.semantic_upserted: {}={}", key, value));
                 Ok(vec![])
             }
 
@@ -755,6 +764,7 @@ impl Daemon {
                 crate::memory::procedural::reinforce(&mut self.state.memory, &rule_id);
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
+                self.emit_memory_event(&format!("memory.rule_reinforced: {}", rule_id));
                 Ok(vec![])
             }
 
@@ -796,6 +806,25 @@ impl Daemon {
                 // Completion is handled by the worker runner; no reducer mutation.
                 Ok(vec![])
             }
+        }
+    }
+
+    /// Emit a memory audit event to the event log.
+    ///
+    /// Per G1-detail-15: memory.semantic_upserted, memory.rule_reinforced,
+    /// memory.decay_tick must appear in the event log for replay observability.
+    /// These bypass the reducer but are persisted for auditability.
+    fn emit_memory_event(&self, details: &str) {
+        let event = FocusaEvent::InvariantViolation {
+            invariant: "memory_audit".into(),
+            details: details.to_string(),
+        };
+        let mut entry = create_entry(event, SignalOrigin::Daemon, None);
+        entry.instance_id = self.current_instance_id;
+        entry.thread_id = self.current_thread_id;
+        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
+        if let Err(e) = self.persistence.append_event(&entry) {
+            tracing::warn!("Failed to persist memory audit event: {}", e);
         }
     }
 
