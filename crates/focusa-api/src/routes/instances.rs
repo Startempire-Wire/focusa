@@ -5,9 +5,12 @@
 //! GET  /v1/instances/list (MVP: empty / stub)
 
 use crate::server::AppState;
-use axum::{routing::{get, post}, Json, Router};
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::{Action, InstanceKind};
 use serde::Deserialize;
 use serde_json::json;
@@ -47,8 +50,7 @@ async fn disconnect(
     State(state): State<Arc<AppState>>,
     Json(body): Json<DisconnectBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let instance_id = Uuid::parse_str(&body.instance_id)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let instance_id = Uuid::parse_str(&body.instance_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     state
         .command_tx

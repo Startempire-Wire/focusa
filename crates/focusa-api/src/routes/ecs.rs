@@ -9,7 +9,10 @@
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::{Action, HandleKind};
 use serde::Deserialize;
 use serde_json::json;
@@ -59,7 +62,12 @@ async fn resolve_handle(
     Path(handle_id): Path<uuid::Uuid>,
 ) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
-    match focusa.reference_index.handles.iter().find(|h| h.id == handle_id) {
+    match focusa
+        .reference_index
+        .handles
+        .iter()
+        .find(|h| h.id == handle_id)
+    {
         Some(handle) => Json(json!({"handle": handle})),
         None => Json(json!({"error": "handle not found"})),
     }
@@ -86,8 +94,7 @@ async fn get_content(
     let blob_path = ecs_root.join(&handle.sha256);
 
     // Get content from store.
-    let content = std::fs::read(&blob_path)
-        .map_err(|_| StatusCode::NOT_FOUND)?;
+    let content = std::fs::read(&blob_path).map_err(|_| StatusCode::NOT_FOUND)?;
 
     Ok(Json(json!({
         "handle_id": handle_id,
@@ -99,9 +106,10 @@ async fn get_content(
 /// Expand ~ in path.
 fn expand_data_path(path: &str) -> std::path::PathBuf {
     if let Some(rest) = path.strip_prefix("~/")
-        && let Ok(home) = std::env::var("HOME") {
-            return std::path::PathBuf::from(home).join(rest);
-        }
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return std::path::PathBuf::from(home).join(rest);
+    }
     std::path::PathBuf::from(path)
 }
 
@@ -136,8 +144,7 @@ async fn rehydrate(
     let blob_path = ecs_root.join(&handle.sha256);
 
     // Get content from store.
-    let content = std::fs::read(&blob_path)
-        .map_err(|_| StatusCode::NOT_FOUND)?;
+    let content = std::fs::read(&blob_path).map_err(|_| StatusCode::NOT_FOUND)?;
 
     // Convert to string if possible.
     let text = String::from_utf8_lossy(&content);

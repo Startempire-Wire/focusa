@@ -6,9 +6,9 @@
 //! Observations are recorded in the event log but do not mutate canonical state.
 
 use crate::server::AppState;
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::Json;
 use focusa_core::types::{EventLogEntry, FocusaEvent, SignalOrigin};
 use serde::Deserialize;
 use serde_json::json;
@@ -151,5 +151,3 @@ pub async fn receive_impl(
         "elapsed_ms": elapsed_ms,
     })))
 }
-
-

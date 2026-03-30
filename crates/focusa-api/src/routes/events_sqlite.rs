@@ -8,10 +8,10 @@
 
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
-use axum::{routing::get, Json, Router};
+use axum::{Json, Router, routing::get};
 use rusqlite::{Connection, OptionalExtension};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -25,22 +25,27 @@ fn default_limit() -> usize {
     20
 }
 
-async fn recent(State(state): State<Arc<AppState>>, Query(params): Query<RecentParams>) -> Json<Value> {
+async fn recent(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<RecentParams>,
+) -> Json<Value> {
     let db_path = focusa_db_path(&state.config.data_dir);
 
     let conn = match Connection::open(db_path) {
         Ok(c) => c,
         Err(e) => {
-            return Json(json!({"events": [], "total": 0, "error": format!("db open failed: {e}") }));
+            return Json(
+                json!({"events": [], "total": 0, "error": format!("db open failed: {e}") }),
+            );
         }
     };
 
-    let mut stmt = match conn.prepare(
-        "SELECT payload_json FROM events ORDER BY ts DESC LIMIT ?1",
-    ) {
+    let mut stmt = match conn.prepare("SELECT payload_json FROM events ORDER BY ts DESC LIMIT ?1") {
         Ok(s) => s,
         Err(e) => {
-            return Json(json!({"events": [], "total": 0, "error": format!("db query failed: {e}") }));
+            return Json(
+                json!({"events": [], "total": 0, "error": format!("db query failed: {e}") }),
+            );
         }
     };
 
@@ -51,7 +56,9 @@ async fn recent(State(state): State<Arc<AppState>>, Query(params): Query<RecentP
     let payloads = match rows {
         Ok(v) => v,
         Err(e) => {
-            return Json(json!({"events": [], "total": 0, "error": format!("db read failed: {e}") }));
+            return Json(
+                json!({"events": [], "total": 0, "error": format!("db read failed: {e}") }),
+            );
         }
     };
 

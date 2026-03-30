@@ -14,24 +14,52 @@ use axum::{Json, Router, routing::post};
 use focusa_core::expression::engine::assemble;
 use focusa_core::memory::procedural;
 use focusa_core::types::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 /// POST /v1/turn/start
 ///
 /// Adapter calls this when user input is received.
-/// Daemon tracks the active turn.
+/// Daemon emits TurnStarted event for observability.
 async fn turn_start(
     State(state): State<Arc<AppState>>,
     Json(req): Json<TurnStart>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // Check if turn already started (prevent recursion from magic shims).
+    {
+        let focusa = state.focusa.read().await;
+        if let Some(ref turn) = focusa.active_turn
+            && turn.turn_id == req.turn_id
+        {
+            tracing::debug!(turn_id = %req.turn_id, "Turn already started, skipping duplicate");
+            return Ok(Json(json!({
+                "status": "accepted",
+                "turn_id": req.turn_id,
+                "duplicate": true
+            })));
+        }
+    }
+
     tracing::info!(
         turn_id = %req.turn_id,
         harness = %req.harness_name,
+        adapter_id = %req.adapter_id,
         "Turn started"
     );
 
-    // Store active turn in state (for correlation).
+    // Emit TurnStarted event via command channel for persistence.
+    let event = FocusaEvent::TurnStarted {
+        turn_id: req.turn_id.clone(),
+        harness_name: req.harness_name.clone(),
+        adapter_id: req.adapter_id.clone(),
+        raw_user_input: None, // Will be set when prompt_assemble is called
+    };
+
+    if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
+        tracing::error!("Failed to emit TurnStarted event: {}", e);
+    }
+
+    // Also store in active_turn for correlation (for prompt_assemble to access).
     {
         let mut focusa = state.focusa.write().await;
         focusa.active_turn = Some(ActiveTurn {
@@ -57,7 +85,7 @@ async fn turn_start(
 async fn prompt_assemble(
     State(state): State<Arc<AppState>>,
     Json(req): Json<PromptAssembleRequest>,
-) -> Result<Json<PromptAssembleResponse>, (StatusCode, Json<Value>)> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let focusa = state.focusa.read().await;
 
     // Get active frame's focus state.
@@ -70,9 +98,22 @@ async fn prompt_assemble(
         .unwrap_or_default();
 
     // Select procedural rules.
+    let project_id = focusa
+        .focus_stack
+        .active_id
+        .and_then(|fid| focusa.focus_stack.frames.iter().find(|f| f.id == fid))
+        .and_then(|frame| {
+            frame
+                .tags
+                .iter()
+                .find(|t| t.starts_with("project:"))
+                .map(|t| t.trim_start_matches("project:").to_string())
+        });
+
     let rules = procedural::select_for_prompt(
         &focusa.memory,
         focusa.focus_stack.active_id,
+        project_id.as_deref(),
         5,
     );
     let rules_owned: Vec<RuleRecord> = rules.into_iter().cloned().collect();
@@ -114,10 +155,11 @@ async fn prompt_assemble(
     {
         let mut focusa = state.focusa.write().await;
         if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == req.turn_id {
-                turn.raw_user_input = Some(req.raw_user_input.clone());
-                turn.assembled_prompt = Some(assembly.content.clone());
-            }
+            && turn.turn_id == req.turn_id
+        {
+            turn.raw_user_input = Some(req.raw_user_input.clone());
+            turn.assembled_prompt = Some(assembly.content.clone());
+        }
     }
 
     // Return as messages array (chat format) or plain string based on format hint.
@@ -137,11 +179,15 @@ async fn prompt_assemble(
         ])
     };
 
-    Ok(Json(PromptAssembleResponse {
-        assembled_prompt: output,
-        handles_used: handles_owned,
-        context_stats,
-    }))
+    Ok(Json(json!({
+        // Canonical spec keys
+        "assembled": output.clone(),
+        "stats": context_stats.clone(),
+        "handles_used": handles_owned,
+        // Backward-compatible runtime keys
+        "assembled_prompt": output,
+        "context_stats": context_stats,
+    })))
 }
 
 /// POST /v1/turn/append — streaming chunk (optional).
@@ -157,10 +203,11 @@ async fn turn_append(
     {
         let mut focusa = state.focusa.write().await;
         if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == req.turn_id {
-                let existing = turn.assembled_prompt.take().unwrap_or_default();
-                turn.assembled_prompt = Some(format!("{}{}", existing, req.chunk));
-            }
+            && turn.turn_id == req.turn_id
+        {
+            let existing = turn.assembled_prompt.take().unwrap_or_default();
+            turn.assembled_prompt = Some(format!("{}{}", existing, req.chunk));
+        }
     }
 
     Ok(Json(json!({"status": "accepted"})))
@@ -176,7 +223,7 @@ struct TurnAppend {
 /// POST /v1/turn/complete
 ///
 /// Adapter calls this when the turn ends.
-/// Daemon records the assistant output, emits events.
+/// Daemon emits TurnCompleted event for observability.
 async fn turn_complete(
     State(state): State<Arc<AppState>>,
     Json(req): Json<TurnComplete>,
@@ -189,49 +236,52 @@ async fn turn_complete(
         "Turn completed"
     );
 
-    // Validate turn_id matches before clearing active_turn.
-    {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref turn) = focusa.active_turn {
-            if turn.turn_id == req.turn_id {
-                focusa.active_turn.take();
-            } else {
-                tracing::warn!(
-                    expected = %turn.turn_id,
-                    got = %req.turn_id,
-                    "Turn ID mismatch - not clearing active_turn"
-                );
-            }
+    // Idempotency guard: repeated completion for the same turn_id must not double-apply.
+    match state.persistence.turn_completed_exists(&req.turn_id) {
+        Ok(true) => {
+            tracing::debug!(turn_id = %req.turn_id, "Duplicate turn_complete ignored");
+            return Ok(Json(json!({
+                "status": "accepted",
+                "turn_id": req.turn_id,
+                "duplicate": true
+            })));
+        }
+        Ok(false) => {}
+        Err(e) => {
+            tracing::error!(turn_id = %req.turn_id, error = %e, "Failed idempotency check; proceeding cautiously");
         }
     }
 
-    // Update frame stats if we have an active frame.
-    let frame_id = {
+    // Get harness_name and raw_user_input from active turn if available.
+    let (harness_name, raw_user_input) = {
         let focusa = state.focusa.read().await;
-        focusa.focus_stack.active_id
+        let hn = focusa
+            .active_turn
+            .as_ref()
+            .map(|t| t.harness_name.clone())
+            .unwrap_or_default();
+        let rui = focusa
+            .active_turn
+            .as_ref()
+            .and_then(|t| t.raw_user_input.clone());
+        (hn, rui)
     };
 
-    if let Some(fid) = frame_id {
-        // Emit turn completion event.
-        let delta = FocusStateDelta {
-            current_state: Some(format!(
-                "Turn {} completed: {} chars output",
-                req.turn_id,
-                req.assistant_output.len()
-            )),
-            ..Default::default()
-        };
+    // Emit TurnCompleted event via command channel for persistence.
+    // The reducer will handle CLT recording, error signals, and active_turn clearing.
+    let event = FocusaEvent::TurnCompleted {
+        turn_id: req.turn_id.clone(),
+        harness_name,
+        raw_user_input: raw_user_input.or(req.raw_user_input),
+        assistant_output: Some(req.assistant_output.clone()),
+        artifacts_used: req.artifacts.clone(),
+        errors: req.errors.clone(),
+        prompt_tokens: None,
+        completion_tokens: None,
+    };
 
-        let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
-            frame_id: fid,
-            turn_id: req.turn_id.clone(),
-            delta,
-        }).await;
-    }
-
-    // Handle errors.
-    for err in &req.errors {
-        tracing::error!(turn_id = %req.turn_id, error = %err, "Turn error");
+    if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
+        tracing::error!("Failed to emit TurnCompleted event: {}", e);
     }
 
     Ok(Json(json!({
@@ -246,4 +296,159 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/turn/append", post(turn_append))
         .route("/v1/turn/complete", post(turn_complete))
         .route("/v1/prompt/assemble", post(prompt_assemble))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::server::{AppState, build_router};
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use chrono::Utc;
+    use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
+    use focusa_core::types::{
+        Action, EventLogEntry, FocusaConfig, FocusaEvent, FocusaState, SignalOrigin,
+    };
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use std::time::Instant;
+    use tokio::sync::{RwLock, broadcast, mpsc};
+    use tower::ServiceExt;
+    use uuid::Uuid;
+
+    fn temp_config() -> FocusaConfig {
+        let mut cfg = FocusaConfig::default();
+        let dir = std::env::temp_dir().join(format!("focusa-api-test-{}", Uuid::now_v7()));
+        cfg.data_dir = dir.to_string_lossy().to_string();
+        cfg
+    }
+
+    async fn setup_app() -> (axum::Router, SqlitePersistence) {
+        let cfg = temp_config();
+        let persistence = SqlitePersistence::new(&cfg).expect("persistence");
+
+        let (tx, mut rx) = mpsc::channel::<Action>(64);
+        let (events_tx, _) = broadcast::channel::<String>(16);
+        let focusa = Arc::new(RwLock::new(FocusaState::default()));
+
+        let p = persistence.clone();
+        tokio::spawn(async move {
+            while let Some(action) = rx.recv().await {
+                if let Action::EmitEvent { event } = action {
+                    let entry = EventLogEntry {
+                        id: Uuid::now_v7(),
+                        timestamp: Utc::now(),
+                        event,
+                        correlation_id: None,
+                        origin: SignalOrigin::Daemon,
+                        machine_id: None,
+                        instance_id: None,
+                        session_id: None,
+                        thread_id: None,
+                        is_observation: false,
+                    };
+                    let _ = p.append_event(&entry);
+                }
+            }
+        });
+
+        let state = Arc::new(AppState {
+            focusa,
+            command_tx: tx,
+            events_tx,
+            config: cfg,
+            persistence: persistence.clone(),
+            command_store: Arc::new(RwLock::new(HashMap::new())),
+            started_at: Instant::now(),
+        });
+
+        (build_router(state), persistence)
+    }
+
+    #[tokio::test]
+    async fn turn_complete_is_idempotent_by_turn_id() {
+        let (app, persistence) = setup_app().await;
+        let turn_id = format!("turn-{}", Uuid::now_v7());
+
+        let start_req = Request::builder()
+            .method("POST")
+            .uri("/v1/turn/start")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                serde_json::json!({
+                    "turn_id": turn_id,
+                    "adapter_id": "spec-test",
+                    "harness_name": "spec-test",
+                    "timestamp": Utc::now(),
+                })
+                .to_string(),
+            ))
+            .expect("request");
+
+        let start_resp = app
+            .clone()
+            .oneshot(start_req)
+            .await
+            .expect("start response");
+        assert_eq!(start_resp.status(), StatusCode::OK);
+
+        let complete_body = serde_json::json!({
+            "turn_id": turn_id,
+            "assistant_output": "done",
+            "artifacts": [],
+            "errors": [],
+        })
+        .to_string();
+
+        let req1 = Request::builder()
+            .method("POST")
+            .uri("/v1/turn/complete")
+            .header("content-type", "application/json")
+            .body(Body::from(complete_body.clone()))
+            .expect("request1");
+        let resp1 = app.clone().oneshot(req1).await.expect("resp1");
+        assert_eq!(resp1.status(), StatusCode::OK);
+
+        // Allow async action consumer to persist first completion event.
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+
+        let req2 = Request::builder()
+            .method("POST")
+            .uri("/v1/turn/complete")
+            .header("content-type", "application/json")
+            .body(Body::from(complete_body))
+            .expect("request2");
+        let resp2 = app.clone().oneshot(req2).await.expect("resp2");
+        assert_eq!(resp2.status(), StatusCode::OK);
+
+        let body2 = axum::body::to_bytes(resp2.into_body(), usize::MAX)
+            .await
+            .expect("body2 bytes");
+        let json2: serde_json::Value = serde_json::from_slice(&body2).expect("json2");
+        assert_eq!(json2.get("duplicate").and_then(|v| v.as_bool()), Some(true));
+
+        // Verify persistence-level dedupe signal.
+        let exists = persistence
+            .turn_completed_exists(&turn_id)
+            .expect("turn_completed_exists");
+        assert!(exists);
+
+        let recent = persistence
+            .events_since(None, None, 100)
+            .expect("events_since");
+        let completed_count = recent
+            .iter()
+            .filter(|e| matches!(e.event, FocusaEvent::TurnCompleted { .. }))
+            .filter(|e| {
+                if let FocusaEvent::TurnCompleted {
+                    turn_id: ref tid, ..
+                } = e.event
+                {
+                    tid == &turn_id
+                } else {
+                    false
+                }
+            })
+            .count();
+        assert_eq!(completed_count, 1);
+    }
 }

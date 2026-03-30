@@ -84,7 +84,11 @@ async fn peer_status(
 
     let backlog: usize = state
         .persistence
-        .events_since(cursor.as_ref().and_then(|c| c.last_event_ts.as_deref()), None, 1000)
+        .events_since(
+            cursor.as_ref().and_then(|c| c.last_event_ts.as_deref()),
+            None,
+            1000,
+        )
         .map(|v| v.len())
         .unwrap_or(0);
 
@@ -148,17 +152,28 @@ async fn push_to_peer(
     Path(peer_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Get peer info to find endpoint
-    let peers = state.persistence.list_peers().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let peer = peers.into_iter().find(|p| p.peer_id == peer_id)
+    let peers = state
+        .persistence
+        .list_peers()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let peer = peers
+        .into_iter()
+        .find(|p| p.peer_id == peer_id)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     // Get local events since cursor
-    let cursor = state.persistence.get_cursor(&peer_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let events = state.persistence.events_since(
-        cursor.as_ref().and_then(|c| c.last_event_ts.as_deref()),
-        cursor.as_ref().and_then(|c| c.last_event_id.as_deref()),
-        100, // Batch size limit
-    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let cursor = state
+        .persistence
+        .get_cursor(&peer_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let events = state
+        .persistence
+        .events_since(
+            cursor.as_ref().and_then(|c| c.last_event_ts.as_deref()),
+            cursor.as_ref().and_then(|c| c.last_event_id.as_deref()),
+            100, // Batch size limit
+        )
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Prepare payload for remote
     let payload = json!({
@@ -198,13 +213,14 @@ async fn push_to_peer(
     let last_event = events.last();
     let last_event_id = last_event.map(|e| e.id.to_string());
     let last_event_ts = last_event.map(|e| e.timestamp.to_rfc3339());
-    state.persistence.set_cursor(
-        &peer_id,
-        last_event_id.as_deref(),
-        last_event_ts.as_deref(),
-    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    state
+        .persistence
+        .set_cursor(&peer_id, last_event_id.as_deref(), last_event_ts.as_deref())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = response.json::<serde_json::Value>().await
+    let result = response
+        .json::<serde_json::Value>()
+        .await
         .map_err(|_| StatusCode::BAD_GATEWAY)?;
 
     Ok(Json(json!({
@@ -231,8 +247,8 @@ async fn receive(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Parse body into ReceiveBody
-    let body: crate::routes::sync_receive::ReceiveBody = serde_json::from_value(body)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let body: crate::routes::sync_receive::ReceiveBody =
+        serde_json::from_value(body).map_err(|_| StatusCode::BAD_REQUEST)?;
     // Delegate to sync_receive module
     crate::routes::sync_receive::receive_impl(State(state), Json(body)).await
 }
@@ -242,8 +258,8 @@ async fn transfer(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Parse body into TransferBody
-    let body: crate::routes::sync_transfer::TransferBody = serde_json::from_value(body)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let body: crate::routes::sync_transfer::TransferBody =
+        serde_json::from_value(body).map_err(|_| StatusCode::BAD_REQUEST)?;
     // Delegate to sync_transfer module
     crate::routes::sync_transfer::transfer_impl(State(state), Json(body)).await
 }

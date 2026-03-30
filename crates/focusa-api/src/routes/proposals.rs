@@ -4,7 +4,7 @@ use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
 use focusa_core::types::{Action, ProposalKind};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 /// GET /v1/proposals — list pending proposals.
@@ -21,10 +21,16 @@ async fn submit_proposal(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
 ) -> Json<Value> {
-    let kind_str = body.get("kind").and_then(|v| v.as_str()).unwrap_or("focus_change");
+    let kind_str = body
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .unwrap_or("focus_change");
     let source = body.get("source").and_then(|v| v.as_str()).unwrap_or("api");
     let payload = body.get("payload").cloned().unwrap_or(json!({}));
-    let deadline_ms = body.get("deadline_ms").and_then(|v| v.as_u64()).unwrap_or(5000);
+    let deadline_ms = body
+        .get("deadline_ms")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(5000);
 
     let kind = match kind_str {
         "focus_change" => ProposalKind::FocusChange,
@@ -35,17 +41,19 @@ async fn submit_proposal(
         _ => ProposalKind::FocusChange,
     };
 
-    let _ = state.command_tx.send(Action::SubmitProposal {
-        kind,
-        source: source.into(),
-        payload,
-        deadline_ms,
-    }).await;
+    let _ = state
+        .command_tx
+        .send(Action::SubmitProposal {
+            kind,
+            source: source.into(),
+            payload,
+            deadline_ms,
+        })
+        .await;
 
     Json(json!({ "status": "accepted" }))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/v1/proposals", get(list_proposals).post(submit_proposal))
+    Router::new().route("/v1/proposals", get(list_proposals).post(submit_proposal))
 }

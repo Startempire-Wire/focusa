@@ -3,7 +3,7 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 /// GET /v1/training/status — export pipeline status.
@@ -18,6 +18,5 @@ async fn export_status(State(state): State<Arc<AppState>>) -> Json<Value> {
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/v1/training/status", get(export_status))
+    Router::new().route("/v1/training/status", get(export_status))
 }

@@ -43,7 +43,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
     let mut daemon = Daemon::new(config.clone(), shared_state.clone())?;
-    daemon.attach_event_bus(focusa_core::runtime::event_bus::EventBus::new(events_tx.clone()));
+    daemon.attach_event_bus(focusa_core::runtime::event_bus::EventBus::new(
+        events_tx.clone(),
+    ));
     let command_tx = daemon.command_sender();
     let events_tx_for_api = events_tx.clone();
 
@@ -59,7 +61,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Start API server (blocks until shutdown).
     let api_handle = tokio::spawn(async move {
-        if let Err(e) = server::run(shared_state, command_tx, events_tx_for_api, config, persistence).await {
+        if let Err(e) = server::run(
+            shared_state,
+            command_tx,
+            events_tx_for_api,
+            config,
+            persistence,
+        )
+        .await
+        {
             tracing::error!("API server error: {}", e);
         }
     });

@@ -6,14 +6,17 @@
 //! POST /v1/threads/:id/transfer — transfer thread ownership
 
 use crate::server::AppState;
-use focusa_core::types::{EventLogEntry, SignalOrigin, FocusaEvent};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::reducer;
+use focusa_core::types::{EventLogEntry, FocusaEvent, SignalOrigin};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -22,14 +25,20 @@ type AppResult<T = Json<Value>> = Result<T, (StatusCode, Json<Value>)>;
 /// GET /v1/threads — list threads in state.
 async fn list_threads(State(state): State<Arc<AppState>>) -> Json<Value> {
     let focus_state = state.focusa.read().await;
-    let threads: Vec<Value> = focus_state.threads.iter().map(|t| json!({
-        "id": t.id.to_string(),
-        "name": t.name,
-        "status": format!("{:?}", t.status),
-        "owner_machine_id": t.owner_machine_id,
-        "created_at": t.created_at,
-        "updated_at": t.updated_at,
-    })).collect();
+    let threads: Vec<Value> = focus_state
+        .threads
+        .iter()
+        .map(|t| {
+            json!({
+                "id": t.id.to_string(),
+                "name": t.name,
+                "status": format!("{:?}", t.status),
+                "owner_machine_id": t.owner_machine_id,
+                "created_at": t.created_at,
+                "updated_at": t.updated_at,
+            })
+        })
+        .collect();
 
     Json(json!({ "threads": threads }))
 }
@@ -49,10 +58,16 @@ async fn create_thread(
 ) -> impl IntoResponse {
     // Validate required fields
     if body.name.trim().is_empty() {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error": "name cannot be empty"})));
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "name cannot be empty"})),
+        );
     }
     if body.primary_intent.trim().is_empty() {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error": "primary_intent cannot be empty"})));
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "primary_intent cannot be empty"})),
+        );
     }
 
     // Create thread through reducer for proper event logging and state management.
@@ -75,7 +90,7 @@ async fn create_thread(
         Ok(result) => {
             // Generate event ID explicitly (consistent with what create_entry does)
             let event_id = Uuid::now_v7();
-            
+
             // Persist the event FIRST
             // This ensures event log is always the source of truth
             let entry = EventLogEntry {
@@ -95,8 +110,13 @@ async fn create_thread(
             }
 
             // Clone the new state for the response (before moving into focusa)
-            let thread = result.new_state.threads.iter().find(|t| t.id == thread_id).cloned();
-            
+            let thread = result
+                .new_state
+                .threads
+                .iter()
+                .find(|t| t.id == thread_id)
+                .cloned();
+
             // NOW update in-memory state (only after persistence succeeds)
             let state_to_save = result.new_state.clone();
             drop(focusa_state);
@@ -111,25 +131,34 @@ async fn create_thread(
             }
 
             match thread {
-                Some(thread) => (StatusCode::CREATED, Json(json!({
-                    "thread": {
-                        "id": thread.id.to_string(),
-                        "name": thread.name,
-                        "status": format!("{:?}", thread.status),
-                        "owner_machine_id": thread.owner_machine_id,
-                        "created_at": thread.created_at,
-                    }
-                }))),
-                None => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                    "error": "Thread creation failed"
-                }))),
+                Some(thread) => (
+                    StatusCode::CREATED,
+                    Json(json!({
+                        "thread": {
+                            "id": thread.id.to_string(),
+                            "name": thread.name,
+                            "status": format!("{:?}", thread.status),
+                            "owner_machine_id": thread.owner_machine_id,
+                            "created_at": thread.created_at,
+                        }
+                    })),
+                ),
+                None => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "error": "Thread creation failed"
+                    })),
+                ),
             }
         }
         Err(e) => {
             tracing::warn!("Thread creation rejected by reducer: {}", e);
-            (StatusCode::BAD_REQUEST, Json(json!({
-                "error": e.to_string()
-            })))
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "error": e.to_string()
+                })),
+            )
         }
     }
 }
@@ -140,8 +169,16 @@ async fn get_thread(
     Path(id): Path<String>,
 ) -> AppResult<Json<Value>> {
     let focus_state = state.focusa.read().await;
-    let thread = focus_state.threads.iter().find(|t| t.id.to_string() == id)
-        .ok_or_else(|| (StatusCode::NOT_FOUND, Json(json!({"error": "Thread not found"}))))?;
+    let thread = focus_state
+        .threads
+        .iter()
+        .find(|t| t.id.to_string() == id)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Thread not found"})),
+            )
+        })?;
 
     Ok(Json(json!({
         "thread": {
@@ -171,23 +208,43 @@ async fn transfer_ownership(
 ) -> AppResult<Json<Value>> {
     // Validate to_machine_id is not empty
     if body.to_machine_id.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "to_machine_id cannot be empty"}))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "to_machine_id cannot be empty"})),
+        ));
     }
-    
+
     // Parse thread_id
     let thread_id = match id.parse::<uuid::Uuid>() {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid thread ID"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid thread ID"})),
+            ));
+        }
     };
 
     // Get current state
     let focusa_state = state.focusa.read().await;
-    let thread = focusa_state.threads.iter().find(|t| t.id == thread_id)
-        .ok_or_else(|| (StatusCode::NOT_FOUND, Json(json!({"error": "Thread not found"}))))?;
+    let thread = focusa_state
+        .threads
+        .iter()
+        .find(|t| t.id == thread_id)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Thread not found"})),
+            )
+        })?;
 
     // Get this machine's ID
-    let machine_id = state.persistence.machine_id()
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Failed to get machine ID"}))))?;
+    let machine_id = state.persistence.machine_id().map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "Failed to get machine ID"})),
+        )
+    })?;
 
     // Get current owner (for from_machine_id field)
     let previous_owner = thread.owner_machine_id.clone();
@@ -218,7 +275,7 @@ async fn transfer_ownership(
         Ok(result) => {
             // Generate event ID explicitly (consistent with what create_entry does)
             let event_id = Uuid::now_v7();
-            
+
             // Persist the event FIRST
             // This ensures event log is always the source of truth
             let entry = EventLogEntry {
@@ -260,9 +317,12 @@ async fn transfer_ownership(
         }
         Err(e) => {
             tracing::warn!("Ownership transfer rejected by reducer: {}", e);
-            Err((StatusCode::FORBIDDEN, Json(json!({
-                "error": e.to_string()
-            }))))
+            Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": e.to_string()
+                })),
+            ))
         }
     }
 }

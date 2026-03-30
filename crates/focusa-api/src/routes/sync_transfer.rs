@@ -11,9 +11,9 @@
 //! consistent thread ownership.
 
 use crate::server::AppState;
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::Json;
 use focusa_core::reducer;
 use focusa_core::types::{EventLogEntry, FocusaEvent, SignalOrigin};
 use serde::Deserialize;
@@ -84,7 +84,12 @@ pub async fn transfer_impl(
 
         // Extract thread_id and validate to_machine_id from event
         let (thread_id, from_machine_id) = match &event {
-            FocusaEvent::ThreadOwnershipTransferred { thread_id, from_machine_id, to_machine_id, .. } => {
+            FocusaEvent::ThreadOwnershipTransferred {
+                thread_id,
+                from_machine_id,
+                to_machine_id,
+                ..
+            } => {
                 if to_machine_id.is_empty() {
                     tracing::warn!(event_id = %event_id, "Rejected transfer with empty to_machine_id");
                     rejected += 1;
@@ -109,7 +114,10 @@ pub async fn transfer_impl(
             correlation_id: Some(format!("sync:transfer:from:{}", body.peer_id)),
             origin: SignalOrigin::Sync,
             // Use from_machine_id for the log (who's transferring ownership)
-            machine_id: from_machine_id.as_ref().cloned().or(Some(remote.machine_id.clone())),
+            machine_id: from_machine_id
+                .as_ref()
+                .cloned()
+                .or(Some(remote.machine_id.clone())),
             instance_id: None,
             session_id: None,
             thread_id: Some(thread_id),

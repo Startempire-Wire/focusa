@@ -3,7 +3,7 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 /// GET /v1/telemetry/tokens — token usage metrics.

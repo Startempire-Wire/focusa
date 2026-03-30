@@ -3,10 +3,10 @@
 //! GET /v1/info
 
 use crate::server::AppState;
-use axum::{routing::get, Json, Router};
 use axum::extract::State;
+use axum::{Json, Router, routing::get};
 use rusqlite::{Connection, OptionalExtension};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -19,11 +19,9 @@ async fn info(State(state): State<Arc<AppState>>) -> Json<Value> {
     };
 
     let machine_id: Option<String> = conn
-        .query_row(
-            "SELECT value FROM meta WHERE key = 'machine_id'",
-            [],
-            |r| r.get(0),
-        )
+        .query_row("SELECT value FROM meta WHERE key = 'machine_id'", [], |r| {
+            r.get(0)
+        })
         .optional()
         .unwrap_or(None);
 

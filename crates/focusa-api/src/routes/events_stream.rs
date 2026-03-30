@@ -5,7 +5,7 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::response::sse::{Event, KeepAlive, Sse};
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use std::convert::Infallible;
 use std::sync::Arc;
 

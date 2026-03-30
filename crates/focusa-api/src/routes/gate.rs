@@ -7,10 +7,14 @@
 //! POST /v1/focus-gate/ingest-signal  — emit signal from adapter
 //! POST /v1/gate/signal               — alias for ingest-signal
 
+use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::State;
-use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::http::{HeaderMap, StatusCode};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use chrono::Utc;
 use focusa_core::types::{Action, Signal, SignalKind, SignalOrigin};
 use serde::Deserialize;
@@ -18,17 +22,22 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn candidates(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+async fn candidates(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("gate:read") {
+        return Err(forbid("gate:read"));
+    }
     let focusa = state.focusa.read().await;
     let threshold = state.config.gate_surface_threshold;
-    let surfaced = focusa_core::gate::focus_gate::surfaced_candidates(
-        &focusa.focus_gate,
-        threshold,
-    );
-    Json(json!({
+    let surfaced =
+        focusa_core::gate::focus_gate::surfaced_candidates(&focusa.focus_gate, threshold);
+    Ok(Json(json!({
         "candidates": focusa.focus_gate.candidates,
         "surfaced_count": surfaced.len(),
-    }))
+    })))
 }
 
 #[derive(Deserialize)]
@@ -44,8 +53,13 @@ fn default_scope() -> String {
 
 async fn suppress(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<SuppressBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("commands:submit") {
+        return Err(StatusCode::FORBIDDEN);
+    }
     state
         .command_tx
         .send(Action::SuppressCandidate {
@@ -65,8 +79,13 @@ struct PinBody {
 
 async fn pin(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<PinBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("commands:submit") {
+        return Err(StatusCode::FORBIDDEN);
+    }
     state
         .command_tx
         .send(Action::PinCandidate {
@@ -90,8 +109,13 @@ struct SurfaceBody {
 
 async fn surface(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<SurfaceBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("commands:submit") {
+        return Err(StatusCode::FORBIDDEN);
+    }
     state
         .command_tx
         .send(Action::SurfaceCandidate {
@@ -117,8 +141,13 @@ struct SignalBody {
 
 async fn emit_signal(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<SignalBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("commands:submit") {
+        return Err(StatusCode::FORBIDDEN);
+    }
     let kind = match body.kind.as_str() {
         "user_input_received" => SignalKind::UserInput,
         "tool_output_captured" => SignalKind::ToolOutput,

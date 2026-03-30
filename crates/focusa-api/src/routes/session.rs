@@ -8,19 +8,94 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::Action;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
 async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let focusa = state.focusa.read().await;
+    let (
+        session,
+        stack_depth,
+        active_frame_id,
+        version,
+        active_frame_summary,
+        prompt_stats,
+        worker_status,
+        telemetry,
+    ) = {
+        let focusa = state.focusa.read().await;
+
+        let active_frame = focusa
+            .focus_stack
+            .active_id
+            .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid));
+
+        let active_frame_summary = active_frame.map(|f| {
+            json!({
+                "id": f.id,
+                "title": f.title,
+                "goal": f.goal,
+                "status": f.status,
+                "updated_at": f.updated_at,
+            })
+        });
+
+        let assembled_chars = focusa
+            .active_turn
+            .as_ref()
+            .and_then(|t| t.assembled_prompt.as_ref())
+            .map(|s| s.len() as u64)
+            .unwrap_or(0);
+
+        let prompt_stats = json!({
+            "last_assembled_chars": assembled_chars,
+            "last_assembled_estimated_tokens": assembled_chars / 4,
+            "active_turn_id": focusa.active_turn.as_ref().map(|t| t.turn_id.clone()),
+        });
+
+        let worker_status = json!({
+            "queue_size_config": state.config.worker_queue_size,
+            "job_timeout_ms": state.config.worker_job_timeout_ms,
+            "enabled": true,
+        });
+
+        let telemetry = json!({
+            "total_events": focusa.telemetry.total_events,
+            "total_prompt_tokens": focusa.telemetry.total_prompt_tokens,
+            "total_completion_tokens": focusa.telemetry.total_completion_tokens,
+        });
+
+        (
+            focusa.session.clone(),
+            focusa.focus_stack.frames.len(),
+            focusa.focus_stack.active_id,
+            focusa.version,
+            active_frame_summary,
+            prompt_stats,
+            worker_status,
+            telemetry,
+        )
+    };
+
+    let last_event_ts = state.persistence.latest_event_timestamp().ok().flatten();
+    let persisted_event_count = state.persistence.event_count().ok();
+
     Json(json!({
-        "session": focusa.session,
-        "stack_depth": focusa.focus_stack.frames.len(),
-        "active_frame_id": focusa.focus_stack.active_id,
-        "version": focusa.version,
+        "session": session,
+        "stack_depth": stack_depth,
+        "active_frame_id": active_frame_id,
+        "active_frame": active_frame_summary,
+        "worker_status": worker_status,
+        "last_event_ts": last_event_ts,
+        "prompt_stats": prompt_stats,
+        "telemetry": telemetry,
+        "persisted_event_count": persisted_event_count,
+        "version": version,
     }))
 }
 
@@ -46,7 +121,9 @@ async fn start_session(
         .send(Action::StartSession {
             adapter_id: body.adapter_id,
             workspace_id: body.workspace_id,
-            instance_id: body.instance_id.and_then(|s| uuid::Uuid::parse_str(&s).ok()),
+            instance_id: body
+                .instance_id
+                .and_then(|s| uuid::Uuid::parse_str(&s).ok()),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -73,7 +150,9 @@ async fn close_session(
         .command_tx
         .send(Action::CloseSession {
             reason: body.reason,
-            instance_id: body.instance_id.and_then(|s| uuid::Uuid::parse_str(&s).ok()),
+            instance_id: body
+                .instance_id
+                .and_then(|s| uuid::Uuid::parse_str(&s).ok()),
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
