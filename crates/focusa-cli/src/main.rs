@@ -118,6 +118,18 @@ enum Commands {
     #[command(subcommand)]
     Thread(commands::threads::ThreadCmd),
 
+    /// Export training datasets (docs/20-21).
+    #[command(subcommand)]
+    Export(commands::export::ExportCmd),
+
+    /// Data contribution (docs/22).
+    #[command(subcommand)]
+    Contribute(commands::contribute::ContributeCmd),
+
+    /// Cache management (docs/18-19).
+    #[command(subcommand)]
+    Cache(commands::cache::CacheCmd),
+
     /// Wrap a harness CLI (Mode A proxy).
     ///
     /// Usage: focusa wrap -- <command> [args...]
@@ -234,6 +246,9 @@ async fn main() -> anyhow::Result<()> {
         Commands::Thread(cmd) => {
             commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await?
         }
+        Commands::Export(cmd) => commands::export::run(cmd, cli.json).await?,
+        Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await?,
+        Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await?,
         Commands::Wrap { command } => commands::wrap::run(command).await?,
     }
 
