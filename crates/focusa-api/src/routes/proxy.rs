@@ -398,6 +398,11 @@ async fn chat_completions(
                 turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
             }
         }
+        drop(focusa);
+
+        // Emit PromptAssembled event per G1-detail-11 §Events.
+        let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone().into()));
+        let _ = state.command_tx.send(Action::EmitEvent { event: prompt_event }).await;
     }
 
     // 3. FORWARD TO UPSTREAM.
@@ -593,6 +598,11 @@ async fn anthropic_messages(
                 turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
             }
         }
+        drop(focusa);
+
+        // Emit PromptAssembled event per G1-detail-11 §Events.
+        let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone().into()));
+        let _ = state.command_tx.send(Action::EmitEvent { event: prompt_event }).await;
     }
 
     // 3. FORWARD.

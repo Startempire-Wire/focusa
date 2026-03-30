@@ -675,6 +675,17 @@ pub enum FocusaEvent {
         error: String,
     },
 
+    // Prompt Assembly
+    /// Emitted when a prompt is assembled.
+    /// Per G1-detail-11 §Events: prompt.assembled with telemetry.
+    PromptAssembled {
+        turn_id: Option<TurnId>,
+        estimated_tokens: u32,
+        budget_target: u32,
+        dropped_sections: Vec<String>,
+        degraded: bool,
+    },
+
     // Errors
     InvariantViolation {
         invariant: String,

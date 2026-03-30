@@ -701,6 +701,11 @@ pub fn reduce_with_meta(
             // Worker events are advisory/telemetry only.
         }
 
+        // ─── Prompt Assembly ─────────────────────────────────────────────
+        FocusaEvent::PromptAssembled { .. } => {
+            // Prompt assembly events are telemetry only.
+        }
+
         // ─── Errors ──────────────────────────────────────────────────────
         FocusaEvent::InvariantViolation {
             invariant: _,

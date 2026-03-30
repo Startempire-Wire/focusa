@@ -63,6 +63,33 @@ pub struct AssembledPrompt {
     pub warnings: Vec<String>,
 }
 
+impl AssembledPrompt {
+    /// Create a PromptAssembled event from this assembly result.
+    ///
+    /// Per G1-detail-11 §Events: prompt.assembled with telemetry.
+    pub fn to_event(&self, turn_id: Option<crate::types::TurnId>) -> crate::types::FocusaEvent {
+        let dropped_sections: Vec<String> = self
+            .warnings
+            .iter()
+            .filter_map(|w| {
+                // Extract section name from warning messages like
+                // "Degradation step 1: dropped parent frame context"
+                w.strip_prefix("Degradation step ")
+                    .and_then(|rest| rest.split_once(": "))
+                    .map(|(_, msg)| msg.to_string())
+            })
+            .collect();
+
+        crate::types::FocusaEvent::PromptAssembled {
+            turn_id,
+            estimated_tokens: self.token_estimate,
+            budget_target: self.token_estimate, // Could be separate field in future
+            dropped_sections,
+            degraded: self.degraded,
+        }
+    }
+}
+
 // ─── Assembly Context ───────────────────────────────────────────────────────
 
 /// All inputs needed for prompt assembly, gathered by the caller.
