@@ -29,9 +29,11 @@ uuid = { version = "1", features = ["v7", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # HTTP API
+reqwest = { version = "0.12", features = ["json", "blocking", "stream"] }
 axum = { version = "0.8", features = ["json"] }
 tokio-stream = "0.1"
 async-stream = "0.3"
+futures-core = "0.3"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
@@ -49,9 +51,6 @@ thiserror = "2"
 # Hashing (ECS content addressing)
 sha2 = "0.10"
 hex = "0.4"
-
-# HTTP client (CLI → API)
-reqwest = { version = "0.12", features = ["json"] }
 
 # Internal crates
 focusa-core = { path = "crates/focusa-core" }

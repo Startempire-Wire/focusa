@@ -203,6 +203,7 @@ jobs:
           prerelease: false
           tauriScript: bunx tauri
           args: ${{ matrix.args }}
+          uploadArtifact: true
 
   # Publish Rust binaries - macOS only for testing
   rust-release:
