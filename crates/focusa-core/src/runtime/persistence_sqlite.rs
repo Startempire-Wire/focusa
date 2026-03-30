@@ -8,11 +8,11 @@
 
 use crate::types::{EventLogEntry, FocusaConfig, FocusaState};
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, OptionalExtension};
-use tracing::debug;
-use uuid::Uuid;
+use rusqlite::{Connection, OptionalExtension, params};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use tracing::debug;
+use uuid::Uuid;
 
 const SCHEMA_VERSION: i64 = 1;
 
@@ -173,23 +173,14 @@ impl SqlitePersistence {
                 endpoint=excluded.endpoint,
                 auth_token=excluded.auth_token
             "#,
-            params![
-                peer_id,
-                name,
-                endpoint,
-                auth_token,
-                Utc::now().to_rfc3339(),
-            ],
+            params![peer_id, name, endpoint, auth_token, Utc::now().to_rfc3339(),],
         )?;
         Ok(())
     }
 
     pub fn remove_peer(&self, peer_id: &str) -> anyhow::Result<()> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
-        conn.execute(
-            "DELETE FROM peers WHERE peer_id = ?1",
-            params![peer_id],
-        )?;
+        conn.execute("DELETE FROM peers WHERE peer_id = ?1", params![peer_id])?;
         Ok(())
     }
 
@@ -264,7 +255,12 @@ impl SqlitePersistence {
                 last_event_ts=excluded.last_event_ts,
                 updated_at=excluded.updated_at
             "#,
-            params![peer_id, last_event_id, last_event_ts, Utc::now().to_rfc3339()],
+            params![
+                peer_id,
+                last_event_id,
+                last_event_ts,
+                Utc::now().to_rfc3339()
+            ],
         )?;
         Ok(())
     }
@@ -279,6 +275,32 @@ impl SqlitePersistence {
             |r| r.get(0),
         )?;
         Ok(count > 0)
+    }
+
+    /// Idempotency helper: has a turn_completed event already been persisted for turn_id?
+    pub fn turn_completed_exists(&self, turn_id: &str) -> anyhow::Result<bool> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+
+        // Preferred path: JSON extraction (SQLite JSON1).
+        let json_query = conn.query_row(
+            "SELECT COUNT(*) FROM events WHERE json_extract(payload_json, '$.type') = 'turn_completed' AND json_extract(payload_json, '$.turn_id') = ?1",
+            params![turn_id],
+            |r| r.get::<_, i64>(0),
+        );
+
+        match json_query {
+            Ok(count) => Ok(count > 0),
+            Err(_) => {
+                // Fallback for environments lacking JSON1 extraction.
+                let needle = format!("\"turn_id\":\"{}\"", turn_id.replace('"', "\\\""));
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM events WHERE payload_json LIKE '%\"type\":\"turn_completed\"%' AND payload_json LIKE ?1",
+                    params![format!("%{}%", needle)],
+                    |r| r.get(0),
+                )?;
+                Ok(count > 0)
+            }
+        }
     }
 
     pub fn events_since(
@@ -298,42 +320,47 @@ impl SqlitePersistence {
             LIMIT ?3
             "#,
         )?;
-        let rows = stmt.query_map(
-            params![since_ts, since_id, limit as i64],
-            |r| {
-                let event_id: String = r.get(0)?;
-                let payload: String = r.get(4)?;
+        let rows = stmt.query_map(params![since_ts, since_id, limit as i64], |r| {
+            let event_id: String = r.get(0)?;
+            let payload: String = r.get(4)?;
 
-                let mut entry: EventLogEntry = match serde_json::from_str(&payload) {
-                    Ok(e) => e,
-                    Err(e) => {
-                        tracing::error!(
-                            event_id = %event_id,
-                            payload_len = payload.len(),
-                            error = %e,
-                            "Corrupted event payload in database"
-                        );
-                        return Err(rusqlite::Error::FromSqlConversionFailure(
-                            4,
-                            rusqlite::types::Type::Text,
-                            Box::new(e),
-                        ));
-                    }
-                };
+            let mut entry: EventLogEntry = match serde_json::from_str(&payload) {
+                Ok(e) => e,
+                Err(e) => {
+                    tracing::error!(
+                        event_id = %event_id,
+                        payload_len = payload.len(),
+                        error = %e,
+                        "Corrupted event payload in database"
+                    );
+                    return Err(rusqlite::Error::FromSqlConversionFailure(
+                        4,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    ));
+                }
+            };
 
-                // Override stored columns with authoritative DB values
-                entry.id = event_id.parse().map_err(|_| rusqlite::Error::InvalidColumnType(0, "event_id".into(), rusqlite::types::Type::Text))?;
-                entry.timestamp = DateTime::parse_from_rfc3339(&r.get::<_, String>(1)?)
-                    .map_err(|_| rusqlite::Error::InvalidColumnType(1, "ts".into(), rusqlite::types::Type::Text))?
-                    .with_timezone(&Utc);
-                entry.machine_id = r.get(5)?;
-                entry.instance_id = r.get::<_, Option<String>>(6)?.and_then(|s| s.parse().ok());
-                entry.session_id = r.get::<_, Option<String>>(7)?.and_then(|s| s.parse().ok());
-                entry.thread_id = r.get::<_, Option<String>>(8)?.and_then(|s| s.parse().ok());
-                entry.is_observation = r.get::<_, i32>(9)? != 0;
-                Ok(entry)
-            },
-        )?;
+            // Override stored columns with authoritative DB values
+            entry.id = event_id.parse().map_err(|_| {
+                rusqlite::Error::InvalidColumnType(
+                    0,
+                    "event_id".into(),
+                    rusqlite::types::Type::Text,
+                )
+            })?;
+            entry.timestamp = DateTime::parse_from_rfc3339(&r.get::<_, String>(1)?)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(1, "ts".into(), rusqlite::types::Type::Text)
+                })?
+                .with_timezone(&Utc);
+            entry.machine_id = r.get(5)?;
+            entry.instance_id = r.get::<_, Option<String>>(6)?.and_then(|s| s.parse().ok());
+            entry.session_id = r.get::<_, Option<String>>(7)?.and_then(|s| s.parse().ok());
+            entry.thread_id = r.get::<_, Option<String>>(8)?.and_then(|s| s.parse().ok());
+            entry.is_observation = r.get::<_, i32>(9)? != 0;
+            Ok(entry)
+        })?;
         let mut out = Vec::new();
         for r in rows {
             out.push(r?);
@@ -393,6 +420,23 @@ impl SqlitePersistence {
             .optional()?;
 
         id.ok_or_else(|| anyhow::anyhow!("machine_id missing from meta"))
+    }
+
+    /// Latest persisted event timestamp (RFC3339), if any.
+    pub fn latest_event_timestamp(&self) -> anyhow::Result<Option<String>> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        let ts: Option<String> = conn
+            .query_row("SELECT MAX(ts) FROM events", [], |row| row.get(0))
+            .optional()?
+            .flatten();
+        Ok(ts)
+    }
+
+    /// Current count of persisted events.
+    pub fn event_count(&self) -> anyhow::Result<u64> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))?;
+        Ok(count.max(0) as u64)
     }
 
     pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
@@ -460,7 +504,9 @@ pub struct SyncCursor {
 }
 
 fn shellexpand(path: &str) -> PathBuf {
-    if let Some(rest) = path.strip_prefix("~/") && let Ok(home) = std::env::var("HOME") {
+    if let Some(rest) = path.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
         return PathBuf::from(home).join(rest);
     }
     PathBuf::from(path)

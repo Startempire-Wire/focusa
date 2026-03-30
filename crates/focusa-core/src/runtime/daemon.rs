@@ -22,14 +22,18 @@
 //!   - Close event log cleanly
 
 use crate::intuition::engine::IntuitionEngine;
+
+const ACTIVE_TURN_TTL_SECS: i64 = 1800;
 use crate::reducer::{self, ReducerError};
 use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
+use crate::workers::executor;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use std::time::Instant;
+use tokio::sync::{RwLock, mpsc};
 use uuid::Uuid;
 
 /// The main daemon handle.
@@ -50,6 +54,8 @@ pub struct Daemon {
     signal_rx: mpsc::Receiver<Signal>,
     command_tx: mpsc::Sender<Action>,
     command_rx: mpsc::Receiver<Action>,
+    worker_tx: mpsc::Sender<WorkerJob>,
+    worker_rx: mpsc::Receiver<WorkerJob>,
     event_bus: Option<crate::runtime::event_bus::EventBus>,
 }
 
@@ -72,7 +78,8 @@ impl Daemon {
         // Sync loaded state immediately so the API sees it before run() is called.
         // No contention at construction time, so try_write always succeeds.
         {
-            let mut shared = shared_state.try_write()
+            let mut shared = shared_state
+                .try_write()
                 .expect("no contention at daemon construction");
             *shared = state.clone();
         }
@@ -82,6 +89,7 @@ impl Daemon {
         let intuition = IntuitionEngine::new(signal_tx);
 
         let (command_tx, command_rx) = mpsc::channel(256);
+        let (worker_tx, worker_rx) = mpsc::channel(config.worker_queue_size);
 
         // Get this daemon's machine ID for ownership enforcement.
         let machine_id = persistence.machine_id()?;
@@ -99,6 +107,8 @@ impl Daemon {
             signal_rx,
             command_tx,
             command_rx,
+            worker_tx,
+            worker_rx,
             event_bus: None,
         })
     }
@@ -140,6 +150,14 @@ impl Daemon {
                             self.drain_intuition_signals().await;
                         }
                         None => break, // Channel closed.
+                    }
+                }
+                job = self.worker_rx.recv() => {
+                    if let Some(job) = job {
+                        if let Err(e) = self.handle_worker_job(job).await {
+                            tracing::error!("Worker job failed: {}", e);
+                        }
+                        self.drain_intuition_signals().await;
                     }
                 }
                 _ = decay_interval.tick() => {
@@ -199,6 +217,24 @@ impl Daemon {
                         }
                     }
 
+                    // Intuition: observe turn completions for signals.
+                    if let FocusaEvent::TurnCompleted {
+                        assistant_output,
+                        errors,
+                        ..
+                    } = &event
+                    {
+                        let frame_id = self.state.focus_stack.active_id;
+                        if let Some(output) = assistant_output.as_deref() {
+                            if !output.is_empty() {
+                                self.intuition.observe_turn(frame_id, output);
+                            }
+                        }
+                        for err in errors {
+                            self.intuition.observe_turn(frame_id, err);
+                        }
+                    }
+
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
 
@@ -209,7 +245,6 @@ impl Daemon {
                     if let Err(e) = self.persistence.save_state(&self.state) {
                         tracing::error!("Failed to save state snapshot: {}", e);
                     }
-
 
                     // Sync to shared handle so the API sees all updates.
                     self.sync_shared_state().await;
@@ -289,18 +324,23 @@ impl Daemon {
     async fn translate_action(&mut self, action: Action) -> anyhow::Result<Vec<FocusaEvent>> {
         match action {
             // ─── Session ─────────────────────────────────────────────────
-
             Action::InstanceConnect { kind } => {
                 let instance_id = Uuid::now_v7();
                 self.current_instance_id = Some(instance_id);
                 Ok(vec![FocusaEvent::InstanceConnected { instance_id, kind }])
-            },
+            }
 
-            Action::InstanceDisconnect { instance_id, reason } => {
+            Action::InstanceDisconnect {
+                instance_id,
+                reason,
+            } => {
                 if self.current_instance_id == Some(instance_id) {
                     self.current_instance_id = None;
                 }
-                Ok(vec![FocusaEvent::InstanceDisconnected { instance_id, reason }])
+                Ok(vec![FocusaEvent::InstanceDisconnected {
+                    instance_id,
+                    reason,
+                }])
             }
 
             Action::StartSession {
@@ -316,11 +356,12 @@ impl Daemon {
                     adapter_id,
                     workspace_id,
                 }])
-            },
-
-            Action::CloseSession { reason, instance_id: _ } => {
-                Ok(vec![FocusaEvent::SessionClosed { reason }])
             }
+
+            Action::CloseSession {
+                reason,
+                instance_id: _,
+            } => Ok(vec![FocusaEvent::SessionClosed { reason }]),
 
             Action::ThreadAttach {
                 instance_id,
@@ -336,7 +377,7 @@ impl Daemon {
                     thread_id,
                     role,
                 }])
-            },
+            }
 
             Action::ThreadDetach {
                 instance_id,
@@ -350,7 +391,12 @@ impl Daemon {
                 reason,
             }]),
 
-            Action::SubmitProposal { kind, source, payload, deadline_ms } => {
+            Action::SubmitProposal {
+                kind,
+                source,
+                payload,
+                deadline_ms,
+            } => {
                 crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
                 // Proposals don't produce reducer events — they live in PRE state.
                 // Persist so proposals survive a daemon restart.
@@ -359,8 +405,12 @@ impl Daemon {
                 Ok(vec![])
             }
 
-            // ─── Focus Stack ─────────────────────────────────────────────
+            Action::EmitEvent { event } => {
+                // Direct event emission from API routes.
+                Ok(vec![event])
+            }
 
+            // ─── Focus Stack ─────────────────────────────────────────────
             Action::PushFrame {
                 title,
                 goal,
@@ -377,9 +427,11 @@ impl Daemon {
             }]),
 
             Action::PopFrame { completion_reason } => {
-                let frame_id = self.state.focus_stack.active_id.ok_or_else(|| {
-                    anyhow::anyhow!("PopFrame but no active frame")
-                })?;
+                let frame_id = self
+                    .state
+                    .focus_stack
+                    .active_id
+                    .ok_or_else(|| anyhow::anyhow!("PopFrame but no active frame"))?;
                 // Clean up intuition engine state for this frame.
                 self.intuition.clear_frame(frame_id);
                 Ok(vec![FocusaEvent::FocusFrameCompleted {
@@ -393,18 +445,18 @@ impl Daemon {
             }
 
             // ─── Gate ────────────────────────────────────────────────────
+            Action::IngestSignal { signal } => Ok(vec![FocusaEvent::IntuitionSignalObserved {
+                signal_id: signal.id,
+                signal_type: signal.kind,
+                severity: "info".into(),
+                summary: signal.summary,
+                related_frame_id: signal.frame_context,
+            }]),
 
-            Action::IngestSignal { signal } => Ok(vec![
-                FocusaEvent::IntuitionSignalObserved {
-                    signal_id: signal.id,
-                    signal_type: signal.kind,
-                    severity: "info".into(),
-                    summary: signal.summary,
-                    related_frame_id: signal.frame_context,
-                },
-            ]),
-
-            Action::SurfaceCandidate { candidate_id, boost } => {
+            Action::SurfaceCandidate {
+                candidate_id,
+                boost,
+            } => {
                 // Find and boost candidate pressure.
                 let candidate = self
                     .state
@@ -412,9 +464,7 @@ impl Daemon {
                     .candidates
                     .iter_mut()
                     .find(|c| c.id == candidate_id)
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("Candidate {} not found", candidate_id)
-                    })?;
+                    .ok_or_else(|| anyhow::anyhow!("Candidate {} not found", candidate_id))?;
                 candidate.pressure += boost;
                 let event = FocusaEvent::CandidateSurfaced {
                     candidate_id,
@@ -443,7 +493,6 @@ impl Daemon {
             }
 
             // ─── ASCC / Focus State ──────────────────────────────────────
-
             Action::UpdateCheckpointDelta {
                 frame_id,
                 turn_id: _,
@@ -451,7 +500,6 @@ impl Daemon {
             } => Ok(vec![FocusaEvent::FocusStateUpdated { frame_id, delta }]),
 
             // ─── ECS ─────────────────────────────────────────────────────
-
             Action::StoreArtifact {
                 kind,
                 label,
@@ -474,12 +522,7 @@ impl Daemon {
             }
 
             // ─── Memory ──────────────────────────────────────────────────
-
-            Action::UpsertSemantic {
-                key,
-                value,
-                source,
-            } => {
+            Action::UpsertSemantic { key, value, source } => {
                 // Memory ops bypass the reducer (no dedicated event type in MVP).
                 crate::memory::semantic::upsert(&mut self.state.memory, key, value, source);
                 self.persistence.save_state(&self.state)?;
@@ -505,21 +548,45 @@ impl Daemon {
                 );
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
+                self.expire_stale_turn();
                 Ok(vec![])
             }
 
             // ─── Workers ─────────────────────────────────────────────────
-
-            Action::WorkerEnqueue { job: _ } => {
-                // Worker scheduling is handled outside the reducer.
-                // TODO: Forward to worker queue when implemented.
-                Ok(vec![])
+            Action::WorkerEnqueue { job } => {
+                let enqueued = self.worker_tx.try_send(job.clone()).is_ok();
+                if enqueued {
+                    Ok(vec![FocusaEvent::WorkerJobEnqueued {
+                        job_id: job.id,
+                        kind: job.kind,
+                        correlation_id: job.correlation_id.clone(),
+                    }])
+                } else {
+                    Ok(vec![FocusaEvent::WorkerJobFailed {
+                        job_id: job.id,
+                        kind: job.kind,
+                        duration_ms: 0,
+                        error: "worker queue full".to_string(),
+                    }])
+                }
             }
 
             Action::WorkerComplete { job_id: _ } => {
-                // Worker completion results are translated to other actions
-                // (e.g., UpsertSemantic, UpdateCheckpointDelta) by the worker runner.
+                // Completion is handled by the worker runner; no reducer mutation.
                 Ok(vec![])
+            }
+        }
+    }
+
+    fn expire_stale_turn(&mut self) {
+        if let Some(turn) = &self.state.active_turn {
+            let age = Utc::now() - turn.started_at;
+            if age.num_seconds() > ACTIVE_TURN_TTL_SECS {
+                tracing::warn!(turn_id = %turn.turn_id, age_secs = age.num_seconds(), "Expiring stale active_turn");
+                self.state.active_turn = None;
+                if let Err(e) = self.persistence.save_state(&self.state) {
+                    tracing::error!("Failed to save state after expiring active_turn: {}", e);
+                }
             }
         }
     }
@@ -543,6 +610,175 @@ impl Daemon {
         {
             bus.publish(json);
         }
+        Ok(())
+    }
+
+    async fn handle_worker_job(&mut self, job: WorkerJob) -> anyhow::Result<()> {
+        let started = Instant::now();
+        let _ = self
+            .process_action(Action::EmitEvent {
+                event: FocusaEvent::WorkerJobStarted {
+                    job_id: job.id,
+                    kind: job.kind,
+                },
+            })
+            .await;
+
+        let result = executor::execute_job(&job);
+        let duration_ms = started.elapsed().as_millis() as u64;
+
+        let _ = self
+            .process_action(Action::EmitEvent {
+                event: FocusaEvent::WorkerJobCompleted {
+                    job_id: job.id,
+                    kind: job.kind,
+                    duration_ms,
+                },
+            })
+            .await;
+
+        if result.success {
+            self.apply_worker_result(&job, &result).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn apply_worker_result(
+        &mut self,
+        job: &WorkerJob,
+        result: &executor::JobResult,
+    ) -> anyhow::Result<()> {
+        match job.kind {
+            WorkerJobKind::ExtractAsccDelta => {
+                if let Some(frame_id) = job.frame_context {
+                    let delta = FocusStateDelta {
+                        decisions: result
+                            .payload
+                            .get("decisions")
+                            .and_then(|v| v.as_array())
+                            .map(|v| {
+                                v.iter()
+                                    .filter_map(|d| d.as_str().map(String::from))
+                                    .collect()
+                            }),
+                        next_steps: result
+                            .payload
+                            .get("next_steps")
+                            .and_then(|v| v.as_array())
+                            .map(|v| {
+                                v.iter()
+                                    .filter_map(|d| d.as_str().map(String::from))
+                                    .collect()
+                            }),
+                        constraints: result
+                            .payload
+                            .get("constraints")
+                            .and_then(|v| v.as_array())
+                            .map(|v| {
+                                v.iter()
+                                    .filter_map(|d| d.as_str().map(String::from))
+                                    .collect()
+                            }),
+                        failures: result
+                            .payload
+                            .get("failures")
+                            .and_then(|v| v.as_array())
+                            .map(|v| {
+                                v.iter()
+                                    .filter_map(|d| d.as_str().map(String::from))
+                                    .collect()
+                            }),
+                        ..Default::default()
+                    };
+
+                    let _ = self
+                        .process_action(Action::UpdateCheckpointDelta {
+                            frame_id,
+                            turn_id: job.id.to_string(),
+                            delta,
+                        })
+                        .await;
+                }
+            }
+            WorkerJobKind::DetectRepetition => {
+                if result
+                    .payload
+                    .get("is_repetitive")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                {
+                    let summary = format!(
+                        "repetition detected (ratio={})",
+                        result
+                            .payload
+                            .get("repetition_ratio")
+                            .unwrap_or(&serde_json::Value::Null)
+                    );
+                    let signal = Signal {
+                        id: Uuid::now_v7(),
+                        ts: Utc::now(),
+                        origin: SignalOrigin::Worker,
+                        kind: SignalKind::RepeatedPattern,
+                        frame_context: job.frame_context,
+                        summary,
+                        payload_ref: None,
+                        tags: vec!["worker".into()],
+                    };
+                    let _ = self.process_action(Action::IngestSignal { signal }).await;
+                }
+            }
+            WorkerJobKind::ScanForErrors => {
+                if result
+                    .payload
+                    .get("has_errors")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                {
+                    let summary = format!(
+                        "worker scan_for_errors detected patterns: {}",
+                        result
+                            .payload
+                            .get("error_patterns_found")
+                            .unwrap_or(&serde_json::Value::Null)
+                    );
+                    let signal = Signal {
+                        id: Uuid::now_v7(),
+                        ts: Utc::now(),
+                        origin: SignalOrigin::Worker,
+                        kind: SignalKind::Error,
+                        frame_context: job.frame_context,
+                        summary,
+                        payload_ref: None,
+                        tags: vec!["worker".into()],
+                    };
+                    let _ = self.process_action(Action::IngestSignal { signal }).await;
+                }
+            }
+            WorkerJobKind::SuggestMemory => {
+                let count = result
+                    .payload
+                    .get("count")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                if count > 0 {
+                    let summary = format!("worker suggest_memory: {} suggestion(s)", count);
+                    let signal = Signal {
+                        id: Uuid::now_v7(),
+                        ts: Utc::now(),
+                        origin: SignalOrigin::Worker,
+                        kind: SignalKind::Warning,
+                        frame_context: job.frame_context,
+                        summary,
+                        payload_ref: None,
+                        tags: vec!["worker".into()],
+                    };
+                    let _ = self.process_action(Action::IngestSignal { signal }).await;
+                }
+            }
+            _ => {}
+        }
+
         Ok(())
     }
 
@@ -585,14 +821,20 @@ fn parse_suppression_scope(scope: &str) -> Option<DateTime<Utc>> {
         return None;
     }
     if scope.len() < 2 || !scope.is_ascii() {
-        tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
+        tracing::warn!(
+            "Unrecognized suppression scope '{}', treating as session",
+            scope
+        );
         return None;
     }
     let (num_str, unit) = scope.split_at(scope.len() - 1);
     let num: i64 = match num_str.parse() {
         Ok(n) if n > 0 => n,
         _ => {
-            tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
+            tracing::warn!(
+                "Unrecognized suppression scope '{}', treating as session",
+                scope
+            );
             return None;
         }
     };
@@ -601,7 +843,10 @@ fn parse_suppression_scope(scope: &str) -> Option<DateTime<Utc>> {
         "m" => num * 60,
         "h" => num * 3600,
         _ => {
-            tracing::warn!("Unrecognized suppression scope '{}', treating as session", scope);
+            tracing::warn!(
+                "Unrecognized suppression scope '{}', treating as session",
+                scope
+            );
             return None;
         }
     };

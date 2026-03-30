@@ -45,13 +45,31 @@ pub fn execute_job(job: &WorkerJob) -> JobResult {
 /// Categories: task, question, correction, meta, clarification, acknowledgement.
 fn classify_turn(content: &str) -> JobResult {
     let lower = content.to_lowercase();
-    let classification = if lower.contains("fix") || lower.contains("bug") || lower.contains("error") || lower.contains("wrong") {
+    let classification = if lower.contains("fix")
+        || lower.contains("bug")
+        || lower.contains("error")
+        || lower.contains("wrong")
+    {
         "correction"
-    } else if lower.contains('?') || lower.starts_with("what") || lower.starts_with("how") || lower.starts_with("why") || lower.starts_with("when") {
+    } else if lower.contains('?')
+        || lower.starts_with("what")
+        || lower.starts_with("how")
+        || lower.starts_with("why")
+        || lower.starts_with("when")
+    {
         "question"
-    } else if lower.starts_with("ok") || lower.starts_with("thanks") || lower.starts_with("got it") || lower.starts_with("yes") {
+    } else if lower.starts_with("ok")
+        || lower.starts_with("thanks")
+        || lower.starts_with("got it")
+        || lower.starts_with("yes")
+    {
         "acknowledgement"
-    } else if lower.contains("let's") || lower.contains("implement") || lower.contains("create") || lower.contains("build") || lower.contains("add") {
+    } else if lower.contains("let's")
+        || lower.contains("implement")
+        || lower.contains("create")
+        || lower.contains("build")
+        || lower.contains("add")
+    {
         "task"
     } else if lower.contains("mean") || lower.contains("clarif") || lower.contains("explain") {
         "clarification"
@@ -88,7 +106,11 @@ fn extract_ascc_delta(content: &str) -> JobResult {
         let lower = trimmed.to_lowercase();
 
         // Detect decisions.
-        if lower.starts_with("decided") || lower.starts_with("decision:") || lower.contains("choosing") || lower.contains("we'll use") {
+        if lower.starts_with("decided")
+            || lower.starts_with("decision:")
+            || lower.contains("choosing")
+            || lower.contains("we'll use")
+        {
             decisions.push(trimmed.to_string());
         }
         // Detect next steps.
@@ -96,7 +118,11 @@ fn extract_ascc_delta(content: &str) -> JobResult {
             next_steps.push(trimmed.to_string());
         }
         // Detect constraints.
-        if lower.contains("must") || lower.contains("cannot") || lower.contains("constraint") || lower.contains("requirement") {
+        if lower.contains("must")
+            || lower.contains("cannot")
+            || lower.contains("constraint")
+            || lower.contains("requirement")
+        {
             constraints.push(trimmed.to_string());
         }
         // Detect failures.
@@ -124,7 +150,11 @@ fn extract_ascc_delta(content: &str) -> JobResult {
 fn detect_repetition(content: &str) -> JobResult {
     let lines: Vec<&str> = content.lines().collect();
     let unique: std::collections::HashSet<&str> = lines.iter().copied().collect();
-    let repetition_ratio = if lines.is_empty() { 0.0 } else { 1.0 - (unique.len() as f64 / lines.len() as f64) };
+    let repetition_ratio = if lines.is_empty() {
+        0.0
+    } else {
+        1.0 - (unique.len() as f64 / lines.len() as f64)
+    };
 
     JobResult {
         job_id: Uuid::now_v7(),
@@ -142,8 +172,19 @@ fn detect_repetition(content: &str) -> JobResult {
 /// Scan content for error patterns.
 fn scan_for_errors(content: &str) -> JobResult {
     let lower = content.to_lowercase();
-    let patterns = ["error:", "panic:", "fatal:", "exception:", "traceback", "stack trace"];
-    let found: Vec<&str> = patterns.iter().filter(|p| lower.contains(**p)).copied().collect();
+    let patterns = [
+        "error:",
+        "panic:",
+        "fatal:",
+        "exception:",
+        "traceback",
+        "stack trace",
+    ];
+    let found: Vec<&str> = patterns
+        .iter()
+        .filter(|p| lower.contains(**p))
+        .copied()
+        .collect();
 
     JobResult {
         job_id: Uuid::now_v7(),
@@ -161,7 +202,12 @@ fn suggest_memory(content: &str) -> JobResult {
     let mut suggestions = Vec::new();
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.len() > 20 && (trimmed.contains("always") || trimmed.contains("never") || trimmed.contains("important") || trimmed.contains("remember")) {
+        if trimmed.len() > 20
+            && (trimmed.contains("always")
+                || trimmed.contains("never")
+                || trimmed.contains("important")
+                || trimmed.contains("remember"))
+        {
             suggestions.push(trimmed.to_string());
         }
     }
@@ -194,7 +240,10 @@ pub fn detect_ufi_signals(content: &str) -> Vec<UfiSignalType> {
     }
 
     // Medium tier.
-    if lower.contains("i meant") || lower.contains("what i mean") || lower.contains("let me rephrase") {
+    if lower.contains("i meant")
+        || lower.contains("what i mean")
+        || lower.contains("let me rephrase")
+    {
         signals.push(UfiSignalType::Rephrase);
     }
     if lower.contains("again") || lower.contains("already said") || lower.contains("repeat") {
@@ -237,7 +286,8 @@ mod tests {
 
     #[test]
     fn test_extract_delta() {
-        let content = "Decided to use JWT tokens.\nNext: add refresh logic.\nConstraint: must support PKCE.";
+        let content =
+            "Decided to use JWT tokens.\nNext: add refresh logic.\nConstraint: must support PKCE.";
         let result = extract_ascc_delta(content);
         assert!(result.success);
         assert!(!result.payload["decisions"].as_array().unwrap().is_empty());
