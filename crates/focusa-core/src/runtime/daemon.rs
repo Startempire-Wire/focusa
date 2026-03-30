@@ -142,6 +142,9 @@ impl Daemon {
     pub async fn run(&mut self) -> anyhow::Result<()> {
         tracing::info!("Focusa daemon starting (version {})", self.state.version);
 
+        // Seed default constitution on first start (docs/16 §2-§6).
+        crate::constitution::seed_default(&mut self.state.constitution);
+
         let mut decay_interval = tokio::time::interval(std::time::Duration::from_secs(30));
         // Don't fire immediately on startup — first tick is a no-op.
         decay_interval.tick().await;

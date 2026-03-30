@@ -128,6 +128,77 @@ fn bump_patch(version: &str) -> String {
     format!("{}-next", version)
 }
 
+/// Seed the default constitution per docs/16 §2-§6.
+///
+/// Called on daemon startup if no active constitution exists.
+/// Per spec: "constitution_id: focusa-default-constitution, version: 1.0.0"
+pub fn seed_default(state: &mut ConstitutionState) {
+    if active(state).is_some() {
+        return; // Already has an active constitution.
+    }
+
+    // §2 Behavioral Principles.
+    let principles = vec![
+        ConstitutionPrinciple {
+            id: "p1".into(),
+            text: "Prefer correctness over speed".into(),
+            priority: 1,
+            rationale: "Accurate results prevent cascading errors".into(),
+        },
+        ConstitutionPrinciple {
+            id: "p2".into(),
+            text: "Avoid unnecessary verbosity".into(),
+            priority: 2,
+            rationale: "Token efficiency preserves context window".into(),
+        },
+        ConstitutionPrinciple {
+            id: "p3".into(),
+            text: "Do not assume user intent".into(),
+            priority: 3,
+            rationale: "Assumptions lead to misaligned work".into(),
+        },
+        ConstitutionPrinciple {
+            id: "p4".into(),
+            text: "Surface uncertainty explicitly".into(),
+            priority: 4,
+            rationale: "Hidden uncertainty compounds errors".into(),
+        },
+        ConstitutionPrinciple {
+            id: "p5".into(),
+            text: "Never act outside task authority".into(),
+            priority: 5,
+            rationale: "Scope containment prevents unauthorized changes".into(),
+        },
+    ];
+
+    // §5 Safety Rules.
+    let safety_rules = vec![
+        "Escalate on ambiguous instructions".into(),
+        "Escalate on conflicting goals".into(),
+        "Escalate on missing task authority".into(),
+        "Never hallucinate requirements".into(),
+        "Never guess intent".into(),
+        "Never modify global state without authority".into(),
+    ];
+
+    // §6 Expression Constraints.
+    let expression_rules = vec![
+        "No hidden reasoning".into(),
+        "Summarize decisions explicitly".into(),
+        "Cite assumptions".into(),
+    ];
+
+    create_version(
+        state,
+        "focusa-default",
+        "1.0.0",
+        principles,
+        safety_rules,
+        expression_rules,
+    );
+    let _ = activate_version(state, "1.0.0");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
