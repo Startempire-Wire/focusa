@@ -278,6 +278,61 @@ impl Daemon {
                         );
                     }
 
+                    // ECS: auto-externalize large turn content (G1-detail-08 §Threshold Policy).
+                    // "ecs.externalize_bytes_threshold default 8KB,
+                    //  ecs.externalize_token_estimate_threshold default 800 tokens.
+                    //  If either exceeded, externalize."
+                    if let FocusaEvent::TurnCompleted {
+                        ref turn_id,
+                        ref assistant_output,
+                        ..
+                    } = event
+                    {
+                        if let Some(output) = assistant_output.as_deref() {
+                            let bytes = output.len() as u64;
+                            let est_tokens = (bytes / 4) as u32;
+                            if bytes > self.config.ecs_externalize_bytes_threshold
+                                || est_tokens > self.config.ecs_externalize_token_threshold
+                            {
+                                let label = format!("turn-output-{}", turn_id);
+                                match self.ecs.store(
+                                    HandleKind::Text,
+                                    label.clone(),
+                                    output.as_bytes(),
+                                    self.state.session.as_ref().map(|s| s.session_id),
+                                ) {
+                                    Ok(handle) => {
+                                        tracing::info!(
+                                            turn_id = %turn_id,
+                                            bytes,
+                                            handle_id = %handle.id,
+                                            "Auto-externalized large turn output to ECS"
+                                        );
+                                        // Register handle in state via reducer.
+                                        let kind_str = crate::reference::artifact::handle_kind_str(handle.kind);
+                                        let reg_event = FocusaEvent::ArtifactRegistered {
+                                            artifact_id: handle.id,
+                                            artifact_type: kind_str.to_string(),
+                                            summary: label,
+                                            storage_uri: format!("ecs://{}", handle.sha256),
+                                        };
+                                        if let Ok(result) = reducer::reduce(
+                                            self.state.clone(),
+                                            reg_event.clone(),
+                                        ) {
+                                            self.state = result.new_state;
+                                            let entry = create_entry(reg_event, SignalOrigin::Daemon, None);
+                                            let _ = self.persistence.append_event(&entry);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        tracing::warn!("ECS auto-externalize failed: {}", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // ASCC: update checkpoint after FocusState changes (G1-07).
                     if let FocusaEvent::FocusStateUpdated { frame_id, .. } = &event {
                         self.update_checkpoint(*frame_id);
