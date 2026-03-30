@@ -1010,30 +1010,73 @@ impl Daemon {
 
     async fn handle_worker_job(&mut self, job: WorkerJob) -> anyhow::Result<()> {
         let started = Instant::now();
+        let job_id = job.id;
+        let job_kind = job.kind;
         let _ = self
             .process_action(Action::EmitEvent {
                 event: FocusaEvent::WorkerJobStarted {
-                    job_id: job.id,
-                    kind: job.kind,
+                    job_id,
+                    kind: job_kind,
                 },
             })
             .await;
 
-        let result = executor::execute_job(&job);
+        // Enforce timeout per G1-10 §Job Execution Rules.
+        // Default 200ms timeout if not specified.
+        let timeout_ms = if job.timeout_ms > 0 {
+            job.timeout_ms
+        } else {
+            200
+        };
+        let timeout_duration = std::time::Duration::from_millis(timeout_ms);
+
+        // Clone job for execution (to avoid move issues).
+        let exec_job = job.clone();
+        let result = match tokio::time::timeout(timeout_duration, async move {
+            executor::execute_job(&exec_job)
+        }).await {
+            Ok(result) => result,
+            Err(_) => {
+                // Timeout occurred.
+                let duration_ms = started.elapsed().as_millis() as u64;
+                let _ = self
+                    .process_action(Action::EmitEvent {
+                        event: FocusaEvent::WorkerJobFailed {
+                            job_id,
+                            kind: job_kind,
+                            duration_ms,
+                            error: format!("timeout after {}ms", timeout_ms),
+                        },
+                    })
+                    .await;
+                return Err(anyhow::anyhow!("Worker job timed out after {}ms", timeout_ms));
+            }
+        };
+
         let duration_ms = started.elapsed().as_millis() as u64;
 
-        let _ = self
-            .process_action(Action::EmitEvent {
-                event: FocusaEvent::WorkerJobCompleted {
-                    job_id: job.id,
-                    kind: job.kind,
-                    duration_ms,
-                },
-            })
-            .await;
-
         if result.success {
+            let _ = self
+                .process_action(Action::EmitEvent {
+                    event: FocusaEvent::WorkerJobCompleted {
+                        job_id,
+                        kind: job_kind,
+                        duration_ms,
+                    },
+                })
+                .await;
             self.apply_worker_result(&job, &result).await?;
+        } else {
+            let _ = self
+                .process_action(Action::EmitEvent {
+                    event: FocusaEvent::WorkerJobFailed {
+                        job_id,
+                        kind: job_kind,
+                        duration_ms,
+                        error: result.payload.get("error").and_then(|v| v.as_str()).unwrap_or("unknown error").to_string(),
+                    },
+                })
+                .await;
         }
 
         Ok(())
