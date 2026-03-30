@@ -146,3 +146,4 @@ Focusa uses this to:
 ## Invariants
 - Adapter limitations never degrade correctness
 - Missing signals reduce capability, not safety
+- Proxy transparency is default behavior. Provider-specific compatibility mutation must be explicitly enabled (`FOCUSA_PROXY_COMPAT_MODE=true`).

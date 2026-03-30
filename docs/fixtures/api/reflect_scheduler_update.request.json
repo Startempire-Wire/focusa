@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "interval_seconds": 3600,
+  "max_iterations_per_window": 1,
+  "cooldown_seconds": 300,
+  "low_confidence_threshold": 0.5,
+  "no_delta_min_event_delta": 1
+}

@@ -38,6 +38,10 @@ Each adapter:
 - preserves original semantics
 - adds no behavioral changes
 
+Compatibility mutations are opt-in only.
+- `FOCUSA_PROXY_COMPAT_MODE=false` (default): strict transparent pass-through.
+- `FOCUSA_PROXY_COMPAT_MODE=true`: allow provider-specific request/response sanitization and retry shims.
+
 ---
 
 ## Failure Handling

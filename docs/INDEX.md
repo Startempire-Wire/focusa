@@ -134,6 +134,7 @@ These docs from the initial spec cover topics that were NOT rewritten in the Gen
 | [G1-10-workers.md](G1-10-workers.md) | Background Workers & Async Cognition | |
 | [G1-12-api.md](G1-12-api.md) | Local HTTP API Specification | |
 | [G1-13-cli.md](G1-13-cli.md) | CLI Contract | Includes export + multi-device sync commands |
+| [G1-14-reflection-loop.md](G1-14-reflection-loop.md) | Reflection Loop Overlay | Policy-safe meta-cognition loop contract |
 | [G1-16-testing.md](G1-16-testing.md) | Testing & Acceptance | + New Acceptance Criteria update |
 
 ---

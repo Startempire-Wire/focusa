@@ -79,6 +79,15 @@ It must be:
 
 ---
 
+### Reflection Loop (Overlay)
+- `focusa reflect run [--window 1h] [--budget 800] [--idempotency-key k]`
+- `focusa reflect history [--limit 20] [--mode manual|scheduled] [--stop-reason low_confidence] [--since RFC3339] [--until RFC3339] [--cursor-before RFC3339]`
+- `focusa reflect status` (includes scheduler telemetry counters + stop_reason summary)
+- `focusa reflect scheduler status` (includes window counter telemetry)
+- `focusa reflect scheduler enable|disable`
+- `focusa reflect scheduler set [--interval-seconds N] [--max-iterations-per-window N] [--cooldown-seconds N] [--low-confidence-threshold 0.9] [--no-delta-min-event-delta N]`
+- `focusa reflect scheduler tick [--window 1h] [--budget 800]`
+
 ### Debug / Inspect
 - `focusa events tail`
 - `focusa events show <event_id>`

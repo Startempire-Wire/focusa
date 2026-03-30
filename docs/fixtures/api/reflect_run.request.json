@@ -1,0 +1,9 @@
+{
+  "mode": "manual",
+  "idempotency_key": "fixture-reflect-run-1",
+  "window": "1h",
+  "budget": 300,
+  "context": {
+    "source": "fixture"
+  }
+}

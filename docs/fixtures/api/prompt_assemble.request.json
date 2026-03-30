@@ -1,0 +1,6 @@
+{
+  "turn_id": "fixture-turn-001",
+  "raw_user_input": "Summarize next highest leverage step.",
+  "format": "string",
+  "budget": 800
+}
