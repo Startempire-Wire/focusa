@@ -25,6 +25,7 @@
 //! - `reducer` — Core reducer (single writer)
 
 pub mod adapters;
+pub mod ascc;
 pub mod autonomy;
 pub mod cache;
 pub mod clt;

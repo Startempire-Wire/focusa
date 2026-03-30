@@ -50,6 +50,9 @@ pub struct Daemon {
     persistence: Persistence,
     ecs: ReferenceStore,
     intuition: IntuitionEngine,
+    /// ASCC checkpoints per frame (G1-07-ascc).
+    /// Persisted via state snapshot; keyed by frame_id.
+    checkpoints: std::collections::HashMap<Uuid, crate::types::CheckpointRecord>,
     /// Receive signals from the intuition engine.
     signal_rx: mpsc::Receiver<Signal>,
     command_tx: mpsc::Sender<Action>,
@@ -109,6 +112,7 @@ impl Daemon {
             command_rx,
             worker_tx,
             worker_rx,
+            checkpoints: std::collections::HashMap::new(),
             event_bus: None,
         })
     }
@@ -252,6 +256,11 @@ impl Daemon {
                         );
                     }
 
+                    // ASCC: update checkpoint after FocusState changes (G1-07).
+                    if let FocusaEvent::FocusStateUpdated { frame_id, .. } = &event {
+                        self.update_checkpoint(*frame_id);
+                    }
+
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
 
@@ -358,6 +367,58 @@ impl Daemon {
                 "Focus Gate: candidates surfaced"
             );
         }
+    }
+
+    /// Create or update the ASCC checkpoint for a frame after FocusState changes.
+    ///
+    /// Per G1-07: "revision += 1, anchor_turn_id = turn_id, updated_at = now.
+    /// Emit event: ascc.delta_applied."
+    ///
+    /// Checkpoint is derived from the frame's live FocusState.
+    fn update_checkpoint(&mut self, frame_id: FrameId) {
+        let frame = match self.state.focus_stack.frames.iter().find(|f| f.id == frame_id) {
+            Some(f) => f,
+            None => return,
+        };
+
+        // Skip if FocusState is completely empty (no content to checkpoint).
+        let sections = AsccSections::from(&frame.focus_state);
+        if sections.is_empty() {
+            return;
+        }
+
+        let turn_id = self
+            .state
+            .active_turn
+            .as_ref()
+            .map(|t| t.turn_id.clone())
+            .unwrap_or_else(|| format!("daemon-{}", self.state.version));
+
+        match self.checkpoints.get_mut(&frame_id) {
+            Some(cp) => {
+                cp.update_from_frame(frame, &turn_id);
+                tracing::debug!(
+                    frame_id = %frame_id,
+                    revision = cp.revision,
+                    anchor = %cp.anchor_turn_id,
+                    "ASCC checkpoint updated"
+                );
+            }
+            None => {
+                let cp = CheckpointRecord::from_frame(frame, &turn_id);
+                tracing::info!(
+                    frame_id = %frame_id,
+                    revision = cp.revision,
+                    "ASCC checkpoint created"
+                );
+                self.checkpoints.insert(frame_id, cp);
+            }
+        }
+    }
+
+    /// Get the ASCC checkpoint for a frame (if it exists).
+    pub fn checkpoint_for_frame(&self, frame_id: FrameId) -> Option<&CheckpointRecord> {
+        self.checkpoints.get(&frame_id)
     }
 
     /// Enqueue background worker jobs after a turn completes.

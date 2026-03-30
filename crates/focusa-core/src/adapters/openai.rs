@@ -130,10 +130,14 @@ pub fn process_request(
         .cloned()
         .collect();
 
+    // Build ASCC sections from FocusState (G1-07 §Prompt Serialization).
+    let ascc = crate::types::AsccSections::from(&focus_state);
+    let ascc_ref = if ascc.is_empty() { None } else { Some(&ascc) };
+
     // Assemble prompt.
     let assembly = assemble(
         &focus_state,
-        None, // No ASCC checkpoint in MVP proxy
+        ascc_ref,
         &rules_owned,
         &handles_owned,
         &user_input,
