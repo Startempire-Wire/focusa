@@ -29,11 +29,12 @@ pub fn decay_tick(memory: &mut ExplicitMemory, decay_factor: f32) {
 }
 
 /// Select top N rules for prompt injection, scoped to active frame.
-pub fn select_for_prompt(
-    memory: &ExplicitMemory,
+pub fn select_for_prompt<'a>(
+    memory: &'a ExplicitMemory,
     active_frame_id: Option<FrameId>,
+    active_project_id: Option<&'a str>,
     max_rules: usize,
-) -> Vec<&RuleRecord> {
+) -> Vec<&'a RuleRecord> {
     let mut eligible: Vec<&RuleRecord> = memory
         .procedural
         .iter()
@@ -41,11 +42,17 @@ pub fn select_for_prompt(
         .filter(|r| match &r.scope {
             RuleScope::Global => true,
             RuleScope::Frame(fid) => active_frame_id.as_ref() == Some(fid),
-            RuleScope::Project(_) => true, // TODO: scope check
+            RuleScope::Project(project_id) => active_project_id
+                .map(|pid| pid == project_id)
+                .unwrap_or(false),
         })
         .collect();
 
-    eligible.sort_by(|a, b| b.weight.partial_cmp(&a.weight).unwrap_or(std::cmp::Ordering::Equal));
+    eligible.sort_by(|a, b| {
+        b.weight
+            .partial_cmp(&a.weight)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     eligible.truncate(max_rules);
     eligible
 }

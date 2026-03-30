@@ -42,7 +42,8 @@ const MAX_PARENT_FRAMES: usize = 2;
 const MAX_RULES: usize = 5;
 
 /// User input truncation marker — appended when input is cut.
-const TRUNCATION_MARKER: &str = "\n[INPUT TRUNCATED — remaining content omitted to fit token budget]";
+const TRUNCATION_MARKER: &str =
+    "\n[INPUT TRUNCATED — remaining content omitted to fit token budget]";
 
 // ─── Output ─────────────────────────────────────────────────────────────────
 
@@ -123,7 +124,10 @@ pub fn assemble(
 
 /// Full assembly from explicit input context.
 pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
-    let budget = available_tokens(input.config.max_prompt_tokens, input.config.reserve_for_response);
+    let budget = available_tokens(
+        input.config.max_prompt_tokens,
+        input.config.reserve_for_response,
+    );
     let mut warnings: Vec<String> = Vec::new();
     let mut degraded = false;
 
@@ -157,7 +161,14 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     let fixed_tokens = estimate_tokens(&slot_header) + estimate_tokens(&slot_directive);
 
     // Step 1: Drop parent frames.
-    if slot_total(fixed_tokens, &slot_rules, &slot_focus, &slot_parents, &slot_handles, &slot_user) > budget
+    if slot_total(
+        fixed_tokens,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
         && !slot_parents.is_empty()
     {
         slot_parents = String::new();
@@ -166,7 +177,14 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     }
 
     // Step 2: Drop non-essential ASCC slots (artifacts, failures, next_steps, notes).
-    if slot_total(fixed_tokens, &slot_rules, &slot_focus, &slot_parents, &slot_handles, &slot_user) > budget
+    if slot_total(
+        fixed_tokens,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
         && !slot_focus.is_empty()
     {
         slot_focus = build_focus_slot_reduced(input.frame_title, input.focus_state, input.ascc);
@@ -175,7 +193,14 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     }
 
     // Step 3: Replace focus with minimal digest.
-    if slot_total(fixed_tokens, &slot_rules, &slot_focus, &slot_parents, &slot_handles, &slot_user) > budget
+    if slot_total(
+        fixed_tokens,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
         && !slot_focus.is_empty()
     {
         slot_focus = build_focus_digest(input.frame_title, input.focus_state);
@@ -184,7 +209,14 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     }
 
     // Step 4: Drop artifact handles.
-    if slot_total(fixed_tokens, &slot_rules, &slot_focus, &slot_parents, &slot_handles, &slot_user) > budget
+    if slot_total(
+        fixed_tokens,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
         && !slot_handles.is_empty()
     {
         slot_handles = String::new();
@@ -194,7 +226,15 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     }
 
     // Step 5: Truncate user input.
-    if slot_total(fixed_tokens, &slot_rules, &slot_focus, &slot_parents, &slot_handles, &slot_user) > budget {
+    if slot_total(
+        fixed_tokens,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
+    {
         let remaining = budget.saturating_sub(
             fixed_tokens
                 + estimate_tokens(&slot_rules)
@@ -207,7 +247,14 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     }
 
     // Step 6: Drop rules (last resort).
-    if slot_total(fixed_tokens, &slot_rules, &slot_focus, &slot_parents, &slot_handles, &slot_user) > budget
+    if slot_total(
+        fixed_tokens,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
         && !slot_rules.is_empty()
     {
         slot_rules = String::new();
@@ -326,7 +373,11 @@ fn build_focus_slot(title: &str, state: &FocusState, ascc: Option<&AsccSections>
 }
 
 /// Slot 3 (degraded): Only high-priority sections (intent + constraints + decisions).
-fn build_focus_slot_reduced(title: &str, state: &FocusState, ascc: Option<&AsccSections>) -> String {
+fn build_focus_slot_reduced(
+    title: &str,
+    state: &FocusState,
+    ascc: Option<&AsccSections>,
+) -> String {
     let mut out = format!("FOCUS FRAME: {} [REDUCED]\n", title);
 
     match ascc {
@@ -474,7 +525,11 @@ mod tests {
 
         assert!(result.content.contains("Focusa"));
         assert!(result.content.contains("INTENT: Implement user auth"));
-        assert!(result.content.contains("USER INPUT:\nWrite the auth module"));
+        assert!(
+            result
+                .content
+                .contains("USER INPUT:\nWrite the auth module")
+        );
         assert!(result.content.contains("DIRECTIVE:"));
         assert!(!result.degraded);
         assert!(result.warnings.is_empty());
@@ -493,6 +548,7 @@ mod tests {
             scope: RuleScope::Global,
             enabled: true,
             pinned: false,
+            tags: vec![],
         }];
 
         let result = assemble(&state, None, &rules, &[], "test", &config);
@@ -513,6 +569,7 @@ mod tests {
             scope: RuleScope::Global,
             enabled: false,
             pinned: false,
+            tags: vec![],
         }];
 
         let result = assemble(&state, None, &rules, &[], "test", &config);

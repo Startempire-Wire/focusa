@@ -143,10 +143,30 @@ mod tests {
     fn test_rfm_escalation() {
         let mut state = RfmState::default();
         let results = vec![
-            ValidatorResult { validator: MicrocellValidator::Schema, passed: true, details: String::new(), timestamp: Utc::now() },
-            ValidatorResult { validator: MicrocellValidator::Constraint, passed: false, details: String::new(), timestamp: Utc::now() },
-            ValidatorResult { validator: MicrocellValidator::Consistency, passed: false, details: String::new(), timestamp: Utc::now() },
-            ValidatorResult { validator: MicrocellValidator::ReferenceGrounding, passed: false, details: String::new(), timestamp: Utc::now() },
+            ValidatorResult {
+                validator: MicrocellValidator::Schema,
+                passed: true,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+            ValidatorResult {
+                validator: MicrocellValidator::Constraint,
+                passed: false,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+            ValidatorResult {
+                validator: MicrocellValidator::Consistency,
+                passed: false,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
+            ValidatorResult {
+                validator: MicrocellValidator::ReferenceGrounding,
+                passed: false,
+                details: String::new(),
+                timestamp: Utc::now(),
+            },
         ];
         let changed = update_rfm(&mut state, results);
         assert!(changed);
@@ -156,6 +176,9 @@ mod tests {
     #[test]
     fn test_constraint_validation() {
         assert!(validate_constraints("short", &["max_length:100".into()]));
-        assert!(!validate_constraints("long text here", &["max_length:5".into()]));
+        assert!(!validate_constraints(
+            "long text here",
+            &["max_length:5".into()]
+        ));
     }
 }

@@ -73,11 +73,7 @@ pub fn insert_summary(
 }
 
 /// Insert a branch marker.
-pub fn insert_branch_marker(
-    clt: &mut CltState,
-    reason: &str,
-    branches: Vec<String>,
-) -> String {
+pub fn insert_branch_marker(clt: &mut CltState, reason: &str, branches: Vec<String>) -> String {
     let node_id = format!("clt_{:06}", clt.nodes.len());
     let parent_id = clt.head_id.clone();
 
@@ -116,9 +112,21 @@ pub fn lineage_path(clt: &CltState) -> Vec<&CltNode> {
 
 /// Count nodes by type.
 pub fn node_counts(clt: &CltState) -> (usize, usize, usize) {
-    let interactions = clt.nodes.iter().filter(|n| n.node_type == CltNodeType::Interaction).count();
-    let summaries = clt.nodes.iter().filter(|n| n.node_type == CltNodeType::Summary).count();
-    let markers = clt.nodes.iter().filter(|n| n.node_type == CltNodeType::BranchMarker).count();
+    let interactions = clt
+        .nodes
+        .iter()
+        .filter(|n| n.node_type == CltNodeType::Interaction)
+        .count();
+    let summaries = clt
+        .nodes
+        .iter()
+        .filter(|n| n.node_type == CltNodeType::Summary)
+        .count();
+    let markers = clt
+        .nodes
+        .iter()
+        .filter(|n| n.node_type == CltNodeType::BranchMarker)
+        .count();
     (interactions, summaries, markers)
 }
 
@@ -129,7 +137,13 @@ mod tests {
     #[test]
     fn test_append_interaction() {
         let mut clt = CltState::default();
-        let id = append_interaction(&mut clt, None, "user", Some("ref://abc"), CltMetadata::default());
+        let id = append_interaction(
+            &mut clt,
+            None,
+            "user",
+            Some("ref://abc"),
+            CltMetadata::default(),
+        );
         assert_eq!(clt.head_id, Some(id));
         assert_eq!(clt.nodes.len(), 1);
         assert!(clt.nodes[0].parent_id.is_none());

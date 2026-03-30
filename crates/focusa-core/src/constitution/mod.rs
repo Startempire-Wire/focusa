@@ -98,10 +98,7 @@ pub enum CsChangeType {
 ///
 /// Requires explicit human activation. Never auto-applies.
 /// Minimum 50 tasks for analysis window.
-pub fn synthesize_draft(
-    state: &ConstitutionState,
-    evidence: &[String],
-) -> Result<CsDraft, String> {
+pub fn synthesize_draft(state: &ConstitutionState, evidence: &[String]) -> Result<CsDraft, String> {
     if evidence.len() < 50 {
         return Err(format!(
             "Insufficient evidence: {} (minimum 50 required)",

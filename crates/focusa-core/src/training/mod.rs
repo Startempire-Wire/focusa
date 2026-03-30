@@ -80,9 +80,7 @@ pub fn to_jsonl(example: &TrainingExample) -> Result<String, serde_json::Error> 
 }
 
 /// Batch export with PII check. Returns (exported, rejected_count).
-pub fn export_batch(
-    examples: &[TrainingExample],
-) -> (Vec<String>, usize) {
+pub fn export_batch(examples: &[TrainingExample]) -> (Vec<String>, usize) {
     let mut lines = Vec::new();
     let mut rejected = 0;
 
@@ -104,10 +102,7 @@ pub fn export_batch(
 // ─── Data Contribution — docs/22 ────────────────────────────────────────────
 
 /// Enqueue an item for contribution.
-pub fn enqueue_contribution(
-    state: &mut ContributionState,
-    family: DatasetFamily,
-) -> Uuid {
+pub fn enqueue_contribution(state: &mut ContributionState, family: DatasetFamily) -> Uuid {
     let id = Uuid::now_v7();
     state.queue.push(ContributionItem {
         id,
@@ -121,7 +116,10 @@ pub fn enqueue_contribution(
 
 /// Approve a contribution item (user review).
 pub fn approve_contribution(state: &mut ContributionState, item_id: Uuid) -> Result<(), String> {
-    let item = state.queue.iter_mut().find(|i| i.id == item_id)
+    let item = state
+        .queue
+        .iter_mut()
+        .find(|i| i.id == item_id)
         .ok_or_else(|| format!("Contribution item {} not found", item_id))?;
     item.status = ContributionStatus::Approved;
     item.reviewed = true;
@@ -148,7 +146,15 @@ mod tests {
     #[test]
     fn test_build_example() {
         let sid = uuid::Uuid::now_v7();
-        let ex = build_example(DatasetFamily::FocusaSft, sid, "t1", "hello", "world", None, None);
+        let ex = build_example(
+            DatasetFamily::FocusaSft,
+            sid,
+            "t1",
+            "hello",
+            "world",
+            None,
+            None,
+        );
         assert_eq!(ex.family, DatasetFamily::FocusaSft);
     }
 
@@ -162,8 +168,24 @@ mod tests {
     fn test_export_rejects_pii() {
         let sid = uuid::Uuid::now_v7();
         let examples = vec![
-            build_example(DatasetFamily::FocusaSft, sid, "t1", "clean input", "clean output", None, None),
-            build_example(DatasetFamily::FocusaSft, sid, "t2", "email user@test.com", "ok", None, None),
+            build_example(
+                DatasetFamily::FocusaSft,
+                sid,
+                "t1",
+                "clean input",
+                "clean output",
+                None,
+                None,
+            ),
+            build_example(
+                DatasetFamily::FocusaSft,
+                sid,
+                "t2",
+                "email user@test.com",
+                "ok",
+                None,
+                None,
+            ),
         ];
         let (lines, rejected) = export_batch(&examples);
         assert_eq!(lines.len(), 1);

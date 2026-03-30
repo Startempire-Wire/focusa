@@ -16,7 +16,11 @@ pub fn record(state: &mut TelemetryState, event: TelemetryEvent) {
         if let Some(tokens) = event.payload.get("prompt_tokens").and_then(|v| v.as_u64()) {
             state.total_prompt_tokens += tokens;
         }
-        if let Some(tokens) = event.payload.get("completion_tokens").and_then(|v| v.as_u64()) {
+        if let Some(tokens) = event
+            .payload
+            .get("completion_tokens")
+            .and_then(|v| v.as_u64())
+        {
             state.total_completion_tokens += tokens;
         }
     }
@@ -80,7 +84,11 @@ pub fn update_task_tokens(
     prompt_tokens: u64,
     completion_tokens: u64,
 ) {
-    if let Some(entry) = state.tokens_per_task.iter_mut().find(|e| e.task_id == task_id) {
+    if let Some(entry) = state
+        .tokens_per_task
+        .iter_mut()
+        .find(|e| e.task_id == task_id)
+    {
         entry.prompt_tokens += prompt_tokens;
         entry.completion_tokens += completion_tokens;
         entry.turns += 1;
@@ -95,7 +103,11 @@ pub fn update_task_tokens(
 }
 
 /// Get total cost estimate (simple model).
-pub fn estimate_cost(state: &TelemetryState, cost_per_1k_prompt: f64, cost_per_1k_completion: f64) -> f64 {
+pub fn estimate_cost(
+    state: &TelemetryState,
+    cost_per_1k_prompt: f64,
+    cost_per_1k_completion: f64,
+) -> f64 {
     (state.total_prompt_tokens as f64 / 1000.0) * cost_per_1k_prompt
         + (state.total_completion_tokens as f64 / 1000.0) * cost_per_1k_completion
 }

@@ -64,7 +64,10 @@ pub fn grant_level(
         from_level: state.level,
         to_level: level,
         reason: reason.into(),
-        evidence: vec![format!("ARI: {:.1}, samples: {}", state.ari_score, state.sample_count)],
+        evidence: vec![format!(
+            "ARI: {:.1}, samples: {}",
+            state.ari_score, state.sample_count
+        )],
     };
     state.history.push(event);
     state.level = level;
@@ -100,8 +103,12 @@ mod tests {
     #[test]
     fn test_compute_ari() {
         let dims = AutonomyDimensions {
-            correctness: 0.8, stability: 0.7, efficiency: 0.9,
-            trust: 0.8, grounding: 0.6, recovery: 0.7,
+            correctness: 0.8,
+            stability: 0.7,
+            efficiency: 0.9,
+            trust: 0.8,
+            grounding: 0.6,
+            recovery: 0.7,
         };
         let ari = compute_ari(&dims);
         assert!(ari > 50.0 && ari < 100.0);
@@ -116,7 +123,13 @@ mod tests {
     #[test]
     fn test_grant_records_history() {
         let mut state = AutonomyState::default();
-        grant_level(&mut state, AutonomyLevel::AL2, Some("./repo".into()), None, "test");
+        grant_level(
+            &mut state,
+            AutonomyLevel::AL2,
+            Some("./repo".into()),
+            None,
+            "test",
+        );
         assert_eq!(state.level, AutonomyLevel::AL2);
         assert_eq!(state.history.len(), 1);
     }

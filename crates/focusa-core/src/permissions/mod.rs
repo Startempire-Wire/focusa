@@ -45,7 +45,10 @@ impl TokenStore {
 
     /// Validate a token and check scope.
     pub fn validate(&self, token_id: Uuid, domain: &str, action: &str) -> Result<(), String> {
-        let token = self.tokens.iter().find(|t| t.token_id == token_id)
+        let token = self
+            .tokens
+            .iter()
+            .find(|t| t.token_id == token_id)
             .ok_or("Token not found")?;
 
         if token.revoked {
@@ -82,7 +85,10 @@ impl TokenStore {
 
     /// Revoke a token.
     pub fn revoke(&mut self, token_id: Uuid) -> Result<(), String> {
-        let token = self.tokens.iter_mut().find(|t| t.token_id == token_id)
+        let token = self
+            .tokens
+            .iter_mut()
+            .find(|t| t.token_id == token_id)
             .ok_or("Token not found")?;
         token.revoked = true;
         Ok(())
@@ -91,9 +97,10 @@ impl TokenStore {
     /// List active (non-revoked, non-expired) tokens.
     pub fn active_tokens(&self) -> Vec<&ApiToken> {
         let now = Utc::now();
-        self.tokens.iter().filter(|t| {
-            !t.revoked && t.expires_at.is_none_or(|e| e > now)
-        }).collect()
+        self.tokens
+            .iter()
+            .filter(|t| !t.revoked && t.expires_at.is_none_or(|e| e > now))
+            .collect()
     }
 }
 
@@ -123,7 +130,10 @@ mod tests {
         let mut store = TokenStore::new();
         let id = store.create_token(
             ApiTokenType::Integration,
-            vec![PermissionScope { domain: "*".into(), action: "*".into() }],
+            vec![PermissionScope {
+                domain: "*".into(),
+                action: "*".into(),
+            }],
             None,
         );
         assert!(store.validate(id, "focus", "read").is_ok());

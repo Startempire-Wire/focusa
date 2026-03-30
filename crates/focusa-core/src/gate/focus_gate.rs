@@ -137,8 +137,10 @@ mod tests {
     #[test]
     fn test_surfaced_candidates_threshold() {
         let mut gate = FocusGateState::default();
-        gate.candidates.push(make_candidate(1.0, CandidateState::Surfaced)); // Below threshold
-        gate.candidates.push(make_candidate(3.0, CandidateState::Surfaced)); // Above threshold
+        gate.candidates
+            .push(make_candidate(1.0, CandidateState::Surfaced)); // Below threshold
+        gate.candidates
+            .push(make_candidate(3.0, CandidateState::Surfaced)); // Above threshold
 
         let result = surfaced_candidates(&gate, 2.2);
         assert_eq!(result.len(), 1);
@@ -148,7 +150,8 @@ mod tests {
     #[test]
     fn test_surfaced_excludes_resolved() {
         let mut gate = FocusGateState::default();
-        gate.candidates.push(make_candidate(5.0, CandidateState::Resolved));
+        gate.candidates
+            .push(make_candidate(5.0, CandidateState::Resolved));
 
         let result = surfaced_candidates(&gate, 2.2);
         assert!(result.is_empty());

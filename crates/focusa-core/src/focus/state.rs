@@ -56,9 +56,10 @@ pub fn apply_delta(state: &mut FocusState, delta: &FocusStateDelta) {
     // Slot 4: artifacts — append, dedup by (kind + label), cap 50.
     if let Some(ref artifacts) = delta.artifacts {
         for a in artifacts {
-            let dup = state.artifacts.iter().any(|existing| {
-                existing.kind == a.kind && existing.label == a.label
-            });
+            let dup = state
+                .artifacts
+                .iter()
+                .any(|existing| existing.kind == a.kind && existing.label == a.label);
             if !dup {
                 state.artifacts.push(a.clone());
             }

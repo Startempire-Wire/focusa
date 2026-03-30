@@ -35,10 +35,7 @@ pub struct SignalGroup {
 pub fn aggregate_signals(signals: &[Signal], window_secs: i64) -> Vec<SignalGroup> {
     let cutoff = Utc::now() - Duration::seconds(window_secs);
 
-    let recent: Vec<&Signal> = signals
-        .iter()
-        .filter(|s| s.ts > cutoff)
-        .collect();
+    let recent: Vec<&Signal> = signals.iter().filter(|s| s.ts > cutoff).collect();
 
     if recent.is_empty() {
         return vec![];
@@ -48,19 +45,16 @@ pub fn aggregate_signals(signals: &[Signal], window_secs: i64) -> Vec<SignalGrou
     let mut groups: Vec<SignalGroup> = Vec::new();
 
     for signal in &recent {
-        let key_match = groups.iter_mut().find(|g| {
-            g.kind == signal.kind && g.frame_id == signal.frame_context
-        });
+        let key_match = groups
+            .iter_mut()
+            .find(|g| g.kind == signal.kind && g.frame_id == signal.frame_context);
 
         match key_match {
             Some(group) => {
                 group.count += 1;
                 group.cumulative_pressure += base_pressure(signal.kind);
                 // Update summary with latest signal info.
-                group.summary = format!(
-                    "{} (×{})",
-                    signal.summary, group.count
-                );
+                group.summary = format!("{} (×{})", signal.summary, group.count);
             }
             None => {
                 groups.push(SignalGroup {

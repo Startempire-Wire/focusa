@@ -72,11 +72,7 @@ impl IntuitionEngine {
     ///
     /// Called by the daemon after each action is processed.
     /// Runs async but NEVER blocks the hot path — uses try_send.
-    pub fn observe_turn(
-        &mut self,
-        frame_id: Option<FrameId>,
-        content: &str,
-    ) {
+    pub fn observe_turn(&mut self, frame_id: Option<FrameId>, content: &str) {
         let now = Utc::now();
 
         // Record observation timestamp.
@@ -86,13 +82,13 @@ impl IntuitionEngine {
         }
 
         // Classify content for error detection.
-        let has_error = content.contains("error") || content.contains("Error")
-            || content.contains("ERROR") || content.contains("panic")
+        let has_error = content.contains("error")
+            || content.contains("Error")
+            || content.contains("ERROR")
+            || content.contains("panic")
             || content.contains("failed");
 
-        if has_error
-            && let Some(fid) = frame_id
-        {
+        if has_error && let Some(fid) = frame_id {
             let count = self.error_counts.entry(fid).or_insert(0);
             *count += 1;
         }
@@ -200,5 +196,3 @@ impl IntuitionEngine {
         self.error_counts.remove(&frame_id);
     }
 }
-
-

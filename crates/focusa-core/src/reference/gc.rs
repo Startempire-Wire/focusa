@@ -19,14 +19,13 @@ use chrono::{Duration, Utc};
 /// Identify artifacts eligible for garbage collection.
 ///
 /// Eligible = unpinned + older than `max_age` + not in any active frame's handles.
-pub fn find_eligible(
-    state: &FocusaState,
-    max_age: Duration,
-) -> Vec<ArtifactId> {
+pub fn find_eligible(state: &FocusaState, max_age: Duration) -> Vec<ArtifactId> {
     let cutoff = Utc::now() - max_age;
 
     // Protect handles from the active session (if any).
-    let active_session = state.session.as_ref()
+    let active_session = state
+        .session
+        .as_ref()
         .filter(|s| s.status == SessionStatus::Active)
         .map(|s| s.session_id);
 
@@ -36,9 +35,7 @@ pub fn find_eligible(
         .iter()
         .filter(|h| {
             let in_active_session = active_session.is_some() && h.session_id == active_session;
-            !h.pinned
-                && h.created_at < cutoff
-                && !in_active_session
+            !h.pinned && h.created_at < cutoff && !in_active_session
         })
         .map(|h| h.id)
         .collect()

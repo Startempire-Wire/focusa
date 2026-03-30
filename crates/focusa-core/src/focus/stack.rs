@@ -33,7 +33,9 @@ pub fn rebuild_stack_path(stack: &mut FocusStackState) {
         while let Some(id) = current {
             path.push(id);
             if path.len() > max_depth {
-                tracing::error!("Cycle detected in focus stack parent pointers — aborting path rebuild");
+                tracing::error!(
+                    "Cycle detected in focus stack parent pointers — aborting path rebuild"
+                );
                 break;
             }
             current = stack

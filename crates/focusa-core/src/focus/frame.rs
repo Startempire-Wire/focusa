@@ -23,5 +23,8 @@ pub fn find_by_id(frames: &[FrameRecord], id: uuid::Uuid) -> Option<&FrameRecord
 
 /// Count active frames (should always be 0 or 1).
 pub fn count_active(frames: &[FrameRecord]) -> usize {
-    frames.iter().filter(|f| f.status == FrameStatus::Active).count()
+    frames
+        .iter()
+        .filter(|f| f.status == FrameStatus::Active)
+        .count()
 }

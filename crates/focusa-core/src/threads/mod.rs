@@ -99,11 +99,7 @@ pub fn create_instance(kind: InstanceKind, thread_id: Option<Uuid>) -> Instance 
 }
 
 /// Create a session attachment.
-pub fn attach_session(
-    session_id: SessionId,
-    thread_id: Uuid,
-    role: AttachmentRole,
-) -> Attachment {
+pub fn attach_session(session_id: SessionId, thread_id: Uuid, role: AttachmentRole) -> Attachment {
     Attachment {
         session_id,
         thread_id,

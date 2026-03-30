@@ -27,22 +27,34 @@ pub struct CacheStore {
 
 impl CacheStore {
     pub fn new() -> Self {
-        Self { entries: HashMap::new() }
+        Self {
+            entries: HashMap::new(),
+        }
     }
 
     /// Put a value. C4 class is rejected.
-    pub fn put(&mut self, key: &str, class: CacheClass, data: serde_json::Value, ttl_secs: Option<u64>, session_id: Option<SessionId>) -> Result<(), String> {
+    pub fn put(
+        &mut self,
+        key: &str,
+        class: CacheClass,
+        data: serde_json::Value,
+        ttl_secs: Option<u64>,
+        session_id: Option<SessionId>,
+    ) -> Result<(), String> {
         if class == CacheClass::C4 {
             return Err("C4 class: caching forbidden".into());
         }
-        self.entries.insert(key.into(), CacheEntry {
-            key: key.into(),
-            class,
-            data,
-            created_at: Utc::now(),
-            ttl_secs,
-            session_id,
-        });
+        self.entries.insert(
+            key.into(),
+            CacheEntry {
+                key: key.into(),
+                class,
+                data,
+                created_at: Utc::now(),
+                ttl_secs,
+                session_id,
+            },
+        );
         Ok(())
     }
 
@@ -82,15 +94,20 @@ impl CacheStore {
     /// Bust cache by category.
     pub fn bust(&mut self, category: CacheBustCategory) {
         let classes_to_bust: Vec<CacheClass> = match category {
-            CacheBustCategory::FreshEvidence => vec![CacheClass::C1, CacheClass::C2, CacheClass::C3],
-            CacheBustCategory::AuthorityChange => vec![CacheClass::C1, CacheClass::C2, CacheClass::C3],
+            CacheBustCategory::FreshEvidence => {
+                vec![CacheClass::C1, CacheClass::C2, CacheClass::C3]
+            }
+            CacheBustCategory::AuthorityChange => {
+                vec![CacheClass::C1, CacheClass::C2, CacheClass::C3]
+            }
             CacheBustCategory::Compaction => vec![CacheClass::C2, CacheClass::C3],
             CacheBustCategory::Staleness => vec![CacheClass::C1],
             CacheBustCategory::SalienceCollapse => vec![CacheClass::C2, CacheClass::C3],
             CacheBustCategory::ProviderMismatch => vec![CacheClass::C1, CacheClass::C2],
         };
 
-        self.entries.retain(|_, entry| !classes_to_bust.contains(&entry.class));
+        self.entries
+            .retain(|_, entry| !classes_to_bust.contains(&entry.class));
     }
 
     /// Clear session-scoped entries.
@@ -126,15 +143,33 @@ mod tests {
     #[test]
     fn test_c0_always_valid() {
         let mut store = CacheStore::new();
-        store.put("immutable", CacheClass::C0, serde_json::json!("data"), None, None).unwrap();
+        store
+            .put(
+                "immutable",
+                CacheClass::C0,
+                serde_json::json!("data"),
+                None,
+                None,
+            )
+            .unwrap();
         assert!(store.get("immutable", None).is_some());
     }
 
     #[test]
     fn test_bust_fresh_evidence() {
         let mut store = CacheStore::new();
-        store.put("c0", CacheClass::C0, serde_json::json!("safe"), None, None).unwrap();
-        store.put("c1", CacheClass::C1, serde_json::json!("ttl"), Some(3600), None).unwrap();
+        store
+            .put("c0", CacheClass::C0, serde_json::json!("safe"), None, None)
+            .unwrap();
+        store
+            .put(
+                "c1",
+                CacheClass::C1,
+                serde_json::json!("ttl"),
+                Some(3600),
+                None,
+            )
+            .unwrap();
         store.bust(CacheBustCategory::FreshEvidence);
         assert!(store.get("c0", None).is_some()); // C0 survives.
         assert_eq!(store.len(), 1);
@@ -146,7 +181,15 @@ mod tests {
         let mut store = CacheStore::new();
         let sid = Uuid::now_v7();
         let other = Uuid::now_v7();
-        store.put("scoped", CacheClass::C2, serde_json::json!("data"), None, Some(sid)).unwrap();
+        store
+            .put(
+                "scoped",
+                CacheClass::C2,
+                serde_json::json!("data"),
+                None,
+                Some(sid),
+            )
+            .unwrap();
         assert!(store.get("scoped", Some(sid)).is_some());
         assert!(store.get("scoped", Some(other)).is_none());
     }

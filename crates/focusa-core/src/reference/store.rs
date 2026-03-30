@@ -72,7 +72,10 @@ impl ReferenceStore {
 
     /// Resolve a handle — return metadata + content path.
     pub fn resolve(&self, handle_id: HandleId) -> anyhow::Result<(HandleRef, PathBuf)> {
-        let meta_path = self.root.join("handles").join(format!("{}.json", handle_id));
+        let meta_path = self
+            .root
+            .join("handles")
+            .join(format!("{}.json", handle_id));
         let meta_str = std::fs::read_to_string(&meta_path)?;
         let handle: HandleRef = serde_json::from_str(&meta_str)?;
         let blob_path = self.root.join("objects").join(&handle.sha256);

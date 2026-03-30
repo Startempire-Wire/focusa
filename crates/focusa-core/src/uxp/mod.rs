@@ -8,7 +8,11 @@ use crate::types::*;
 use chrono::Utc;
 
 /// Record a UFI signal.
-pub fn record_ufi_signal(ufi: &mut UfiState, signal_type: UfiSignalType, session_id: Option<SessionId>) {
+pub fn record_ufi_signal(
+    ufi: &mut UfiState,
+    signal_type: UfiSignalType,
+    session_id: Option<SessionId>,
+) {
     let tier = weight_tier(signal_type);
     ufi.signals.push(UfiSignal {
         signal_type,
@@ -109,8 +113,12 @@ mod tests {
     #[test]
     fn test_bridge_frozen_dimension() {
         let mut dim = UxpDimension {
-            value: 0.5, confidence: 0.5, citations: vec![],
-            learning_rate: 0.1, window_size: 30, frozen: true,
+            value: 0.5,
+            confidence: 0.5,
+            citations: vec![],
+            learning_rate: 0.1,
+            window_size: 30,
+            frozen: true,
         };
         bridge_ufi_to_uxp(&mut dim, 0.9);
         assert_eq!(dim.value, 0.5); // Unchanged.
@@ -119,8 +127,12 @@ mod tests {
     #[test]
     fn test_bridge_updates_dimension() {
         let mut dim = UxpDimension {
-            value: 0.5, confidence: 0.0, citations: vec![],
-            learning_rate: 0.1, window_size: 30, frozen: false,
+            value: 0.5,
+            confidence: 0.0,
+            citations: vec![],
+            learning_rate: 0.1,
+            window_size: 30,
+            frozen: false,
         };
         bridge_ufi_to_uxp(&mut dim, 0.8);
         assert!(dim.value > 0.5);
