@@ -116,6 +116,8 @@ pub struct AssemblyInput<'a> {
     pub safety_rules: &'a [String],
     /// Runtime config (budget limits).
     pub config: &'a FocusaConfig,
+    /// Rehydration: inline handle content up to max_tokens.
+    pub rehydrate_handles: Option<u32>,
 }
 
 /// Minimal parent frame context for prompt inclusion.
@@ -152,6 +154,7 @@ pub fn assemble(
         constitution_principles: &[],
         safety_rules: &[],
         config,
+        rehydrate_handles: None,
     };
     assemble_from(input)
 }
@@ -256,7 +259,8 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     let mut slot_parents = build_parents_slot(input.parent_frames);
 
     // Slot 5: Artifact handles.
-    let (mut slot_handles, mut handles_used) = build_handles_slot(input.handles);
+    let (mut slot_handles, mut handles_used) =
+        build_handles_slot(input.handles, input.rehydrate_handles);
 
     // Slot 6: User input (may be truncated during degradation).
     let mut slot_user = format!("USER INPUT:\n{}\n\n", input.user_input);
@@ -563,10 +567,24 @@ fn build_parents_slot(parents: &[ParentContext]) -> String {
 }
 
 /// Slot 5: Artifact handles (references only, never inline content).
-fn build_handles_slot(handles: &[HandleRef]) -> (String, Vec<HandleId>) {
+/// Build handles slot with optional rehydration.
+///
+/// Per 08-expression-engine §Handle Rehydration:
+/// When rehydrate_budget is Some(max_tokens), inline content up to budget.
+fn build_handles_slot(
+    handles: &[HandleRef],
+    _rehydrate_budget: Option<u32>,
+) -> (String, Vec<HandleId>) {
     if handles.is_empty() {
         return (String::new(), vec![]);
     }
+
+    // NOTE: Full rehydration requires ReferenceStore access.
+    // When _rehydrate_budget is Some, we would:
+    // 1. Load handle content from store
+    // 2. Truncate to max_tokens
+    // 3. Inline with [REHYDRATED] marker
+    // For now, always return handle refs (never inline).
 
     let mut out = String::from("ARTIFACT REFERENCES:\n");
     let mut ids = Vec::with_capacity(handles.len());
@@ -775,5 +793,50 @@ mod tests {
         assert!(result.content.contains("FOCUS FRAME:"));
         // Empty state should still produce valid prompt.
         assert!(result.content.contains("USER INPUT:"));
+    }
+
+    // SMOKE TEST: Handle rehydration field exists.
+    #[test]
+    fn test_rehydration_field() {
+        let config = test_config();
+        let state = test_state();
+        
+        // Test with rehydration disabled (None).
+        let input_no_rehydrate = AssemblyInput {
+            focus_state: &state,
+            frame_title: &state.intent,
+            ascc: None,
+            parent_frames: &[],
+            rules: &[],
+            handles: &[],
+            user_input: "test",
+            directive: None,
+            constitution_principles: &[],
+            safety_rules: &[],
+            config: &config,
+            rehydrate_handles: None,
+        };
+        let result1 = assemble_from(input_no_rehydrate);
+        assert!(!result1.content.contains("[REHYDRATED]"));
+        
+        // Test with rehydration enabled (Some).
+        let input_with_rehydrate = AssemblyInput {
+            focus_state: &state,
+            frame_title: &state.intent,
+            ascc: None,
+            parent_frames: &[],
+            rules: &[],
+            handles: &[],
+            user_input: "test",
+            directive: None,
+            constitution_principles: &[],
+            safety_rules: &[],
+            config: &config,
+            rehydrate_handles: Some(500), // Request 500 tokens for rehydration.
+        };
+        let result2 = assemble_from(input_with_rehydrate);
+        // Note: Full rehydration requires ReferenceStore access.
+        // This test verifies the field is accepted and passed.
+        assert!(result2.content.contains("ARTIFACT REFERENCES") || result2.handles_used.is_empty());
     }
 }

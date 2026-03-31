@@ -161,6 +161,7 @@ pub fn process_request(
         constitution_principles: &principles,
         safety_rules: &safety,
         config,
+        rehydrate_handles: None,
     };
     let assembly = crate::expression::engine::assemble_from(input);
 
