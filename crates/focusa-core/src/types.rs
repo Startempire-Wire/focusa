@@ -686,6 +686,25 @@ pub enum FocusaEvent {
         degraded: bool,
     },
 
+    // Memory
+    /// Per G1-09 §Memory Operations: semantic memory upserted.
+    SemanticMemoryUpserted {
+        key: String,
+        value: String,
+        source: String,
+    },
+    /// Per G1-09 §Memory Operations: procedural rule reinforced.
+    RuleReinforced {
+        rule_id: String,
+        new_weight: f32,
+        reinforced_count: u32,
+    },
+    /// Per G1-09 §Memory Operations: periodic decay tick applied.
+    MemoryDecayTick {
+        decay_factor: f32,
+        rules_affected: usize,
+    },
+
     // Errors
     InvariantViolation {
         invariant: String,

@@ -4,20 +4,28 @@
 //! Only whitelisted keys injected into prompt.
 //! Serialized as: `PREFS: user.response_style=concise_steps`
 
-use crate::types::{ExplicitMemory, MemorySource, SemanticRecord};
+use crate::types::{ExplicitMemory, MemorySource, SemanticRecord, FocusaEvent};
 use chrono::Utc;
 
 /// Upsert a semantic record.
-pub fn upsert(memory: &mut ExplicitMemory, key: String, value: String, source: MemorySource) {
+///
+/// Returns an event for the upsert operation.
+pub fn upsert(
+    memory: &mut ExplicitMemory,
+    key: String,
+    value: String,
+    source: MemorySource,
+) -> FocusaEvent {
     let now = Utc::now();
+    let source_str = format!("{:?}", source);
     if let Some(existing) = memory.semantic.iter_mut().find(|r| r.key == key) {
-        existing.value = value;
+        existing.value = value.clone();
         existing.updated_at = now;
         existing.source = source;
     } else {
         memory.semantic.push(SemanticRecord {
-            key,
-            value,
+            key: key.clone(),
+            value: value.clone(),
             created_at: now,
             updated_at: now,
             source,
@@ -26,6 +34,11 @@ pub fn upsert(memory: &mut ExplicitMemory, key: String, value: String, source: M
             tags: vec![],
             pinned: false,
         });
+    }
+    FocusaEvent::SemanticMemoryUpserted {
+        key,
+        value,
+        source: source_str,
     }
 }
 

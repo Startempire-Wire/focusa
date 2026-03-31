@@ -963,7 +963,7 @@ impl Daemon {
             // events for observability per G1-detail-15 §memory.semantic_upserted,
             // memory.rule_reinforced, memory.decay_tick.
             Action::UpsertSemantic { key, value, source } => {
-                crate::memory::semantic::upsert(
+                let event = crate::memory::semantic::upsert(
                     &mut self.state.memory,
                     key.clone(),
                     value.clone(),
@@ -971,21 +971,21 @@ impl Daemon {
                 );
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
-                // Emit audit event to event log (not through reducer).
-                self.emit_memory_event(&format!("memory.semantic_upserted: {}={}", key, value));
-                Ok(vec![])
+                Ok(vec![event])
             }
 
             Action::ReinforceRule { rule_id } => {
-                crate::memory::procedural::reinforce(&mut self.state.memory, &rule_id);
-                self.persistence.save_state(&self.state)?;
-                self.sync_shared_state().await;
-                self.emit_memory_event(&format!("memory.rule_reinforced: {}", rule_id));
-                Ok(vec![])
+                if let Some(event) = crate::memory::procedural::reinforce(&mut self.state.memory, &rule_id) {
+                    self.persistence.save_state(&self.state)?;
+                    self.sync_shared_state().await;
+                    Ok(vec![event])
+                } else {
+                    Ok(vec![])
+                }
             }
 
             Action::DecayTick => {
-                crate::memory::procedural::decay_tick(
+                let decay_event = crate::memory::procedural::decay_tick(
                     &mut self.state.memory,
                     self.config.gate_decay_factor,
                 );
@@ -996,7 +996,7 @@ impl Daemon {
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
                 self.expire_stale_turn();
-                Ok(vec![])
+                Ok(vec![decay_event])
             }
 
             // ─── Workers ─────────────────────────────────────────────────

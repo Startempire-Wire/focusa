@@ -4,27 +4,41 @@
 //! Weight decays ×0.99 per tick.
 //! Scoped: global | frame | project.
 
-use crate::types::{ExplicitMemory, FrameId, RuleRecord, RuleScope};
+use crate::types::{ExplicitMemory, FrameId, RuleRecord, RuleScope, FocusaEvent};
 use chrono::Utc;
 
 /// Reinforce a rule (increase weight).
-pub fn reinforce(memory: &mut ExplicitMemory, rule_id: &str) -> bool {
+///
+/// Returns an event if the rule was found and reinforced.
+pub fn reinforce(memory: &mut ExplicitMemory, rule_id: &str) -> Option<FocusaEvent> {
     if let Some(rule) = memory.procedural.iter_mut().find(|r| r.id == rule_id) {
         rule.weight += 0.1;
         rule.reinforced_count += 1;
         rule.last_reinforced_at = Utc::now();
-        true
+        Some(FocusaEvent::RuleReinforced {
+            rule_id: rule_id.to_string(),
+            new_weight: rule.weight,
+            reinforced_count: rule.reinforced_count,
+        })
     } else {
-        false
+        None
     }
 }
 
 /// Apply decay tick to all rules.
-pub fn decay_tick(memory: &mut ExplicitMemory, decay_factor: f32) {
+///
+/// Returns an event with the number of rules affected.
+pub fn decay_tick(memory: &mut ExplicitMemory, decay_factor: f32) -> FocusaEvent {
+    let mut affected = 0usize;
     for rule in &mut memory.procedural {
         if !rule.pinned {
             rule.weight *= decay_factor;
+            affected += 1;
         }
+    }
+    FocusaEvent::MemoryDecayTick {
+        decay_factor,
+        rules_affected: affected,
     }
 }
 

@@ -706,6 +706,13 @@ pub fn reduce_with_meta(
             // Prompt assembly events are telemetry only.
         }
 
+        // ─── Memory ──────────────────────────────────────────────────────
+        FocusaEvent::SemanticMemoryUpserted { .. }
+        | FocusaEvent::RuleReinforced { .. }
+        | FocusaEvent::MemoryDecayTick { .. } => {
+            // Memory events are telemetry only — state mutation happens via Actions.
+        }
+
         // ─── Errors ──────────────────────────────────────────────────────
         FocusaEvent::InvariantViolation {
             invariant: _,
