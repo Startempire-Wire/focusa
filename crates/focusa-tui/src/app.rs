@@ -21,6 +21,10 @@ pub enum Tab {
     Skills,
     Uxp,
     Training,
+    References,
+    Cache,
+    Contribution,
+    Intuition,
 }
 
 impl Tab {
@@ -39,6 +43,10 @@ impl Tab {
         Tab::Skills,
         Tab::Uxp,
         Tab::Training,
+        Tab::References,
+        Tab::Cache,
+        Tab::Contribution,
+        Tab::Intuition,
     ];
 
     pub fn label(&self) -> &'static str {
@@ -57,6 +65,10 @@ impl Tab {
             Tab::Skills => "Skills",
             Tab::Uxp => "UXP",
             Tab::Training => "Export",
+            Tab::References => "Refs",
+            Tab::Cache => "Cache",
+            Tab::Contribution => "Contrib",
+            Tab::Intuition => "Intuition",
         }
     }
 
@@ -76,6 +88,10 @@ impl Tab {
             Tab::Skills => "s",
             Tab::Uxp => "u",
             Tab::Training => "x",
+            Tab::References => "r",
+            Tab::Cache => "c",
+            Tab::Contribution => "o",
+            Tab::Intuition => "i",
         }
     }
 }

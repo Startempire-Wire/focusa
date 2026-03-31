@@ -1,14 +1,18 @@
 //! View rendering — all panels composable, read-only.
 
 mod autonomy;
+mod cache;
 mod constitution;
+mod contribution;
 mod events;
 mod focus_stack;
 mod focus_state;
 mod gate;
+mod intuition;
 mod lineage;
 mod metrics;
 mod proposals;
+mod references;
 mod rfm;
 mod skills;
 mod telemetry;
@@ -100,6 +104,10 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Tab::Skills => skills::render(app, frame, area),
         Tab::Uxp => uxp::render(app, frame, area),
         Tab::Training => training::render(app, frame, area),
+        Tab::References => references::render(app, frame, area),
+        Tab::Cache => cache::render(app, frame, area),
+        Tab::Contribution => contribution::render(app, frame, area),
+        Tab::Intuition => intuition::render(app, frame, area),
     }
 }
 
