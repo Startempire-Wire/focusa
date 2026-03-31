@@ -5,6 +5,8 @@
 //! Resolution window: configurable (default 5000ms).
 //! Only accepted proposals trigger reducer events.
 
+pub mod resolution;
+
 use crate::types::*;
 use chrono::Utc;
 use uuid::Uuid;
