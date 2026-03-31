@@ -43,6 +43,7 @@ pub mod replay;
 pub mod rfm;
 pub mod runtime;
 pub mod skills;
+pub mod sync;
 pub mod telemetry;
 pub mod threads;
 pub mod training;
