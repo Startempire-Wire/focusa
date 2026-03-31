@@ -88,8 +88,51 @@ async fn update_delta(
     Ok(Json(json!({"status": "accepted"})))
 }
 
+/// GET /v1/ascc/state — get ASCC state for active frame.
+///
+/// Per docs/G1-07-ascc.md: Global state endpoint MUST exist.
+async fn get_ascc_state(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let focusa = state.focusa.read().await;
+
+    let frame_id = focusa.focus_stack.active_id.ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "No active frame"})),
+        )
+    })?;
+
+    let frame = focusa
+        .focus_stack
+        .frames
+        .iter()
+        .find(|f| f.id == frame_id)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Active frame not found"})),
+            )
+        })?;
+
+    // Build ASCC sections from focus state.
+    let ascc = focusa_core::types::AsccSections::from(&frame.focus_state);
+
+    Ok(Json(json!({
+        "frame_id": frame_id,
+        "active": true,
+        "title": frame.title,
+        "goal": frame.goal,
+        "ascc": ascc,
+        "focus_state": frame.focus_state,
+        "ascc_checkpoint_id": frame.ascc_checkpoint_id,
+        "updated_at": frame.updated_at,
+    })))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/v1/ascc/state", get(get_ascc_state))
         .route("/v1/ascc/frame/{frame_id}", get(get_frame_ascc))
         .route("/v1/ascc/update-delta", post(update_delta))
 }

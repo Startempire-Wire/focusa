@@ -2,7 +2,8 @@
 
 use crate::server::AppState;
 use axum::extract::State;
-use axum::{Json, Router, routing::get};
+use axum::http::StatusCode;
+use axum::{Json, Router, routing::{get, post}};
 use focusa_core::types::{Action, ProposalKind};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -54,6 +55,65 @@ async fn submit_proposal(
     Json(json!({ "status": "accepted" }))
 }
 
+/// POST /v1/proposals/resolve — run PRE resolution on pending proposals.
+async fn resolve_proposals(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let s = state.focusa.read().await;
+
+    // Get pending proposals
+    let pending: Vec<_> = s.pre.proposals.iter()
+        .filter(|p| matches!(p.status, focusa_core::types::ProposalStatus::Pending))
+        .cloned()
+        .collect();
+
+    if pending.is_empty() {
+        return Ok(Json(json!({
+            "status": "no_proposals",
+            "message": "No pending proposals to resolve"
+        })));
+    }
+
+    // Run resolution
+    let config = focusa_core::pre::resolution::ResolutionConfig::default();
+    let window_start = chrono::Utc::now();
+
+    let outcome = focusa_core::pre::resolution::resolve_proposals(
+        &pending,
+        &s,
+        &config,
+        window_start,
+    );
+
+    let result = match outcome {
+        focusa_core::pre::resolution::ResolutionOutcome::Accepted { winner, score, reason } => {
+            json!({
+                "status": "accepted",
+                "winner": winner,
+                "score": score,
+                "reason": reason,
+            })
+        }
+        focusa_core::pre::resolution::ResolutionOutcome::RejectedAll { reason } => {
+            json!({
+                "status": "rejected_all",
+                "reason": reason,
+            })
+        }
+        focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired { proposals, reason } => {
+            json!({
+                "status": "clarification_required",
+                "proposals": proposals.len(),
+                "reason": reason,
+            })
+        }
+    };
+
+    Ok(Json(result))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/v1/proposals", get(list_proposals).post(submit_proposal))
+    Router::new()
+        .route("/v1/proposals", get(list_proposals).post(submit_proposal))
+        .route("/v1/proposals/resolve", post(resolve_proposals))
 }
