@@ -39,6 +39,7 @@ pub mod permissions;
 pub mod pre;
 pub mod reducer;
 pub mod reference;
+pub mod replay;
 pub mod rfm;
 pub mod runtime;
 pub mod skills;
