@@ -307,6 +307,39 @@ impl Daemon {
                                         "RFM level changed"
                                     );
                                 }
+                                // Trigger regeneration if needed (R2+).
+                                if crate::rfm::needs_regeneration(&self.state.rfm) {
+                                    let level_num = match self.state.rfm.level {
+                                        crate::types::RfmLevel::R0 => 0,
+                                        crate::types::RfmLevel::R1 => 1,
+                                        crate::types::RfmLevel::R2 => 2,
+                                        crate::types::RfmLevel::R3 => 3,
+                                    };
+                                    // Emit event directly via persistence.
+                                    let event = FocusaEvent::RfmRegenerationTriggered {
+                                        frame_id,
+                                        ais_score: self.state.rfm.ais_score,
+                                        rfm_level: level_num,
+                                        reason: format!(
+                                            "AIS {:.2} below threshold, RFM level R{}",
+                                            self.state.rfm.ais_score, level_num
+                                        ),
+                                    };
+                                    let entry = crate::runtime::events::create_entry(
+                                        event,
+                                        crate::types::SignalOrigin::Daemon,
+                                        None,
+                                    );
+                                    let _ = self.persistence.append_event(&entry);
+                                    tracing::warn!(
+                                        ais = self.state.rfm.ais_score,
+                                        level = ?self.state.rfm.level,
+                                        "RFM regeneration triggered - output quality insufficient"
+                                    );
+                                    // NOTE: Full regeneration loop requires proxy layer integration.
+                                    // The event signals that regeneration is needed.
+                                    // The proxy/adapter layer should re-prompt with RFM context.
+                                }
                             }
                         }
 

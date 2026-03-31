@@ -713,6 +713,12 @@ pub fn reduce_with_meta(
             // Memory events are telemetry only — state mutation happens via Actions.
         }
 
+        // ─── RFM ─────────────────────────────────────────────────────────
+        FocusaEvent::RfmRegenerationTriggered { .. } => {
+            // RFM regeneration events are telemetry only.
+            // Actual regeneration is handled by the daemon/proxy layer.
+        }
+
         // ─── Errors ──────────────────────────────────────────────────────
         FocusaEvent::InvariantViolation {
             invariant: _,

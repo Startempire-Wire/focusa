@@ -705,6 +705,15 @@ pub enum FocusaEvent {
         rules_affected: usize,
     },
 
+    // ─── RFM ─────────────────────────────────────────────────────────
+    /// Per 36-reliability-focus-mode §6: RFM triggered regeneration.
+    RfmRegenerationTriggered {
+        frame_id: Option<FrameId>,
+        ais_score: f64,
+        rfm_level: u8,
+        reason: String,
+    },
+
     // Errors
     InvariantViolation {
         invariant: String,
