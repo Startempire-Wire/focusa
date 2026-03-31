@@ -8,6 +8,7 @@
 
 use crate::middleware;
 use crate::routes;
+use crate::routes::sse::EventBroadcaster;
 use axum::Router;
 use axum::middleware as axum_mw;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
@@ -55,6 +56,8 @@ pub struct AppState {
     pub command_tx: mpsc::Sender<Action>,
     /// Event broadcast channel (SSE clients subscribe).
     pub events_tx: broadcast::Sender<String>,
+    /// SSE event broadcaster for real-time TUI updates.
+    pub event_broadcaster: EventBroadcaster,
     pub config: FocusaConfig,
     /// Direct persistence access for sync routes.
     pub persistence: SqlitePersistence,
@@ -100,6 +103,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::turn::router())
         .merge(routes::ascc::router())
         .merge(routes::tokens::router())
+        .merge(routes::sse::router())
         .layer(axum_mw::from_fn(middleware::auth::auth_layer))
         .layer(axum_mw::from_fn(
             middleware::error_envelope::error_envelope_layer,
@@ -166,10 +170,13 @@ pub async fn run(
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
 
+    let broadcaster = EventBroadcaster::new();
+    
     let state = Arc::new(AppState {
         focusa,
         command_tx,
         events_tx,
+        event_broadcaster: broadcaster,
         config,
         persistence,
         command_store: Arc::new(RwLock::new(HashMap::new())),

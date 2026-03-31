@@ -27,6 +27,7 @@ pub mod reflection;
 pub mod rfm;
 pub mod session;
 pub mod skills;
+pub mod sse;
 pub mod telemetry;
 pub mod threads;
 pub mod tokens;
