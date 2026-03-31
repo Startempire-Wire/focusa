@@ -516,7 +516,7 @@ pub struct AsccSlotMetadata {
 /// If a cognition change cannot be expressed as one of these,
 /// it does not belong in Focusa.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type")]
 pub enum FocusaEvent {
     // Instance lifecycle (multi-device / multi-surface observability)
     InstanceConnected {
