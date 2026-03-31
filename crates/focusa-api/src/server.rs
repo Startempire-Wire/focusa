@@ -86,7 +86,6 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::ecs::router())
         .merge(routes::memory::router())
         .merge(routes::events_sqlite::router())
-        .merge(routes::events_stream::router())
         .merge(routes::session::router())
         .merge(routes::proxy::router())
         .merge(routes::clt::router())

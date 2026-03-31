@@ -281,9 +281,11 @@ impl SqlitePersistence {
     pub fn turn_completed_exists(&self, turn_id: &str) -> anyhow::Result<bool> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
 
+        // Note: FocusaEvent uses #[serde(tag = "type")] without rename_all,
+        // so variant names serialize as PascalCase (TurnCompleted, not turn_completed).
         // Preferred path: JSON extraction (SQLite JSON1).
         let json_query = conn.query_row(
-            "SELECT COUNT(*) FROM events WHERE json_extract(payload_json, '$.type') = 'turn_completed' AND json_extract(payload_json, '$.turn_id') = ?1",
+            "SELECT COUNT(*) FROM events WHERE json_extract(payload_json, '$.type') = 'TurnCompleted' AND json_extract(payload_json, '$.turn_id') = ?1",
             params![turn_id],
             |r| r.get::<_, i64>(0),
         );
@@ -294,7 +296,7 @@ impl SqlitePersistence {
                 // Fallback for environments lacking JSON1 extraction.
                 let needle = format!("\"turn_id\":\"{}\"", turn_id.replace('"', "\\\""));
                 let count: i64 = conn.query_row(
-                    "SELECT COUNT(*) FROM events WHERE payload_json LIKE '%\"type\":\"turn_completed\"%' AND payload_json LIKE ?1",
+                    "SELECT COUNT(*) FROM events WHERE payload_json LIKE '%\"type\":\"TurnCompleted\"%' AND payload_json LIKE ?1",
                     params![format!("%{}%", needle)],
                     |r| r.get(0),
                 )?;

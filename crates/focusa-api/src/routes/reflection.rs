@@ -1048,6 +1048,7 @@ mod tests {
             focusa,
             command_tx: tx,
             events_tx,
+            event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg,
             persistence,
             command_store: Arc::new(RwLock::new(HashMap::new())),

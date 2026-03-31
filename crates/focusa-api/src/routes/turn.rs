@@ -159,6 +159,7 @@ async fn prompt_assemble(
         constitution_principles: &principles,
         safety_rules: &safety,
         config: &state.config,
+        rehydrate_handles: None,
     };
     let assembly = focusa_core::expression::engine::assemble_from(input);
 
@@ -379,6 +380,7 @@ mod tests {
             focusa,
             command_tx: tx,
             events_tx,
+            event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg,
             persistence: persistence.clone(),
             command_store: Arc::new(RwLock::new(HashMap::new())),
