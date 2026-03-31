@@ -48,19 +48,23 @@ impl Default for EventBroadcaster {
 /// SSE endpoint for real-time events.
 ///
 /// Streams Focusa events as they occur, replacing polling.
+/// Uses events_tx which receives events from the daemon event bus.
 async fn sse_handler(
     State(state): State<Arc<AppState>>,
 ) -> Sse<impl futures_core::Stream<Item = Result<Event, Infallible>>> {
-    let mut receiver = state.event_broadcaster.subscribe();
+    let mut receiver = state.events_tx.subscribe();
     
     let stream = async_stream::stream! {
         loop {
             match receiver.recv().await {
                 Ok(json) => {
-                    yield Ok(Event::default().data(json));
+                    yield Ok(Event::default().event("focusa_event").data(json));
                 }
                 Err(broadcast::error::RecvError::Closed) => break,
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Lagged(_)) => {
+                    // Client is lagging, continue with next event
+                    continue;
+                }
             }
         }
     };
