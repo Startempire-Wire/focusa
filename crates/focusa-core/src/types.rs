@@ -946,6 +946,12 @@ pub enum Action {
         deadline_ms: u64,
     },
 
+    // Thesis
+    UpdateThesis {
+        frame_id: FrameId,
+        thesis: ThreadThesis,
+    },
+
     // Events
     EmitEvent {
         event: FocusaEvent,

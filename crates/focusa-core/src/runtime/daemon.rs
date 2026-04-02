@@ -379,6 +379,125 @@ impl Daemon {
                         }
                     }
 
+                    // Thread Thesis refinement: every 3rd turn, call LLM to update thesis.
+                    // Per docs/38-thread-thesis-spec.md, UNIFIED_ORGANISM_SPEC §11.5.
+                    if let FocusaEvent::TurnCompleted {
+                        ref assistant_output,
+                        ref raw_user_input,
+                        ..
+                    } = event {
+                        if self.state.telemetry.total_events % 3 == 0 {
+                            // Get thesis from active thread, focus state from active frame
+                            let thread_thesis = self.state.threads.iter()
+                                .find(|t| t.status == crate::types::ThreadStatus::Active)
+                                .or_else(|| self.state.threads.first())
+                                .map(|t| t.thesis.clone())
+                                .unwrap_or_default();
+                            let (intent, decisions, constraints) = self.state.focus_stack.active_id
+                                .and_then(|fid| self.state.focus_stack.frames.iter().find(|f| f.id == fid))
+                                .map(|f| (f.focus_state.intent.clone(), f.focus_state.decisions.clone(), f.focus_state.constraints.clone()))
+                                .unwrap_or_default();
+                            let active_frame_id = self.state.focus_stack.active_id.unwrap_or_default();
+                            {
+                                let current_thesis = thread_thesis;
+                                let user_input = raw_user_input.clone().unwrap_or_default();
+                                let assist_out = assistant_output.clone().unwrap_or_default();
+                                let frame_id = active_frame_id;
+                                let cmd_tx = self.command_tx.clone();
+                                
+                                tokio::spawn(async move {
+                                    let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+                                    if api_key.is_empty() { return; }
+                                    
+                                    let prompt = format!(
+                                        r#"You are a thesis refinement engine. Given the conversation state, update the thread thesis.
+
+CURRENT THESIS:
+  primary_intent: {}
+  secondary_goals: {:?}
+  constraints: explicit={:?}, implicit={:?}
+  open_questions: {:?}
+  assumptions: {:?}
+
+FRAME STATE:
+  intent: {}
+  decisions: {:?}
+  constraints: {:?}
+
+LATEST TURN:
+  user: {}
+  assistant: {}
+
+Return ONLY valid JSON:
+{{
+  "primary_intent": "updated intent string",
+  "secondary_goals": ["goal1", "goal2"],
+  "open_questions": ["q1", "q2"],
+  "assumptions": ["a1"],
+  "confidence": 0.0-1.0
+}}"#,
+                                        current_thesis.primary_intent,
+                                        current_thesis.secondary_goals,
+                                        current_thesis.constraints.explicit,
+                                        current_thesis.constraints.implicit,
+                                        current_thesis.open_questions,
+                                        current_thesis.assumptions,
+                                        intent, decisions, constraints,
+                                        &user_input[..user_input.len().min(500)],
+                                        &assist_out[..assist_out.len().min(500)],
+                                    );
+                                    
+                                    let client = reqwest::Client::new();
+                                    if let Ok(Ok(resp)) = tokio::time::timeout(
+                                        std::time::Duration::from_secs(10),
+                                        client.post("https://api.minimax.io/v1/chat/completions")
+                                            .header("Authorization", format!("Bearer {}", api_key))
+                                            .json(&serde_json::json!({
+                                                "model": "MiniMax-M2.7",
+                                                "messages": [{"role": "user", "content": prompt}],
+                                                "max_tokens": 400,
+                                                "temperature": 0.2,
+                                            }))
+                                            .send(),
+                                    ).await {
+                                        if let Ok(data) = resp.json::<serde_json::Value>().await {
+                                            if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                                                let start = text.find('{').unwrap_or(0);
+                                                let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
+                                                    let mut updated = current_thesis;
+                                                    if let Some(pi) = parsed.get("primary_intent").and_then(|v| v.as_str()) {
+                                                        updated.primary_intent = pi.to_string();
+                                                    }
+                                                    if let Some(sg) = parsed.get("secondary_goals").and_then(|v| v.as_array()) {
+                                                        updated.secondary_goals = sg.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                                                    }
+                                                    if let Some(oq) = parsed.get("open_questions").and_then(|v| v.as_array()) {
+                                                        updated.open_questions = oq.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                                                    }
+                                                    if let Some(a) = parsed.get("assumptions").and_then(|v| v.as_array()) {
+                                                        updated.assumptions = a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect();
+                                                    }
+                                                    if let Some(c) = parsed.get("confidence").and_then(|v| v.as_f64()) {
+                                                        updated.confidence.score = c.clamp(0.0, 1.0);
+                                                    }
+                                                    updated.updated_at = Some(chrono::Utc::now());
+                                                    
+                                                    // Send thesis update via command channel
+                                                    let _ = cmd_tx.send(crate::types::Action::UpdateThesis {
+                                                        frame_id,
+                                                        thesis: updated,
+                                                    }).await;
+                                                    tracing::info!(frame_id = %frame_id, "Thread thesis refined via LLM");
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+
                     // ECS: auto-externalize large turn content (G1-detail-08 §Threshold Policy).
                     // "ecs.externalize_bytes_threshold default 8KB,
                     //  ecs.externalize_token_estimate_threshold default 800 tokens.
@@ -973,6 +1092,21 @@ impl Daemon {
                 // Persist so proposals survive a daemon restart.
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
+                Ok(vec![])
+            }
+
+            Action::UpdateThesis { frame_id: _, thesis } => {
+                // Update thesis on the first active thread (threads carry thesis, not frames)
+                if let Some(thread) = self.state.threads.iter_mut().find(|t| t.status == crate::types::ThreadStatus::Active) {
+                    thread.thesis = thesis;
+                    thread.updated_at = chrono::Utc::now();
+                    tracing::info!(thread_id = %thread.id, "Thread thesis updated via LLM");
+                } else if !self.state.threads.is_empty() {
+                    // Update first thread if none active
+                    self.state.threads[0].thesis = thesis;
+                    self.state.threads[0].updated_at = chrono::Utc::now();
+                    tracing::info!("Thread thesis updated (first thread)");
+                }
                 Ok(vec![])
             }
 
