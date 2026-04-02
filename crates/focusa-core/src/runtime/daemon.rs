@@ -275,6 +275,94 @@ impl Daemon {
                             errors,
                         ).await;
 
+                        // POST-TURN EVALUATION: async LLM quality assessment (§11.4).
+                        {
+                            let eval_user = raw_user_input.clone().unwrap_or_default();
+                            let eval_assist = assistant_output.clone().unwrap_or_default();
+                            let eval_errors = errors.clone();
+                            let eval_cmd_tx = self.command_tx.clone();
+                            let eval_frame_id = frame_id;
+                            tokio::spawn(async move {
+                                let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+                                if api_key.is_empty() || eval_assist.is_empty() { return; }
+                                
+                                let prompt = format!(
+                                    r#"Evaluate this AI assistant turn for quality. Return ONLY valid JSON.
+
+USER: {}
+ASSISTANT: {}
+ERRORS: {:?}
+
+Return:
+{{
+  "relevance": 0.0-1.0,
+  "completeness": 0.0-1.0,
+  "accuracy": 0.0-1.0,
+  "overall": 0.0-1.0,
+  "issues": ["issue1"],
+  "suggestions": ["suggestion1"]
+}}"#,
+                                    &eval_user[..eval_user.len().min(500)],
+                                    &eval_assist[..eval_assist.len().min(1000)],
+                                    eval_errors,
+                                );
+                                
+                                let client = reqwest::Client::new();
+                                if let Ok(Ok(resp)) = tokio::time::timeout(
+                                    std::time::Duration::from_secs(8),
+                                    client.post("https://api.minimax.io/v1/chat/completions")
+                                        .header("Authorization", format!("Bearer {}", api_key))
+                                        .json(&serde_json::json!({
+                                            "model": "MiniMax-M2.7",
+                                            "messages": [{"role": "user", "content": prompt}],
+                                            "max_tokens": 300,
+                                            "temperature": 0.1,
+                                        }))
+                                        .send(),
+                                ).await {
+                                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                                        if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                                            let start = text.find('{').unwrap_or(0);
+                                            let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                                            if let Ok(eval) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
+                                                let overall = eval.get("overall").and_then(|v| v.as_f64()).unwrap_or(0.8);
+                                                tracing::info!(
+                                                    overall = overall,
+                                                    relevance = eval.get("relevance").and_then(|v| v.as_f64()),
+                                                    completeness = eval.get("completeness").and_then(|v| v.as_f64()),
+                                                    "Post-turn evaluation complete"
+                                                );
+                                                // Store evaluation as semantic memory for future reference
+                                                let _ = eval_cmd_tx.send(crate::types::Action::UpsertSemantic {
+                                                    key: "eval.last_turn".to_string(),
+                                                    value: format!("quality={:.2}", overall),
+                                                    source: crate::types::MemorySource::Worker,
+                                                }).await;
+                                                // If quality is low, emit a signal
+                                                if overall < 0.5 {
+                                                    let issues = eval.get("issues")
+                                                        .and_then(|v| v.as_array())
+                                                        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
+                                                        .unwrap_or_default();
+                                                    let signal = crate::types::Signal {
+                                                        id: uuid::Uuid::now_v7(),
+                                                        ts: chrono::Utc::now(),
+                                                        kind: crate::types::SignalKind::Warning,
+                                                        summary: format!("Low turn quality ({:.2}): {}", overall, issues),
+                                                        origin: crate::types::SignalOrigin::Worker,
+                                                        frame_context: eval_frame_id,
+                                                        payload_ref: None,
+                                                        tags: vec!["post-turn-eval".into()],
+                                                    };
+                                                    let _ = eval_cmd_tx.send(crate::types::Action::IngestSignal { signal }).await;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
                         // Autonomy: record observation from turn (docs/12, docs/37).
                         let had_errors = !errors.is_empty();
                         let focus_populated = frame_id
