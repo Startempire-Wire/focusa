@@ -367,7 +367,147 @@ Core entities: Agent, Role, Operator, Project, Task, Skill, Tool, Decision, Cons
 
 Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_project`, `task_advances_objective`, `decision_applies_to_project`, `decision_constrains_task`, `memory_supports_decision`, `artifact_evidences_decision`, `session_updates_project`, `operator_state_modulates_agent`
 
-### 9.9 Agent Audit UI + Mobile Access
+### 9.9 Wirebot Mode for Pi (`/wbm`) — Cross-Surface Identity
+
+**Wirebot is one person across all surfaces.** Discord, OpenClaw, Pi sessions, Claude Code sessions, mobile — these are all Wirebot's hands. Work done in any surface must flow back to Wirebot's central nervous system.
+
+`/wbm` is a Pi extension that makes Pi sessions part of Wirebot's unified consciousness.
+
+#### Two-Way Bridge (Not Just Read)
+
+```
+                    ┌─────────────┐
+     /wbm on        │   WIREBOT   │      /wbm catalogues work
+   ┌───────────────►│   Central   │◄────────────────────┐
+   │  context IN    │   Nervous   │   work meta OUT     │
+   │                │   System    │                     │
+   │                └─────────────┘                     │
+   │                       │                            │
+   │    ┌──────────────────┼──────────────────┐         │
+   │    │                  │                  │         │
+   │    ▼                  ▼                  ▼         │
+   │  Mem0            Wiki.js           Scoreboard      │
+   │  (memories)      (decisions)       (ships)         │
+   │                                                    │
+   │                                                    │
+   └──────────── Pi Session ────────────────────────────┘
+```
+
+**IN (context injection):**
+- Operator state from Context Core (mode, interruptibility, circadian)
+- Objectives from `objectives.yaml` (P1/P2/P3 priorities)
+- Drift + season from Scoreboard (alignment quality)
+- Active Focusa frame (what's being worked on)
+- SOUL.md pillars digest (behavioral doctrine)
+- Recent wiki decisions (project context)
+
+**OUT (work cataloguing):**
+- Decisions made during Pi session → Mem0 + Wiki decision page
+- Facts discovered → Mem0 memory
+- Tasks completed → Scoreboard ship event
+- Failures encountered → Mem0 + Focus State
+- Files created/modified → Wiki project page update
+- Learnings → Mem0 + wiki knowledge page candidate
+
+#### How Cataloguing Works
+
+The extension listens to Pi session events and extracts work metadata:
+
+```typescript
+pi.on("agent_end", async (event, ctx) => {
+  if (!wbmEnabled) return;
+  
+  // Extract work meta from this agent turn
+  const meta = await extractWorkMeta(event.messages);
+  
+  // Catalogue to Wirebot's systems
+  if (meta.decisions.length > 0) {
+    for (const d of meta.decisions) {
+      await catalogueDecision(d);     // → Mem0 + Wiki
+    }
+  }
+  if (meta.completions.length > 0) {
+    for (const c of meta.completions) {
+      await catalogueShip(c);         // → Scoreboard
+    }
+  }
+  if (meta.facts.length > 0) {
+    for (const f of meta.facts) {
+      await catalogueMemory(f);       // → Mem0
+    }
+  }
+  if (meta.failures.length > 0) {
+    for (const f of meta.failures) {
+      await catalogueFailure(f);      // → Mem0 + Focusa
+    }
+  }
+});
+```
+
+#### Extraction Uses LLM (Not Regex)
+
+Work meta extraction calls MiniMax M2.7 (cheap/fast) with:
+- Input: the Pi session messages from this turn
+- Prompt: "Extract decisions made, tasks completed, facts discovered, failures encountered. Return structured JSON."
+- Budget: ≤500 tokens
+- Timeout: 2s
+- Fallback: skip cataloguing for this turn, try next turn
+
+#### Cataloguing Destinations
+
+| Work Meta | Destination | Method | Metadata |
+|---|---|---|---|
+| Decision | Mem0 | `wb memory inject "$DECISION"` | `source:pi, surface:pi, session:$ID` |
+| Decision | Wiki | `wb wiki create --path ops/decisions/$DATE --tags decision,pi` | rationale, project link |
+| Completion/Ship | Scoreboard | `wb ship "$DESCRIPTION"` | lane, size |
+| Fact | Mem0 | `wb memory inject "$FACT"` | `source:pi, surface:pi, category:technical` |
+| Failure | Mem0 | `wb memory inject "FAILURE: $DETAIL"` | `source:pi, surface:pi, category:failure` |
+| Failure | Focusa | `POST :8787/v1/focus/state/update` | failures array |
+| File changes | Wiki | Comment on project page | files modified, lines changed |
+
+#### Commands
+
+```
+/wbm on          → Activate: inject context + start cataloguing
+/wbm off         → Deactivate: stop injection + cataloguing
+/wbm status      → Show: what's injected + what's been catalogued this session
+/wbm deep        → Deep mode: also fetch Mem0 memories + wiki decisions (~1500 tok)
+/wbm flush       → Force-catalogue accumulated work meta now
+/wbm decisions   → Show decisions catalogued this session
+/wbm ships       → Show completions catalogued this session
+```
+
+#### Why This Makes Wirebot Smarter
+
+Without `/wbm`:
+- Pi does 8 hours of coding work
+- Wirebot knows nothing about it
+- Operator has to re-explain everything
+- Decisions made in Pi are lost
+- Ships aren't logged
+- The season stays 0W-21L
+
+With `/wbm`:
+- Pi's decisions flow to Mem0 → Wirebot recalls them tomorrow
+- Pi's completions flow to Scoreboard → season record improves
+- Pi's failures flow to Focusa → same mistake isn't repeated
+- Pi's facts flow to Mem0 → cross-surface knowledge grows
+- Wirebot can say "Yesterday in a Pi session we decided to use JWT with PKCE" — even though Wirebot wasn't the one coding
+
+**Wirebot is one person. Pi sessions are Wirebot working with different hands. The work must come home.**
+
+#### Write Safety
+
+- All writes go through `wb` CLI (auditable, rate-limited)
+- Mem0 writes use promotion pipeline (§6) — not raw injection
+- Wiki writes are schema-validated
+- Scoreboard ships require description (no empty events)
+- All catalogued items tagged with `source:pi` + `surface:pi` for provenance
+- Operator can disable cataloguing independently of context injection (`/wbm on --no-catalogue`)
+
+---
+
+### 9.10 Agent Audit UI + Mobile Access
 
 **Agent Audit** (`audit.philoveracity.com`) is the organism's mobile surface. It is already:
 - Running as a Go binary at `/opt/agent-audit/` on `:3020`
@@ -418,7 +558,7 @@ The audit UI must become the operator's mobile window into the organism's cognit
 
 **Effort estimate:** ~4 hours (Go template panels + Focusa HTTP client + CSS)
 
-### 9.10 JARVIS Protocol Integration Points
+### 9.11 JARVIS Protocol Integration Points
 
 The JARVIS Plan (`/wirebot/jarvis-plan`) defines 7 capability domains for transforming Wirebot from reactive chatbot to autonomous sovereign agent. The organism spec must map to these domains.
 
@@ -1588,12 +1728,14 @@ Query Mem0 graph for relational context:
 | **P1** | Objective stall detection (weekly) | Reflection loop, objectives.yaml | 2 hours |
 | **P2** | Self-initiated questions (nightly reflection) | Focusa reflection loop | 2 hours |
 | **P2** | Cross-domain synthesis (weekly) | Context Core + Scoreboard + Wiki | 4 hours |
+| **P1** | Build /wbm Pi extension (two-way bridge) | Pi extension, Mem0, Wiki, Scoreboard | 6 hours |
+| **P1** | /wbm work cataloguing (LLM extraction) | Pi extension, MiniMax M2.7 | 4 hours |
 | **P2** | Multi-agent learning pipeline | Session captures → wiki + Mem0 | 3 hours |
 | **P2** | "Why" tracking in decisions | wiki_decide tool, memory extraction | 2 hours |
 | **P3** | Preference evolution tracking | Mem0 versioning | 3 hours |
 | **P3** | Confidence calibration | Focusa telemetry | 4 hours |
 
-**Total estimated effort:** ~121 hours across 6 phases
+**Total estimated effort:** ~131 hours across 6 phases
 
 ---
 
@@ -1638,3 +1780,5 @@ The organism is working when:
 34. **System asks itself questions it can't answer** — self-initiated inquiry drives knowledge growth
 35. **Cross-domain synthesis runs weekly** — RescueTime + calendar + objectives + ships connected
 36. **Objective stalls are detected and surfaced** — P1 stall while P3 gets attention = alert
+37. **Pi sessions with /wbm catalogue work back to Wirebot** — decisions, ships, facts, failures flow home
+38. **Wirebot can recall what happened in Pi sessions** — "yesterday in Pi we decided X" works
