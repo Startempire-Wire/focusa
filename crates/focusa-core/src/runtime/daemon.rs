@@ -315,6 +315,32 @@ impl Daemon {
                                         "RFM level changed"
                                     );
                                 }
+                                // R1+: spawn LLM deep validation in background
+                                if self.state.rfm.level >= crate::types::RfmLevel::R1 {
+                                    let llm_output = output.to_string();
+                                    let llm_constraints = frame_constraints.clone();
+                                    let cmd_tx = self.command_tx.clone();
+                                    tokio::spawn(async move {
+                                        let (c_ok, g_ok, detail) = crate::rfm::validate_llm(&llm_output, &llm_constraints).await;
+                                        if !c_ok || !g_ok {
+                                            tracing::warn!(
+                                                consistency = c_ok, grounding = g_ok,
+                                                detail = %detail,
+                                                "RFM LLM validation found issues"
+                                            );
+                                            // Could emit an event or escalate RFM further
+                                            let _ = cmd_tx.send(crate::types::Action::EmitEvent {
+                                                event: FocusaEvent::InvariantViolation {
+                                                    invariant: format!("RFM-LLM: consistency={}, grounding={}", c_ok, g_ok),
+                                                    details: detail,
+                                                },
+                                            }).await;
+                                        } else {
+                                            tracing::debug!(detail = %detail, "RFM LLM validation passed");
+                                        }
+                                    });
+                                }
+
                                 // Trigger regeneration if needed (R2+).
                                 if crate::rfm::needs_regeneration(&self.state.rfm) {
                                     let level_num = match self.state.rfm.level {

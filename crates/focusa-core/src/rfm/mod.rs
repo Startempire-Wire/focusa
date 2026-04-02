@@ -118,14 +118,38 @@ fn validate_constraints(content: &str, constraints: &[String]) -> bool {
     true
 }
 
-fn validate_consistency(_content: &str) -> bool {
-    // Placeholder: structural consistency check.
-    true
+fn validate_consistency(content: &str) -> bool {
+    // Heuristic consistency: check for self-contradictions.
+    // Look for patterns like "X is Y" followed by "X is not Y".
+    let sentences: Vec<&str> = content.split('.').collect();
+    if sentences.len() < 2 {
+        return true;
+    }
+    // Check for explicit contradictions ("however" + negation near same subject)
+    let has_contradiction = sentences.windows(2).any(|pair| {
+        let a = pair[0].to_lowercase();
+        let b = pair[1].to_lowercase();
+        (b.contains("however") || b.contains("but actually") || b.contains("that's wrong"))
+            && (b.contains("not ") || b.contains("n't "))
+            // Check if they share at least one significant word
+            && a.split_whitespace()
+                .filter(|w| w.len() > 3)
+                .any(|w| b.contains(w))
+    });
+    !has_contradiction
 }
 
-fn validate_grounding(_content: &str) -> bool {
-    // Placeholder: reference grounding check.
-    true
+fn validate_grounding(content: &str) -> bool {
+    // Heuristic grounding: flag content that makes unverifiable claims.
+    // Look for hallucination signals.
+    let lower = content.to_lowercase();
+    let hallucination_signals = [
+        "as an ai", "i cannot verify", "i don't have access",
+        "i'm not sure but", "i think it might be",
+        "according to my training", "as of my knowledge cutoff",
+    ];
+    // If any hallucination signal is found, grounding fails
+    !hallucination_signals.iter().any(|s| lower.contains(s))
 }
 
 #[cfg(test)]
@@ -180,5 +204,81 @@ mod tests {
             "long text here",
             &["max_length:5".into()]
         ));
+    }
+}
+
+/// LLM-backed deep validation for R1+ levels.
+/// Calls MiniMax M2.7 to analyze content quality.
+/// Returns (consistency_passed, grounding_passed, details).
+pub async fn validate_llm(content: &str, constraints: &[String]) -> (bool, bool, String) {
+    let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+    if api_key.is_empty() {
+        return (true, true, "LLM unavailable, skipped".into());
+    }
+    
+    let constraint_text = if constraints.is_empty() {
+        "None specified".to_string()
+    } else {
+        constraints.join("; ")
+    };
+    
+    let prompt = format!(
+        r#"Analyze this AI-generated content for quality issues.
+
+CONTENT:
+{}
+
+CONSTRAINTS: {}
+
+Check for:
+1. Internal consistency: Does the content contradict itself?
+2. Grounding: Are claims verifiable? Any hallucination signals?
+3. Constraint compliance: Does it follow the stated constraints?
+
+Return ONLY valid JSON:
+{{
+  "consistency_passed": true/false,
+  "grounding_passed": true/false, 
+  "constraint_passed": true/false,
+  "issues": ["issue1", "issue2"],
+  "overall_quality": 0.0-1.0
+}}"#,
+        &content[..content.len().min(2000)],
+        constraint_text,
+    );
+    
+    let client = reqwest::Client::new();
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(8),
+        client.post("https://api.minimax.io/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", api_key))
+            .json(&serde_json::json!({
+                "model": "MiniMax-M2.7",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 300,
+                "temperature": 0.1,
+            }))
+            .send(),
+    ).await {
+        Ok(Ok(resp)) => {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                    let start = text.find('{').unwrap_or(0);
+                    let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
+                        let c_ok = parsed.get("consistency_passed").and_then(|v| v.as_bool()).unwrap_or(true);
+                        let g_ok = parsed.get("grounding_passed").and_then(|v| v.as_bool()).unwrap_or(true);
+                        let issues: Vec<String> = parsed.get("issues")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                            .unwrap_or_default();
+                        let detail = if issues.is_empty() { "No issues found".into() } else { issues.join("; ") };
+                        return (c_ok, g_ok, detail);
+                    }
+                }
+            }
+            (true, true, "LLM response unparseable".into())
+        }
+        _ => (true, true, "LLM timeout".into()),
     }
 }
