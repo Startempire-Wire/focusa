@@ -930,7 +930,120 @@ Track weekly:
 
 ---
 
-## 10A. Intelligence Gaps — Verified Against Scoreboard + Go API
+## 10A. Historical Inference Pipeline — Processing the Backlog
+
+The organism has **terabytes of historical material that has never been inference-processed:**
+
+| Source | Volume | Processed | Gap |
+|---|---|---|---|
+| Pi sessions | 111 files, 1.7GB | 0% | Every coding decision, failure, learning |
+| OpenClaw sessions | 2,584 sessions | 0% | Every operator conversation, correction, preference |
+| Obsidian vault | 876 .md files | 8% (71 files) | Years of notes, ideas, fragments |
+| Joplin imports | 571 files | 0% | Historical personal notes |
+| ChatGPT exports | 266 files | 27% (71 files) | Product ideas, research, strategy |
+| Fact YAMLs | 2,498 files | 12% (286 files) | Extracted conversation facts |
+
+**The machinery exists.** The scoreboard's Go API has:
+- `POST /v1/memory/extract-vault` — LLM walks a directory, extracts structured memories from each .md
+- `POST /v1/memory/extract-conversation` — LLM processes conversation turns
+- Watermark system (tracks what's been processed, resumes on restart)
+- Chunking (6KB chunks with overlap for long docs)
+- Approval queue (memories go through review before promotion)
+- Rate limiting (2s between files)
+
+**But nothing runs it on a schedule.**
+
+### 10A.1 Nightly Historical Processing (NEW)
+
+Add to the nightly loop (§13.3):
+
+```
+Nightly historical inference:
+  1. Vault extraction: process N unprocessed .md files (default N=20)
+     POST :8100/v1/memory/extract-vault {path: "/data/wirebot/obsidian", limit: 20}
+  2. Session extraction: process M oldest unprocessed OpenClaw sessions (default M=5)
+     For each: POST :8100/v1/memory/extract-conversation {messages: [...]}
+  3. Pi session extraction: process K oldest unprocessed Pi sessions (default K=2)
+     Parse .jsonl, extract assistant turns, POST :8100/v1/memory/extract-conversation
+  4. Fact backfill: push N unsynced fact YAMLs to Mem0 (default N=50)
+     Continue from watermark in /data/wirebot/scoreboard/vault_watermark.json
+```
+
+**Rate:** At 20 vault files + 5 sessions + 2 Pi sessions + 50 facts per night:
+- Vault: 805 remaining / 20 per night = **~40 nights to full processing**
+- Sessions: 2,584 / 5 per night = **~517 nights** (increase M for faster catch-up)
+- Pi sessions: 111 / 2 per night = **~56 nights**
+- Facts: 2,212 / 50 per night = **~45 nights**
+
+**Catch-up mode:** For initial backlog, run with higher limits:
+- `limit=100` for vault (weekend batch)
+- `limit=20` for sessions (weekend batch)
+- `limit=10` for Pi sessions (weekend batch)
+
+### 10A.2 What Gets Extracted
+
+The LLM extraction produces structured memories:
+- **Facts:** "Operator prefers telegraph mode", "Server uses AlmaLinux 8.10"
+- **Decisions:** "Chose JWT with PKCE over implicit flow", "Selected bind mounts over named volumes"
+- **Preferences:** "Operator values specificity and vulnerability in writing"
+- **Patterns:** "Operator starts new projects when P1 is blocked"
+- **Relationships:** "Startempire Wire depends on TEP book publication"
+- **Failures:** "Podman stop -a killed non-target containers"
+- **Ideas:** "AI coaching model: Idea → Launch → Growth with checklist scoring"
+
+Each memory includes provenance (source file, extraction date, confidence, chunk number).
+
+### 10A.3 Where Extracted Memories Go
+
+| Destination | What Goes There | Write Mode |
+|---|---|---|
+| Mem0 | Facts, preferences, patterns, relationships | Automatic after validation |
+| Wiki | Decisions with rationale, project updates, skill discoveries | Threshold + schema validated |
+| Focusa procedural memory | Behavioral rules from repeated patterns | Threshold or operator-approved |
+| Letta core memory | Operator personality/narrative updates | Operator-approved only |
+
+All writes go through the promotion pipeline (§6) with write-trust levels (§6.2).
+
+### 10A.4 Pi Session Processing (Special)
+
+Pi sessions are 1.7GB of .jsonl containing full coding sessions with tool calls, file edits, decisions, and reasoning. These are the richest source of technical knowledge in the system.
+
+**Extraction approach:**
+1. Parse .jsonl into conversation turns
+2. Filter: keep only assistant messages + tool results with significant content (>200 chars)
+3. Chunk into conversation windows (20 turns each)
+4. For each chunk: `POST /v1/memory/extract-conversation`
+5. Extracted memories tagged `source:pi-session, session_file:$FILENAME`
+
+**What Pi sessions contain that nothing else does:**
+- Architectural decisions made during implementation
+- Why specific approaches were chosen over alternatives
+- What failed and why before the working solution
+- Performance characteristics discovered empirically
+- Patterns in how the operator directs coding work
+
+### 10A.5 Progress Tracking
+
+Track in daily intelligence metrics (§13.6):
+```yaml
+historical_inference:
+  vault_files_remaining: N
+  vault_files_processed_today: N
+  sessions_remaining: N
+  sessions_processed_today: N  
+  pi_sessions_remaining: N
+  pi_sessions_processed_today: N
+  facts_remaining: N
+  facts_backfilled_today: N
+  total_memories_extracted_today: N
+  estimated_days_to_complete: N
+```
+
+**The system gets smarter not just from new conversations, but from finally understanding its own history.**
+
+---
+
+## 10B. Intelligence Gaps — Verified Against Scoreboard + Go API
 
 Audited 2026-04-02 against live scoreboard API (`:8100`), Context Core (`:7400`), Focusa (`:8787`), pairing engine source, NLP extractor, trust metrics, kaizen tables, and memory extraction pipeline.
 
