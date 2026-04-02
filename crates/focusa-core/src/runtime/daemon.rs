@@ -1388,13 +1388,36 @@ impl Daemon {
                 }
             }
             WorkerJobKind::SuggestMemory => {
-                let count = result
-                    .payload
-                    .get("count")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
+                // Create procedural rules from worker suggestions.
+                if let Some(suggestions) = result.payload.get("suggestions").and_then(|v| v.as_array()) {
+                    for suggestion in suggestions {
+                        if let Some(text) = suggestion.as_str() {
+                            if text.len() > 10 {
+                                let rule_id = format!("worker-suggest-{}", Uuid::now_v7());
+                                self.state.memory.procedural.push(RuleRecord {
+                                    id: rule_id.clone(),
+                                    rule: text.chars().take(200).collect(),
+                                    weight: 0.3, // Start low — must be reinforced to persist
+                                    reinforced_count: 0,
+                                    last_reinforced_at: Utc::now(),
+                                    scope: RuleScope::Global,
+                                    enabled: true,
+                                    pinned: false,
+                                    tags: vec!["worker-suggested".into()],
+                                });
+                                tracing::info!(rule_id, text = %text.chars().take(80).collect::<String>(), "Procedural rule created from worker suggestion");
+                            }
+                        }
+                    }
+                    if let Err(e) = self.persistence.save_state(&self.state) {
+                        tracing::error!("Failed to save state after rule creation: {}", e);
+                    }
+                    self.sync_shared_state().await;
+                }
+
+                let count = result.payload.get("count").and_then(|v| v.as_u64()).unwrap_or(0);
                 if count > 0 {
-                    let summary = format!("worker suggest_memory: {} suggestion(s)", count);
+                    let summary = format!("worker suggest_memory: {} suggestion(s), rules created", count);
                     let signal = Signal {
                         id: Uuid::now_v7(),
                         ts: Utc::now(),
