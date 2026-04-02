@@ -1027,6 +1027,86 @@ Delivery worker runs every 20s (retry with backoff on failure)
 
 **Implication for operator:** When the nightly historical processing starts producing 20-50 new memory candidates per night, the WINS portal queue will grow. The operator needs a review cadence (daily 5-min review session) or the queue will back up. Consider: auto-approve for high-confidence items (>0.95) from trusted sources (nightly diary, vault notes with provenance).
 
+### 10A.6 Pipeline Integrity Audit (Skeptical Evaluation)
+
+**Audited 2026-04-02 by tracing every code path from source → extraction → queue → approval → delivery → sinks.**
+
+#### 6 Critical Gaps In The Existing Pipeline
+
+| # | Gap | Severity | Detail |
+|---|---|---|---|
+| 1 | **Nightly diary: no LLM inference** | HIGH | `queue_and_approve_memory()` pushes raw template text and auto-approves. No LLM reasons about the content. 15 pending items are actually auto-approve failures. |
+| 2 | **Conversation extraction: only last message** | HIGH | `agent_end` hook sends only final user+assistant exchange, not full conversation. Rate limited to once/2min. 97% of every conversation never inference-processed. |
+| 3 | **Focusa events: no extraction exists** | HIGH | 35K events, 420MB. Contains TurnCompleted with full output, FocusStateUpdated with decisions. No code anywhere extracts memories from Focusa events. No endpoint. No script. |
+| 4 | **Pi sessions: no parser exists** | HIGH | 111 files, 1.7GB .jsonl. No code reads Pi's session format. `extract-conversation` expects single exchanges, not multi-turn sessions with tool calls. |
+| 5 | **Historical sessions: no batch processor** | HIGH | 2,584 OpenClaw sessions. No code iterates historical session files. No watermark for sessions (vault has one, sessions don't). |
+| 6 | **Wiki sink: shallow append-only** | MEDIUM | `wikiAppendFact()` appends a bullet point to one page. Does NOT create decision pages, add wiki links, set schemas, or connect to knowledge graph. |
+
+#### What Must Be Built
+
+**1. Full-conversation extraction (not just last message):**
+```
+On agent_end: send FULL conversation (all turns), not just last exchange.
+Chunk into windows of 10-20 turns.
+Each chunk gets separate LLM extraction call.
+Remove 2-minute rate limit for session-end extraction (it's a single event, not spam).
+```
+
+**2. Focusa event extractor (NEW):**
+```
+New endpoint or script that:
+  - Reads Focusa SQLite event log
+  - Filters for TurnCompleted + FocusStateUpdated events
+  - Extracts decisions, failures, constraints from event payloads
+  - Feeds through QueueMemoryForApproval()
+  - Watermarks by event_id to avoid reprocessing
+```
+
+**3. Pi session parser (NEW):**
+```
+New script/endpoint that:
+  - Reads Pi .jsonl session files
+  - Parses into conversation turns (skip raw tool XML)
+  - Windows into chunks of 15-20 turns
+  - Feeds each chunk to ExtractMemoriesFromConversation()
+  - Watermarks by session file + offset
+```
+
+**4. Historical session batch processor (NEW):**
+```
+New script/endpoint that:
+  - Iterates OpenClaw session files (oldest first)
+  - Parses each into full conversation
+  - Feeds through ExtractMemoriesFromConversation() (chunked)
+  - Watermarks by session_id
+  - Rate: 5 sessions/night
+```
+
+**5. Wiki sink upgrade:**
+```
+Replace wikiAppendFact() bullet-point append with:
+  - If memory is a decision: create wiki decision page with rationale + project link
+  - If memory is a skill/pattern: create or update skill page
+  - If memory is a fact: append to relevant project/concept page with wiki link
+  - All writes schema-validated
+  - All writes linked to at least one MOC
+```
+
+**6. Diary extraction upgrade:**
+```
+Replace raw text push with:
+  - LLM reads diary content
+  - Extracts structured memories (same as vault extraction)
+  - Routes through QueueMemoryForApproval() (pending, not auto-approved)
+  - Operator reviews in WINS portal like everything else
+```
+
+#### LLM Model for Extraction
+
+Currently: `EXTRACTION_MODEL` defaults to `kimi-coding/k2p5` (the primary expensive model).
+Should be: MiniMax M2.7 for all extraction work. Primary model is for operator responses only.
+Update: `EXTRACTION_MODEL=minimax/MiniMax-M2.7` in scoreboard env.
+
 ### 10A.4 Pi Session Processing (Special)
 
 Pi sessions are 1.7GB of .jsonl containing full coding sessions with tool calls, file edits, decisions, and reasoning. These are the richest source of technical knowledge in the system.
