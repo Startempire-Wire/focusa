@@ -465,7 +465,7 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
             &content[..content.len().min(2000)]
         ),
         WorkerJobKind::ExtractAsccDelta => format!(
-            "Extract structured information from this text.\nReturn JSON with arrays for: decisions, constraints, failures, next_steps, open_questions, recent_results, notes.\nOnly include items actually present.\n\nTEXT:\n{}",
+            "Extract structured information from this text.\nReturn JSON with arrays for: decisions, constraints, failures, next_steps, open_questions, recent_results, notes, why_reasons.\nFor decisions, always include WHY (look for: because, the reason, I chose X over Y, this is better because).\nOnly include items actually present.\n\nTEXT:\n{}",
             &content[..content.len().min(4000)]
         ),
         WorkerJobKind::DetectRepetition => format!(
