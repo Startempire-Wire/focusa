@@ -523,7 +523,7 @@ async fn chat_completions(
                     tokio::time::timeout(
                         std::time::Duration::from_millis(50),
                         tokio::process::Command::new("wb")
-                            .args(["wiki", "search", &wiki_query, "--format", "json", "--limit", "3"])
+                            .args(["wiki", "search", &wiki_query, "--format", "json"])
                             .output(),
                     ).await
                 },
@@ -813,7 +813,7 @@ async fn messages_proxy(
                         .send()).await },
                 async { tokio::time::timeout(std::time::Duration::from_millis(50),
                     tokio::process::Command::new("wb")
-                        .args(["wiki", "search", &wq, "--format", "json", "--limit", "3"])
+                        .args(["wiki", "search", &wq, "--format", "json"])
                         .output()).await },
             );
             let mut focusa = state.focusa.write().await;

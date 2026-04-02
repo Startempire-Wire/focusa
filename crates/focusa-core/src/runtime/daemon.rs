@@ -145,6 +145,69 @@ impl Daemon {
         // Seed default constitution on first start (docs/16 §2-§6).
         crate::constitution::seed_default(&mut self.state.constitution);
 
+        // Startup seeding: Mem0 memories + wiki skills into semantic memory.
+        // Runs on every daemon start (not just SessionStarted) so restarts re-seed.
+        {
+            let cmd_tx = self.command_tx.clone();
+            tokio::spawn(async move {
+                // Mem0 seeding
+                let client = reqwest::Client::new();
+                if let Ok(Ok(resp)) = tokio::time::timeout(
+                    std::time::Duration::from_secs(15),
+                    client.post("http://127.0.0.1:8200/v1/search")
+                        .json(&serde_json::json!({"query": "wirebot context", "namespace": "wirebot_verious", "limit": 5}))
+                        .send(),
+                ).await {
+                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                        if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                            for (i, mem) in results.iter().enumerate().take(5) {
+                                if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                                    let _ = cmd_tx.send(crate::types::Action::UpsertSemantic {
+                                        key: format!("mem0.startup.{}", i),
+                                        value: text.to_string(),
+                                        source: crate::types::MemorySource::Mem0,
+                                    }).await;
+                                }
+                            }
+                            tracing::info!(count = results.len().min(5), "Startup: Mem0 memories seeded");
+                        }
+                    }
+                }
+
+                // Wiki skill seeding via GraphQL
+                let wiki_api_key = std::env::var("WIKI_API_KEY").unwrap_or_default();
+                if !wiki_api_key.is_empty() {
+                    let gql = serde_json::json!({
+                        "query": "{ pages { list(limit: 10, tags: [\"skill\"]) { id title path } } }"
+                    });
+                    if let Ok(Ok(resp)) = tokio::time::timeout(
+                        std::time::Duration::from_secs(3),
+                        client.post("http://127.0.0.1:7325/graphql")
+                            .header("Authorization", format!("Bearer {}", wiki_api_key))
+                            .json(&gql)
+                            .send(),
+                    ).await {
+                        if let Ok(data) = resp.json::<serde_json::Value>().await {
+                            if let Some(pages) = data.pointer("/data/pages/list").and_then(|v| v.as_array()) {
+                                for page in pages.iter().take(10) {
+                                    let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                                    let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                                    if !title.is_empty() {
+                                        let _ = cmd_tx.send(crate::types::Action::UpsertSemantic {
+                                            key: format!("wiki.skill.{}", title.to_lowercase().replace(' ', "_")),
+                                            value: format!("Skill: {} (wiki:{})", title, path),
+                                            source: crate::types::MemorySource::Worker,
+                                        }).await;
+                                    }
+                                }
+                                tracing::info!(count = pages.len(), "Startup: wiki skills seeded");
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         let mut decay_interval = tokio::time::interval(std::time::Duration::from_secs(30));
         // Don't fire immediately on startup — first tick is a no-op.
         decay_interval.tick().await;
@@ -842,6 +905,42 @@ Return ONLY valid JSON:
                                             }
                                         }
                                         tracing::info!(count = results.len().min(5), "Session-start: Mem0 memories seeded");
+                                    }
+                                }
+                            }
+                            
+                            // Wiki skill seeding: query wiki GraphQL for skill-tagged pages,
+                            // seed as semantic memory entries (§14 Phase 2.4)
+                            let wiki_client = reqwest::Client::new();
+                            let wiki_api_key = std::env::var("WIKI_API_KEY").unwrap_or_default();
+                            if !wiki_api_key.is_empty() {
+                                let gql = serde_json::json!({
+                                    "query": "{ pages { list(limit: 5, tags: [\"skill\"]) { id title path } } }"
+                                });
+                                if let Ok(Ok(resp)) = tokio::time::timeout(
+                                    std::time::Duration::from_secs(3),
+                                    wiki_client.post("http://127.0.0.1:7325/graphql")
+                                        .header("Authorization", format!("Bearer {}", wiki_api_key))
+                                        .json(&gql)
+                                        .send(),
+                                ).await {
+                                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                                        if let Some(pages) = data.pointer("/data/pages/list").and_then(|v| v.as_array()) {
+                                            for page in pages.iter().take(5) {
+                                                let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                                                let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                                                if !title.is_empty() {
+                                                    let _ = seed_tx.send(crate::types::Action::UpsertSemantic {
+                                                        key: format!("wiki.skill.{}", title.to_lowercase().replace(' ', "_")),
+                                                        value: format!("Skill: {} (wiki:{})", title, path),
+                                                        source: crate::types::MemorySource::Worker,
+                                                    }).await;
+                                                }
+                                            }
+                                            if !pages.is_empty() {
+                                                tracing::info!(count = pages.len(), "Session-start: wiki skills seeded");
+                                            }
+                                        }
                                     }
                                 }
                             }
