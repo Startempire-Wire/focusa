@@ -816,3 +816,336 @@ Pi-specific capabilities to declare:
 - `extension_api: true` (Pi has full extension lifecycle hooks)
 
 This enables Focusa to tailor behavior for Pi sessions (e.g., different compaction strategies, awareness of Pi session management).
+
+---
+
+## 33) Novel Integration Opportunities (Pi Extension API Deep Audit)
+
+Audited 2026-04-02 against full Pi extension docs (2232 lines, extensions.md) and all Focusa specs. These are integration points the original spec missed or underutilized.
+
+### 33.1 Focusa-Owned Compaction via `session_before_compact`
+
+**Pi's compaction** generates a generic LLM summary when context exceeds threshold.
+**Focusa's ASCC** maintains a structured 10-slot state (intent, decisions, constraints, failures, next_steps, etc.) that is FAR richer.
+
+**These are parallel summarization systems that don't know about each other.**
+
+**Integration:** Use `session_before_compact` to replace Pi's compaction with Focusa's ASCC:
+
+```typescript
+pi.on("session_before_compact", async (event, ctx) => {
+  try {
+    const ascc = await fetch("http://127.0.0.1:8787/v1/ascc/state", {
+      signal: AbortSignal.timeout(3000)
+    }).then(r => r.json());
+    
+    const summary = [
+      `# Focusa Cognitive Summary`,
+      `## Intent\n${ascc.focus_state?.intent || "none"}`,
+      `## Current Focus\n${ascc.focus_state?.current_state || "none"}`,
+      `## Decisions Made\n${(ascc.focus_state?.decisions || []).map(d => `- ${d}`).join("\n") || "none"}`,
+      `## Active Constraints\n${(ascc.focus_state?.constraints || []).map(c => `- ${c}`).join("\n") || "none"}`,
+      `## Failures Encountered\n${(ascc.focus_state?.failures || []).map(f => `- ${f}`).join("\n") || "none"}`,
+      `## Next Steps\n${(ascc.focus_state?.next_steps || []).map(n => `- ${n}`).join("\n") || "none"}`,
+      `## Open Questions\n${(ascc.focus_state?.open_questions || []).map(q => `- ${q}`).join("\n") || "none"}`,
+    ].join("\n\n");
+    
+    return {
+      compaction: {
+        summary,
+        firstKeptEntryId: event.preparation.firstKeptEntryId,
+        tokensBefore: event.preparation.tokensBefore,
+      }
+    };
+  } catch {
+    // Focusa unavailable — fall through to Pi's default compaction
+    return;
+  }
+});
+```
+
+**Why this matters:** Decisions never vanish on compaction because they live in Focus State. Pi's compaction becomes Focusa-aware.
+
+**Fallback:** If Focusa is down, return undefined → Pi compacts normally.
+
+### 33.2 Per-LLM-Call Context Injection via `context` Event
+
+**Gap:** `before_agent_start` fires once per user prompt. But `context` fires before EVERY LLM call — including after each tool call in a multi-tool turn.
+
+**Integration:** Inject live Focus State into every LLM call, not just the first:
+
+```typescript
+pi.on("context", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  const state = await fetchFocusaState(); // cached with 5s TTL
+  if (!state) return;
+  
+  // Prepend Focus State as first message
+  const focusaMsg = {
+    role: "user" as const,
+    content: [{ type: "text" as const, text: `[FOCUSA LIVE STATE]\nFrame: ${state.title}\nDecisions: ${state.decisions?.join("; ")}\nConstraints: ${state.constraints?.join("; ")}` }],
+    timestamp: Date.now(),
+  };
+  
+  return { messages: [focusaMsg, ...event.messages] };
+});
+```
+
+**Why this matters:** After a tool modifies a file, the Focus State's `current_focus` may have updated from a background worker. The next LLM call should see the updated state, not the stale one from `before_agent_start`.
+
+### 33.3 Automatic ECS Externalization via `tool_result`
+
+**Gap:** Doc 44 §21 describes periodic externalization. But Pi's `tool_result` hook can modify results **per tool call** — cleaner and more immediate.
+
+**Integration:**
+
+```typescript
+pi.on("tool_result", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  const textContent = event.content
+    ?.filter(c => c.type === "text")
+    .map(c => c.text)
+    .join("") || "";
+  
+  if (textContent.length > 8192) { // ECS threshold
+    try {
+      const handle = await fetch("http://127.0.0.1:8787/v1/ecs/store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "text",
+          label: `${event.toolName}-output-${Date.now()}`,
+          content: textContent
+        }),
+        signal: AbortSignal.timeout(3000),
+      }).then(r => r.json());
+      
+      return {
+        content: [{
+          type: "text",
+          text: `[Output externalized to Focusa ECS: HANDLE:${handle.id} "${event.toolName} output" (${textContent.length} bytes)]\nUse /focusa-rehydrate ${handle.id} to retrieve full content.`
+        }],
+      };
+    } catch {
+      // ECS unavailable — pass through full content
+      return;
+    }
+  }
+});
+```
+
+### 33.4 Tool Usage Tracking for Autonomy via `tool_call`
+
+**Integration:** Feed tool usage patterns into Focusa's Intuition Engine for pattern detection (repeated failures, tool-hopping, excessive writes):
+
+```typescript
+pi.on("tool_call", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  // Fire-and-forget — don't block tool execution
+  fetch("http://127.0.0.1:8787/v1/gate/ingest-signal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      signal_type: "tool_usage",
+      summary: `Pi tool: ${event.toolName}`,
+      metadata: { tool: event.toolName, session: "pi" }
+    }),
+    signal: AbortSignal.timeout(1000),
+  }).catch(() => {}); // Truly fire-and-forget
+});
+```
+
+### 33.5 Mode B Without Proxy via `before_provider_request`
+
+**Gap:** Doc 44 describes Mode A (focusa wrap) and Mode B (HTTP proxy). But Pi's `before_provider_request` enables Mode B **without a proxy** — Focusa's Expression Engine injects context directly into the LLM request payload.
+
+**Integration:**
+
+```typescript
+pi.on("before_provider_request", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  try {
+    const assembled = await fetch("http://127.0.0.1:8787/v1/prompt/assemble", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        turn_id: `pi-${Date.now()}`,
+        raw_user_input: lastUserInput || "",
+        format: "string"
+      }),
+      signal: AbortSignal.timeout(2000),
+    }).then(r => r.json());
+    
+    if (assembled?.assembled && event.payload?.messages) {
+      // Find system message and append Focusa context
+      const sysMsg = event.payload.messages.find(m => m.role === "system");
+      if (sysMsg) {
+        sysMsg.content += "\n\n" + assembled.assembled;
+      }
+    }
+  } catch {
+    // Focusa unavailable — send request as-is
+  }
+  
+  return event.payload;
+});
+```
+
+**This is the highest-performance integration mode.** No proxy overhead, no `focusa wrap`, no Mode A shims. Pi calls the model directly, Focusa injects its cognition into every request.
+
+### 33.6 Focusa as Registered Pi Provider via `pi.registerProvider`
+
+**Integration:** Register Focusa's proxy as a selectable Pi model provider:
+
+```typescript
+pi.registerProvider("focusa", {
+  baseUrl: "http://127.0.0.1:8787/proxy/v1",
+  apiKey: "FOCUSA_AUTH_TOKEN",
+  api: "openai-completions",
+  models: [{
+    id: "kimi-via-focusa",
+    name: "Kimi K2.5 (via Focusa cognitive proxy)",
+    reasoning: false,
+    input: ["text"],
+    contextWindow: 262144,
+    maxTokens: 8192,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  }]
+});
+```
+
+User can then `/model` to switch between direct and Focusa-proxied calls.
+
+### 33.7 Session State Persistence via `pi.appendEntry`
+
+**Gap:** Current spec doesn't persist Focusa state across Pi session restarts.
+
+**Integration:** Save Focusa session reference in Pi session for resumability:
+
+```typescript
+// Save on WBM activation and periodically
+function persistFocusaState() {
+  pi.appendEntry("focusa-wbm-state", {
+    sessionId: focusaSessionId,
+    frameId: activeFrameId,
+    wbmEnabled,
+    cataloguedDecisions: [...cataloguedDecisions],
+    cataloguedFacts: [...cataloguedFacts],
+  });
+}
+
+// Restore on session resume
+pi.on("session_start", async (_event, ctx) => {
+  for (const entry of ctx.sessionManager.getEntries()) {
+    if (entry.type === "custom" && entry.customType === "focusa-wbm-state") {
+      const data = entry.data;
+      if (data.wbmEnabled) {
+        wbmEnabled = true;
+        focusaSessionId = data.sessionId;
+        cataloguedDecisions = data.cataloguedDecisions || [];
+        cataloguedFacts = data.cataloguedFacts || [];
+        // Attempt to resume Focusa session
+      }
+    }
+  }
+});
+```
+
+**Why this matters:** When you `/resume` a Pi session, `/wbm` state auto-restores. No need to re-activate.
+
+### 33.8 Clean Session Close via `session_shutdown`
+
+```typescript
+pi.on("session_shutdown", async (_event, ctx) => {
+  if (!focusaSessionActive) return;
+  
+  // Final flush of accumulated work meta
+  await flushWorkMeta();
+  
+  // Persist final state
+  persistFocusaState();
+  
+  // Close Focusa session
+  await fetch("http://127.0.0.1:8787/v1/session/close", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason: "pi_session_ended" }),
+    signal: AbortSignal.timeout(2000),
+  }).catch(() => {});
+});
+```
+
+### 33.9 wb CLI via `pi.exec` Instead of HTTP fetch
+
+For `wb` CLI calls, use `pi.exec` instead of `fetch`:
+
+```typescript
+async function wbWikiSearch(query: string): Promise<any> {
+  const result = await pi.exec("wb", ["wiki", "search", query, "--format", "json"], {
+    timeout: 5000
+  });
+  if (result.code !== 0) return null;
+  try { return JSON.parse(result.stdout); } catch { return null; }
+}
+
+async function wbMemoryInject(text: string, source: string): Promise<boolean> {
+  const result = await pi.exec("wb", ["memory", "inject", text], { timeout: 5000 });
+  return result.code === 0;
+}
+```
+
+**Why this is better:** `wb` handles its own auth, config, retries, and error formatting. More reliable than direct HTTP. Works even if service ports change.
+
+### 33.10 Compaction Guidance (Softer Alternative to §33.1)
+
+If full compaction replacement (§33.1) is too aggressive, inject Focusa state as **custom instructions** to guide Pi's native compaction:
+
+```typescript
+pi.on("session_before_compact", async (event, ctx) => {
+  try {
+    const state = await fetchFocusaState();
+    if (!state) return;
+    
+    const instructions = [
+      "PRESERVE these Focus State elements in the compaction summary:",
+      `Intent: ${state.intent}`,
+      `Decisions: ${state.decisions?.join("; ")}`,
+      `Constraints: ${state.constraints?.join("; ")}`,
+      `Failures: ${state.failures?.join("; ")}`,
+      "DO NOT lose any decisions or constraints during compaction.",
+      "Summarize tool outputs but keep decision rationale intact.",
+    ].join("\n");
+    
+    return { customInstructions: instructions };
+  } catch {
+    return; // Fall through to default
+  }
+});
+```
+
+### 33.11 Recommended Integration Architecture
+
+Based on these findings, the recommended Pi×Focusa integration uses **3 layers**, not 2:
+
+```
+Layer 1: Provider-level (§33.5 or §33.6)
+  → Focusa context injected into every LLM request
+  → No proxy, no wrap, pure extension
+
+Layer 2: Event-level (§33.1–33.4, §33.7–33.8)
+  → Compaction guided by Focusa ASCC
+  → Tool results auto-externalized to ECS
+  → Tool usage tracked for autonomy
+  → Session state persisted for resumability
+
+Layer 3: Command-level (doc 44 §10, §29)
+  → /wbm for Wirebot cross-surface bridge
+  → /focusa-* for manual inspection
+  → /focusa-rehydrate for ECS retrieval
+```
+
+This replaces the need for `focusa wrap -- pi` entirely. The extension IS the integration.
