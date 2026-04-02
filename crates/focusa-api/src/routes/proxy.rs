@@ -385,6 +385,53 @@ async fn chat_completions(
     let url = upstream_url();
     let client = get_client();
 
+    // 1b. CONTEXT CORE — Inject operator state as constraints (§9.5).
+    // Query Context Core for operator state (2s timeout, cached fallback).
+    if let Ok(Ok(resp)) = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        reqwest::get("http://127.0.0.1:7400/me"),
+    ).await {
+        if let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
+            let mut constraints = Vec::new();
+
+            // Interruptibility
+            if let Some(interruptibility) = ctx_json.pointer("/state/interruptibility").and_then(|v| v.as_str()) {
+                if interruptibility == "very_low" {
+                    constraints.push("Operator interruptibility: very low — do not ask questions, queue them".to_string());
+                } else if interruptibility == "low" {
+                    constraints.push("Operator interruptibility: low — minimize questions".to_string());
+                }
+            }
+
+            // Quiet hours / late night
+            if ctx_json.pointer("/timely/is_quiet_hours").and_then(|v| v.as_bool()).unwrap_or(false) {
+                constraints.push("Quiet hours — be concise, avoid churn".to_string());
+            }
+
+            // Agent policy
+            if let Some(agent_should) = ctx_json.pointer("/policy/agent_should").and_then(|v| v.as_str()) {
+                if agent_should == "queue_questions" {
+                    constraints.push("Policy: queue questions, do not interrupt operator".to_string());
+                }
+            }
+
+            // Inject as Focus State constraints
+            if !constraints.is_empty() {
+                let delta = FocusStateDelta {
+                    constraints: Some(constraints),
+                    ..Default::default()
+                };
+                if let Some(frame_id) = state.focusa.read().await.focus_stack.active_id {
+                    let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
+                        frame_id,
+                        turn_id: turn_id.clone(),
+                        delta,
+                    }).await;
+                }
+            }
+        }
+    }
+
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
     let focusa_state = state.focusa.read().await;
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);
