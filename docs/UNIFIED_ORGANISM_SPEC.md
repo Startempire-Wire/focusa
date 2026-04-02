@@ -520,7 +520,138 @@ Every cross-system call must have an explicit fallback:
 
 ---
 
-## 10. Metacognitive Reasoning Layer
+## 10. Cognitive Hygiene — Forgetting, Decay, and Waste Elimination
+
+An organism that never forgets becomes senile. Accumulation without pruning is hoarding, not intelligence. The system must **actively sharpen cognition** by eliminating waste, decaying irrelevance, and compacting history.
+
+### 10.1 The Problem Today
+
+| System | Waste | Size | Growing? | Pruning |
+|---|---|---|---|---|
+| Focusa event log | 35,171 events, full turn content stored | **420MB** | ~1K events/day | ❌ None |
+| Focusa snapshots | State saved on every mutation | 10MB | Yes | ❌ None |
+| Wiki.js | 952 orphan pages, 937 stale | 1,056 pages | Yes (enrichment) | ❌ wiki-agent stopped |
+| Mem0 | No memories yet — but no retention policy | 0 | Will grow | ❌ None planned |
+| Focusa semantic memory | TTL field exists but never enforced | 3 records | Slow | ❌ TTL ignored |
+| CLT | Append-only, no compaction | Growing | Yes | ❌ Never compacts |
+| Sessions | JSONL files accumulate | Varies | Yes | Manual only (`wb session prune`) |
+
+### 10.2 Retention Policies (REQUIRED)
+
+Every data store must have an explicit retention policy:
+
+| Store | Hot (instant access) | Warm (queryable) | Cold (archived) | Delete |
+|---|---|---|---|---|
+| **Focusa events** | Last 7 days | 8-90 days (indexed) | 91-365 days (compressed) | >365 days: delete payload, keep metadata |
+| **Focusa snapshots** | Last 24 hours (every mutation) | 2-30 days (daily snapshots only) | 31-90 days (weekly) | >90 days: keep only monthly |
+| **Wiki knowledge pages** | Always (active graph) | Always | — | Never auto-delete knowledge |
+| **Wiki orphan pages** | 30-day grace period | — | — | After 30 days orphaned: archive namespace |
+| **Wiki stale pages** | Flag at 30 days | Quarantine at 90 days | — | Operator review queue |
+| **Mem0 memories** | Last 90 days or recalled in last 30 | 91-365 days | — | >365 days without recall: candidate for removal |
+| **Focusa semantic memory** | Enforce TTL if set | — | — | Expired TTL → remove on next decay tick |
+| **Focusa procedural rules** | Weight > 0.1 | Weight 0.01-0.1 (dormant) | — | Weight < 0.01: remove |
+| **CLT nodes** | Last 1,000 nodes (navigable) | Older: compacted summary nodes | — | Never delete, but compact aggressively |
+| **Sessions** | Last 10 sessions | Older: pruned to 512KB | — | `wb session prune` runs nightly |
+
+### 10.3 Event Log Compaction (Most Urgent)
+
+The event log is **420MB and growing**. 228MB is raw `turn_started` content. 134MB is full assistant output in `turn_completed`.
+
+**Implementation:**
+1. **Immediate:** Strip large payloads from events older than 7 days
+   - Keep: event type, timestamp, turn_id, frame_id, token counts
+   - Remove: raw_user_input, assistant_output, correlation_id content
+   - Estimated savings: ~350MB (80% of current size)
+2. **Daily:** Run SQLite `VACUUM` after compaction
+3. **Weekly:** Archive events older than 90 days to compressed JSONL export
+4. **Ongoing:** `turn_completed` events should store a **summary hash**, not full content
+   - Full content goes to ECS Reference Store (where it belongs)
+   - Event stores handle reference only
+
+### 10.4 Memory Decay Pipeline
+
+**Procedural rules** (already have decay, needs threshold):
+- Current: `weight *= 0.99` every 30s, but rules never removed
+- Required: if `weight < 0.01` for 7+ days → remove rule
+- Required: if `weight < 0.1` for 30+ days and never reinforced → remove rule
+
+**Semantic memories** (needs TTL enforcement):
+- Current: TTL field exists but never checked
+- Required: on each decay tick, check TTL → remove expired entries
+- Required: memories not accessed in 90 days → flag for review
+
+**Mem0 memories** (needs forgetting):
+- Add `last_recalled_at` timestamp to every memory
+- Memories not recalled in 365 days → candidate for removal
+- Duplicate/near-duplicate memories → merge (keep highest confidence)
+- Contradicted memories → demote confidence, eventually remove
+
+### 10.5 Wiki Graph Pruning
+
+**Orphan elimination:**
+- wiki-agent (when restarted) should flag orphans older than 30 days
+- Orphans in `/joplin-import/` and `/ai-chats/` → batch archive
+- Orphans in `/notes/` → attempt to link, or quarantine
+
+**Stale page refresh:**
+- Pages in `/notes/` stale >90 days → quarantine queue for operator review
+- Pages in `/ops/` stale >30 days → auto-archive (operational data has short shelf life)
+
+**Link rot detection:**
+- Weekly: scan for broken wiki links → create candidates for wiki-agent
+- Track unresolved red link count as graph health KPI
+
+### 10.6 CLT Compaction
+
+Per `docs/17-context-lineage-tree.md`: compaction inserts summary nodes, never deletes.
+
+**Implementation:**
+- After 1,000 nodes: compact oldest 500 into 50 summary nodes
+- Summary node contains: time range, key decisions, frame transitions, outcome
+- Original nodes remain in cold storage (compressed), not in active tree
+- Active tree stays navigable and bounded
+
+### 10.7 Contradiction-Driven Forgetting
+
+When a new decision contradicts an old one:
+1. Old decision's wiki page gets `superseded_by` link
+2. Old Mem0 memory gets confidence reduced to 0.1
+3. Old procedural rule (if exists) gets weight halved
+4. Contradiction logged as event for auditability
+5. The NEW decision is the only one injected into prompts
+
+### 10.8 Daily Hygiene Loop
+
+Add to §12.3 Nightly:
+```
+Nightly hygiene:
+  1. Event log: compact events older than 7 days (strip payloads)
+  2. Snapshots: thin to daily-only for events older than 24h  
+  3. Sessions: wb session prune --budget 512KB
+  4. Procedural rules: remove weight < 0.01
+  5. Semantic memory: remove expired TTLs
+  6. Mem0: deduplicate near-identical memories
+  7. Wiki: flag new orphans, advance quarantine queue
+  8. CLT: compact if > 1,000 active nodes
+  9. SQLite VACUUM on focusa.sqlite
+```
+
+### 10.9 Cognitive Sharpening Metrics
+
+Track weekly:
+- Event log size (should stabilize, not grow linearly)
+- Procedural rule count (should converge, not accumulate)
+- Mem0 memory count (should grow slowly, not explosively)
+- Wiki orphan ratio (should decrease)
+- Wiki link density (should increase)
+- CLT active node count (should stay bounded)
+- Snapshot storage (should stay bounded)
+
+**The system is sharp when these metrics stabilize. It is hoarding when they grow linearly without bound.**
+
+---
+
+## 11. Metacognitive Reasoning Layer
 
 The organism's intelligence comes from **thinking about thinking** — not just responding to operator input. Focusa exists so that every turn benefits from structured reasoning before, during, and after the model call. Not every LLM call is a direct response to the operator. Internal reasoning calls are how the system produces richer, more grounded answers.
 
@@ -787,7 +918,7 @@ The organism's intelligence comes at a cost. Budget policy:
 
 ---
 
-## 11. Operational Flows
+## 12. Operational Flows
 
 ### 12.1 Turn Execution Flow (Updated with Metacognition)
 
@@ -832,7 +963,7 @@ At RFM level R1+, step 6 is preceded by parallel microcell validation (§10.4). 
 
 ---
 
-## 12. Intelligence Growth Loops
+## 13. Intelligence Growth Loops
 
 ### 12.1 Every Turn
 - Focusa event capture
@@ -889,7 +1020,7 @@ daily_metrics:
 
 ---
 
-## 13. Implementation Phases
+## 14. Implementation Phases
 
 ### Phase 0: Revive Dead Systems (Day 1, ~30 min)
 
@@ -1182,7 +1313,7 @@ Query Mem0 graph for relational context:
 
 ---
 
-## 14. Implementation Priority Summary
+## 15. Implementation Priority Summary
 
 | Priority | Task | Systems | Effort |
 |----------|------|---------|--------|
@@ -1211,14 +1342,21 @@ Query Mem0 graph for relational context:
 | **P1** | Agent Audit: live Focusa panels (mobile) | Agent Audit, Focusa | 4 hours |
 | **P0** | Upgrade MiniMax M2.5 → M2.7 | Mem0, Focusa workers | 1 hour |
 | **P0** | Add all fallback timeouts (12 integration points) | All services | 3 hours |
+| **P0** | Event log compaction (420MB → ~70MB) | Focusa SQLite | 2 hours |
+| **P0** | Implement nightly hygiene loop (§10.8) | Focusa daemon | 3 hours |
+| **P1** | Procedural rule removal threshold (weight < 0.01) | Focusa core | 1 hour |
+| **P1** | Semantic memory TTL enforcement | Focusa core | 1 hour |
+| **P2** | CLT compaction (>1000 nodes) | Focusa core | 3 hours |
+| **P2** | Snapshot thinning (daily/weekly/monthly) | Focusa persistence | 2 hours |
+| **P2** | Mem0 deduplication + staleness tracking | Mem0 + wb memory | 3 hours |
 | **P1** | Verify OpenClaw fallback when Focusa proxy down | OpenClaw, Focusa | 1 hour |
 | **P1** | Guardian alerts → Focusa Intuition Engine | Guardian, Focusa | 2 hours |
 
-**Total estimated effort:** ~77 hours across 6 phases
+**Total estimated effort:** ~93 hours across 6 phases
 
 ---
 
-## 15. Acceptance Criteria
+## 16. Acceptance Criteria
 
 The organism is working when:
 
@@ -1246,3 +1384,7 @@ The organism is working when:
 22. **Wirebot demonstrably gets smarter over time** — procedural rules accumulate, wiki grows, ARI trends up, recall improves
 23. **Background inference uses MiniMax M2.7** — primary model untouched, internal calls use latest cheap model
 24. **JARVIS 7-domain coverage verified** — every domain has a working organism subsystem mapped to it
+25. **Event log size stabilizes** — not linear growth; stays bounded after compaction
+26. **Procedural rule count converges** — low-weight rules removed, useful rules reinforced
+27. **Wiki orphan ratio decreases weekly** — tracked as graph health KPI
+28. **No data store grows without a retention policy** — every table has hot/warm/cold/delete tiers
