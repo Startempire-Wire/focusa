@@ -444,6 +444,61 @@ impl Daemon {
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
 
+                    // Session-end writeback: decisions → Mem0 + Wiki (§9.3, §14 Phase 2.2-2.3)
+                    if let FocusaEvent::SessionClosed { .. } = &event {
+                        let decisions: Vec<String> = self.state.focus_stack.frames.iter()
+                            .flat_map(|f| f.focus_state.decisions.clone())
+                            .collect();
+                        if !decisions.is_empty() {
+                            // Mem0 writeback (3s timeout, fire-and-forget)
+                            let client = reqwest::Client::new();
+                            for decision in &decisions {
+                                let body = serde_json::json!({
+                                    "text": decision,
+                                    "namespace": "wirebot_verious",
+                                    "category": "decision",
+                                });
+                                let c = client.clone();
+                                let b = body.clone();
+                                tokio::spawn(async move {
+                                    let _ = tokio::time::timeout(
+                                        std::time::Duration::from_secs(3),
+                                        c.post("http://127.0.0.1:8200/v1/store")
+                                            .json(&b)
+                                            .send(),
+                                    ).await;
+                                });
+                            }
+                            tracing::info!(count = decisions.len(), "Session-end: decisions written to Mem0");
+
+                            // Wiki writeback (fire-and-forget via temp file)
+                            let session_id = self.state.session.as_ref().map(|s| s.session_id.to_string()).unwrap_or_default();
+                            let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+                            let decision_text = decisions.iter().map(|d| format!("- {}", d)).collect::<Vec<_>>().join("\n");
+                            let wiki_content = format!("# Session Decisions — {}\n\n{}\n", date, decision_text);
+                            let short_id = if session_id.len() >= 8 { session_id[..8].to_string() } else { session_id.clone() };
+                            let wiki_path = format!("ops/sessions/{}-{}", date, short_id);
+                            let wiki_title = format!("Session Decisions {}", date);
+                            tokio::spawn(async move {
+                                // Write content to temp file, then pass via stdin
+                                let tmp = format!("/tmp/focusa-wiki-{}.md", short_id);
+                                if let Ok(()) = tokio::fs::write(&tmp, &wiki_content).await {
+                                    let _ = tokio::time::timeout(
+                                        std::time::Duration::from_secs(5),
+                                        tokio::process::Command::new("bash")
+                                            .args(["-c", &format!(
+                                                "cat '{}' | wb wiki create --title '{}' --path '{}' --tags 'session,focusa,decisions'",
+                                                tmp, wiki_title, wiki_path
+                                            )])
+                                            .output(),
+                                    ).await;
+                                    let _ = tokio::fs::remove_file(&tmp).await;
+                                }
+                            });
+                            tracing::info!(count = decisions.len(), "Session-end: decisions written to Wiki");
+                        }
+                    }
+
                     // Telemetry: record each event.
                     self.state.telemetry.total_events += 1;
 
