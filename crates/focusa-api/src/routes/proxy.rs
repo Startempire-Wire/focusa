@@ -180,7 +180,7 @@ fn extract_messages_stream_text(body: &str) -> (String, usize) {
 }
 
 fn messages_auth(headers: &HeaderMap) -> Option<anthropic::AnthropicAuth> {
-    if let Ok(key) = std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_MESSAGES_API_KEY")) {
+    if let Ok(key) = std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_KEY")) {
         if !key.is_empty() {
             return Some(anthropic::AnthropicAuth::ApiKey(key));
         }
