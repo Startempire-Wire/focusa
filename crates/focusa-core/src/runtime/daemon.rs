@@ -1022,6 +1022,8 @@ impl Daemon {
                     &mut self.state.memory,
                     self.config.gate_decay_factor,
                 );
+                // Enforce semantic memory TTLs (§10.4)
+                crate::memory::semantic::enforce_ttls(&mut self.state.memory);
                 crate::gate::focus_gate::decay_candidates(
                     &mut self.state.focus_gate,
                     self.config.gate_decay_factor,

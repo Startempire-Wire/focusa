@@ -28,14 +28,58 @@ pub fn reinforce(memory: &mut ExplicitMemory, rule_id: &str) -> Option<FocusaEve
 /// Apply decay tick to all rules.
 ///
 /// Returns an event with the number of rules affected.
+/// Also removes dead rules: weight < 0.01 for 7+ days, or weight < 0.1 for 30+ days
+/// without reinforcement. Per UNIFIED_ORGANISM_SPEC §10.4.
 pub fn decay_tick(memory: &mut ExplicitMemory, decay_factor: f32) -> FocusaEvent {
+    let now = Utc::now();
     let mut affected = 0usize;
+    
     for rule in &mut memory.procedural {
         if !rule.pinned {
             rule.weight *= decay_factor;
             affected += 1;
         }
     }
+
+    // Remove dead rules (weight below threshold for extended period)
+    let before_count = memory.procedural.len();
+    memory.procedural.retain(|rule| {
+        if rule.pinned {
+            return true;
+        }
+        // Remove if weight < 0.01 for 7+ days
+        if rule.weight < 0.01 {
+            let days_since_reinforced = (now - rule.last_reinforced_at).num_days();
+            if days_since_reinforced > 7 {
+                tracing::info!(
+                    rule_id = %rule.id,
+                    weight = rule.weight,
+                    days = days_since_reinforced,
+                    "Removing dead procedural rule (weight < 0.01 for 7+ days)"
+                );
+                return false;
+            }
+        }
+        // Remove if weight < 0.1 for 30+ days without reinforcement
+        if rule.weight < 0.1 {
+            let days_since_reinforced = (now - rule.last_reinforced_at).num_days();
+            if days_since_reinforced > 30 {
+                tracing::info!(
+                    rule_id = %rule.id,
+                    weight = rule.weight,
+                    days = days_since_reinforced,
+                    "Removing dormant procedural rule (weight < 0.1 for 30+ days)"
+                );
+                return false;
+            }
+        }
+        true
+    });
+    let removed = before_count - memory.procedural.len();
+    if removed > 0 {
+        tracing::info!(removed, "Procedural rules removed by decay threshold");
+    }
+
     FocusaEvent::MemoryDecayTick {
         decay_factor,
         rules_affected: affected,

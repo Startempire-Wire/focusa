@@ -47,6 +47,34 @@ pub fn get<'a>(memory: &'a ExplicitMemory, key: &str) -> Option<&'a SemanticReco
     memory.semantic.iter().find(|r| r.key == key)
 }
 
+/// Enforce TTLs on semantic memories.
+///
+/// Removes entries whose TTL has expired. Called from decay_tick.
+/// Per UNIFIED_ORGANISM_SPEC §10.4.
+pub fn enforce_ttls(memory: &mut ExplicitMemory) {
+    let now = Utc::now();
+    let before = memory.semantic.len();
+    memory.semantic.retain(|record| {
+        if record.pinned {
+            return true;
+        }
+        if let Some(ttl) = record.ttl {
+            if now > record.created_at + ttl {
+                tracing::info!(
+                    key = %record.key,
+                    "Semantic memory expired (TTL)"
+                );
+                return false;
+            }
+        }
+        true
+    });
+    let removed = before - memory.semantic.len();
+    if removed > 0 {
+        tracing::info!(removed, "Semantic memories removed by TTL enforcement");
+    }
+}
+
 /// Serialize whitelisted keys for prompt injection.
 pub fn to_prompt_string(memory: &ExplicitMemory) -> String {
     let whitelisted = ["user.response_style", "project.name"];
