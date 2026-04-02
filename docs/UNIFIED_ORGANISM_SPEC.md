@@ -373,63 +373,88 @@ The organism's intelligence comes from **thinking about thinking** — not just 
 
 ### 10.1 The Thinking Architecture
 
-Every operator turn triggers a multi-layer cognitive process:
+The Focusa spec mandates:
+- `docs/01-architecture-overview.md`: **"< 20ms additional overhead on prompt assembly"**
+- `docs/G1-10-workers.md`: **"async, non-blocking, never block hot path"**
+- `docs/36-reliability-focus-mode.md`: **"Validator microcells are invoked in parallel"**
+
+Metacognitive LLM calls must **NOT** block the operator's response. Instead they run **after the response is already sent**. Each turn benefits from the **previous** turn's background thinking.
 
 ```
-Operator input
+Operator input arrives
     │
     ▼
-┌─────────────────────────────────┐
-│ 1. PRE-TURN DELIBERATION        │ ← LLM call (internal, not shown to operator)
-│    "What do I already know?"     │    Query wiki, Mem0, Focus State
-│    "What is really being asked?" │    Intent classification (LLM, not regex)
-│    "What constraints apply?"     │    Thread Thesis + frame constraints
-│    "Should I act or ask?"        │    Confidence assessment
-│    "What could go wrong?"        │    Risk pre-scan
-└──────────┬──────────────────────┘
+┌─────────────────────────────────────────┐
+│ HOT PATH — <20ms, deterministic         │
+│                                         │
+│ 1. EXPRESSION ENGINE (no LLM call)     │  Assembles prompt from Focus State
+│    Pure assembly from pre-computed      │  that was ALREADY enriched by the
+│    state — Focus State, thesis,         │  previous turn's background work:
+│    rules, memories, wiki context,       │  - LLM-extracted decisions/constraints
+│    operator state — all ready to go     │  - Refined Thread Thesis
+│                                         │  - Promoted procedural rules
+│ 2. MODEL EXECUTION                     │  Primary LLM call → operator
+│    (Kimi K2.5 / Qwen)                  │
+│                                         │
+│ 3. RESPONSE RETURNED TO OPERATOR       │  ← Operator gets answer HERE
+└──────────┬──────────────────────────────┘
+           │
+    Response already sent. Now think.
            │
            ▼
-┌─────────────────────────────────┐
-│ 2. EXPRESSION ENGINE             │ ← Deterministic assembly
-│    Assemble cognition-enriched   │    Focus State + rules + memories +
-│    prompt from deliberation       │    wiki knowledge + operator state +
-│    results                        │    thread thesis + constraints
-└──────────┬──────────────────────┘
+┌─────────────────────────────────────────┐
+│ BACKGROUND — async, non-blocking       │
+│ (runs AFTER response is delivered)      │
+│                                         │
+│ 4. LLM EXTRACTION (parallel workers)   │  Extract decisions, constraints,
+│    Replaces regex heuristics            │  failures, skills, memory candidates
+│    ≤500 tok each, ≤2s timeout          │  Feed results into Focus State
+│                                         │  → available for NEXT turn
+│                                         │
+│ 5. POST-TURN EVALUATION                │  "Did it answer well?"
+│    (async LLM, cheap model)            │  Consistency + constraint check
+│    If bad → flag for next turn          │  Quality note into Focus State
+│    If terrible + R1 → regenerate *      │
+│                                         │
+│ 6. THESIS REFINEMENT (every Nth)       │  Update "what is this really about"
+│    (async LLM, cheap model)            │  Results → Focus State + thesis
+│    ≤400 tok, feeds next turn            │  → richer assembly next time
+│                                         │
+│ 7. FOCUS STATE UPDATE                  │  Worker results → ASCC delta
+│    (deterministic reducer, no LLM)     │  Decisions/constraints/failures
+│                                         │  promoted into live Focus State
+│                                         │
+│ 8. MEMORY PROMOTION                    │  Candidates → promotion pipeline
+│    (async)                             │  Mem0 / Wiki / procedural rules
+└─────────────────────────────────────────┘
+           │
+    * Regeneration (R1+ only) is the ONE case
+      that may delay before response is sent.
+      At R0 (normal), response is always immediate.
+           │
+    Meanwhile, on separate cadences:
            │
            ▼
-┌─────────────────────────────────┐
-│ 3. MODEL EXECUTION               │ ← Primary LLM call (response to operator)
-│    Kimi K2.5 / Qwen / configured │
-└──────────┬──────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────┐
-│ 4. POST-TURN EVALUATION          │ ← LLM call (internal)
-│    "Did the response answer the  │    Consistency with prior decisions
-│     question?"                   │    Constraint compliance check
-│    "Is it consistent with prior  │    Quality assessment
-│     decisions?"                  │    Confidence scoring
-│    "Should I regenerate?"        │
-└──────────┬──────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────┐
-│ 5. EXTRACTION & LEARNING         │ ← LLM call (internal)
-│    Extract decisions, constraints │    Structured extraction replaces
-│    failures, next steps, skills   │    regex heuristics
-│    Memory candidates, thesis      │    Thread Thesis refinement
-│    refinement                     │
-└──────────┬──────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────┐
-│ 6. BACKGROUND METACOGNITION      │ ← Periodic / async
-│    Reflection loop (scheduled)    │    "Am I on track?"
-│    Intuition engine (continuous)  │    Pattern detection
-│    Autonomy calibration           │    Self-measurement
-│    Graph gap detection            │    Knowledge completeness
-└─────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ PERIODIC METACOGNITION                  │
+│                                         │
+│  9. REFLECTION LOOP (hourly)           │  LLM-backed work quality review
+│                                         │  Observations, risks, recommendations
+│                                         │
+│ 10. INTUITION ENGINE (continuous)      │  Temporal, repetition, consistency
+│     (no LLM — signal aggregation)      │  pattern detection → Focus Gate
+│                                         │
+│ 11. CONTRADICTION SCAN (nightly)       │  Wiki vs Mem0 vs Focus State
+│     (LLM-backed)                       │  consistency check
+│                                         │
+│ 12. GRAPH GAP DETECTION (nightly)      │  Missing knowledge, unlinked pages,
+│     (LLM-backed)                       │  skill gaps, orphan reduction
+└─────────────────────────────────────────┘
 ```
+
+**Why this is fast:** The operator never waits for metacognition. Background thinking enriches the Focus State that the NEXT turn's Expression Engine assembles from. Each turn benefits from the previous turn's thinking. The system gets smarter turn-over-turn without adding latency.
+
+**The one exception:** At RFM level R1+, post-turn evaluation may trigger regeneration BEFORE the response is sent. This is the deliberate tradeoff for high-risk tasks — correctness over speed. At R0 (normal), the response is always immediate.
 
 ### 10.2 Internal LLM Calls — Not Every Call Is For The Operator
 
@@ -512,63 +537,68 @@ Per `docs/G1-14-reflection-loop.md`: The reflection loop runs (753 iterations lo
 - Cadence: configurable (default: hourly when active, suppressed when idle)
 - Stop conditions remain: low confidence, no evidence delta, repeated recommendations
 
-### 10.7 Pre-Turn Deliberation Directive (NEW)
+### 10.7 Pre-Turn Context Enrichment (Replaces "Deliberation")
 
-Before every turn, the system should reason about **what it already knows** and **what it should retrieve**.
+The previous turn's background processing already enriched Focus State with extracted decisions, refined thesis, promoted rules, and wiki/Mem0 context. The Expression Engine assembles from this pre-computed state in <20ms.
 
-**Implementation:**
+**However**, targeted retrieval for the NEW operator input can happen as part of the hot path IF it's fast enough:
+
+**Implementation (fast path — no LLM call):**
 1. Receive operator input
-2. Make internal LLM call (cheap/fast model):
-   - Input: operator message + current Focus State + thread thesis
-   - Output: structured deliberation result:
-     ```json
-     {
-       "interpreted_intent": "what the operator is really asking",
-       "relevant_wiki_queries": ["query1", "query2"],
-       "relevant_memory_queries": ["query1"],
-       "applicable_constraints": ["constraint1"],
-       "confidence": 0.85,
-       "should_ask_clarification": false,
-       "risk_level": "low"
-     }
-     ```
-3. Use deliberation result to:
-   - Query wiki with targeted queries (not just project tag)
-   - Query Mem0 with targeted queries (not just generic intent)
-   - Set confidence-based behavior (low confidence → ask, high → act)
-   - Flag risk level for RFM activation
-4. Feed results into Expression Engine for prompt assembly
+2. Keyword extraction from input (deterministic, <1ms)
+3. Parallel async fetch (≤50ms total):
+   - `wb wiki search "$KEYWORDS" --format json --limit 3`
+   - `wb memory search "$KEYWORDS" --limit 5`
+4. Merge results into Expression Engine assembly
+5. If fetches timeout (≤50ms) → proceed without, use cached state
 
-**Budget:** ≤300 tokens per deliberation call
-**Model:** cheap/fast (MiniMax M2.5 or local)
-**Fallback:** if deliberation fails, proceed with standard Expression Engine assembly
+**Implementation (deep path — LLM call, async from PREVIOUS turn):**
+1. After each turn completes, background worker generates:
+   ```json
+   {
+     "anticipated_queries": ["query1", "query2"],
+     "active_constraints": ["constraint1"],
+     "confidence": 0.85,
+     "risk_level": "low"
+   }
+   ```
+2. These pre-computed queries are used for wiki/Mem0 prefetch
+3. Results are cached in Focus State, ready for next turn's Expression Engine
+
+**Result:** The operator never waits for deliberation. Fast keyword-based retrieval runs inline (≤50ms). Deep LLM-backed intent analysis runs in background from the previous turn, enriching context for the next turn.
+
+**Budget:** 0 tokens on hot path. ≤300 tokens async (previous turn's background).
 
 ### 10.8 Post-Turn Evaluation Directive (NEW)
 
-After the model responds, the system should assess quality before returning to the operator.
+After the model responds and the response is **already sent to the operator**, evaluate quality asynchronously.
 
-**Implementation:**
-1. Receive model response
-2. Make internal LLM call:
-   - Input: operator question + model response + active constraints + prior decisions
-   - Output:
-     ```json
-     {
-       "answers_question": true,
-       "consistent_with_prior_decisions": true,
-       "violates_constraints": [],
-       "confidence": 0.9,
-       "should_regenerate": false,
-       "quality_notes": "Response is grounded and addresses the core ask"
-     }
-     ```
-3. If `should_regenerate` and RFM level allows → regenerate with additional context
-4. If constraint violations detected → flag in Focus State failures
-5. Log evaluation result in event log
+**R0 (normal) — response sent immediately, evaluation is background:**
+1. Response sent to operator (no delay)
+2. Async LLM call evaluates:
+   ```json
+   {
+     "answers_question": true,
+     "consistent_with_prior_decisions": true,
+     "violates_constraints": [],
+     "confidence": 0.9,
+     "quality_notes": "Response is grounded"
+   }
+   ```
+3. If constraint violations found → flag in Focus State for next turn
+4. If quality low → note in Focus State: "Previous response may need correction"
+5. Results feed into next turn's Expression Engine context
 
-**Budget:** ≤300 tokens per evaluation
-**Model:** same cheap/fast model as deliberation
-**Triggering:** every turn at R1+; sampling at R0 (every Nth turn)
+**R1+ (reliability mode) — evaluation MAY block before sending response:**
+1. Model generates candidate response (not yet sent)
+2. RFM microcell validators check in parallel (§10.4)
+3. If validation passes → send response
+4. If validation fails → regenerate once with additional constraints, then send
+5. This is the **only metacognitive delay** the operator ever experiences
+
+**Budget:** ≤300 tokens per evaluation (async at R0, inline at R1+)
+**Model:** cheap/fast
+**Triggering:** every turn at R1+; sampled at R0 (every 3rd turn)
 **Fallback:** if evaluation fails, pass response through unchanged
 
 ### 10.9 Model Selection for Internal Calls
@@ -608,18 +638,25 @@ The organism's intelligence comes at a cost. Budget policy:
 
 ### 12.1 Turn Execution Flow (Updated with Metacognition)
 
+**HOT PATH (≤20ms + model latency — operator never waits for metacognition):**
 1. Operator/user message enters OpenClaw
 2. OpenClaw creates/continues session
-3. **Pre-turn deliberation** (internal LLM call §10.7): assess intent, retrieve targeted context
-4. Focusa Expression Engine assembles cognition-enriched prompt from deliberation + Focus State + frame + rules + memories + wiki + operator state
+3. Fast keyword retrieval from wiki + Mem0 (≤50ms, parallel, no LLM call)
+4. Focusa Expression Engine assembles prompt from **pre-enriched** Focus State + fresh retrieval + frame + rules + memories + thesis + operator state
 5. OpenClaw invokes primary model via Focusa proxy
-6. Response returns through Focusa
-7. **Post-turn evaluation** (internal LLM call §10.8): quality check, constraint compliance, consistency
-8. If evaluation flags regeneration → re-prompt with additional context (R1+ only)
-9. **Post-turn extraction** (LLM-backed workers §10.3): extract decisions, failures, constraints, skills, memory candidates
-10. **Thread Thesis refinement** (every Nth turn §10.5): update semantic anchor
+6. **Response returned to operator** (R0: immediate. R1+: after microcell validation)
+
+**BACKGROUND (async, after response sent — system thinks about what just happened):**
+7. **LLM-backed extraction** (parallel workers §10.3): decisions, failures, constraints, skills, memory candidates → Focus State delta
+8. **Post-turn evaluation** (async LLM §10.8): quality + consistency check → notes for next turn
+9. **Thread Thesis refinement** (every Nth turn §10.5): update semantic anchor
+10. **Anticipatory queries** (§10.7): LLM generates predicted next-turn retrieval queries for wiki/Mem0 prefetch
 11. Focusa emits: `turn_completed`, telemetry, worker results, autonomy observation
 12. Promotion pipeline begins (§6)
+13. **All background results land in Focus State** → ready for next turn's Expression Engine
+
+**R1+ EXCEPTION (the only delay):**
+At RFM level R1+, step 6 is preceded by parallel microcell validation (§10.4). If validators flag the response, one regeneration attempt occurs before sending. This is the spec-authorized tradeoff: correctness over speed for high-risk tasks.
 
 ### 12.2 Session Start Flow
 
