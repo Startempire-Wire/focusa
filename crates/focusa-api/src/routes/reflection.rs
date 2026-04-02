@@ -380,22 +380,192 @@ struct ReflectionInputs {
     active_frame_present: bool,
     latest_event_ts: Option<String>,
     event_count: u64,
+    /// Recent events summary for LLM analysis.
+    recent_events_summary: String,
+    /// Current focus state snapshot.
+    focus_state_summary: String,
+    /// Semantic memory keys.
+    semantic_keys: Vec<String>,
+    /// Procedural rule summaries.
+    procedural_rules: Vec<String>,
+    /// LLM-generated observations (empty if LLM call failed).
+    llm_observations: Vec<Value>,
+    /// LLM-generated risks.
+    llm_risks: Vec<Value>,
+    /// LLM-generated recommendations.
+    llm_recommendations: Vec<Value>,
+    /// LLM confidence override.
+    llm_confidence: Option<f64>,
+    /// Whether LLM analysis succeeded.
+    llm_succeeded: bool,
 }
 
 async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
-    let (stack_depth, active_frame_present) = {
+    let (stack_depth, active_frame_present, focus_state_summary, semantic_keys, procedural_rules) = {
         let focusa = state.focusa.read().await;
-        (
-            focusa.focus_stack.frames.len(),
-            focusa.focus_stack.active_id.is_some(),
-        )
+        let stack_depth = focusa.focus_stack.frames.len();
+        let active = focusa.focus_stack.active_id.is_some();
+        
+        // Build focus state summary
+        let mut focus_parts = Vec::new();
+        for frame in &focusa.focus_stack.frames {
+            let is_active = Some(frame.id) == focusa.focus_stack.active_id;
+            focus_parts.push(format!(
+                "Frame[{}{}]: intent={}, decisions={}, constraints={}, next_steps={}",
+                frame.id,
+                if is_active { " ACTIVE" } else { "" },
+                frame.focus_state.intent,
+                frame.focus_state.decisions.len(),
+                frame.focus_state.constraints.len(),
+                frame.focus_state.next_steps.len(),
+            ));
+        }
+        let focus_summary = focus_parts.join("\n");
+        
+        // Semantic memory keys
+        let sem_keys: Vec<String> = focusa.memory.semantic.iter()
+            .map(|r| format!("{}={}", r.key, &r.value[..r.value.len().min(100)]))
+            .collect();
+        
+        // Procedural rules
+        let proc_rules: Vec<String> = focusa.memory.procedural.iter()
+            .take(20)
+            .map(|r| format!("[w={:.2}] {}", r.weight, &r.rule[..r.rule.len().min(80)]))
+            .collect();
+        
+        (stack_depth, active, focus_summary, sem_keys, proc_rules)
     };
+    
+    // Get recent events
+    let recent_events = state.persistence.recent_events(20).unwrap_or_default();
+    let events_summary: String = recent_events.iter()
+        .map(|e| {
+            let etype = e.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
+            let ts = e.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
+            format!("{}: {}", &ts[..ts.len().min(19)], etype)
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    
+    let event_count = state.persistence.event_count().unwrap_or(0);
+    let latest_ts = state.persistence.latest_event_timestamp().ok().flatten();
+    
+    // Call LLM for analysis
+    let (llm_obs, llm_risks, llm_recs, llm_conf, llm_ok) = call_reflection_llm(
+        &events_summary, &focus_state_summary, &semantic_keys, &procedural_rules,
+    ).await;
 
     ReflectionInputs {
         stack_depth,
         active_frame_present,
-        latest_event_ts: state.persistence.latest_event_timestamp().ok().flatten(),
-        event_count: state.persistence.event_count().unwrap_or(0),
+        latest_event_ts: latest_ts,
+        event_count,
+        recent_events_summary: events_summary,
+        focus_state_summary: focus_state_summary,
+        semantic_keys: semantic_keys.to_vec(),
+        procedural_rules: procedural_rules.to_vec(),
+        llm_observations: llm_obs,
+        llm_risks,
+        llm_recommendations: llm_recs,
+        llm_confidence: llm_conf,
+        llm_succeeded: llm_ok,
+    }
+}
+
+/// Call MiniMax M2.7 directly for reflection analysis.
+async fn call_reflection_llm(
+    events_summary: &str,
+    focus_state: &str,
+    semantic_keys: &[String],
+    procedural_rules: &[String],
+) -> (Vec<Value>, Vec<Value>, Vec<Value>, Option<f64>, bool) {
+    let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+    if api_key.is_empty() {
+        tracing::warn!("Reflection LLM: MINIMAX_API_KEY not set");
+        return (vec![], vec![], vec![], None, false);
+    }
+    
+    let prompt = format!(
+        r#"You are Focusa's reflection engine. Analyze the current cognitive state and recent activity.
+
+RECENT EVENTS (newest first):
+{}
+
+FOCUS STATE:
+{}
+
+SEMANTIC MEMORY ({} entries):
+{}
+
+PROCEDURAL RULES ({} active):
+{}
+
+Analyze this state and return ONLY valid JSON with:
+{{
+  "observations": [{{"kind": "string", "value": "string", "severity": "low|medium|high"}}],
+  "risks": [{{"kind": "string", "severity": "low|medium|high", "detail": "string"}}],
+  "recommendations": [{{"action": "string", "priority": "low|medium|high", "rationale": "string"}}],
+  "confidence": 0.0-1.0
+}}
+
+Focus on:
+- Stale or stuck focus frames
+- Repetitive patterns in events
+- Memory gaps (important context not captured)
+- Contradictions between decisions and constraints
+- Opportunities for proactive action"#,
+        events_summary,
+        if focus_state.is_empty() { "(no frames)" } else { focus_state },
+        semantic_keys.len(),
+        semantic_keys.join("\n"),
+        procedural_rules.len(),
+        procedural_rules.join("\n"),
+    );
+    
+    let client = reqwest::Client::new();
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(15),
+        client.post("https://api.minimax.io/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&json!({
+                "model": "MiniMax-M2.7",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 800,
+                "temperature": 0.3,
+            }))
+            .send(),
+    ).await;
+    
+    match result {
+        Ok(Ok(resp)) => {
+            if let Ok(data) = resp.json::<Value>().await {
+                if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                    // Extract JSON from response
+                    let start = text.find('{').unwrap_or(0);
+                    let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                    if let Ok(parsed) = serde_json::from_str::<Value>(&text[start..end]) {
+                        let obs = parsed.get("observations").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+                        let risks = parsed.get("risks").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+                        let recs = parsed.get("recommendations").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+                        let conf = parsed.get("confidence").and_then(|v| v.as_f64());
+                        tracing::info!(
+                            observations = obs.len(),
+                            risks = risks.len(),
+                            recommendations = recs.len(),
+                            "Reflection LLM analysis complete"
+                        );
+                        return (obs, risks, recs, conf, true);
+                    }
+                }
+            }
+            tracing::warn!("Reflection LLM: response unparseable");
+            (vec![], vec![], vec![], None, false)
+        }
+        _ => {
+            tracing::warn!("Reflection LLM: timeout or error");
+            (vec![], vec![], vec![], None, false)
+        }
     }
 }
 
@@ -467,20 +637,27 @@ fn execute_reflection(
         }
     }
 
-    let observations = vec![
+    // Build observations: LLM results + baseline telemetry
+    let mut observations = vec![
         json!({"kind":"focus_stack_depth","value":inputs.stack_depth}),
         json!({"kind":"event_count","value":inputs.event_count}),
     ];
+    observations.extend(inputs.llm_observations.clone());
 
     let mut risks = vec![];
     if !inputs.active_frame_present {
         risks.push(json!({"kind":"no_active_frame","severity":"medium"}));
     }
+    risks.extend(inputs.llm_risks.clone());
 
-    let recommended = vec![
-        json!({"action":"review_active_focus","advisory":true}),
-        json!({"action":"check_recent_events","advisory":true}),
-    ];
+    let recommended = if !inputs.llm_recommendations.is_empty() {
+        inputs.llm_recommendations.clone()
+    } else {
+        vec![
+            json!({"action":"review_active_focus","advisory":true}),
+            json!({"action":"check_recent_events","advisory":true}),
+        ]
+    };
     let recommended_value = Value::Array(recommended.clone());
 
     let prior = latest_reflection_result_for_window(conn, &window)
@@ -505,7 +682,9 @@ fn execute_reflection(
             .map(|p| p.get("recommended_actions") == Some(&recommended_value))
             .unwrap_or(false);
 
-    let confidence = if inputs.active_frame_present {
+    let confidence = if let Some(llm_c) = inputs.llm_confidence {
+        llm_c.clamp(0.0, 1.0)
+    } else if inputs.active_frame_present {
         0.82
     } else {
         0.66
@@ -545,7 +724,8 @@ fn execute_reflection(
         "policy": {
             "low_confidence_threshold": scheduler_cfg.low_confidence_threshold,
             "no_delta_min_event_delta": scheduler_cfg.no_delta_min_event_delta
-        }
+        },
+        "llm_analysis": inputs.llm_succeeded
     });
 
     conn.execute(

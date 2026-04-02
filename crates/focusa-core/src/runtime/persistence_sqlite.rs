@@ -434,6 +434,25 @@ impl SqlitePersistence {
         Ok(ts)
     }
 
+    /// Get the N most recent events as JSON values.
+    pub fn recent_events(&self, limit: usize) -> anyhow::Result<Vec<serde_json::Value>> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        let mut stmt = conn.prepare(
+            "SELECT payload FROM events ORDER BY ts DESC, rowid DESC LIMIT ?1",
+        )?;
+        let rows = stmt.query_map([limit as i64], |row| {
+            let raw: String = row.get(0)?;
+            Ok(raw)
+        })?;
+        let mut events = Vec::new();
+        for row in rows.flatten() {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&row) {
+                events.push(val);
+            }
+        }
+        Ok(events)
+    }
+
     /// Current count of persisted events.
     pub fn event_count(&self) -> anyhow::Result<u64> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");

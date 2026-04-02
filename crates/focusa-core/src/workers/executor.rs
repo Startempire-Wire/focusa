@@ -482,17 +482,20 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
         ),
     };
 
-    // Try LLM call (MiniMax M2.7 via OpenClaw gateway, 2s timeout)
+    // Try LLM call (MiniMax M2.7 direct API, 8s timeout)
     let client = reqwest::Client::new();
-    let gateway_token = std::env::var("GATEWAY_TOKEN").unwrap_or_default();
+    let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+    if api_key.is_empty() {
+        return execute_job(job);
+    }
     
     let llm_result = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
-        client.post("http://127.0.0.1:18789/v1/chat/completions")
-            .header("Authorization", format!("Bearer {}", gateway_token))
+        std::time::Duration::from_secs(8),
+        client.post("https://api.minimax.io/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
-                "model": "minimax/MiniMax-M2.7",
+                "model": "MiniMax-M2.7",
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 500,
             }))
