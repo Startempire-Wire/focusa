@@ -1149,3 +1149,234 @@ Layer 3: Command-level (doc 44 §10, §29)
 ```
 
 This replaces the need for `focusa wrap -- pi` entirely. The extension IS the integration.
+
+---
+
+## 34) Second-Pass Audit — Route Corrections and Untapped Capabilities
+
+Audited 2026-04-02: Full re-read of Pi extension docs (extensions.md, session.md, compaction.md, skills.md, prompt-templates.md, rpc.md, sdk.md) + verified every Focusa API route against actual code.
+
+### 34.1 Route Name Corrections
+
+| Doc 44 Uses | Actual Route | Fix |
+|---|---|---|
+| `/v1/gate/ingest-signal` (§33.4) | `/v1/focus-gate/ingest-signal` OR `/v1/gate/signal` | Update all references |
+
+All other routes in doc 44 verified correct against live code.
+
+### 34.2 Focusa Capabilities Not Yet Used by Pi Extension
+
+These are implemented, tested, live API routes that the Pi extension spec doesn't reference:
+
+#### A. Instance Registration (`/v1/instances/connect`)
+Pi should register itself as a Focusa instance on startup:
+```typescript
+pi.on("session_start", async (_event, ctx) => {
+  await fetch(":8787/v1/instances/connect", {
+    method: "POST",
+    body: JSON.stringify({ kind: "Gui" })  // or new "Pi" kind after focusa-ygb
+  });
+});
+pi.on("session_shutdown", async () => {
+  await fetch(":8787/v1/instances/disconnect", { method: "POST" });
+});
+```
+This gives Focusa visibility into which agents are currently connected. Multi-device sync (§43) uses instance IDs for ownership.
+
+#### B. Turn Tracking (`/v1/turn/start`, `/v1/turn/append`, `/v1/turn/complete`)
+Pi extension should notify Focusa of every turn lifecycle — not just session start/close. This enables:
+- Per-turn telemetry (tokens, latency)
+- ASCC delta extraction per turn
+- CLT lineage tracking
+- Autonomy scoring per turn
+
+```typescript
+pi.on("turn_start", async (event, ctx) => {
+  await fetch(":8787/v1/turn/start", {
+    method: "POST",
+    body: JSON.stringify({
+      turn_id: `pi-${event.turnIndex}-${Date.now()}`,
+      adapter_id: "pi-extension",
+      harness_name: "pi",
+      timestamp: new Date().toISOString()
+    })
+  }).catch(() => {});
+});
+
+pi.on("turn_end", async (event, ctx) => {
+  const userMsg = event.message?.role === "assistant" ? "" : event.message?.content;
+  const assistantMsg = event.message?.role === "assistant" 
+    ? event.message.content?.filter(c => c.type === "text").map(c => c.text).join("") 
+    : "";
+  
+  await fetch(":8787/v1/turn/complete", {
+    method: "POST",
+    body: JSON.stringify({
+      turn_id: `pi-${event.turnIndex}-${Date.now()}`,
+      assistant_output: assistantMsg?.slice(0, 4000) || "",
+      artifacts: [],
+      errors: []
+    })
+  }).catch(() => {});
+});
+```
+
+**This is critical.** Without turn tracking, Focusa can't:
+- Score autonomy from Pi turns
+- Run workers on Pi output
+- Build ASCC deltas from Pi conversations
+- Track CLT lineage for Pi sessions
+
+#### C. Focus State Updates (`/v1/focus/update`)
+When Pi makes significant progress (completes a task, makes a decision), the extension should update Focusa Focus State directly:
+```typescript
+async function updateFocusState(delta: any) {
+  await fetch(":8787/v1/focus/update", {
+    method: "POST",
+    body: JSON.stringify(delta)
+  }).catch(() => {});
+}
+```
+Currently only `/wbm` cataloguing does this. But even without `/wbm`, if Focusa is connected, Focus State should reflect Pi's work.
+
+#### D. Intuition Signal Submission (`/v1/intuition/submit`)
+Pi can submit signals directly to the Intuition Engine — not just via the Focus Gate ingestion path. Useful for:
+- Pi detects repeated compilation errors → signal
+- Pi session running >2 hours → long-running signal
+- Pi making many small edits to same file → possible churn signal
+
+#### E. State Explanation (`/v1/state/explain`)
+The `/focusa-gate-explain` command in §10.3 maps to `/v1/gate/explain`. But there's also `/v1/state/explain` which explains the last decision made. This should be exposed as `/focusa-explain-decision`.
+
+#### F. CLT Lineage (`/v1/lineage/*`)
+Pi sessions should be trackable in CLT. When the Pi extension submits turns, CLT nodes are created automatically. The extension could expose:
+- `/focusa-lineage` → show lineage path from current CLT head to root
+- Useful for "how did we get here?" provenance queries
+
+#### G. Focusa Skill (NOT extension)
+Pi has a skills system (`/skill:name`). A Focusa SKILL.md could be created at `~/.pi/skills/focusa/SKILL.md` that:
+- Documents how to use Focusa CLI within Pi
+- Provides agent instructions for Focus State management
+- Auto-loads when agent needs metacognitive guidance
+
+This is SEPARATE from the extension. The skill gives the LLM knowledge about Focusa. The extension gives Pi programmatic access.
+
+```
+~/.pi/skills/focusa/SKILL.md
+---
+name: focusa
+description: Focusa cognitive runtime — metacognition, focus management, decision tracking. Use when managing complex multi-step tasks or needing to preserve decisions across compaction.
+---
+# Focusa Meta-Cognition
+
+When working on complex tasks, use Focusa to track your cognitive state:
+
+## Check Status
+```bash
+curl -s http://127.0.0.1:8787/v1/focus/stack | jq .
+```
+
+## Record a Decision
+```bash
+curl -X POST http://127.0.0.1:8787/v1/focus/update \
+  -H 'Content-Type: application/json' \
+  -d '{"decisions": ["Chose X because Y"]}'
+```
+...
+```
+
+#### H. Prompt Template for Focusa-Aware Work
+Create `.pi/prompts/focusa-context.md`:
+```markdown
+---
+description: Start work with Focusa cognitive context loaded
+---
+Before starting: check Focusa status and load cognitive context.
+1. Run: curl -s http://127.0.0.1:8787/v1/focus/stack | jq .
+2. Run: curl -s http://127.0.0.1:8787/v1/ascc/state | jq .
+3. Review the active focus frame, decisions, and constraints.
+4. Proceed with the task, recording decisions in Focusa as you go.
+
+$ARGUMENTS
+```
+
+### 34.3 Pi Session Format Understanding for Historical Extraction
+
+From session.md, Pi sessions are JSONL with entry types:
+- `session` (header)
+- `message` (with `AgentMessage` subtypes: user, assistant, toolResult, custom, compactionSummary, branchSummary, bashExecution)
+- `compaction`
+- `branch_summary`
+- `custom` (extension state)
+- `model_change`
+- `thinking_level_change`
+- `label`
+
+**For historical Pi session extraction (bead focusa-d8i):**
+The parser must handle ALL these types, not just user+assistant. Specifically:
+- `message` with `role: "assistant"` → extract decisions/learnings from text content
+- `message` with `role: "toolResult"` → extract errors, file paths, command outputs
+- `compaction` → `summary` field already contains a condensed session summary — extract from this directly (much cheaper than re-processing all messages)
+- `branch_summary` → `summary` field contains abandoned branch context — may contain decisions that were superseded
+
+**Novel insight:** Compaction summaries are ALREADY LLM-generated summaries. The historical extraction pipeline should process these FIRST — they're pre-digested and contain the highest-signal content. Processing raw messages is the fallback for pre-compaction content.
+
+### 34.4 Pi SDK Direct Embedding — Alternative to Extension
+
+Pi's SDK (`@mariozechner/pi-coding-agent`) allows creating `AgentSession` objects programmatically. This means Focusa could potentially:
+- Spawn Pi as a sub-agent for specific tasks
+- Control Pi sessions from Focusa daemon directly
+- Use Pi's tool execution engine from Focusa workers
+
+This is a FUTURE capability, not needed for the current extension. But worth noting in the architecture for Phase 6+.
+
+### 34.5 Pi RPC Mode — External Control
+
+Pi's RPC mode (`pi --mode rpc`) allows JSON protocol control over stdin/stdout. This means:
+- A Focusa adapter could control Pi via RPC rather than extension hooks
+- Focusa daemon could start `pi --mode rpc` as a subprocess and send prompts
+
+This is an alternative to Mode A (`focusa wrap -- pi`). The extension approach (§33) is better for our use case because it's lighter and doesn't require subprocess management. But RPC mode is available if needed.
+
+### 34.6 Updated Architecture Recommendation
+
+After two full passes, the recommended integration architecture is:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  Pi Extension (focusa-pi-bridge.ts)                  │
+│                                                      │
+│  Layer 1: Provider Integration                       │
+│    before_provider_request → inject Focusa context   │
+│    OR registerProvider("focusa") for proxy mode      │
+│                                                      │
+│  Layer 2: Lifecycle Integration                      │
+│    session_start → /v1/session/start + /v1/instances │
+│    turn_start/end → /v1/turn/start + /v1/turn/complete│
+│    session_before_compact → Focusa ASCC summary      │
+│    session_shutdown → flush + close                  │
+│                                                      │
+│  Layer 3: Real-Time Integration                      │
+│    context → inject live Focus State per LLM call    │
+│    tool_result → auto-externalize to ECS             │
+│    tool_call → feed Intuition Engine                 │
+│    agent_end → extract work meta (/wbm)              │
+│                                                      │
+│  Layer 4: State Persistence                          │
+│    appendEntry → save Focusa state in Pi session     │
+│    session_start → restore from entries              │
+│                                                      │
+│  Layer 5: Commands & UX                              │
+│    /wbm on|off|status|deep|flush|decisions|ships     │
+│    /focusa-status|stack|pin|suppress|checkpoint      │
+│    /focusa-rehydrate|gate-explain|explain-decision   │
+│    /focusa-lineage                                   │
+│    Status bar: 🧠 + ARI badge + WBM indicator       │
+│                                                      │
+│  Layer 6: Knowledge (Skill + Prompt Template)        │
+│    ~/.pi/skills/focusa/SKILL.md                      │
+│    .pi/prompts/focusa-context.md                     │
+└──────────────────────────────────────────────────────┘
+```
+
+This is the definitive 6-layer architecture. Previous versions had 3 layers — this is more complete.
