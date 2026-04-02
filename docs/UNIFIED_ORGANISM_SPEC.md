@@ -367,20 +367,261 @@ Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_proj
 
 ---
 
-## 10. Operational Flows
+## 10. Metacognitive Reasoning Layer
 
-### 10.1 Turn Execution Flow
+The organism's intelligence comes from **thinking about thinking** — not just responding to operator input. Focusa exists so that every turn benefits from structured reasoning before, during, and after the model call. Not every LLM call is a direct response to the operator. Internal reasoning calls are how the system produces richer, more grounded answers.
+
+### 10.1 The Thinking Architecture
+
+Every operator turn triggers a multi-layer cognitive process:
+
+```
+Operator input
+    │
+    ▼
+┌─────────────────────────────────┐
+│ 1. PRE-TURN DELIBERATION        │ ← LLM call (internal, not shown to operator)
+│    "What do I already know?"     │    Query wiki, Mem0, Focus State
+│    "What is really being asked?" │    Intent classification (LLM, not regex)
+│    "What constraints apply?"     │    Thread Thesis + frame constraints
+│    "Should I act or ask?"        │    Confidence assessment
+│    "What could go wrong?"        │    Risk pre-scan
+└──────────┬──────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────┐
+│ 2. EXPRESSION ENGINE             │ ← Deterministic assembly
+│    Assemble cognition-enriched   │    Focus State + rules + memories +
+│    prompt from deliberation       │    wiki knowledge + operator state +
+│    results                        │    thread thesis + constraints
+└──────────┬──────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────┐
+│ 3. MODEL EXECUTION               │ ← Primary LLM call (response to operator)
+│    Kimi K2.5 / Qwen / configured │
+└──────────┬──────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────┐
+│ 4. POST-TURN EVALUATION          │ ← LLM call (internal)
+│    "Did the response answer the  │    Consistency with prior decisions
+│     question?"                   │    Constraint compliance check
+│    "Is it consistent with prior  │    Quality assessment
+│     decisions?"                  │    Confidence scoring
+│    "Should I regenerate?"        │
+└──────────┬──────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────┐
+│ 5. EXTRACTION & LEARNING         │ ← LLM call (internal)
+│    Extract decisions, constraints │    Structured extraction replaces
+│    failures, next steps, skills   │    regex heuristics
+│    Memory candidates, thesis      │    Thread Thesis refinement
+│    refinement                     │
+└──────────┬──────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────┐
+│ 6. BACKGROUND METACOGNITION      │ ← Periodic / async
+│    Reflection loop (scheduled)    │    "Am I on track?"
+│    Intuition engine (continuous)  │    Pattern detection
+│    Autonomy calibration           │    Self-measurement
+│    Graph gap detection            │    Knowledge completeness
+└─────────────────────────────────┘
+```
+
+### 10.2 Internal LLM Calls — Not Every Call Is For The Operator
+
+The organism makes LLM calls that the operator never sees. These are **metacognitive calls** — the system thinking about its own thinking:
+
+| Call Type | When | Purpose | Visible to Operator |
+|---|---|---|---|
+| **Deliberation** | Pre-turn | Assess intent, retrieve context, evaluate confidence | No |
+| **Execution** | During turn | Generate response to operator | Yes |
+| **Evaluation** | Post-turn | Check quality, consistency, constraint compliance | No |
+| **Extraction** | Post-turn | Extract decisions, failures, skills, memory candidates | No |
+| **Thesis Refinement** | Post-turn | Update Thread Thesis — "what is this really about" | No |
+| **RFM Validation** | Post-turn (conditional) | Microcell validators check output correctness | No |
+| **Reflection** | Scheduled (hourly) | Review work quality and focus trajectory | No |
+| **Contradiction Scan** | Nightly | Check wiki vs Mem0 vs Focus State consistency | No |
+| **Graph Gap Detection** | Nightly | Find missing knowledge, unlinked pages | No |
+
+### 10.3 Worker Upgrade Directive — Regex → LLM
+
+The 5 current workers use regex heuristics. **All must be upgraded to LLM-backed inference.**
+
+| Worker | Current | Upgrade To |
+|---|---|---|
+| `ClassifyTurn` | `contains("fix")` → "correction" | LLM intent classification with confidence |
+| `ExtractAsccDelta` | Keyword scanning for decisions/failures | LLM structured extraction (JSON output) |
+| `DetectRepetition` | Line dedup ratio | LLM semantic similarity detection |
+| `ScanForErrors` | Pattern match `"error:"`, `"panic:"` | LLM error analysis with root cause |
+| `SuggestMemory` | Look for "always"/"never" | LLM fact extraction with provenance |
+
+**Implementation approach:**
+- Workers call a local/cheap model (MiniMax M2.5 or Qwen-small) — NOT the primary expensive model
+- Budget: ≤500 tokens per worker call
+- Timeout: ≤2 seconds per worker
+- Fallback: if LLM call fails, fall back to current regex heuristic
+- Workers remain async, non-blocking, advisory
+
+### 10.4 RFM Microcell Upgrade Directive
+
+Per `docs/36-reliability-focus-mode.md`: RFM validators are supposed to be **isolated sub-agents** making LLM calls. Currently they are heuristic-only.
+
+**Upgrade plan:**
+
+| Microcell | Current | Upgrade To |
+|---|---|---|
+| Schema Validator | Not implemented | LLM checks output structure against expected format |
+| Constraint Validator | Not implemented | LLM checks output against active frame constraints |
+| Consistency Validator | Not implemented | LLM checks for contradictions with prior decisions |
+| Reference-Grounding Validator | Not implemented | LLM checks claims against Reference Store / CLT |
+
+**Rules:**
+- Microcells have **isolated context** — they do NOT see full session history
+- Each microcell gets: the candidate output + relevant constraints/references only
+- Budget: ≤300 tokens per microcell
+- Only invoked at R1+ (not every turn)
+- Results are structured: `pass | fail` + reason + citations
+
+### 10.5 Thread Thesis Refinement Directive
+
+Per `docs/38-thread-thesis-spec.md`: The Thread Thesis is a "living semantic anchor" that should be continuously refined. Currently the data structure exists but is never updated.
+
+**Upgrade plan:**
+- After every Nth turn (configurable, default N=3), make an internal LLM call:
+  - Input: current thesis + last N turns + Focus State
+  - Output: updated thesis (primary_intent, secondary_goals, constraints, open_questions, assumptions, confidence)
+- Thesis updates are bounded: only changed fields are updated
+- Thesis confidence increases with consistency, decreases with contradiction
+- Budget: ≤400 tokens per refinement call
+- Thesis is injected into Expression Engine prompt assembly (§11 Slot 3)
+
+### 10.6 Reflection Loop Upgrade Directive
+
+Per `docs/G1-14-reflection-loop.md`: The reflection loop runs (753 iterations logged) but currently uses heuristic scoring, not LLM-backed reasoning.
+
+**Upgrade plan:**
+- Replace heuristic reflection with LLM-backed review:
+  - Input: recent events window + Focus State + autonomy metrics + thread thesis
+  - Output: structured observations, risks, recommended_actions, confidence
+- The reflection call is **not a response to the operator** — it is the system thinking about its own trajectory
+- Budget: ≤800 tokens per reflection iteration
+- Cadence: configurable (default: hourly when active, suppressed when idle)
+- Stop conditions remain: low confidence, no evidence delta, repeated recommendations
+
+### 10.7 Pre-Turn Deliberation Directive (NEW)
+
+Before every turn, the system should reason about **what it already knows** and **what it should retrieve**.
+
+**Implementation:**
+1. Receive operator input
+2. Make internal LLM call (cheap/fast model):
+   - Input: operator message + current Focus State + thread thesis
+   - Output: structured deliberation result:
+     ```json
+     {
+       "interpreted_intent": "what the operator is really asking",
+       "relevant_wiki_queries": ["query1", "query2"],
+       "relevant_memory_queries": ["query1"],
+       "applicable_constraints": ["constraint1"],
+       "confidence": 0.85,
+       "should_ask_clarification": false,
+       "risk_level": "low"
+     }
+     ```
+3. Use deliberation result to:
+   - Query wiki with targeted queries (not just project tag)
+   - Query Mem0 with targeted queries (not just generic intent)
+   - Set confidence-based behavior (low confidence → ask, high → act)
+   - Flag risk level for RFM activation
+4. Feed results into Expression Engine for prompt assembly
+
+**Budget:** ≤300 tokens per deliberation call
+**Model:** cheap/fast (MiniMax M2.5 or local)
+**Fallback:** if deliberation fails, proceed with standard Expression Engine assembly
+
+### 10.8 Post-Turn Evaluation Directive (NEW)
+
+After the model responds, the system should assess quality before returning to the operator.
+
+**Implementation:**
+1. Receive model response
+2. Make internal LLM call:
+   - Input: operator question + model response + active constraints + prior decisions
+   - Output:
+     ```json
+     {
+       "answers_question": true,
+       "consistent_with_prior_decisions": true,
+       "violates_constraints": [],
+       "confidence": 0.9,
+       "should_regenerate": false,
+       "quality_notes": "Response is grounded and addresses the core ask"
+     }
+     ```
+3. If `should_regenerate` and RFM level allows → regenerate with additional context
+4. If constraint violations detected → flag in Focus State failures
+5. Log evaluation result in event log
+
+**Budget:** ≤300 tokens per evaluation
+**Model:** same cheap/fast model as deliberation
+**Triggering:** every turn at R1+; sampling at R0 (every Nth turn)
+**Fallback:** if evaluation fails, pass response through unchanged
+
+### 10.9 Model Selection for Internal Calls
+
+Not all LLM calls need the expensive primary model.
+
+| Call Type | Model | Rationale |
+|---|---|---|
+| Operator-facing response | Primary (Kimi K2.5) | Quality matters most |
+| Pre-turn deliberation | Cheap/fast (MiniMax M2.5) | Speed + cost |
+| Post-turn evaluation | Cheap/fast | Speed + cost |
+| Worker extraction | Cheap/fast | Volume, async |
+| RFM microcells | Cheap/fast | Isolated, narrow |
+| Thesis refinement | Cheap/fast | Periodic, bounded |
+| Reflection loop | Cheap/fast or primary | Depth matters but infrequent |
+| Contradiction scan | Cheap/fast | Batch, nightly |
+
+**Cost control:** All internal calls have strict token budgets. Total internal overhead per turn should be ≤1500 tokens (~$0.001 at typical rates). This is negligible compared to the primary model call.
+
+### 10.10 Thinking Budget Policy
+
+The organism's intelligence comes at a cost. Budget policy:
+
+| Cadence | Max Internal Tokens | Purpose |
+|---|---|---|
+| Per turn (R0) | 600 | Deliberation (300) + extraction (300) |
+| Per turn (R1+) | 1500 | + evaluation (300) + microcells (600) |
+| Per session | 400 | Thesis refinement |
+| Hourly | 800 | Reflection loop |
+| Nightly | 2000 | Contradiction scan + graph gap detection |
+
+**Operator override:** `wb focusa thinking --budget high` to allow deeper internal reasoning for complex sessions.
+
+---
+
+## 11. Operational Flows
+
+### 12.1 Turn Execution Flow (Updated with Metacognition)
 
 1. Operator/user message enters OpenClaw
 2. OpenClaw creates/continues session
-3. OpenClaw calls Focusa proxy for prompt assembly
-4. Focusa loads: active Focus State, frame/task context, procedural rules, semantic memories, artifact handles, operator modulation from Context Core
-5. OpenClaw invokes model via Focusa proxy
+3. **Pre-turn deliberation** (internal LLM call §10.7): assess intent, retrieve targeted context
+4. Focusa Expression Engine assembles cognition-enriched prompt from deliberation + Focus State + frame + rules + memories + wiki + operator state
+5. OpenClaw invokes primary model via Focusa proxy
 6. Response returns through Focusa
-7. Focusa emits: `turn_completed`, telemetry, worker jobs, autonomy observation, RFM validators
-8. Post-turn extraction pipeline begins
+7. **Post-turn evaluation** (internal LLM call §10.8): quality check, constraint compliance, consistency
+8. If evaluation flags regeneration → re-prompt with additional context (R1+ only)
+9. **Post-turn extraction** (LLM-backed workers §10.3): extract decisions, failures, constraints, skills, memory candidates
+10. **Thread Thesis refinement** (every Nth turn §10.5): update semantic anchor
+11. Focusa emits: `turn_completed`, telemetry, worker results, autonomy observation
+12. Promotion pipeline begins (§6)
 
-### 10.2 Session Start Flow
+### 12.2 Session Start Flow
 
 1. Start/open Focusa session (`curl -X POST :8787/v1/session/start -d '{"adapter_id":"openclaw","workspace_id":"wirebot"}'`)
 2. Resolve current Flow Mesh task or create focus frame mapping
@@ -389,7 +630,7 @@ Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_proj
 5. Query Wiki for project page, decisions, skills (`wb wiki search "tag:decision $PROJECT"`)
 6. Build bounded session context package
 
-### 10.3 Session Close Flow
+### 12.3 Session Close Flow
 
 1. Persist Focus State snapshot
 2. Extract decisions / constraints / failures / next steps
@@ -401,23 +642,23 @@ Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_proj
 
 ---
 
-## 11. Intelligence Growth Loops
+## 12. Intelligence Growth Loops
 
-### 11.1 Every Turn
+### 12.1 Every Turn
 - Focusa event capture
 - Operator modulation applied
 - Relevant wiki/memory retrieval
 - Telemetry updates
 - Candidate extraction scheduling
 
-### 11.2 Every Session End
+### 12.2 Every Session End
 - Session capture generated
 - Decision/failure extraction
 - Memory candidate generation
 - Task reconciliation
 - Optional wiki draft creation
 
-### 11.3 Nightly
+### 12.3 Nightly
 - Wiki enrichment (`/data/wirebot/bin/wiki-enrich-nightly.sh`)
 - wiki-agent graph maintenance (fill red links, audit staleness)
 - Candidate memory dedupe
@@ -426,20 +667,20 @@ Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_proj
 - Stale page refresh queue generation
 - Metric snapshot
 
-### 11.4 Weekly
+### 12.4 Weekly
 - Graph health report (`wb wiki stats`)
 - Autonomy trend review
 - Skill-gap report
 - Orphan reduction review
 - Project decision coverage review
 
-### 11.5 Monthly
+### 12.5 Monthly
 - Ontology drift audit
 - Constitution review
 - Promotion-rule tuning
 - Archival pruning / graph compaction review
 
-### 11.6 Daily Intelligence Metrics
+### 12.6 Daily Intelligence Metrics
 
 ```yaml
 daily_metrics:
@@ -458,7 +699,7 @@ daily_metrics:
 
 ---
 
-## 12. Implementation Phases
+## 13. Implementation Phases
 
 ### Phase 0: Revive Dead Systems (Day 1, ~30 min)
 
@@ -688,14 +929,60 @@ Query Mem0 graph for relational context:
 
 ---
 
-### Phase 5: Continuous Intelligence (Week 4+, ongoing)
+### Phase 5: Metacognitive Reasoning Activation (Week 4, ~12 hours)
 
-#### 5.1 Autonomy escalation gates
+#### 5.1 Upgrade workers from regex to LLM-backed
+- Add HTTP client to workers for cheap model calls (MiniMax M2.5 at :8200 or local endpoint)
+- Replace `classify_turn` regex with LLM intent classification
+- Replace `extract_ascc_delta` regex with LLM structured extraction
+- Replace `detect_repetition` with LLM semantic similarity
+- Replace `scan_for_errors` with LLM error analysis
+- Replace `suggest_memory` with LLM fact extraction
+- Keep regex as fallback if LLM call fails
+- Budget: ≤500 tokens per worker, ≤2s timeout
+
+#### 5.2 Implement pre-turn deliberation
+- Before Expression Engine assembly, call cheap model with operator input + Focus State + thesis
+- Output: interpreted intent, targeted wiki/memory queries, confidence, risk level
+- Feed deliberation results into Expression Engine
+- Budget: ≤300 tokens
+
+#### 5.3 Implement post-turn evaluation
+- After model response, call cheap model with question + response + constraints + prior decisions
+- Output: answers_question, consistent, constraint violations, should_regenerate
+- At R1+: every turn. At R0: sampled (every Nth turn)
+- Budget: ≤300 tokens
+
+#### 5.4 Activate Thread Thesis refinement
+- After every 3rd turn, call cheap model with current thesis + recent turns + Focus State
+- Output: updated thesis fields (primary_intent, constraints, open_questions, confidence)
+- Inject thesis into Expression Engine Slot 3
+- Budget: ≤400 tokens
+
+#### 5.5 Upgrade reflection loop to LLM-backed
+- Replace heuristic scoring with LLM review of recent events + Focus State + thesis + autonomy
+- Output: structured observations, risks, recommended_actions
+- Budget: ≤800 tokens per iteration
+
+#### 5.6 Implement RFM microcell validators
+- Schema validator: LLM checks output structure
+- Constraint validator: LLM checks against frame constraints
+- Consistency validator: LLM checks against prior decisions
+- Grounding validator: LLM checks claims against Reference Store
+- Each microcell gets isolated context (NOT full session)
+- Budget: ≤300 tokens per microcell
+- Only invoked at R1+ risk level
+
+---
+
+### Phase 6: Continuous Intelligence (Week 5+, ongoing)
+
+#### 6.1 Autonomy escalation gates
 - AL0 → AL1: Focusa can auto-resume frames (30 days stable ARI > 70, operator approval)
 - AL1 → AL2: Focusa can select next task from Flow Mesh (60 days ARI > 80)
 - AL2 → AL3: Wirebot can create subtasks autonomously (90 days ARI > 85)
 
-#### 5.2 SOUL.md ↔ Focusa constitution contract
+#### 6.2 SOUL.md ↔ Focusa constitution contract
 - SOUL.md = human-authored master doctrine (operator-managed)
 - Focusa constitution = compiled runtime projection
 - `wb soul reload` = deterministic compile/projection step
@@ -705,7 +992,7 @@ Query Mem0 graph for relational context:
 
 ---
 
-## 13. Implementation Priority Summary
+## 14. Implementation Priority Summary
 
 | Priority | Task | Systems | Effort |
 |----------|------|---------|--------|
@@ -724,12 +1011,19 @@ Query Mem0 graph for relational context:
 | **P3** | Daily intelligence metrics | wb CLI | 3 hours |
 | **P3** | Ontology entity/relation alignment | Ontology, Wiki | 3 hours |
 | **P3** | Promotion pipeline service | Focusa, Mem0, Wiki | 5 hours |
+| **P2** | Upgrade workers: regex → LLM extraction | Focusa workers | 4 hours |
+| **P2** | Pre-turn deliberation (internal LLM) | Focusa daemon | 3 hours |
+| **P2** | Post-turn evaluation (internal LLM) | Focusa daemon | 3 hours |
+| **P3** | Thread Thesis refinement (LLM-backed) | Focusa daemon | 2 hours |
+| **P3** | Reflection loop upgrade (LLM-backed) | Focusa daemon | 2 hours |
+| **P3** | RFM microcell validators (LLM-backed) | Focusa daemon | 4 hours |
+| **P3** | Nightly contradiction scan (LLM-backed) | Focusa + Wiki + Mem0 | 3 hours |
 
-**Total estimated effort:** ~45 hours across 5 phases
+**Total estimated effort:** ~66 hours across 6 phases
 
 ---
 
-## 14. Acceptance Criteria
+## 15. Acceptance Criteria
 
 The organism is working when:
 
@@ -745,3 +1039,10 @@ The organism is working when:
 10. No canonical truth concern is owned by more than one system
 11. The system can explain why it knows something, where it came from, and why it acted
 12. Weekly metrics show measurable intelligence growth
+13. **Pre-turn deliberation runs on every turn** — the system thinks before responding
+14. **Post-turn evaluation catches constraint violations** before they reach the operator
+15. **Workers extract structured knowledge via LLM**, not regex keyword matching
+16. **Thread Thesis is actively refined** and reflects the real meaning of the session
+17. **Reflection loop produces LLM-backed observations** about work quality and trajectory
+18. **RFM microcells validate high-risk output** with isolated sub-agent LLM calls
+19. **Internal LLM calls are budgeted and auditable** — every metacognitive call is logged with token count
