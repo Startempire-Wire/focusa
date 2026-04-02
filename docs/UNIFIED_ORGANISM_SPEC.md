@@ -544,9 +544,11 @@ Every data store must have an explicit retention policy:
 |---|---|---|---|---|
 | **Focusa events** | Last 7 days | 8-90 days (indexed) | 91-365 days (compressed) | >365 days: delete payload, keep metadata |
 | **Focusa snapshots** | Last 24 hours (every mutation) | 2-30 days (daily snapshots only) | 31-90 days (weekly) | >90 days: keep only monthly |
-| **Wiki knowledge pages** | Always (active graph) | Always | — | Never auto-delete knowledge |
-| **Wiki orphan pages** | 30-day grace period | — | — | After 30 days orphaned: archive namespace |
-| **Wiki stale pages** | Flag at 30 days | Quarantine at 90 days | — | Operator review queue |
+| **Wiki T1 (active)** | Always in active graph | — | — | Never delete; demote to T2 after 90d untouched |
+| **Wiki T2 (reference)** | Queryable, not auto-injected | — | — | Never delete; demote to T3 after 90d untouched |
+| **Wiki T3 (archive)** | Exists, not maintained | — | — | Never delete; invisible to cognition |
+| **Wiki T4 (raw)** | Exists, unprocessed | — | — | Never delete; candidate for reduction pipeline |
+| **Wiki T5 (quarantine)** | Flagged for operator | — | — | Never auto-delete; operator decides |
 | **Mem0 memories** | Last 90 days or recalled in last 30 | 91-365 days | — | >365 days without recall: candidate for removal |
 | **Focusa semantic memory** | Enforce TTL if set | — | — | Expired TTL → remove on next decay tick |
 | **Focusa procedural rules** | Weight > 0.1 | Weight 0.01-0.1 (dormant) | — | Weight < 0.01: remove |
@@ -586,20 +588,64 @@ The event log is **420MB and growing**. 228MB is raw `turn_started` content. 134
 - Duplicate/near-duplicate memories → merge (keep highest confidence)
 - Contradicted memories → demote confidence, eventually remove
 
-### 10.5 Wiki Graph Pruning
+### 10.5 Wiki Knowledge Triage (Importance Tiers, Not Deletion)
 
-**Orphan elimination:**
-- wiki-agent (when restarted) should flag orphans older than 30 days
-- Orphans in `/joplin-import/` and `/ai-chats/` → batch archive
-- Orphans in `/notes/` → attempt to link, or quarantine
+**Nothing is deleted from the wiki.** Old docs may be irrelevant now but valuable later. Instead of pruning, the system assigns **importance tiers** that control visibility, injection priority, and maintenance effort.
 
-**Stale page refresh:**
-- Pages in `/notes/` stale >90 days → quarantine queue for operator review
-- Pages in `/ops/` stale >30 days → auto-archive (operational data has short shelf life)
+#### Importance Tiers
+
+| Tier | Tag | Meaning | Prompt Injection | Maintenance | Example |
+|---|---|---|---|---|---|
+| **T1 — Active** | `importance:active` | Actively used in current work | ✅ Always eligible | wiki-agent maintains links | Active project pages, current decisions, live skills |
+| **T2 — Reference** | `importance:reference` | Useful background, not active | ⚠️ Only when retrieved | Periodic link check | Completed project pages, past decisions, learned skills |
+| **T3 — Archive** | `importance:archive` | Historical record, rarely needed | ❌ Never injected | No maintenance | Old meeting notes, past season data, completed ops |
+| **T4 — Raw** | `importance:raw` | Unprocessed source material | ❌ Never injected | Candidate for reduction | Joplin imports, ChatGPT exports, raw dumps |
+| **T5 — Quarantine** | `importance:quarantine` | Flagged for operator review | ❌ Never injected | Operator decides | Contradicted content, suspected junk, duplicate |
+
+#### Tier Assignment Rules
+
+- **New knowledge pages** (`/notes/*`) start at T1 (active)
+- **Session captures** (`/ops/sessions/*`) start at T2 (reference)
+- **Imports** (`/joplin-import/*`, `/ai-chats/*`) start at T4 (raw)
+- **Pages not touched in 90 days** → auto-demote one tier (T1→T2, T2→T3)
+- **Pages recalled/referenced by agents** → promote one tier
+- **Pages flagged by contradiction scan** → T5 (quarantine)
+- **Operator can manually set any tier**
+
+#### How Tiers Sharpen Cognition
+
+- **Expression Engine** only queries T1+T2 pages for context injection
+- **Mem0 seeding** only extracts from T1+T2 pages
+- **wiki-agent** only maintains links on T1+T2 pages (saves cycles)
+- **Graph health KPIs** only count T1+T2 in link density calculations
+- **Orphan detection** only flags T1+T2 orphans as problems
+- **T3+T4+T5 pages exist but don't consume cognitive resources**
+
+This means the organism's active cognition gets sharper over time as irrelevant pages demote to T3/T4, while the active knowledge graph (T1+T2) stays dense and high-signal.
+
+#### Implementation
+
+- Add `importance:*` tags via `wb wiki` (tag system already exists — 83 tags in use)
+- wiki-agent assigns initial tiers based on namespace + age
+- Nightly: scan for auto-demotion candidates (untouched 90+ days)
+- Nightly: scan for auto-promotion candidates (recently recalled)
+- `wb wiki stats` should report tier distribution
+- Agent Audit should show tier breakdown
+
+#### Existing Tags That Map to Tiers
+
+| Existing Tag | Maps To |
+|---|---|
+| `quarantine` (29 pages) | T5 |
+| `operator-review` (29 pages) | T5 |
+| `archive` (tag exists) | T3 |
+| `vault-import` (825 pages) | T4 |
+| `important` (tag exists) | T1 |
 
 **Link rot detection:**
-- Weekly: scan for broken wiki links → create candidates for wiki-agent
-- Track unresolved red link count as graph health KPI
+- Weekly: scan for broken wiki links in T1+T2 pages → wiki-agent candidates
+- Track unresolved red link count in T1+T2 only (not T3+T4+T5)
+- Red links in T4 (raw) are expected and not a problem
 
 ### 10.6 CLT Compaction
 
@@ -631,7 +677,7 @@ Nightly hygiene:
   4. Procedural rules: remove weight < 0.01
   5. Semantic memory: remove expired TTLs
   6. Mem0: deduplicate near-identical memories
-  7. Wiki: flag new orphans, advance quarantine queue
+  7. Wiki: auto-demote untouched T1→T2, T2→T3 (90-day rule); promote recently-recalled pages
   8. CLT: compact if > 1,000 active nodes
   9. SQLite VACUUM on focusa.sqlite
 ```
@@ -642,8 +688,10 @@ Track weekly:
 - Event log size (should stabilize, not grow linearly)
 - Procedural rule count (should converge, not accumulate)
 - Mem0 memory count (should grow slowly, not explosively)
-- Wiki orphan ratio (should decrease)
-- Wiki link density (should increase)
+- Wiki T1+T2 page count (active knowledge — should grow steadily)
+- Wiki T1+T2 link density (should increase)
+- Wiki T4 reduction rate (raw → T1/T2 or confirmed T3)
+- Wiki T5 queue length (should stay short — operator reviews regularly)
 - CLT active node count (should stay bounded)
 - Snapshot storage (should stay bounded)
 
@@ -1386,5 +1434,6 @@ The organism is working when:
 24. **JARVIS 7-domain coverage verified** — every domain has a working organism subsystem mapped to it
 25. **Event log size stabilizes** — not linear growth; stays bounded after compaction
 26. **Procedural rule count converges** — low-weight rules removed, useful rules reinforced
-27. **Wiki orphan ratio decreases weekly** — tracked as graph health KPI
+27. **Wiki T1+T2 link density increases weekly** — active knowledge graph gets denser
+29. **Wiki importance tiers assigned to all pages** — no untiered pages in active namespaces
 28. **No data store grows without a retention policy** — every table has hot/warm/cold/delete tiers
