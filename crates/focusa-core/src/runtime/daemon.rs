@@ -444,6 +444,44 @@ impl Daemon {
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
 
+                    // Session-start seeding: Mem0 → Focusa semantic memory (§9.3, §14 Phase 2.1)
+                    if let FocusaEvent::SessionStarted { .. } = &event {
+                        let seed_state = self.state.clone();
+                        let seed_tx = self.command_tx.clone();
+                        tokio::spawn(async move {
+                            // Query Mem0 for relevant memories
+                            let intent = seed_state.focus_stack.frames.iter()
+                                .find(|f| Some(f.id) == seed_state.focus_stack.active_id)
+                                .map(|f| f.focus_state.intent.clone())
+                                .unwrap_or_else(|| "general".to_string());
+                            let query = if intent.is_empty() { "wirebot context".to_string() } else { intent };
+                            
+                            let client = reqwest::Client::new();
+                            if let Ok(Ok(resp)) = tokio::time::timeout(
+                                std::time::Duration::from_secs(3),
+                                client.post("http://127.0.0.1:8200/v1/search")
+                                    .json(&serde_json::json!({"query": query, "namespace": "wirebot_verious", "limit": 10}))
+                                    .send(),
+                            ).await {
+                                if let Ok(data) = resp.json::<serde_json::Value>().await {
+                                    if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                                        for (i, mem) in results.iter().enumerate().take(5) {
+                                            if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                                                let key = format!("mem0.seed.{}", i);
+                                                let _ = seed_tx.send(crate::types::Action::UpsertSemantic {
+                                                    key,
+                                                    value: text.to_string(),
+                                                    source: crate::types::MemorySource::Worker,
+                                                }).await;
+                                            }
+                                        }
+                                        tracing::info!(count = results.len().min(5), "Session-start: Mem0 memories seeded");
+                                    }
+                                }
+                            }
+                        });
+                    }
+
                     // Session-end writeback: decisions → Mem0 + Wiki (§9.3, §14 Phase 2.2-2.3)
                     if let FocusaEvent::SessionClosed { .. } = &event {
                         let decisions: Vec<String> = self.state.focus_stack.frames.iter()
