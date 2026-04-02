@@ -1663,3 +1663,197 @@ The extension should try options 1-2 automatically. Never hardcode tokens.
 | 7 | Operator corrections not detected | **MEDIUM** | "No that's wrong" should become a failure + trust metric. |
 | 8 | Session name not synced | **LOW** | /resume shows message snippets, not frame titles. |
 | 9 | /wbm token sourcing undefined | **LOW** | Extension needs scoreboard token but spec doesn't say where. |
+
+---
+
+## 36) Fourth-Pass Audit — Adapter Contract Compliance + Data Flow Verification
+
+Audited 2026-04-02: Cross-checked doc 44 against Focusa adapter contract (G1-detail-04-proxy-adapter.md), Pi session lifecycle (session.md, compaction.md), and traced every data flow for double-injection risks.
+
+### 36.1 Missing: Streaming via turn/append (ADAPTER CONTRACT)
+
+Focusa's adapter spec (G1-detail-04) defines 4 required endpoints:
+1. `POST /v1/turn/start` — §34.2B covers ✅
+2. `POST /v1/turn/append` — **NOT in any section** ❌
+3. `POST /v1/turn/complete` — §34.2B covers ✅
+4. `POST /v1/prompt/assemble` — §33.5 covers ✅
+
+Pi streams responses via `message_update` events (token-by-token). The extension should forward streaming chunks to Focusa for real-time visibility:
+
+```typescript
+pi.on("message_update", async (event, ctx) => {
+  if (!focusaEnabled || !currentTurnId) return;
+  if (event.assistantMessageEvent?.type === "text_delta") {
+    fetch(":8787/v1/turn/append", {
+      method: "POST",
+      body: JSON.stringify({
+        turn_id: currentTurnId,
+        chunk: event.assistantMessageEvent.delta
+      })
+    }).catch(() => {}); // Fire-and-forget
+  }
+});
+```
+
+This is REQUIRED. turn/append enables real-time ASCC delta extraction, SSE streaming to Agent Audit, and fulfills the adapter contract.
+
+### 36.2 Missing: Error Signals to Focus Gate
+
+When Pi tool calls fail (`isError: true`) or the model errors (`stopReason: "error"`), these should become Focusa Intuition signals:
+
+```typescript
+pi.on("tool_result", async (event, ctx) => {
+  if (event.isError && focusaEnabled) {
+    fetch(":8787/v1/focus-gate/ingest-signal", {
+      method: "POST",
+      body: JSON.stringify({
+        signal_type: "tool_error",
+        summary: `Tool ${event.toolName} failed: ${event.content?.[0]?.text?.slice(0, 200)}`,
+      })
+    }).catch(() => {});
+  }
+});
+
+pi.on("message_end", async (event, ctx) => {
+  if (event.message?.role === "assistant" && event.message.stopReason === "error") {
+    fetch(":8787/v1/focus-gate/ingest-signal", {
+      method: "POST",
+      body: JSON.stringify({
+        signal_type: "model_error",
+        summary: `Model error: ${event.message.errorMessage || "unknown"}`,
+      })
+    }).catch(() => {});
+  }
+});
+```
+
+### 36.3 Missing: User Input Signals to Focus Gate
+
+The adapter contract requires signaling "user input received" to Focus Gate. This helps the Intuition Engine track activity cadence (inactivity detection):
+
+```typescript
+pi.on("agent_start", async (_event, ctx) => {
+  if (!focusaEnabled) return;
+  fetch(":8787/v1/focus-gate/ingest-signal", {
+    method: "POST",
+    body: JSON.stringify({
+      signal_type: "user_input",
+      summary: "User input received in Pi session",
+    })
+  }).catch(() => {});
+});
+```
+
+### 36.4 Missing: Focusa Session Resume on Pi /resume (HIGH)
+
+When user runs `/resume` in Pi, the extension restores WBM state from `appendEntry` (§33.7). But it currently starts a NEW Focusa session instead of resuming the saved one.
+
+```typescript
+pi.on("session_start", async (_event, ctx) => {
+  let savedSessionId: string | null = null;
+  
+  // Check for saved Focusa state
+  for (const entry of ctx.sessionManager.getEntries()) {
+    if (entry.type === "custom" && entry.customType === "focusa-wbm-state") {
+      savedSessionId = entry.data?.sessionId;
+    }
+  }
+  
+  if (savedSessionId) {
+    // Check if that Focusa session is still valid
+    const status = await fetch(`:8787/v1/status`).then(r => r.json()).catch(() => null);
+    if (status?.session?.session_id === savedSessionId) {
+      // Same session still active — just reconnect
+      focusaSessionId = savedSessionId;
+      return;
+    }
+  }
+  
+  // Start new Focusa session
+  const result = await fetch(":8787/v1/session/start", { method: "POST", ... });
+  focusaSessionId = result?.session_id;
+});
+```
+
+### 36.5 Missing: Pi /fork and /tree Handling
+
+When Pi forks (`session_fork`) or navigates tree (`session_tree`), Focus State should reflect the branch point, not current state.
+
+```typescript
+pi.on("session_fork", async (event, ctx) => {
+  // Focus State may contain decisions from AFTER the fork point.
+  // For correctness, we should snapshot Focus State at the fork point.
+  // Log note AND snapshot current Focus State for reconciliation.
+  if (focusaEnabled) {
+    fetch(":8787/v1/focus/update", {
+      method: "POST",
+      body: JSON.stringify({
+        notes: [`Pi session forked from ${event.previousSessionFile}. Focus State may contain post-fork decisions.`]
+      })
+    }).catch(() => {});
+  }
+});
+
+pi.on("session_tree", async (event, ctx) => {
+  // Similar: navigating to a different branch may invalidate current Focus State
+  if (focusaEnabled) {
+    fetch(":8787/v1/focus/update", {
+      method: "POST",
+      body: JSON.stringify({
+        notes: [`Pi session tree navigation. Focus State may need reconciliation.`]
+      })
+    }).catch(() => {});
+  }
+});
+```
+
+**Required:** Focusa must support Focus State snapshots per CLT node for branch-aware state restoration. The extension must snapshot state on fork and restore on tree navigation. Both extension and Focusa core changes needed.
+
+### 36.6 CRITICAL: Injection Layering Rules (Prevents Double-Injection)
+
+Doc 44 has FOUR context injection mechanisms that could fire simultaneously:
+1. `before_agent_start` — behavioral instructions + state (§35.2)
+2. `context` — live Focus State per LLM call (§33.2)
+3. `before_provider_request` — Focusa assembled prompt (§33.5)
+4. `session_before_compact` — compaction instructions (§33.10)
+
+**If all active: Focus State injected 3× per turn. Token waste + confusion.**
+
+**AUTHORITATIVE LAYERING RULES:**
+
+| Hook | Purpose | Active? | Content |
+|---|---|---|---|
+| `before_agent_start` | Behavioral instructions (ONE TIME per prompt) | **YES — always** | Focusa rules: "record decisions as DECISION:, check constraints..." |
+| `context` | Live Focus State refresh (PER LLM CALL) | **YES — always** | Compact state: intent + decisions + constraints (≤500 tok) |
+| `before_provider_request` | Full assembled prompt injection | **NO — disabled by default** | Only enable if NOT using `context` hook (Mode B alternative) |
+| `session_before_compact` | Compaction preservation | **YES — on compact only** | ASCC full state as compaction summary or instructions |
+
+**Rule: `context` and `before_provider_request` are MUTUALLY EXCLUSIVE. Use context (lighter, per-call refresh). Disable provider request injection.**
+
+### 36.7 Missing: Context Budget Communication
+
+Focusa's Expression Engine has `max_prompt_tokens` (default 6000). Pi's context may only have 2000 tokens of headroom. If Focusa injects 6000 tokens, Pi overflows.
+
+```typescript
+pi.on("context", async (event, ctx) => {
+  const usage = ctx.getContextUsage();
+  if (!usage || !focusaEnabled) return;
+  
+  // Calculate available headroom
+  const model = ctx.model;
+  const contextWindow = model?.contextWindow || 200000;
+  const headroom = contextWindow - usage.tokens - 16384; // reserve for response
+  
+  // Request Focusa assemble within budget
+  const maxFocusaTokens = Math.min(Math.max(headroom * 0.2, 200), 2000);
+  // Inject at most maxFocusaTokens of Focusa context
+  
+  const state = await fetchFocusaState();
+  if (!state) return;
+  
+  const truncatedState = truncateFocusState(state, maxFocusaTokens);
+  return { messages: [focusaMessage(truncatedState), ...event.messages] };
+});
+```
+
+**Without this, Focusa can push Pi into context overflow, triggering unnecessary compaction.**
