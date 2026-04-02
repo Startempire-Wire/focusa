@@ -478,6 +478,45 @@ async fn chat_completions(
         });
     }
 
+    // 1c. PRE-TURN ENRICHMENT — Fast Mem0 query (200ms budget).
+    // Query Mem0 for memories relevant to user input, inject directly into state
+    // BEFORE assembly so results are available THIS turn.
+    {
+        let query_text = if user_input.len() > 200 { &user_input[..200] } else { &user_input };
+        if !query_text.is_empty() {
+            if let Ok(Ok(resp)) = tokio::time::timeout(
+                std::time::Duration::from_millis(200),
+                client.post("http://127.0.0.1:8200/v1/search")
+                    .json(&serde_json::json!({
+                        "query": query_text,
+                        "namespace": "wirebot_verious",
+                        "limit": 3
+                    }))
+                    .send(),
+            ).await {
+                if let Ok(data) = resp.json::<serde_json::Value>().await {
+                    if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                        let mut focusa = state.focusa.write().await;
+                        for (i, mem) in results.iter().enumerate().take(3) {
+                            if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                                focusa_core::memory::semantic::upsert(
+                                    &mut focusa.memory,
+                                    format!("mem0.preturn.{}", i),
+                                    text.to_string(),
+                                    focusa_core::types::MemorySource::Worker,
+                                );
+                            }
+                        }
+                        drop(focusa);
+                        if !results.is_empty() {
+                            tracing::debug!(count = results.len().min(3), "Pre-turn: Mem0 memories injected");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
     let focusa_state = state.focusa.read().await;
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);
@@ -677,6 +716,44 @@ async fn messages_proxy(
     }
 
     let url = resolve_messages_upstream(&request.model);
+    let client = get_client();
+
+    // 1c. PRE-TURN ENRICHMENT — Fast Mem0 query (200ms budget).
+    {
+        let query_text = if user_input.len() > 200 { &user_input[..200] } else { &user_input };
+        if !query_text.is_empty() {
+            if let Ok(Ok(resp)) = tokio::time::timeout(
+                std::time::Duration::from_millis(200),
+                client.post("http://127.0.0.1:8200/v1/search")
+                    .json(&serde_json::json!({
+                        "query": query_text,
+                        "namespace": "wirebot_verious",
+                        "limit": 3
+                    }))
+                    .send(),
+            ).await {
+                if let Ok(data) = resp.json::<serde_json::Value>().await {
+                    if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                        let mut focusa = state.focusa.write().await;
+                        for (i, mem) in results.iter().enumerate().take(3) {
+                            if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                                focusa_core::memory::semantic::upsert(
+                                    &mut focusa.memory,
+                                    format!("mem0.preturn.{}", i),
+                                    text.to_string(),
+                                    focusa_core::types::MemorySource::Worker,
+                                );
+                            }
+                        }
+                        drop(focusa);
+                        if !results.is_empty() {
+                            tracing::debug!(count = results.len().min(3), "Pre-turn: Mem0 memories injected (messages)");
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // 2. PROMPT ASSEMBLY.
     let focusa_state = state.focusa.read().await;
