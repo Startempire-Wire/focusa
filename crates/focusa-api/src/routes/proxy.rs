@@ -387,9 +387,10 @@ async fn chat_completions(
 
     // 1b. CONTEXT CORE — Inject operator state as constraints (§9.5).
     // Query Context Core for operator state (2s timeout, cached fallback).
+    // Reuse the shared reqwest client (already created above for upstream).
     if let Ok(Ok(resp)) = tokio::time::timeout(
         std::time::Duration::from_secs(2),
-        reqwest::get("http://127.0.0.1:7400/me"),
+        client.get("http://127.0.0.1:7400/me").send(),
     ).await {
         if let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
             let mut constraints = Vec::new();
@@ -415,18 +416,36 @@ async fn chat_completions(
                 }
             }
 
-            // Inject as Focus State constraints
+            // Inject as Focus State constraints — but avoid duplicating on every turn.
+            // Only add constraints that aren't already in the current frame's constraints.
             if !constraints.is_empty() {
-                let delta = FocusStateDelta {
-                    constraints: Some(constraints),
-                    ..Default::default()
-                };
-                if let Some(frame_id) = state.focusa.read().await.focus_stack.active_id {
-                    let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
-                        frame_id,
-                        turn_id: turn_id.clone(),
-                        delta,
-                    }).await;
+                let focusa_read = state.focusa.read().await;
+                if let Some(frame_id) = focusa_read.focus_stack.active_id {
+                    let existing_constraints: Vec<String> = focusa_read
+                        .focus_stack
+                        .frames
+                        .iter()
+                        .find(|f| f.id == frame_id)
+                        .map(|f| f.focus_state.constraints.clone())
+                        .unwrap_or_default();
+                    drop(focusa_read);
+
+                    let new_constraints: Vec<String> = constraints
+                        .into_iter()
+                        .filter(|c| !existing_constraints.contains(c))
+                        .collect();
+
+                    if !new_constraints.is_empty() {
+                        let delta = FocusStateDelta {
+                            constraints: Some(new_constraints),
+                            ..Default::default()
+                        };
+                        let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
+                            frame_id,
+                            turn_id: turn_id.clone(),
+                            delta,
+                        }).await;
+                    }
                 }
             }
         }

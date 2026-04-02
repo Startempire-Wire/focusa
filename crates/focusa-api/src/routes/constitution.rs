@@ -81,11 +81,11 @@ async fn load_constitution(
             current_section = "principles";
             continue;
         }
-        if lower.contains("safety") || lower.contains("banned") || lower.contains("never") && lower.contains("rule") {
+        if lower.contains("safety") || lower.contains("banned") || (lower.contains("never") && lower.contains("rule")) {
             current_section = "safety";
             continue;
         }
-        if lower.contains("expression") || lower.contains("constraint") && lower.contains("rule") {
+        if lower.contains("expression") || (lower.contains("constraint") && lower.contains("rule")) {
             current_section = "expression";
             continue;
         }
