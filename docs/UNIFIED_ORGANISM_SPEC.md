@@ -459,11 +459,21 @@ Work meta extraction calls MiniMax M2.7 (cheap/fast) with:
 |---|---|---|---|
 | Decision | Mem0 | `wb memory inject "$DECISION"` | `source:pi, surface:pi, session:$ID` |
 | Decision | Wiki | `wb wiki create --path ops/decisions/$DATE --tags decision,pi` | rationale, project link |
-| Completion/Ship | Scoreboard | `wb ship "$DESCRIPTION"` | lane, size |
 | Fact | Mem0 | `wb memory inject "$FACT"` | `source:pi, surface:pi, category:technical` |
 | Failure | Mem0 | `wb memory inject "FAILURE: $DETAIL"` | `source:pi, surface:pi, category:failure` |
 | Failure | Focusa | `POST :8787/v1/focus/state/update` | failures array |
-| File changes | Wiki | Comment on project page | files modified, lines changed |
+| Learnings | Mem0 | `wb memory inject "LEARNED: $INSIGHT"` | `source:pi, surface:pi, category:learning` |
+
+**Ships are NOT manually catalogued.** The scoreboard already auto-detects ships from git:
+- GitHub releases → `PRODUCT_RELEASE` (10 points)
+- Merged PRs → `FEATURE_SHIPPED` (6 points)
+- Successful CI runs → `DEPLOY_SUCCESS` (8 points)
+- Git discovery scans `/root`, `/home`, `/data` for new commits
+- GitHub webhooks provide real-time detection
+
+Pi sessions that commit code are **automatically detected as ships** by the existing git discovery + GitHub webhook system. `/wbm` does not need to duplicate this. Instead, `/wbm` catalogues the **meaning behind the commits** — the decisions, the reasoning, the failures, the learnings — which git can't see.
+
+This means: Pi commits code → scoreboard auto-detects the ship → `/wbm` catalogues WHY that code was written and what was decided along the way → Wirebot knows both WHAT shipped and WHY.
 
 #### Commands
 
@@ -474,7 +484,7 @@ Work meta extraction calls MiniMax M2.7 (cheap/fast) with:
 /wbm deep        → Deep mode: also fetch Mem0 memories + wiki decisions (~1500 tok)
 /wbm flush       → Force-catalogue accumulated work meta now
 /wbm decisions   → Show decisions catalogued this session
-/wbm ships       → Show completions catalogued this session
+/wbm ships       → Show git ships auto-detected by scoreboard during this session
 ```
 
 #### Why This Makes Wirebot Smarter
@@ -489,7 +499,7 @@ Without `/wbm`:
 
 With `/wbm`:
 - Pi's decisions flow to Mem0 → Wirebot recalls them tomorrow
-- Pi's completions flow to Scoreboard → season record improves
+- Pi's commits are auto-detected by Scoreboard git discovery → season record improves
 - Pi's failures flow to Focusa → same mistake isn't repeated
 - Pi's facts flow to Mem0 → cross-surface knowledge grows
 - Wirebot can say "Yesterday in a Pi session we decided to use JWT with PKCE" — even though Wirebot wasn't the one coding
