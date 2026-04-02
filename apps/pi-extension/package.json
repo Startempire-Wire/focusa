@@ -1,0 +1,15 @@
+{
+  "name": "focusa-pi-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Focusa cognitive integration extension for Pi coding agent",
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "latest",
+    "@sinclair/typebox": "^0.34.0",
+    "typescript": "^5.0.0"
+  }
+}
