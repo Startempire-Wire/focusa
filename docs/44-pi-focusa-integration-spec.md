@@ -1859,3 +1859,276 @@ pi.on("context", async (event, ctx) => {
 ```
 
 **Without this, Focusa can push Pi into context overflow, triggering unnecessary compaction.**
+
+---
+
+## 37) Purpose Verification — Final Holistic Review
+
+Reviewed 2026-04-02: Verified the spec delivers on Focusa's core invariant, the organism's higher-level goals, the JARVIS vision, and uses Pi's full capability.
+
+### 37.1 Purpose Alignment Verification
+
+| Purpose | Delivered? | How |
+|---|---|---|
+| "Meaning lives in Focus State, not in conversation" | ✅ | §33.1 ASCC compaction, §35.1 auto-frame, §35.2 behavioral instructions, §35.4 local shadow |
+| Single organism across all surfaces | ✅ | §29 /wbm two-way bridge, WINS portal approval flow, 5-sink delivery |
+| JARVIS 7 domains for Pi surface | ✅ | All 7 mapped in organism spec §9.11 |
+| Pi gets smarter over time | ✅ | If beads implemented: procedural rules, Mem0, wiki, ARI, thesis |
+| Pi → Context Core feedback | ❌ | **NEW GAP:** Pi doesn't tell Context Core it's active |
+| Cross-surface real-time events | ⚠️ | §30 SSE for metacognitive indicators, but not for cross-surface decision notifications |
+
+### 37.2 CRITICAL: Metacognition Tools (Not Text Markers)
+
+**The single most impactful change remaining.**
+
+Current §35.2 tells the LLM to write `DECISION:` text markers, then extracts via regex/LLM. This is fragile — LLMs forget, format varies, extraction misses content.
+
+**Register metacognition TOOLS the LLM can call directly:**
+
+```typescript
+pi.registerTool({
+  name: "focusa_decide",
+  label: "Record Decision",
+  description: "Record a decision made during this work session. Call this whenever you make a significant choice.",
+  promptSnippet: "Record decisions, constraints, and failures for cognitive tracking",
+  promptGuidelines: [
+    "When you make a significant decision (choosing an approach, selecting a library, architectural choice), call focusa_decide.",
+    "When you discover a constraint (must handle X, cannot use Y), call focusa_constraint.",
+    "When something fails (build error, test failure, wrong approach), call focusa_failure.",
+  ],
+  parameters: Type.Object({
+    decision: Type.String({ description: "What was decided" }),
+    rationale: Type.String({ description: "Why this was chosen" }),
+    alternatives: Type.Optional(Type.Array(Type.String(), { description: "What alternatives were considered" })),
+  }),
+  async execute(toolCallId, params, signal, onUpdate, ctx) {
+    // Record in Focusa Focus State
+    await fetch(":8787/v1/focus/update", {
+      method: "POST",
+      body: JSON.stringify({ decisions: [`${params.decision} (because: ${params.rationale})`] })
+    }).catch(() => {});
+    
+    // If /wbm active, also queue for WINS portal
+    if (wbmEnabled) {
+      await pi.exec("wb", ["memory", "inject", `DECISION: ${params.decision}. Rationale: ${params.rationale}`]).catch(() => {});
+    }
+    
+    localDecisions.push(`${params.decision} (${params.rationale})`);
+    
+    return {
+      content: [{ type: "text", text: `✅ Decision recorded: ${params.decision}` }],
+      details: { decision: params.decision, rationale: params.rationale },
+    };
+  },
+});
+
+pi.registerTool({
+  name: "focusa_constraint",
+  label: "Record Constraint",
+  description: "Record a constraint discovered during work.",
+  parameters: Type.Object({
+    constraint: Type.String({ description: "What constraint was found" }),
+    reason: Type.Optional(Type.String({ description: "Why this constraint exists" })),
+  }),
+  async execute(toolCallId, params) {
+    await fetch(":8787/v1/focus/update", {
+      method: "POST",
+      body: JSON.stringify({ constraints: [params.constraint] })
+    }).catch(() => {});
+    localConstraints.push(params.constraint);
+    return { content: [{ type: "text", text: `⚠️ Constraint recorded: ${params.constraint}` }] };
+  },
+});
+
+pi.registerTool({
+  name: "focusa_failure",
+  label: "Record Failure",
+  description: "Record a failure encountered during work.",
+  parameters: Type.Object({
+    failure: Type.String({ description: "What failed" }),
+    impact: Type.Optional(Type.String({ description: "Impact of the failure" })),
+  }),
+  async execute(toolCallId, params) {
+    await fetch(":8787/v1/focus/update", {
+      method: "POST",
+      body: JSON.stringify({ failures: [params.failure] })
+    }).catch(() => {});
+    localFailures.push(params.failure);
+    return { content: [{ type: "text", text: `❌ Failure recorded: ${params.failure}` }] };
+  },
+});
+```
+
+**Why this is better than text markers:**
+- Structured JSON, not free-text parsing
+- Tool calls are guaranteed in Pi's session format (type: "toolCall" in AssistantMessage)
+- `promptGuidelines` injects tool-specific instructions when tool is active
+- `promptSnippet` adds to Available Tools section
+- Tool result details are persisted via `appendEntry` and survive compaction
+- Historical extraction can find tool calls reliably (`toolName: "focusa_decide"`)
+- LLM sees `✅ Decision recorded` confirmation — positive reinforcement
+
+**This replaces §35.2 behavioral instructions as the primary decision capture mechanism.** §35.2 instructions remain as backup for when LLM doesn't call the tool.
+
+### 37.3 Widget: Persistent Focus State Display
+
+```typescript
+function updateFocusWidget(ctx) {
+  const frame = currentFrame;
+  const dCount = localDecisions.length;
+  const cCount = localConstraints.length;
+  const fCount = localFailures.length;
+  
+  const lines = [
+    `🧠 ${frame?.title || "No frame"} ${wbmEnabled ? "⚡WBM" : ""}`,
+    `📋 ${dCount} decisions · ${cCount} constraints · ${fCount} failures`,
+  ];
+  
+  ctx.ui.setWidget("focusa", lines, { placement: "belowEditor" });
+}
+```
+
+Always visible below the editor. Operator sees cognitive state without typing commands.
+
+### 37.4 Keyboard Shortcuts
+
+```typescript
+pi.registerShortcut("ctrl+shift+f", {
+  description: "Toggle Focusa status overlay",
+  handler: async (ctx) => {
+    // Show/hide detailed Focusa state
+  },
+});
+
+pi.registerShortcut("ctrl+shift+w", {
+  description: "Toggle Wirebot Mode",
+  handler: async (ctx) => {
+    wbmEnabled = !wbmEnabled;
+    ctx.ui.notify(wbmEnabled ? "⚡ WBM ON" : "WBM OFF", "info");
+  },
+});
+```
+
+### 37.5 CLI Flags
+
+```typescript
+pi.registerFlag("wbm", {
+  description: "Start with Wirebot Mode enabled",
+  type: "boolean",
+  default: false,
+});
+
+pi.registerFlag("focusa", {
+  description: "Enable Focusa cognitive integration",
+  type: "boolean",
+  default: true,
+});
+
+// On session start
+if (pi.getFlag("--wbm")) {
+  wbmEnabled = true;
+}
+if (pi.getFlag("--focusa") === false) {
+  focusaEnabled = false;
+}
+```
+
+`pi --wbm` starts with Wirebot Mode on. `pi --no-focusa` disables integration.
+
+### 37.6 Custom Message Renderer
+
+```typescript
+pi.registerMessageRenderer("focusa-state", (message, options, theme) => {
+  const { expanded } = options;
+  let text = theme.fg("dim", "🧠 ") + theme.fg("muted", "Focusa Context");
+  if (expanded) {
+    text += "\n" + theme.fg("dim", message.content);
+  }
+  return new Text(text, 0, 0);
+});
+```
+
+Focusa-injected messages get collapsed styling — visible but not noisy.
+
+### 37.7 Session Switch Handling
+
+```typescript
+pi.on("session_before_switch", async (event, ctx) => {
+  // Flush Focusa state before switching sessions
+  await flushWorkMeta();
+  persistFocusaState();
+  
+  if (focusaSessionActive) {
+    await fetch(":8787/v1/session/close", {
+      method: "POST",
+      body: JSON.stringify({ reason: "pi_session_switch" })
+    }).catch(() => {});
+  }
+});
+```
+
+### 37.8 Model Change Tracking
+
+```typescript
+pi.on("model_select", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  const modelName = `${event.model.provider}/${event.model.id}`;
+  // Inform Focusa of model change for telemetry
+  fetch(":8787/v1/focus/update", {
+    method: "POST",
+    body: JSON.stringify({ notes: [`Model changed to ${modelName}`] })
+  }).catch(() => {});
+});
+```
+
+### 37.9 Pi → Context Core Feedback
+
+```typescript
+// On session start, tell Context Core Pi is active
+pi.on("session_start", async () => {
+  pi.exec("wb", ["me", "--set", "pi_active=true"]).catch(() => {});
+});
+
+pi.on("session_shutdown", async () => {
+  pi.exec("wb", ["me", "--set", "pi_active=false"]).catch(() => {});
+});
+```
+
+Context Core then knows Pi is running, which affects operator state calculations.
+
+### 37.10 Cross-Surface Event Notifications via SSE
+
+```typescript
+// Subscribe to Focusa SSE for cross-surface events
+let sseConnection: EventSource | null = null;
+
+function connectSSE() {
+  // Use fetch with streaming instead of EventSource (Node.js compatible)
+  fetch(":8787/v1/events/stream", { signal: AbortSignal.timeout(0) })
+    .then(response => {
+      const reader = response.body?.getReader();
+      // Process SSE events...
+      // On FocusStateUpdated from another surface:
+      //   ctx.ui.notify("Wirebot recorded: DECISION: Use bind mounts", "info");
+    }).catch(() => {
+      // Reconnect with backoff
+    });
+}
+```
+
+### 37.11 Remaining Gaps After All Passes
+
+| # | Gap | Severity | Status |
+|---|---|---|---|
+| 1 | Metacognition tools (focusa_decide/constraint/failure) | **HIGH** | NEW — §37.2 |
+| 2 | Focus State widget (always visible) | **MEDIUM** | NEW — §37.3 |
+| 3 | Keyboard shortcuts (Ctrl+Shift+F/W) | **LOW** | NEW — §37.4 |
+| 4 | CLI flags (--wbm, --focusa) | **LOW** | NEW — §37.5 |
+| 5 | Custom message renderer (collapsed Focusa blocks) | **LOW** | NEW — §37.6 |
+| 6 | Session switch flush | **MEDIUM** | NEW — §37.7 |
+| 7 | Model change tracking | **LOW** | NEW — §37.8 |
+| 8 | Pi → Context Core activity signal | **MEDIUM** | NEW — §37.9 |
+| 9 | Cross-surface SSE notifications | **MEDIUM** | NEW — §37.10 |
+
+**All previous findings (§33-§36) confirmed valid and properly cross-referenced.**
