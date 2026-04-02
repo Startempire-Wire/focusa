@@ -181,3 +181,92 @@ mod tests {
         assert_eq!((i, s, b), (1, 1, 1));
     }
 }
+
+/// Compact the CLT when interaction nodes exceed threshold.
+/// 
+/// Per docs/17 rule 5: "Compaction inserts — never deletes."
+/// Groups the oldest N interaction nodes, asks LLM for a summary,
+/// inserts a Summary node covering that range.
+/// Returns the number of nodes summarized, or 0 if no compaction needed.
+pub async fn compact_if_needed(
+    clt: &mut CltState,
+    session_id: Option<SessionId>,
+    threshold: usize,
+    batch_size: usize,
+) -> usize {
+    let (interaction_count, _, _) = node_counts(clt);
+    if interaction_count < threshold {
+        return 0;
+    }
+
+    // Collect oldest interaction nodes not already covered by a summary
+    let summary_covered: std::collections::HashSet<String> = clt.nodes.iter()
+        .filter_map(|n| {
+            if let CltPayload::Summary { ref covered_range, .. } = n.payload {
+                Some(covered_range.clone())
+            } else {
+                None
+            }
+        })
+        .flatten()
+        .collect();
+
+    let uncovered_interactions: Vec<&CltNode> = clt.nodes.iter()
+        .filter(|n| n.node_type == CltNodeType::Interaction && !summary_covered.contains(&n.node_id))
+        .take(batch_size)
+        .collect();
+
+    if uncovered_interactions.is_empty() {
+        return 0;
+    }
+
+    // Build content for summarization
+    let content: Vec<String> = uncovered_interactions.iter().map(|n| {
+        match &n.payload {
+            CltPayload::Interaction { role, content_ref } => {
+                format!("[{}] {}: {}", n.node_id, role, content_ref.as_deref().unwrap_or("(no content)"))
+            }
+            _ => format!("[{}] (non-interaction)", n.node_id),
+        }
+    }).collect();
+
+    let covered_ids: Vec<String> = uncovered_interactions.iter().map(|n| n.node_id.clone()).collect();
+    let count = covered_ids.len();
+
+    // Try LLM summarization
+    let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+    let summary_text = if !api_key.is_empty() {
+        let prompt = format!(
+            "Summarize these {} conversation interactions in 2-3 sentences:\n\n{}",
+            count,
+            content.join("\n"),
+        );
+        let client = reqwest::Client::new();
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            client.post("https://api.minimax.io/v1/chat/completions")
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&serde_json::json!({
+                    "model": "MiniMax-M2.7",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 200,
+                    "temperature": 0.3,
+                }))
+                .send(),
+        ).await {
+            Ok(Ok(resp)) => {
+                resp.json::<serde_json::Value>().await.ok()
+                    .and_then(|d| d.pointer("/choices/0/message/content").and_then(|v| v.as_str()).map(String::from))
+                    .unwrap_or_else(|| format!("Summary of {} interactions", count))
+            }
+            _ => format!("Summary of {} interactions (LLM timeout)", count),
+        }
+    } else {
+        format!("Summary of {} interactions", count)
+    };
+
+    let compression = count as f64 / 1.0; // original count compressed to 1 summary
+    insert_summary(clt, session_id, &summary_text, covered_ids, compression);
+    tracing::info!(summarized = count, "CLT compaction: {} nodes summarized", count);
+    count
+}

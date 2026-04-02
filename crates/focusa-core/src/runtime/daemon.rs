@@ -676,6 +676,12 @@ Return ONLY valid JSON:
 
                     // CLT: track interaction nodes for each event.
                     self.track_clt_event(&event);
+                    
+                    // CLT compaction: when >1000 interaction nodes, summarize oldest batch (§17).
+                    if self.state.clt.nodes.len() > 1000 && self.state.clt.nodes.len() % 100 == 1 {
+                        let session_id = self.state.session.as_ref().map(|s| s.session_id);
+                        crate::clt::compact_if_needed(&mut self.state.clt, session_id, 1000, 50).await;
+                    }
 
                     // Session-start seeding: Mem0 → Focusa semantic memory (§9.3, §14 Phase 2.1)
                     if let FocusaEvent::SessionStarted { .. } = &event {
