@@ -657,6 +657,8 @@ The operator writes random notes, ideas, fragments, thoughts. These have value e
 
 **The system's job is to CONNECT pages, not judge them.**
 
+**Core axiom: If the operator recorded it, it has meaning.** The act of writing something down — even a single phrase — means it was important enough to capture. The system must assume every fragment has meaning until the operator explicitly says otherwise. No agent may classify any operator-created content as meaningless, low-value, or candidates for removal. The only entity that can declare something meaningless is the operator, in their own words, in the current session.
+
 #### Fragment Reasoning — Puzzle Assembly
 
 The operator thinks in fragments. A short note, a phrase, a half-formed idea, a quote with no context, a name with no explanation. These are **pieces of a larger picture that the operator sees but hasn't fully articulated.**
