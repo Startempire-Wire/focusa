@@ -631,3 +631,180 @@ Exit gate before extension GA:
 - Controlled Pi run demonstrates deterministic context governance end-to-end.
 
 
+
+---
+
+## 28) Session Scoping Rule (AUTHORITATIVE)
+
+**All Focusa API calls from the Pi extension are scoped to the current Pi session.**
+
+The extension does not access, display, or act on:
+- Wirebot's operator model (Pairing Engine drift, RABIT, DISC, emotional features)
+- Wirebot's scoreboard (ships, season, lanes, score)
+- Wirebot's trust metrics (fabrication count, corrections, compliance)
+- Wirebot's Context Core state (interruptibility, circadian, RescueTime)
+- Wirebot's Mem0 memories (operator facts, preferences, cross-session recall)
+- Wirebot's Kaizen reflections
+- Wirebot's SOUL.md or behavioral doctrine
+
+Focusa serves multiple agents. Each gets its own session boundary. Pi sees only Pi's cognition:
+- Pi's Focus State (intent, decisions, constraints, failures for this session)
+- Pi's Focus Stack (frames pushed during this session)
+- Pi's ARI score (autonomy earned by this session's turn quality)
+- Pi's Thread Thesis (what this Pi session is about)
+- Pi's procedural rules (scoped to active frame)
+- Pi's semantic memory (project-scoped facts)
+- Pi's ECS handles (artifacts created or referenced in this session)
+- Pi's gate candidates (surfaced during this session)
+- Pi's events (emitted during this session)
+
+**Exception: `/wbm` (Wirebot Mode)**
+
+When the operator explicitly activates `/wbm on`, the extension bridges Wirebot context INTO the Pi session and catalogues Pi's work meta BACK to Wirebot's systems. See §29.
+
+Without `/wbm`, Pi and Wirebot are completely isolated sessions on the same Focusa daemon.
+
+---
+
+## 29) Wirebot Mode (`/wbm`) — Cross-Surface Identity Bridge
+
+**Wirebot is one person across all surfaces.** Pi sessions are Wirebot working with different hands. The work must come home.
+
+`/wbm` is a Pi slash command that optionally attaches Wirebot's context and catalogues work back.
+
+### Activation
+
+```
+/wbm on          → Inject Wirebot context + start cataloguing
+/wbm off         → Return to pure Pi mode
+/wbm status      → Show injection state + catalogued items count
+/wbm deep        → Also fetch Mem0 memories + wiki decisions (~1500 tok)
+/wbm flush       → Force-catalogue accumulated work meta now
+/wbm decisions   → Show decisions catalogued this session
+/wbm ships       → Show git ships auto-detected by scoreboard during this session
+```
+
+### Inbound Context (read-only, ~500 tokens)
+
+Injected into Pi's system prompt via `before_agent_start` hook:
+
+| Source | API | Timeout | Fallback |
+|---|---|---|---|
+| Operator state | `GET :7400/me` | 2s | "Context Core: unavailable" |
+| Objectives | Read `objectives.yaml` | 1s | Skip |
+| Drift + season | `GET :8100/v1/score` (auth'd) | 2s | Skip |
+| Active Focusa frame | `GET :8787/v1/focus/stack` | 2s | Skip |
+| SOUL.md pillars | Read file (first ~500 chars) | 1s | Static fallback |
+| Recent wiki decisions | `wb wiki search "tag:decision" --limit 3` | 3s | Skip |
+
+Injected format:
+```
+[WIREBOT MODE ACTIVE]
+Operator: Verious (Pacific), mode=agent_coding, interruptibility=very_low
+Time: 03:22 Thursday, phase=sleeping, quiet hours
+Drift: 14 (disconnected)
+Season: S1 0W-21L, streak 21d
+P1: TEP Book — "Publishable 12-chapter manuscript"
+Active Frame: [from Focusa if present]
+Pillars: Human first > Calm > Rigor > Radical Truth > Deep Clarity
+Banned: No helplessness, no fabrication, no ask-back when context exists
+```
+
+### Outbound Cataloguing (work meta → Wirebot systems)
+
+On `agent_end` hook, LLM extraction (MiniMax M2.7, ≤500 tok, 2s timeout) parses the turn for work meta:
+
+| Work Meta | Destination | Method |
+|---|---|---|
+| Decision | Mem0 | `wb memory inject "$DECISION"` with `source:pi, surface:pi` |
+| Decision | Wiki | `wb wiki create --path ops/decisions/$DATE --tags decision,pi` |
+| Fact | Mem0 | `wb memory inject "$FACT"` with `source:pi, category:technical` |
+| Failure | Mem0 + Focusa | `wb memory inject "FAILURE: $DETAIL"` + focus state update |
+| Learning | Mem0 | `wb memory inject "LEARNED: $INSIGHT"` with `source:pi, category:learning` |
+
+**Ships are NOT manually catalogued.** The scoreboard already auto-detects ships from git (GitHub webhooks + git discovery scanning `/root`, `/home`, `/data`). Pi commits code → scoreboard detects WHAT shipped → `/wbm` catalogues WHY.
+
+### Write Safety
+
+- All writes go through `wb` CLI (auditable, rate-limited)
+- Mem0 writes use promotion pipeline — not raw injection
+- Wiki writes are schema-validated
+- All items tagged `source:pi` + `surface:pi` for provenance
+- LLM extraction failure → skip cataloguing for this turn (no partial writes)
+- Operator can disable cataloguing: `/wbm on --no-catalogue`
+
+### What This Enables
+
+Without `/wbm`: Pi does 8 hours of coding. Wirebot knows nothing. Decisions vanish.
+With `/wbm`: Wirebot recalls "yesterday in a Pi session we decided X" — even though Wirebot wasn't coding.
+
+---
+
+## 30) Metacognitive Awareness (Organism Spec Alignment)
+
+Per `UNIFIED_ORGANISM_SPEC.md §11`, Focusa performs background LLM-backed metacognitive work after each turn:
+- LLM extraction (replacing regex workers)
+- Post-turn evaluation (quality + consistency check)
+- Thread Thesis refinement (every Nth turn)
+- Anticipatory queries (pre-fetch for next turn)
+
+The Pi extension should be **aware** of this background work:
+
+### UX Indicators
+
+| Indicator | When | Display |
+|---|---|---|
+| "🧠 thinking..." | Background workers running after response sent | Subtle footer status |
+| "📝 extracted N decisions" | Extraction worker completed | Brief notification |
+| "🎯 thesis updated" | Thread Thesis refined | Footer status update |
+| "⚠️ quality flag" | Post-turn evaluation found issues | Visible warning |
+
+### Rules
+
+- These indicators are **informational only** — the extension does not control metacognitive work
+- Background work runs on Focusa daemon, not in the extension
+- Extension polls `GET /v1/events/stream` (SSE) for real-time awareness
+- If background work fails, the extension shows nothing (fail silent)
+
+---
+
+## 31) Port Correction
+
+All references to `:4777` in this spec should read `:8787`.
+
+Focusa daemon canonical bind: `127.0.0.1:8787`
+
+Update in §18 config schema:
+```json
+"focusaApiBaseUrl": "http://127.0.0.1:8787/v1"
+```
+
+Update in §19 env vars:
+```
+FOCUSA_PI_API_BASE_URL=http://127.0.0.1:8787/v1
+```
+
+---
+
+## 32) Pi Harness Type
+
+The Focusa adapter (`crates/focusa-core/src/adapters/letta.rs`) should add an explicit `Pi` variant to `HarnessType`:
+
+```rust
+pub enum HarnessType {
+    Letta,
+    ClaudeCode,
+    CodexCli,
+    GeminiCli,
+    Pi,              // ← NEW
+    Generic(String),
+}
+```
+
+Pi-specific capabilities to declare:
+- `session_management: true` (Pi has `/compact`, `/fork`, session persistence)
+- `tool_output_structured: true` (Pi captures tool results with structured metadata)
+- `slash_commands: true` (Pi supports `/command` registration)
+- `extension_api: true` (Pi has full extension lifecycle hooks)
+
+This enables Focusa to tailor behavior for Pi sessions (e.g., different compaction strategies, awareness of Pi session management).
