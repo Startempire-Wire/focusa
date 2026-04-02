@@ -1380,3 +1380,286 @@ After two full passes, the recommended integration architecture is:
 ```
 
 This is the definitive 6-layer architecture. Previous versions had 3 layers — this is more complete.
+
+---
+
+## 35) Third-Pass Audit — OBVIOUS Gaps
+
+Audited 2026-04-02: Re-read all Pi docs + Focusa docs looking specifically for obvious missing pieces that would prevent the extension from actually working.
+
+### 35.1 WHO PUSHES THE INITIAL FOCUS FRAME? (CRITICAL)
+
+The entire Focusa cognitive layer requires an active Focus Frame. Without one:
+- Focus State is empty
+- ASCC has nothing to checkpoint
+- Expression Engine has nothing to inject
+- Decisions have nowhere to be recorded
+- Constraints don't exist
+
+**Doc 44 §26 already flagged this:** "Stack discipline not consistently automatic (active frame may be missing until manually pushed)."
+
+**But no spec section solves it.**
+
+**Required: Auto-frame on session start.**
+
+```typescript
+pi.on("session_start", async (_event, ctx) => {
+  // Check if Focusa has an active frame
+  const stack = await fetch(":8787/v1/focus/stack").then(r => r.json()).catch(() => null);
+  
+  if (!stack?.active_frame_id) {
+    // Derive frame from project context
+    const cwd = ctx.cwd;
+    const projectName = cwd.split("/").pop() || "unknown";
+    
+    // Check for beads in project
+    let beadsId = "pi-session";
+    try {
+      const result = await pi.exec("bd", ["ready"], { timeout: 3000 });
+      if (result.stdout.trim()) beadsId = result.stdout.trim().split(/\s/)[0];
+    } catch {}
+    
+    // Push frame
+    await fetch(":8787/v1/focus/push", {
+      method: "POST",
+      body: JSON.stringify({
+        title: `Pi: ${projectName}`,
+        goal: `Work on ${projectName}`,
+        beads_issue_id: beadsId,
+        constraints: [],
+        tags: ["pi", projectName]
+      })
+    }).catch(() => {});
+  }
+});
+```
+
+**Or:** Prompt the user on first turn:
+```typescript
+pi.on("before_agent_start", async (event, ctx) => {
+  if (!hasActiveFrame && !promptedForFrame) {
+    promptedForFrame = true;
+    return {
+      message: {
+        customType: "focusa-pi-bridge",
+        content: "No active focus frame. What are you working on? (I'll create a Focusa frame for tracking)",
+        display: true,
+      }
+    };
+  }
+});
+```
+
+### 35.2 THE LLM DOESN'T KNOW TO USE FOCUSA (CRITICAL)
+
+Injecting Focus State data (`[FOCUSA LIVE STATE]`) is necessary but not sufficient. The LLM also needs **behavioral instructions** telling it what to DO with that data.
+
+**Required: System prompt augmentation.**
+
+```typescript
+pi.on("before_agent_start", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  const focusaInstructions = `
+## Focusa Cognitive Governance (Active)
+You are operating within Focusa, a cognitive runtime that preserves focus and decisions.
+
+RULES:
+- When you make a significant decision, state it clearly as "DECISION: ..."
+- Check the CONSTRAINTS section below before acting — do not violate them
+- When something fails, note it as "FAILURE: ..."  
+- When you discover a new constraint, note it as "CONSTRAINT: ..."
+- The DECISIONS listed below were made in this session — do not contradict them without explanation
+- If context was compacted, the Focus State below is your source of truth for what was decided
+`;
+
+  return {
+    systemPrompt: event.systemPrompt + "\n" + focusaInstructions,
+  };
+});
+```
+
+Without this, the LLM sees Focus State data but has no instruction to respect constraints, record decisions, or avoid contradicting prior work.
+
+### 35.3 USER WORKFLOW IS UNDEFINED (HIGH)
+
+The spec defines what the extension CAN do but never describes the user's actual experience:
+
+**Recommended default workflow:**
+
+```
+1. User runs: pi
+2. Extension loads, checks Focusa health
+3. If no active frame:
+   a. Check project beads (bd ready) for current task
+   b. If task found → auto-push frame with task title/goal
+   c. If no task → show status bar "No focus frame — use /focusa-push to set one"
+4. If /wbm previously active (from appendEntry state) → auto-restore
+5. Show status bar: "🧠 Focusa" or "🧠 WBM" or "⚪ Focusa (no frame)"
+6. User works normally — extension handles everything in background
+7. On compaction → Focusa ASCC preserves decisions
+8. On session end → work extracted and catalogued
+```
+
+**No manual steps required except:**
+- `/wbm on` if user wants Wirebot context (opt-in)
+- `/focusa-push "title"` if auto-frame detection fails
+
+### 35.4 LOCAL DECISION SHADOW FOR OFFLINE COMPACTION (HIGH)
+
+When Focusa is down, compaction loses decisions. The extension should maintain a local shadow:
+
+```typescript
+let localDecisions: string[] = [];
+let localConstraints: string[] = [];
+let localFailures: string[] = [];
+
+// Collect from assistant messages (simple heuristic)
+pi.on("agent_end", async (event, ctx) => {
+  for (const msg of event.messages || []) {
+    if (msg.role === "assistant") {
+      const text = msg.content?.filter(c => c.type === "text").map(c => c.text).join("") || "";
+      // Extract DECISION: lines
+      for (const line of text.split("\n")) {
+        if (line.match(/^DECISION:|^Decided:|decided to|chose to|going with/i)) {
+          localDecisions.push(line.trim());
+        }
+        if (line.match(/^CONSTRAINT:|^FAILURE:|failed|error:/i)) {
+          localFailures.push(line.trim());
+        }
+      }
+    }
+  }
+});
+
+// Use local shadow when Focusa is down during compaction
+pi.on("session_before_compact", async (event, ctx) => {
+  // Try Focusa ASCC first
+  const ascc = await fetchFocusaASCC();
+  if (ascc) return { compaction: buildFocusaSummary(ascc) };
+  
+  // Fallback: use local shadow
+  if (localDecisions.length > 0 || localFailures.length > 0) {
+    return {
+      customInstructions: `PRESERVE these in the summary:\nDECISIONS: ${localDecisions.join("; ")}\nFAILURES: ${localFailures.join("; ")}`
+    };
+  }
+});
+```
+
+### 35.5 TOKEN COUNTS MISSING FROM TURN TRACKING (MEDIUM)
+
+Pi's `AssistantMessage.usage` has exact token counts. The turn/complete call should include them:
+
+```typescript
+pi.on("turn_end", async (event, ctx) => {
+  if (event.message?.role === "assistant" && event.message.usage) {
+    await fetch(":8787/v1/turn/complete", {
+      method: "POST",
+      body: JSON.stringify({
+        turn_id: currentTurnId,
+        assistant_output: extractText(event.message),
+        prompt_tokens: event.message.usage.input,
+        completion_tokens: event.message.usage.output,
+        artifacts: [],
+        errors: []
+      })
+    }).catch(() => {});
+  }
+});
+```
+
+Without this, Focusa telemetry shows `prompt_tokens: null` for all Pi turns.
+
+### 35.6 FILE TRACKING FROM COMPACTION (MEDIUM)
+
+Pi tracks `readFiles[]` and `modifiedFiles[]` during compaction. Feed to Focusa:
+
+```typescript
+pi.on("session_compact", async (event, ctx) => {
+  if (event.compactionEntry?.details) {
+    const { readFiles, modifiedFiles } = event.compactionEntry.details;
+    if (modifiedFiles?.length > 0) {
+      await fetch(":8787/v1/focus/update", {
+        method: "POST",
+        body: JSON.stringify({
+          artifacts: modifiedFiles.map(f => `file:${f}`),
+          notes: [`Session compacted. Modified: ${modifiedFiles.join(", ")}`]
+        })
+      }).catch(() => {});
+    }
+  }
+});
+```
+
+### 35.7 OPERATOR CORRECTION DETECTION (MEDIUM)
+
+```typescript
+pi.on("input", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  const text = typeof event.text === "string" ? event.text : "";
+  const lower = text.toLowerCase();
+  
+  // Detect corrections
+  const isCorrection = lower.match(/^no[,.]?\s|that'?s wrong|i already|not what i|you misunderstood|wrong approach|undo|revert/);
+  
+  if (isCorrection) {
+    // Record as Focus State failure
+    fetch(":8787/v1/focus/update", {
+      method: "POST",
+      body: JSON.stringify({ failures: [`Operator correction: ${text.slice(0, 200)}`] })
+    }).catch(() => {});
+    
+    // If /wbm on, also feed trust metrics
+    if (wbmEnabled) {
+      pi.exec("wb", ["trust", "set", "--corrections", "+1"]).catch(() => {});
+    }
+  }
+  
+  return { action: "continue" };
+});
+```
+
+### 35.8 SESSION NAME FROM FOCUS FRAME (LOW)
+
+```typescript
+// When Focusa frame is active, set Pi session name to match
+async function syncSessionName() {
+  const stack = await fetchFocusaStack();
+  if (stack?.active_frame_id) {
+    const frame = stack.stack?.frames?.find(f => f.id === stack.active_frame_id);
+    if (frame?.title) {
+      pi.setSessionName(`🧠 ${frame.title}`);
+    }
+  }
+}
+```
+
+Users see meaningful names in `/resume` instead of first-message snippets.
+
+### 35.9 /WBM CONFIG — SCOREBOARD TOKEN (LOW)
+
+The `/wbm` feature needs the scoreboard token. Where does it come from?
+
+**Options (in order of preference):**
+1. `process.env.SCOREBOARD_TOKEN` — already set in many service envs
+2. Read from `/run/wirebot/scoreboard.env` — runtime secret file
+3. Config in `.pi/settings.json` under `extensions.focusaPiBridge.scoreboardToken`
+4. Prompt user on first `/wbm on` if not found
+
+The extension should try options 1-2 automatically. Never hardcode tokens.
+
+### 35.10 Summary: What Was Obvious But Missing
+
+| # | Gap | Severity | Why It's Obvious |
+|---|---|---|---|
+| 1 | No auto-frame on session start | **CRITICAL** | Without a frame, Focusa has no Focus State. Everything is inert. |
+| 2 | LLM has no Focusa behavioral instructions | **CRITICAL** | Data without instructions is noise. LLM must know to record decisions. |
+| 3 | User workflow never described | **HIGH** | Spec says what extension CAN do, not what happens when user starts Pi. |
+| 4 | No local decision shadow for offline compaction | **HIGH** | Focusa down = decisions lost on compact. Trivial local fix. |
+| 5 | Token counts not passed to Focusa | **MEDIUM** | Pi has exact tokens. Focusa telemetry shows null. Easy bridge. |
+| 6 | File tracking not fed to Focusa | **MEDIUM** | Pi tracks modified files. Focusa artifacts[] stays empty. |
+| 7 | Operator corrections not detected | **MEDIUM** | "No that's wrong" should become a failure + trust metric. |
+| 8 | Session name not synced | **LOW** | /resume shows message snippets, not frame titles. |
+| 9 | /wbm token sourcing undefined | **LOW** | Extension needs scoreboard token but spec doesn't say where. |
