@@ -644,21 +644,39 @@ This means the organism's active cognition gets sharper over time as irrelevant 
 
 #### Orphan Policy
 
-Orphan pages (no inbound links) are **candidates for deletion but NEVER deleted without explicit operator authorization in the same session.**
+**"Orphan" means no inbound links — but that does NOT mean the page is worthless.** A page may have no inbound links simply because wiki-agent or the enrichment pipeline hasn't gotten to it yet. Most of the 952 current "orphans" are unprocessed imports that haven't been linked, not junk.
 
-Orphan handling rules:
-1. wiki-agent flags orphans and adds `orphan` tag
-2. Orphans are surfaced in `wb wiki stats` and Agent Audit UI
-3. Nightly: generate orphan review queue (sorted by age, namespace, tier)
-4. **No agent may delete an orphan page autonomously** — ever
-5. Operator reviews orphan queue and gives explicit authorization:
-   - "delete these" → agent deletes in same session
+**True orphan vs unlinked page:**
+
+| Condition | Classification | Action |
+|---|---|---|
+| No inbound links + in `/joplin-import/` or `/ai-chats/` | **Unprocessed** (not orphan) | T4 raw → candidate for reduction pipeline |
+| No inbound links + in `/notes/` + created by agent | **Unlinkable candidate** | wiki-agent should attempt to find links before flagging |
+| No inbound links + in `/notes/` + has content + has tags | **Under-connected** | wiki-agent should create MOC links |
+| No inbound links + in `/notes/` + empty or stub | **True orphan candidate** | Surface for operator review |
+| No inbound links + in `/ops/` | **Normal** | Operational pages don't need inbound links |
+| No inbound links + in `/wirebot/` | **Normal** | Agent workspace pages are self-contained |
+
+**Before flagging anything as orphan, wiki-agent MUST:**
+1. Check namespace — `/ops/`, `/wirebot/`, `/tep/` pages are NOT orphans just because they lack inbound links
+2. Check if page has outbound links — a page that links OUT but isn't linked TO is under-connected, not orphaned
+3. Check if page has meaningful content (>100 chars) — stub pages are candidates, content pages are not
+4. Check if page has tags — tagged pages are discoverable even without links
+5. Attempt to find a relevant MOC or project page to link from — link it first, ask questions later
+
+**Only after all 5 checks fail** is a page a true orphan candidate.
+
+**Orphan candidate handling:**
+1. True orphan candidates are surfaced in `wb wiki stats` and Agent Audit UI
+2. **No agent may delete an orphan page autonomously** — ever
+3. Operator reviews candidates and gives explicit authorization in the same session:
+   - "delete these" → agent deletes in same session only
    - "keep" → agent links into graph or assigns tier
    - "demote" → agent assigns T3/T4/T5
-6. Authorization does not carry across sessions — a blanket "delete all orphans" from a past session does not apply to new orphans
-7. If in doubt, demote to T4 (raw) — never delete
+4. Authorization does not carry across sessions — a blanket "delete all orphans" from a past session does not apply to new orphans
+5. If in doubt, demote to T4 (raw) or attempt to link — never delete
 
-**Why same-session only:** Prevents stale authorization from destroying pages the operator hasn't reviewed. The operator must see the specific orphan list and approve in the moment.
+**Why same-session only:** Prevents stale authorization from destroying pages the operator hasn't reviewed. The operator must see the specific list and approve in the moment.
 
 **Link rot detection:**
 - Weekly: scan for broken wiki links in T1+T2 pages → wiki-agent candidates
