@@ -780,6 +780,109 @@ Track weekly:
 
 ---
 
+## 10A. Intelligence Gaps — Verified Against Scoreboard + Go API
+
+Audited 2026-04-02 against live scoreboard API (`:8100`), Context Core (`:7400`), Focusa (`:8787`), pairing engine source, NLP extractor, trust metrics, kaizen tables, and memory extraction pipeline.
+
+### 10A.1 Disconnected Intelligence (Systems Exist But Don't Talk)
+
+The scoreboard's Pairing Engine is the most sophisticated operator-modeling system in the stack. It has:
+- **Drift scoring** — 5-component operator-agent alignment (intent, response flow, action latency, override rate, stall gap)
+- **R.A.B.I.T. detection** — distraction pattern recognition (tool hopping, social media, perfectionism, avoidance, emotional spiral)
+- **Ghost Drift** — behavioral persistence tracking on silent days
+- **DISC personality profiling** — NLP-derived communication style model
+- **Emotional feature extraction** — frustration, urgency, vulnerability, enthusiasm detection
+- **Modesty Reflex** — how guarded the operator is being (caps drift ceiling)
+- **Neural Handshake** — daily sync ritual with streak tracking
+
+**None of this feeds into Focusa.** The two most intelligent systems don't talk to each other.
+
+**Required integration:**
+
+| Scoreboard Signal | Focusa Integration Point | Effect |
+|---|---|---|
+| Drift score + signal | Focus State constraints | Low drift → "Re-establish alignment before deep work" |
+| R.A.B.I.T. active | Intuition Engine signal | Surface via Focus Gate: "Operator may be spiraling" |
+| Ghost Drift (silent days) | Reflection loop input | "Operator disengaged for N days — what needs attention?" |
+| DISC profile | Expression Engine modulation | Match communication style to operator preference |
+| Emotion features | Context Core → Focusa | Frustration detected → adjust tone, reduce ask-back |
+| Modesty Reflex | Autonomy calibration | High guard → more transparency, lower autonomy ceiling |
+| Override rate | Procedural rule generation | Repeated overrides → "stop doing X" rule |
+| Neural Handshake streak | Session start context | Streak broken → "Check in with operator" |
+
+### 10A.2 Idle Learning Machinery
+
+These systems are **built and running but producing zero output:**
+
+| System | Status | Evidence | Root Cause |
+|---|---|---|---|
+| Kaizen reflections | 0 reflections | `wb kaizen list` → empty | Wirebot not writing kaizen blocks, or plugin not extracting |
+| Trust metrics | 0 corrections, 0 fabrications, 0 self-assessments | `wb trust status` → all zeros | Nothing writes to trust_metrics table |
+| Memory extraction | Pipeline exists (`ExtractMemoriesFromConversation`) | `wb memory list` → 0 memories | Extraction not triggered or approval queue blocked |
+| Season scoring | 0W-21L, 0 ships in 21 days | `wb score` → score 0 | Ships not being logged via `wb ship` |
+| Drift scoring | Score 14, "disconnected" | Last handshake: Feb 13 (49 days ago) | No daily handshake happening |
+
+**These are not code gaps. They are activation gaps.** The machinery exists. It needs to be turned on and fed data.
+
+**Required activation:**
+1. **Kaizen:** Ensure Wirebot's heartbeat plugin extracts kaizen blocks from every session and writes to kaizen table
+2. **Trust:** Wire operator corrections ("no", "that's wrong", rephrasing) into trust_metrics via memory bridge plugin
+3. **Memory:** Trigger `ExtractMemoriesFromConversation` after session end, route to Mem0 via approval queue
+4. **Ships:** Auto-detect shippable events (git tags, deployments, wiki pages created, tasks completed) and log via scoreboard
+5. **Handshake:** Integrate morning handshake into Wirebot's proactive check-in flow
+
+### 10A.3 True Gaps (No System Addresses These)
+
+#### Gap 1: No Self-Initiated Questions
+No system asks itself:
+- "What don't I know about the operator that I should?"
+- "What assumptions am I making that I haven't verified?"
+- "What has the operator stopped talking about?" (avoidance or resolution?)
+- "What would I do differently if I knew X?"
+
+**Required:** Nightly reflection loop (§11) should include a self-questioning pass. LLM generates 3 questions the system can't currently answer. These become wiki research candidates or operator conversation prompts.
+
+#### Gap 2: No Multi-Agent Learning
+Engineering agents (Claude Code, Pi, OpenCode) work on the same infrastructure but:
+- If Claude discovers a server pattern, Pi doesn't know
+- Engineering learnings don't feed into Wirebot's knowledge
+- No cross-agent skill transfer
+
+**Required:** Engineering agent session summaries should flow through the promotion pipeline (§6) into wiki knowledge pages. `wb wiki create` from agent session captures. Focusa Focus State decisions from engineering sessions should promote to shared Mem0.
+
+#### Gap 3: No "Why" Tracking
+The system tracks WHAT happened (events) and WHEN (timestamps) but not WHY the operator made a decision. The reasoning behind choices is lost.
+
+**Required:** Decision pages in wiki must include rationale, not just the decision. The `wiki_decide` tool (§14.3) already has a `rationale` field — enforce its use. Memory extraction should specifically look for "because" / "the reason" / "I chose X over Y" patterns.
+
+#### Gap 4: No Operator Preference Evolution Tracking
+The operator's preferences change over time. The system doesn't detect "you used to prefer X but now you prefer Y" — it just overwrites.
+
+**Required:** When a Mem0 memory is updated, preserve the old value with timestamp. Track preference drift over time. Surface to operator: "You shifted from X to Y over the last month — is that intentional?"
+
+#### Gap 5: No Stall Detection on Objectives
+`objectives.yaml` has 3 assets with milestones. No system checks:
+- "TEP book hasn't advanced in 2 weeks"
+- "SEW network is blocked by TEP but TEP isn't moving"
+- "Wirebot is P3 but getting all the engineering attention"
+
+**Required:** Weekly objective review in reflection loop. Compare git activity, wiki changes, Flow Mesh task completions, and scoreboard ships against stated priorities. Surface misalignment: "P1 asset stalled while P3 asset consumed 80% of effort."
+
+#### Gap 6: No Confidence Calibration
+When the system says "confidence: 0.85" — is it actually right 85% of the time? No calibration exists.
+
+**Required:** Track predictions vs outcomes. When the system predicts something (thesis confidence, deliberation confidence, evaluation quality score) — compare against what actually happened. Over time, calibrate: "When I say 0.85, I'm actually right 72% of the time → adjust."
+
+#### Gap 7: No Cross-Domain Synthesis
+Context Core has RescueTime (6.5h social media), calendar (meeting at 9am), objectives (TEP book P1), scoreboard (0W-21L). No system connects:
+- "6.5h social media + 0 ships + TEP stalled = pattern"
+- "Productivity peaks at 9am but calendar blocks it with meetings"
+- "3 invoices overdue while building features nobody pays for"
+
+**Required:** Weekly cross-domain synthesis in reflection loop. Pull from: Context Core (productivity, calendar, circadian), scoreboard (ships, drift, season), objectives.yaml (priorities, milestones), wiki (decisions, project pages), Flow Mesh (task completion rate). Generate insight report. Surface the 3 most important cross-domain observations.
+
+---
+
 ## 11. Metacognitive Reasoning Layer
 
 The organism's intelligence comes from **thinking about thinking** — not just responding to operator input. Focusa exists so that every turn benefits from structured reasoning before, during, and after the model call. Not every LLM call is a direct response to the operator. Internal reasoning calls are how the system produces richer, more grounded answers.
@@ -1480,8 +1583,17 @@ Query Mem0 graph for relational context:
 | **P2** | Mem0 deduplication + staleness tracking | Mem0 + wb memory | 3 hours |
 | **P1** | Verify OpenClaw fallback when Focusa proxy down | OpenClaw, Focusa | 1 hour |
 | **P1** | Guardian alerts → Focusa Intuition Engine | Guardian, Focusa | 2 hours |
+| **P0** | Activate idle kaizen/trust/memory/ships pipelines | Scoreboard, OpenClaw plugins | 4 hours |
+| **P1** | Wire Pairing Engine drift/RABIT/DISC into Focusa | Scoreboard → Focusa | 4 hours |
+| **P1** | Objective stall detection (weekly) | Reflection loop, objectives.yaml | 2 hours |
+| **P2** | Self-initiated questions (nightly reflection) | Focusa reflection loop | 2 hours |
+| **P2** | Cross-domain synthesis (weekly) | Context Core + Scoreboard + Wiki | 4 hours |
+| **P2** | Multi-agent learning pipeline | Session captures → wiki + Mem0 | 3 hours |
+| **P2** | "Why" tracking in decisions | wiki_decide tool, memory extraction | 2 hours |
+| **P3** | Preference evolution tracking | Mem0 versioning | 3 hours |
+| **P3** | Confidence calibration | Focusa telemetry | 4 hours |
 
-**Total estimated effort:** ~93 hours across 6 phases
+**Total estimated effort:** ~121 hours across 6 phases
 
 ---
 
@@ -1518,3 +1630,11 @@ The organism is working when:
 27. **Wiki T1+T2 link density increases weekly** — active knowledge graph gets denser
 29. **Wiki importance tiers assigned to all pages** — no untiered pages in active namespaces
 28. **No data store grows without a retention policy** — every table has hot/warm/cold/delete tiers
+29. **Pairing Engine drift/RABIT/emotion feeds into Focusa** — operator model shapes cognition
+30. **Kaizen reflections are non-zero** — learning machinery produces actual output
+31. **Trust metrics record corrections** — operator corrections become procedural rules
+32. **Mem0 memories accumulate from sessions** — extraction pipeline is live
+33. **Season score reflects reality** — ships auto-detected and logged
+34. **System asks itself questions it can't answer** — self-initiated inquiry drives knowledge growth
+35. **Cross-domain synthesis runs weekly** — RescueTime + calendar + objectives + ships connected
+36. **Objective stalls are detected and surfaced** — P1 stall while P3 gets attention = alert
