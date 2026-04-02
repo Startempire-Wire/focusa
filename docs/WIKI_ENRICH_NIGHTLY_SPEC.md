@@ -101,7 +101,37 @@ append_to_jsonl('/data/wirebot/state/intelligence-metrics.jsonl', metrics)
 
 ---
 
-## 4. Acceptance Criteria
+## 4. Auth & Token Sourcing
+
+Scoreboard token (same pattern used in existing script line ~8-11):
+```bash
+SCOREBOARD_TOKEN="${SCOREBOARD_TOKEN:-}"
+if [[ -z "$SCOREBOARD_TOKEN" && -f "/etc/systemd/system/wirebot-scoreboard.service" ]]; then
+  SCOREBOARD_TOKEN="$(grep -E '^Environment=SCOREBOARD_TOKEN=' /etc/systemd/system/wirebot-scoreboard.service | head -1 | cut -d= -f3-)"
+fi
+```
+
+Wiki token: `cat /data/wirebot/secrets/wiki-api-token`
+
+## 5. Cross-References
+
+- UNIFIED_ORGANISM_SPEC.md §10.8 (nightly hygiene loop)
+- UNIFIED_ORGANISM_SPEC.md §10A (historical inference pipeline)
+- MEMORY_EXTRACTION_PIPELINE_SPEC.md (extraction endpoint details)
+- WIKI_AGENT_SPEC.md (wiki-agent computes graph metrics that enrichment snapshots)
+
+## 6. Scripts Referenced (must exist before enrichment calls them)
+
+| Script | Created By Bead | Purpose |
+|---|---|---|
+| `/data/wirebot/bin/focusa-nightly-hygiene.sh` | focusa-m0a | 9-step hygiene |
+| `/data/wirebot/bin/openclaw-session-extract.sh` | focusa-do5 | Historical session extraction |
+| `/data/wirebot/bin/pi-session-extract.sh` | focusa-d8i | Historical Pi extraction |
+| `/data/wirebot/bin/backfill-facts-to-mem0.sh` | EXISTS | Fact YAML backfill |
+
+---
+
+## 7. Acceptance Criteria
 
 1. Diary extraction goes through LLM, not raw text push
 2. Diary memories land in WINS queue as pending, not auto-approved

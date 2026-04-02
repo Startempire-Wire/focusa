@@ -304,13 +304,60 @@ LLM_MAX_TOKENS = 500
 
 ---
 
-## 9. Dependencies
+## 9. Actual API Details
+
+### Wiki.js GraphQL (tag mutation)
+```graphql
+# Update page tags
+mutation ($c: String!, $t: String!, $p: String!, $tags: [String]!) {
+  pages { update(id: PAGE_ID, content: $c, description: "",
+    editor: "markdown", locale: "en", isPrivate: false, isPublished: true,
+    path: $p, tags: $tags, title: $t) {
+    responseResult { succeeded message }
+  }
+}
+```
+Endpoint: `http://127.0.0.1:7325/graphql`
+Auth: `Authorization: Bearer $(cat /data/wirebot/secrets/wiki-api-token)`
+
+### Mem0 Search (for fragment reasoning context)
+```
+POST http://127.0.0.1:8200/v1/search
+Body: {"query": "fragment text", "limit": 5, "namespace": "wirebot_verious"}
+Returns: [{"memory": "...", "score": 0.85, "id": "..."}]
+```
+
+### LLM Call (MiniMax M2.7 via OpenClaw gateway)
+```
+POST http://127.0.0.1:18789/v1/chat/completions
+Headers: Authorization: Bearer $GATEWAY_TOKEN
+Body: {"model": "minimax/MiniMax-M2.7", "messages": [...], "max_tokens": 500}
+GATEWAY_TOKEN: 88f4cdab-357a-464f-b68d-ebec3ddd2531
+```
+
+### Scoreboard Memory Queue (for fragment insights)
+```
+POST http://127.0.0.1:8100/v1/memory/queue
+Headers: Authorization: Bearer $SCOREBOARD_TOKEN
+SCOREBOARD_TOKEN: from /data/wirebot/scoreboard/scoreboard.env (GATEWAY_TOKEN line)
+```
+
+### Cross-References
+- UNIFIED_ORGANISM_SPEC.md §10.5 (importance tiers, fragment reasoning, axioms)
+- UNIFIED_ORGANISM_SPEC.md §10A (historical inference pipeline)
+- MEMORY_EXTRACTION_PIPELINE_SPEC.md (memory queue integration)
+- WIKI_ENRICH_NIGHTLY_SPEC.md (nightly enrichment calls wiki-agent metrics)
+
+---
+
+## 10. Dependencies
 
 - Wiki.js running (:7325) with GraphQL API
 - Wiki API token at `/data/wirebot/secrets/wiki-api-token`
-- MiniMax M2.7 accessible via OpenClaw gateway (:18789) or direct API
+- MiniMax M2.7 accessible via OpenClaw gateway (:18789)
+- Gateway token: `88f4cdab-357a-464f-b68d-ebec3ddd2531`
 - Mem0 running (:8200) for fragment reasoning context
-- Scoreboard running (:8100) for memory queue (fragment insights → QueueMemoryForApproval)
+- Scoreboard running (:8100) for memory queue
 
 ---
 

@@ -71,7 +71,30 @@ focusaData := fetchFocusaPanels()  // HTTP calls with 2s timeout each
 
 ---
 
-## 6. Acceptance Criteria
+## 6. Auth for Scoreboard Endpoints
+
+Memory queue endpoint requires auth:
+```go
+token := os.Getenv("SCOREBOARD_TOKEN")
+if token == "" {
+    // Read from scoreboard env
+    data, _ := os.ReadFile("/data/wirebot/scoreboard/scoreboard.env")
+    // Parse GATEWAY_TOKEN line
+}
+req.Header.Set("Authorization", "Bearer " + token)
+```
+
+Focusa endpoints (:8787) do NOT require auth in current config.
+
+## 7. Cross-References
+
+- UNIFIED_ORGANISM_SPEC.md §9.10 (Agent Audit as mobile cognitive surface)
+- WIKI_AGENT_SPEC.md (graph health metrics — Audit shows same KPIs)
+- MEMORY_EXTRACTION_PIPELINE_SPEC.md (memory queue counts)
+
+---
+
+## 8. Acceptance Criteria
 
 1. All 10 panels render on mobile
 2. Panels show live data (refresh on page load)

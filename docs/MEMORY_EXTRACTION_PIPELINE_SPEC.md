@@ -125,7 +125,34 @@ Every source feeds the SAME queue. No parallel paths. No auto-approve.
 
 ---
 
-## 4. Acceptance Criteria
+## 4. Wiki Page Creation GraphQL (for upgraded wiki sink)
+
+```graphql
+mutation ($c: String!, $t: String!, $p: String!, $tags: [String]!) {
+  pages { create(content: $c, description: "", editor: "markdown",
+    locale: "en", isPrivate: false, isPublished: true,
+    path: $p, tags: $tags, title: $t) {
+    responseResult { succeeded message } page { id path }
+  }
+}
+```
+
+Endpoint: `http://127.0.0.1:7325/graphql`
+Auth: `Authorization: Bearer $(cat /data/wirebot/secrets/wiki-api-token)`
+
+Alternative: Use `wb wiki create` via `exec.Command("wb", "wiki", "create", ...)` from Go (handles auth internally).
+
+## 5. Cross-References
+
+- UNIFIED_ORGANISM_SPEC.md §10A.6 (pipeline integrity audit — 6 gaps)
+- UNIFIED_ORGANISM_SPEC.md §10A.3 (WINS portal approval flow)
+- WIKI_AGENT_SPEC.md (wiki-agent also creates pages — must use same GraphQL)
+- WIKI_ENRICH_NIGHTLY_SPEC.md (nightly calls extraction endpoints)
+- doc 44 §29 (/wbm cataloguing uses same pipeline)
+
+---
+
+## 6. Acceptance Criteria
 
 1. Full conversation extracted (not just last message)
 2. Extraction model is MiniMax M2.7 (not Kimi K2.5)

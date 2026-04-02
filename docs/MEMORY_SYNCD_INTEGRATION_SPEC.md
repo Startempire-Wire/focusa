@@ -66,12 +66,46 @@ This creates a durable copy of Focusa decisions outside the Focusa SQLite databa
 ## 5. Implementation Options
 
 **Option A (recommended): systemd path unit for SOUL.md**
-No memory-syncd code change. Create `/etc/systemd/system/soul-reload.path` that watches SOUL.md and triggers `wb soul reload`. See bead focusa-7p7.
+No memory-syncd code change.
+
+```ini
+# /etc/systemd/system/soul-reload.path
+[Unit]
+Description=Watch SOUL.md for Focusa constitution reload
+
+[Path]
+PathModified=/home/wirebot/clawd/SOUL.md
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```ini
+# /etc/systemd/system/soul-reload.service
+[Unit]
+Description=Reload Focusa constitution from SOUL.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wb soul reload
+```
+
+```bash
+systemctl daemon-reload
+systemctl enable --now soul-reload.path
+```
 
 **Option B: Add to memory-syncd Go binary**
-Add SOUL.md path to inotify watch list. On modify, exec `wb soul reload`. Requires recompile from source.
+**Source:** `/home/wirebot/wirebot-core/cmd/memory-syncd/main.go`
+Add SOUL.md path to inotify watch list. On modify, exec `wb soul reload`. Requires: `cd /home/wirebot/wirebot-core && go build -o /data/wirebot/bin/wirebot-memory-syncd ./cmd/memory-syncd/`
 
 **Recommendation:** Option A. Simpler, no recompile, same result.
+
+## Cross-References
+
+- UNIFIED_ORGANISM_SPEC.md §14 Phase 0.4 (SOUL auto-reload)
+- UNIFIED_ORGANISM_SPEC.md §9.4 (Letta integration rules)
+- doc 44 §32 (Pi harness receives constitution via Focusa)
 
 ---
 
