@@ -1393,6 +1393,8 @@ Return ONLY valid JSON:
                 );
                 // Enforce semantic memory TTLs (§10.4)
                 crate::memory::semantic::enforce_ttls(&mut self.state.memory);
+                // Resolve contradictions and forget superseded entries (§7, §10.7)
+                crate::memory::semantic::resolve_contradictions(&mut self.state.memory);
                 crate::gate::focus_gate::decay_candidates(
                     &mut self.state.focus_gate,
                     self.config.gate_decay_factor,

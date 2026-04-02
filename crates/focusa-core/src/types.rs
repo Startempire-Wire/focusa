@@ -415,6 +415,11 @@ pub enum MemorySource {
     User,
     Worker,
     Manual,
+    Operator,
+    Constitution,
+    FocusState,
+    ContextCore,
+    Mem0,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
