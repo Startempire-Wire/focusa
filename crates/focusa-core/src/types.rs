@@ -63,6 +63,11 @@ pub struct FocusaState {
 
     /// Active turn from Mode A adapter (if any).
     pub active_turn: Option<ActiveTurn>,
+    /// Anticipated context from DEEP PATH pre-turn enrichment (§11.7).
+    /// Populated after each turn by LLM predicting next user query.
+    /// Used by next turn's pre-enrichment before Mem0/Wiki queries.
+    #[serde(default)]
+    pub anticipated_context: Vec<String>,
     /// Monotonic version — incremented on every successful reduction.
     pub version: u64,
 }
@@ -89,6 +94,7 @@ impl FocusaState {
             attachments: vec![],
             threads: vec![],
             active_turn: None,
+            anticipated_context: vec![],
             version: 0,
         }
     }

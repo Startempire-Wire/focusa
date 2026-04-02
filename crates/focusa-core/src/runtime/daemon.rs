@@ -657,6 +657,83 @@ Return ONLY valid JSON:
                         }
                     }
 
+                    // DEEP PATH: anticipatory queries for next turn (§11.7).
+                    // After turn completes, predict what user will ask next,
+                    // pre-fetch wiki/Mem0 results, cache in anticipated_context.
+                    if let FocusaEvent::TurnCompleted {
+                        ref assistant_output,
+                        ref raw_user_input,
+                        ..
+                    } = event {
+                        let deep_user = raw_user_input.clone().unwrap_or_default();
+                        let deep_assist = assistant_output.clone().unwrap_or_default();
+                        let deep_cmd_tx = self.command_tx.clone();
+                        tokio::spawn(async move {
+                            let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+                            if api_key.is_empty() || deep_assist.is_empty() { return; }
+                            
+                            let prompt = format!(
+                                "Based on this conversation turn, predict the user's likely next question or topic.\n\nUSER: {}\nASSISTANT: {}\n\nReturn ONLY a JSON array of 3 search queries for pre-fetching relevant context:\n[\"query1\", \"query2\", \"query3\"]",
+                                &deep_user[..deep_user.len().min(300)],
+                                &deep_assist[..deep_assist.len().min(300)],
+                            );
+                            
+                            let client = reqwest::Client::new();
+                            if let Ok(Ok(resp)) = tokio::time::timeout(
+                                std::time::Duration::from_secs(3),
+                                client.post("https://api.minimax.io/v1/chat/completions")
+                                    .header("Authorization", format!("Bearer {}", api_key))
+                                    .json(&serde_json::json!({
+                                        "model": "MiniMax-M2.7",
+                                        "messages": [{"role": "user", "content": prompt}],
+                                        "max_tokens": 100,
+                                        "temperature": 0.3,
+                                    }))
+                                    .send(),
+                            ).await {
+                                if let Ok(data) = resp.json::<serde_json::Value>().await {
+                                    if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                                        let start = text.find('[').unwrap_or(0);
+                                        let end = text.rfind(']').map(|i| i + 1).unwrap_or(text.len());
+                                        if let Ok(queries) = serde_json::from_str::<Vec<String>>(&text[start..end]) {
+                                            // Pre-fetch Mem0 results for each anticipated query
+                                            let mut context = Vec::new();
+                                            for q in queries.iter().take(3) {
+                                                if let Ok(Ok(resp)) = tokio::time::timeout(
+                                                    std::time::Duration::from_millis(500),
+                                                    client.post("http://127.0.0.1:8200/v1/search")
+                                                        .json(&serde_json::json!({"query": q, "namespace": "wirebot_verious", "limit": 2}))
+                                                        .send(),
+                                                ).await {
+                                                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                                                        if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                                                            for mem in results.iter().take(2) {
+                                                                if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                                                                    context.push(text.to_string());
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if !context.is_empty() {
+                                                // Store anticipated context for next turn
+                                                for (i, ctx) in context.iter().enumerate().take(5) {
+                                                    let _ = deep_cmd_tx.send(crate::types::Action::UpsertSemantic {
+                                                        key: format!("anticipated.{}", i),
+                                                        value: ctx.clone(),
+                                                        source: crate::types::MemorySource::Worker,
+                                                    }).await;
+                                                }
+                                                tracing::debug!(count = context.len(), "DEEP PATH: anticipated context cached");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
                     // ECS: auto-externalize large turn content (G1-detail-08 §Threshold Policy).
                     // "ecs.externalize_bytes_threshold default 8KB,
                     //  ecs.externalize_token_estimate_threshold default 800 tokens.
