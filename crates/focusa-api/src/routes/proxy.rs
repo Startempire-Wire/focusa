@@ -385,110 +385,97 @@ async fn chat_completions(
     let url = upstream_url();
     let client = get_client();
 
-    // 1b. CONTEXT CORE — Inject operator state as constraints (§9.5).
-    // Query Context Core for operator state (2s timeout, cached fallback).
-    // Reuse the shared reqwest client (already created above for upstream).
-    if let Ok(Ok(resp)) = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
-        client.get("http://127.0.0.1:7400/me").send(),
-    ).await {
-        if let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
-            let mut constraints = Vec::new();
-
-            // Interruptibility
-            if let Some(interruptibility) = ctx_json.pointer("/state/interruptibility").and_then(|v| v.as_str()) {
-                if interruptibility == "very_low" {
-                    constraints.push("Operator interruptibility: very low — do not ask questions, queue them".to_string());
-                } else if interruptibility == "low" {
-                    constraints.push("Operator interruptibility: low — minimize questions".to_string());
-                }
-            }
-
-            // Quiet hours / late night
-            if ctx_json.pointer("/timely/is_quiet_hours").and_then(|v| v.as_bool()).unwrap_or(false) {
-                constraints.push("Quiet hours — be concise, avoid churn".to_string());
-            }
-
-            // Agent policy
-            if let Some(agent_should) = ctx_json.pointer("/policy/agent_should").and_then(|v| v.as_str()) {
-                if agent_should == "queue_questions" {
-                    constraints.push("Policy: queue questions, do not interrupt operator".to_string());
-                }
-            }
-
-            // Inject as Focus State constraints — but avoid duplicating on every turn.
-            // Only add constraints that aren't already in the current frame's constraints.
-            if !constraints.is_empty() {
-                let focusa_read = state.focusa.read().await;
-                if let Some(frame_id) = focusa_read.focus_stack.active_id {
-                    let existing_constraints: Vec<String> = focusa_read
-                        .focus_stack
-                        .frames
-                        .iter()
-                        .find(|f| f.id == frame_id)
-                        .map(|f| f.focus_state.constraints.clone())
-                        .unwrap_or_default();
-                    drop(focusa_read);
-
-                    let new_constraints: Vec<String> = constraints
-                        .into_iter()
-                        .filter(|c| !existing_constraints.contains(c))
-                        .collect();
-
-                    if !new_constraints.is_empty() {
-                        let delta = FocusStateDelta {
-                            constraints: Some(new_constraints),
-                            ..Default::default()
-                        };
-                        let _ = state.command_tx.send(Action::UpdateCheckpointDelta {
-                            frame_id,
-                            turn_id: turn_id.clone(),
-                            delta,
-                        }).await;
+    // 1b. CONTEXT CORE + PAIRING ENGINE — Background enrichment (§9.5, §10B.1).
+    // Spawned as async task so they DON'T BLOCK the hot path.
+    // Results land in Focus State via command_tx → available for NEXT turn's assembly.
+    // Current turn uses whatever state exists from previous enrichment.
+    {
+        let enrichment_state = state.clone();
+        let enrichment_turn_id = turn_id.clone();
+        let enrichment_client = client.clone();
+        tokio::spawn(async move {
+            // Context Core → constraints
+            if let Ok(Ok(resp)) = tokio::time::timeout(
+                std::time::Duration::from_secs(2),
+                enrichment_client.get("http://127.0.0.1:7400/me").send(),
+            ).await {
+                if let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
+                    let mut constraints = Vec::new();
+                    if let Some(interruptibility) = ctx_json.pointer("/state/interruptibility").and_then(|v| v.as_str()) {
+                        if interruptibility == "very_low" {
+                            constraints.push("Operator interruptibility: very low — do not ask questions, queue them".to_string());
+                        } else if interruptibility == "low" {
+                            constraints.push("Operator interruptibility: low — minimize questions".to_string());
+                        }
+                    }
+                    if ctx_json.pointer("/timely/is_quiet_hours").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        constraints.push("Quiet hours — be concise, avoid churn".to_string());
+                    }
+                    if let Some(agent_should) = ctx_json.pointer("/policy/agent_should").and_then(|v| v.as_str()) {
+                        if agent_should == "queue_questions" {
+                            constraints.push("Policy: queue questions, do not interrupt operator".to_string());
+                        }
+                    }
+                    if !constraints.is_empty() {
+                        let focusa_read = enrichment_state.focusa.read().await;
+                        if let Some(frame_id) = focusa_read.focus_stack.active_id {
+                            let existing: Vec<String> = focusa_read.focus_stack.frames.iter()
+                                .find(|f| f.id == frame_id)
+                                .map(|f| f.focus_state.constraints.clone())
+                                .unwrap_or_default();
+                            drop(focusa_read);
+                            let new_c: Vec<String> = constraints.into_iter().filter(|c| !existing.contains(c)).collect();
+                            if !new_c.is_empty() {
+                                let _ = enrichment_state.command_tx.send(Action::UpdateCheckpointDelta {
+                                    frame_id,
+                                    turn_id: enrichment_turn_id.clone(),
+                                    delta: FocusStateDelta { constraints: Some(new_c), ..Default::default() },
+                                }).await;
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    // 1c. PAIRING ENGINE — Inject drift/RABIT signals from Scoreboard (§10B.1).
-    // Query scoreboard for operator-agent alignment data (2s timeout).
-    if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN").ok().or_else(|| std::env::var("GATEWAY_TOKEN").ok()) {
-        if let Ok(Ok(resp)) = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            client.get("http://127.0.0.1:8100/v1/score")
-                .header("Authorization", format!("Bearer {}", sb_token))
-                .send(),
-        ).await {
-            if let Ok(score_json) = resp.json::<serde_json::Value>().await {
-                let mut signals = Vec::new();
-
-                // Drift score < 30 → constraint
-                if let Some(drift_score) = score_json.pointer("/drift/score").and_then(|v| v.as_f64()) {
-                    if drift_score < 30.0 {
-                        signals.push(("drift_low", format!("Operator-agent drift score: {} (disconnected) — re-establish alignment", drift_score)));
+            // Pairing Engine → Focus Gate signals
+            if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN").ok().or_else(|| std::env::var("GATEWAY_TOKEN").ok()) {
+                if let Ok(Ok(resp)) = tokio::time::timeout(
+                    std::time::Duration::from_secs(2),
+                    enrichment_client.get("http://127.0.0.1:8100/v1/score")
+                        .header("Authorization", format!("Bearer {}", sb_token))
+                        .send(),
+                ).await {
+                    if let Ok(score_json) = resp.json::<serde_json::Value>().await {
+                        let mut signal_summaries = Vec::new();
+                        if let Some(drift_score) = score_json.pointer("/drift/score").and_then(|v| v.as_f64()) {
+                            if drift_score < 30.0 {
+                                signal_summaries.push(format!("Operator-agent drift score: {} (disconnected)", drift_score));
+                            }
+                        }
+                        if score_json.pointer("/drift/rabbit/active").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            let rt = score_json.pointer("/drift/rabbit/type").and_then(|v| v.as_str()).unwrap_or("unknown");
+                            signal_summaries.push(format!("R.A.B.I.T. detected: {}", rt));
+                        }
+                        if score_json.pointer("/drift/handshake_streak").and_then(|v| v.as_i64()).unwrap_or(1) == 0 {
+                            signal_summaries.push("Neural handshake streak broken".to_string());
+                        }
+                        for summary in signal_summaries {
+                            let signal = Signal {
+                                id: uuid::Uuid::now_v7(),
+                                ts: Utc::now(),
+                                origin: SignalOrigin::Adapter,
+                                kind: SignalKind::Warning,
+                                frame_context: None,
+                                summary,
+                                payload_ref: None,
+                                tags: vec![],
+                            };
+                            let _ = enrichment_state.command_tx.send(Action::IngestSignal { signal }).await;
+                        }
                     }
                 }
-
-                // RABIT active → intuition signal
-                if score_json.pointer("/drift/rabbit/active").and_then(|v| v.as_bool()).unwrap_or(false) {
-                    let rabbit_type = score_json.pointer("/drift/rabbit/type").and_then(|v| v.as_str()).unwrap_or("unknown");
-                    let rabbit_msg = score_json.pointer("/drift/rabbit/message").and_then(|v| v.as_str()).unwrap_or("");
-                    signals.push(("rabbit_active", format!("R.A.B.I.T. detected: {} — {}", rabbit_type, rabbit_msg)));
-                }
-
-                // Handshake streak broken
-                if score_json.pointer("/drift/handshake_streak").and_then(|v| v.as_i64()).unwrap_or(0) == 0 {
-                    signals.push(("handshake_broken", "Neural handshake streak broken — check in with operator".to_string()));
-                }
-
-                // Emit as Focus Gate signals
-                for (kind, summary) in &signals {
-                    let signal = create_signal(SignalKind::Warning, summary.clone());
-                    let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
-                }
             }
-        }
+        });
     }
 
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
