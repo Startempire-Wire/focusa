@@ -2132,3 +2132,136 @@ function connectSSE() {
 | 9 | Cross-surface SSE notifications | **MEDIUM** | NEW — §37.10 |
 
 **All previous findings (§33-§36) confirmed valid and properly cross-referenced.**
+
+---
+
+## 38) Final Review — Minor Gaps and Edge Case Fixes
+
+### 38.1 Local Decision Shadow Must Trim After ASCC Write
+
+Edge case: Very long Pi sessions (days) with multiple compactions. `localDecisions`, `localConstraints`, `localFailures` arrays grow unbounded.
+
+**Fix:** After successful Focusa ASCC write (confirmed via §33.1 `session_before_compact` returning compaction), clear the local shadow:
+
+```typescript
+pi.on("session_before_compact", async (event, ctx) => {
+  const ascc = await fetchFocusaASCC();
+  if (ascc) {
+    const result = { compaction: buildFocusaSummary(ascc), ... };
+    // ASCC write succeeded — Focusa now owns these decisions
+    localDecisions = [];
+    localConstraints = [];
+    localFailures = [];
+    return result;
+  }
+  
+  // Focusa down — keep local shadow, inject as instructions
+  // (do NOT clear — these are the only copy)
+  return { customInstructions: buildLocalShadowInstructions() };
+});
+```
+
+**Rule:** Clear local shadow only when Focusa ASCC is confirmed written. Never clear when falling back to local shadow.
+
+### 38.2 /wbm HTTP Fallback When wb CLI Not Available (Multi-Machine)
+
+Edge case: Pi runs on Mac, Focusa runs on VPS via Tailscale. `wb` CLI is only installed on VPS. `pi.exec("wb", [...])` fails on Mac.
+
+**Fix:** All /wbm `wb` calls must have an HTTP fallback:
+
+```typescript
+async function wbWikiSearch(query: string): Promise<any> {
+  // Try wb CLI first (fast, handles auth)
+  try {
+    const result = await pi.exec("wb", ["wiki", "search", query, "--format", "json"], { timeout: 5000 });
+    if (result.code === 0) return JSON.parse(result.stdout);
+  } catch {}
+  
+  // Fallback: direct HTTP to Wiki.js GraphQL
+  try {
+    const wikiToken = process.env.WIKI_TOKEN || await readFile("/data/wirebot/secrets/wiki-api-token", "utf-8").catch(() => "");
+    if (!wikiToken) return null;
+    const res = await fetch("http://127.0.0.1:7325/graphql", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${wikiToken.trim()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: `{ pages { search(query: "${query}", locale: "en") { results { path title } } } }` }),
+      signal: AbortSignal.timeout(5000),
+    });
+    return await res.json();
+  } catch { return null; }
+}
+
+async function wbMemoryInject(text: string): Promise<boolean> {
+  // Try wb CLI first
+  try {
+    const result = await pi.exec("wb", ["memory", "inject", text], { timeout: 5000 });
+    if (result.code === 0) return true;
+  } catch {}
+  
+  // Fallback: direct HTTP to scoreboard
+  try {
+    const token = process.env.SCOREBOARD_TOKEN || "";
+    const res = await fetch("http://127.0.0.1:8100/v1/memory/queue", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ memory_text: text, source_type: "pi_session", confidence: 0.85 }),
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch { return false; }
+}
+```
+
+**Rule:** Every `wb` CLI call must have a direct HTTP fallback. The extension works on any machine with network access to the services, not just the VPS.
+
+**Config:** When Pi is on Mac, set in `.pi/settings.json`:
+```json
+{
+  "extensions": {
+    "focusaPiBridge": {
+      "focusaApiBaseUrl": "http://100.x.x.x:8787/v1",
+      "scoreboardUrl": "http://100.x.x.x:8100",
+      "wikiUrl": "http://100.x.x.x:7325",
+      "contextCoreUrl": "http://100.x.x.x:7400"
+    }
+  }
+}
+```
+
+### 38.3 Disable Focusa Tools When Daemon Down
+
+When Focusa is unreachable, `focusa_decide`/`focusa_constraint`/`focusa_failure` tools should be disabled to avoid confusing the LLM with tools that can't execute:
+
+```typescript
+let focusaToolsActive = true;
+
+async function checkFocusaHealth() {
+  try {
+    const res = await fetch(focusaBaseUrl + "/health", { signal: AbortSignal.timeout(2000) });
+    const data = await res.json();
+    const isUp = data?.ok === true;
+    
+    if (isUp && !focusaToolsActive) {
+      // Focusa came back — re-enable tools
+      const allTools = pi.getAllTools();
+      const currentActive = pi.getActiveTools().map(t => t.name);
+      pi.setActiveTools([...currentActive, "focusa_decide", "focusa_constraint", "focusa_failure"]);
+      focusaToolsActive = true;
+    } else if (!isUp && focusaToolsActive) {
+      // Focusa went down — disable tools
+      const currentActive = pi.getActiveTools().map(t => t.name);
+      pi.setActiveTools(currentActive.filter(n => !n.startsWith("focusa_")));
+      focusaToolsActive = false;
+      ctx.ui.notify("Focusa unavailable — metacognition tools disabled", "warn");
+    }
+  } catch {
+    if (focusaToolsActive) {
+      const currentActive = pi.getActiveTools().map(t => t.name);
+      pi.setActiveTools(currentActive.filter(n => !n.startsWith("focusa_")));
+      focusaToolsActive = false;
+    }
+  }
+}
+```
+
+**Rule:** Check health on session_start and periodically (every 60s). Disable tools when down. Re-enable when back. The LLM never sees tools it can't use.
