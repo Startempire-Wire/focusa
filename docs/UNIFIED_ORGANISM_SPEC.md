@@ -1532,12 +1532,16 @@ The organism's intelligence comes at a cost. Budget policy:
 ### 12.1 Turn Execution Flow (Updated with Metacognition)
 
 **HOT PATH (≤20ms + model latency — operator never waits for metacognition):**
-1. Operator/user message enters OpenClaw
+1. Operator/user message enters OpenClaw (or Pi with extension)
 2. OpenClaw creates/continues session
-3. Fast keyword retrieval from wiki + Mem0 (≤50ms, parallel, no LLM call)
-4. Focusa Expression Engine assembles prompt from **pre-enriched** Focus State + fresh retrieval + frame + rules + memories + thesis + operator state
-5. OpenClaw invokes primary model via Focusa proxy
-6. **Response returned to operator** (R0: immediate. R1+: after microcell validation)
+3. User input signal emitted to Focus Gate (adapter contract requirement)
+4. Fast keyword retrieval from wiki + Mem0 (≤50ms, parallel, no LLM call)
+5. Focusa Expression Engine assembles prompt from **pre-enriched** Focus State + fresh retrieval + frame + rules + memories + thesis + operator state
+6. **Context budget check:** assembly bounded by available headroom (Pi extension reports via `ctx.getContextUsage()`)
+7. OpenClaw/Pi invokes primary model via Focusa proxy (or Pi extension injects via `context` event)
+8. **Streaming chunks forwarded** via `/v1/turn/append` for real-time ASCC delta extraction
+9. **Response returned to operator** (R0: immediate. R1+: after microcell validation)
+10. **Error signals** (tool errors, model errors) fed to Focus Gate for pattern detection
 
 **BACKGROUND (async, after response sent — system thinks about what just happened):**
 7. **LLM-backed extraction** (parallel workers §10.3): decisions, failures, constraints, skills, memory candidates → Focus State delta

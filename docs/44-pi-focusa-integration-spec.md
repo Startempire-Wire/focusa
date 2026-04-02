@@ -960,6 +960,8 @@ pi.on("tool_call", async (event, ctx) => {
 
 ### 33.5 Mode B Without Proxy via `before_provider_request`
 
+> **⚠️ SUPERSEDED by §36.6:** This injection mode is DISABLED when `context` event injection (§33.2) is active. They are mutually exclusive. Use §33.2 (lighter, per-call refresh) as the primary injection path. This section is retained as documentation of the alternative approach only.
+
 **Gap:** Doc 44 describes Mode A (focusa wrap) and Mode B (HTTP proxy). But Pi's `before_provider_request` enables Mode B **without a proxy** — Focusa's Expression Engine injects context directly into the LLM request payload.
 
 **Integration:**
