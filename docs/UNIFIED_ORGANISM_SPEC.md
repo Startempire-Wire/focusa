@@ -657,6 +657,48 @@ The operator writes random notes, ideas, fragments, thoughts. These have value e
 
 **The system's job is to CONNECT pages, not judge them.**
 
+#### Fragment Reasoning — Puzzle Assembly
+
+The operator thinks in fragments. A short note, a phrase, a half-formed idea, a quote with no context, a name with no explanation. These are **pieces of a larger picture that the operator sees but hasn't fully articulated.**
+
+The system must treat unlinked fragments as **puzzle pieces**, not orphans:
+
+1. **Accumulate context over time.** A fragment that means nothing today may click into place after 3 more conversations, a new project, or a life event. The system must revisit fragments periodically with fresh context.
+
+2. **Cross-reference against operator knowledge.** When a new fragment appears, search across:
+   - Recent conversations (session captures)
+   - Mem0 memories (patterns, preferences, past statements)
+   - Wiki knowledge pages (projects, decisions, people)
+   - SOUL.md / operator profile (values, goals, philosophy)
+   - Letta core memory (recent narrative context)
+   
+   Ask: "Does this fragment connect to something the operator has been thinking about?"
+
+3. **Hypothesize connections.** If the fragment says "Winter isn't the end. It's the pause that makes the next spring possible" — the system should reason:
+   - Is this about a project that stalled?
+   - Is this about a personal season the operator is in?
+   - Does this connect to the TEP book themes?
+   - Is this a philosophy that should influence SOUL.md?
+   
+   Generate connection hypotheses as wiki suggestions (not assertions).
+
+4. **Revisit with deeper knowledge.** As the system learns more about the operator's internal reasoning — through conversations, decisions, memory accumulation — previously opaque fragments may suddenly make sense. The nightly reflection loop should periodically re-examine unlinked fragments against the current knowledge state.
+
+5. **Surface insights, not cleanup tasks.** When the system finds a potential connection, surface it as:
+   - "This note from March might relate to your decision about X"
+   - "This fragment echoes something you said about Y in February"
+   
+   Not: "This page has no links, should we archive it?"
+
+**Implementation:**
+- Nightly: wiki-agent picks N unlinked fragments (start with 5/night)
+- For each: LLM call with fragment + operator context (Mem0 + recent wiki decisions + SOUL themes)
+- Output: connection hypotheses (0-3 per fragment)
+- If confident connection found → create wiki link + add to relevant MOC
+- If hypothesis only → add as wiki comment: "Possible connection: [hypothesis]"
+- If nothing found → leave alone, try again in 30 days with more context
+- Track: fragments successfully connected over time (puzzle completion rate)
+
 #### Unlinked Page Handling
 
 | Action | Who | When |
