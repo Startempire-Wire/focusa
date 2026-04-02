@@ -451,6 +451,46 @@ async fn chat_completions(
         }
     }
 
+    // 1c. PAIRING ENGINE — Inject drift/RABIT signals from Scoreboard (§10B.1).
+    // Query scoreboard for operator-agent alignment data (2s timeout).
+    if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN").ok().or_else(|| std::env::var("GATEWAY_TOKEN").ok()) {
+        if let Ok(Ok(resp)) = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            client.get("http://127.0.0.1:8100/v1/score")
+                .header("Authorization", format!("Bearer {}", sb_token))
+                .send(),
+        ).await {
+            if let Ok(score_json) = resp.json::<serde_json::Value>().await {
+                let mut signals = Vec::new();
+
+                // Drift score < 30 → constraint
+                if let Some(drift_score) = score_json.pointer("/drift/score").and_then(|v| v.as_f64()) {
+                    if drift_score < 30.0 {
+                        signals.push(("drift_low", format!("Operator-agent drift score: {} (disconnected) — re-establish alignment", drift_score)));
+                    }
+                }
+
+                // RABIT active → intuition signal
+                if score_json.pointer("/drift/rabbit/active").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    let rabbit_type = score_json.pointer("/drift/rabbit/type").and_then(|v| v.as_str()).unwrap_or("unknown");
+                    let rabbit_msg = score_json.pointer("/drift/rabbit/message").and_then(|v| v.as_str()).unwrap_or("");
+                    signals.push(("rabbit_active", format!("R.A.B.I.T. detected: {} — {}", rabbit_type, rabbit_msg)));
+                }
+
+                // Handshake streak broken
+                if score_json.pointer("/drift/handshake_streak").and_then(|v| v.as_i64()).unwrap_or(0) == 0 {
+                    signals.push(("handshake_broken", "Neural handshake streak broken — check in with operator".to_string()));
+                }
+
+                // Emit as Focus Gate signals
+                for (kind, summary) in &signals {
+                    let signal = create_signal(SignalKind::Warning, summary.clone());
+                    let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
+                }
+            }
+        }
+    }
+
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
     let focusa_state = state.focusa.read().await;
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);
