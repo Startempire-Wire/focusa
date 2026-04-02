@@ -1062,14 +1062,25 @@ New endpoint or script that:
   - Watermarks by event_id to avoid reprocessing
 ```
 
-**3. Pi session parser (NEW):**
+**3. Pi session extraction (TWO MODES):**
+
+**Live mode (in focusa-pi-bridge extension, §9.9 /wbm):**
+The Pi extension is already inside every session. When `/wbm` is active:
+- `agent_end` hook receives `event.messages` — the full conversation from this prompt
+- Extension extracts decisions/facts/failures/learnings via LLM (MiniMax M2.7)
+- Routes through `QueueMemoryForApproval()` into WINS portal queue
+- **This is the steady-state architecture** — no cold parsing needed for future sessions
+
+**Historical backfill (one-time batch for 111 existing sessions):**
 ```
-New script/endpoint that:
-  - Reads Pi .jsonl session files
-  - Parses into conversation turns (skip raw tool XML)
+One-time script that:
+  - Reads existing Pi .jsonl session files (1.7GB backlog)
+  - Parses into conversation turns (skip raw tool XML/noise)
   - Windows into chunks of 15-20 turns
   - Feeds each chunk to ExtractMemoriesFromConversation()
   - Watermarks by session file + offset
+  - Rate: 2 sessions/night until backlog cleared (~56 nights)
+  - After backlog cleared: script retired, live mode handles all future sessions
 ```
 
 **4. Historical session batch processor (NEW):**

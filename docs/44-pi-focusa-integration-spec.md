@@ -712,15 +712,23 @@ Banned: No helplessness, no fabrication, no ask-back when context exists
 
 ### Outbound Cataloguing (work meta → Wirebot systems)
 
-On `agent_end` hook, LLM extraction (MiniMax M2.7, ≤500 tok, 2s timeout) parses the turn for work meta:
+On `agent_end` hook, the extension receives `event.messages` — the **full conversation from this prompt cycle** (not just the last exchange). This is the live extraction path:
 
-| Work Meta | Destination | Method |
+1. Collect all messages from `event.messages`
+2. Filter: keep user + assistant messages with >50 chars (skip tool noise)
+3. If >20 messages: chunk into windows of 15-20 turns
+4. For each chunk: call MiniMax M2.7 for structured extraction (≤500 tok, 2s timeout)
+5. Extracted memories route through `QueueMemoryForApproval()` into WINS portal queue
+6. Operator reviews/approves in WINS portal → delivery to all 5 sinks (Mem0, MEMORY.md, fact YAML, wiki, Letta)
+
+**This replaces the need for a cold Pi session JSONL parser for all future sessions.** Historical .jsonl backfill is a separate one-time batch job.
+
+| Work Meta | WINS Queue | After Approval → Sinks |
 |---|---|---|
-| Decision | Mem0 | `wb memory inject "$DECISION"` with `source:pi, surface:pi` |
-| Decision | Wiki | `wb wiki create --path ops/decisions/$DATE --tags decision,pi` |
-| Fact | Mem0 | `wb memory inject "$FACT"` with `source:pi, category:technical` |
-| Failure | Mem0 + Focusa | `wb memory inject "FAILURE: $DETAIL"` + focus state update |
-| Learning | Mem0 | `wb memory inject "LEARNED: $INSIGHT"` with `source:pi, category:learning` |
+| Decision | `QueueMemoryForApproval()` with `source_type:pi_session` | Mem0 + MEMORY.md + fact YAML + wiki + Letta |
+| Fact | `QueueMemoryForApproval()` with `source_type:pi_session` | All 5 sinks |
+| Failure | `QueueMemoryForApproval()` + Focusa focus state update | All 5 sinks + Focus State |
+| Learning | `QueueMemoryForApproval()` with `source_type:pi_session` | All 5 sinks |
 
 **Ships are NOT manually catalogued.** The scoreboard already auto-detects ships from git (GitHub webhooks + git discovery scanning `/root`, `/home`, `/data`). Pi commits code → scoreboard detects WHAT shipped → `/wbm` catalogues WHY.
 
