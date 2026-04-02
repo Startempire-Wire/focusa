@@ -1126,18 +1126,19 @@ impl Daemon {
         };
 
         // Check for down services
-        if let Some(services) = status.get("services").and_then(|v| v.as_array()) {
-            for svc in services {
+        // Guardian JSON: {data: {services: {"name": {status: "up"/"down", name: "...", ...}}}}
+        if let Some(services) = status.pointer("/data/services").and_then(|v| v.as_object()) {
+            for (_key, svc) in services {
                 let name = svc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown");
-                let is_up = svc.get("active").and_then(|v| v.as_bool()).unwrap_or(true);
-                if !is_up {
+                let svc_status = svc.get("status").and_then(|v| v.as_str()).unwrap_or("up");
+                if svc_status != "up" {
                     let signal = crate::types::Signal {
                         id: Uuid::now_v7(),
                         ts: Utc::now(),
                         origin: crate::types::SignalOrigin::Daemon,
                         kind: crate::types::SignalKind::Warning,
                         frame_context: None,
-                        summary: format!("Guardian: service {} is DOWN", name),
+                        summary: format!("Guardian: service {} is {}", name, svc_status.to_uppercase()),
                         payload_ref: None,
                         tags: vec!["guardian".into(), "service_down".into()],
                     };
@@ -1146,8 +1147,8 @@ impl Daemon {
             }
         }
 
-        // Check disk
-        if let Some(disk_pct) = status.get("disk_pct").and_then(|v| v.as_f64()) {
+        // Check disk — Guardian JSON: {data: {disk: {used_pct: 77}}}
+        if let Some(disk_pct) = status.pointer("/data/disk/used_pct").and_then(|v| v.as_f64()) {
             if disk_pct > 90.0 {
                 let signal = crate::types::Signal {
                     id: Uuid::now_v7(),
