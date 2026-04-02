@@ -418,6 +418,106 @@ The audit UI must become the operator's mobile window into the organism's cognit
 
 **Effort estimate:** ~4 hours (Go template panels + Focusa HTTP client + CSS)
 
+### 9.10 JARVIS Protocol Integration Points
+
+The JARVIS Plan (`/wirebot/jarvis-plan`) defines 7 capability domains for transforming Wirebot from reactive chatbot to autonomous sovereign agent. The organism spec must map to these domains.
+
+#### JARVIS ↔ Organism Mapping
+
+| JARVIS Domain | Organism System | Status | Gap |
+|---|---|---|---|
+| 1. System Management | wb CLI (45+ commands), Guardian, root exec | ✅ Infrastructure exists | Lacks initiative — Focusa Focus Gate should surface actions |
+| 2. Real-Time Analysis | Context Core (sensors, predictions, RescueTime, calendar, solar) | ✅ **Rich data already flowing** | Not connected to Focusa — §9.5 closes this |
+| 3. Orchestration | Flow Mesh (task queue), OpenClaw plugins | ✅ Partially built | Focus Stack ↔ Flow Mesh bridge (§9.6) closes this |
+| 4. Health Monitoring | Context Core (RescueTime, screen time, productivity, circadian) | ✅ Data exists | Focusa should modulate behavior from health signals |
+| 5. Security & Defense | Guardian, wb health, audit watcher | ✅ Running | Guardian alerts should feed Focusa Intuition Engine |
+| 6. Cross-Domain Synthesis | Wiki + Mem0 + Focusa + Context Core | ✅ All running | Integration spec (§§9.1–9.8) closes this |
+| 7. Resilience | Focusa Focus State, Mem0, Flow Mesh, memory-syncd | ✅ Persistence exists | Session resume (§12.2) + degraded mode (§8) closes this |
+
+#### Context Core Is JARVIS Layer 2 (Real-Time Analysis)
+
+Context Core already provides extraordinary operator awareness:
+- **Location:** where the operator is (VPS, mobile, driving)
+- **Mode:** `agent_coding` / `meeting` / `sleeping` / `driving`
+- **Interruptibility:** `very_low` / `low` / `medium` / `high`
+- **Calendar:** next event, free-until, today's schedule
+- **Solar/Circadian:** sunrise/sunset, phase, day length
+- **RescueTime:** productivity score, screen hours, social hours, distraction ratio
+- **Predictions:** tomorrow's daylight, calendar busyness
+- **Day plan:** time blocks with best-for labels (creative, deep work, meetings)
+- **Policy:** `agent_should=queue_questions`, `ask_user_now=false`, allowed/forbidden actions
+
+**This is the richest operator-state system in the entire stack.** Focusa MUST ingest this every turn (§9.5).
+
+#### Will Wirebot Get Smarter Over Time?
+
+Yes — through 6 compounding mechanisms:
+
+| Mechanism | How It Works | Gets Smarter Because |
+|---|---|---|
+| **Procedural memory** | Rules reinforced by use, decay without use | Behavioral patterns converge on what works |
+| **Mem0 accumulation** | Facts extracted from every session | Recall improves with more data |
+| **Wiki graph growth** | Decisions, skills, knowledge pages accumulate | Richer context injected into prompts |
+| **Autonomy calibration** | ARI score measured from turn quality | Earns more independence through evidence |
+| **Thread Thesis refinement** | LLM refines "what is this really about" | Understanding deepens per session |
+| **Reflection loop** | Periodic self-review of work quality | Self-corrects trajectory without operator input |
+| **Kaizen reflections** | Post-session learnings promoted to wiki | Lessons persist across all future sessions |
+| **Context Core predictions** | Rolling stats, EWMA, linear regression on operator patterns | Anticipation improves with data |
+
+**The daily growth loop (§12) ensures these mechanisms run continuously, not just when triggered.**
+
+#### JARVIS Phases → Organism Spec Alignment
+
+| JARVIS Phase | Organism Spec Phase | Notes |
+|---|---|---|
+| Phase 0: Foundation | ✅ Done | SOUL.md, heartbeat, config |
+| Phase 1: Smart heartbeat + work queue | Phase 0 + Phase 1 | wiki-agent, Focusa wiring, Flow Mesh bridge |
+| Phase 2: Event sensors + triage | Phase 1 (§9.5) | Context Core → Focusa = JARVIS triage engine |
+| Phase 3: Proactive check-ins | Phase 5 (§10.6) | Reflection loop + thesis = proactive awareness |
+| Phase 4: Resilience | §8 Degraded Mode Matrix | Explicit fallbacks per subsystem |
+| Phase 5: Multi-system orchestration | Phase 3 (wiki tools) | wiki_search/read/decide + Flow Mesh |
+| Phase 6: Operator wellness | §9.5 Context Core | RescueTime, circadian, productivity already flowing |
+| Phase 7: Personality + learning | §6 Promotion Pipeline | Memory → knowledge → procedural rules = personality growth |
+
+#### MiniMax Model Upgrade
+
+Upgrade background inference model from **MiniMax M2.5 → MiniMax M2.7** (newest):
+- All internal metacognitive calls (§10)
+- Mem0 entity extraction + graph construction
+- Worker LLM extraction
+- RFM microcell validators
+- Reflection loop reasoning
+- Nightly contradiction scan + graph gap detection
+
+**Does NOT affect primary model.** Operator-facing calls stay on Kimi K2.5.
+
+**Implementation:**
+- Update Mem0 config: `llm.model` → `minimax-m2.7`
+- Update Focusa worker LLM endpoint config
+- Verify API compatibility (M2.7 should be drop-in)
+- Test extraction quality improvement
+
+#### Required Fallbacks (All Integration Points)
+
+Every cross-system call must have an explicit fallback:
+
+| Call | Timeout | Fallback |
+|---|---|---|
+| Focusa proxy → Kimi | 30s | OpenClaw direct to Kimi (bypass Focusa) |
+| Focusa → Context Core | 2s | Use cached operator state with TTL |
+| Focusa → Mem0 (session seed) | 3s | Skip seeding, use local semantic memory |
+| Focusa → Wiki (context fetch) | 3s | Skip wiki context, use cached |
+| Worker → MiniMax M2.7 | 2s | Fall back to regex heuristic |
+| RFM microcell → MiniMax M2.7 | 2s | Skip validation, pass response through |
+| Reflection → MiniMax M2.7 | 5s | Skip this reflection cycle |
+| Session end → Mem0 writeback | 3s | Queue for retry, don't block close |
+| Session end → Wiki writeback | 3s | Queue for retry, don't block close |
+| Agent Audit → Focusa (panels) | 2s | Show stale data with staleness badge |
+| vault → wiki sync | 300s | Skip cycle, retry next interval |
+| wiki-agent cycle | 2700s | Abort cycle, retry next scheduled |
+
+**Rule:** No integration failure may block the operator's response or crash any service.
+
 ---
 
 ## 10. Metacognitive Reasoning Layer
@@ -1109,8 +1209,12 @@ Query Mem0 graph for relational context:
 | **P3** | RFM microcell validators (LLM-backed) | Focusa daemon | 4 hours |
 | **P3** | Nightly contradiction scan (LLM-backed) | Focusa + Wiki + Mem0 | 3 hours |
 | **P1** | Agent Audit: live Focusa panels (mobile) | Agent Audit, Focusa | 4 hours |
+| **P0** | Upgrade MiniMax M2.5 → M2.7 | Mem0, Focusa workers | 1 hour |
+| **P0** | Add all fallback timeouts (12 integration points) | All services | 3 hours |
+| **P1** | Verify OpenClaw fallback when Focusa proxy down | OpenClaw, Focusa | 1 hour |
+| **P1** | Guardian alerts → Focusa Intuition Engine | Guardian, Focusa | 2 hours |
 
-**Total estimated effort:** ~70 hours across 6 phases
+**Total estimated effort:** ~77 hours across 6 phases
 
 ---
 
@@ -1138,3 +1242,7 @@ The organism is working when:
 18. **RFM microcells validate high-risk output** with isolated sub-agent LLM calls
 19. **Internal LLM calls are budgeted and auditable** — every metacognitive call is logged with token count
 20. **Operator can see Focus Stack, ARI, gate candidates, and thesis from phone** via Agent Audit PWA
+21. **All 12 integration points have explicit timeouts and fallbacks** — no integration failure blocks operator response
+22. **Wirebot demonstrably gets smarter over time** — procedural rules accumulate, wiki grows, ARI trends up, recall improves
+23. **Background inference uses MiniMax M2.7** — primary model untouched, internal calls use latest cheap model
+24. **JARVIS 7-domain coverage verified** — every domain has a working organism subsystem mapped to it
