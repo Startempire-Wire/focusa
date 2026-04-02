@@ -32,7 +32,7 @@ use std::sync::Arc;
 use tokio_stream::StreamExt;
 
 const DEFAULT_UPSTREAM: &str = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_ANTHROPIC_UPSTREAM: &str = "https://api.anthropic.com/v1/messages";
+const DEFAULT_MESSAGES_UPSTREAM: &str = "https://api.anthropic.com/v1/messages";
 const DEFAULT_KIMI_UPSTREAM: &str = "https://api.kimi.com/coding/v1/messages";
 
 static UPSTREAM_CLIENT: std::sync::OnceLock<Client> = std::sync::OnceLock::new();
@@ -50,8 +50,8 @@ fn upstream_url() -> String {
     std::env::var("FOCUSA_UPSTREAM_URL").unwrap_or_else(|_| DEFAULT_UPSTREAM.into())
 }
 
-fn anthropic_upstream_url() -> String {
-    std::env::var("FOCUSA_ANTHROPIC_UPSTREAM").unwrap_or_else(|_| DEFAULT_ANTHROPIC_UPSTREAM.into())
+fn messages_upstream_url() -> String {
+    std::env::var("FOCUSA_MESSAGES_UPSTREAM").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_UPSTREAM")).unwrap_or_else(|_| DEFAULT_MESSAGES_UPSTREAM.into())
 }
 
 fn kimi_upstream_url() -> String {
@@ -63,11 +63,11 @@ fn is_kimi_model(model: &str) -> bool {
     lower.starts_with("k2") || lower.contains("kimi")
 }
 
-fn resolve_anthropic_upstream(model: &str) -> String {
+fn resolve_messages_upstream(model: &str) -> String {
     if is_kimi_model(model) {
         return kimi_upstream_url();
     }
-    anthropic_upstream_url()
+    messages_upstream_url()
 }
 
 fn is_streaming(extra: &Value) -> bool {
@@ -134,7 +134,7 @@ fn count_tool_markup_markers(input: &str) -> usize {
     .sum()
 }
 
-fn sanitize_anthropic_response_for_discord(value: &mut Value) -> usize {
+fn sanitize_messages_response_for_discord(value: &mut Value) -> usize {
     let mut removed_markers = 0usize;
     if let Some(content) = value.get_mut("content").and_then(|v| v.as_array_mut()) {
         for block in content {
@@ -152,7 +152,7 @@ fn sanitize_anthropic_response_for_discord(value: &mut Value) -> usize {
     removed_markers
 }
 
-fn extract_anthropic_stream_text(body: &str) -> (String, usize) {
+fn extract_messages_stream_text(body: &str) -> (String, usize) {
     let mut out = String::new();
     for line in body.lines() {
         let line = line.trim();
@@ -179,13 +179,13 @@ fn extract_anthropic_stream_text(body: &str) -> (String, usize) {
     (strip_tool_markup_text(&out), removed)
 }
 
-fn anthropic_auth(headers: &HeaderMap) -> Option<anthropic::AnthropicAuth> {
-    if let Ok(key) = std::env::var("FOCUSA_ANTHROPIC_KEY") {
+fn messages_auth(headers: &HeaderMap) -> Option<anthropic::AnthropicAuth> {
+    if let Ok(key) = std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_MESSAGES_API_KEY")) {
         if !key.is_empty() {
             return Some(anthropic::AnthropicAuth::ApiKey(key));
         }
     }
-    if let Ok(token) = std::env::var("FOCUSA_ANTHROPIC_BEARER") {
+    if let Ok(token) = std::env::var("FOCUSA_MESSAGES_BEARER").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_BEARER")) {
         if !token.is_empty() {
             return Some(anthropic::AnthropicAuth::Bearer(token));
         }
@@ -228,7 +228,7 @@ fn create_signal(kind: SignalKind, summary: impl Into<String>) -> Signal {
     }
 }
 
-async fn stream_anthropic_response(
+async fn stream_messages_response(
     state: Arc<AppState>,
     auth: anthropic::AnthropicAuth,
     url: String,
@@ -279,7 +279,7 @@ async fn stream_anthropic_response(
         }
 
         let body = String::from_utf8_lossy(&buf);
-        let (assistant_output, removed_markers) = extract_anthropic_stream_text(&body);
+        let (assistant_output, removed_markers) = extract_messages_stream_text(&body);
 
         if removed_markers > 0 {
             tracing::warn!(
@@ -297,7 +297,7 @@ async fn stream_anthropic_response(
 
         let event = FocusaEvent::TurnCompleted {
             turn_id: turn_id.clone(),
-            harness_name: "anthropic".into(),
+            harness_name: "messages".into(),
             raw_user_input: Some(user_input.clone()),
             assistant_output: if assistant_output.is_empty() { None } else { Some(assistant_output) },
             artifacts_used: vec![],
@@ -599,15 +599,15 @@ async fn chat_completions(
 }
 
 /// POST /proxy/v1/messages — Anthropic proxy with turn tracking.
-async fn anthropic_messages(
+async fn messages_proxy(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(request): Json<MessagesRequest>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let auth = anthropic_auth(&headers).ok_or_else(|| {
+    let auth = messages_auth(&headers).ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "No API key — set FOCUSA_ANTHROPIC_KEY or pass x-api-key/Authorization header"})),
+            Json(json!({"error": "No API key — set FOCUSA_MESSAGES_API_KEY (or FOCUSA_ANTHROPIC_KEY) or pass x-api-key/Authorization header"})),
         )
     })?;
 
@@ -622,19 +622,19 @@ async fn anthropic_messages(
         let mut focusa = state.focusa.write().await;
         focusa.active_turn = Some(ActiveTurn {
             turn_id: turn_id.clone(),
-            adapter_id: "anthropic-proxy".to_string(),
-            harness_name: "anthropic".to_string(),
+            adapter_id: "messages-proxy".to_string(),
+            harness_name: "messages".to_string(),
             started_at: Utc::now(),
             raw_user_input: Some(user_input.clone()),
             assembled_prompt: None,
         });
     }
-    tracing::info!(turn_id = %turn_id, harness = "anthropic", "Turn started");
+    tracing::info!(turn_id = %turn_id, harness = "messages", "Turn started");
 
     let start_event = FocusaEvent::TurnStarted {
         turn_id: turn_id.clone(),
-        harness_name: "anthropic".into(),
-        adapter_id: "anthropic-proxy".into(),
+        harness_name: "messages".into(),
+        adapter_id: "messages-proxy".into(),
         raw_user_input: Some(user_input.clone()),
     };
     let _ = state
@@ -649,7 +649,7 @@ async fn anthropic_messages(
         let _ = state.command_tx.send(Action::IngestSignal { signal }).await;
     }
 
-    let url = resolve_anthropic_upstream(&request.model);
+    let url = resolve_messages_upstream(&request.model);
 
     // 2. PROMPT ASSEMBLY.
     let focusa_state = state.focusa.read().await;
@@ -687,7 +687,7 @@ async fn anthropic_messages(
     }
 
     if is_streaming(&upstream_request.extra) {
-        return stream_anthropic_response(
+        return stream_messages_response(
             state.clone(),
             auth.clone(),
             url,
@@ -733,7 +733,7 @@ async fn anthropic_messages(
     // 4. TURN COMPLETE.
     let mut response = response;
     if compat_mode {
-        let removed_markers = sanitize_anthropic_response_for_discord(&mut response);
+        let removed_markers = sanitize_messages_response_for_discord(&mut response);
         if removed_markers > 0 {
             tracing::warn!(
                 turn_id = %turn_id,
@@ -757,7 +757,7 @@ async fn anthropic_messages(
         if let Ok(mut retry_response) =
             anthropic::forward_request(get_client(), &url, &auth, &upstream_request).await
         {
-            let removed_markers = sanitize_anthropic_response_for_discord(&mut retry_response);
+            let removed_markers = sanitize_messages_response_for_discord(&mut retry_response);
             if removed_markers > 0 {
                 tracing::warn!(
                     turn_id = %turn_id,
@@ -778,7 +778,7 @@ async fn anthropic_messages(
         .unwrap_or_default();
     let complete_event = FocusaEvent::TurnCompleted {
         turn_id: turn_id.clone(),
-        harness_name: "anthropic".into(),
+        harness_name: "messages".into(),
         raw_user_input: Some(user_input.clone()),
         assistant_output: if assistant_output.is_empty() {
             None
@@ -928,6 +928,6 @@ async fn acp_proxy(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/proxy/v1/chat/completions", post(chat_completions))
-        .route("/proxy/v1/messages", post(anthropic_messages))
+        .route("/proxy/v1/messages", post(messages_proxy))
         .route("/proxy/acp", post(acp_proxy))
 }

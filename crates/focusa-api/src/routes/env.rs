@@ -14,9 +14,9 @@ async fn env(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let proxy_base = format!("{}/proxy", base);
     Json(json!({
         "proxy_base": proxy_base,
-        "anthropic_base_url": format!("{}/proxy", base),
+        "messages_base_url": format!("{}/proxy", base),
         "kimi_base_url": format!("{}/proxy", base),
-        "kimi_anthropic_base_url": format!("{}/proxy", base),
+        "kimi_messages_base_url": format!("{}/proxy", base),
         "openai_base_url": format!("{}/proxy/v1", base),
     }))
 }

@@ -27,7 +27,8 @@ pub async fn start() -> anyhow::Result<()> {
     for key in [
         "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
-        "FOCUSA_ANTHROPIC_KEY",
+        "FOCUSA_MESSAGES_API_KEY",
+        "FOCUSA_ANTHROPIC_KEY", // backward compat
         "FOCUSA_API_KEY",
     ] {
         if let Ok(val) = std::env::var(key) {

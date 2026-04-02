@@ -21,11 +21,11 @@ pub async fn run(cmd: EnvCmd, json: bool) -> anyhow::Result<()> {
     match cmd {
         EnvCmd::Shell => {
             let exports = [
-                ("ANTHROPIC_BASE_URL", resp["anthropic_base_url"].as_str()),
+                ("MESSAGES_BASE_URL", resp["messages_base_url"].as_str()),
                 ("KIMI_BASE_URL", resp["kimi_base_url"].as_str()),
                 (
-                    "KIMI_ANTHROPIC_BASE_URL",
-                    resp["kimi_anthropic_base_url"].as_str(),
+                    "KIMI_MESSAGES_BASE_URL",
+                    resp["kimi_messages_base_url"].as_str(),
                 ),
                 ("OPENAI_BASE_URL", resp["openai_base_url"].as_str()),
             ];
