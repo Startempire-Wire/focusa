@@ -642,41 +642,42 @@ This means the organism's active cognition gets sharper over time as irrelevant 
 | `vault-import` (825 pages) | T4 |
 | `important` (tag exists) | T1 |
 
-#### Orphan Policy
+#### Unlinked Page Policy
 
-**"Orphan" means no inbound links — but that does NOT mean the page is worthless.** A page may have no inbound links simply because wiki-agent or the enrichment pipeline hasn't gotten to it yet. Most of the 952 current "orphans" are unprocessed imports that haven't been linked, not junk.
+**The term "orphan" is retired.** An unlinked page is not unwanted. It's just not connected yet.
 
-**True orphan vs unlinked page:**
+The operator writes random notes, ideas, fragments, thoughts. These have value even if they don't fit neatly into the graph. A note with no inbound links might be:
+- A thought that hasn't found its home yet
+- A seed idea that will matter in 6 months
+- A quick capture during a conversation
+- A personal reference the operator values
+- An import that hasn't been processed
 
-| Condition | Classification | Action |
+**None of these are waste. All of them belong.**
+
+**The system's job is to CONNECT pages, not judge them.**
+
+#### Unlinked Page Handling
+
+| Action | Who | When |
 |---|---|---|
-| No inbound links + in `/joplin-import/` or `/ai-chats/` | **Unprocessed** (not orphan) | T4 raw → candidate for reduction pipeline |
-| No inbound links + in `/notes/` + created by agent | **Unlinkable candidate** | wiki-agent should attempt to find links before flagging |
-| No inbound links + in `/notes/` + has content + has tags | **Under-connected** | wiki-agent should create MOC links |
-| No inbound links + in `/notes/` + empty or stub | **True orphan candidate** | Surface for operator review |
-| No inbound links + in `/ops/` | **Normal** | Operational pages don't need inbound links |
-| No inbound links + in `/wirebot/` | **Normal** | Agent workspace pages are self-contained |
+| Detect unlinked pages | wiki-agent (nightly) | Automatic |
+| Attempt to find and create links | wiki-agent | Automatic — search for related MOCs, projects, concepts |
+| Assign importance tier if untiered | wiki-agent | Automatic — based on namespace + content analysis |
+| Surface connection suggestions | Agent Audit UI | Ongoing — "these 5 pages might relate to Project X" |
+| Delete any page | **Operator only, same-session auth** | Never automatic, never carried across sessions |
 
-**Before flagging anything as orphan, wiki-agent MUST:**
-1. Check namespace — `/ops/`, `/wirebot/`, `/tep/` pages are NOT orphans just because they lack inbound links
-2. Check if page has outbound links — a page that links OUT but isn't linked TO is under-connected, not orphaned
-3. Check if page has meaningful content (>100 chars) — stub pages are candidates, content pages are not
-4. Check if page has tags — tagged pages are discoverable even without links
-5. Attempt to find a relevant MOC or project page to link from — link it first, ask questions later
+**wiki-agent's job with unlinked pages:**
+1. Try to link them — find related content, add to MOCs, suggest connections
+2. Assign a tier if missing — T1-T4 based on namespace and content
+3. Surface suggestions to operator — "this note might connect to X"
+4. **Never flag as waste. Never recommend deletion. Never quarantine based on link count alone.**
 
-**Only after all 5 checks fail** is a page a true orphan candidate.
-
-**Orphan candidate handling:**
-1. True orphan candidates are surfaced in `wb wiki stats` and Agent Audit UI
-2. **No agent may delete an orphan page autonomously** — ever
-3. Operator reviews candidates and gives explicit authorization in the same session:
-   - "delete these" → agent deletes in same session only
-   - "keep" → agent links into graph or assigns tier
-   - "demote" → agent assigns T3/T4/T5
-4. Authorization does not carry across sessions — a blanket "delete all orphans" from a past session does not apply to new orphans
-5. If in doubt, demote to T4 (raw) or attempt to link — never delete
-
-**Why same-session only:** Prevents stale authorization from destroying pages the operator hasn't reviewed. The operator must see the specific list and approve in the moment.
+**Deletion rules (unchanged):**
+- No agent may delete any wiki page autonomously — ever
+- Operator must explicitly authorize deletion in the same session
+- Authorization does not carry across sessions
+- If in doubt, keep the page and try harder to connect it
 
 **Link rot detection:**
 - Weekly: scan for broken wiki links in T1+T2 pages → wiki-agent candidates
