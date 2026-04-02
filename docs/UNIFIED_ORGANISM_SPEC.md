@@ -993,16 +993,39 @@ The LLM extraction produces structured memories:
 
 Each memory includes provenance (source file, extraction date, confidence, chunk number).
 
-### 10A.3 Where Extracted Memories Go
+### 10A.3 Where Extracted Memories Go — The WINS Portal Approval Flow
 
-| Destination | What Goes There | Write Mode |
-|---|---|---|
-| Mem0 | Facts, preferences, patterns, relationships | Automatic after validation |
-| Wiki | Decisions with rationale, project updates, skill discoveries | Threshold + schema validated |
-| Focusa procedural memory | Behavioral rules from repeated patterns | Threshold or operator-approved |
-| Letta core memory | Operator personality/narrative updates | Operator-approved only |
+**The promotion pipeline already exists.** It is the Scoreboard's memory queue + WINS portal approval UI + 5-sink delivery system.
 
-All writes go through the promotion pipeline (§6) with write-trust levels (§6.2).
+**The flow:**
+```
+LLM extracts memory from historical item
+    ↓
+QueueMemoryForApproval() → memory_queue table (status: pending)
+    ↓
+Operator reviews in WINS portal (audit.philoveracity.com or :8100)
+    │  Tinder-style swipe: approve / reject / correct-then-approve
+    │  797-line Svelte UI with gamified review (power meter, streaks)
+    ↓
+On approve → writebackApprovedMemory()
+    ↓
+Auto-deliver to ALL 5 sinks:
+    1. mem0        → Mem0 vector store (:8200)
+    2. memory_md   → MEMORY.md in workspace
+    3. fact_yaml   → fact YAML file in /home/wirebot/workspace/memory/facts/
+    4. wiki        → Wiki.js knowledge page
+    5. letta       → Letta core memory block (:8283)
+    ↓
+Delivery worker runs every 20s (retry with backoff on failure)
+```
+
+**Current state:** 15 memories pending review (nightly diary entries Mar 12-26). None approved. The UI is built. The queue works. The delivery system works. The operator hasn't been reviewing.
+
+**CRITICAL: All historical inference output MUST route through this existing queue.** Do not create a parallel approval system. The `ExtractMemoriesFromDocument` and `ExtractMemoriesFromConversation` functions already call `QueueMemoryForApproval()` which feeds the WINS portal.
+
+**What the historical pipeline adds is VOLUME to the queue** — not a new pipeline. More items in → operator reviews more → more memories delivered to all 5 sinks → system gets smarter.
+
+**Implication for operator:** When the nightly historical processing starts producing 20-50 new memory candidates per night, the WINS portal queue will grow. The operator needs a review cadence (daily 5-min review session) or the queue will back up. Consider: auto-approve for high-confidence items (>0.95) from trusted sources (nightly diary, vault notes with provenance).
 
 ### 10A.4 Pi Session Processing (Special)
 
