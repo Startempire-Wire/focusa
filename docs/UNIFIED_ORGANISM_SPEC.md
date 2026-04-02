@@ -642,6 +642,24 @@ This means the organism's active cognition gets sharper over time as irrelevant 
 | `vault-import` (825 pages) | T4 |
 | `important` (tag exists) | T1 |
 
+#### Orphan Policy
+
+Orphan pages (no inbound links) are **candidates for deletion but NEVER deleted without explicit operator authorization in the same session.**
+
+Orphan handling rules:
+1. wiki-agent flags orphans and adds `orphan` tag
+2. Orphans are surfaced in `wb wiki stats` and Agent Audit UI
+3. Nightly: generate orphan review queue (sorted by age, namespace, tier)
+4. **No agent may delete an orphan page autonomously** — ever
+5. Operator reviews orphan queue and gives explicit authorization:
+   - "delete these" → agent deletes in same session
+   - "keep" → agent links into graph or assigns tier
+   - "demote" → agent assigns T3/T4/T5
+6. Authorization does not carry across sessions — a blanket "delete all orphans" from a past session does not apply to new orphans
+7. If in doubt, demote to T4 (raw) — never delete
+
+**Why same-session only:** Prevents stale authorization from destroying pages the operator hasn't reviewed. The operator must see the specific orphan list and approve in the moment.
+
 **Link rot detection:**
 - Weekly: scan for broken wiki links in T1+T2 pages → wiki-agent candidates
 - Track unresolved red link count in T1+T2 only (not T3+T4+T5)
