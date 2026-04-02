@@ -447,3 +447,83 @@ mod tests {
         assert!(signals.contains(&UfiSignalType::UndoOrRevert));
     }
 }
+
+/// Execute a worker job with LLM extraction (async).
+/// 
+/// Tries MiniMax M2.7 first, falls back to regex heuristic on failure.
+/// Per UNIFIED_ORGANISM_SPEC §11.3.
+pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
+    let content = job.correlation_id.as_deref().unwrap_or("");
+    if content.is_empty() {
+        return execute_job(job);
+    }
+
+    // Build LLM prompt based on job kind
+    let prompt = match job.kind {
+        WorkerJobKind::ClassifyTurn => format!(
+            "Classify this user input as one of: task, question, correction, meta, clarification, acknowledgement.\nReturn JSON: {{\"classification\": \"...\", \"confidence\": 0.0-1.0}}\n\nINPUT:\n{}", 
+            &content[..content.len().min(2000)]
+        ),
+        WorkerJobKind::ExtractAsccDelta => format!(
+            "Extract structured information from this text.\nReturn JSON with arrays for: decisions, constraints, failures, next_steps, open_questions, recent_results, notes.\nOnly include items actually present.\n\nTEXT:\n{}",
+            &content[..content.len().min(4000)]
+        ),
+        WorkerJobKind::DetectRepetition => format!(
+            "Is this content semantically repetitive (saying the same thing multiple ways)?\nReturn JSON: {{\"is_repetitive\": true/false, \"ratio\": 0.0-1.0, \"evidence\": \"...\"}}\n\nCONTENT:\n{}",
+            &content[..content.len().min(2000)]
+        ),
+        WorkerJobKind::ScanForErrors => format!(
+            "Identify errors, stack traces, and failure patterns in this text.\nReturn JSON: {{\"errors\": [{{\"type\": \"...\", \"severity\": \"...\", \"context\": \"...\"}}]}}\n\nTEXT:\n{}",
+            &content[..content.len().min(2000)]
+        ),
+        WorkerJobKind::SuggestMemory => format!(
+            "Extract stable facts, preferences, and behavioral patterns worth remembering from this text.\nReturn JSON: {{\"suggestions\": [\"fact1\", \"fact2\"], \"count\": N}}\n\nTEXT:\n{}",
+            &content[..content.len().min(2000)]
+        ),
+    };
+
+    // Try LLM call (MiniMax M2.7 via OpenClaw gateway, 2s timeout)
+    let client = reqwest::Client::new();
+    let gateway_token = std::env::var("GATEWAY_TOKEN").unwrap_or_default();
+    
+    let llm_result = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        client.post("http://127.0.0.1:18789/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", gateway_token))
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "model": "minimax/MiniMax-M2.7",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 500,
+            }))
+            .send(),
+    ).await;
+
+    match llm_result {
+        Ok(Ok(resp)) => {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                    // Try to parse the JSON from LLM response
+                    let start = text.find('{').unwrap_or(0);
+                    let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                    if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
+                        return JobResult {
+                            job_id: job.id,
+                            job_type: format!("{:?}", job.kind),
+                            payload,
+                            success: true,
+                        };
+                    }
+                }
+            }
+            // LLM returned but couldn't parse — fall back to regex
+            tracing::debug!(kind = ?job.kind, "LLM worker: response unparseable, falling back to regex");
+            execute_job(job)
+        }
+        _ => {
+            // LLM timeout or error — fall back to regex
+            tracing::debug!(kind = ?job.kind, "LLM worker: timeout/error, falling back to regex");
+            execute_job(job)
+        }
+    }
+}

@@ -1324,9 +1324,9 @@ impl Daemon {
 
         // Clone job for execution (to avoid move issues).
         let exec_job = job.clone();
-        let result = match tokio::time::timeout(timeout_duration, async move {
-            executor::execute_job(&exec_job)
-        }).await {
+        let result = match tokio::time::timeout(timeout_duration, 
+            executor::execute_job_llm(&exec_job)
+        ).await {
             Ok(result) => result,
             Err(_) => {
                 // Timeout occurred.
