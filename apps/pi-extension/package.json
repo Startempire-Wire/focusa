@@ -6,10 +6,11 @@
   "pi": {
     "extensions": ["./src/index.ts"]
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.0"
+  },
   "devDependencies": {
     "@mariozechner/pi-coding-agent": "latest",
-    "@sinclair/typebox": "^0.34.0",
     "typescript": "^5.0.0"
   }
 }
