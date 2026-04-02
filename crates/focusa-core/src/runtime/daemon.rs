@@ -149,6 +149,10 @@ impl Daemon {
         // Don't fire immediately on startup — first tick is a no-op.
         decay_interval.tick().await;
 
+        // Guardian health check interval (every 5 minutes).
+        let mut guardian_interval = tokio::time::interval(std::time::Duration::from_secs(300));
+        guardian_interval.tick().await;
+
         loop {
             tokio::select! {
                 action = self.command_rx.recv() => {
@@ -183,6 +187,10 @@ impl Daemon {
 
                     // Run gate pipeline after decay to re-check surfacing thresholds.
                     self.run_gate_pipeline();
+                }
+                _ = guardian_interval.tick() => {
+                    // Guardian health check — emit signals for degraded services (§9.11 JARVIS Domain 5).
+                    self.check_guardian_health().await;
                 }
             }
         }
@@ -1088,6 +1096,70 @@ impl Daemon {
                 if let Err(e) = self.persistence.save_state(&self.state) {
                     tracing::error!("Failed to save state after expiring active_turn: {}", e);
                 }
+            }
+        }
+    }
+
+    /// Check Guardian health and emit signals for degraded services.
+    ///
+    /// Runs every 5 minutes. Shells out to `guardian status --json`.
+    /// Per UNIFIED_ORGANISM_SPEC §9.11 JARVIS Domain 5.
+    async fn check_guardian_health(&mut self) {
+        let output = match tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            tokio::process::Command::new("guardian")
+                .args(["status", "--json"])
+                .output(),
+        ).await {
+            Ok(Ok(output)) if output.status.success() => output,
+            _ => return, // Guardian unavailable — skip
+        };
+
+        let json_str = match std::str::from_utf8(&output.stdout) {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+
+        let status: serde_json::Value = match serde_json::from_str(json_str) {
+            Ok(v) => v,
+            Err(_) => return,
+        };
+
+        // Check for down services
+        if let Some(services) = status.get("services").and_then(|v| v.as_array()) {
+            for svc in services {
+                let name = svc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown");
+                let is_up = svc.get("active").and_then(|v| v.as_bool()).unwrap_or(true);
+                if !is_up {
+                    let signal = crate::types::Signal {
+                        id: Uuid::now_v7(),
+                        ts: Utc::now(),
+                        origin: crate::types::SignalOrigin::Daemon,
+                        kind: crate::types::SignalKind::Warning,
+                        frame_context: None,
+                        summary: format!("Guardian: service {} is DOWN", name),
+                        payload_ref: None,
+                        tags: vec!["guardian".into(), "service_down".into()],
+                    };
+                    let _ = self.process_action(crate::types::Action::IngestSignal { signal }).await;
+                }
+            }
+        }
+
+        // Check disk
+        if let Some(disk_pct) = status.get("disk_pct").and_then(|v| v.as_f64()) {
+            if disk_pct > 90.0 {
+                let signal = crate::types::Signal {
+                    id: Uuid::now_v7(),
+                    ts: Utc::now(),
+                    origin: crate::types::SignalOrigin::Daemon,
+                    kind: crate::types::SignalKind::Warning,
+                    frame_context: None,
+                    summary: format!("Guardian: disk usage {}% (critical)", disk_pct as u32),
+                    payload_ref: None,
+                    tags: vec!["guardian".into(), "disk_critical".into()],
+                };
+                let _ = self.process_action(crate::types::Action::IngestSignal { signal }).await;
             }
         }
     }
