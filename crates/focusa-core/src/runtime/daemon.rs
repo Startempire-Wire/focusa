@@ -894,15 +894,35 @@ impl Daemon {
                 goal,
                 beads_issue_id,
                 constraints,
-                tags,
-            } => Ok(vec![FocusaEvent::FocusFramePushed {
-                frame_id: Uuid::now_v7(),
-                beads_issue_id,
-                title,
-                goal,
-                constraints,
-                tags,
-            }]),
+                mut tags,
+            } => {
+                // Flow Mesh bridge (§9.6): check if a matching task exists.
+                // Shell out to mesh CLI (best-effort, 3s timeout).
+                if let Ok(output) = tokio::time::timeout(
+                    std::time::Duration::from_secs(3),
+                    tokio::process::Command::new("mesh")
+                        .args(["task", "list", "--format", "json"])
+                        .output(),
+                ).await {
+                    if let Ok(output) = output {
+                        if let Ok(tasks_str) = std::str::from_utf8(&output.stdout) {
+                            if tasks_str.contains(&beads_issue_id) {
+                                tags.push(format!("flow-mesh:linked"));
+                                tracing::info!(beads_id = %beads_issue_id, "Focus frame linked to Flow Mesh task");
+                            }
+                        }
+                    }
+                }
+
+                Ok(vec![FocusaEvent::FocusFramePushed {
+                    frame_id: Uuid::now_v7(),
+                    beads_issue_id,
+                    title,
+                    goal,
+                    constraints,
+                    tags,
+                }])
+            }
 
             Action::PopFrame { completion_reason } => {
                 let frame_id = self
