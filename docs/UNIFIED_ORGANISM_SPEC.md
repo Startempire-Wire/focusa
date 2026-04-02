@@ -373,6 +373,11 @@ Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_proj
 
 `/wbm` is a Pi extension that makes Pi sessions part of Wirebot's unified consciousness.
 
+**Codebase:** `/home/wirebot/focusa/apps/pi-extension/` (own beads at `.beads/`)
+**Spec:** `/home/wirebot/focusa/docs/44-pi-focusa-integration-spec.md` (§28-§38)
+**Entry point:** `apps/pi-extension/src/index.ts`
+**Install:** Symlink or copy to `~/.pi/agent/extensions/focusa-pi-bridge/`
+
 #### Two-Way Bridge (Not Just Read)
 
 ```
