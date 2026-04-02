@@ -34,6 +34,7 @@ Every concern has exactly one owner. Cross-system overlap is a defect.
 | Orchestration surface | **wb CLI** | Not a storage system |
 | Infrastructure health | **Guardian + wb health** | — |
 | Audit trail | **Focusa event log + OpenClaw audit** | Append-only provenance |
+| Mobile cognitive visibility | **Agent Audit UI** (audit.philoveracity.com) | PWA, read-only, never mutates |
 
 ---
 
@@ -256,6 +257,7 @@ When systems disagree, precedence is:
 | **Flow Mesh down** | Local work shadow queue; reconcile later |
 | **wiki-agent down** | Manual/sync paths continue; flag graph health degradation |
 | **Sync timers down** | System continues; mark knowledge growth degraded |
+| **Agent Audit down** | No mobile visibility; agent execution unaffected |
 
 **No subsystem failure should fully halt agent execution unless safety requires it.**
 
@@ -364,6 +366,57 @@ Direct service-to-service APIs are allowed when latency matters or no wb wrapper
 Core entities: Agent, Role, Operator, Project, Task, Skill, Tool, Decision, Constraint, Memory, Session, Thread, Artifact, Objective, Policy
 
 Core relations: `agent_has_skill`, `project_requires_skill`, `task_advances_project`, `task_advances_objective`, `decision_applies_to_project`, `decision_constrains_task`, `memory_supports_decision`, `artifact_evidences_decision`, `session_updates_project`, `operator_state_modulates_agent`
+
+### 9.9 Agent Audit UI + Mobile Access
+
+**Agent Audit** (`audit.philoveracity.com`) is the organism's mobile surface. It is already:
+- Running as a Go binary at `/opt/agent-audit/` on `:3020`
+- Tunneled via Cloudflare to `audit.philoveracity.com`
+- A PWA (installable on Samsung phone — `manifest.json` with standalone display, portrait, dark theme)
+- Showing agent sessions, actions, errors, tool/model breakdowns
+- Showing Focusa API compliance probe results (CI artifact)
+
+**Current gap:** The audit UI shows only CI probe results for Focusa. It does NOT show live Focusa cognitive state.
+
+**Required: Live Focusa panels in Agent Audit**
+
+The audit UI must become the operator's mobile window into the organism's cognition. Add these panels by querying Focusa API at `:8787`:
+
+| Panel | Focusa Endpoint | What It Shows |
+|---|---|---|
+| **Focus Stack** | `GET /v1/focus/stack` | Active frame title, goal, depth, parent chain |
+| **Focus State** | `GET /v1/ascc/state` | Current intent, decisions, constraints, failures, next steps |
+| **Autonomy** | `GET /v1/autonomy` | ARI score, AL level, 6 dimension breakdown |
+| **Gate** | `GET /v1/gate/scores` | Surfaced candidates with pressure levels |
+| **Thread Thesis** | `GET /v1/threads` | Primary intent, confidence, open questions |
+| **Constitution** | `GET /v1/constitution/active` | Active principles + safety rules |
+| **Reflection** | `GET /v1/reflect/status` | Last reflection result, scheduler status |
+| **Telemetry** | `GET /v1/telemetry/tokens` | Token usage, per-task cost |
+| **RFM** | `GET /v1/rfm` | Current RFM level, AIS score |
+| **Events** | `GET /v1/events/stream` (SSE) | Live event tail |
+
+**Implementation approach:**
+- Agent Audit already polls services for health data
+- Add Focusa as another polled service (`:8787`)
+- Render panels in the existing Go template engine
+- SSE event stream can power a live activity indicator
+- All data is read-only — audit UI never mutates Focusa state
+
+**Mobile UX rules:**
+- Panels collapse to summary cards on phone (tap to expand)
+- Focus Stack shows active frame title + ARI badge at top (always visible)
+- Gate candidates show count badge — tap for detail
+- Dark theme matches existing audit UI
+- PWA offline: show last-known state with staleness indicator
+
+**Why this is the right mobile strategy:**
+- No new app to build — extend existing PWA
+- Already tunneled, already installable on phone
+- Same auth surface as existing audit
+- Operator can check cognitive state from Samsung at any time
+- No Tauri mobile build complexity
+
+**Effort estimate:** ~4 hours (Go template panels + Focusa HTTP client + CSS)
 
 ---
 
@@ -1055,8 +1108,9 @@ Query Mem0 graph for relational context:
 | **P3** | Reflection loop upgrade (LLM-backed) | Focusa daemon | 2 hours |
 | **P3** | RFM microcell validators (LLM-backed) | Focusa daemon | 4 hours |
 | **P3** | Nightly contradiction scan (LLM-backed) | Focusa + Wiki + Mem0 | 3 hours |
+| **P1** | Agent Audit: live Focusa panels (mobile) | Agent Audit, Focusa | 4 hours |
 
-**Total estimated effort:** ~66 hours across 6 phases
+**Total estimated effort:** ~70 hours across 6 phases
 
 ---
 
@@ -1083,3 +1137,4 @@ The organism is working when:
 17. **Reflection loop produces LLM-backed observations** about work quality and trajectory
 18. **RFM microcells validate high-risk output** with isolated sub-agent LLM calls
 19. **Internal LLM calls are budgeted and auditable** — every metacognitive call is logged with token count
+20. **Operator can see Focus Stack, ARI, gate candidates, and thesis from phone** via Agent Audit PWA
