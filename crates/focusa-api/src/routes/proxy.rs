@@ -581,6 +581,13 @@ async fn chat_completions(
         }
     }
 
+    // 1d. Resolve contradictions in memory before assembly (§7).
+    {
+        let mut focusa = state.focusa.write().await;
+        focusa_core::memory::semantic::resolve_contradictions(&mut focusa.memory);
+        drop(focusa);
+    }
+
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
     let focusa_state = state.focusa.read().await;
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);

@@ -194,3 +194,104 @@ pub fn to_prompt_string(memory: &ExplicitMemory) -> String {
         .collect::<Vec<_>>()
         .join("; ")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::*;
+    use chrono::Utc;
+
+    fn make_record(key: &str, value: &str, source: MemorySource) -> SemanticRecord {
+        SemanticRecord {
+            key: key.to_string(),
+            value: value.to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            source,
+            confidence: 1.0,
+            ttl: None,
+            tags: vec![],
+            pinned: false,
+        }
+    }
+
+    #[test]
+    fn test_contradiction_precedence_higher_wins() {
+        let mut memory = ExplicitMemory::default();
+        // Mem0 says "enable caching"
+        memory.semantic.push(make_record("config.cache", "enable caching always", MemorySource::Mem0));
+        // Operator says "not enable caching" (higher precedence)
+        memory.semantic.push(make_record("config.nocache", "not enable caching", MemorySource::Operator));
+
+        resolve_contradictions(&mut memory);
+
+        // Mem0 entry should be demoted (lower precedence)
+        let mem0 = memory.semantic.iter().find(|r| r.key == "config.cache").unwrap();
+        assert!(mem0.confidence < 1.0, "Mem0 entry should have reduced confidence");
+        assert!(mem0.tags.contains(&"superseded".to_string()));
+
+        // Operator entry should be untouched
+        let op = memory.semantic.iter().find(|r| r.key == "config.nocache").unwrap();
+        assert_eq!(op.confidence, 1.0);
+    }
+
+    #[test]
+    fn test_contradiction_same_precedence_newer_wins() {
+        let mut memory = ExplicitMemory::default();
+        let mut old = make_record("pref.style", "always use verbose style", MemorySource::Worker);
+        old.updated_at = Utc::now() - chrono::Duration::hours(1);
+        memory.semantic.push(old);
+
+        let new = make_record("pref.concise", "never use verbose style", MemorySource::Worker);
+        memory.semantic.push(new);
+
+        resolve_contradictions(&mut memory);
+
+        // Older entry should be demoted
+        let old_rec = memory.semantic.iter().find(|r| r.key == "pref.style").unwrap();
+        assert!(old_rec.confidence < 1.0);
+    }
+
+    #[test]
+    fn test_no_contradiction_different_prefix() {
+        let mut memory = ExplicitMemory::default();
+        memory.semantic.push(make_record("project.name", "enable feature X", MemorySource::Worker));
+        memory.semantic.push(make_record("user.pref", "not enable feature Y", MemorySource::Worker));
+
+        resolve_contradictions(&mut memory);
+
+        // Different prefixes — no contradiction
+        assert!(memory.semantic.iter().all(|r| r.confidence == 1.0));
+    }
+
+    #[test]
+    fn test_forgetting_removes_low_confidence_after_contradiction() {
+        let mut memory = ExplicitMemory::default();
+        // Two contradicting entries from same source — newer wins
+        let mut old = make_record("test.a", "always enable feature", MemorySource::Worker);
+        old.updated_at = Utc::now() - chrono::Duration::hours(2);
+        old.confidence = 0.08; // Already low
+        memory.semantic.push(old);
+        memory.semantic.push(make_record("test.b", "never enable feature", MemorySource::Worker));
+
+        resolve_contradictions(&mut memory);
+
+        // Old entry got halved (0.08 * 0.5 = 0.04 < 0.05) so removed
+        assert_eq!(memory.semantic.len(), 1);
+        assert_eq!(memory.semantic[0].key, "test.b");
+    }
+
+    #[test]
+    fn test_pinned_immune_to_forgetting() {
+        let mut memory = ExplicitMemory::default();
+        let mut rec = make_record("test.pinned", "value", MemorySource::Worker);
+        rec.confidence = 0.01;
+        rec.pinned = true;
+        memory.semantic.push(rec);
+
+        resolve_contradictions(&mut memory);
+
+        // Pinned should survive
+        assert_eq!(memory.semantic.len(), 1);
+    }
+}
