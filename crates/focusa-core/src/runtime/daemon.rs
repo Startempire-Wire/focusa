@@ -275,13 +275,28 @@ impl Daemon {
                             errors,
                         ).await;
 
-                        // POST-TURN EVALUATION: async LLM quality assessment (§11.4).
+                        // POST-TURN EVALUATION: async LLM quality assessment (§11.8).
+                        // At R0: sample every 3rd turn. At R1+: every turn.
                         {
+                            let rfm_level = self.state.rfm.level;
+                            let should_evaluate = rfm_level >= crate::types::RfmLevel::R1
+                                || self.state.telemetry.total_events % 3 == 0;
+                            
+                            if should_evaluate {
                             let eval_user = raw_user_input.clone().unwrap_or_default();
                             let eval_assist = assistant_output.clone().unwrap_or_default();
                             let eval_errors = errors.clone();
                             let eval_cmd_tx = self.command_tx.clone();
                             let eval_frame_id = frame_id;
+                            // Collect active constraints for violation check
+                            let active_constraints: Vec<String> = frame_id
+                                .and_then(|fid| self.state.focus_stack.frames.iter().find(|f| f.id == fid))
+                                .map(|f| f.focus_state.constraints.clone())
+                                .unwrap_or_default();
+                            let active_decisions: Vec<String> = frame_id
+                                .and_then(|fid| self.state.focus_stack.frames.iter().find(|f| f.id == fid))
+                                .map(|f| f.focus_state.decisions.clone())
+                                .unwrap_or_default();
                             tokio::spawn(async move {
                                 let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
                                 if api_key.is_empty() || eval_assist.is_empty() { return; }
@@ -292,19 +307,23 @@ impl Daemon {
 USER: {}
 ASSISTANT: {}
 ERRORS: {:?}
+ACTIVE CONSTRAINTS: {:?}
+PRIOR DECISIONS: {:?}
 
 Return:
 {{
-  "relevance": 0.0-1.0,
-  "completeness": 0.0-1.0,
-  "accuracy": 0.0-1.0,
-  "overall": 0.0-1.0,
-  "issues": ["issue1"],
-  "suggestions": ["suggestion1"]
+  "answers_question": true/false,
+  "consistent": true/false,
+  "violates_constraints": ["constraint text if violated"],
+  "confidence": 0.0-1.0,
+  "quality_notes": "brief assessment",
+  "overall": 0.0-1.0
 }}"#,
                                     &eval_user[..eval_user.len().min(500)],
                                     &eval_assist[..eval_assist.len().min(1000)],
                                     eval_errors,
+                                    active_constraints,
+                                    active_decisions,
                                 );
                                 
                                 let client = reqwest::Client::new();
@@ -326,29 +345,54 @@ Return:
                                             let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
                                             if let Ok(eval) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
                                                 let overall = eval.get("overall").and_then(|v| v.as_f64()).unwrap_or(0.8);
+                                                let answers = eval.get("answers_question").and_then(|v| v.as_bool()).unwrap_or(true);
+                                                let consistent = eval.get("consistent").and_then(|v| v.as_bool()).unwrap_or(true);
+                                                let violations: Vec<String> = eval.get("violates_constraints")
+                                                    .and_then(|v| v.as_array())
+                                                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                                                    .unwrap_or_default();
+                                                let quality_notes = eval.get("quality_notes").and_then(|v| v.as_str()).unwrap_or("");
+                                                
                                                 tracing::info!(
                                                     overall = overall,
-                                                    relevance = eval.get("relevance").and_then(|v| v.as_f64()),
-                                                    completeness = eval.get("completeness").and_then(|v| v.as_f64()),
+                                                    answers_question = answers,
+                                                    consistent = consistent,
+                                                    violations = violations.len(),
                                                     "Post-turn evaluation complete"
                                                 );
-                                                // Store evaluation as semantic memory for future reference
+                                                
+                                                // Store evaluation as semantic memory
                                                 let _ = eval_cmd_tx.send(crate::types::Action::UpsertSemantic {
                                                     key: "eval.last_turn".to_string(),
-                                                    value: format!("quality={:.2}", overall),
+                                                    value: format!("quality={:.2} answers={} consistent={} notes={}", overall, answers, consistent, quality_notes),
                                                     source: crate::types::MemorySource::Worker,
                                                 }).await;
-                                                // If quality is low, emit a signal
-                                                if overall < 0.5 {
-                                                    let issues = eval.get("issues")
-                                                        .and_then(|v| v.as_array())
-                                                        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
-                                                        .unwrap_or_default();
+                                                
+                                                // Constraint violations → add to Focus State failures for next turn
+                                                if !violations.is_empty() {
+                                                    if let Some(fid) = eval_frame_id {
+                                                        let failure_text = violations.iter()
+                                                            .map(|v| format!("Constraint violated: {}", v))
+                                                            .collect::<Vec<_>>();
+                                                        let _ = eval_cmd_tx.send(crate::types::Action::UpdateCheckpointDelta {
+                                                            frame_id: fid,
+                                                            turn_id: String::new(),
+                                                            delta: crate::types::FocusStateDelta {
+                                                                failures: Some(failure_text),
+                                                                ..Default::default()
+                                                            },
+                                                        }).await;
+                                                    }
+                                                }
+                                                
+                                                // Low quality → add note to Focus State
+                                                if overall < 0.5 || !answers {
+                                                    let note = format!("Previous response quality: {:.2}. {}", overall, quality_notes);
                                                     let signal = crate::types::Signal {
                                                         id: uuid::Uuid::now_v7(),
                                                         ts: chrono::Utc::now(),
                                                         kind: crate::types::SignalKind::Warning,
-                                                        summary: format!("Low turn quality ({:.2}): {}", overall, issues),
+                                                        summary: note,
                                                         origin: crate::types::SignalOrigin::Worker,
                                                         frame_context: eval_frame_id,
                                                         payload_ref: None,
@@ -361,6 +405,7 @@ Return:
                                     }
                                 }
                             });
+                        } // should_evaluate
                         }
 
                         // Autonomy: record observation from turn (docs/12, docs/37).
@@ -563,7 +608,7 @@ Return ONLY valid JSON:
                                     
                                     let client = reqwest::Client::new();
                                     if let Ok(Ok(resp)) = tokio::time::timeout(
-                                        std::time::Duration::from_secs(10),
+                                        std::time::Duration::from_secs(2),
                                         client.post("https://api.minimax.io/v1/chat/completions")
                                             .header("Authorization", format!("Bearer {}", api_key))
                                             .json(&serde_json::json!({
@@ -681,6 +726,11 @@ Return ONLY valid JSON:
                     if self.state.clt.nodes.len() > 1000 && self.state.clt.nodes.len() % 100 == 1 {
                         let session_id = self.state.session.as_ref().map(|s| s.session_id);
                         crate::clt::compact_if_needed(&mut self.state.clt, session_id, 1000, 50).await;
+                    }
+
+                    // Session-start: resolve contradictions in existing memory (§7)
+                    if let FocusaEvent::SessionStarted { .. } = &event {
+                        crate::memory::semantic::resolve_contradictions(&mut self.state.memory);
                     }
 
                     // Session-start seeding: Mem0 → Focusa semantic memory (§9.3, §14 Phase 2.1)

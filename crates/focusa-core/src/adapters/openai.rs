@@ -162,6 +162,7 @@ pub fn process_request(
         safety_rules: &safety,
         config,
         rehydrate_handles: None,
+        thesis: state.threads.iter().find(|t| t.status == crate::types::ThreadStatus::Active).map(|t| &t.thesis),
     };
     let assembly = crate::expression::engine::assemble_from(input);
 

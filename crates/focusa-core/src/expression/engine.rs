@@ -118,6 +118,8 @@ pub struct AssemblyInput<'a> {
     pub config: &'a FocusaConfig,
     /// Rehydration: inline handle content up to max_tokens.
     pub rehydrate_handles: Option<u32>,
+    /// Thread thesis (injected into Slot 3 per §11.5).
+    pub thesis: Option<&'a crate::types::ThreadThesis>,
 }
 
 /// Minimal parent frame context for prompt inclusion.
@@ -155,6 +157,7 @@ pub fn assemble(
         safety_rules: &[],
         config,
         rehydrate_handles: None,
+            thesis: None,
     };
     assemble_from(input)
 }
@@ -252,8 +255,22 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Slot 2: Operating rules.
     let mut slot_rules = build_rules_slot(input.rules);
 
-    // Slot 3: Active focus frame.
+    // Slot 3: Active focus frame + thread thesis.
     let mut slot_focus = build_focus_slot(input.frame_title, input.focus_state, input.ascc);
+    if let Some(thesis) = input.thesis {
+        if !thesis.primary_intent.is_empty() {
+            slot_focus.push_str(&format!("\nTHREAD THESIS:\n  Intent: {}\n", thesis.primary_intent));
+            if !thesis.secondary_goals.is_empty() {
+                slot_focus.push_str(&format!("  Goals: {}\n", thesis.secondary_goals.join(", ")));
+            }
+            if !thesis.open_questions.is_empty() {
+                slot_focus.push_str(&format!("  Open questions: {}\n", thesis.open_questions.join("; ")));
+            }
+            if thesis.confidence.score > 0.0 {
+                slot_focus.push_str(&format!("  Confidence: {:.0}%\n", thesis.confidence.score * 100.0));
+            }
+        }
+    }
 
     // Slot 4: Parent context.
     let mut slot_parents = build_parents_slot(input.parent_frames);
@@ -815,6 +832,7 @@ mod tests {
             safety_rules: &[],
             config: &config,
             rehydrate_handles: None,
+            thesis: None,
         };
         let result1 = assemble_from(input_no_rehydrate);
         assert!(!result1.content.contains("[REHYDRATED]"));
@@ -832,7 +850,8 @@ mod tests {
             constitution_principles: &[],
             safety_rules: &[],
             config: &config,
-            rehydrate_handles: Some(500), // Request 500 tokens for rehydration.
+            rehydrate_handles: Some(500),
+            thesis: None, // Request 500 tokens for rehydration.
         };
         let result2 = assemble_from(input_with_rehydrate);
         // Note: Full rehydration requires ReferenceStore access.

@@ -478,42 +478,106 @@ async fn chat_completions(
         });
     }
 
-    // 1c. PRE-TURN ENRICHMENT — Fast Mem0 query (200ms budget).
-    // Query Mem0 for memories relevant to user input, inject directly into state
-    // BEFORE assembly so results are available THIS turn.
+    // 1c. PRE-TURN ENRICHMENT — Fast Mem0 + Wiki query (§11.7).
+    // Extract keywords from user input, query Mem0 AND Wiki in parallel,
+    // inject results into state BEFORE assembly for same-turn availability.
     {
-        let query_text = if user_input.len() > 200 { &user_input[..200] } else { &user_input };
-        if !query_text.is_empty() {
-            if let Ok(Ok(resp)) = tokio::time::timeout(
-                std::time::Duration::from_millis(200),
-                client.post("http://127.0.0.1:8200/v1/search")
-                    .json(&serde_json::json!({
-                        "query": query_text,
-                        "namespace": "wirebot_verious",
-                        "limit": 3
-                    }))
-                    .send(),
-            ).await {
+        if !user_input.is_empty() {
+            // Keyword extraction: split on whitespace, filter stopwords, take top 5
+            let stopwords = ["the","a","an","is","are","was","were","be","been","being",
+                "have","has","had","do","does","did","will","would","could","should",
+                "may","might","can","shall","to","of","in","for","on","with","at","by",
+                "from","as","into","about","like","through","after","over","between",
+                "out","up","it","its","this","that","these","those","i","me","my","we",
+                "you","your","he","she","they","them","and","or","but","not","so","if"];
+            let keywords: Vec<&str> = user_input.split_whitespace()
+                .filter(|w| w.len() > 2 && !stopwords.contains(&w.to_lowercase().as_str()))
+                .take(5)
+                .collect();
+            let keyword_query = keywords.join(" ");
+            let query_text = if keyword_query.is_empty() {
+                if user_input.len() > 100 { &user_input[..100] } else { &user_input }
+            } else {
+                &keyword_query
+            };
+
+            // Parallel: Mem0 search + Wiki search (50ms each)
+            let mem0_client = client.clone();
+            let mem0_query = query_text.to_string();
+            let wiki_query = query_text.to_string();
+
+            let (mem0_result, wiki_result) = tokio::join!(
+                async {
+                    tokio::time::timeout(
+                        std::time::Duration::from_millis(50),
+                        mem0_client.post("http://127.0.0.1:8200/v1/search")
+                            .json(&serde_json::json!({
+                                "query": mem0_query,
+                                "namespace": "wirebot_verious",
+                                "limit": 5
+                            }))
+                            .send(),
+                    ).await
+                },
+                async {
+                    tokio::time::timeout(
+                        std::time::Duration::from_millis(50),
+                        tokio::process::Command::new("wb")
+                            .args(["wiki", "search", &wiki_query, "--format", "json", "--limit", "3"])
+                            .output(),
+                    ).await
+                },
+            );
+
+            let mut focusa = state.focusa.write().await;
+
+            // Inject Mem0 results
+            if let Ok(Ok(resp)) = mem0_result {
                 if let Ok(data) = resp.json::<serde_json::Value>().await {
                     if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
-                        let mut focusa = state.focusa.write().await;
                         for (i, mem) in results.iter().enumerate().take(3) {
                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
                                 focusa_core::memory::semantic::upsert(
                                     &mut focusa.memory,
                                     format!("mem0.preturn.{}", i),
                                     text.to_string(),
-                                    focusa_core::types::MemorySource::Worker,
+                                    focusa_core::types::MemorySource::Mem0,
                                 );
                             }
                         }
-                        drop(focusa);
                         if !results.is_empty() {
                             tracing::debug!(count = results.len().min(3), "Pre-turn: Mem0 memories injected");
                         }
                     }
                 }
             }
+
+            // Inject Wiki results
+            if let Ok(Ok(output)) = wiki_result {
+                if output.status.success() {
+                    if let Ok(wiki_json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                        if let Some(pages) = wiki_json.as_array().or_else(|| wiki_json.get("pages").and_then(|v| v.as_array())) {
+                            for (i, page) in pages.iter().enumerate().take(2) {
+                                let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                                let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                                if !title.is_empty() {
+                                    focusa_core::memory::semantic::upsert(
+                                        &mut focusa.memory,
+                                        format!("wiki.preturn.{}", i),
+                                        format!("Wiki: {} ({})", title, path),
+                                        focusa_core::types::MemorySource::Worker,
+                                    );
+                                }
+                            }
+                            if !pages.is_empty() {
+                                tracing::debug!(count = pages.len().min(2), "Pre-turn: Wiki results injected");
+                            }
+                        }
+                    }
+                }
+            }
+
+            drop(focusa);
         }
     }
 
@@ -718,40 +782,66 @@ async fn messages_proxy(
     let url = resolve_messages_upstream(&request.model);
     let client = get_client();
 
-    // 1c. PRE-TURN ENRICHMENT — Fast Mem0 query (200ms budget).
+    // 1c. PRE-TURN ENRICHMENT — Fast Mem0 + Wiki (50ms each, parallel, §11.7).
     {
-        let query_text = if user_input.len() > 200 { &user_input[..200] } else { &user_input };
-        if !query_text.is_empty() {
-            if let Ok(Ok(resp)) = tokio::time::timeout(
-                std::time::Duration::from_millis(200),
-                client.post("http://127.0.0.1:8200/v1/search")
-                    .json(&serde_json::json!({
-                        "query": query_text,
-                        "namespace": "wirebot_verious",
-                        "limit": 3
-                    }))
-                    .send(),
-            ).await {
+        if !user_input.is_empty() {
+            let stopwords = ["the","a","an","is","are","was","were","be","to","of","in",
+                "for","on","with","at","by","from","as","it","this","that","i","me",
+                "we","you","and","or","but","not","so","if"];
+            let keywords: Vec<&str> = user_input.split_whitespace()
+                .filter(|w| w.len() > 2 && !stopwords.contains(&w.to_lowercase().as_str()))
+                .take(5).collect();
+            let kw = keywords.join(" ");
+            let query_text = if kw.is_empty() {
+                if user_input.len() > 100 { &user_input[..100] } else { &user_input }
+            } else { &kw };
+
+            let mc = client.clone();
+            let mq = query_text.to_string();
+            let wq = query_text.to_string();
+            let (mem0_r, wiki_r) = tokio::join!(
+                async { tokio::time::timeout(std::time::Duration::from_millis(50),
+                    mc.post("http://127.0.0.1:8200/v1/search")
+                        .json(&serde_json::json!({"query": mq, "namespace": "wirebot_verious", "limit": 5}))
+                        .send()).await },
+                async { tokio::time::timeout(std::time::Duration::from_millis(50),
+                    tokio::process::Command::new("wb")
+                        .args(["wiki", "search", &wq, "--format", "json", "--limit", "3"])
+                        .output()).await },
+            );
+            let mut focusa = state.focusa.write().await;
+            if let Ok(Ok(resp)) = mem0_r {
                 if let Ok(data) = resp.json::<serde_json::Value>().await {
                     if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
-                        let mut focusa = state.focusa.write().await;
                         for (i, mem) in results.iter().enumerate().take(3) {
                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
-                                focusa_core::memory::semantic::upsert(
-                                    &mut focusa.memory,
-                                    format!("mem0.preturn.{}", i),
-                                    text.to_string(),
-                                    focusa_core::types::MemorySource::Worker,
-                                );
+                                focusa_core::memory::semantic::upsert(&mut focusa.memory,
+                                    format!("mem0.preturn.{}", i), text.to_string(),
+                                    focusa_core::types::MemorySource::Mem0);
                             }
-                        }
-                        drop(focusa);
-                        if !results.is_empty() {
-                            tracing::debug!(count = results.len().min(3), "Pre-turn: Mem0 memories injected (messages)");
                         }
                     }
                 }
             }
+            if let Ok(Ok(output)) = wiki_r {
+                if output.status.success() {
+                    if let Ok(wj) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                        if let Some(pages) = wj.as_array().or_else(|| wj.get("pages").and_then(|v| v.as_array())) {
+                            for (i, page) in pages.iter().enumerate().take(2) {
+                                let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                                let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                                if !title.is_empty() {
+                                    focusa_core::memory::semantic::upsert(&mut focusa.memory,
+                                        format!("wiki.preturn.{}", i),
+                                        format!("Wiki: {} ({})", title, path),
+                                        focusa_core::types::MemorySource::Worker);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            drop(focusa);
         }
     }
 

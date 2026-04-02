@@ -160,6 +160,7 @@ async fn prompt_assemble(
         safety_rules: &safety,
         config: &state.config,
         rehydrate_handles: None,
+        thesis: focusa.threads.iter().find(|t| t.status == focusa_core::types::ThreadStatus::Active).map(|t| &t.thesis),
     };
     let assembly = focusa_core::expression::engine::assemble_from(input);
 
