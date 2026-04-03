@@ -47,43 +47,57 @@ export function registerTurns(pi: ExtensionAPI) {
   });
 
   // ── context — DECISIONS ONLY (§36.6, §33.5)
-  // Focus State = decision journal. "Work leading to decision" is scratchpad, garbage collected.
-  // Only inject decisions — the crystallized outcome. Never inject: constraints (NEXT: directives),
-  // notes (Signal:), next_steps, open_questions, failures (debugging logs).
-  // Polluted constraints were: NEXT: directives, Signal: notes, WIP notes, internal monologue.
-  // Behavioral guidelines from before_agent_start remain active (from agent KB).
-  // DISABLED: 2026-04-03 — re-enabled decisions-only 2026-04-03 v2.
-  (pi as any).on("context", async (_event: any, ctx: any) => {
-    // §36.7: Budget check
-    const usage = ctx.getContextUsage?.();
-    const window = S.activeContextWindow || 128000;
-    const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
-    const maxFocusaTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
-
+  // ── context (§33.2 live refresh per LLM call) ─────────────────────────────────
+  // Per spec G1-07 §AsccSections: all 10 slots must be represented in prompt.
+  // Per spec doc 44 §Prompt Serialization: uppercase headers + bullets for list items.
+  // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
+  // Per spec doc 44 §33.2: inject live Focus State before EVERY LLM call.
+  pi.on("context", async (event: any, ctx: any) => {
     if (!S.focusaAvailable || !S.activeFrameId) return;
 
     const data = await getFocusState();
     if (!data?.fs) return;
     const { fs, frame } = data;
 
-    // §33.2: Decisions ONLY — the crystallized outcome of work, not the work itself
-    const parts: string[] = [];
-    if (fs.decisions?.length) {
-      parts.push(`## Decisions (${fs.decisions.length})
-${fs.decisions.map((d: string) => `- ${d}`).join("\n")}`);
-    }
+    // §7.1: Format each of the 10 ASCC slots per §Prompt Serialization spec
+    const fmt = (label: string, items: string[] | undefined) =>
+      items?.length
+        ? `${label}:\n${items.map((x: string) => `  - ${x}`).join("\n")}`
+        : `${label}:\n  (none)`;
 
-    // §10.4: Frame identity (for context, not pollution)
-    if (frame?.title) parts.push(`Frame: ${frame.title}`);
+    // §36.7: Budget check — cap injection to 15% of headroom, max 1500 tokens
+    const usage = ctx.getContextUsage?.();
+    const window = S.activeContextWindow || 128000;
+    const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
+    const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
 
-    if (!parts.length) return;
+    // §Prompt Serialization: uppercase section headers, bullets for list items
+    const lines: string[] = [
+      `[Focusa Focus State — 10-slot live refresh]`,
+      `FOCUS_FRAME: ${frame?.title || "(untitled)"}`,
+      `INTENT: ${fs.intent || "(none)"}`,
+      `CURRENT_FOCUS: ${fs.current_focus || "(none)"}`,
+      fmt("DECISIONS", fs.decisions),
+      fmt("ARTIFACTS", fs.artifacts),
+      fmt("CONSTRAINTS", fs.constraints),
+      fmt("OPEN_QUESTIONS", fs.open_questions),
+      fmt("NEXT_STEPS", fs.next_steps),
+      fmt("RECENT_RESULTS", fs.recent_results),
+      fmt("FAILURES", fs.failures),
+      fmt("NOTES", fs.notes),
+    ];
 
-    let text = parts.join("\n");
+    // §36.7: Budget cap — truncate if over token budget
+    let text = lines.join("\n");
     const tokens = estimateTokens(text);
-    if (tokens > maxFocusaTokens) {
-      text = text.slice(0, maxFocusaTokens * 4) + "\n[Focus State truncated — context budget]";
+    if (tokens > maxTokens) {
+      // Truncate from bottom (NOTES → FAILURES → RECENT_RESULTS, etc.)
+      text = lines.slice(0, 4).join("\n") +
+        `\n[... Focus State truncated — ${tokens - maxTokens} tokens over budget]`;
     }
-    return { contextMessage: text };
+
+    // §33.2: Prepend Focus State as first message before every LLM call
+    return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text }] }, ...(event.messages || [])] };
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
