@@ -1,5 +1,6 @@
 // All /focusa-* slash commands
 // Spec: §10.3 — Commands registry, §34.2E (explain-decision), §34.2F (lineage)
+// Plus: §33.5 isolation commands: /focusa-on, /focusa-off, /focusa-reset
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { S, focusaFetch, getFocusState } from "./state.js";
@@ -127,6 +128,113 @@ export function registerCommands(pi: ExtensionAPI) {
       if (!r?.nodes?.length) { ctx.ui.notify("No lineage nodes", "info"); return; }
       const lines = r.nodes.slice(-10).map((n: any) => `[${n.node_id}] ${n.node_type} ${n.created_at?.slice(0, 19) || ""}`);
       ctx.ui.notify(lines.join("\n"), "info");
+    },
+  });
+
+  // /focusa-on (§33.5) — re-enable Focusa writes after /focusa-off
+  pi.registerCommand("focusa-on", {
+    description: "Re-enable Focusa integration and writes",
+    handler: async (_args, ctx) => {
+      if (S.focusaAvailable) { ctx.ui.notify("Focusa already enabled", "info"); return; }
+      const h = await focusaFetch("/health");
+      if (h?.ok) {
+        S.focusaAvailable = true;
+        S.outageStart = null;
+        S.healthBackoffMs = 30_000;
+        // Push a fresh Pi frame so writes go to clean slate
+        if (!S.activeFrameId) {
+          const r = await focusaFetch("/focus/push", {
+            method: "POST",
+            body: JSON.stringify({ title: `Pi session in ${ctx.cwd}`, source: "pi-auto" }),
+          });
+          if (r?.frame_id) S.activeFrameId = r.frame_id;
+        }
+        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+        ctx.ui.notify("✅ Focusa re-enabled", "info");
+      } else {
+        ctx.ui.notify("❌ Focusa unavailable", "error");
+      }
+    },
+  });
+
+  // /focusa-off (§33.5) — stop ALL Focusa writes; keep reads for status only
+  pi.registerCommand("focusa-off", {
+    description: "Stop all Focusa writes — Focus State local only",
+    handler: async (_args, ctx) => {
+      if (!S.focusaAvailable) { ctx.ui.notify("Focusa already disabled", "info"); return; }
+      S.focusaAvailable = false;
+      // Leave local shadow intact — operator can still see decisions via status
+      ctx.ui.setStatus("focusa", "🧠 Focusa [disabled]");
+      ctx.ui.notify("⚠️ Focusa writes disabled — Focus State local only", "warning");
+    },
+  });
+
+  // /focusa-reset (§33.5) — clear all Focus State entries in Focusa's DB + push fresh frame
+  // Use when Focus State is polluted or stale. Wipes decisions/constraints/failures.
+  pi.registerCommand("focusa-reset", {
+    description: "Clear Focus State in Focusa + push fresh Pi frame",
+    handler: async (_args, ctx) => {
+      // Step 1: Clear local shadow
+      const cleared = {
+        decisions: S.localDecisions.length,
+        constraints: S.localConstraints.length,
+        failures: S.localFailures.length,
+      };
+      S.localDecisions = [];
+      S.localConstraints = [];
+      S.localFailures = [];
+      S.compilationErrors = [];
+      S.fileEditCounts = {};
+      S.cataloguedDecisions = [];
+      S.cataloguedFacts = [];
+      S.compactResumePending = false;
+      S.forkSuggested = false;
+      S.currentTier = "";
+
+      // Step 2: Clear Focusa frame (if available and we have a frame)
+      if (S.activeFrameId) {
+        await focusaFetch("/focus/update", {
+          method: "POST",
+          body: JSON.stringify({
+            frame_id: S.activeFrameId,
+            turn_id: `pi-turn-${S.turnCount}`,
+            delta: {
+              decisions: [],
+              constraints: [],
+              failures: [],
+              notes: [],
+              open_questions: [],
+              next_steps: [],
+              recent_results: [],
+            },
+          }),
+        }).catch(() => {});
+      }
+
+      // Step 3: Push fresh Pi frame (always, ensures clean slate)
+      if (S.focusaAvailable) {
+        const r = await focusaFetch("/focus/push", {
+          method: "POST",
+          body: JSON.stringify({ title: `Pi session in ${ctx.cwd}`, source: "pi-reset" }),
+        });
+        if (r?.frame_id) {
+          S.activeFrameId = r.frame_id;
+          ctx.ui.notify(
+            `✅ Focus State reset (cleared D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\nFresh Pi frame: ${r.frame_id}`,
+            "info",
+          );
+        } else {
+          ctx.ui.notify(
+            `✅ Local shadow cleared (D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\n⚠️ Focusa frame clear failed — writes may resume on old frame`,
+            "warning",
+          );
+        }
+      } else {
+        ctx.ui.notify(
+          `✅ Local shadow cleared (D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\n⚠️ Focusa offline — run /focusa-on to push fresh frame`,
+          "warning",
+        );
+      }
     },
   });
 }

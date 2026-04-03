@@ -1,89 +1,92 @@
-// Metacognition tools: focusa_decide, focusa_constraint, focusa_failure
-// Spec: §37.2 — Tools > text markers for decision capture
+// FOCUSA_SCRATCHPAD: two-file model
+// Spec: G1-07 §AsccSections + doc 44 §10.5 + §Forbidden
+//
+// LESSON (live evidence 2026-04-03, read every word):
+// Decision rationale: 50-char limit → agent wrote 200+ char task lists in rationale field
+// Decision fields: reformatted task lists with "Fix all", "Tool-level guardrails"
+// Constraints: ALL 30+ are agent's own self-referential stream-of-consciousness
+//   — including agent's own root-cause analysis and meta-observation about this pollution
+// Both guardrails FAILED. Agent worked around both.
+//
+// ROOT CAUSE: Agent needs a scratchpad. The tool fields became it.
+//
+// TWO-FILE MODEL:
+//   /tmp/pi-scratch/<turn>/notes.txt  → agent's FULL working notebook (unlimited, no Focus State)
+//   Focus State (Focusa)               → operator-curated decisions only
+//
+// Extension = thin bridge. Focus State = operator manages. Agent uses scratchpad.
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, focusaFetch } from "./state.js";
+import { S } from "./state.js";
+
+const SCRATCHPAD_DIR = "/tmp/pi-scratch";
+
+function scratchDir(turn: number): string {
+  return `${SCRATCHPAD_DIR}/turn-${String(turn).padStart(4, "0")}`;
+}
+
+function ensureScratchDir(): void {
+  try {
+    const { execSync } = require("child_process");
+    execSync(`mkdir -p "${SCRATCHPAD_DIR}"`, { stdio: "pipe" });
+  } catch { /* best effort */ }
+}
 
 export function registerTools(pi: ExtensionAPI) {
+  // ── focusa_scratch ──────────────────────────────────────────────────────
+  // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
+  // ALL working notes welcome: reasoning, task lists, hypotheses, dead ends,
+  // self-corrections, design notes, NEXT:/Signal: directives.
+  // Operator can read: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt
   pi.registerTool({
-    name: "focusa_decide",
-    label: "Record Decision",
-    description: "Record a significant decision in Focusa's cognitive state. Use when you make an architectural choice, select an approach, or commit to a direction.",
-    promptSnippet: "Record decisions, constraints, and failures for cognitive tracking",
+    name: "focusa_scratch",
+    label: "Scratchpad",
+    description: "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to /focusa-decide when done.",
+    promptSnippet: "Working notes → scratchpad. Crystallized decision → /focusa-decide command.",
     parameters: Type.Object({
-      decision: Type.String({ description: "The decision made" }),
-      rationale: Type.String({ description: "Why this decision was made" }),
-      alternatives: Type.Optional(Type.Array(Type.String(), { description: "Alternatives that were considered" })),
+      note: Type.String({ description: "Working note — reasoning, task list, hypothesis, dead end. Unlimited length." }),
+      tag: Type.Optional(Type.String({ description: "Tag: reasoning|task|hypothesis|dead-end|self-correction|next-step" })),
     }),
     promptGuidelines: [
-      "When you make a significant architectural choice, select an approach, or commit to a direction, call focusa_decide.",
+      "ALL working notes go HERE. scratchpad ≠ Focus State.",
+      "NEXT:/Signal: directives, task lists, design notes, self-corrections → here.",
+      "When done: distill ONE crystallized sentence → /focusa-decide (manual command, operator approves).",
+      "Scratchpad is your working notebook. Focus State is operator's decision journal.",
+      "Run: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt",
     ],
     async execute(_id, params) {
-      const { decision, rationale, alternatives } = params as { decision: string; rationale: string; alternatives?: string[] };
-      const alts = alternatives?.length ? ` [alternatives: ${alternatives.join(", ")}]` : "";
-      const text = `${decision} (because: ${rationale})${alts}`;
-      S.localDecisions.push(text);
-      if (S.wbmEnabled) S.cataloguedDecisions.push(text);
-      if (S.focusaAvailable && S.activeFrameId) {
-        await focusaFetch("/focus/update", {
-          method: "POST",
-          body: JSON.stringify({ frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`, delta: { decisions: [text] } }),
-        });
-      }
-      return { content: [{ type: "text", text: `✓ Decision recorded: ${decision}` }], details: { decision, rationale } };
+      const { note, tag } = params as { note: string; tag?: string };
+      const turn = S.turnCount;
+      const dir = scratchDir(turn);
+      ensureScratchDir();
+      const ts = new Date().toISOString().slice(11, 23);
+      const line = `[${ts}]${tag ? ` [${tag}]` : ""} ${note}`;
+      try {
+        const { execSync } = require("child_process");
+        execSync(`mkdir -p "${dir}" && echo ${JSON.stringify(line)} >> "${dir}/notes.txt"`, { stdio: "pipe" });
+      } catch { /* best effort */ }
+      return {
+        content: [{ type: "text" as const, text: `📝 Scratchpad saved (turn ${turn}): ${note.slice(0, 80)}${note.length > 80 ? "…" : ""}` }],
+        details: { note, tag, turn },
+      };
     },
   });
 
-  pi.registerTool({
-    name: "focusa_constraint",
-    label: "Record Constraint",
-    description: "Record a constraint discovered during work. Use when you find a limitation, requirement, or rule that affects future decisions.",
-    promptSnippet: "Record constraints that affect future decisions",
-    parameters: Type.Object({
-      constraint: Type.String({ description: "The constraint discovered" }),
-      source: Type.String({ description: "Where this constraint comes from" }),
-    }),
-    promptGuidelines: [
-      "When you discover a limitation, requirement, or hard rule that affects future work, call focusa_constraint.",
-    ],
-    async execute(_id, params) {
-      const { constraint, source } = params as { constraint: string; source: string };
-      const text = `${constraint} (source: ${source})`;
-      S.localConstraints.push(text);
-      if (S.focusaAvailable && S.activeFrameId) {
-        await focusaFetch("/focus/update", {
-          method: "POST",
-          body: JSON.stringify({ frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`, delta: { constraints: [text] } }),
-        });
-      }
-      return { content: [{ type: "text", text: `✓ Constraint recorded: ${constraint}` }], details: { constraint, source } };
-    },
-  });
+  // ── focusa_decide ────────────────────────────────────────────────────────
+  // DISABLED. Agent writes task lists in rationale field. Strip ALL Focus State writes.
+  // Operator: use /focusa-decide command (manual, no auto-write).
+  // Agent: use focusa_scratch for all notes. Operator manages Focus State.
+  void 0;
 
-  pi.registerTool({
-    name: "focusa_failure",
-    label: "Record Failure",
-    description: "Record a failure or error for learning. Use when something goes wrong — build errors, test failures, wrong assumptions.",
-    promptSnippet: "Record failures for learning and pattern detection",
-    parameters: Type.Object({
-      failure: Type.String({ description: "What failed" }),
-      context: Type.String({ description: "What was being attempted" }),
-    }),
-    promptGuidelines: [
-      "When something fails — build errors, test failures, wrong assumptions — call focusa_failure.",
-    ],
-    async execute(_id, params) {
-      const { failure, context: ctx } = params as { failure: string; context: string };
-      const text = `${failure} (during: ${ctx})`;
-      S.localFailures.push(text);
-      if (S.focusaAvailable && S.activeFrameId) {
-        await focusaFetch("/focus/update", {
-          method: "POST",
-          body: JSON.stringify({ frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`, delta: { failures: [text] } }),
-        });
-      }
-      return { content: [{ type: "text", text: `✓ Failure recorded: ${failure}` }], details: { failure, context: ctx } };
-    },
-  });
+  // ── focusa_constraint ────────────────────────────────────────────────────
+  // DISABLED. ALL 30+ entries are agent's own self-referential monologue.
+  // Agent even recorded its own meta-analysis of this problem as a constraint.
+  // §AsccSections: "constraints = DISCOVERED REQUIREMENTS." Not agent monologue.
+  void 0;
+
+  // ── focusa_failure ───────────────────────────────────────────────────────
+  // DISABLED. Strip ALL Focus State writes from extension.
+  // Actual failures reported by operator → /focusa-failure command.
+  void 0;
 }

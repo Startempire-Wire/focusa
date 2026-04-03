@@ -91,25 +91,33 @@ export function registerSession(pi: ExtensionAPI) {
     // Health check
     await checkFocusa();
 
-    // §36.4: Restore state from Pi session entries (resume/restart)
-    // Try event.entries first, fall back to ctx.sessionManager.getEntries()
+    // §36.4 + §33.5: Restore decisions from Pi session entries.
+    // CRITICAL §33.5: Never restore activeFrameId from previous sessions — that
+    // points to Wirebot/TEP frames and pollutes Pi sessions with stale Wirebot
+    // state. Pi ALWAYS gets its own FRESH frame. Only WBM mode may reuse frames.
     const entries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
       if (e.customType === "focusa-state" && e.data) {
-        S.activeFrameId = e.data.frameId ?? S.activeFrameId;
+        // §33.5: Only restore decisions (safe, Pi-scoped). Never restore
+        // activeFrameId, constraints, or failures — those are stale pollution.
         S.localDecisions = e.data.decisions || [];
-        S.localConstraints = e.data.constraints || [];
-        S.localFailures = e.data.failures || [];
         S.turnCount = e.data.turnCount || 0;
         S.wbmEnabled = e.data.wbmEnabled || S.wbmEnabled;
         S.wbmNoCatalogue = e.data.wbmNoCatalogue || false;
         S.cataloguedDecisions = e.data.cataloguedDecisions || [];
         S.cataloguedFacts = e.data.cataloguedFacts || [];
         S.totalCompactions = e.data.totalCompactions || 0;
+        // Explicitly clear stale pollution — do NOT carry across sessions
+        S.localConstraints = [];
+        S.localFailures = [];
         break;
       }
     }
+    // §33.5: Always NULL out activeFrameId — force-push fresh Pi frame.
+    // This prevents Wirebot/TEP frame state from leaking into Pi sessions.
+    // WBM mode may override this via --wbm flag above.
+    if (!S.wbmEnabled) S.activeFrameId = null;
 
     if (!S.focusaAvailable) {
       ctx.ui.setStatus("focusa", "🧠 Focusa [offline]");

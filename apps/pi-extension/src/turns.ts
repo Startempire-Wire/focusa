@@ -28,8 +28,10 @@ export function registerTurns(pi: ExtensionAPI) {
       "You are operating within Focusa, a cognitive runtime that preserves focus and decisions.\n",
       "RULES:",
       "- Use the focusa_decide tool when you make a significant decision",
-      "- Use the focusa_constraint tool when you discover a constraint",
+      "- Use the focusa_constraint tool ONLY for hard constraints (e.g. 'NEVER delete production data', 'must preserve X')",
       "- Use the focusa_failure tool when something fails",
+      "- Do NOT record internal monologue, reasoning, or self-referential notes as constraints",
+      "  (e.g. 'cannot advance without operator direction' is NOT a constraint — it's context)",
       "- Check the CONSTRAINTS in Focus State before acting — do not violate them",
       "- The DECISIONS listed below were made earlier — do not contradict without explanation",
       "- If context was compacted, Focus State below is your source of truth",
@@ -44,53 +46,44 @@ export function registerTurns(pi: ExtensionAPI) {
     }
   });
 
-  // ── context (§33.2 + §7.1 all 10 ASCC slots + §36.7 budget — single handler) ─
-  (pi as any).on("context", async (event: any, ctx: any) => {
-    const parts: string[] = [];
-
-    // §36.7: Budget check — don't inject if headroom is tight
+  // ── context — DECISIONS ONLY (§36.6, §33.5)
+  // Focus State = decision journal. "Work leading to decision" is scratchpad, garbage collected.
+  // Only inject decisions — the crystallized outcome. Never inject: constraints (NEXT: directives),
+  // notes (Signal:), next_steps, open_questions, failures (debugging logs).
+  // Polluted constraints were: NEXT: directives, Signal: notes, WIP notes, internal monologue.
+  // Behavioral guidelines from before_agent_start remain active (from agent KB).
+  // DISABLED: 2026-04-03 — re-enabled decisions-only 2026-04-03 v2.
+  (pi as any).on("context", async (_event: any, ctx: any) => {
+    // §36.7: Budget check
     const usage = ctx.getContextUsage?.();
     const window = S.activeContextWindow || 128000;
     const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
-    const maxFocusaTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 2000);
+    const maxFocusaTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
 
-    if (S.focusaAvailable) {
-      const data = await getFocusState();
-      if (data?.fs) {
-        const fs = data.fs;
-        parts.push("\n## Focus State\n");
-        // §7.1: All 10 ASCC slots
-        if (fs.intent) parts.push(`Intent: ${fs.intent}`);
-        if (fs.current_focus) parts.push(`Current Focus: ${fs.current_focus}`);
-        if (fs.decisions?.length) parts.push(`Decisions:\n${fs.decisions.map((d: string) => `- ${d}`).join("\n")}`);
-        if (fs.artifacts?.length) parts.push(`Artifacts:\n${fs.artifacts.map((a: string) => `- ${a}`).join("\n")}`);
-        if (fs.constraints?.length) parts.push(`Constraints:\n${fs.constraints.map((c: string) => `- ${c}`).join("\n")}`);
-        if (fs.open_questions?.length) parts.push(`Open questions:\n${fs.open_questions.map((q: string) => `- ${q}`).join("\n")}`);
-        if (fs.next_steps?.length) parts.push(`Next steps:\n${fs.next_steps.map((s: string) => `- ${s}`).join("\n")}`);
-        if (fs.recent_results?.length) parts.push(`Recent results:\n${fs.recent_results.map((r: string) => `- ${r}`).join("\n")}`);
-        if (fs.failures?.length) parts.push(`Failures:\n${fs.failures.map((f: string) => `- ${f}`).join("\n")}`);
-        if (fs.notes?.length) parts.push(`Notes:\n${fs.notes.map((n: string) => `- ${n}`).join("\n")}`);
+    if (!S.focusaAvailable || !S.activeFrameId) return;
 
-        // §10.4: Active frame + thesis summary snippet
-        if (data.frame?.title) parts.push(`\nFrame: ${data.frame.title}`);
-        if (data.frame?.thread_thesis) parts.push(`Thesis: ${data.frame.thread_thesis}`);
-      }
-    } else if (S.localDecisions.length || S.localConstraints.length || S.localFailures.length) {
-      parts.push("\n## Focus State (local shadow — Focusa offline)\n");
-      if (S.localDecisions.length) parts.push(`Decisions:\n${S.localDecisions.map(d => `- ${d}`).join("\n")}`);
-      if (S.localConstraints.length) parts.push(`Constraints:\n${S.localConstraints.map(c => `- ${c}`).join("\n")}`);
-      if (S.localFailures.length) parts.push(`Failures:\n${S.localFailures.map(f => `- ${f}`).join("\n")}`);
+    const data = await getFocusState();
+    if (!data?.fs) return;
+    const { fs, frame } = data;
+
+    // §33.2: Decisions ONLY — the crystallized outcome of work, not the work itself
+    const parts: string[] = [];
+    if (fs.decisions?.length) {
+      parts.push(`## Decisions (${fs.decisions.length})
+${fs.decisions.map((d: string) => `- ${d}`).join("\n")}`);
     }
 
-    if (parts.length) {
-      // §36.7: Truncate to budget
-      let text = parts.join("\n");
-      const tokens = estimateTokens(text);
-      if (tokens > maxFocusaTokens) {
-        text = text.slice(0, maxFocusaTokens * 4) + "\n[Focus State truncated — context budget]";
-      }
-      return { contextMessage: text };
+    // §10.4: Frame identity (for context, not pollution)
+    if (frame?.title) parts.push(`Frame: ${frame.title}`);
+
+    if (!parts.length) return;
+
+    let text = parts.join("\n");
+    const tokens = estimateTokens(text);
+    if (tokens > maxFocusaTokens) {
+      text = text.slice(0, maxFocusaTokens * 4) + "\n[Focus State truncated — context budget]";
     }
+    return { contextMessage: text };
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
