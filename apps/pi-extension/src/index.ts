@@ -1087,19 +1087,50 @@ export default function (pi: ExtensionAPI) {
   // P2: focusa-dxm — Compaction tier logic
   // ═══════════════════════════════════════════════════════════════════════════
 
+  let lastCompactTime = 0;
+  let compactsThisHour = 0;
+  let turnsSinceCompact = 0;
+  let compactHourStart = Date.now();
+
   pi.on("turn_end", async (_event, ctx) => {
     if (!focusaAvailable) return;
+    turnsSinceCompact++;
     const usage = ctx.getContextUsage?.();
     if (!usage?.tokens) return;
-    // Use 128K as default context window estimate
     const contextWindow = 128000;
     const pct = (usage.tokens / contextWindow) * 100;
+
+    // Reset hourly counter
+    if (Date.now() - compactHourStart > 3600000) {
+      compactsThisHour = 0;
+      compactHourStart = Date.now();
+    }
+
+    const cooldownOk = Date.now() - lastCompactTime > 180000; // 180s cooldown
+    const hourlyOk = compactsThisHour < 8; // max 8/hour
+    const turnsOk = turnsSinceCompact >= 3; // min 3 turns between
+    const canCompact = cooldownOk && hourlyOk && turnsOk;
+
     if (pct >= 85) {
-      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compact imminent`, "warning");
-    } else if (pct >= 70) {
-      ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compaction recommended`, "info");
+      // Hard compact — force regardless of cooldown
+      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compacting`, "warning");
+      ctx.compact({
+        customInstructions: "HARD COMPACT: Context critically full. Preserve Focusa Focus State (decisions, constraints, intent). Aggressively summarize.",
+        onComplete: () => { lastCompactTime = Date.now(); compactsThisHour++; turnsSinceCompact = 0; },
+        onError: (e) => { ctx.ui.notify(`Compaction failed: ${e.message}`, "error"); },
+      });
+    } else if (pct >= 70 && canCompact) {
+      // Soft compact — respect cooldown/limits
+      ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
+      ctx.compact({
+        customInstructions: "Context approaching limit. Preserve Focusa Focus State (decisions, constraints, intent). Summarize older turns.",
+        onComplete: () => { lastCompactTime = Date.now(); compactsThisHour++; turnsSinceCompact = 0; },
+        onError: (e) => { ctx.ui.notify(`Compaction failed: ${e.message}`, "error"); },
+      });
     } else if (pct >= 50) {
       ctx.ui.setStatus("focusa-ctx", `📊 ${pct.toFixed(0)}%`);
+    } else {
+      ctx.ui.setStatus("focusa-ctx", ""); // Clear when below 50%
     }
   });
 
