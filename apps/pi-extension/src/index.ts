@@ -81,7 +81,7 @@ export default function (pi: ExtensionAPI) {
     const stack = await focusaFetch("/focus/stack");
     if (stack?.active_frame_id) {
       activeFrameId = stack.active_frame_id;
-      ctx.ui.setStatus("focusa", `🧠 Focusa [${stack.frames?.[0]?.title?.slice(0, 20) || "active"}]`);
+      ctx.ui.setStatus("focusa", `🧠 Focusa [${stack?.stack?.frames?.[0]?.title?.slice(0, 20) || "active"}]`);
       return;
     }
 
@@ -128,8 +128,8 @@ export default function (pi: ExtensionAPI) {
     // Fetch current Focus State for instructions
     let focusContext = "";
     const stack = await focusaFetch("/focus/stack");
-    if (stack?.frames?.length > 0) {
-      const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+    if (stack?.stack?.stack?.frames?.length) {
+      const active = stack?.stack?.frames.find((f: any) => f.id === stack.active_frame_id) || stack?.stack?.frames[0];
       const fs = active.focus_state || {};
       if (fs.intent) focusContext += `\nCURRENT INTENT: ${fs.intent}`;
       if (fs.decisions?.length) focusContext += `\nDECISIONS MADE:\n${fs.decisions.map((d: string) => `- ${d}`).join("\n")}`;
@@ -171,9 +171,9 @@ export default function (pi: ExtensionAPI) {
 
     // Per-LLM-call context refresh: only add Focus State delta, not behavioral rules
     const stack = await focusaFetch("/focus/stack");
-    if (!stack?.frames?.length) return;
+    if (!stack?.stack?.frames?.length) return;
 
-    const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+    const active = stack?.stack?.frames.find((f: any) => f.id === stack.active_frame_id) || stack?.stack?.frames[0];
     const fs = active.focus_state || {};
 
     // Only inject if Focus State has content worth adding
@@ -453,7 +453,7 @@ export default function (pi: ExtensionAPI) {
 
     // Build Focus State summary for compaction
     const stack = await focusaFetch("/focus/stack");
-    const active = stack?.frames?.find((f: any) => f.id === activeFrameId);
+    const active = stack?.stack?.frames?.find((f: any) => f.id === activeFrameId);
     if (!active) return;
 
     const fs = active.focus_state || {};
@@ -931,8 +931,8 @@ export default function (pi: ExtensionAPI) {
   pi.on("turn_end", async (_event, ctx) => {
     if (!focusaAvailable) return;
     const stack = await focusaFetch("/focus/stack");
-    if (!stack?.frames?.length) return;
-    const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+    if (!stack?.stack?.frames?.length) return;
+    const active = stack?.stack?.frames.find((f: any) => f.id === stack.active_frame_id) || stack?.stack?.frames[0];
     const fs = active.focus_state || {};
     
     const widgetLines: string[] = [];
@@ -958,11 +958,11 @@ export default function (pi: ExtensionAPI) {
         return;
       }
       const stack = await focusaFetch("/focus/stack");
-      if (!stack?.frames?.length) {
+      if (!stack?.stack?.frames?.length) {
         ctx.ui.notify("No active Focus Frame", "info");
         return;
       }
-      const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+      const active = stack?.stack?.frames.find((f: any) => f.id === stack.active_frame_id) || stack?.stack?.frames[0];
       const fs = active.focus_state || {};
       const lines = [
         `Frame: ${active.title}`,
@@ -1051,8 +1051,8 @@ export default function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       if (!focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
       const stack = await focusaFetch("/focus/stack");
-      if (!stack?.frames?.length) { ctx.ui.notify("No active frame", "info"); return; }
-      const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+      if (!stack?.stack?.frames?.length) { ctx.ui.notify("No active frame", "info"); return; }
+      const active = stack?.stack?.frames.find((f: any) => f.id === stack.active_frame_id) || stack?.stack?.frames[0];
       const decisions = active.focus_state?.decisions || [];
       if (decisions.length === 0) { ctx.ui.notify("No decisions recorded", "info"); return; }
       const query = args || "";
@@ -1139,8 +1139,8 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     if (!focusaAvailable) return;
     const stack = await focusaFetch("/focus/stack");
-    if (stack?.frames?.length > 0) {
-      const title = stack.frames[0]?.title || "";
+    if (stack?.stack?.stack?.frames?.length) {
+      const title = stack?.stack?.frames[0]?.title || "";
       if (title) {
         ctx.sessionManager?.setSessionName?.(`🧠 ${title}`);
       }
