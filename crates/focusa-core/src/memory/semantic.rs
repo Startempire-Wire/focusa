@@ -100,6 +100,12 @@ pub fn resolve_contradictions(memory: &mut ExplicitMemory) {
                 continue; // upsert already handles same-key
             }
 
+            // Skip transient keys (preturn, anticipated, startup — ephemeral, not contradictable)
+            if a.key.contains("preturn") || a.key.contains("anticipated") || a.key.contains("startup")
+                || b.key.contains("preturn") || b.key.contains("anticipated") || b.key.contains("startup") {
+                continue;
+            }
+
             // Same key prefix + different value = potential contradiction
             let a_prefix = a.key.split('.').next().unwrap_or(&a.key);
             let b_prefix = b.key.split('.').next().unwrap_or(&b.key);

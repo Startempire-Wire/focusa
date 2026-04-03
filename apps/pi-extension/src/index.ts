@@ -741,11 +741,13 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // Long session detection (>2h)
+  // Long session detection (>2h) — fire once
+  let longSessionSignaled = false;
   pi.on("agent_end", async (_event, _ctx) => {
-    if (!focusaAvailable) return;
+    if (!focusaAvailable || longSessionSignaled) return;
     const elapsed = Date.now() - sessionStartTime;
     if (elapsed > 2 * 60 * 60 * 1000) { // 2 hours
+      longSessionSignaled = true;
       await focusaFetch("/focus-gate/ingest-signal", {
         method: "POST",
         body: JSON.stringify({
@@ -775,7 +777,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-}
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // P1: focusa-hew — Flush state on session switch
@@ -1238,3 +1240,4 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_shutdown", async () => {
     if (healthCheckInterval) clearInterval(healthCheckInterval);
   });
+}

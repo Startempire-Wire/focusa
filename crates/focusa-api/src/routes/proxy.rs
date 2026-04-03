@@ -509,7 +509,7 @@ async fn chat_completions(
             let (mem0_result, wiki_result) = tokio::join!(
                 async {
                     tokio::time::timeout(
-                        std::time::Duration::from_millis(50),
+                        std::time::Duration::from_millis(200),
                         mem0_client.post("http://127.0.0.1:8200/v1/search")
                             .json(&serde_json::json!({
                                 "query": mem0_query,
@@ -873,7 +873,7 @@ async fn messages_proxy(
             let mq = query_text.to_string();
             let wq = query_text.to_string();
             let (mem0_r, wiki_r) = tokio::join!(
-                async { tokio::time::timeout(std::time::Duration::from_millis(50),
+                async { tokio::time::timeout(std::time::Duration::from_millis(200),
                     mc.post("http://127.0.0.1:8200/v1/search")
                         .json(&serde_json::json!({"query": mq, "namespace": "wirebot_verious", "limit": 5}))
                         .send()).await },
