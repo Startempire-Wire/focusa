@@ -446,28 +446,33 @@ export default function (pi: ExtensionAPI) {
   // P1: focusa-bpt — Focusa-owned compaction
   // ═══════════════════════════════════════════════════════════════════════════
 
-  pi.on("session_before_compact", async (event, ctx) => {
+  pi.on("session_before_compact", async (event, _ctx) => {
     if (!focusaAvailable) return;
 
-    // Write current Focus State to compaction summary
+    // Build Focus State summary for compaction
     const stack = await focusaFetch("/focus/stack");
     const active = stack?.frames?.find((f: any) => f.id === activeFrameId);
     if (!active) return;
 
+    const fs = active.focus_state || {};
     const focusaSummary = [
       `## Focusa Focus State (preserved across compaction)`,
-      active.focus_state?.intent ? `Intent: ${active.focus_state.intent}` : "",
-      active.focus_state?.decisions?.length ? `Decisions:\n${active.focus_state.decisions.map((d: string) => `- ${d}`).join("\n")}` : "",
-      active.focus_state?.constraints?.length ? `Constraints:\n${active.focus_state.constraints.map((c: string) => `- ${c}`).join("\n")}` : "",
-      active.focus_state?.next_steps?.length ? `Next steps:\n${active.focus_state.next_steps.map((s: string) => `- ${s}`).join("\n")}` : "",
-      active.focus_state?.failures?.length ? `Failures:\n${active.focus_state.failures.map((f: string) => `- ${f}`).join("\n")}` : "",
+      fs.intent ? `Intent: ${fs.intent}` : "",
+      fs.decisions?.length ? `Decisions:\n${fs.decisions.map((d: string) => `- ${d}`).join("\n")}` : "",
+      fs.constraints?.length ? `Constraints:\n${fs.constraints.map((c: string) => `- ${c}`).join("\n")}` : "",
+      fs.next_steps?.length ? `Next steps:\n${fs.next_steps.map((s: string) => `- ${s}`).join("\n")}` : "",
+      fs.failures?.length ? `Failures:\n${fs.failures.map((f: string) => `- ${f}`).join("\n")}` : "",
       localDecisions.length ? `Local decisions (this session):\n${localDecisions.map(d => `- ${d}`).join("\n")}` : "",
     ].filter(Boolean).join("\n\n");
 
-    // Include Focusa state in compaction instructions
+    // Provide custom compaction summary that includes Focus State
+    const { preparation } = event;
     return {
-      compaction: undefined, // Let Pi handle compaction normally
-      // But inject Focusa state into customInstructions
+      compaction: {
+        summary: `${event.customInstructions || ""}\n\n${focusaSummary}`,
+        firstKeptEntryId: preparation.firstKeptEntryId,
+        tokensBefore: preparation.tokensBefore,
+      },
     };
   });
 
@@ -878,16 +883,12 @@ export default function (pi: ExtensionAPI) {
   pi.on("context", async (event, ctx) => {
     if (!focusaAvailable) return;
     // Report context usage to Focusa so it doesn't overflow
-    const usage = ctx.getContextUsage?.();
+    const usage = ctx.getContextUsage();
     if (usage) {
       await focusaFetch("/telemetry/context-budget", {
         method: "POST",
         body: JSON.stringify({
-          total_tokens: usage.totalTokens || 0,
-          max_tokens: usage.maxTokens || 0,
-          used_pct: usage.totalTokens && usage.maxTokens
-            ? (usage.totalTokens / usage.maxTokens * 100).toFixed(1)
-            : "0",
+          total_tokens: usage.tokens || 0,
           harness: "pi",
         }),
       });
@@ -940,7 +941,7 @@ export default function (pi: ExtensionAPI) {
     if (fs.constraints?.length) widgetLines.push(`🚧 ${fs.constraints.length} constraints`);
     if (fs.failures?.length) widgetLines.push(`❌ ${fs.failures.length} failures`);
     
-    ctx.ui.setWidget("focusa", widgetLines, "below");
+    ctx.ui.setWidget("focusa", widgetLines, { placement: "belowEditor" });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -998,12 +999,11 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (event, ctx) => {
-    const flags = (event as any).flags || {};
-    if (flags.wbm) {
+    if (pi.getFlag("--wbm")) {
       wbmEnabled = true;
       ctx.ui.setStatus("focusa", "🧠 Focusa [WBM]");
     }
-    if (flags.focusa === false) {
+    if (pi.getFlag("--focusa") === false) {
       focusaAvailable = false;
       ctx.ui.setStatus("focusa", "🧠 Focusa (disabled)");
     }
@@ -1035,22 +1035,10 @@ export default function (pi: ExtensionAPI) {
   // P2: focusa-yhu — Focusa-guided compaction instructions
   // ═══════════════════════════════════════════════════════════════════════════
 
-  pi.on("session_before_compact", async (event, _ctx) => {
-    if (!focusaAvailable) return;
-    // Fetch ASCC state for compaction guidance
-    const ascc = await focusaFetch("/ascc/state");
-    if (!ascc) return;
-    // Build custom instructions from Focus State
-    const instructions = [
-      "Preserve these Focusa cognitive state items in your compaction summary:",
-    ];
-    if (ascc.intent) instructions.push(`Intent: ${ascc.intent}`);
-    if (ascc.decisions?.length) instructions.push(`Decisions: ${ascc.decisions.join("; ")}`);
-    if (ascc.constraints?.length) instructions.push(`Constraints: ${ascc.constraints.join("; ")}`);
-    if (ascc.open_questions?.length) instructions.push(`Open questions: ${ascc.open_questions.join("; ")}`);
-    
-    return { customInstructions: instructions.join("\n") };
-  });
+  // focusa-yhu compaction guidance: merged into the session_before_compact handler
+  // above (focusa-bpt) which provides a full custom compaction summary including
+  // Focus State. customInstructions is not a valid return field — the spec only
+  // allows { compaction: { summary, firstKeptEntryId, tokensBefore } }.
 
   // ═══════════════════════════════════════════════════════════════════════════
   // P2: focusa-q81 — /focusa-explain-decision and /focusa-lineage commands
@@ -1100,8 +1088,10 @@ export default function (pi: ExtensionAPI) {
   pi.on("turn_end", async (_event, ctx) => {
     if (!focusaAvailable) return;
     const usage = ctx.getContextUsage?.();
-    if (!usage?.totalTokens || !usage?.maxTokens) return;
-    const pct = (usage.totalTokens / usage.maxTokens) * 100;
+    if (!usage?.tokens) return;
+    // Use 128K as default context window estimate
+    const contextWindow = 128000;
+    const pct = (usage.tokens / contextWindow) * 100;
     if (pct >= 85) {
       ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compact imminent`, "warning");
     } else if (pct >= 70) {
@@ -1159,13 +1149,13 @@ export default function (pi: ExtensionAPI) {
   // P2: focusa-i4r — Custom message renderer for Focusa context blocks
   // ═══════════════════════════════════════════════════════════════════════════
 
-  pi.registerMessageRenderer?.("focusa-state", {
-    collapsed: (_msg) => "🧠 Focusa Context (expand to see)",
-    expanded: (msg) => {
-      const content = typeof msg.content === "string" ? msg.content : 
-        msg.content?.map((c: any) => c.text || "").join("") || "";
-      return content;
-    },
+  pi.registerMessageRenderer("focusa-state", (message: any, options: any, theme: any) => {
+    const content = typeof message.content === "string" ? message.content :
+      message.content?.map((c: any) => c.text || "").join("") || "";
+    if (options.expanded) {
+      return theme.fg("dim", "🧠 Focusa Context:\n" + content);
+    }
+    return theme.fg("dim", "🧠 Focusa Context (expand to see)");
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
