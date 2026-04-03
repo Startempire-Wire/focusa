@@ -87,7 +87,7 @@ function validateFailure(failure: string): { valid: boolean; reason?: string } {
 }
 
 // Push delta to Focusa (returns ok boolean)
-async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[] }): Promise<boolean> {
+async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[] }): Promise<boolean> {
   if (!S.focusaAvailable || !S.activeFrameId) return false;
   try {
     await focusaFetch("/focus/update", {
@@ -290,6 +290,126 @@ export function registerTools(pi: ExtensionAPI) {
         content: [{ type: "text" as const, text: `✅ Failure recorded (turn ${turn}): ${failure.slice(0, 120)}${failure.length > 120 ? "…" : ""}` }],
         details: { valid: true, reason: undefined, failure, recovery },
       };
+    },
+  });
+
+  // ── focusa_intent (§AsccSections) ──────────────────────────────────────────
+  // Set the frame intent: what this session is trying to achieve. 1-3 sentences.
+  pi.registerTool({
+    name: "focusa_intent",
+    label: "Set Intent",
+    description: "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
+    parameters: Type.Object({
+      intent: Type.String({ description: "Intent: what this frame/session is trying to achieve (1-3 sentences, max 500 chars)." }),
+    }),
+    async execute(_id, params) {
+      const { intent } = params as { intent: string };
+      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, intent } };
+      if (intent.length > 500) return { content: [{ type: "text", text: "Intent exceeds 500 chars. Distill to 1-3 sentences." }], details: { valid: false, intent } };
+      const ok = await pushDelta({ intent });
+      return ok
+        ? { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, intent } }
+        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, intent } };
+    },
+  });
+
+
+  // ── focusa_current_focus (§AsccSections) ─────────────────────────────────
+  // Update current focus: what the agent is actively working on. Replaces on each update.
+  pi.registerTool({
+    name: "focusa_current_focus",
+    label: "Set Current Focus",
+    description: "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
+    parameters: Type.Object({
+      focus: Type.String({ description: "Current focus: what you are actively working on (1-3 sentences, max 300 chars)." }),
+    }),
+    async execute(_id, params) {
+      const { focus } = params as { focus: string };
+      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, focus } };
+      if (focus.length > 300) return { content: [{ type: "text", text: "Current focus exceeds 300 chars." }], details: { valid: false, focus } };
+      const ok = await pushDelta({ current_focus: focus });
+      return ok
+        ? { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, focus } }
+        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, focus } };
+    },
+  });
+
+  // ── focusa_next_step (§AsccSections) ─────────────────────────────────────
+  // Record next step. Replaces previous. Cap 15.
+  pi.registerTool({
+    name: "focusa_next_step",
+    label: "Record Next Step",
+    description: "Record what you plan to do next (max 160 chars).",
+    parameters: Type.Object({
+      step: Type.String({ description: "Next step (max 160 chars)." }),
+    }),
+    async execute(_id, params) {
+      const { step } = params as { step: string };
+      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, step } };
+      if (step.length > 160) return { content: [{ type: "text", text: "Step exceeds 160 chars." }], details: { valid: false, step } };
+      const ok = await pushDelta({ next_steps: [step] });
+      return ok
+        ? { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, step } }
+        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, step } };
+    },
+  });
+
+  // ── focusa_open_question (§AsccSections) ─────────────────────────────────
+  pi.registerTool({
+    name: "focusa_open_question",
+    label: "Record Open Question",
+    description: "Record an open question that needs to be answered (max 200 chars).",
+    parameters: Type.Object({
+      question: Type.String({ description: "Open question (max 200 chars)." }),
+    }),
+    async execute(_id, params) {
+      const { question } = params as { question: string };
+      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, question } };
+      if (question.length > 200) return { content: [{ type: "text", text: "Question exceeds 200 chars." }], details: { valid: false, question } };
+      const ok = await pushDelta({ open_questions: [question] });
+      return ok
+        ? { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, question } }
+        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, question } };
+    },
+  });
+
+  // ── focusa_recent_result (§AsccSections) ─────────────────────────────────
+  // Record a recent result. Keeps last 10, newest first.
+  pi.registerTool({
+    name: "focusa_recent_result",
+    label: "Record Recent Result",
+    description: "Record a completed result, output, or reference (max 300 chars).",
+    parameters: Type.Object({
+      result: Type.String({ description: "Recent result (max 300 chars)." }),
+    }),
+    async execute(_id, params) {
+      const { result } = params as { result: string };
+      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, result } };
+      if (result.length > 300) return { content: [{ type: "text", text: "Result exceeds 300 chars." }], details: { valid: false, result } };
+      const ok = await pushDelta({ recent_results: [result] });
+      return ok
+        ? { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, result } }
+        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, result } };
+    },
+  });
+
+  // ── focusa_note (§AsccSections) ───────────────────────────────────────────
+  // Misc notes, bounded at 20, oldest decay first.
+  pi.registerTool({
+    name: "focusa_note",
+    label: "Record Note",
+    description: "Miscellaneous note (max 200 chars). Bounded at 20, oldest decay first.",
+    parameters: Type.Object({
+      note: Type.String({ description: "Note (max 200 chars)." }),
+    }),
+    async execute(_id, params) {
+      const { note } = params as { note: string };
+      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, note } };
+      if (note.length > 200) return { content: [{ type: "text", text: "Note exceeds 200 chars." }], details: { valid: false, note } };
+      const ok = await pushDelta({ notes: [note] });
+      return ok
+        ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, note } }
+        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, note } };
     },
   });
 }
