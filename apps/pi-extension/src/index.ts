@@ -4,6 +4,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type, type Static } from "@sinclair/typebox";
+import { Text } from "@mariozechner/pi-tui";
 
 const FOCUSA_URL = process.env.FOCUSA_PI_API_BASE_URL || "http://127.0.0.1:8787/v1";
 const FOCUSA_TOKEN = process.env.FOCUSA_TOKEN || "";
@@ -1077,9 +1078,9 @@ export default function (pi: ExtensionAPI) {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Health check runs on every before_agent_start (already implemented).
-  // When focusaAvailable flips to false, the tools still appear but return
-  // graceful messages. For full disable, we'd need setActiveTools API.
-  // Pi doesn't expose setActiveTools yet — tools handle offline gracefully.
+  // When focusaAvailable flips to false, setActiveTools disables focusa_* tools.
+  // When it comes back, setActiveTools re-enables all tools.
+  // See the healthCheckInterval handler below (focusa-ju1).
 
   // ═══════════════════════════════════════════════════════════════════════════
   // P2: focusa-dxm — Compaction tier logic
@@ -1153,9 +1154,9 @@ export default function (pi: ExtensionAPI) {
     const content = typeof message.content === "string" ? message.content :
       message.content?.map((c: any) => c.text || "").join("") || "";
     if (options.expanded) {
-      return theme.fg("dim", "🧠 Focusa Context:\n" + content);
+      return new Text(theme.fg("dim", "🧠 Focusa Context:\n" + content), 0, 0);
     }
-    return theme.fg("dim", "🧠 Focusa Context (expand to see)");
+    return new Text(theme.fg("dim", "🧠 Focusa Context (expand to see)"), 0, 0);
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1178,19 +1179,22 @@ export default function (pi: ExtensionAPI) {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Prune expired semantic memories (mem0.preturn.*, anticipated.*) on each agent_end
+  // Fire-and-forget: don't await each delete sequentially
   pi.on("agent_end", async (_event, _ctx) => {
     if (!focusaAvailable) return;
-    // Clean up transient preturn memories
+    const deletes: Promise<any>[] = [];
     for (let i = 0; i < 5; i++) {
-      await focusaFetch("/memory/semantic", {
+      deletes.push(focusaFetch("/memory/semantic", {
         method: "DELETE",
         body: JSON.stringify({ key: `mem0.preturn.${i}` }),
-      });
-      await focusaFetch("/memory/semantic", {
+      }));
+      deletes.push(focusaFetch("/memory/semantic", {
         method: "DELETE",
         body: JSON.stringify({ key: `anticipated.${i}` }),
-      });
+      }));
     }
+    // All in parallel, don't block on any
+    Promise.allSettled(deletes);
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
