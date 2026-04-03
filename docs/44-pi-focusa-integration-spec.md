@@ -358,7 +358,7 @@ Use project-local config in `.pi/settings.json` under `extensions.focusaPiBridge
       "compactInstructions": "Preserve intent, decisions, constraints, next_steps, failures. Prefer handles over blobs.",
       "externalizeThresholdBytes": 8192,
       "externalizeThresholdTokens": 800,
-      "focusaApiBaseUrl": "http://127.0.0.1:4777/v1",
+      "focusaApiBaseUrl": "http://127.0.0.1:8787/v1",
       "focusaApiTimeoutMs": 5000,
       "fallbackMode": "passthrough",
       "emitMetrics": true,
@@ -392,7 +392,7 @@ Environment overrides for automation/ops:
 - `FOCUSA_PI_COMPACT_INSTRUCTIONS="..."`
 - `FOCUSA_PI_EXTERNALIZE_BYTES=8192`
 - `FOCUSA_PI_EXTERNALIZE_TOKENS=800`
-- `FOCUSA_PI_API_BASE_URL=http://127.0.0.1:4777/v1`
+- `FOCUSA_PI_API_BASE_URL=http://127.0.0.1:8787/v1`
 - `FOCUSA_PI_API_TIMEOUT_MS=5000`
 - `FOCUSA_PI_FALLBACK_MODE=passthrough`
 - `FOCUSA_PI_EMIT_METRICS=true`
@@ -778,7 +778,7 @@ The Pi extension should be **aware** of this background work:
 
 ## 31) Port Correction
 
-All references to `:4777` in this spec should read `:8787`.
+All references to `:8787` in this spec should read `:8787`.
 
 Focusa daemon canonical bind: `127.0.0.1:8787`
 
