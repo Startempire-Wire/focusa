@@ -86,9 +86,35 @@ function validateFailure(failure: string): { valid: boolean; reason?: string } {
   return { valid: true };
 }
 
-// Push delta to Focusa (returns ok boolean)
-async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[] }): Promise<boolean> {
+// §AsccSections: validate_slot — rejects verbose output, task patterns, self-reference.
+// MUST run on ALL tool writes before any Focus State update.
+function validateSlot(value: string, maxChars: number): boolean {
+  if (!value || value.length === 0) return false;
+  if (value.length > maxChars) return false;
+  const lower = value.toLowerCase();
+  if (/\b(implement | add | create | update | remove | fix all | check | verify | next:|signal:)/.test(lower)) return false;
+  if (/\b(i think|i tried|i'm working|i was|in this session|while i was|my fs\.|my fix|let me|i need to|i will|i'll need)/.test(lower)) return false;
+  if (/(\*\*|\u2705|\u274C|- \[ \]|---|```)/.test(value)) return false;
+  if (lower.includes("now") && lower.includes("need to")) return false;
+  if (lower.includes("continue") && value.length > 80) return false;
+  return true;
+}
+
+// Push delta to Focusa — validates ALL slot values before write.
+async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<boolean> {
   if (!S.focusaAvailable || !S.activeFrameId) return false;
+
+  // Validate every string slot before sending.
+  if (delta.decisions?.some(v => !validateSlot(v, 160))) return false;
+  if (delta.constraints?.some(v => !validateSlot(v, 200))) return false;
+  if (delta.failures?.some(v => !validateSlot(v, 300))) return false;
+  if (delta.intent && !validateSlot(delta.intent, 500)) return false;
+  if (delta.current_focus && !validateSlot(delta.current_focus, 300)) return false;
+  if (delta.next_steps?.some(v => !validateSlot(v, 160))) return false;
+  if (delta.open_questions?.some(v => !validateSlot(v, 200))) return false;
+  if (delta.recent_results?.some(v => !validateSlot(v, 300))) return false;
+  if (delta.notes?.some(v => !validateSlot(v, 200))) return false;
+
   try {
     await focusaFetch("/focus/update", {
       method: "POST",

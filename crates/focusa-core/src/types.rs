@@ -212,6 +212,7 @@ pub struct FocusState {
     /// Slot 1: Current intent.
     pub intent: String,
     /// Slot 2: Current focus / state description.
+    #[serde(alias = "current_focus")]
     pub current_state: String,
     /// Slot 3: Decisions made (cap 30).
     pub decisions: Vec<String>,
@@ -741,6 +742,8 @@ pub struct FocusStateDelta {
     /// Slot 1: Current intent.
     pub intent: Option<String>,
     /// Slot 2: Current focus / state description.
+    /// §AsccSections: exposed to adapters as `current_focus` (aliased for serde).
+    #[serde(alias = "current_focus")]
     pub current_state: Option<String>,
     /// Slot 3: Decisions made (cap 30, dedup).
     pub decisions: Option<Vec<String>>,

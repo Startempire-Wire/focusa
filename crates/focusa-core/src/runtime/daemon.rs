@@ -1933,7 +1933,7 @@ Return ONLY valid JSON:
                             .filter(|v: &Vec<String>| !v.is_empty())
                     };
 
-                    // Extract current_state as a string.
+                    // Extract current_state as a string (slot 2 — §AsccSections).
                     let current_state = result
                         .payload
                         .get("current_state")
@@ -1984,7 +1984,7 @@ Return ONLY valid JSON:
                     let delta = FocusStateDelta {
                         current_state,
                         decisions: extract_strings("decisions").map(|v| v.into_iter().filter(|s| validate_slot(s, 160)).collect()),
-                        next_steps: extract_strings("next_steps").map(|v| v.into_iter().filter(|s| validate_slot(s, 160)).collect()),
+                        next_steps: extract_strings("next_steps"),
                         constraints: extract_strings("constraints").map(|v| v.into_iter().filter(|s| validate_slot(s, 200)).collect()),
                         failures: extract_strings("failures").map(|v| v.into_iter().filter(|s| validate_slot(s, 300)).collect()),
                         open_questions: extract_strings("open_questions").map(|v| v.into_iter().filter(|s| validate_slot(s, 200)).collect()),

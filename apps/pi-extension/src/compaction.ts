@@ -35,14 +35,14 @@ export function registerCompaction(pi: ExtensionAPI) {
           const summary = [
             "# Focusa Cognitive Summary",
             `## Intent\n${fs.intent || "none"}`,
-            `## Current Focus\n${fs.current_focus || "none"}`,
+            `## Current Focus\n${fs.current_focus || fs.current_state || "none"}`,
             `## Decisions Made\n${(fs.decisions || []).map((d: string) => `- ${d}`).join("\n") || "none"}`,
             `## Active Constraints\n${(fs.constraints || []).map((c: string) => `- ${c}`).join("\n") || "none"}`,
             `## Failures Encountered\n${(fs.failures || []).map((f: string) => `- ${f}`).join("\n") || "none"}`,
             `## Next Steps\n${(fs.next_steps || []).map((n: string) => `- ${n}`).join("\n") || "none"}`,
             `## Open Questions\n${(fs.open_questions || []).map((q: string) => `- ${q}`).join("\n") || "none"}`,
             `## Recent Results\n${(fs.recent_results || []).map((r: string) => `- ${r}`).join("\n") || "none"}`,
-            `## Artifacts\n${(fs.artifacts || []).map((a: string) => `- ${a}`).join("\n") || "none"}`,
+            `## Artifacts\n${(fs.artifacts || []).map((a: any) => `- ${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`).join("\n") || "none"}`,
             `## Notes\n${(fs.notes || []).map((n: string) => `- ${n}`).join("\n") || "none"}`,
           ].join("\n\n");
           const ev = event as any;

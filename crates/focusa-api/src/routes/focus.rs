@@ -105,15 +105,87 @@ async fn set_active(
 /// POST /v1/focus/update — update focus state delta (ASCC).
 ///
 /// Per spec: adapters provide transcript summaries to ASCC.
+/// §AsccSections §Validation: validates ALL slots at API boundary before any write.
 #[derive(Deserialize)]
 struct UpdateDeltaBody {
     delta: FocusStateDelta,
+}
+
+/// Validate a single slot value. Rejects verbose output, task patterns,
+/// self-reference, markdown noise — same rules as tools.ts validateSlot.
+fn validate_slot(value: &str, max_chars: usize) -> bool {
+    if value.is_empty() || value.len() > max_chars {
+        return false;
+    }
+    let lower = value.to_lowercase();
+    // Task patterns
+    if lower.contains("implement ") || lower.contains(" add ") || lower.contains("create ")
+        || lower.contains("update ") || lower.contains("remove ") || lower.contains("fix all")
+        || lower.contains("next:") || lower.contains("signal:")
+    {
+        return false;
+    }
+    // Self-reference
+    if lower.contains("i think") || lower.contains("i tried") || lower.contains("i'm working")
+        || lower.contains("i was") || lower.contains("in this session") || lower.contains("while i was")
+        || lower.contains("my fs.") || lower.contains("my fix") || lower.contains("let me")
+        || lower.contains("i need to") || lower.contains("i will") || lower.contains("i'll need")
+    {
+        return false;
+    }
+    // Markdown / noise patterns
+    if value.contains("**") || value.contains("\u{2705}") || value.contains("\u{274C}")
+        || value.contains("- [ ]") || value.contains("---") || value.contains("```")
+        || value.contains("|") || value.starts_with("2.") || value.starts_with("3.")
+        || value.starts_with("- ") || lower.contains("spec-compliant") || lower.contains("matches")
+        || lower.contains("exactly") || lower.contains("fixme")
+    {
+        return false;
+    }
+    // Verbose continuation
+    if lower.contains("now") && lower.contains("need to") {
+        return false;
+    }
+    if lower.contains("continue") && value.len() > 80 {
+        return false;
+    }
+    true
 }
 
 async fn update_delta(
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpdateDeltaBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    // §AsccSections: validate ALL slots at API boundary before any write.
+    let delta = &body.delta;
+    if delta.intent.as_ref().is_some_and(|v| !validate_slot(v, 500)) {
+        return Ok(Json(json!({"status": "rejected", "reason": "intent: validation failed"})));
+    }
+    if delta.current_state.as_ref().is_some_and(|v| !validate_slot(v, 300)) {
+        return Ok(Json(json!({"status": "rejected", "reason": "current_state: validation failed"})));
+    }
+    if delta.decisions.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 160))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "decisions: validation failed"})));
+    }
+    if delta.constraints.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 200))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "constraints: validation failed"})));
+    }
+    if delta.failures.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 300))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "failures: validation failed"})));
+    }
+    if delta.open_questions.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 200))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "open_questions: validation failed"})));
+    }
+    if delta.next_steps.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 160))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "next_steps: validation failed"})));
+    }
+    if delta.recent_results.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 300))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "recent_results: validation failed"})));
+    }
+    if delta.notes.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 200))) {
+        return Ok(Json(json!({"status": "rejected", "reason": "notes: validation failed"})));
+    }
+
     // Get active frame ID.
     let frame_id = {
         let focusa = state.focusa.read().await;
