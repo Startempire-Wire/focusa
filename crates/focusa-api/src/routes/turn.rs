@@ -302,8 +302,8 @@ async fn turn_complete(
         assistant_output: Some(req.assistant_output.clone()),
         artifacts_used: req.artifacts.clone(),
         errors: req.errors.clone(),
-        prompt_tokens: None,
-        completion_tokens: None,
+        prompt_tokens: req.prompt_tokens,
+        completion_tokens: req.completion_tokens,
     };
 
     if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {

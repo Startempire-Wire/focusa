@@ -326,6 +326,7 @@ export default function (pi: ExtensionAPI) {
         turn_id: `pi-turn-${turnCount}`,
         harness_name: "pi",
         adapter_id: "focusa-pi-bridge",
+        timestamp: new Date().toISOString(),
       }),
     });
   });

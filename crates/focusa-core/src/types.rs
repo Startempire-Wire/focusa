@@ -1803,6 +1803,10 @@ pub struct TurnComplete {
     pub artifacts: Vec<HandleRef>,
     #[serde(default)]
     pub errors: Vec<String>,
+    #[serde(default)]
+    pub prompt_tokens: Option<u32>,
+    #[serde(default)]
+    pub completion_tokens: Option<u32>,
 }
 
 /// Active turn state (daemon-side).
