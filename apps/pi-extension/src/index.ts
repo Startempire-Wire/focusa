@@ -1200,3 +1200,41 @@ export default function (pi: ExtensionAPI) {
       });
     }
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-08a — Register Focusa as Pi model provider
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.registerProvider("focusa", {
+    baseUrl: `${FOCUSA_URL.replace('/v1', '')}/proxy/v1`,
+    apiKey: FOCUSA_TOKEN || "FOCUSA_TOKEN",
+    api: "openai-chat",
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-ju1 — Disable focusa tools when daemon down via setActiveTools
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+  pi.on("session_start", async (_event, _ctx) => {
+    // Health check every 60s
+    healthCheckInterval = setInterval(async () => {
+      const wasAvailable = focusaAvailable;
+      await checkFocusa();
+      if (wasAvailable && !focusaAvailable) {
+        // Daemon went down — disable focusa tools
+        const active = pi.getActiveTools();
+        const filtered = active.filter((t: any) => !t.name?.startsWith("focusa_"));
+        pi.setActiveTools(filtered.map((t: any) => t.name));
+      } else if (!wasAvailable && focusaAvailable) {
+        // Daemon came back — re-enable focusa tools
+        const all = pi.getAllTools();
+        pi.setActiveTools(all.map((t: any) => t.name));
+      }
+    }, 60000);
+  });
+
+  pi.on("session_shutdown", async () => {
+    if (healthCheckInterval) clearInterval(healthCheckInterval);
+  });
