@@ -424,13 +424,13 @@ async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
         
         // Semantic memory keys
         let sem_keys: Vec<String> = focusa.memory.semantic.iter()
-            .map(|r| format!("{}={}", r.key, &r.value[..r.value.len().min(100)]))
+            .map(|r| format!("{}={}", r.key, &r.value[..r.value.floor_char_boundary(100)]))
             .collect();
         
         // Procedural rules
         let proc_rules: Vec<String> = focusa.memory.procedural.iter()
             .take(20)
-            .map(|r| format!("[w={:.2}] {}", r.weight, &r.rule[..r.rule.len().min(80)]))
+            .map(|r| format!("[w={:.2}] {}", r.weight, &r.rule[..r.rule.floor_char_boundary(80)]))
             .collect();
         
         (stack_depth, active, focus_summary, sem_keys, proc_rules)
@@ -442,7 +442,7 @@ async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
         .map(|e| {
             let etype = e.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
             let ts = e.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
-            format!("{}: {}", &ts[..ts.len().min(19)], etype)
+            format!("{}: {}", &ts[..ts.floor_char_boundary(19)], etype)
         })
         .collect::<Vec<_>>()
         .join("\n");

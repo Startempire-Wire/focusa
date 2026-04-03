@@ -79,6 +79,9 @@ export function registerSession(pi: ExtensionAPI) {
     S.pi = pi;
     S.sessionStartTime = Date.now();
     S.turnCount = 0;
+    S.seenFirstBeforeAgentStart = false; // Reset: inject directive on first before_agent_start only
+    S.lastCompactDecision = "";
+    S.compactResumePending = false;
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {

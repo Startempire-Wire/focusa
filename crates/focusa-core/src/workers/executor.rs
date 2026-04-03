@@ -288,6 +288,14 @@ fn truncate_line(s: &str, max: usize) -> String {
     format!("{}...", truncated)
 }
 
+/// Truncate content to max chars, safe for multi-byte characters (emoji, etc).
+fn truncate_content(s: &str, max: usize) -> &str {
+    if s.len() <= max {
+        return s;
+    }
+    &s[..s.floor_char_boundary(max)]
+}
+
 /// Detect repetition in content.
 fn detect_repetition(content: &str) -> JobResult {
     let lines: Vec<&str> = content.lines().collect();
@@ -462,23 +470,23 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
     let prompt = match job.kind {
         WorkerJobKind::ClassifyTurn => format!(
             "Classify this user input as one of: task, question, correction, meta, clarification, acknowledgement.\nReturn JSON: {{\"classification\": \"...\", \"confidence\": 0.0-1.0}}\n\nINPUT:\n{}", 
-            &content[..content.len().min(2000)]
+            truncate_content(&content, 2000)
         ),
         WorkerJobKind::ExtractAsccDelta => format!(
             "Extract structured information from this text.\nReturn JSON with arrays for: decisions, constraints, failures, next_steps, open_questions, recent_results, notes, why_reasons.\nFor decisions, always include WHY (look for: because, the reason, I chose X over Y, this is better because).\nOnly include items actually present.\n\nTEXT:\n{}",
-            &content[..content.len().min(4000)]
+            truncate_content(&content, 4000)
         ),
         WorkerJobKind::DetectRepetition => format!(
             "Is this content semantically repetitive (saying the same thing multiple ways)?\nReturn JSON: {{\"is_repetitive\": true/false, \"ratio\": 0.0-1.0, \"evidence\": \"...\"}}\n\nCONTENT:\n{}",
-            &content[..content.len().min(2000)]
+            truncate_content(&content, 2000)
         ),
         WorkerJobKind::ScanForErrors => format!(
             "Identify errors, stack traces, and failure patterns in this text.\nReturn JSON: {{\"errors\": [{{\"type\": \"...\", \"severity\": \"...\", \"context\": \"...\"}}]}}\n\nTEXT:\n{}",
-            &content[..content.len().min(2000)]
+            truncate_content(&content, 2000)
         ),
         WorkerJobKind::SuggestMemory => format!(
             "Extract stable facts, preferences, and behavioral patterns worth remembering from this text.\nReturn JSON: {{\"suggestions\": [\"fact1\", \"fact2\"], \"count\": N}}\n\nTEXT:\n{}",
-            &content[..content.len().min(2000)]
+            truncate_content(&content, 2000)
         ),
     };
 

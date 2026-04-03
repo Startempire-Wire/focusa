@@ -29,6 +29,10 @@ export const S = {
   lastStreamLen: 0,
   // Auto-resume dedup: set when compaction fires, cleared after continuation sent
   compactResumePending: false,
+  // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
+  lastCompactDecision: "",
+  // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
+  seenFirstBeforeAgentStart: false,
   // ECS handle registry: kind -> id -> { content, stored_at }
   ecsRegistry: {} as Record<string, Record<string, { content: string; storedAt: number }>>,
   // Tool usage batching (§33.4)

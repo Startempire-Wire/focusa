@@ -68,7 +68,11 @@ export function registerCompaction(pi: ExtensionAPI) {
 
   // ── session_compact (§38.1 trim, §35.6 files + auto-resume) ───────────────
   pi.on("session_compact", async (event, ctx) => {
-    // §38.1: Trim local shadow only after Focusa confirms state
+    // §38.1: Trim local shadow only after Focusa confirms state.
+    // NOTE: S.lastCompactDecision is saved BEFORE trimming (used in steer below).
+    const lastDecision = S.localDecisions[S.localDecisions.length - 1] ?? "pre-compaction work";
+    S.lastCompactDecision = lastDecision;
+
     if (S.focusaAvailable && S.activeFrameId) {
       const data = await getFocusState();
       if (data?.fs?.decisions?.length || data?.fs?.constraints?.length) {
@@ -102,19 +106,31 @@ export function registerCompaction(pi: ExtensionAPI) {
       const pi2 = S.pi;
       if (pi2) {
         queueMicrotask(() => {
-          const lastDecision = S.localDecisions[S.localDecisions.length - 1] ?? "pre-compaction work";
-          const nextStep = S.localDecisions.length > 0
-            ? "Review the above decisions and constraints. Continue with the next logical step."
-            : "Continue executing. Context was compacted — preserve all progress.";
+          // lastDecision saved above, before localDecisions was cleared
+          const directive = S.localDecisions.length > 0 || S.lastCompactDecision
+            ? `Review the above decisions and constraints. Continue with the next logical step.`
+            : `Continue executing. Context was compacted — preserve all progress.`;
           const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
           try {
             pi2.sendMessage({
               customType: "focusa-compact-resume",
               content: `# Compaction Complete${note}
 ## Last Active Focus
-${lastDecision}
+${S.lastCompactDecision || "pre-compaction work"}
 ## Directive
-${nextStep}`,
+${directive}
+
+---
+
+## Focusa Tool Guidance
+When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
+- **Working notes** → focusa_scratch (all internal monologue welcome)
+- **Crystallized decision** → focusa_decide (ONE sentence, max 280 chars, architectural choice)
+- **Discovered requirement** → focusa_constraint (hard boundary from environment/architecture)
+- **Failure diagnosis** → focusa_failure (specific component + why it failed)
+- **Validation** fails if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), or exceeding char limits
+
+See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`,
               display: false,
             }, { deliverAs: "steer" });
             // Belt-and-suspenders: call agent.continue() directly via sessionManager.

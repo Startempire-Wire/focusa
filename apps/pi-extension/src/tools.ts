@@ -1,24 +1,16 @@
 // FOCUSA_SCRATCHPAD: two-file model
 // Spec: G1-07 §AsccSections + doc 44 §10.5 + §Forbidden
 //
-// LESSON (live evidence 2026-04-03, read every word):
-// Decision rationale: 50-char limit → agent wrote 200+ char task lists in rationale field
-// Decision fields: reformatted task lists with "Fix all", "Tool-level guardrails"
-// Constraints: ALL 30+ are agent's own self-referential stream-of-consciousness
-//   — including agent's own root-cause analysis and meta-observation about this pollution
-// Both guardrails FAILED. Agent worked around both.
-//
-// ROOT CAUSE: Agent needs a scratchpad. The tool fields became it.
-//
-// TWO-FILE MODEL:
+// The two-file model:
 //   /tmp/pi-scratch/<turn>/notes.txt  → agent's FULL working notebook (unlimited, no Focus State)
-//   Focus State (Focusa)               → operator-curated decisions only
+//   Focus State (Focusa)               → operator-curated cognitive state only
 //
-// Extension = thin bridge. Focus State = operator manages. Agent uses scratchpad.
+// Extension = thin bridge. Focus State = operator manages.
+// Agent uses scratchpad for working notes. Operator manages Focus State.
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S } from "./state.js";
+import { S, focusaFetch, focusaPost } from "./state.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -33,6 +25,83 @@ function ensureScratchDir(): void {
   } catch { /* best effort */ }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Validation helpers — per §AsccSections and G1-07 Delta Summarization Rule
+// The agent IS the summarizer (LLM-assisted path). Validation enforces quality.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TASK_PATTERNS = /\b(Fix all|Implement|Add|Create|Update|Remove|Check|Verify|Test|Build|Deploy|NEXT:|Signal:)\b/i;
+const DEBUG_PATTERNS = /(\bDEBUG\b|\bTODO\b|\bstack trace\b|\berror\b|\bfailed\b|\bcrash\b|\bbroken\b|\bbug\b|\bat line\b|\bTraceback\b)/i;
+const SELF_REF_PATTERNS = /\b(I think|I tried|I'm working|I'm doing|working on|trying to|in this session|while I was|I was just)\b/i;
+const MULTI_SENTENCE = /\.\s+\w/;
+
+function validateDecision(decision: string): { valid: boolean; reason?: string } {
+  // §AsccSections: decisions = crystallized choices that guide future action
+  // Each <= 160 chars. Single sentence preferred.
+  if (decision.length > 280) {
+    return { valid: false, reason: "Too verbose — distill to ONE crystallized sentence (max 280 chars). Use scratchpad for elaboration." };
+  }
+  if (TASK_PATTERNS.test(decision)) {
+    return { valid: false, reason: "Sounds like a task list — decisions capture ARCHITECTURAL CHOICES, not implementation plans. Write task in scratchpad. Distill the decision." };
+  }
+  if (DEBUG_PATTERNS.test(decision)) {
+    return { valid: false, reason: "Sounds like debugging metadata — decisions are stable choices, not investigation notes. Move to scratchpad." };
+  }
+  if (SELF_REF_PATTERNS.test(decision)) {
+    return { valid: false, reason: "Sounds like stream-of-consciousness — decisions should be objective architectural statements. Distill from scratchpad notes." };
+  }
+  if (MULTI_SENTENCE.test(decision) && decision.length > 160) {
+    return { valid: false, reason: "Multiple sentences + long — decisions should be ONE crystallized sentence. Per §AsccSections (<=160 chars)." };
+  }
+  return { valid: true };
+}
+
+function validateConstraint(constraint: string): { valid: boolean; reason?: string } {
+  // §AsccSections: constraints = DISCOVERED REQUIREMENTS (not self-imposed tasks)
+  // Constraint is a hard boundary from environment/architecture, not "I should do X"
+  if (constraint.length > 200) {
+    return { valid: false, reason: "Too verbose — distill to one sentence (max 200 chars)." };
+  }
+  if (TASK_PATTERNS.test(constraint)) {
+    return { valid: false, reason: "Sounds like a self-imposed task — constraints are DISCOVERED REQUIREMENTS from environment/architecture. Not 'I will do X'." };
+  }
+  if (/\b(will|should|must|need to|going to)\b/i.test(constraint)) {
+    return { valid: false, reason: "Sounds like self-imposed obligation — constraints are discovered requirements from environment, not agent commitments. Use scratchpad." };
+  }
+  return { valid: true };
+}
+
+function validateFailure(failure: string): { valid: boolean; reason?: string } {
+  // §AsccSections: failures = what failed and why
+  // Specific, diagnostic, not just "it didn't work"
+  if (failure.length > 300) {
+    return { valid: false, reason: "Too verbose — distill to one diagnostic sentence (max 300 chars)." };
+  }
+  if (!/(\.|:)/.test(failure)) {
+    return { valid: false, reason: "Vague — failures should be SPECIFIC: what failed AND why (or what you suspect). 'It didn't work' = scratchpad." };
+  }
+  if (SELF_REF_PATTERNS.test(failure) && !/^(Build|Test|Deploy|API|Request|Query|Compil|Cargo)/i.test(failure)) {
+    return { valid: false, reason: "Sounds like investigation process — failures should be: SPECIFIC COMPONENT failed, with DIAGNOSIS. Move investigation notes to scratchpad." };
+  }
+  return { valid: true };
+}
+
+// Push delta to Focusa (returns ok boolean)
+async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[] }): Promise<boolean> {
+  if (!S.focusaAvailable || !S.activeFrameId) return false;
+  try {
+    await focusaFetch("/focus/update", {
+      method: "POST",
+      body: JSON.stringify({
+        frame_id: S.activeFrameId,
+        turn_id: `pi-turn-${S.turnCount}`,
+        delta,
+      }),
+    });
+    return true;
+  } catch { return false; }
+}
+
 export function registerTools(pi: ExtensionAPI) {
   // ── focusa_scratch ──────────────────────────────────────────────────────
   // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
@@ -42,8 +111,8 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_scratch",
     label: "Scratchpad",
-    description: "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to /focusa-decide when done.",
-    promptSnippet: "Working notes → scratchpad. Crystallized decision → /focusa-decide command.",
+    description: "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    promptSnippet: "Working notes → scratchpad. Crystallized decision → focusa_decide.",
     parameters: Type.Object({
       note: Type.String({ description: "Working note — reasoning, task list, hypothesis, dead end. Unlimited length." }),
       tag: Type.Optional(Type.String({ description: "Tag: reasoning|task|hypothesis|dead-end|self-correction|next-step" })),
@@ -51,7 +120,7 @@ export function registerTools(pi: ExtensionAPI) {
     promptGuidelines: [
       "ALL working notes go HERE. scratchpad ≠ Focus State.",
       "NEXT:/Signal: directives, task lists, design notes, self-corrections → here.",
-      "When done: distill ONE crystallized sentence → /focusa-decide (manual command, operator approves).",
+      "When done: distill ONE crystallized sentence → focusa_decide.",
       "Scratchpad is your working notebook. Focus State is operator's decision journal.",
       "Run: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt",
     ],
@@ -74,19 +143,153 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   // ── focusa_decide ────────────────────────────────────────────────────────
-  // DISABLED. Agent writes task lists in rationale field. Strip ALL Focus State writes.
-  // Operator: use /focusa-decide command (manual, no auto-write).
-  // Agent: use focusa_scratch for all notes. Operator manages Focus State.
-  void 0;
+  // Per G1-07 §Delta Summarization Rule: LLM-assisted delta summarization.
+  // Agent IS the summarizer — distill crystallized decisions from scratchpad notes.
+  //
+  // Validation rules (per §AsccSections: decisions = crystallized choices <= 160 chars):
+  //   - Must be ONE crystallized sentence (architectural choice)
+  //   - NOT a task list ("Fix all", "Implement", "NEXT:")
+  //   - NOT debugging metadata ("error", "failed", "DEBUG")
+  //   - NOT stream-of-consciousness ("I think", "I tried")
+  //   - Max 280 chars (leniency over §AsccSections 160 char limit)
+  //
+  // Use focusa_scratch for all working notes first. Then distill ONE decision.
+  pi.registerTool({
+    name: "focusa_decide",
+    label: "Record Decision",
+    description: "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
+    promptSnippet: "Crystallized decision → Focus State. Working notes → focusa_scratch first.",
+    parameters: Type.Object({
+      decision: Type.String({ description: "ONE crystallized architectural choice — what was decided and why (max 280 chars). NOT a task list or debugging note." }),
+      rationale: Type.Optional(Type.String({ description: "Context: why this decision was made (max 200 chars). Summarize from scratchpad notes." })),
+    }),
+    promptGuidelines: [
+      "Step 1: Write detailed reasoning in focusa_scratch",
+      "Step 2: Distill ONE crystallized sentence → decision field",
+      "decision = what was decided (architectural choice, not implementation plan)",
+      "rationale = why (1-2 sentences max)",
+      "VALIDATION FAILS if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), or > 280 chars",
+      "Example VALID: 'Use two-file model: /tmp/pi-scratch/ for working notes, Focus State for operator-managed decisions only.'",
+      "Example INVALID: 'Fix all pi-extension spec gaps in priority order...' (task list, not decision)",
+    ],
+    async execute(_id, params) {
+      const { decision, rationale } = params as { decision: string; rationale?: string };
+      const v = validateDecision(decision);
+      if (!v.valid) {
+        return {
+          content: [{ type: "text" as const, text: `❌ Decision rejected: ${v.reason}\n\nWrite detailed reasoning to focusa_scratch first, then distill ONE crystallized decision.` }],
+          details: { valid: false, reason: v.reason, decision, rationale: rationale?.slice(0, 200) },
+        };
+      }
+      const turn = S.turnCount;
+      const ok = await pushDelta({ decisions: [decision] });
+      if (!ok) {
+        return {
+          content: [{ type: "text" as const, text: `⚠️ Focus State unavailable — decision NOT recorded. Save to scratchpad: ${decision.slice(0, 80)}` }],
+          details: { valid: false, reason: "Focusa unavailable", decision, rationale: rationale?.slice(0, 200) },
+        };
+      }
+      return {
+        content: [{ type: "text" as const, text: `✅ Decision recorded (turn ${turn}): ${decision.slice(0, 120)}${decision.length > 120 ? "…" : ""}` }],
+        details: { valid: true, reason: undefined, decision, rationale: rationale?.slice(0, 200) },
+      };
+    },
+  });
 
   // ── focusa_constraint ────────────────────────────────────────────────────
-  // DISABLED. ALL 30+ entries are agent's own self-referential monologue.
-  // Agent even recorded its own meta-analysis of this problem as a constraint.
-  // §AsccSections: "constraints = DISCOVERED REQUIREMENTS." Not agent monologue.
-  void 0;
+  // §AsccSections: constraints = DISCOVERED REQUIREMENTS from environment/architecture.
+  // NOT self-imposed tasks or agent commitments.
+  //
+  // Valid constraints:
+  //   - "MariaDB 10.6 only — no upgrade path to 11.x yet"
+  //   - "cPanel API requires root — cannot run as user"
+  //   - "Focus State cannot be cleared via /focus/update — only accumulation"
+  //   - "Wirebot thoughts only in /wbm mode"
+  //
+  // Invalid (reject with validation):
+  //   - "I must check git status first" (self-imposed task)
+  //   - "Need to update the README" (implementation plan)
+  //   - "I should use the scratchpad" (agent commitment)
+  pi.registerTool({
+    name: "focusa_constraint",
+    label: "Record Constraint",
+    description: "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
+    promptSnippet: "Constraints = discovered requirements. Self-imposed tasks → focusa_scratch.",
+    parameters: Type.Object({
+      constraint: Type.String({ description: "Discovered requirement — hard boundary from environment or architecture (max 200 chars). NOT a task or agent commitment." }),
+      source: Type.Optional(Type.String({ description: "Where discovered: spec file, error message, API docs, operator directive." })),
+    }),
+    promptGuidelines: [
+      "Constraints are DISCOVERED REQUIREMENTS, not self-imposed tasks.",
+      "VALID: environment boundary, API limit, spec rule, architectural pattern, operator directive",
+      "INVALID: 'I should X', 'Need to Y', implementation plans, agent commitments",
+      "Example VALID: 'Focus State cannot be cleared — /focus/update only accumulates. Stale entries require fresh frame push.'",
+      "Example INVALID: 'Need to fix the scratchpad path' (self-imposed task)",
+    ],
+    async execute(_id, params) {
+      const { constraint, source } = params as { constraint: string; source?: string };
+      const v = validateConstraint(constraint);
+      if (!v.valid) {
+        return {
+          content: [{ type: "text" as const, text: `❌ Constraint rejected: ${v.reason}\n\nDiscovered requirements from environment → focusa_constraint. Self-imposed tasks → focusa_scratch.` }],
+          details: { valid: false, reason: v.reason, constraint, source },
+        };
+      }
+      const turn = S.turnCount;
+      const ok = await pushDelta({ constraints: [constraint] });
+      if (!ok) {
+        return {
+          content: [{ type: "text" as const, text: `⚠️ Focus State unavailable — constraint NOT recorded. Save to scratchpad: ${constraint.slice(0, 80)}` }],
+          details: { valid: false, reason: "Focusa unavailable", constraint, source },
+        };
+      }
+      return {
+        content: [{ type: "text" as const, text: `✅ Constraint recorded (turn ${turn}): ${constraint.slice(0, 120)}${constraint.length > 120 ? "…" : ""}` }],
+        details: { valid: true, reason: undefined, constraint, source },
+      };
+    },
+  });
 
   // ── focusa_failure ───────────────────────────────────────────────────────
-  // DISABLED. Strip ALL Focus State writes from extension.
-  // Actual failures reported by operator → /focusa-failure command.
-  void 0;
+  // §AsccSections: failures = what failed and why (diagnostic, specific)
+  // NOT investigation process or debugging metadata.
+  pi.registerTool({
+    name: "focusa_failure",
+    label: "Record Failure",
+    description: "Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars.",
+    promptSnippet: "Failures = specific component + diagnosis. Investigation notes → focusa_scratch.",
+    parameters: Type.Object({
+      failure: Type.String({ description: "Specific failure: what failed + diagnosis (max 300 chars). Must contain period or colon." }),
+      recovery: Type.Optional(Type.String({ description: "What was done to recover or workaround." })),
+    }),
+    promptGuidelines: [
+      "Be SPECIFIC: what component failed + why (or suspected why).",
+      "VALID: 'Focus State injection failed: stack.stack.stack.frames returned undefined (triple-nesting bug).'",
+      "INVALID: 'Something went wrong', 'It didn't work', investigation process",
+      "Move detailed investigation notes to focusa_scratch.",
+      "recovery = what was done to fix or work around (optional).",
+    ],
+    async execute(_id, params) {
+      const { failure, recovery } = params as { failure: string; recovery?: string };
+      const v = validateFailure(failure);
+      if (!v.valid) {
+        return {
+          content: [{ type: "text" as const, text: `❌ Failure rejected: ${v.reason}\n\nBe specific: WHAT failed + WHY. Move investigation to focusa_scratch.` }],
+          details: { valid: false, reason: v.reason, failure, recovery },
+        };
+      }
+      const turn = S.turnCount;
+      const ok = await pushDelta({ failures: [failure] });
+      if (!ok) {
+        return {
+          content: [{ type: "text" as const, text: `⚠️ Focus State unavailable — failure NOT recorded. Save to scratchpad: ${failure.slice(0, 80)}` }],
+          details: { valid: false, reason: "Focusa unavailable", failure, recovery },
+        };
+      }
+      return {
+        content: [{ type: "text" as const, text: `✅ Failure recorded (turn ${turn}): ${failure.slice(0, 120)}${failure.length > 120 ? "…" : ""}` }],
+        details: { valid: true, reason: undefined, failure, recovery },
+      };
+    },
+  });
 }

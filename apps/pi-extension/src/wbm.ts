@@ -47,10 +47,12 @@ export async function fetchWbmContext(): Promise<string> {
     if (score.season) parts.push(`Season: ${score.season}`);
   } catch {}
 
-  // Active Focusa frame
+  // Active Focusa frame — use latest frame if no active_frame_id
   const stack = await focusaFetch("/focus/stack");
-  if (stack?.stack?.frames?.length) {
-    const f = stack.stack.frames.find((fr: any) => fr.id === stack.active_frame_id) || stack.stack.frames[0];
+  const allFrames = stack?.stack?.frames || [];
+  if (allFrames.length) {
+    const active = stack?.active_frame_id ? allFrames.find((fr: any) => fr.id === stack.active_frame_id) : allFrames[allFrames.length - 1];
+    const f = active;
     parts.push(`Active Frame: ${f.title || "(unnamed)"}`);
   }
 
