@@ -29,9 +29,12 @@ async fn get_stack(State(state): State<Arc<AppState>>) -> Json<serde_json::Value
 
 #[derive(Deserialize)]
 struct PushFrameBody {
-    title: String,
-    goal: String,
-    beads_issue_id: String,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    goal: Option<String>,
+    #[serde(default)]
+    beads_issue_id: Option<String>,
     #[serde(default)]
     constraints: Vec<String>,
     #[serde(default)]
@@ -45,9 +48,9 @@ async fn push_frame(
     state
         .command_tx
         .send(Action::PushFrame {
-            title: body.title,
-            goal: body.goal,
-            beads_issue_id: body.beads_issue_id,
+            title: body.title.unwrap_or_default(),
+            goal: body.goal.unwrap_or_default(),
+            beads_issue_id: body.beads_issue_id.unwrap_or_default(),
             constraints: body.constraints,
             tags: body.tags,
         })
