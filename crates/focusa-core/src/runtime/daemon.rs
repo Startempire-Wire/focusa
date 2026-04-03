@@ -1941,11 +1941,46 @@ Return ONLY valid JSON:
                         .filter(|s| !s.is_empty())
                         .map(String::from);
 
+                    // Validation: strict filter for constraints extracted from assistant output.
+                    // Reject: task patterns, debug metadata, self-reference, verbose text.
+                    // These patterns match assistant output text, not true discovered requirements.
+                    let validate_constraint = |s: &String| -> bool {
+                        let lower = s.to_lowercase();
+                        // Reject task patterns
+                        if lower.contains("fix all") || lower.contains("implement ")
+                            || lower.contains(" add ") || lower.contains("create ")
+                            || lower.contains("update ") || lower.contains("remove ")
+                            || lower.contains("check ") || lower.contains("verify ")
+                            || lower.contains("next:") || lower.contains("signal:")
+                        {
+                            return false;
+                        }
+                        // Reject self-reference (assistant output patterns)
+                        if lower.contains("i think") || lower.contains("i tried")
+                            || lower.contains("i'm working") || lower.contains("i was")
+                            || lower.contains("in this session") || lower.contains("while i was")
+                            || lower.contains("my fs.failures") || lower.contains("my fix")
+                        {
+                            return false;
+                        }
+                        // Reject verbose output (>200 chars = likely verbose text, not constraint)
+                        if s.len() > 200 {
+                            return false;
+                        }
+                        // Reject markdown/checklist patterns
+                        if s.contains("**") || s.contains("✅") || s.contains("- [ ]")
+                            || s.contains("---") || s.contains("❌") || s.contains("```")
+                        {
+                            return false;
+                        }
+                        true
+                    };
+
                     let delta = FocusStateDelta {
                         current_state,
                         decisions: extract_strings("decisions"),
                         next_steps: extract_strings("next_steps"),
-                        constraints: extract_strings("constraints"),
+                        constraints: extract_strings("constraints").map(|v| v.into_iter().filter(|s| validate_constraint(s)).collect()),
                         failures: extract_strings("failures"),
                         open_questions: extract_strings("open_questions"),
                         recent_results: extract_strings("recent_results"),

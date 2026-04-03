@@ -2,8 +2,7 @@
 //!
 //! Conflict-free Replicated Data Types for event log synchronization.
 
-use crate::types::{EventLogEntry, SessionId};
-use chrono::{DateTime, Utc};
+use crate::types::EventLogEntry;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;

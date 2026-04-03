@@ -191,15 +191,18 @@ fn extract_ascc_delta(content: &str) -> JobResult {
             next_steps.push(truncate_line(trimmed, 160));
         }
 
-        // Constraints: boundary language.
-        if lower.contains("must ")
-            || lower.contains("must not")
-            || lower.contains("cannot ")
-            || lower.contains("constraint")
-            || lower.contains("requirement")
-            || lower.contains("not allowed")
-            || lower.contains("forbidden")
-            || lower.contains("required ")
+        // Constraints: EXPLICIT marker required — not just any occurrence of constraint
+        // language. Text like "the constraint is" or "must fix" in normal conversation
+        // should NOT be extracted. Only lines that START with constraint markers.
+        if lower.starts_with("constraint:")
+            || lower.starts_with("constraint ")
+            || lower.starts_with("requirement:")
+            || lower.starts_with("required: ")
+            || lower.starts_with("must not ")
+            || lower.starts_with("cannot: ")
+            || lower.starts_with("must: ")
+            || lower.starts_with("not allowed: ")
+            || lower.starts_with("forbidden: ")
         {
             constraints.push(truncate_line(trimmed, 160));
         }
