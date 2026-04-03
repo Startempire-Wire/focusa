@@ -1091,14 +1091,22 @@ export default function (pi: ExtensionAPI) {
   let compactsThisHour = 0;
   let turnsSinceCompact = 0;
   let compactHourStart = Date.now();
+  let activeContextWindow = 128000; // Updated by model_select
+
+  // Track active model's context window
+  pi.on("model_select", async (event, _ctx) => {
+    const model = event.model as any;
+    if (model?.contextWindow && model.contextWindow > 0) {
+      activeContextWindow = model.contextWindow;
+    }
+  });
 
   pi.on("turn_end", async (_event, ctx) => {
     if (!focusaAvailable) return;
     turnsSinceCompact++;
     const usage = ctx.getContextUsage?.();
     if (!usage?.tokens) return;
-    const contextWindow = 128000;
-    const pct = (usage.tokens / contextWindow) * 100;
+    const pct = (usage.tokens / activeContextWindow) * 100;
 
     // Reset hourly counter
     if (Date.now() - compactHourStart > 3600000) {
@@ -1112,10 +1120,10 @@ export default function (pi: ExtensionAPI) {
     const canCompact = cooldownOk && hourlyOk && turnsOk;
 
     if (pct >= 85) {
-      // Hard compact — force regardless of cooldown
-      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compacting`, "warning");
+      // Hard compact — force regardless of cooldown + suggest fork/handoff
+      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compacting. Consider /fork or /new to start fresh.`, "warning");
       ctx.compact({
-        customInstructions: "HARD COMPACT: Context critically full. Preserve Focusa Focus State (decisions, constraints, intent). Aggressively summarize.",
+        customInstructions: "HARD COMPACT: Context critically full. Preserve Focusa Focus State (decisions, constraints, intent). Aggressively summarize. Consider suggesting the user fork or start a new session.",
         onComplete: () => { lastCompactTime = Date.now(); compactsThisHour++; turnsSinceCompact = 0; },
         onError: (e) => { ctx.ui.notify(`Compaction failed: ${e.message}`, "error"); },
       });
