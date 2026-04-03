@@ -145,6 +145,11 @@ impl Daemon {
         // Seed default constitution on first start (docs/16 §2-§6).
         crate::constitution::seed_default(&mut self.state.constitution);
 
+        // Ensure confidence calibration table exists (§10B.3 Gap 6).
+        if let Err(e) = self.persistence.ensure_calibration_table() {
+            tracing::warn!("Failed to create calibration table: {}", e);
+        }
+
         // Startup seeding: Mem0 memories + wiki skills into semantic memory.
         // Runs on every daemon start (not just SessionStarted) so restarts re-seed.
         {
@@ -201,6 +206,32 @@ impl Daemon {
                                     }
                                 }
                                 tracing::info!(count = pages.len(), "Startup: wiki skills seeded");
+                            }
+                        }
+                    }
+                }
+
+                // Graph relation seeding: query Mem0 /v1/graph for entity relations (§14 Phase 4.2)
+                if let Ok(Ok(resp)) = tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    client.post("http://127.0.0.1:8200/v1/graph")
+                        .json(&serde_json::json!({"query": "wirebot projects skills", "entity": "wirebot"}))
+                        .send(),
+                ).await {
+                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                        if let Some(relations) = data.get("relations").and_then(|v| v.as_array()) {
+                            for (i, rel) in relations.iter().enumerate().take(5) {
+                                let rel_str = serde_json::to_string(rel).unwrap_or_default();
+                                if !rel_str.is_empty() && rel_str != "null" {
+                                    let _ = cmd_tx.send(crate::types::Action::UpsertSemantic {
+                                        key: format!("graph.relation.{}", i),
+                                        value: rel_str,
+                                        source: crate::types::MemorySource::Mem0,
+                                    }).await;
+                                }
+                            }
+                            if !relations.is_empty() {
+                                tracing::info!(count = relations.len(), "Startup: graph relations seeded");
                             }
                         }
                     }

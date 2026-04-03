@@ -503,6 +503,77 @@ impl SqlitePersistence {
 
         Ok(())
     }
+    /// Ensure confidence calibration table exists.
+    pub fn ensure_calibration_table(&self) -> anyhow::Result<()> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        conn.execute(
+            r#"CREATE TABLE IF NOT EXISTS confidence_calibration (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                prediction_type TEXT NOT NULL,
+                predicted_confidence REAL NOT NULL,
+                context TEXT,
+                outcome TEXT,
+                outcome_correct INTEGER,
+                created_at TEXT NOT NULL,
+                resolved_at TEXT
+            )"#,
+            [],
+        )?;
+        Ok(())
+    }
+
+    /// Log a confidence prediction for later calibration.
+    pub fn log_confidence(&self, prediction_type: &str, confidence: f64, context: &str) -> anyhow::Result<i64> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        conn.execute(
+            "INSERT INTO confidence_calibration (prediction_type, predicted_confidence, context, created_at) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![prediction_type, confidence, context, chrono::Utc::now().to_rfc3339()],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    /// Record the outcome for a prediction.
+    pub fn resolve_confidence(&self, id: i64, outcome: &str, correct: bool) -> anyhow::Result<()> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        conn.execute(
+            "UPDATE confidence_calibration SET outcome=?1, outcome_correct=?2, resolved_at=?3 WHERE id=?4",
+            rusqlite::params![outcome, if correct { 1i64 } else { 0i64 }, chrono::Utc::now().to_rfc3339(), id],
+        )?;
+        Ok(())
+    }
+
+    /// Get calibration stats: for each confidence bucket, what % were correct?
+    pub fn calibration_stats(&self) -> anyhow::Result<Vec<(String, f64, f64, u64)>> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        let mut stmt = conn.prepare(
+            r#"SELECT 
+                CASE 
+                    WHEN predicted_confidence < 0.3 THEN 'low'
+                    WHEN predicted_confidence < 0.7 THEN 'medium'
+                    ELSE 'high'
+                END as bucket,
+                AVG(predicted_confidence) as avg_predicted,
+                AVG(CAST(outcome_correct AS REAL)) as actual_rate,
+                COUNT(*) as total
+            FROM confidence_calibration 
+            WHERE outcome_correct IS NOT NULL
+            GROUP BY bucket"#,
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, f64>(1)?,
+                row.get::<_, f64>(2)?,
+                row.get::<_, i64>(3)? as u64,
+            ))
+        })?;
+        let mut stats = Vec::new();
+        for row in rows.flatten() {
+            stats.push(row);
+        }
+        Ok(stats)
+    }
+
 }
 
 #[derive(Debug, Clone)]
