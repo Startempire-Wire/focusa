@@ -207,16 +207,18 @@ fn extract_ascc_delta(content: &str) -> JobResult {
             constraints.push(truncate_line(trimmed, 160));
         }
 
-        // Failures: error indicators.
-        if lower.contains("failed")
-            || lower.contains("error:")
-            || lower.contains("error -")
-            || lower.contains("doesn't work")
-            || lower.contains("broken")
-            || lower.contains("panic")
-            || lower.contains("exception")
-            || lower.contains("traceback")
+        // Failures: EXPLICIT marker required — not just any occurrence of failure language.
+        // Text like "panic in X" or "error in Y" in normal output should NOT be extracted.
+        // Only lines that START with failure markers.
+        if lower.starts_with("failure:")
+            || lower.starts_with("failed:")
+            || lower.starts_with("error:")
+            || lower.starts_with("panic:")
+            || lower.starts_with("broken:")
+            || lower.starts_with("traceback:")
+            || lower.starts_with("exception:")
             || lower.starts_with("err ")
+            || lower.starts_with("failed ")
         {
             failures.push(truncate_line(trimmed, 160));
         }
