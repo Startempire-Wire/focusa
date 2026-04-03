@@ -609,6 +609,8 @@ async fn chat_completions(
     }
 
     // 3. FORWARD TO UPSTREAM.
+    // Save enhanced request for possible R1+ regeneration
+    let regen_request = result.as_ref().map(|pr| pr.request.clone());
     let (response, error_str) = match result {
         Some(proxy_result) => {
             match openai::forward_request(client, &url, &key, &proxy_result.request).await {
@@ -623,6 +625,70 @@ async fn chat_completions(
             Ok(resp) => (resp, None),
             Err(e) => (json!({"error": e.to_string()}), Some(e.to_string())),
         },
+    };
+
+    // 3b. R1+ INLINE EVAL — evaluate before returning response (§11.8).
+    // At R1+, buffer response, run quality check, regenerate once if failed.
+    let response = {
+        let rfm_level = state.focusa.read().await.rfm.level;
+        if rfm_level >= focusa_core::types::RfmLevel::R1 {
+            let output = extract_assistant_output(&response).unwrap_or_default();
+            if !output.is_empty() {
+                let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
+                if !api_key.is_empty() {
+                    let eval_client = reqwest::Client::new();
+                    let eval_prompt = format!(
+                        "Is this AI response acceptable quality? Answer ONLY 'yes' or 'no'.\n\nRESPONSE:\n{}",
+                        &output[..output.len().min(1000)]
+                    );
+                    if let Ok(Ok(resp)) = tokio::time::timeout(
+                        std::time::Duration::from_secs(3),
+                        eval_client.post("https://api.minimax.io/v1/chat/completions")
+                            .header("Authorization", format!("Bearer {}", api_key))
+                            .json(&serde_json::json!({
+                                "model": "MiniMax-M2.7",
+                                "messages": [{"role": "user", "content": eval_prompt}],
+                                "max_tokens": 10,
+                                "temperature": 0.0,
+                            }))
+                            .send(),
+                    ).await {
+                        if let Ok(data) = resp.json::<serde_json::Value>().await {
+                            if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                                if text.to_lowercase().contains("no") {
+                                    tracing::warn!("R1+ inline eval: response rejected, regenerating once");
+                                    // Regenerate: re-forward the request
+                                    if let Some(ref regen_req) = regen_request {
+                                        if let Ok(regen) = openai::forward_request(&client, &url, &key, regen_req).await {
+                                            tracing::info!("R1+ regeneration complete");
+                                            regen // Use regenerated response
+                                        } else {
+                                            response // Regeneration failed, use original
+                                        }
+                                    } else {
+                                        response
+                                    }
+                                } else {
+                                    response // Passed eval
+                                }
+                            } else {
+                                response // Couldn't parse eval
+                            }
+                        } else {
+                            response // Eval response parse failed
+                        }
+                    } else {
+                        response // Eval timeout
+                    }
+                } else {
+                    response // No API key
+                }
+            } else {
+                response // No output to eval
+            }
+        } else {
+            response // R0 — skip inline eval
+        }
     };
 
     // 4. TURN COMPLETE — Record result.

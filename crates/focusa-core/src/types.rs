@@ -963,6 +963,13 @@ pub enum Action {
         thesis: ThreadThesis,
     },
 
+    // Confidence calibration
+    LogConfidence {
+        prediction_type: String,
+        confidence: f64,
+        context: String,
+    },
+
     // Events
     EmitEvent {
         event: FocusaEvent,

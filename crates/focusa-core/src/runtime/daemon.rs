@@ -462,6 +462,13 @@ Return:
                                                     source: crate::types::MemorySource::Worker,
                                                 }).await;
                                                 
+                                                // Log confidence for calibration (§10B.3 Gap 6)
+                                                let _ = eval_cmd_tx.send(crate::types::Action::LogConfidence {
+                                                    prediction_type: "post_turn_eval".to_string(),
+                                                    confidence: overall,
+                                                    context: format!("answers={} consistent={}", answers, consistent),
+                                                }).await;
+                                                
                                                 // Constraint violations → add to Focus State failures for next turn
                                                 if !violations.is_empty() {
                                                     if let Some(fid) = eval_frame_id {
@@ -736,12 +743,21 @@ Return ONLY valid JSON:
                                                     }
                                                     updated.updated_at = Some(chrono::Utc::now());
                                                     
+                                                    // Capture before move
+                                                    let conf_score = updated.confidence.score;
+                                                    let conf_intent = updated.primary_intent.clone();
                                                     // Send thesis update via command channel
                                                     let _ = cmd_tx.send(crate::types::Action::UpdateThesis {
                                                         frame_id,
                                                         thesis: updated,
                                                     }).await;
                                                     tracing::info!(frame_id = %frame_id, "Thread thesis refined via LLM");
+                                                    // Log thesis confidence for calibration
+                                                    let _ = cmd_tx.send(crate::types::Action::LogConfidence {
+                                                        prediction_type: "thesis_refinement".to_string(),
+                                                        confidence: conf_score,
+                                                        context: format!("intent={}", conf_intent),
+                                                    }).await;
                                                 }
                                             }
                                         }
@@ -1469,6 +1485,13 @@ Return ONLY valid JSON:
                 // Persist so proposals survive a daemon restart.
                 self.persistence.save_state(&self.state)?;
                 self.sync_shared_state().await;
+                Ok(vec![])
+            }
+
+            Action::LogConfidence { prediction_type, confidence, context } => {
+                if let Err(e) = self.persistence.log_confidence(&prediction_type, confidence, &context) {
+                    tracing::warn!("Calibration log failed: {}", e);
+                }
                 Ok(vec![])
             }
 
