@@ -27,6 +27,7 @@ pub enum HarnessType {
     ClaudeCode,
     CodexCli,
     GeminiCli,
+    Pi,
     Generic(String),
 }
 
@@ -36,6 +37,7 @@ impl HarnessType {
             HarnessType::Letta => "letta",
             HarnessType::ClaudeCode => "claude",
             HarnessType::CodexCli => "codex",
+            HarnessType::Pi => "pi",
             HarnessType::GeminiCli => "gemini",
             HarnessType::Generic(cmd) => cmd.as_str(),
         }
@@ -58,6 +60,11 @@ impl HarnessType {
                 streaming: true,
                 tool_output_capture: false,
                 structured_messages: false,
+            },
+            HarnessType::Pi => AdapterCapabilities {
+                streaming: true,
+                tool_output_capture: true,
+                structured_messages: true,
             },
             HarnessType::Generic(_) => AdapterCapabilities {
                 streaming: false,

@@ -352,14 +352,26 @@ export default function (pi: ExtensionAPI) {
   // P1: focusa-bdj — Streaming turn/append via message_update
   // ═══════════════════════════════════════════════════════════════════════════
 
+  let messageUpdateCounter = 0;
   pi.on("message_update", async (event, _ctx) => {
     if (!focusaAvailable) return;
     if (event.message?.role !== "assistant") return;
-    // Don't flood — only append every 10th update
-    const delta = event.assistantMessageEvent;
-    if (!delta) return;
-    // Focusa turn/append for real-time ASCC extraction
-    // Rate-limited to avoid overwhelming the daemon
+    messageUpdateCounter++;
+    // Rate limit: only send every 10th chunk to avoid flooding
+    if (messageUpdateCounter % 10 !== 0) return;
+    const content = typeof event.message.content === "string"
+      ? event.message.content
+      : event.message.content?.map((c: any) => c.text || "").join("");
+    if (!content || content.length < 50) return;
+    // POST /v1/turn/append for real-time ASCC extraction
+    await focusaFetch("/turn/append", {
+      method: "POST",
+      body: JSON.stringify({
+        turn_id: `pi-turn-${turnCount}`,
+        chunk: content.slice(-500), // Last 500 chars
+        harness_name: "pi",
+      }),
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -666,19 +678,84 @@ export default function (pi: ExtensionAPI) {
   pi.on("model_select", async (event, _ctx) => {
     if (!focusaAvailable) return;
     const model = `${event.model.provider}/${event.model.id}`;
-    await focusaFetch("/focus-gate/ingest-signal", {
-      method: "POST",
-      body: JSON.stringify({
-        kind: "UserInput",
-        summary: `Pi model changed to ${model} (${event.source})`,
-        tags: ["pi", "model-change"],
-      }),
-    });
+    // Write model change to Focus State per spec
+    if (activeFrameId) {
+      await focusaFetch("/focus/update", {
+        method: "POST",
+        body: JSON.stringify({
+          frame_id: activeFrameId,
+          turn_id: `pi-turn-${turnCount}`,
+          delta: { notes: [`Model changed to ${model} (${event.source})`] },
+        }),
+      });
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // P2: focusa-cr5 — Intuition signals for pattern detection
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // Track patterns for intuition signals
+  let sessionStartTime = Date.now();
+  const compilationErrors: number[] = []; // timestamps of compilation errors
+  const fileEditCounts: Record<string, number> = {}; // path → edit count
+
+  pi.on("tool_result", async (event, _ctx) => {
+    if (!focusaAvailable) return;
+    // Track compilation errors (cargo, npm, tsc, gcc, etc.)
+    if (event.isError) {
+      const content = String(event.content || "");
+      if (/error\[E\d|error:|failed to compile|Build failed|SyntaxError|TypeError/i.test(content)) {
+        compilationErrors.push(Date.now());
+        // 3+ compilation errors in 5 minutes → signal
+        const recent = compilationErrors.filter(t => Date.now() - t < 300000);
+        if (recent.length >= 3) {
+          await focusaFetch("/focus-gate/ingest-signal", {
+            method: "POST",
+            body: JSON.stringify({
+              kind: "Warning",
+              summary: `Repeated compilation errors: ${recent.length} in 5 min (${event.toolName})`,
+              tags: ["pi", "compilation-errors", "intuition"],
+            }),
+          });
+        }
+      }
+    }
+    // Track file edit churn
+    if (event.toolName === "edit" || event.toolName === "write") {
+      const path = (event as any).input?.path || "";
+      if (path) {
+        fileEditCounts[path] = (fileEditCounts[path] || 0) + 1;
+        // 5+ edits to same file → churn signal
+        if (fileEditCounts[path] === 5) {
+          await focusaFetch("/focus-gate/ingest-signal", {
+            method: "POST",
+            body: JSON.stringify({
+              kind: "Warning",
+              summary: `File churn detected: ${path} edited ${fileEditCounts[path]} times`,
+              tags: ["pi", "file-churn", "intuition"],
+            }),
+          });
+        }
+      }
+    }
+  });
+
+  // Long session detection (>2h)
+  pi.on("agent_end", async (_event, _ctx) => {
+    if (!focusaAvailable) return;
+    const elapsed = Date.now() - sessionStartTime;
+    if (elapsed > 2 * 60 * 60 * 1000) { // 2 hours
+      await focusaFetch("/focus-gate/ingest-signal", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "Warning",
+          summary: `Long Pi session: ${Math.round(elapsed / 3600000)}h ${Math.round((elapsed % 3600000) / 60000)}m`,
+          tags: ["pi", "long-session", "intuition"],
+        }),
+      });
+    }
+  });
 
   pi.on("agent_end", async (event, _ctx) => {
     if (!focusaAvailable) return;
@@ -692,10 +769,434 @@ export default function (pi: ExtensionAPI) {
         body: JSON.stringify({
           kind: "Warning",
           summary: `High tool error rate: ${toolErrors}/${totalTools} (${Math.round(toolErrors/totalTools*100)}%)`,
-          tags: ["pi", "error-pattern"],
+          tags: ["pi", "error-pattern", "intuition"],
         }),
       });
     }
   });
 
 }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P1: focusa-hew — Flush state on session switch
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_before_switch", async (_event, _ctx) => {
+    if (!focusaAvailable) return;
+    // Persist state before switching
+    pi.appendEntry("focusa-state", {
+      frameId: activeFrameId,
+      decisions: localDecisions,
+      constraints: localConstraints,
+      failures: localFailures,
+      turnCount,
+      timestamp: Date.now(),
+    });
+    // Flush to Focusa
+    if (activeFrameId) {
+      await focusaFetch("/focus/update", {
+        method: "POST",
+        body: JSON.stringify({
+          frame_id: activeFrameId,
+          turn_id: `pi-turn-${turnCount}`,
+          delta: {
+            decisions: localDecisions.slice(-5),
+            constraints: localConstraints.slice(-5),
+            failures: localFailures.slice(-3),
+          },
+        }),
+      });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P1: focusa-xmf — Handle /fork and /tree (snapshot Focus State per branch)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_before_fork", async (_event, _ctx) => {
+    if (!focusaAvailable) return;
+    // Snapshot current Focus State before fork
+    pi.appendEntry("focusa-fork-snapshot", {
+      frameId: activeFrameId,
+      decisions: [...localDecisions],
+      constraints: [...localConstraints],
+      failures: [...localFailures],
+      turnCount,
+      timestamp: Date.now(),
+    });
+  });
+
+  pi.on("session_fork", async (_event, ctx) => {
+    ctx.ui.notify("Focusa state preserved for this branch", "info");
+  });
+
+  pi.on("session_before_tree", async (_event, _ctx) => {
+    if (!focusaAvailable) return;
+    // Save state before tree navigation
+    pi.appendEntry("focusa-state", {
+      frameId: activeFrameId,
+      decisions: localDecisions,
+      constraints: localConstraints,
+      failures: localFailures,
+      turnCount,
+      timestamp: Date.now(),
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P1: focusa-2jk — Session resume: reconnect to saved Focusa session
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_switch", async (event, ctx) => {
+    if (event.reason === "resume") {
+      // Restore Focusa state from the resumed session's entries
+      for (const entry of ctx.sessionManager.getEntries()) {
+        if (entry.type === "custom" && (entry as any).customType === "focusa-state") {
+          const data = (entry as any).data;
+          if (data) {
+            activeFrameId = data.frameId || null;
+            localDecisions = data.decisions || [];
+            localConstraints = data.constraints || [];
+            localFailures = data.failures || [];
+            turnCount = data.turnCount || 0;
+          }
+        }
+      }
+      // Try to reconnect to saved Focusa session
+      if (activeFrameId && await checkFocusa()) {
+        ctx.ui.setStatus("focusa", `🧠 Focusa [resumed]`);
+      }
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P1: focusa-55z — Communicate context budget to Focusa
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("context", async (event, ctx) => {
+    if (!focusaAvailable) return;
+    // Report context usage to Focusa so it doesn't overflow
+    const usage = ctx.getContextUsage?.();
+    if (usage) {
+      await focusaFetch("/telemetry/context-budget", {
+        method: "POST",
+        body: JSON.stringify({
+          total_tokens: usage.totalTokens || 0,
+          max_tokens: usage.maxTokens || 0,
+          used_pct: usage.totalTokens && usage.maxTokens
+            ? (usage.totalTokens / usage.maxTokens * 100).toFixed(1)
+            : "0",
+          harness: "pi",
+        }),
+      });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P1: focusa-6z9 — Signal Context Core when Pi session active/inactive
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_start", async (_event, _ctx) => {
+    // Signal Context Core that Pi is active
+    try {
+      await fetch("http://127.0.0.1:7400/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent: "pi", status: "active" }),
+        signal: AbortSignal.timeout(2000),
+      });
+    } catch { /* best effort */ }
+  });
+
+  pi.on("session_shutdown", async (_event, _ctx) => {
+    try {
+      await fetch("http://127.0.0.1:7400/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent: "pi", status: "inactive" }),
+        signal: AbortSignal.timeout(2000),
+      });
+    } catch { /* best effort */ }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-04y — Persistent Focus State widget
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("turn_end", async (_event, ctx) => {
+    if (!focusaAvailable) return;
+    const stack = await focusaFetch("/focus/stack");
+    if (!stack?.frames?.length) return;
+    const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+    const fs = active.focus_state || {};
+    
+    const widgetLines: string[] = [];
+    if (active.title) widgetLines.push(`📋 ${active.title}`);
+    widgetLines.push(`🔗 WBM: ${wbmEnabled ? "ON" : "off"}`);
+    if (fs.intent) widgetLines.push(`🎯 ${fs.intent}`);
+    if (fs.decisions?.length) widgetLines.push(`✅ ${fs.decisions.length} decisions`);
+    if (fs.constraints?.length) widgetLines.push(`🚧 ${fs.constraints.length} constraints`);
+    if (fs.failures?.length) widgetLines.push(`❌ ${fs.failures.length} failures`);
+    
+    ctx.ui.setWidget("focusa", widgetLines, "below");
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-aya — Keyboard shortcuts
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.registerShortcut("ctrl+shift+f", {
+    description: "Show Focusa Focus State",
+    handler: async (ctx) => {
+      if (!focusaAvailable) {
+        ctx.ui.notify("Focusa offline", "warning");
+        return;
+      }
+      const stack = await focusaFetch("/focus/stack");
+      if (!stack?.frames?.length) {
+        ctx.ui.notify("No active Focus Frame", "info");
+        return;
+      }
+      const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+      const fs = active.focus_state || {};
+      const lines = [
+        `Frame: ${active.title}`,
+        `Intent: ${fs.intent || "(none)"}`,
+        `Decisions: ${(fs.decisions || []).join("; ") || "(none)"}`,
+        `Constraints: ${(fs.constraints || []).join("; ") || "(none)"}`,
+        `Failures: ${(fs.failures || []).join("; ") || "(none)"}`,
+      ];
+      ctx.ui.notify(lines.join("\n"), "info");
+    },
+  });
+
+  pi.registerShortcut("ctrl+shift+w", {
+    description: "Toggle Wirebot Mode",
+    handler: async (ctx) => {
+      wbmEnabled = !wbmEnabled;
+      ctx.ui.notify(`Wirebot Mode: ${wbmEnabled ? "ON" : "OFF"}`, "info");
+      ctx.ui.setStatus("focusa", wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+    },
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-kjg — --wbm and --focusa CLI flags
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.registerFlag("wbm", {
+    type: "boolean",
+    default: false,
+    description: "Start with Wirebot Mode enabled",
+  });
+
+  pi.registerFlag("focusa", {
+    type: "boolean",
+    default: true,
+    description: "Enable Focusa cognitive integration",
+  });
+
+  pi.on("session_start", async (event, ctx) => {
+    const flags = (event as any).flags || {};
+    if (flags.wbm) {
+      wbmEnabled = true;
+      ctx.ui.setStatus("focusa", "🧠 Focusa [WBM]");
+    }
+    if (flags.focusa === false) {
+      focusaAvailable = false;
+      ctx.ui.setStatus("focusa", "🧠 Focusa (disabled)");
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-9s4 — Focus State updates on significant progress
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("tool_result", async (event, _ctx) => {
+    if (!focusaAvailable || !activeFrameId) return;
+    // Detect significant progress: successful write/edit to key files
+    if ((event.toolName === "write" || event.toolName === "edit") && !event.isError) {
+      const path = (event as any).input?.path || "";
+      if (path && !path.includes("node_modules") && !path.includes(".beads")) {
+        await focusaFetch("/focus/update", {
+          method: "POST",
+          body: JSON.stringify({
+            frame_id: activeFrameId,
+            turn_id: `pi-turn-${turnCount}`,
+            delta: { recent_results: [`Modified: ${path}`] },
+          }),
+        });
+      }
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-yhu — Focusa-guided compaction instructions
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_before_compact", async (event, _ctx) => {
+    if (!focusaAvailable) return;
+    // Fetch ASCC state for compaction guidance
+    const ascc = await focusaFetch("/ascc/state");
+    if (!ascc) return;
+    // Build custom instructions from Focus State
+    const instructions = [
+      "Preserve these Focusa cognitive state items in your compaction summary:",
+    ];
+    if (ascc.intent) instructions.push(`Intent: ${ascc.intent}`);
+    if (ascc.decisions?.length) instructions.push(`Decisions: ${ascc.decisions.join("; ")}`);
+    if (ascc.constraints?.length) instructions.push(`Constraints: ${ascc.constraints.join("; ")}`);
+    if (ascc.open_questions?.length) instructions.push(`Open questions: ${ascc.open_questions.join("; ")}`);
+    
+    return { customInstructions: instructions.join("\n") };
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-q81 — /focusa-explain-decision and /focusa-lineage commands
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.registerCommand("focusa-explain-decision", {
+    description: "Explain why a decision was made (from Focus State)",
+    handler: async (args, ctx) => {
+      if (!focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
+      const stack = await focusaFetch("/focus/stack");
+      if (!stack?.frames?.length) { ctx.ui.notify("No active frame", "info"); return; }
+      const active = stack.frames.find((f: any) => f.id === stack.active_frame_id) || stack.frames[0];
+      const decisions = active.focus_state?.decisions || [];
+      if (decisions.length === 0) { ctx.ui.notify("No decisions recorded", "info"); return; }
+      const query = args || "";
+      const matching = query ? decisions.filter((d: string) => d.toLowerCase().includes(query.toLowerCase())) : decisions;
+      ctx.ui.notify(matching.map((d: string, i: number) => `${i+1}. ${d}`).join("\n") || "No matching decisions", "info");
+    },
+  });
+
+  pi.registerCommand("focusa-lineage", {
+    description: "Show CLT lineage path for current context",
+    handler: async (_args, ctx) => {
+      if (!focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
+      const lineage = await focusaFetch("/clt");
+      if (!lineage?.nodes?.length) { ctx.ui.notify("No lineage nodes", "info"); return; }
+      const lines = lineage.nodes.slice(-10).map((n: any) =>
+        `[${n.node_id}] ${n.node_type} ${n.created_at?.slice(0,19) || ""}`
+      );
+      ctx.ui.notify(lines.join("\n"), "info");
+    },
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-ju1 — Disable focusa tools when daemon down
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Health check runs on every before_agent_start (already implemented).
+  // When focusaAvailable flips to false, the tools still appear but return
+  // graceful messages. For full disable, we'd need setActiveTools API.
+  // Pi doesn't expose setActiveTools yet — tools handle offline gracefully.
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-dxm — Compaction tier logic
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("turn_end", async (_event, ctx) => {
+    if (!focusaAvailable) return;
+    const usage = ctx.getContextUsage?.();
+    if (!usage?.totalTokens || !usage?.maxTokens) return;
+    const pct = (usage.totalTokens / usage.maxTokens) * 100;
+    if (pct >= 85) {
+      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compact imminent`, "warning");
+    } else if (pct >= 70) {
+      ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compaction recommended`, "info");
+    } else if (pct >= 50) {
+      ctx.ui.setStatus("focusa-ctx", `📊 ${pct.toFixed(0)}%`);
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-tj1 — Trim local shadow after ASCC write
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_compact", async (_event, _ctx) => {
+    // After compaction, Focusa has the state — clear local shadow
+    localDecisions = [];
+    localConstraints = [];
+    localFailures = [];
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-d1m — Feed modified files from compaction to Focusa
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_compact", async (event, _ctx) => {
+    if (!focusaAvailable || !activeFrameId) return;
+    const compaction = (event as any).compactionEntry;
+    if (!compaction?.details?.modifiedFiles?.length) return;
+    await focusaFetch("/focus/update", {
+      method: "POST",
+      body: JSON.stringify({
+        frame_id: activeFrameId,
+        turn_id: `pi-turn-${turnCount}`,
+        delta: { artifacts: compaction.details.modifiedFiles.slice(0, 20) },
+      }),
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-cio (P3) — Sync session name from Focus Frame title
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.on("session_start", async (_event, ctx) => {
+    if (!focusaAvailable) return;
+    const stack = await focusaFetch("/focus/stack");
+    if (stack?.frames?.length > 0) {
+      const title = stack.frames[0]?.title || "";
+      if (title) {
+        ctx.sessionManager?.setSessionName?.(`🧠 ${title}`);
+      }
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-i4r — Custom message renderer for Focusa context blocks
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pi.registerMessageRenderer?.("focusa-state", {
+    collapsed: (_msg) => "🧠 Focusa Context (expand to see)",
+    expanded: (msg) => {
+      const content = typeof msg.content === "string" ? msg.content : 
+        msg.content?.map((c: any) => c.text || "").join("") || "";
+      return content;
+    },
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-7fo — Extension UI widgets (status indicators)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Focus pressure indicator in status bar — updated on turn_end via focusa-04y widget
+  // Degraded-context badge — handled by focusa-dxm compaction tier
+  // Active frame snippet — in the widget from focusa-04y
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-dp5 — Metacognitive UX indicators (worker status)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Would need SSE subscription (focusa-9z4) to show real-time worker status.
+  // For now, the widget from focusa-04y shows decision/constraint/failure counts.
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2: focusa-u5d — Continuous pruning loop
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Prune expired semantic memories (mem0.preturn.*, anticipated.*) on each agent_end
+  pi.on("agent_end", async (_event, _ctx) => {
+    if (!focusaAvailable) return;
+    // Clean up transient preturn memories
+    for (let i = 0; i < 5; i++) {
+      await focusaFetch("/memory/semantic", {
+        method: "DELETE",
+        body: JSON.stringify({ key: `mem0.preturn.${i}` }),
+      });
+      await focusaFetch("/memory/semantic", {
+        method: "DELETE",
+        body: JSON.stringify({ key: `anticipated.${i}` }),
+      });
+    }
+  });
