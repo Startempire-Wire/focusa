@@ -850,8 +850,8 @@ mod tests {
             constitution_principles: &[],
             safety_rules: &[],
             config: &config,
-            rehydrate_handles: Some(500),
-            thesis: None, // Request 500 tokens for rehydration.
+            rehydrate_handles: Some(500), // Request 500 tokens for rehydration.
+            thesis: None,
         };
         let result2 = assemble_from(input_with_rehydrate);
         // Note: Full rehydration requires ReferenceStore access.
