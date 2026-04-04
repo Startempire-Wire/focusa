@@ -168,6 +168,7 @@ fn validate_slot(value: &str, max_chars: usize, slot_kind: &str) -> bool {
         || value.contains("|") || value.starts_with("2.") || value.starts_with("3.")
         || value.starts_with("- ") || lower.contains("spec-compliant") || lower.contains("matches")
         || lower.contains("exactly") || lower.contains("fixme")
+        || value.starts_with("Modified:") || value.starts_with("Added:") || value.starts_with("Deleted:")
     {
         return false;
     }
