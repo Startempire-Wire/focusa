@@ -116,11 +116,37 @@ struct UpdateDeltaBody {
 
 /// Validate a single slot value. Rejects verbose output, task patterns,
 /// self-reference, markdown noise — same rules as tools.ts validateSlot.
-fn validate_slot(value: &str, max_chars: usize) -> bool {
+/// Slot-specific stricter rules for result-adjacent slots.
+fn validate_slot(value: &str, max_chars: usize, slot_kind: &str) -> bool {
     if value.is_empty() || value.len() > max_chars {
         return false;
     }
     let lower = value.to_lowercase();
+
+    // Slot-specific: reject verbose process narration in result/question slots
+    if matches!(slot_kind, "recent_results" | "notes" | "open_questions") && value.len() > 180 {
+        return false; // verbose entries don't belong in result/question slots
+    }
+
+    // Verbose process narration patterns — NEVER valid in any slot
+    if lower.contains("root cause") || lower.contains("bypass") || lower.contains("pollut")
+        || lower.contains("investigation") || lower.contains("pattern ") && lower.contains("match")
+        || lower.contains("verbose") && lower.len() < 100
+        || lower.contains("i was able to") || lower.contains("it appears that")
+        || lower.contains("this confirms") || lower.contains("as suspected")
+        || lower.contains("confirmed in the running system")
+        || lower.contains("still the old version")
+        || lower.contains("three bugs") || lower.contains("daemon restarted")
+        || lower.contains("binary confirmed")
+    {
+        return false;
+    }
+
+    // Table/structured markup — investigation noise, not results
+    if value.contains("| ") && value.contains(" | ") && value.contains(" : ") {
+        return false;
+    }
+
     // Task patterns
     if lower.contains("implement ") || lower.contains(" add ") || lower.contains("create ")
         || lower.contains("update ") || lower.contains("remove ") || lower.contains("fix all")
@@ -155,38 +181,76 @@ fn validate_slot(value: &str, max_chars: usize) -> bool {
     true
 }
 
+/// Slot capacity caps per §AsccSections.
+fn slot_cap(slot_kind: &str) -> usize {
+    match slot_kind {
+        "decisions" | "next_steps" | "recent_results" => 10,
+        "open_questions" | "notes" => 20,
+        "constraints" => 15,
+        "failures" => 10,
+        _ => 50,
+    }
+}
+
 async fn update_delta(
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpdateDeltaBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // §AsccSections: validate ALL slots at API boundary before any write.
     let delta = &body.delta;
-    if delta.intent.as_ref().is_some_and(|v| !validate_slot(v, 500)) {
-        return Ok(Json(json!({"status": "rejected", "reason": "intent: validation failed"})));
+    let frame = {
+        let focusa = state.focusa.read().await;
+        focusa.focus_stack.frames.iter().find(|f| Some(f.id) == focusa.focus_stack.active_id).cloned()
+    };
+
+    // Per-slot validation with kind + capacity cap check
+    if let Some(ref intent) = delta.intent {
+        if !validate_slot(intent, 500, "intent") {
+            return Ok(Json(json!({"status": "rejected", "reason": "intent: validation failed"})));
+        }
     }
-    if delta.current_state.as_ref().is_some_and(|v| !validate_slot(v, 300)) {
-        return Ok(Json(json!({"status": "rejected", "reason": "current_state: validation failed"})));
+    if let Some(ref cs) = delta.current_state {
+        if !validate_slot(cs, 300, "current_state") {
+            return Ok(Json(json!({"status": "rejected", "reason": "current_state: validation failed"})));
+        }
     }
-    if delta.decisions.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 160))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "decisions: validation failed"})));
+    for (kind, values, max_chars) in [
+        ("decisions", &delta.decisions, 160),
+        ("constraints", &delta.constraints, 200),
+        ("failures", &delta.failures, 300),
+        ("next_steps", &delta.next_steps, 160),
+        ("recent_results", &delta.recent_results, 300),
+        ("notes", &delta.notes, 200),
+        ("open_questions", &delta.open_questions, 200),
+    ] {
+        if let Some(vals) = values {
+            if let Some(ref f) = frame {
+                let current_len = match kind {
+                    "decisions" => f.focus_state.decisions.len(),
+                    "constraints" => f.focus_state.constraints.len(),
+                    "failures" => f.focus_state.failures.len(),
+                    "next_steps" => f.focus_state.next_steps.len(),
+                    "recent_results" => f.focus_state.recent_results.len(),
+                    "notes" => f.focus_state.notes.len(),
+                    "open_questions" => f.focus_state.open_questions.len(),
+                    _ => 0,
+                };
+                if current_len >= slot_cap(kind) {
+                    return Ok(Json(json!({"status": "rejected", "reason": format!("{}: at capacity ({})", kind, current_len)})));
+                }
+            }
+            if vals.iter().any(|s| !validate_slot(s, max_chars, kind)) {
+                return Ok(Json(json!({"status": "rejected", "reason": format!("{}: validation failed", kind)})));
+            }
+        }
     }
-    if delta.constraints.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 200))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "constraints: validation failed"})));
-    }
-    if delta.failures.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 300))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "failures: validation failed"})));
-    }
-    if delta.open_questions.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 200))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "open_questions: validation failed"})));
-    }
-    if delta.next_steps.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 160))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "next_steps: validation failed"})));
-    }
-    if delta.recent_results.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 300))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "recent_results: validation failed"})));
-    }
-    if delta.notes.as_ref().is_some_and(|v| v.iter().any(|s| !validate_slot(s, 200))) {
-        return Ok(Json(json!({"status": "rejected", "reason": "notes: validation failed"})));
+    // Validate artifacts
+    if let Some(ref artifacts) = delta.artifacts {
+        for a in artifacts {
+            if a.label.is_empty() || a.label.len() > 100 {
+                return Ok(Json(json!({"status": "rejected", "reason": "artifacts: label validation failed"})));
+            }
+        }
     }
 
     // Get active frame ID.
