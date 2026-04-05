@@ -215,7 +215,7 @@ fn api_key(headers: &HeaderMap) -> Option<String> {
 }
 
 /// Create a signal for the Focus Gate.
-fn create_signal(kind: SignalKind, summary: impl Into<String>) -> Signal {
+pub(crate) fn create_signal(kind: SignalKind, summary: impl Into<String>) -> Signal {
     Signal {
         id: uuid::Uuid::now_v7(),
         ts: Utc::now(),

@@ -39,13 +39,23 @@ async fn store_artifact(
         .command_tx
         .send(Action::StoreArtifact {
             kind: body.kind,
-            label: body.label,
+            label: body.label.clone(),
             content,
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(json!({"status": "accepted"})))
+    // Poll for the new handle by label (last-written wins for duplicate labels).
+    // §33.3: Return handle.id so the extension can show [ECS: HANDLE:uuid] reference.
+    let handle_id = loop {
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        let focusa = state.focusa.read().await;
+        if let Some(h) = focusa.reference_index.handles.iter().find(|h| h.label == body.label) {
+            break h.id;
+        }
+    };
+
+    Ok(Json(json!({"id": handle_id, "status": "accepted"})))
 }
 
 /// GET /v1/ecs/handles — list all handles.

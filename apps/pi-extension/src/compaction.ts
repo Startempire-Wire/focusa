@@ -3,24 +3,20 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, pushDelta } from "./state.js";
 
 export function registerCompaction(pi: ExtensionAPI) {
   // ── session_before_compact (§33.1 ASCC replacement, §33.10 fallback) ───────
   pi.on("session_before_compact", async (event, _ctx) => {
     // Sync local shadow → Focusa before compaction
+    // §33.1 + N5: Use pushDelta() for ALL writes — enforces validateSlot() on every delta.
+    // session_compact bypassed validation before this fix — every compaction refilled
+    // recent_results with verbose entries that validateSlot would have rejected.
     if (S.focusaAvailable && S.activeFrameId) {
-      await focusaFetch("/focus/update", {
-        method: "POST",
-        body: JSON.stringify({
-          frame_id: S.activeFrameId,
-          turn_id: `pi-turn-${S.turnCount}`,
-          delta: {
-            decisions: S.localDecisions.slice(-10),
-            constraints: S.localConstraints.slice(-10),
-            failures: S.localFailures.slice(-5),
-          },
-        }),
+      await pushDelta({
+        decisions: S.localDecisions.slice(-10),
+        constraints: S.localConstraints.slice(-10),
+        failures: S.localFailures.slice(-5),
       });
     }
     // Always persist to Pi session entries as backup

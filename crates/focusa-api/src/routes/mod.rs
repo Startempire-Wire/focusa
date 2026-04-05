@@ -30,6 +30,7 @@ pub mod skills;
 pub mod sse;
 pub mod telemetry;
 pub mod threads;
+pub mod trust;
 pub mod tokens;
 pub mod training;
 pub mod turn;
