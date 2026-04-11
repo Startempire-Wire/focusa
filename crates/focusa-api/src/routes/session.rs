@@ -3,6 +3,7 @@
 //! GET  /v1/status        — daemon/session status (summary)
 //! GET  /v1/state/dump    — full cognitive state (debug)
 //! POST /v1/session/start — start a new session
+//! POST /v1/session/resume — restore a previous session
 //! POST /v1/session/close — close current session
 
 use crate::server::AppState;
@@ -132,6 +133,31 @@ async fn start_session(
 }
 
 #[derive(Deserialize)]
+struct ResumeSessionBody {
+    session_id: String,
+    #[serde(default)]
+    instance_id: Option<String>,
+}
+
+/// POST /v1/session/resume — restore a previous session by ID.
+/// §36.4: Session resume on Pi /resume.
+async fn resume_session(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<ResumeSessionBody>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let session_id = uuid::Uuid::parse_str(&body.session_id)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    state
+        .command_tx
+        .send(Action::ResumeSession { session_id })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({"status": "accepted", "session_id": body.session_id})))
+}
+
+#[derive(Deserialize)]
 struct CloseSessionBody {
     #[serde(default = "default_reason")]
     reason: String,
@@ -165,5 +191,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/status", get(status))
         .route("/v1/state/dump", get(state_dump))
         .route("/v1/session/start", post(start_session))
+        .route("/v1/session/resume", post(resume_session))
         .route("/v1/session/close", post(close_session))
 }

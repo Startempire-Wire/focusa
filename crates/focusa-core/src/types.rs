@@ -934,6 +934,9 @@ pub enum Action {
         workspace_id: Option<String>,
         instance_id: Option<Uuid>,
     },
+    ResumeSession {
+        session_id: Uuid,
+    },
     CloseSession {
         reason: String,
         instance_id: Option<Uuid>,
@@ -1797,6 +1800,9 @@ pub struct ContextStats {
 }
 
 /// Turn completion from adapter.
+/// Supports both formats:
+///   1. Canonical: { prompt_tokens, completion_tokens }
+///   2. Extension: { tokens: { input, output, cache_read, cache_write } }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TurnComplete {
     pub turn_id: TurnId,
@@ -1809,10 +1815,42 @@ pub struct TurnComplete {
     pub artifacts: Vec<HandleRef>,
     #[serde(default)]
     pub errors: Vec<String>,
+    /// Canonical token counts.
     #[serde(default)]
     pub prompt_tokens: Option<u32>,
     #[serde(default)]
     pub completion_tokens: Option<u32>,
+    /// Extension format: { input, output, cache_read, cache_write }.
+    #[serde(default)]
+    pub tokens: Option<TurnTokens>,
+}
+
+/// Extension turn tokens format.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TurnTokens {
+    #[serde(alias = "input", default)]
+    pub input_tokens: Option<u32>,
+    #[serde(alias = "output", default)]
+    pub output_tokens: Option<u32>,
+    #[serde(default)]
+    pub cache_read: Option<u32>,
+    #[serde(default)]
+    pub cache_write: Option<u32>,
+}
+
+impl TurnComplete {
+    /// Resolve prompt_tokens (canonical or extension).
+    pub fn resolved_prompt_tokens(&self) -> u32 {
+        self.prompt_tokens
+            .or(self.tokens.as_ref().and_then(|t| t.input_tokens))
+            .unwrap_or(0)
+    }
+    /// Resolve completion_tokens (canonical or extension).
+    pub fn resolved_completion_tokens(&self) -> u32 {
+        self.completion_tokens
+            .or(self.tokens.as_ref().and_then(|t| t.output_tokens))
+            .unwrap_or(0)
+    }
 }
 
 /// Active turn state (daemon-side).

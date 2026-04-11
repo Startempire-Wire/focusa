@@ -302,8 +302,9 @@ async fn turn_complete(
         assistant_output: Some(req.assistant_output.clone()),
         artifacts_used: req.artifacts.clone(),
         errors: req.errors.clone(),
-        prompt_tokens: req.prompt_tokens,
-        completion_tokens: req.completion_tokens,
+        // §35.5: Support both canonical + extension token formats
+        prompt_tokens: req.prompt_tokens.or(req.tokens.as_ref().and_then(|t| t.input_tokens)),
+        completion_tokens: req.completion_tokens.or(req.tokens.as_ref().and_then(|t| t.output_tokens)),
     };
 
     if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {

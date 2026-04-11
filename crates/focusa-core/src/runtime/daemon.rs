@@ -1441,6 +1441,13 @@ Return ONLY valid JSON:
                 }])
             }
 
+            // §36.4: Session resume — emit SessionRestored event
+            // Daemon pre-loads state from disk at startup; this signals completion.
+            Action::ResumeSession { session_id } => {
+                tracing::info!(session_id = %session_id, "Session resume requested");
+                Ok(vec![FocusaEvent::SessionRestored { session_id }])
+            }
+
             Action::CloseSession {
                 reason,
                 instance_id: _,
