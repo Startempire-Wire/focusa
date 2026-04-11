@@ -128,7 +128,7 @@ fi
 log_info "Idempotency"
 
 # Turn complete is idempotent
-TURN_ID="idem-test-$(date +%s)"
+TURN_ID="idem-test-$(date +%s%N)"
 curl -s -X POST "${BASE_URL}/v1/turn/start" \
   -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"harness_name\":\"test\",\"adapter_id\":\"test\",\"timestamp\":\"2026-04-11T00:00:00Z\"}" >/dev/null
@@ -136,7 +136,7 @@ curl -s -X POST "${BASE_URL}/v1/turn/start" \
 resp1=$(curl -s -X POST "${BASE_URL}/v1/turn/complete" \
   -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
-sleep 0.1
+sleep 3
 resp2=$(curl -s -X POST "${BASE_URL}/v1/turn/complete" \
   -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
