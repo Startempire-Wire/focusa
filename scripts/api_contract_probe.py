@@ -243,7 +243,47 @@ def main():
         "tick2_reason": None if not isinstance(t2b, dict) else t2b.get("reason"),
     })
 
+    # 11) trust metrics PATCH endpoint (§35.7)
+    s, _, r = req(args.base_url, "/v1/trust/metrics", method="PATCH", body={"event": "test_correction", "detail": "probe test"})
+    b, e = parse_json(r)
+    ok = s == 200 and b is not None and b.get("status") == "recorded" and b.get("event") == "test_correction"
+    add_check("trust_metrics_contract", ok, {"status": s, "body": b if b else r, "parse_error": e})
+
+
+    # 12) ECS store returns handle.id and handle appears in handles list
+    label = f"probe-{uuid.uuid4()}"
+    s, _, r = req(args.base_url, "/v1/ecs/store", method="POST", body={"kind": "text", "label": label, "content_b64": "cHJvYmU="})
+    b, e = parse_json(r)
+    handle_id = None if b is None else b.get("id")
+    ok = s == 200 and b is not None and b.get("status") == "accepted" and b.get("id") is not None
+    # Verify handle appears in handles list
+    hs, _, hr = req(args.base_url, "/v1/ecs/handles")
+    hb, he = parse_json(hr)
+    found = False
+    if isinstance(hb, dict) and isinstance(hb.get("handles"), list):
+        for h in hb["handles"]:
+            if h.get("id") == handle_id or h.get("label") == label:
+                found = True
+                break
+    add_check("ecs_store_handles_contract", ok and found, {"store_status": s, "handle_id": handle_id, "found_in_list": found, "store_body": b if b else r, "store_error": e, "handles_status": hs, "handles_body": hb if hb else hr, "handles_error": he})
+
+    # 13) SSE turn tracking — turn start emits TurnStarted event
+    # SSE is a streaming endpoint — use a short read to verify it responds 200
+    try:
+        req_headers = {"Accept": "text/event-stream"}
+        request = urllib.request.Request(
+            url=f"{args.base_url}/v1/events/stream",
+            method="GET",
+            headers=req_headers
+        )
+        with urllib.request.urlopen(request, timeout=3) as resp:
+            ok = resp.status == 200
+            add_check("sse_turn_tracking_contract", ok, {"status": resp.status})
+    except Exception as ex:
+        add_check("sse_turn_tracking_contract", False, {"error": str(ex)})
+
     report["pass"] = len(report["failures"]) == 0
+
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)

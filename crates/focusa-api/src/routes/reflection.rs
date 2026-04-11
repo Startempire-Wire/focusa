@@ -479,11 +479,14 @@ async fn call_reflection_llm(
     semantic_keys: &[String],
     procedural_rules: &[String],
 ) -> (Vec<Value>, Vec<Value>, Vec<Value>, Option<f64>, bool) {
-    let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
-    if api_key.is_empty() {
-        tracing::warn!("Reflection LLM: MINIMAX_API_KEY not set");
+    // Bypass LLM for CI test determinism (FOCUSA_TEST_MODE=1) or no API key
+    if std::env::var("FOCUSA_TEST_MODE").is_ok()
+        || std::env::var("MINIMAX_API_KEY").unwrap_or_default().is_empty()
+    {
+        tracing::debug!("Reflection LLM: bypass (test mode or no key)");
         return (vec![], vec![], vec![], None, false);
     }
+    let api_key = std::env::var("MINIMAX_API_KEY").unwrap();
     
     let prompt = format!(
         r#"You are Focusa's reflection engine. Analyze the current cognitive state and recent activity.

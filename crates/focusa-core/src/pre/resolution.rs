@@ -7,7 +7,7 @@
 //! 4. Emit resolution events
 
 use crate::pre::Proposal;
-use crate::types::{FocusaState, RfmLevel};
+use crate::types::{FocusaState, ProposalStatus, RfmLevel};
 use chrono::{DateTime, Utc};
 
 /// Resolution window configuration.

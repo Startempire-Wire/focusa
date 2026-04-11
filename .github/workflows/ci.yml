@@ -15,7 +15,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
-      - run: cargo test --workspace
+      - name: Run tests
+        env:
+          FOCUSA_TEST_MODE: "1"
+        run: cargo test --workspace
       - name: Focusa API contract probe
         run: |
           set -euo pipefail
@@ -34,4 +37,5 @@ jobs:
           done
 
           python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:8787 --out /tmp/focusa_api_spec_audit.json
-      - run: cargo clippy --workspace -- -D warnings
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings

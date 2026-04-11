@@ -1483,6 +1483,9 @@ pub struct TelemetryState {
     pub total_prompt_tokens: u64,
     pub total_completion_tokens: u64,
     pub tokens_per_task: Vec<TokensPerTask>,
+    /// Tool call names for autonomy analysis (§33.4).
+    #[serde(default)]
+    pub tool_calls: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

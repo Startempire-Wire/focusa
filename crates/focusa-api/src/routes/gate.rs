@@ -131,12 +131,74 @@ async fn surface(
 /// POST /v1/focus-gate/ingest-signal — emit signal from adapter.
 ///
 /// Per spec: adapters emit signals for user input, tool output, errors.
+/// Accepts two formats:
+///   1. Canonical: { kind, summary, frame_context }
+///   2. Extension (§36.2/§36.3): { signal_type, surface, frame_id, payload }
 #[derive(Deserialize)]
 struct SignalBody {
-    kind: String,
-    summary: String,
+    // Canonical format
+    kind: Option<String>,
+    summary: Option<String>,
     #[serde(default)]
     frame_context: Option<Uuid>,
+    // Extension format (§36.2/§36.3)
+    #[serde(alias = "kind", default)]
+    signal_type: Option<String>,
+    #[serde(default)]
+    surface: Option<String>,
+    #[serde(default)]
+    frame_id: Option<String>,
+    #[serde(default)]
+    payload: Option<serde_json::Value>,
+}
+
+impl SignalBody {
+    fn resolved(&self) -> (String, String, Option<Uuid>) {
+        // kind or signal_type → kind string
+        let raw = self.kind
+            .as_deref()
+            .or(self.signal_type.as_deref())
+            .unwrap_or("user_input");
+        let kind = match raw {
+            "tool_error" | "tool_output_captured" => "tool_output_captured",
+            "model_error" => "error_observed",
+            "user_input" | "user_input_received" => "user_input_received",
+            "steering" => "user_input_received",
+            "error_observed" => "error_observed",
+            "blocker" => "error_observed",
+            "failure" => "error_observed",
+            "model_change" => "user_input_received",
+            "long_session" => "user_input_received",
+            "error_rate_high" => "error_observed",
+            "file_churn" => "user_input_received",
+            "correction" => "user_input_received",
+            _ => "user_input_received",
+        };
+        // Build summary from payload if no explicit summary
+        let summary = if let Some(ref s) = self.summary {
+            s.clone()
+        } else if let Some(ref p) = self.payload {
+            if let Some(ref tool) = p.get("tool") {
+                format!("Tool error: {}", tool.as_str().unwrap_or("unknown"))
+            } else if let Some(ref msg) = p.get("error") {
+                format!("Error: {}", msg.as_str().unwrap_or("unknown")[..200].to_string())
+            } else if let Some(ref model) = p.get("model_id") {
+                format!("Model: {}", model.as_str().unwrap_or("unknown"))
+            } else if let Some(ref cnt) = p.get("count") {
+                format!("Error rate: {} errors", cnt)
+            } else if let Some(ref cnt) = p.get("minutes") {
+                format!("Long session: {} min", cnt)
+            } else {
+                p.as_str().unwrap_or("Signal").to_string()
+            }
+        } else {
+            "Signal".to_string()
+        };
+        let fc = self.frame_context.or_else(|| {
+            self.frame_id.as_ref().and_then(|s| Uuid::parse_str(s).ok())
+        });
+        (kind.to_string(), summary, fc)
+    }
 }
 
 async fn emit_signal(
@@ -148,11 +210,11 @@ async fn emit_signal(
     if !permissions.allows("commands:submit") {
         return Err(StatusCode::FORBIDDEN);
     }
-    let kind = match body.kind.as_str() {
-        "user_input_received" => SignalKind::UserInput,
+    let (kind_str, summary, frame_context) = body.resolved();
+    let kind = match kind_str.as_str() {
         "tool_output_captured" => SignalKind::ToolOutput,
         "error_observed" => SignalKind::Error,
-        "repeated_warning" => SignalKind::Warning,
+        "user_input_received" => SignalKind::UserInput,
         _ => SignalKind::UserInput,
     };
 
@@ -161,8 +223,8 @@ async fn emit_signal(
         ts: Utc::now(),
         origin: SignalOrigin::Adapter,
         kind,
-        frame_context: body.frame_context,
-        summary: body.summary,
+        frame_context,
+        summary,
         payload_ref: None,
         tags: vec![],
     };

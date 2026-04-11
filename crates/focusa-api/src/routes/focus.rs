@@ -5,13 +5,15 @@
 //! POST /v1/focus/pop     — pop (complete) active frame
 //! POST /v1/focus/set-active — switch active frame
 //! POST /v1/focus/update  — update focus state delta (ASCC)
+//! GET  /v1/focusa/enabled — get focusa toggle state (Pi-session-local)
+//! PATCH /v1/focusa/enabled — set focusa toggle state
 
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{
     Json, Router,
-    routing::{get, post},
+    routing::{get, post, patch},
 };
 use focusa_core::types::{Action, CompletionReason, FocusStateDelta};
 use serde::Deserialize;
@@ -277,6 +279,57 @@ async fn update_delta(
     Ok(Json(json!({"status": "accepted"})))
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PI-TOGGLE ENDPOINT — SPEC-33.5 disk persistence
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Path to the Pi toggle state file.
+fn pi_enabled_path(config: &focusa_core::types::FocusaConfig) -> std::path::PathBuf {
+    let expanded = if config.data_dir.starts_with("~") {
+        std::env::var("HOME").unwrap_or_else(|_| "~".to_string()) + &config.data_dir[1..]
+    } else {
+        config.data_dir.clone()
+    };
+    std::path::PathBuf::from(expanded).join("pi-enabled")
+}
+
+/// GET /v1/focusa/enabled — read current toggle state.
+async fn get_enabled(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let path = pi_enabled_path(&state.config);
+    let enabled = if path.exists() {
+        std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| s.trim().strip_prefix("enabled=").map(|v| v == "1"))
+            .unwrap_or(true) // default: enabled
+    } else {
+        true
+    };
+    Json(json!({"enabled": enabled}))
+}
+
+
+#[derive(Deserialize)]
+struct SetEnabledBody {
+    enabled: bool,
+}
+
+/// PATCH /v1/focusa/enabled — set toggle state.
+async fn set_enabled(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<SetEnabledBody>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let path = pi_enabled_path(&state.config);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+    let content = format!("enabled={}", if body.enabled { "1" } else { "0" });
+    std::fs::write(&path, content)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    tracing::info!(path = path.display().to_string(), enabled = body.enabled, "Pi focusa toggle updated");
+    Ok(Json(json!({"status": "updated", "enabled": body.enabled})))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/focus/stack", get(get_stack))
@@ -284,4 +337,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/focus/pop", post(pop_frame))
         .route("/v1/focus/set-active", post(set_active))
         .route("/v1/focus/update", post(update_delta))
+        .route("/v1/focusa/enabled", get(get_enabled))
+        .route("/v1/focusa/enabled", patch(set_enabled))
 }

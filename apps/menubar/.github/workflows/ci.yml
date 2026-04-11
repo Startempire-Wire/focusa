@@ -1,0 +1,83 @@
+name: Menubar CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/menubar/**'
+  pull_request:
+    paths:
+      - 'apps/menubar/**'
+
+jobs:
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/menubar/package-lock.json
+      - run: npm ci
+        working-directory: apps/menubar
+      - run: npm run check
+        working-directory: apps/menubar
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/menubar/package-lock.json
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+        working-directory: apps/menubar
+      - run: npm run build
+        working-directory: apps/menubar
+      - name: Build Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --bundles none
+          working-directory: apps/menubar
+
+  bundle-validate:
+    name: Bundle Validate
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/menubar/package-lock.json
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+        working-directory: apps/menubar
+      - name: Build Tauri app
+        run: |
+          cd apps/menubar
+          npm run tauri build -- --bundles app
+      - name: Validate bundle
+        run: |
+          cd apps/menubar
+          APP_PATH=$(find src-tauri/target/release/bundle/macos -name "*.app" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: .app bundle not found"
+            exit 1
+          fi
+          echo "Found bundle: $APP_PATH"
+          echo "Version: $(/usr/bin/defaults read "$APP_PATH/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo 'unknown')"
+          echo "Build: $(/usr/bin/defaults read "$APP_PATH/Contents/Info.plist" CFBundleVersion 2>/dev/null || echo 'unknown')"
