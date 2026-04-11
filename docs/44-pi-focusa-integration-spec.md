@@ -2265,3 +2265,23 @@ async function checkFocusaHealth() {
 ```
 
 **Rule:** Check health on session_start and periodically (every 60s). Disable tools when down. Re-enable when back. The LLM never sees tools it can't use.
+
+---
+
+## See Also (Spec Supplements)
+
+The following spec documents supplement this integration spec:
+
+| Doc | Title | Relationship |
+|-----|-------|-------------|
+| docs/52 | Pi Extension Contract | §33-§38 extension behavior requirements |
+| docs/53 | Pi Behavioral Alignment Contract | §35-§37 mandatory behaviors and prohibitions |
+| docs/54 | Pi Visible Output Boundary | §38.1 channel separation, anti-echo safeguards |
+| docs/54a | Operator Priority and Subject Preservation | §36.6 operator input precedence, steering detection |
+| docs/54b | Context Injection and Attention Routing | §33.2 minimal slice injection model |
+| docs/45 | Ontology Overview | Background on Focusa ontology system |
+| docs/55 | Tool and Action Contracts | §33.3-§33.4 ECS and tool usage contracts |
+| docs/56 | Trace Checkpoints and Recovery | §34.2A ASCC checkpoint and recovery |
+| docs/57 | Golden Tasks and Evals | §35.8 evaluation framework |
+
+**This integration spec (docs/44) is the primary spec.** Docs 52-57 are supplements that detail specific requirements. When conflicts arise, this spec governs.
