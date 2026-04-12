@@ -140,6 +140,17 @@ else
   log_fail "Reflect status fetch failed"
 fi
 
+log_info "Action contract matrix"
+code=$(http_code "${BASE_URL}/v1/ontology/contracts")
+if [ "$code" = "200" ]; then
+  json_assert '.contracts | length >= 10' "Ontology action contract catalog exposed"
+  json_assert '.contracts | any(.name == "refactor_module" and .input_schema.required != null and .failure_modes != null and .tool_mappings != null)' "Refactor contract exposes schema/failure/tool mappings"
+  json_assert '.contracts | any(.name == "modify_schema" and .rollback_availability.available == true and .timeout_policy.job_timeout_ms_field == "worker_status.job_timeout_ms")' "Modify-schema contract exposes rollback + timeout policy"
+  json_assert '.contracts | any(.name == "mark_blocked" and (.failure_modes | index("dependency_failure")) and (.verification_hooks | length) >= 1)' "Blocker contract exposes failure/verification semantics"
+else
+  log_fail "Ontology contracts fetch failed"
+fi
+
 echo ""
 echo "=== SPEC-55 TOOL ACTION CONTRACTS RESULTS ==="
 echo "Tests passed: ${PASSED}"

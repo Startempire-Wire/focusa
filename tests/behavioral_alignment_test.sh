@@ -150,6 +150,31 @@ else
     log_fail "Focus slice size not trackable"
 fi
 
+# Test 13: Ontology slice materially shapes prompt assembly
+echo "13. Ontology slice prompt shaping:"
+WORKSPACE_ROOT="/tmp/focusa-spec53-workspace-$(date +%s%N)"
+mkdir -p "${WORKSPACE_ROOT}/.git" "${WORKSPACE_ROOT}/src/routes"
+cat > "${WORKSPACE_ROOT}/Cargo.toml" <<'EOF'
+[package]
+name = "spec53-fixture"
+version = "0.1.0"
+EOF
+cat > "${WORKSPACE_ROOT}/src/routes/api.rs" <<'EOF'
+use axum::{routing::get, Router};
+pub fn router() -> Router { Router::new().route("/behavior", get(handler)) }
+async fn handler() {}
+EOF
+curl -s -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\"}" >/dev/null
+curl -s -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d '{"title":"SPEC 53 ontology slice","goal":"verify prompt shaping","beads_issue_id":"spec53-001"}' >/dev/null
+PROMPT=$(curl -s -X POST "${BASE_URL}/v1/prompt/assemble" \
+    -H "Content-Type: application/json" \
+    -d '{"turn_id":"spec53-ontology-slice","raw_user_input":"How should I modify the current route safely?","format":"string","budget":500}')
+if echo "$PROMPT" | jq -e '.ontology_slice.summary_present == true and (.assembled | contains("BOUNDED ONTOLOGY SLICE"))' >/dev/null 2>&1; then
+    log_pass "Ontology slice materially shapes prompt assembly"
+else
+    log_fail "Ontology slice prompt shaping missing"
+fi
+
 echo ""
 echo "=== RESULTS: $PASSED passed, $FAILED failed ==="
 [ $FAILED -eq 0 ]

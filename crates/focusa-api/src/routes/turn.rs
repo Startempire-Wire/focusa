@@ -7,6 +7,7 @@
 //!
 //! Source: docs/G1-detail-04-proxy-adapter.md
 
+use crate::routes::ontology;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -200,6 +201,13 @@ async fn prompt_assemble(
     // Extract constitution principles (docs/16 §2, §5).
     let (principles, safety) =
         focusa_core::expression::engine::extract_constitution(&focusa.constitution);
+    let active_frame_id = focusa.focus_stack.active_id.map(|id| id.to_string());
+    let ontology_slice_summary =
+        ontology::active_mission_slice_summary(&focusa, active_frame_id.as_deref());
+    let ontology_slice_payload = serde_json::json!({
+        "slice_type": "active_mission",
+        "summary_present": ontology_slice_summary.is_some(),
+    });
 
     // Assemble prompt with full context.
     // Respect per-request budget override strictly: requested budget applies to
@@ -218,7 +226,7 @@ async fn prompt_assemble(
         rules: &rules_owned,
         handles: &handles_owned,
         user_input: &req.raw_user_input,
-        directive: None,
+        directive: ontology_slice_summary.as_deref(),
         constitution_principles: &principles,
         safety_rules: &safety,
         config: &effective_config,
@@ -279,6 +287,7 @@ async fn prompt_assemble(
         "strategy": req.strategy.clone().unwrap_or_else(|| "focusa".to_string()),
         "warnings": assembly.warnings,
         "degraded": assembly.degraded,
+        "ontology_slice": ontology_slice_payload,
         // Backward-compatible runtime keys
         "assembled_prompt": output,
         "context_stats": context_stats,

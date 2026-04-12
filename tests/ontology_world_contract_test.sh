@@ -36,9 +36,51 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed bounded working world"
+WORKSPACE_ROOT="/tmp/focusa-ontology-workspace-$(date +%s%N)"
+mkdir -p "${WORKSPACE_ROOT}/.git" "${WORKSPACE_ROOT}/src/routes" "${WORKSPACE_ROOT}/tests" "${WORKSPACE_ROOT}/migrations"
+cat > "${WORKSPACE_ROOT}/Cargo.toml" <<'EOF'
+[package]
+name = "ontology-fixture"
+version = "0.1.0"
+
+[dependencies]
+serde = "1"
+EOF
+cat > "${WORKSPACE_ROOT}/src/lib.rs" <<'EOF'
+pub struct FixtureState;
+pub fn build_fixture() {}
+EOF
+cat > "${WORKSPACE_ROOT}/src/routes/api.rs" <<'EOF'
+use axum::{routing::get, Router};
+pub fn router() -> Router {
+    Router::new().route("/fixture", get(handler))
+}
+async fn handler() {}
+EOF
+cat > "${WORKSPACE_ROOT}/tests/fixture_test.rs" <<'EOF'
+#[test]
+fn fixture_works() { assert!(true); }
+EOF
+cat > "${WORKSPACE_ROOT}/migrations/001_init.sql" <<'EOF'
+create table widgets(id integer primary key);
+EOF
 FRAME_TITLE="ontology-world-$(date +%s%N)"
 FRAME_GOAL="verify broader ontology projection"
-curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d '{"workspace_id":"ontology-world"}' >/dev/null
+curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" -d '{"reason":"ontology-world-reset"}' >/dev/null || true
+curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\"}" >/dev/null
+workspace_ready=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+  if curl -sS "${BASE_URL}/v1/status" | jq -e --arg root "$WORKSPACE_ROOT" '.session.workspace_id == $root' >/dev/null 2>&1; then
+    workspace_ready=1
+    break
+  fi
+  sleep 0.2
+done
+if [ "$workspace_ready" = "1" ]; then
+  log_pass "Workspace session materialized"
+else
+  log_info "Workspace session metadata not yet visible; waiting on world projection instead"
+fi
 curl -sS -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${FRAME_TITLE}\",\"goal\":\"${FRAME_GOAL}\",\"beads_issue_id\":\"ontology-001\"}" >/dev/null
 frame_id=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
@@ -86,9 +128,22 @@ else
 fi
 
 log_info "Runtime ontology world projection"
+world_ready=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+  curl -sS "${BASE_URL}/v1/ontology/world?frame_id=${frame_id}" > /tmp/focusa-ontology-world-body.json
+  if jq -e '.objects | any(.object_type == "repo")' /tmp/focusa-ontology-world-body.json >/dev/null 2>&1; then
+    world_ready=1
+    break
+  fi
+  sleep 0.2
+done
+if [ "$world_ready" = "1" ]; then
+  log_pass "Workspace world projection materialized"
+fi
 code=$(http_code "${BASE_URL}/v1/ontology/world?frame_id=${frame_id}")
 if [ "$code" = "200" ]; then
   json_assert '.working_sets.active_mission_set.count >= 1' "Active mission working set exposed"
+  json_assert '.working_sets.debugging_set.count >= 1 and .working_sets.refactor_set.count >= 1 and .working_sets.architecture_set.count >= 1' "Multiple bounded working-set types exposed"
   if jq -e --arg title "$FRAME_TITLE" --arg goal "$FRAME_GOAL" '.objects | any(.object_type == "active_focus" and .title == $title) and any(.object_type == "goal" and .objective == $goal)' /tmp/focusa-ontology-world-body.json >/dev/null 2>&1; then
     log_pass "Mission world objects projected"
   else
@@ -99,10 +154,31 @@ if [ "$code" = "200" ]; then
   json_assert '.objects | any(.object_type == "failure" and .summary == "Software world gap under test")' "Failure object projected canonically"
   json_assert '.objects | any(.object_type == "verification" and .result == "Projection route added")' "Verification object projected canonically"
   json_assert '.objects | any(.object_type == "artifact")' "Artifact object projected canonically"
-  json_assert '.links | any(.type == "belongs_to_goal") and any(.type == "blocks") and any(.type == "verifies")' "Typed ontology links projected"
+  json_assert '.objects | any(.object_type == "repo") and any(.object_type == "package") and any(.object_type == "module") and any(.object_type == "file") and any(.object_type == "symbol") and any(.object_type == "route") and any(.object_type == "endpoint") and any(.object_type == "schema") and any(.object_type == "migration") and any(.object_type == "dependency") and any(.object_type == "test") and any(.object_type == "environment")' "Code-world object families projected from workspace"
+  json_assert '.links | any(.type == "belongs_to_goal") and any(.type == "blocks") and any(.type == "verifies") and any(.type == "depends_on") and any(.type == "tested_by") and any(.type == "implements") and any(.type == "persists_to") and any(.type == "configured_by") and any(.type == "declared_in")' "Typed ontology links projected"
   json_assert '.action_catalog | any(.name == "refactor_module" and .reducer_visible == true)' "Action catalog projected"
 else
   log_fail "Ontology world endpoint failed with HTTP ${code}"
+fi
+
+log_info "Slice endpoint surfaces"
+code=$(http_code "${BASE_URL}/v1/ontology/slices?frame_id=${frame_id}&slice_type=active_mission")
+if [ "$code" = "200" ]; then
+  json_assert '.slice_type == "active_mission" and .count >= 1 and (.members | length >= 1)' "Active-mission slice endpoint bounded members"
+else
+  log_fail "Ontology slices endpoint failed with HTTP ${code}"
+fi
+code=$(http_code "${BASE_URL}/v1/ontology/slices?frame_id=${frame_id}&slice_type=architecture")
+if [ "$code" = "200" ]; then
+  json_assert '.slice_type == "architecture" and (.members | any(.object_type == "package" or .object_type == "module" or .object_type == "endpoint"))' "Architecture slice returns code-world members"
+else
+  log_fail "Architecture slice endpoint failed with HTTP ${code}"
+fi
+code=$(http_code "${BASE_URL}/v1/ontology/slices?frame_id=${frame_id}&slice_type=debugging")
+if [ "$code" = "200" ]; then
+  json_assert '.slice_type == "debugging" and (.members | any(.object_type == "failure" or .object_type == "verification"))' "Debugging slice returns runtime failure/verification members"
+else
+  log_fail "Debugging slice endpoint failed with HTTP ${code}"
 fi
 
 echo ""

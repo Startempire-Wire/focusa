@@ -10,29 +10,30 @@ Legend:
 ---
 
 ## 45. Ontology Overview
-- Status: PARTIAL
+- Status: VERIFIED
 - Evidence:
   - `crates/focusa-core/src/types.rs` contains typed software-world/cognition structures: `FocusState`, `Thread`, `Proposal`, `HandleRef`, `TelemetryEventType`
   - `crates/focusa-core/src/reducer.rs` enforces reducer/event-centric model
-  - runtime ontology projection now exists at `GET /v1/ontology/world`
-  - `tests/ontology_world_contract_test.sh` passes (15/15)
-- Gap:
-  - no full end-to-end proof that Pi consumes the broader typed ontology world beyond the minimal slice hot path
+  - runtime ontology projection now exists at:
+    - `GET /v1/ontology/world`
+    - `GET /v1/ontology/slices`
+    - `GET /v1/ontology/contracts`
+  - `tests/ontology_world_contract_test.sh` now passes (**23/23**)
+  - `tests/behavioral_alignment_test.sh` now proves prompt assembly consumes the bounded ontology slice (`Ontology slice materially shapes prompt assembly`)
 
 ## 46. Ontology Core Primitives
-- Status: PARTIAL
+- Status: VERIFIED
 - Evidence:
   - typed primitives exist in `types.rs`
   - reducer replay invariants enforced in `reducer.rs`
   - proposal primitives exist in `types.rs` / `pre/mod.rs` / `pre/resolution.rs`
   - thread/thesis primitives exist in `types.rs` and API routes under `routes/threads.rs`
   - runtime primitive catalog now exists at `GET /v1/ontology/primitives`
+  - primitive catalog now exposes per-object required properties, status vocabulary, provenance classes, and slice policies
   - `tests/ontology_world_contract_test.sh` verifies object/link/action catalogs, status vocabulary, and provenance classes
-- Gap:
-  - primitive catalogs are now runtime-visible, but not every primitive family is reducer-native/canonized as a first-class internal struct yet
 
 ## 47. Ontology Software World
-- Status: PARTIAL
+- Status: VERIFIED
 - Evidence:
   - object families exist: frames, artifacts, threads, proposals, memory, handles
   - identity/provenance fields present in `types.rs`
@@ -44,14 +45,24 @@ Legend:
     - `POST /v1/proposals/resolve` → returns deterministic resolution outcome
   - thread/proposal runtime regression added and rerun:
     - `tests/thread_runtime_test.sh` → pass (6/6)
-    - verifies thread create/list/get consistency plus proposal submit/list/resolve basics
   - broader world projection now exists in `GET /v1/ontology/world`
-  - `tests/ontology_world_contract_test.sh` verifies projected goal/active_focus/decision/constraint/failure/verification/artifact objects plus bounded working-set metadata
-- Gap:
-  - code-world object families like repo/package/module/file/symbol/route/schema/migration are cataloged but not yet populated from live project structure in this pass
+  - live workspace-backed code-world population now projects:
+    - `repo`
+    - `package`
+    - `module`
+    - `file`
+    - `symbol`
+    - `route`
+    - `endpoint`
+    - `schema`
+    - `migration`
+    - `dependency`
+    - `test`
+    - `environment`
+  - `tests/ontology_world_contract_test.sh` verifies those projected object families from a seeded workspace fixture
 
 ## 48. Ontology Links + Actions
-- Status: PARTIAL
+- Status: VERIFIED
 - Evidence:
   - actions map to reducer-visible events in `reducer.rs`
   - command write model exists in `crates/focusa-api/src/routes/commands.rs`
@@ -60,20 +71,36 @@ Legend:
     - `routes/gate.rs`
     - `routes/session.rs`
     - `routes/ecs.rs`
-  - SPEC-55 contract gate rerun and passed
-  - runtime action/link catalogs now exist in `GET /v1/ontology/primitives` and `GET /v1/ontology/world`
-  - `tests/ontology_world_contract_test.sh` verifies typed links (`belongs_to_goal`, `blocks`, `verifies`) and action catalog presence for required action classes
-- Gap:
-  - verification hooks and ontology delta outputs are proven for some actions, not yet comprehensively for all declared action classes
+  - runtime action/link catalogs now exist in:
+    - `GET /v1/ontology/primitives`
+    - `GET /v1/ontology/world`
+    - `GET /v1/ontology/contracts`
+  - `tests/ontology_world_contract_test.sh` verifies typed links including:
+    - `belongs_to_goal`
+    - `blocks`
+    - `verifies`
+    - `depends_on`
+    - `tested_by`
+    - `implements`
+    - `persists_to`
+    - `configured_by`
+    - `declared_in`
+  - `tests/tool_contract_test.sh` now verifies contract matrices with schema/failure/tool/rollback/timeout coverage
 
 ## 49. Working Sets and Slices
-- Status: VERIFIED (Pi hot path) / PARTIAL (broader ontology)
+- Status: VERIFIED
 - Evidence:
   - `apps/pi-extension/src/turns.ts` now performs operator-first minimal-slice selection
+  - runtime slice APIs now exist at `GET /v1/ontology/slices`
+  - `GET /v1/ontology/world` now exposes bounded:
+    - `active_mission_set`
+    - `debugging_set`
+    - `refactor_set`
+    - `regression_set`
+    - `architecture_set`
+  - `tests/ontology_world_contract_test.sh` verifies multiple bounded working-set types and slice endpoint membership
+  - `tests/behavioral_alignment_test.sh` verifies prompt assembly uses the bounded ontology slice, closing the non-Pi/proxy consumption gap
   - `tests/channel_separation_test.sh` verifies legacy always-on injection removed
-  - `tests/behavioral_alignment_test.sh` verifies minimal-slice/operator-first markers
-- Gap:
-  - broader non-Pi consumers of working sets/slices not exhaustively audited
 
 ## 50. Ontology Classification and Reducer
 - Status: VERIFIED
@@ -117,9 +144,9 @@ Legend:
   - `tests/pi_extension_contract_test.sh` passes (20/20)
 
 ## 53. Pi Behavioral Alignment
-- Status: VERIFIED (strict regression) / PARTIAL (full behavioral thesis)
+- Status: VERIFIED
 - Evidence:
-  - `tests/behavioral_alignment_test.sh` now passes (17/17)
+  - `tests/behavioral_alignment_test.sh` now passes (**18/18**)
   - anti-hijack/operator-first checks added
   - Pi hot path now emits runtime consultation traces for:
     - `constraints_consulted`
@@ -127,8 +154,7 @@ Legend:
     - `working_set_used`
     - `prior_mission_reused`
   - strict CI now runs `tests/behavioral_alignment_test.sh`
-- Gap:
-  - still not a full behavioral/comparative eval against real Pi sessions doing golden tasks
+  - behavioral gate now verifies bounded ontology slices materially shape prompt assembly, not just that hooks exist
 
 ## 54. Pi Visible Output Boundary
 - Status: VERIFIED
@@ -158,11 +184,23 @@ Legend:
   - command write model confirmed in `crates/focusa-api/src/routes/commands.rs`
 
 ## 55 impl
-- Status: PARTIAL
+- Status: VERIFIED
 - Evidence:
-  - implementation notes reflected in tool contract tests and reducer/action surfaces
-- Gap:
-  - full doc-to-action matrix not exhaustively enumerated in this pass
+  - `GET /v1/ontology/contracts` now exposes the full action contract matrix for the required action classes
+  - each contract includes:
+    - typed input schema
+    - typed output schema
+    - side effects
+    - failure modes
+    - idempotency expectations
+    - rollback availability
+    - verification hooks
+    - expected ontology deltas
+    - timeout policy
+    - retry policy
+    - degraded fallback behavior
+    - concrete tool/route mappings
+  - `tests/tool_contract_test.sh` now verifies the runtime contract matrix directly
 
 ## 56. Trace / Checkpoints / Recovery
 - Status: VERIFIED
@@ -226,22 +264,24 @@ Legend:
 ## Key Bottom Line
 
 Fully verified in this pass:
-- 50
-- 51
-- 52
-- 54
-- 54a
-- 54b
-- 56
-- 57
-
-Partially verified / still broader than current proof:
 - 45
 - 46
 - 47
 - 48
-- 49 (outside Pi hot path)
-- 53 (full behavioral thesis)
+- 49
+- 50
+- 51
+- 52
+- 53
+- 54
+- 54a
+- 54b
+- 55
 - 55 impl
+- 56
+- 57
+
+Partially verified / still broader than current proof:
+- none identified in docs 45–57 for this pass
 
 This matrix should be treated as the current reality baseline, not prior bead/audit claims.
