@@ -53,3 +53,18 @@
 - api_contract_probe.py (16+ checks)
 
 ## STATUS: COMPLETE ✅
+
+## SPEC §15 Test Plan (COMPLETE)
+- Long-session stress test (200+ turns) ✅
+- Large tool-output test (forced ECS handles) ✅
+- Budget exceed test (degradation order) ✅
+- Focusa outage test (passthrough) ✅
+- Threshold policy test (50/70/85 tiers) ✅
+- Continuous pruning test (bounded growth) ✅
+
+## SPEC §16 Implementation Checklist (PARTIAL)
+- [x] Confirm Focusa daemon health + auth token flow ✅
+- [x] Enable deterministic prompt assembly settings ✅
+- [x] Build thin Pi bridge extension (API-first) ✅
+- [ ] Add telemetry dashboard panels — PENDING
+- [ ] Run A/B sessions and document outcomes — PENDING
