@@ -46,12 +46,13 @@ async fn submit_proposal(
     };
 
     let payload_for_audit = payload.clone();
+    let submit_source = source.to_string();
 
     let _ = state
         .command_tx
         .send(Action::SubmitProposal {
             kind,
-            source: source.into(),
+            source: submit_source.clone(),
             payload,
             deadline_ms,
             score,
@@ -59,7 +60,7 @@ async fn submit_proposal(
         .await;
 
     let mut proposal_id = None;
-    for _ in 0..20 {
+    for _ in 0..40 {
         {
             let s = state.focusa.read().await;
             proposal_id = s
@@ -67,13 +68,13 @@ async fn submit_proposal(
                 .proposals
                 .iter()
                 .rev()
-                .find(|p| p.kind == kind && p.source == source && p.payload == payload_for_audit)
+                .find(|p| p.kind == kind && p.source == submit_source)
                 .map(|p| p.id);
         }
         if proposal_id.is_some() {
             break;
         }
-        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 
     if let Some(proposal_id) = proposal_id
