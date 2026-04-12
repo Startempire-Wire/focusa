@@ -107,12 +107,18 @@ Legend:
   - `tests/pi_extension_contract_test.sh` passes (20/20)
 
 ## 53. Pi Behavioral Alignment
-- Status: VERIFIED (focused regression) / PARTIAL (full behavioral thesis)
+- Status: VERIFIED (strict regression) / PARTIAL (full behavioral thesis)
 - Evidence:
-  - `tests/behavioral_alignment_test.sh` passes (12/12)
+  - `tests/behavioral_alignment_test.sh` now passes (17/17)
   - anti-hijack/operator-first checks added
+  - Pi hot path now emits runtime consultation traces for:
+    - `constraints_consulted`
+    - `decisions_consulted`
+    - `working_set_used`
+    - `prior_mission_reused`
+  - strict CI now runs `tests/behavioral_alignment_test.sh`
 - Gap:
-  - still not a full behavioral eval against real Pi sessions doing golden tasks
+  - still not a full behavioral/comparative eval against real Pi sessions doing golden tasks
 
 ## 54. Pi Visible Output Boundary
 - Status: VERIFIED

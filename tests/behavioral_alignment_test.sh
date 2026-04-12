@@ -68,9 +68,26 @@ if rg -n "Focusa Minimal Applicable Slice|subject_hijack_prevented|steeringChang
 else
     log_fail "Operator-first minimal-slice logic missing"
 fi
+if rg -n "constraints_consulted|decisions_consulted|working_set_used|prior_mission_reused" "$TURNS_TS" >/dev/null 2>&1; then
+    log_pass "Consultation trace emissions present in Pi hot path"
+else
+    log_fail "Consultation trace emissions missing from Pi hot path"
+fi
 
-# Test 6: Trace steering detection
-echo "6. Steering detection trace:"
+# Test 6: Consultation trace surfaces
+for event_type in constraints_consulted decisions_consulted working_set_used prior_mission_reused; do
+    RESP=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
+        -H "Content-Type: application/json" \
+        -d "{\"event_type\":\"${event_type}\",\"turn_id\":\"spec53-${event_type}\"}")
+    if echo "$RESP" | grep -q '"status":"recorded"'; then
+        log_pass "${event_type} traceable"
+    else
+        log_fail "${event_type} not traceable"
+    fi
+done
+
+# Test 7: Trace steering detection
+echo "7. Steering detection trace:"
 STEERING=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
     -H "Content-Type: application/json" \
     -d '{"event_type":"steering_detected","turn_id":"steering-test","steering_detected":true}')
@@ -80,8 +97,8 @@ else
     log_fail "Steering detection not traceable"
 fi
 
-# Test 7: Trace subject hijack prevention
-echo "7. Subject hijack prevention trace:"
+# Test 8: Trace subject hijack prevention
+echo "8. Subject hijack prevention trace:"
 HIJACK=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
     -H "Content-Type: application/json" \
     -d '{"event_type":"subject_hijack_prevented","turn_id":"hijack-test","subject_hijack_prevented":true}')
@@ -91,8 +108,8 @@ else
     log_fail "Subject hijack prevention not traceable"
 fi
 
-# Test 8: Blocker via focus update
-echo "8. Blocker emission via focus update:"
+# Test 9: Blocker via focus update
+echo "9. Blocker emission via focus update:"
 BLOCKER=$(curl -s -X POST "${BASE_URL}/v1/focus/update" \
     -H "Content-Type: application/json" \
     -d '{"frame_id":"019d7f34-8cc2-7603-a2ea-46d283ad198e","turn_id":"test-turn","delta":{"failures":["test blocker"]}}')
@@ -102,8 +119,8 @@ else
     log_fail "Blocker emission failed"
 fi
 
-# Test 9: Trace stats
-echo "9. Trace stats:"
+# Test 10: Trace stats
+echo "10. Trace stats:"
 STATS=$(curl -s "${BASE_URL}/v1/telemetry/trace/stats")
 if echo "$STATS" | jq -e '.by_event_type' >/dev/null 2>&1; then
     log_pass "Trace stats accessible"
@@ -111,8 +128,8 @@ else
     log_fail "Trace stats not accessible"
 fi
 
-# Test 10: Operator subject tracking
-echo "10. Operator subject tracking:"
+# Test 11: Operator subject tracking
+echo "11. Operator subject tracking:"
 SUBJECT=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
     -H "Content-Type: application/json" \
     -d '{"event_type":"operator_subject","turn_id":"subject-test","operator_subject":"test request"}')
@@ -122,8 +139,8 @@ else
     log_fail "Operator subject not trackable"
 fi
 
-# Test 11: Focus slice size
-echo "11. Focus slice size tracking:"
+# Test 12: Focus slice size
+echo "12. Focus slice size tracking:"
 SLICE=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
     -H "Content-Type: application/json" \
     -d '{"event_type":"focus_slice_size","turn_id":"slice-test","focus_slice_size":500}')

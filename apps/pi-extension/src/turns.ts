@@ -87,9 +87,14 @@ export function registerTurns(pi: ExtensionAPI) {
     const artifacts = uniqueItems((fs.artifacts || []).map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`)).slice(0, 3);
 
     const sections: string[] = [];
-    if (mission) sections.push(`MISSION:\n  - ${mission}`);
-    if (constraints.length) sections.push(`APPLICABLE_CONSTRAINTS:\n${constraints.map((x) => `  - ${x}`).join("\n")}`);
-    if (decisions.length && (intent.focusRelevant || /why|decision|previous|already|earlier|reuse/.test(operatorText.toLowerCase()))) {
+    const usedMission = Boolean(mission);
+    const usedConstraints = constraints.length > 0;
+    const usedDecisions = decisions.length > 0 && (intent.focusRelevant || /why|decision|previous|already|earlier|reuse/.test(operatorText.toLowerCase()));
+    const reusedPriorMission = Boolean(mission && /continue|resume|pick up|where were we|status/.test(operatorText.toLowerCase()));
+
+    if (usedMission) sections.push(`MISSION:\n  - ${mission}`);
+    if (usedConstraints) sections.push(`APPLICABLE_CONSTRAINTS:\n${constraints.map((x) => `  - ${x}`).join("\n")}`);
+    if (usedDecisions) {
       sections.push(`RELEVANT_DECISIONS:\n${decisions.map((x) => `  - ${x}`).join("\n")}`);
     }
     if (nextSteps.length && !intent.directQuestion) {
@@ -135,6 +140,34 @@ export function registerTurns(pi: ExtensionAPI) {
       turn_id: `pi-turn-${S.turnCount}`,
       active_subject_after_routing: mission || operatorText.slice(0, 200),
     });
+    if (usedMission) {
+      focusaPost("/telemetry/trace", {
+        event_type: "working_set_used",
+        turn_id: `pi-turn-${S.turnCount}`,
+        working_set_used: frame?.id || S.activeFrameId,
+      });
+    }
+    if (usedConstraints) {
+      focusaPost("/telemetry/trace", {
+        event_type: "constraints_consulted",
+        turn_id: `pi-turn-${S.turnCount}`,
+        constraints_consulted: constraints.slice(0, 4),
+      });
+    }
+    if (usedDecisions) {
+      focusaPost("/telemetry/trace", {
+        event_type: "decisions_consulted",
+        turn_id: `pi-turn-${S.turnCount}`,
+        decisions_consulted: decisions.slice(0, 4),
+      });
+    }
+    if (reusedPriorMission) {
+      focusaPost("/telemetry/trace", {
+        event_type: "prior_mission_reused",
+        turn_id: `pi-turn-${S.turnCount}`,
+        prior_mission_reused: mission,
+      });
+    }
 
     return { messages: [{ role: "system" as const, content: [{ type: "text" as const, text }] }, ...(event.messages || [])] };
   });

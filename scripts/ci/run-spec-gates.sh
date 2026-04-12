@@ -33,6 +33,7 @@ done
 ./tests/focusa_toggle_persistence_test.sh
 ./tests/tool_contract_test.sh
 ./tests/pi_extension_contract_test.sh
+./tests/behavioral_alignment_test.sh
 ./tests/channel_separation_test.sh
 ./tests/checkpoint_trigger_test.sh
 ./tests/trace_dimensions_test.sh
