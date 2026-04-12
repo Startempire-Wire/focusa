@@ -18,22 +18,37 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct StoreBody {
     kind: HandleKind,
     label: String,
     /// Base64-encoded content.
-    content_b64: String,
+    content_b64: Option<String>,
+    /// Plain text content (alternative to base64).
+    #[serde(default)]
+    content: Option<String>,
+}
+
+impl StoreBody {
+    fn resolve_content(&self) -> Result<Vec<u8>, StatusCode> {
+        if let Some(ref b64) = self.content_b64 {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD
+                .decode(b64)
+                .map_err(|_| StatusCode::BAD_REQUEST)
+        } else if let Some(ref txt) = self.content {
+            Ok(txt.as_bytes().to_vec())
+        } else {
+            Err(StatusCode::BAD_REQUEST)
+        }
+    }
 }
 
 async fn store_artifact(
     State(state): State<Arc<AppState>>,
     Json(body): Json<StoreBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    use base64::Engine;
-    let content = base64::engine::general_purpose::STANDARD
-        .decode(&body.content_b64)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let content = body.resolve_content()?;
 
     state
         .command_tx
