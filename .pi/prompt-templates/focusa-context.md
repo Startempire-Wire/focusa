@@ -1,18 +1,25 @@
 ---
 name: focusa-context
-description: Include Focusa cognitive context in your prompt
+description: Reference current Focusa context behavior and surfaces
 ---
 
 ## Focusa Cognitive Context
 
-Current Focus State is injected automatically by the focusa-pi-bridge extension.
+Focusa context is **not** injected as an always-on full-state dump.
 
-Use this template when you need to explicitly reference Focusa state:
+Current `focusa-pi-bridge` behavior is:
+- operator-first routing
+- minimal applicable slice selection
+- Focusa context suppressed when the turn is not focus-relevant
+- consultation traces emitted when mission, decisions, constraints, or working-set context are actually used
 
-- Check `/v1/focus/stack` for current frame and Focus State
-- Decisions are recorded via `focusa_decide` tool
-- Constraints limit what actions are allowed
-- Failures track what went wrong for learning
+Use this template when you want a quick reminder of the live Focusa model:
+
+- Check `/v1/focus/stack` for the active frame and current Focus State
+- Decisions are written via `focusa_decide`
+- Constraints are discovered limits and should be respected
+- Failures capture specific breakage plus diagnosis
+- The extension hot path lives in `apps/pi-extension/src/turns.ts`
 
 ### Usage
 ```
