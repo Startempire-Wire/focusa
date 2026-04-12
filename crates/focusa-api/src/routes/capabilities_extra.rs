@@ -636,6 +636,7 @@ async fn constitution_propose(
             "justification": body.justification,
         }),
         deadline_ms: 3600_000, // 1 hour.
+        score: None,
     }).await.map_err(|_| (
         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({"error": "failed to submit proposal"})),

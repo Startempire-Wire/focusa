@@ -34,6 +34,10 @@ async fn main() -> anyhow::Result<()> {
     if let Ok(bind) = std::env::var("FOCUSA_BIND") {
         config.api_bind = bind;
     }
+    // Allow overriding data dir for isolated test runs.
+    if let Ok(data_dir) = std::env::var("FOCUSA_DATA_DIR") {
+        config.data_dir = data_dir;
+    }
 
     // Shared state: daemon writes after every reduction, API reads.
     let shared_state = Arc::new(RwLock::new(FocusaState::default()));

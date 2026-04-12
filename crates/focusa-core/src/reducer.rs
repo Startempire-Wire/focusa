@@ -719,6 +719,18 @@ pub fn reduce_with_meta(
             // Actual regeneration is handled by the daemon/proxy layer.
         }
 
+        // ─── Ontology Classification / Reducer ──────────────────────────
+        FocusaEvent::OntologyObjectUpsertProposed { .. }
+        | FocusaEvent::OntologyLinkUpsertProposed { .. }
+        | FocusaEvent::OntologyStatusChangeProposed { .. }
+        | FocusaEvent::OntologyWorkingSetMembershipProposed { .. }
+        | FocusaEvent::OntologyProposalPromoted { .. }
+        | FocusaEvent::OntologyProposalRejected { .. }
+        | FocusaEvent::OntologyVerificationApplied { .. }
+        | FocusaEvent::OntologyWorkingSetRefreshed { .. } => {
+            // Replayable ontology audit events. Canonical mutation already happened elsewhere.
+        }
+
         // ─── Errors ──────────────────────────────────────────────────────
         FocusaEvent::InvariantViolation {
             invariant: _,

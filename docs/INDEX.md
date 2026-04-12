@@ -1,6 +1,6 @@
 # Focusa — Finalized Documentation Set
 
-**55 canonical docs** extracted from 395-message ChatGPT conversation (1.4MB, 56K lines).
+**Canonical doc set with merged ontology/Pi-alignment addenda.**
 Only the **latest finalized version** of each doc is included. Superseded drafts eliminated.
 
 **Source conversation:** `/data/wirebot/focusa/focusa-chatgpt-conversation.md`
@@ -98,6 +98,27 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 32 | [32-telemetry-tui.md](32-telemetry-tui.md) | Telemetry TUI integration |
 
 ---
+
+## Ontology / Pi Alignment Addenda
+
+| File | Topic |
+|------|-------|
+| [45-ontology-overview.md](45-ontology-overview.md) | Ontology overview |
+| [46-ontology-core-primitives.md](46-ontology-core-primitives.md) | Core ontology primitives |
+| [47-ontology-software-world.md](47-ontology-software-world.md) | Software world ontology |
+| [48-ontology-links-actions.md](48-ontology-links-actions.md) | Links and actions |
+| [49-working-sets-and-slices.md](49-working-sets-and-slices.md) | Working sets and slices |
+| [50-ontology-classification-and-reducer.md](50-ontology-classification-and-reducer.md) | Classification and reducer |
+| [51-ontology-expression-and-proxy.md](51-ontology-expression-and-proxy.md) | Expression and proxy integration |
+| [52-pi-extension-contract.md](52-pi-extension-contract.md) | Pi extension contract |
+| [53-pi-behavioral-alignment-contract.md](53-pi-behavioral-alignment-contract.md) | Behavioral alignment contract |
+| [54-pi-visible-output-boundary.md](54-pi-visible-output-boundary.md) | Visible output boundary |
+| [54a-operator-priority-and-subject-preservation.md](54a-operator-priority-and-subject-preservation.md) | Operator priority and subject preservation |
+| [54b-context-injection-and-attention-routing.md](54b-context-injection-and-attention-routing.md) | Context injection and attention routing |
+| [55-tool-action-contracts.md](55-tool-action-contracts.md) | Tool action contracts |
+| [55-tool-action-contracts-impl.md](55-tool-action-contracts-impl.md) | Tool action implementation notes |
+| [56-trace-checkpoints-recovery.md](56-trace-checkpoints-recovery.md) | Trace, checkpoints, recovery |
+| [57-golden-tasks-and-evals.md](57-golden-tasks-and-evals.md) | Golden tasks and evals |
 
 ## Advanced Systems
 

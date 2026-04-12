@@ -726,6 +726,61 @@ pub enum FocusaEvent {
         reason: String,
     },
 
+    // ─── Ontology Classification / Reducer (docs/50) ─────────────────
+    #[serde(rename = "ontology_object_upsert_proposed")]
+    OntologyObjectUpsertProposed {
+        proposal_id: Uuid,
+        object_type: String,
+        object_id: Option<String>,
+        source: String,
+    },
+    #[serde(rename = "ontology_link_upsert_proposed")]
+    OntologyLinkUpsertProposed {
+        proposal_id: Uuid,
+        link_type: String,
+        source_id: String,
+        target_id: String,
+        source: String,
+    },
+    #[serde(rename = "ontology_status_change_proposed")]
+    OntologyStatusChangeProposed {
+        proposal_id: Uuid,
+        subject: String,
+        from_status: Option<String>,
+        to_status: String,
+        source: String,
+    },
+    #[serde(rename = "ontology_working_set_membership_proposed")]
+    OntologyWorkingSetMembershipProposed {
+        proposal_id: Uuid,
+        subject: String,
+        operation: String,
+        source: String,
+    },
+    #[serde(rename = "ontology_proposal_promoted")]
+    OntologyProposalPromoted {
+        proposal_id: Uuid,
+        target_class: String,
+        applied_kind: String,
+    },
+    #[serde(rename = "ontology_proposal_rejected")]
+    OntologyProposalRejected {
+        proposal_id: Uuid,
+        target_class: String,
+        reason: String,
+    },
+    #[serde(rename = "ontology_verification_applied")]
+    OntologyVerificationApplied {
+        proposal_id: Option<Uuid>,
+        verification: String,
+        outcome: String,
+    },
+    #[serde(rename = "ontology_working_set_refreshed")]
+    OntologyWorkingSetRefreshed {
+        scope: String,
+        reason: String,
+    },
+
     // Errors
     InvariantViolation {
         invariant: String,
@@ -961,6 +1016,7 @@ pub enum Action {
         source: String,
         payload: serde_json::Value,
         deadline_ms: u64,
+        score: Option<f64>,
     },
 
     // Thesis

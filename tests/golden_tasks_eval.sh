@@ -1,5 +1,8 @@
 #!/bin/bash
-# SPEC-57: Golden Tasks + Evals Framework
+# SPEC-57: Golden Tasks + Evals Infrastructure Check
+#
+# This script verifies evaluation infrastructure surfaces only.
+# It does NOT prove the full SPEC-57 success condition by itself.
 #
 # 9 Golden Tasks:
 # 1. resume interrupted refactor
@@ -41,7 +44,7 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
-echo "=== SPEC-57: Golden Tasks + Evals Framework ==="
+echo "=== SPEC-57: Golden Tasks + Evals Infrastructure Check ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
@@ -218,7 +221,7 @@ echo "Tests failed: ${FAILED}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-  echo -e "${GREEN}All golden tasks eval infrastructure verified${NC}"
+  echo -e "${GREEN}Golden tasks eval infrastructure verified (not full comparative success proof)${NC}"
   exit 0
 else
   echo -e "${RED}Some tests failed${NC}"

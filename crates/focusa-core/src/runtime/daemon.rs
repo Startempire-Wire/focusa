@@ -1486,8 +1486,12 @@ Return ONLY valid JSON:
                 source,
                 payload,
                 deadline_ms,
+                score,
             } => {
-                crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
+                let proposal_id = crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
+                if let Some(score) = score {
+                    let _ = crate::pre::score_proposal(&mut self.state.pre, proposal_id, score);
+                }
                 // Proposals don't produce reducer events — they live in PRE state.
                 // Persist so proposals survive a daemon restart.
                 self.persistence.save_state(&self.state)?;
@@ -1721,25 +1725,6 @@ Return ONLY valid JSON:
                 // Completion is handled by the worker runner; no reducer mutation.
                 Ok(vec![])
             }
-        }
-    }
-
-    /// Emit a memory audit event to the event log.
-    ///
-    /// Per G1-detail-15: memory.semantic_upserted, memory.rule_reinforced,
-    /// memory.decay_tick must appear in the event log for replay observability.
-    /// These bypass the reducer but are persisted for auditability.
-    fn emit_memory_event(&self, details: &str) {
-        let event = FocusaEvent::InvariantViolation {
-            invariant: "memory_audit".into(),
-            details: details.to_string(),
-        };
-        let mut entry = create_entry(event, SignalOrigin::Daemon, None);
-        entry.instance_id = self.current_instance_id;
-        entry.thread_id = self.current_thread_id;
-        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
-        if let Err(e) = self.persistence.append_event(&entry) {
-            tracing::warn!("Failed to persist memory audit event: {}", e);
         }
     }
 

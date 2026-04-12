@@ -1,8 +1,9 @@
-# Focusa Spec Audit — COMPLETE
+# Focusa Spec Audit — PARTIAL / REVALIDATED
 # Audited: 2026-04-03 (initial)
-# Updated: 2026-04-11 (complete)
+# Updated: 2026-04-11 (complete claim)
+# Revalidated: 2026-04-12 (operator-priority/runtime alignment corrections)
 
-## IMPLEMENTED ✅
+## VERIFIED SUBSYSTEMS ✅
 
 ### CRITICAL (6/6)
 1. §36.1 turn/append streaming — EXISTS in turn.rs
@@ -36,7 +37,7 @@
 23. §34.2H Prompt template — IMPLEMENTED: .pi/prompts/focusa-context.md
 24. §38.2 /wbm HTTP fallback — EXISTS: wbExec() with fallbackUrl/fallbackBody
 
-## TEST COVERAGE
+## TEST COVERAGE / REVALIDATION
 
 ### CI Integration Tests (120+ tests)
 - focusa_toggle_persistence_test.sh (SPEC-33.5)
@@ -52,9 +53,15 @@
 ### API Contract Tests
 - api_contract_probe.py (16+ checks)
 
-## STATUS: COMPLETE ✅
+## STATUS: PARTIAL ⚠️
 
-## SPEC §15 Test Plan (COMPLETE)
+## REVALIDATION NOTES (2026-04-12)
+- Pi hot-path operator-priority/minimal-slice alignment required correction after this audit.
+- `apps/pi-extension/src/turns.ts` no longer uses coercive behavioral prompt injection or always-on 10-slot live refresh.
+- `docs/INDEX.md` required canonization updates for docs 45-57.
+- Closed-bead/test claims should not be treated as blanket proof of spec-faithful implementation without current runtime verification.
+
+## SPEC §15 Test Plan (REPORTED COMPLETE)
 - Long-session stress test (200+ turns) ✅
 - Large tool-output test (forced ECS handles) ✅
 - Budget exceed test (degradation order) ✅

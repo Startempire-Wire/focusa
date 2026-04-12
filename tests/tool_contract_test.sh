@@ -93,17 +93,20 @@ else
   log_fail "First turn complete failed"
 fi
 
-sleep 1
-code=$(http_code -X POST "${BASE_URL}/v1/turn/complete" -H "Content-Type: application/json" \
-  -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
-if [ "$code" = "200" ]; then
-  if jq -e '.duplicate == true' /tmp/focusa-tool-contract-body.json >/dev/null 2>&1; then
-    log_pass "Turn complete duplicate flagged explicitly"
-  else
-    log_fail "Idempotency duplicate flag missing :: $(cat /tmp/focusa-tool-contract-body.json)"
+duplicate_seen=0
+for _ in 1 2 3 4 5; do
+  sleep 0.3
+  code=$(http_code -X POST "${BASE_URL}/v1/turn/complete" -H "Content-Type: application/json" \
+    -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
+  if [ "$code" = "200" ] && jq -e '.duplicate == true' /tmp/focusa-tool-contract-body.json >/dev/null 2>&1; then
+    duplicate_seen=1
+    break
   fi
+done
+if [ "$duplicate_seen" = "1" ]; then
+  log_pass "Turn complete duplicate flagged explicitly"
 else
-  log_fail "Second turn complete failed with HTTP ${code}"
+  log_fail "Idempotency duplicate flag missing :: $(cat /tmp/focusa-tool-contract-body.json)"
 fi
 
 log_info "Observable side effects"

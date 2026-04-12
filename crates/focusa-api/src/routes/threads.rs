@@ -8,13 +8,11 @@
 use crate::server::AppState;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::reducer;
-use focusa_core::types::{EventLogEntry, FocusaEvent, SignalOrigin};
+use focusa_core::types::{Action, FocusaEvent};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -55,22 +53,21 @@ struct CreateThreadBody {
 async fn create_thread(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateThreadBody>,
-) -> impl IntoResponse {
+) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     // Validate required fields
     if body.name.trim().is_empty() {
-        return (
+        return Err((
             StatusCode::BAD_REQUEST,
             Json(json!({"error": "name cannot be empty"})),
-        );
+        ));
     }
     if body.primary_intent.trim().is_empty() {
-        return (
+        return Err((
             StatusCode::BAD_REQUEST,
             Json(json!({"error": "primary_intent cannot be empty"})),
-        );
+        ));
     }
 
-    // Create thread through reducer for proper event logging and state management.
     let thread_id = Uuid::now_v7();
     let event = FocusaEvent::ThreadCreated {
         thread_id,
@@ -79,59 +76,23 @@ async fn create_thread(
         owner_machine_id: body.owner_machine_id.clone(),
     };
 
-    let focusa_state = state.focusa.read().await;
-    match reducer::reduce_with_meta(
-        focusa_state.clone(),
-        event.clone(),
-        None, // No machine_id for local creation
-        None, // No thread_id (creating new thread)
-        false,
-    ) {
-        Ok(result) => {
-            // Generate event ID explicitly (consistent with what create_entry does)
-            let event_id = Uuid::now_v7();
+    state
+        .command_tx
+        .send(Action::EmitEvent { event })
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "failed to dispatch thread creation"})),
+            )
+        })?;
 
-            // Persist the event FIRST
-            // This ensures event log is always the source of truth
-            let entry = EventLogEntry {
-                id: event_id,
-                timestamp: chrono::Utc::now(),
-                event,
-                correlation_id: Some("cli:create_thread".to_string()),
-                origin: SignalOrigin::Cli,
-                machine_id: None,
-                instance_id: None,
-                session_id: None,
-                thread_id: Some(thread_id),
-                is_observation: false,
-            };
-            if let Err(e) = state.persistence.append_event(&entry) {
-                tracing::warn!("Failed to persist thread creation event: {}", e);
-            }
-
-            // Clone the new state for the response (before moving into focusa)
-            let thread = result
-                .new_state
-                .threads
-                .iter()
-                .find(|t| t.id == thread_id)
-                .cloned();
-
-            // NOW update in-memory state (only after persistence succeeds)
-            let state_to_save = result.new_state.clone();
-            drop(focusa_state);
-            {
-                let mut focusa_state = state.focusa.write().await;
-                *focusa_state = result.new_state;
-            }
-
-            // Save state
-            if let Err(e) = state.persistence.save_state(&state_to_save) {
-                tracing::warn!("Failed to save state after thread creation: {}", e);
-            }
-
-            match thread {
-                Some(thread) => (
+    // Wait briefly for daemon reducer + shared-state sync.
+    for _ in 0..20 {
+        {
+            let focusa_state = state.focusa.read().await;
+            if let Some(thread) = focusa_state.threads.iter().find(|t| t.id == thread_id) {
+                return Ok((
                     StatusCode::CREATED,
                     Json(json!({
                         "thread": {
@@ -142,25 +103,20 @@ async fn create_thread(
                             "created_at": thread.created_at,
                         }
                     })),
-                ),
-                None => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "error": "Thread creation failed"
-                    })),
-                ),
+                ));
             }
         }
-        Err(e) => {
-            tracing::warn!("Thread creation rejected by reducer: {}", e);
-            (
-                StatusCode::BAD_REQUEST,
-                Json(json!({
-                    "error": e.to_string()
-                })),
-            )
-        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
+
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(json!({
+            "status": "accepted",
+            "thread_id": thread_id.to_string(),
+            "warning": "thread creation dispatched but not yet visible"
+        })),
+    ))
 }
 
 /// GET /v1/threads/:id — get thread details.
@@ -238,93 +194,53 @@ async fn transfer_ownership(
             )
         })?;
 
-    // Get this machine's ID
-    let machine_id = state.persistence.machine_id().map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": "Failed to get machine ID"})),
-        )
-    })?;
-
-    // Get current owner (for from_machine_id field)
     let previous_owner = thread.owner_machine_id.clone();
 
-    // Create ownership transfer event
-    // from_machine_id must be the current owner (validated by reducer)
     let event = FocusaEvent::ThreadOwnershipTransferred {
         thread_id,
         from_machine_id: previous_owner.clone(),
         to_machine_id: body.to_machine_id.clone(),
         reason: body.reason.clone().unwrap_or_default(),
     };
-
-    // Use the current owner's machine_id for the caller's machine_id
-    // This allows the owner to transfer even if running on a different machine
-    let caller_machine_id = previous_owner.as_deref().unwrap_or(&machine_id);
-
-    // Run through reducer with proper ownership validation
     drop(focusa_state);
-    let focusa_state = state.focusa.read().await;
-    match reducer::reduce_with_meta(
-        focusa_state.clone(),
-        event.clone(),
-        Some(caller_machine_id),
-        Some(thread_id),
-        false,
-    ) {
-        Ok(result) => {
-            // Generate event ID explicitly (consistent with what create_entry does)
-            let event_id = Uuid::now_v7();
 
-            // Persist the event FIRST
-            // This ensures event log is always the source of truth
-            let entry = EventLogEntry {
-                id: event_id,
-                timestamp: chrono::Utc::now(),
-                event,
-                correlation_id: Some("cli:transfer_ownership".to_string()),
-                origin: SignalOrigin::Cli,
-                machine_id: Some(caller_machine_id.to_string()),
-                instance_id: None,
-                session_id: None,
-                thread_id: Some(thread_id),
-                is_observation: false,
-            };
-            if let Err(e) = state.persistence.append_event(&entry) {
-                tracing::warn!("Failed to persist ownership transfer event: {}", e);
-            }
+    state
+        .command_tx
+        .send(Action::EmitEvent { event })
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "failed to dispatch ownership transfer"})),
+            )
+        })?;
 
-            // NOW update in-memory state (only after persistence succeeds)
-            let state_to_save = result.new_state.clone();
-            drop(focusa_state);
+    for _ in 0..20 {
+        {
+            let focusa_state = state.focusa.read().await;
+            if let Some(thread) = focusa_state.threads.iter().find(|t| t.id == thread_id)
+                && thread.owner_machine_id.as_deref() == Some(body.to_machine_id.as_str())
             {
-                let mut focusa_state = state.focusa.write().await;
-                *focusa_state = result.new_state;
+                let reason = body.reason.clone().unwrap_or_default();
+                return Ok(Json(json!({
+                    "thread_id": id,
+                    "previous_owner": previous_owner,
+                    "new_owner": body.to_machine_id,
+                    "reason": reason,
+                })));
             }
-
-            // Save state
-            if let Err(e) = state.persistence.save_state(&state_to_save) {
-                tracing::warn!("Failed to save state after ownership transfer: {}", e);
-            }
-
-            let reason = body.reason.clone().unwrap_or_default();
-            Ok(Json(json!({
-                "thread_id": id,
-                "previous_owner": previous_owner,
-                "new_owner": body.to_machine_id,
-                "reason": reason,
-            })))
         }
-        Err(e) => {
-            tracing::warn!("Ownership transfer rejected by reducer: {}", e);
-            Err((
-                StatusCode::FORBIDDEN,
-                Json(json!({
-                    "error": e.to_string()
-                })),
-            ))
-        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
+
+    Ok(Json(json!({
+        "status": "accepted",
+        "thread_id": id,
+        "previous_owner": previous_owner,
+        "new_owner": body.to_machine_id,
+        "reason": body.reason.clone().unwrap_or_default(),
+        "warning": "ownership transfer dispatched but not yet visible"
+    })))
 }
 
 pub fn router() -> Router<Arc<AppState>> {

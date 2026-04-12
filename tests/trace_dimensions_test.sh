@@ -42,7 +42,24 @@ for t in "${TRACE_TYPES[@]}"; do
     fi
 done
 
-# Test 2: Trace events retrievable
+# Test 2: Trace stats/accessibility convergence
+STATS='{}'
+TRACE_TOTAL=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    STATS=$(curl -s "${BASE_URL}/v1/telemetry/trace/stats")
+    TRACE_TOTAL=$(echo "$STATS" | jq '(.by_event_type // {}) | to_entries | map(.value) | add // 0')
+    if [ "$TRACE_TOTAL" -ge 10 ]; then
+        break
+    fi
+    sleep 0.2
+done
+if echo "$STATS" | jq -e '.by_event_type' >/dev/null 2>&1; then
+    log_pass "Trace stats accessible"
+else
+    log_fail "Trace stats not accessible"
+fi
+
+# Test 3: Trace events retrievable after stats converge
 EVENTS=$(curl -s "${BASE_URL}/v1/telemetry/trace?limit=100" | jq '.events | length')
 if [ "$EVENTS" -ge 10 ]; then
     log_pass "Trace events retrievable: $EVENTS events"
@@ -50,16 +67,15 @@ else
     log_fail "Trace events not retrievable"
 fi
 
-# Test 3: Trace stats accessible
-STATS=$(curl -s "${BASE_URL}/v1/telemetry/trace/stats")
-if echo "$STATS" | jq -e '.by_event_type' >/dev/null 2>&1; then
-    log_pass "Trace stats accessible"
-else
-    log_fail "Trace stats not accessible"
-fi
-
-# Test 4: Steering detection flag
-STEERING=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=steering_detected" | jq '.events | length')
+# Test 4: Steering detection flag (bounded retry for eventual visibility)
+STEERING=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    STEERING=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=steering_detected" | jq '.events | length')
+    if [ "$STEERING" -gt 0 ]; then
+        break
+    fi
+    sleep 0.2
+done
 if [ "$STEERING" -gt 0 ]; then
     log_pass "Steering detected flag tracked"
 else

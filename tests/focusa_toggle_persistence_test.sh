@@ -13,7 +13,7 @@
 set -e
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
-DATA_DIR="${HOME}/.focusa"
+DATA_DIR="${FOCUSA_DATA_DIR:-${HOME}/.focusa}"
 PI_ENABLED_FILE="${DATA_DIR}/pi-enabled"
 FAILED=0
 PASSED=0

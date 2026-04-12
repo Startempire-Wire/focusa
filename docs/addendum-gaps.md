@@ -103,21 +103,21 @@ Audited: 2026-04-12
 
 ---
 
-## SPEC 57: Golden Tasks — IMPLEMENTED ✅
+## SPEC 57: Golden Tasks — INFRASTRUCTURE PRESENT ✅
 
 Test infrastructure exists with behavioral evaluation.
 
 ---
 
-## SPEC 54: Visible Output Boundary — IMPLEMENTED ✅
+## SPEC 54: Visible Output Boundary — REVALIDATED ✅
 
-Channel separation test exists.
+Channel separation test exists and was revalidated on 2026-04-12 with operator-first/minimal-slice hot-path checks.
 
 ---
 
-## SPEC 44: Pi-Focusa Integration — MOSTLY COMPLETE ⚠️
+## SPEC 44: Pi-Focusa Integration — REVALIDATED PARTIAL ⚠️
 
-Infrastructure exists but behavioral alignment incomplete.
+Infrastructure exists; operator-first/minimal-slice hot-path alignment was corrected on 2026-04-12, but this document should not be treated as blanket completion proof.
 
 ---
 
@@ -125,7 +125,7 @@ Infrastructure exists but behavioral alignment incomplete.
 
 ### CRITICAL
 1. **SPEC 56 Trace Dimensions** - Implement missing 14 trace dimensions
-2. **SPEC 53 Behavioral Alignment** - Test actual behavior not just endpoints
+2. **SPEC 53 Behavioral Alignment** - keep testing actual behavior, not just endpoint availability
 
 ### HIGH
 3. **SPEC 55 Contract Documentation** - Document failure modes, idempotency, verification

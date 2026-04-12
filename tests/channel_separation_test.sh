@@ -34,6 +34,9 @@ echo "=== SPEC-54/54a: Visible Output Boundary (strict) ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TURNS_TS="${REPO_ROOT}/apps/pi-extension/src/turns.ts"
+
 log_info "Health + seed internal event"
 code=$(http_code "${BASE_URL}/v1/health")
 if [ "$code" = "200" ]; then
@@ -89,6 +92,18 @@ if [ "$code" = "200" ]; then
   json_assert '.context_stats != null and ((.context_stats.total_tokens // .context_stats.estimated_tokens // 0) <= 500)' "Prompt assembly reports bounded context stats"
 else
   log_fail "Prompt assemble failed with HTTP ${code}"
+fi
+
+log_info "Pi hot-path anti-hijack implementation checks"
+if rg -n "Focusa Cognitive Governance \(Active\)|10-slot live refresh|inject live Focus State before EVERY LLM call" "$TURNS_TS" >/dev/null 2>&1; then
+  log_fail "Legacy coercive/always-on Focusa injection markers remain in turns.ts"
+else
+  log_pass "Legacy coercive/always-on Focusa injection markers removed from turns.ts"
+fi
+if rg -n "Focusa Minimal Applicable Slice|subject_hijack_prevented|steeringChange" "$TURNS_TS" >/dev/null 2>&1; then
+  log_pass "Minimal-slice operator-first logic present in turns.ts"
+else
+  log_fail "Minimal-slice operator-first logic missing from turns.ts"
 fi
 
 log_info "Priority order / steering observability"

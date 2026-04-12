@@ -136,16 +136,13 @@ async fn surface(
 ///   2. Extension (§36.2/§36.3): { signal_type, surface, frame_id, payload }
 #[derive(Deserialize)]
 struct SignalBody {
-    // Canonical format
+    // Canonical format, also accepts extension alias `signal_type`.
+    #[serde(default, alias = "signal_type")]
     kind: Option<String>,
     summary: Option<String>,
     #[serde(default)]
     frame_context: Option<Uuid>,
     // Extension format (§36.2/§36.3)
-    #[serde(alias = "kind", default)]
-    signal_type: Option<String>,
-    #[serde(default)]
-    surface: Option<String>,
     #[serde(default)]
     frame_id: Option<String>,
     #[serde(default)]
@@ -154,11 +151,8 @@ struct SignalBody {
 
 impl SignalBody {
     fn resolved(&self) -> (String, String, Option<Uuid>) {
-        // kind or signal_type → kind string
-        let raw = self.kind
-            .as_deref()
-            .or(self.signal_type.as_deref())
-            .unwrap_or("user_input");
+        // kind / signal_type alias → canonical kind string
+        let raw = self.kind.as_deref().unwrap_or("user_input");
         let kind = match raw {
             "tool_error" | "tool_output_captured" => "tool_output_captured",
             "model_error" => "error_observed",

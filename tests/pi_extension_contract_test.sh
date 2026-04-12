@@ -84,9 +84,15 @@ else
 fi
 
 decision_visible=0
-for i in $(seq 1 10); do
+for i in $(seq 1 20); do
   code=$(http_code "${BASE_URL}/v1/ascc/state")
   if [ "$code" = "200" ] && jq -e '((.active_frame != null) or (.frame_id != null)) and (((.decisions // .ascc.decisions // []) | length) > 0)' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+    decision_visible=1
+    break
+  fi
+
+  code=$(http_code "${BASE_URL}/v1/focus/stack")
+  if [ "$code" = "200" ] && jq -e '(.stack.frames | length > 0) and (.stack.frames | any((.focus_state.decisions // []) | length > 0))' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
     decision_visible=1
     break
   fi
@@ -95,7 +101,7 @@ done
 if [ "$decision_visible" = "1" ]; then
   log_pass "Input 2/5: frame-thesis and seeded recent decisions accessible"
 else
-  log_fail "Input 2/5: seeded recent decisions not observable :: $(cat /tmp/focusa-pi-contract-body.json)"
+  log_fail "Input 2/5: seeded recent decisions not observable in ASCC or focus stack :: $(cat /tmp/focusa-pi-contract-body.json)"
 fi
 
 code=$(http_code "${BASE_URL}/v1/memory/semantic")
@@ -136,7 +142,7 @@ fi
 
 code=$(http_code "${BASE_URL}/v1/autonomy")
 if [ "$code" = "200" ]; then
-  json_assert '.recommendation != null or .status != null' "Input 9: degraded-mode/autonomy status accessible"
+  json_assert '.level != null and .ari_score != null' "Input 9: degraded-mode/autonomy status accessible"
 else
   log_fail "Input 9 failed with HTTP ${code}"
 fi

@@ -93,7 +93,7 @@ async fn record_trace_event(
     let event_type_str = body.get("event_type")
         .and_then(|v| v.as_str())
         .unwrap_or("ModelTokens");
-    let event_type = match event_type_str {
+    let _event_type = match event_type_str {
         "working_set_used" => TelemetryEventType::WorkingSetUsed,
         "constraints_consulted" => TelemetryEventType::ConstraintsConsulted,
         "decisions_consulted" => TelemetryEventType::DecisionsConsulted,
