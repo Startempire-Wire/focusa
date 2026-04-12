@@ -1467,6 +1467,8 @@ pub struct TelemetryEvent {
     pub schema_version: String,
 }
 
+/// Trace dimension events for SPEC 56.
+/// These track the 18 required dimensions for trace inspection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TelemetryEventType {
@@ -1477,6 +1479,20 @@ pub enum TelemetryEventType {
     ToolCall,
     UxSignal,
     AutonomyUpdate,
+    // SPEC 56 Trace Dimensions:
+    WorkingSetUsed,
+    ConstraintsConsulted,
+    DecisionsConsulted,
+    ActionIntentsProposed,
+    VerificationResult,
+    OntologyDeltaApplied,
+    OperatorSubject,
+    SteeringDetected,
+    SubjectHijackPrevented,
+    SubjectHijackOccurred,
+    PriorMissionReused,
+    FocusSliceSize,
+    FocusSliceRelevanceScore,
 }
 
 /// Telemetry aggregate state.
@@ -1489,6 +1505,9 @@ pub struct TelemetryState {
     /// Tool call names for autonomy analysis (§33.4).
     #[serde(default)]
     pub tool_calls: Vec<String>,
+    /// Trace dimension events for SPEC 56 (18 dimensions).
+    #[serde(default)]
+    pub trace_events: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
