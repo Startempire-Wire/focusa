@@ -36,7 +36,8 @@ TRACE_TYPES=(
     "focus_slice_relevance_score"
 )
 
-# Test 1: All trace types can be recorded
+# Test 1: All trace types can be recorded and individually retrieved
+RETRIEVED=0
 for t in "${TRACE_TYPES[@]}"; do
     RESP=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
         -H "Content-Type: application/json" \
@@ -45,7 +46,18 @@ for t in "${TRACE_TYPES[@]}"; do
         log_pass "Trace type: ${t}"
     else
         log_fail "Trace type: ${t}"
+        continue
     fi
+
+    found=0
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        found=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=${t}&turn_id=${RUN_ID}-${t}" | jq '(.count // 0)')
+        if [ "$found" -gt 0 ]; then
+            RETRIEVED=$((RETRIEVED+1))
+            break
+        fi
+        sleep 0.1
+    done
 done
 
 # Test 2: Trace stats/accessibility convergence
@@ -65,29 +77,21 @@ else
     log_fail "Trace stats not accessible"
 fi
 
-# Test 3: this run's trace events retrievable after stats converge
-EVENTS=0
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-    EVENTS=$(curl -s "${BASE_URL}/v1/telemetry/trace?limit=100" | jq --arg run "$RUN_ID-" '[.events[] | .payload.turn_id? | select(startswith($run))] | length')
-    if [ "$EVENTS" -ge 18 ]; then
-        break
-    fi
-    sleep 0.2
-done
-if [ "$EVENTS" -ge 18 ]; then
-    log_pass "Trace events retrievable: $EVENTS events"
+# Test 3: all posted trace events remained retrievable
+if [ "$RETRIEVED" -ge 18 ]; then
+    log_pass "Trace events retrievable: $RETRIEVED events"
 else
     log_fail "Trace events not retrievable"
 fi
 
 # Test 4: event_type filter works for steering_detected
 STEERING=0
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-    STEERING=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=steering_detected" | jq --arg id "${RUN_ID}-steering_detected" '[.events[] | .payload.turn_id? | select(. == $id)] | length')
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    STEERING=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=steering_detected&turn_id=${RUN_ID}-steering_detected" | jq '(.count // 0)')
     if [ "$STEERING" -gt 0 ]; then
         break
     fi
-    sleep 0.2
+    sleep 0.1
 done
 if [ "$STEERING" -gt 0 ]; then
     log_pass "Steering detected filter tracked"
@@ -107,7 +111,7 @@ else
 fi
 TOOLS_INVOKED=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-    TOOLS_INVOKED=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=tools_invoked" | jq --arg id "$TOOL_TURN_ID" '[.events[] | .payload.turn_id? | select(. == $id)] | length')
+    TOOLS_INVOKED=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=tools_invoked&turn_id=${TOOL_TURN_ID}" | jq '(.count // 0)')
     if [ "$TOOLS_INVOKED" -gt 0 ]; then
         break
     fi

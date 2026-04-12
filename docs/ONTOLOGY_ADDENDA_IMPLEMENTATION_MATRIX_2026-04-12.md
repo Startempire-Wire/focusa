@@ -14,8 +14,10 @@ Legend:
 - Evidence:
   - `crates/focusa-core/src/types.rs` contains typed software-world/cognition structures: `FocusState`, `Thread`, `Proposal`, `HandleRef`, `TelemetryEventType`
   - `crates/focusa-core/src/reducer.rs` enforces reducer/event-centric model
+  - runtime ontology projection now exists at `GET /v1/ontology/world`
+  - `tests/ontology_world_contract_test.sh` passes (15/15)
 - Gap:
-  - no full end-to-end proof that Pi consumes a fully typed bounded working world beyond the minimal slice hot path
+  - no full end-to-end proof that Pi consumes the broader typed ontology world beyond the minimal slice hot path
 
 ## 46. Ontology Core Primitives
 - Status: PARTIAL
@@ -24,8 +26,10 @@ Legend:
   - reducer replay invariants enforced in `reducer.rs`
   - proposal primitives exist in `types.rs` / `pre/mod.rs` / `pre/resolution.rs`
   - thread/thesis primitives exist in `types.rs` and API routes under `routes/threads.rs`
+  - runtime primitive catalog now exists at `GET /v1/ontology/primitives`
+  - `tests/ontology_world_contract_test.sh` verifies object/link/action catalogs, status vocabulary, and provenance classes
 - Gap:
-  - not all primitive families were exercised end-to-end in runtime during this pass
+  - primitive catalogs are now runtime-visible, but not every primitive family is reducer-native/canonized as a first-class internal struct yet
 
 ## 47. Ontology Software World
 - Status: PARTIAL
@@ -41,9 +45,10 @@ Legend:
   - thread/proposal runtime regression added and rerun:
     - `tests/thread_runtime_test.sh` → pass (6/6)
     - verifies thread create/list/get consistency plus proposal submit/list/resolve basics
+  - broader world projection now exists in `GET /v1/ontology/world`
+  - `tests/ontology_world_contract_test.sh` verifies projected goal/active_focus/decision/constraint/failure/verification/artifact objects plus bounded working-set metadata
 - Gap:
-  - broader software-world coverage remains unproven beyond these thread/proposal/frame/memory/handle surfaces
-  - source patch in `crates/focusa-api/src/routes/threads.rs` has not been rebuild-verified separately in this pass
+  - code-world object families like repo/package/module/file/symbol/route/schema/migration are cataloged but not yet populated from live project structure in this pass
 
 ## 48. Ontology Links + Actions
 - Status: PARTIAL
@@ -56,8 +61,10 @@ Legend:
     - `routes/session.rs`
     - `routes/ecs.rs`
   - SPEC-55 contract gate rerun and passed
+  - runtime action/link catalogs now exist in `GET /v1/ontology/primitives` and `GET /v1/ontology/world`
+  - `tests/ontology_world_contract_test.sh` verifies typed links (`belongs_to_goal`, `blocks`, `verifies`) and action catalog presence for required action classes
 - Gap:
-  - verification hooks and ontology delta outputs are proven for some actions, not comprehensively for all canonical actions
+  - verification hooks and ontology delta outputs are proven for some actions, not yet comprehensively for all declared action classes
 
 ## 49. Working Sets and Slices
 - Status: VERIFIED (Pi hot path) / PARTIAL (broader ontology)
@@ -88,18 +95,21 @@ Legend:
   - broader worker-classification internals were not separately benchmarked, but the reducer/proposal/event contract itself is runtime-verified
 
 ## 51. Ontology Expression and Proxy
-- Status: VERIFIED (Pi extension hot path) / PARTIAL (Mode B proxy semantics)
+- Status: VERIFIED
 - Evidence:
   - `apps/pi-extension/src/turns.ts` no longer injects always-on full focus state
   - operator intent is read before slice assembly
   - minimal applicable slice logic present
   - `tests/channel_separation_test.sh` passes with anti-hijack checks
   - prompt assembly route confirmed in `crates/focusa-api/src/routes/turn.rs` (`/v1/prompt/assemble`)
-  - proxy adapters confirmed in:
+  - Mode B proxy adapters now use shared operator-first minimal-slice assembly in:
     - `crates/focusa-core/src/adapters/openai.rs`
     - `crates/focusa-core/src/adapters/anthropic.rs`
+  - strict proxy parity gate added:
+    - `tests/proxy_mode_b_parity_test.sh` → pass (4/4)
+  - focused unit tests pass in `focusa-core` for both adapters
 - Gap:
-  - Mode B proxy adapters still inject assembled prompt as system message wholesale; full operator-first/minimal-slice parity there was not exhaustively reworked in this pass
+  - none identified in the verified proxy/Pi expression path for this pass
 
 ## 52. Pi Extension Contract
 - Status: VERIFIED
@@ -155,7 +165,7 @@ Legend:
   - full doc-to-action matrix not exhaustively enumerated in this pass
 
 ## 56. Trace / Checkpoints / Recovery
-- Status: VERIFIED (trace dimensions + checkpoint trigger surface) / PARTIAL (full recovery breadth)
+- Status: VERIFIED (trace dimensions + checkpoint trigger surface) / PARTIAL (remaining recovery breadth)
 - Evidence:
   - doc file located at `docs/56-trace-checkpoints-recovery.md`
   - `tests/trace_dimensions_test.sh` now passes (23/23)
@@ -179,16 +189,19 @@ Legend:
     - `subject_hijack_prevented`
     - `subject_hijack_occurred`
   - `tests/checkpoint_trigger_test.sh` rerun on 2026-04-12 → pass (11/11)
+  - `tests/restart_recovery_test.sh` → pass (13/13)
   - checkpoint/resume runtime verified for:
     - session start
     - focus push / active frame visibility
     - blocker emergence / gate visibility
     - explicit session resume
     - state dump carrying checkpoint-critical state
+    - checkpoint file persistence before shutdown
+    - frame/ASCC state restoration after daemon restart
   - `/v1/telemetry/trace?event_type=...` filtering now verified
   - tool-usage batches now also emit `tools_invoked` trace events
 - Gap:
-  - full recovery semantics across restart/fork/compact/pre-shutdown cases were not re-audited in this pass
+  - fork/compact-specific recovery semantics were not fully re-audited in this pass
 
 ## 57. Golden Tasks and Evals
 - Status: PARTIAL
@@ -224,7 +237,7 @@ Partially verified / still broader than current proof:
 - 49 (outside Pi hot path)
 - 53 (full behavioral thesis)
 - 55 impl
-- 56 (checkpoint/recovery breadth)
+- 56 (fork/compact recovery breadth)
 - 57
 
 This matrix should be treated as the current reality baseline, not prior bead/audit claims.

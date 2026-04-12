@@ -230,6 +230,7 @@ impl ConflictResolver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
 
     // SMOKE TEST: Vector clock basics
     #[test]

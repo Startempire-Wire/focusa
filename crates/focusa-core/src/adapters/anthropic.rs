@@ -14,7 +14,6 @@
 //! Failure: passthrough raw request (fail-safe).
 
 use crate::expression::engine::AssembledPrompt;
-use crate::memory::procedural;
 use crate::types::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -101,81 +100,7 @@ pub fn process_request(
         return None;
     }
 
-    // Get active frame's focus state.
-    let focus_state = state
-        .focus_stack
-        .active_id
-        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))
-        .map(|f| &f.focus_state)
-        .cloned()
-        .unwrap_or_default();
-
-    // Select procedural rules.
-    let project_id = state
-        .focus_stack
-        .active_id
-        .and_then(|fid| state.focus_stack.frames.iter().find(|f| f.id == fid))
-        .and_then(|frame| {
-            frame
-                .tags
-                .iter()
-                .find(|t| t.starts_with("project:"))
-                .map(|t| t.trim_start_matches("project:").to_string())
-        });
-
-    let rules = procedural::select_for_prompt(
-        &state.memory,
-        state.focus_stack.active_id,
-        project_id.as_deref(),
-        5,
-    );
-    let rules_owned: Vec<RuleRecord> = rules.into_iter().cloned().collect();
-
-    // Collect artifact handles.
-    let session_id = state.session.as_ref().map(|s| s.session_id);
-    let handles_owned: Vec<HandleRef> = state
-        .reference_index
-        .handles
-        .iter()
-        .filter(|h| h.session_id == session_id || h.pinned)
-        .cloned()
-        .collect();
-
-    // Build ASCC sections from FocusState (G1-07 §Prompt Serialization).
-    let ascc = crate::types::AsccSections::from(&focus_state);
-    let ascc_ref = if ascc.is_empty() { None } else { Some(&ascc) };
-
-    // Build parent context from stack (G1-detail-05, G1-detail-11 §Slot 4).
-    let parents = crate::expression::engine::build_parent_contexts(&state.focus_stack);
-
-    // Get active frame title.
-    let frame_title = state
-        .focus_stack
-        .active_id
-        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))
-        .map(|f| f.title.as_str())
-        .unwrap_or(&focus_state.intent);
-
-    // Extract constitution principles (docs/16 §2, §5).
-    let (principles, safety) = crate::expression::engine::extract_constitution(&state.constitution);
-
-    // Assemble prompt with full context.
-    let input = crate::expression::engine::AssemblyInput {
-        focus_state: &focus_state,
-        frame_title,
-        ascc: ascc_ref,
-        parent_frames: &parents,
-        rules: &rules_owned,
-        handles: &handles_owned,
-        user_input: &user_input,
-        directive: None,
-        constitution_principles: &principles,
-        safety_rules: &safety,
-        config,
-        rehydrate_handles: None,
-        thesis: state.threads.iter().find(|t| t.status == crate::types::ThreadStatus::Active).map(|t| &t.thesis),
-    };
-    let assembly = crate::expression::engine::assemble_from(input);
+    let assembly = crate::adapters::openai::build_operator_first_slice(state, config, &user_input)?;
 
     // Inject into system prompt.
     inject_system_prompt(&mut request, &assembly.content);
@@ -417,4 +342,69 @@ fn remove_bracket_tool_inline(input: &str, marker: &str) -> String {
         out_lines.push(line);
     }
     out_lines.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn test_state() -> FocusaState {
+        let frame_id = Uuid::now_v7();
+        let mut state = FocusaState::default();
+        state.focus_stack.active_id = Some(frame_id);
+        state.focus_stack.root_id = Some(frame_id);
+        state.focus_stack.frames.push(FrameRecord {
+            id: frame_id,
+            parent_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            status: FrameStatus::Active,
+            title: "Proxy parity".into(),
+            goal: "Keep operator-first bounded slice in Anthropic proxy".into(),
+            beads_issue_id: "focusa-test".into(),
+            tags: vec![],
+            priority_hint: None,
+            ascc_checkpoint_id: None,
+            stats: FrameStats::default(),
+            constraints: vec![],
+            focus_state: FocusState {
+                intent: "Anthropic proxy".into(),
+                current_state: "Reviewing proxy parity".into(),
+                decisions: vec!["Operator intent must precede slice assembly".into()],
+                artifacts: vec![],
+                constraints: vec!["No full ontology dump".into()],
+                open_questions: vec![],
+                next_steps: vec!["Patch messages proxy".into()],
+                recent_results: vec!["OpenAI proxy updated".into()],
+                failures: vec![],
+                notes: vec![],
+            },
+            completed_at: None,
+            completion_reason: None,
+        });
+        state
+    }
+
+    #[test]
+    fn anthropic_process_request_injects_minimal_slice() {
+        let request = MessagesRequest {
+            model: "claude-test".into(),
+            max_tokens: 128,
+            messages: vec![AnthropicMessage {
+                role: "user".into(),
+                content: Value::String("Why did we already choose this proxy decision?".into()),
+            }],
+            system: Some("Existing system prompt".into()),
+            temperature: None,
+            extra: Value::Null,
+        };
+        let result = process_request(request, &test_state(), &FocusaConfig::default()).expect("slice injected");
+        let system = result.request.system.expect("system prompt kept");
+        assert!(system.contains("[Focusa Minimal Applicable Slice]"));
+        assert!(system.contains("RELEVANT_DECISIONS:"));
+        assert!(system.contains("Existing system prompt"));
+        assert!(!system.contains("FOCUS FRAME:"));
+    }
 }

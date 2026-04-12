@@ -23,7 +23,16 @@ recent_events() {
 
 proposal_id_for_source() {
   local source="$1"
-  curl -sS "${BASE_URL}/v1/proposals" | jq -r --arg source "$source" '.proposals | map(select(.source == $source)) | last | .id // empty'
+  local id=""
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    id=$(curl -sS "${BASE_URL}/v1/proposals" | jq -r --arg source "$source" '.proposals | map(select(.source == $source)) | last | .id // empty')
+    if [ -n "$id" ] && [ "$id" != "null" ]; then
+      echo "$id"
+      return 0
+    fi
+    sleep 0.1
+  done
+  echo ""
 }
 
 assert_event_for_proposal() {

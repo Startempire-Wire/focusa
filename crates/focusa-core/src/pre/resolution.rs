@@ -193,7 +193,7 @@ fn apply_rfm_adjustment(base_score: f64, state: &FocusaState) -> f64 {
 mod tests {
     use super::*;
     use crate::pre::{Proposal, submit};
-    use crate::types::{PreState, ProposalKind};
+    use crate::types::{PreState, ProposalKind, ProposalStatus};
     use uuid::Uuid;
     
     fn test_state() -> FocusaState {

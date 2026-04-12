@@ -20,6 +20,7 @@ pub mod health;
 pub mod info;
 pub mod instances;
 pub mod memory;
+pub mod ontology;
 pub mod permissions;
 pub mod proposals;
 pub mod proxy;

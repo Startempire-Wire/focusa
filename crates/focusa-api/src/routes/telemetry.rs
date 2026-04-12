@@ -157,12 +157,30 @@ async fn get_trace_events(
         .min(1000);
 
     let event_type_filter = params.get("event_type").map(String::as_str);
+    let turn_id_filter = params.get("turn_id").map(String::as_str);
+    let turn_id_prefix_filter = params.get("turn_id_prefix").map(String::as_str);
     let filtered: Vec<_> = events
         .iter()
         .rev()
         .filter(|e| {
             event_type_filter
                 .map(|wanted| e.get("event_type").and_then(|v| v.as_str()) == Some(wanted))
+                .unwrap_or(true)
+        })
+        .filter(|e| {
+            turn_id_filter
+                .map(|wanted| e.get("payload").and_then(|p| p.get("turn_id")).and_then(|v| v.as_str()) == Some(wanted))
+                .unwrap_or(true)
+        })
+        .filter(|e| {
+            turn_id_prefix_filter
+                .map(|wanted| {
+                    e.get("payload")
+                        .and_then(|p| p.get("turn_id"))
+                        .and_then(|v| v.as_str())
+                        .map(|turn_id| turn_id.starts_with(wanted))
+                        .unwrap_or(false)
+                })
                 .unwrap_or(true)
         })
         .take(limit)

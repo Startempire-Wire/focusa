@@ -32,16 +32,19 @@ done
 
 ./tests/focusa_toggle_persistence_test.sh
 ./tests/tool_contract_test.sh
+./tests/trace_dimensions_test.sh
 ./tests/pi_extension_contract_test.sh
 ./tests/behavioral_alignment_test.sh
 ./tests/channel_separation_test.sh
+./tests/proxy_mode_b_parity_test.sh
 ./tests/checkpoint_trigger_test.sh
+./tests/restart_recovery_test.sh
 ./tests/continuous_pruning_test.sh
-./tests/trace_dimensions_test.sh
 ./tests/thread_runtime_test.sh
 ./tests/proposal_submit_contract_test.sh
 ./tests/proposal_resolution_enforcement_test.sh
 ./tests/proposal_kind_enforcement_test.sh
 ./tests/proposal_governance_enforcement_test.sh
 ./tests/ontology_event_contract_test.sh
+./tests/ontology_world_contract_test.sh
 ./tests/golden_tasks_eval.sh

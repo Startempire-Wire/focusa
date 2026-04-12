@@ -16,8 +16,8 @@
 //! Failure: passthrough raw request (fail-safe).
 //! Performance: <20ms overhead target.
 
+use crate::expression::budget::{available_tokens, estimate_tokens};
 use crate::expression::engine::AssembledPrompt;
-use crate::memory::procedural;
 use crate::types::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -89,82 +89,7 @@ pub fn process_request(
         return None; // Nothing to enhance — passthrough.
     }
 
-    // Get active frame's focus state (or default).
-    let focus_state = state
-        .focus_stack
-        .active_id
-        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))
-        .map(|f| &f.focus_state)
-        .cloned()
-        .unwrap_or_default();
-
-    // Select procedural rules.
-    let project_id = state
-        .focus_stack
-        .active_id
-        .and_then(|fid| state.focus_stack.frames.iter().find(|f| f.id == fid))
-        .and_then(|frame| {
-            frame
-                .tags
-                .iter()
-                .find(|t| t.starts_with("project:"))
-                .map(|t| t.trim_start_matches("project:").to_string())
-        });
-
-    let rules = procedural::select_for_prompt(
-        &state.memory,
-        state.focus_stack.active_id,
-        project_id.as_deref(),
-        5,
-    );
-    let rules_owned: Vec<RuleRecord> = rules.into_iter().cloned().collect();
-
-    // Collect artifact handles for prompt inclusion.
-    // Handles belong to the global reference_index; include session-scoped + pinned.
-    let session_id = state.session.as_ref().map(|s| s.session_id);
-    let handles_owned: Vec<HandleRef> = state
-        .reference_index
-        .handles
-        .iter()
-        .filter(|h| h.session_id == session_id || h.pinned)
-        .cloned()
-        .collect();
-
-    // Build ASCC sections from FocusState (G1-07 §Prompt Serialization).
-    let ascc = crate::types::AsccSections::from(&focus_state);
-    let ascc_ref = if ascc.is_empty() { None } else { Some(&ascc) };
-
-    // Build parent context from stack (G1-detail-05, G1-detail-11 §Slot 4).
-    let parents = crate::expression::engine::build_parent_contexts(&state.focus_stack);
-
-    // Get active frame title.
-    let frame_title = state
-        .focus_stack
-        .active_id
-        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))
-        .map(|f| f.title.as_str())
-        .unwrap_or(&focus_state.intent);
-
-    // Extract constitution principles (docs/16 §2, §5).
-    let (principles, safety) = crate::expression::engine::extract_constitution(&state.constitution);
-
-    // Assemble prompt with full context.
-    let input = crate::expression::engine::AssemblyInput {
-        focus_state: &focus_state,
-        frame_title,
-        ascc: ascc_ref,
-        parent_frames: &parents,
-        rules: &rules_owned,
-        handles: &handles_owned,
-        user_input: &user_input,
-        directive: None,
-        constitution_principles: &principles,
-        safety_rules: &safety,
-        config,
-        rehydrate_handles: None,
-        thesis: state.threads.iter().find(|t| t.status == crate::types::ThreadStatus::Active).map(|t| &t.thesis),
-    };
-    let assembly = crate::expression::engine::assemble_from(input);
+    let assembly = build_operator_first_slice(state, config, &user_input)?;
 
     // Inject assembled prompt as system message.
     inject_system_message(&mut request.messages, &assembly.content);
@@ -174,6 +99,187 @@ pub fn process_request(
         assembly,
         user_input,
     })
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OperatorIntent {
+    direct_question: bool,
+    steering_change: bool,
+    focus_relevant: bool,
+}
+
+fn classify_operator_intent(text: &str) -> OperatorIntent {
+    let t = text.trim().to_lowercase();
+    OperatorIntent {
+        direct_question: t.ends_with('?')
+            || ["what", "why", "how", "when", "where", "who", "can", "could", "should", "is", "are", "do", "does", "did"]
+                .iter()
+                .any(|p| t.starts_with(&format!("{} ", p))),
+        steering_change: [
+            "no ", "stop", "instead", "actually", "wait", "wrong", "not what i asked", "new task", "switch to", "different",
+        ]
+        .iter()
+        .any(|needle| t.contains(needle)),
+        focus_relevant: [
+            "focusa", "focus state", "stack", "constraint", "decision", "thread", "ontology", "mission", "frame", "checkpoint", "context",
+        ]
+        .iter()
+        .any(|needle| t.contains(needle)),
+    }
+}
+
+fn unique_items(items: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for item in items {
+        let trimmed = item.trim();
+        if !trimmed.is_empty() && !out.iter().any(|existing: &String| existing == trimmed) {
+            out.push(trimmed.to_string());
+        }
+    }
+    out
+}
+
+pub(crate) fn build_operator_first_slice(
+    state: &FocusaState,
+    config: &FocusaConfig,
+    user_input: &str,
+) -> Option<AssembledPrompt> {
+    let intent = classify_operator_intent(user_input);
+    if !intent.focus_relevant && (intent.direct_question || intent.steering_change) {
+        return None;
+    }
+
+    let active_frame = state
+        .focus_stack
+        .active_id
+        .and_then(|aid| state.focus_stack.frames.iter().find(|f| f.id == aid))?;
+    let fs = &active_frame.focus_state;
+    let mission = if !active_frame.goal.trim().is_empty() {
+        active_frame.goal.trim().to_string()
+    } else if !active_frame.title.trim().is_empty() {
+        active_frame.title.trim().to_string()
+    } else {
+        fs.intent.trim().to_string()
+    };
+    let active_focus = fs.current_state.trim().to_string();
+    let constraints = unique_items(&fs.constraints).into_iter().take(4).collect::<Vec<_>>();
+    let decisions = unique_items(&fs.decisions).into_iter().take(4).collect::<Vec<_>>();
+    let next_steps = unique_items(&fs.next_steps).into_iter().take(3).collect::<Vec<_>>();
+    let blockers = fs
+        .failures
+        .iter()
+        .chain(fs.open_questions.iter())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .fold(Vec::<String>::new(), |mut acc, s| {
+            if !acc.iter().any(|existing| existing == &s) {
+                acc.push(s);
+            }
+            acc
+        })
+        .into_iter()
+        .take(3)
+        .collect::<Vec<_>>();
+    let recent = unique_items(&fs.recent_results).into_iter().take(2).collect::<Vec<_>>();
+
+    let session_id = state.session.as_ref().map(|s| s.session_id);
+    let artifact_handles = state
+        .reference_index
+        .handles
+        .iter()
+        .filter(|h| h.session_id == session_id || h.pinned)
+        .map(|h| format!("{}:{}", format_handle_kind(h.kind), h.label))
+        .take(3)
+        .collect::<Vec<_>>();
+
+    let lower = user_input.to_lowercase();
+    let mut sections: Vec<String> = Vec::new();
+    if !mission.is_empty() {
+        sections.push(format!("MISSION:\n  - {}", mission));
+    }
+    if !active_focus.is_empty() && intent.focus_relevant {
+        sections.push(format!("ACTIVE_FOCUS:\n  - {}", active_focus));
+    }
+    if !constraints.is_empty() {
+        sections.push(format!(
+            "APPLICABLE_CONSTRAINTS:\n{}",
+            constraints.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+        ));
+    }
+    if !decisions.is_empty() && (intent.focus_relevant || lower.contains("why") || lower.contains("decision") || lower.contains("already") || lower.contains("earlier") || lower.contains("reuse")) {
+        sections.push(format!(
+            "RELEVANT_DECISIONS:\n{}",
+            decisions.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+        ));
+    }
+    if !next_steps.is_empty() && !intent.direct_question {
+        sections.push(format!(
+            "OPEN_LOOPS:\n{}",
+            next_steps.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+        ));
+    }
+    if !blockers.is_empty() && ["blocked", "failing", "error", "issue", "problem", "why"].iter().any(|needle| lower.contains(needle)) {
+        sections.push(format!(
+            "BLOCKERS:\n{}",
+            blockers.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+        ));
+    }
+    if !recent.is_empty() && ["latest", "recent", "changed", "what happened", "status"].iter().any(|needle| lower.contains(needle)) {
+        sections.push(format!(
+            "RECENT_VERIFIED_DELTAS:\n{}",
+            recent.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+        ));
+    }
+    if !artifact_handles.is_empty() && ["file", "artifact", "handle", "output", "evidence"].iter().any(|needle| lower.contains(needle)) {
+        sections.push(format!(
+            "ARTIFACT_HANDLES:\n{}",
+            artifact_handles.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+        ));
+    }
+
+    if sections.is_empty() {
+        return None;
+    }
+
+    let available = available_tokens(config.max_prompt_tokens, config.reserve_for_response);
+    let max_tokens = available.clamp(120, 600);
+    let mut warnings = Vec::new();
+    let mut content = format!("[Focusa Minimal Applicable Slice]\n{}", sections.join("\n"));
+    if estimate_tokens(&content) > max_tokens {
+        let mut trimmed = Vec::new();
+        for section in &sections {
+            let candidate = format!("[Focusa Minimal Applicable Slice]\n{}", [trimmed.clone(), vec![section.clone()]].concat().join("\n"));
+            if estimate_tokens(&candidate) > max_tokens {
+                break;
+            }
+            trimmed.push(section.clone());
+        }
+        if trimmed.is_empty() {
+            return None;
+        }
+        content = format!("[Focusa Minimal Applicable Slice]\n{}", trimmed.join("\n"));
+        warnings.push("Degradation step 1: trimmed minimal applicable slice to fit proxy budget".to_string());
+    }
+    let token_estimate = estimate_tokens(&content);
+    Some(AssembledPrompt {
+        content,
+        token_estimate,
+        handles_used: Vec::new(),
+        degraded: !warnings.is_empty(),
+        warnings,
+    })
+}
+
+fn format_handle_kind(kind: HandleKind) -> &'static str {
+    match kind {
+        HandleKind::Log => "log",
+        HandleKind::Diff => "diff",
+        HandleKind::Text => "text",
+        HandleKind::Json => "json",
+        HandleKind::Url => "url",
+        HandleKind::FileSnapshot => "file",
+        HandleKind::Other => "other",
+    }
 }
 
 /// Forward a chat completion request to the upstream provider.
@@ -255,4 +361,81 @@ pub fn extract_usage(response: &Value) -> (u32, u32) {
         .and_then(|v| v.as_u64())
         .unwrap_or(0) as u32;
     (prompt, completion)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn test_state() -> FocusaState {
+        let frame_id = Uuid::now_v7();
+        let mut state = FocusaState::default();
+        state.focus_stack.active_id = Some(frame_id);
+        state.focus_stack.root_id = Some(frame_id);
+        state.focus_stack.frames.push(FrameRecord {
+            id: frame_id,
+            parent_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            status: FrameStatus::Active,
+            title: "Refactor proxy adapter".into(),
+            goal: "Align proxy context injection with operator-first minimal slices".into(),
+            beads_issue_id: "focusa-test".into(),
+            tags: vec!["project:focusa".into()],
+            priority_hint: None,
+            ascc_checkpoint_id: None,
+            stats: FrameStats::default(),
+            constraints: vec![],
+            focus_state: FocusState {
+                intent: "Proxy parity".into(),
+                current_state: "Working in proxy adapter".into(),
+                decisions: vec!["Use operator-first minimal slices for proxy mode".into()],
+                artifacts: vec![],
+                constraints: vec!["Do not inject full ontology blobs".into()],
+                open_questions: vec![],
+                next_steps: vec!["Patch both adapters".into()],
+                recent_results: vec!["Trace and behavioral gates green".into()],
+                failures: vec!["Proxy still used full assembly".into()],
+                notes: vec!["internal note should not leak".into()],
+            },
+            completed_at: None,
+            completion_reason: None,
+        });
+        state
+    }
+
+    #[test]
+    fn direct_question_passthroughs_when_focus_irrelevant() {
+        let request = ChatCompletionRequest {
+            model: "gpt-test".into(),
+            messages: vec![ChatMessage { role: "user".into(), content: "What is Rust?".into() }],
+            temperature: None,
+            max_tokens: None,
+            extra: Value::Null,
+        };
+        let result = process_request(request, &test_state(), &FocusaConfig::default());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn focus_relevant_request_gets_minimal_slice_not_full_focus_dump() {
+        let request = ChatCompletionRequest {
+            model: "gpt-test".into(),
+            messages: vec![ChatMessage { role: "user".into(), content: "Why did we already choose this decision for the proxy context?".into() }],
+            temperature: None,
+            max_tokens: None,
+            extra: Value::Null,
+        };
+        let result = process_request(request, &test_state(), &FocusaConfig::default()).expect("slice injected");
+        let system = &result.request.messages[0];
+        assert_eq!(system.role, "system");
+        assert!(system.content.contains("[Focusa Minimal Applicable Slice]"));
+        assert!(system.content.contains("MISSION:"));
+        assert!(system.content.contains("APPLICABLE_CONSTRAINTS:"));
+        assert!(system.content.contains("RELEVANT_DECISIONS:"));
+        assert!(!system.content.contains("FOCUS FRAME:"));
+        assert!(!system.content.contains("NOTES"));
+    }
 }
