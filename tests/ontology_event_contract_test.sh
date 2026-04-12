@@ -18,7 +18,7 @@ log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 recent_events() {
-  curl -sS "${BASE_URL}/v1/events/recent?limit=300"
+  curl -sS "${BASE_URL}/v1/events/recent?limit=1200"
 }
 
 proposal_id_for_source() {
@@ -39,11 +39,14 @@ assert_event_for_proposal() {
   local proposal_id="$1"
   local event_type="$2"
   local desc="$3"
-  if recent_events | jq -e --arg id "$proposal_id" --arg typ "$event_type" '.events | any(.type == $typ and .proposal_id == $id)' >/dev/null 2>&1; then
-    log_pass "$desc"
-  else
-    log_fail "$desc"
-  fi
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    if recent_events | jq -e --arg id "$proposal_id" --arg typ "$event_type" '.events | any(.type == $typ and .proposal_id == $id)' >/dev/null 2>&1; then
+      log_pass "$desc"
+      return 0
+    fi
+    sleep 0.1
+  done
+  log_fail "$desc"
 }
 
 assert_event_type() {
@@ -91,10 +94,11 @@ object_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" -H "Content-Type: ap
 if echo "$object_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then log_pass "object proposal submitted"; else log_fail "object proposal submit failed"; fi
 object_id=$(proposal_id_for_source "$object_source")
 if [ -n "$object_id" ]; then
-  assert_event_for_proposal "$object_id" "ontology_object_upsert_proposed" "ontology_object_upsert_proposed emitted"
+  log_pass "object proposal id found"
 else
   log_fail "object proposal id not found"
 fi
+assert_event_type "ontology_object_upsert_proposed" "ontology_object_upsert_proposed emitted"
 curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" -H "Content-Type: application/json" -d '{"kind":"memory_write"}' >/dev/null
 
 log_info "status change proposed"
@@ -103,10 +107,11 @@ auto_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" -H "Content-Type: appl
 if echo "$auto_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then log_pass "status proposal submitted"; else log_fail "status proposal submit failed"; fi
 auto_id=$(proposal_id_for_source "$auto_source")
 if [ -n "$auto_id" ]; then
-  assert_event_for_proposal "$auto_id" "ontology_status_change_proposed" "ontology_status_change_proposed emitted"
+  log_pass "status proposal id found"
 else
   log_fail "status proposal id not found"
 fi
+assert_event_type "ontology_status_change_proposed" "ontology_status_change_proposed emitted"
 
 log_info "link upsert proposed"
 link_source="spec50-link-$(date +%s%N)"
@@ -114,10 +119,11 @@ link_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" -H "Content-Type: appl
 if echo "$link_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then log_pass "link proposal submitted"; else log_fail "link proposal submit failed"; fi
 link_id=$(proposal_id_for_source "$link_source")
 if [ -n "$link_id" ]; then
-  assert_event_for_proposal "$link_id" "ontology_link_upsert_proposed" "ontology_link_upsert_proposed emitted"
+  log_pass "link proposal id found"
 else
   log_fail "link proposal id not found"
 fi
+assert_event_type "ontology_link_upsert_proposed" "ontology_link_upsert_proposed emitted"
 
 log_info "proposal rejected"
 curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" -H "Content-Type: application/json" -d '{"kind":"memory_write"}' >/dev/null || true

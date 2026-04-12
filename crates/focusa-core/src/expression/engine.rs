@@ -236,21 +236,14 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // ── Build each slot ──────────────────────────────────────────────
 
     // Slot 1: System header (always included — small, static).
-    // Slot 1: System header + constitution (docs/16 §2 principles, §5 safety, §6 expression).
-    let mut slot_header = format!("{}\n", SYSTEM_HEADER);
-    if !input.constitution_principles.is_empty() {
-        slot_header.push_str("\nCONSTITUTION PRINCIPLES:\n");
-        for p in input.constitution_principles {
-            slot_header.push_str(&format!("- {}\n", p));
-        }
-    }
-    if !input.safety_rules.is_empty() {
-        slot_header.push_str("\nSAFETY RULES:\n");
-        for r in input.safety_rules {
-            slot_header.push_str(&format!("- {}\n", r));
-        }
-    }
-    slot_header.push('\n');
+    let slot_header = format!("{}\n\n", SYSTEM_HEADER);
+
+    // Slot 1b: Constitution context. Under tight budgets, this degrades before
+    // active mission semantics so intent/constraints/decisions survive longer.
+    let mut slot_constitution = build_constitution_slot(
+        input.constitution_principles,
+        input.safety_rules,
+    );
 
     // Slot 2: Operating rules.
     let mut slot_rules = build_rules_slot(input.rules);
@@ -291,9 +284,49 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Fixed overhead (header + directive — never degraded).
     let fixed_tokens = estimate_tokens(&slot_header) + estimate_tokens(&slot_directive);
 
+    // Step 0a: Reduce constitution payload.
+    if slot_total(
+        fixed_tokens,
+        &slot_constitution,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
+        && !slot_constitution.is_empty()
+    {
+        slot_constitution = build_constitution_slot_limited(
+            input.constitution_principles,
+            input.safety_rules,
+            2,
+            2,
+        );
+        degraded = true;
+        warnings.push("Degradation step 0a: reduced constitution context".into());
+    }
+
+    // Step 0b: Drop constitution entirely if still over budget.
+    if slot_total(
+        fixed_tokens,
+        &slot_constitution,
+        &slot_rules,
+        &slot_focus,
+        &slot_parents,
+        &slot_handles,
+        &slot_user,
+    ) > budget
+        && !slot_constitution.is_empty()
+    {
+        slot_constitution = String::new();
+        degraded = true;
+        warnings.push("Degradation step 0b: dropped constitution context".into());
+    }
+
     // Step 1: Drop parent frames.
     if slot_total(
         fixed_tokens,
+        &slot_constitution,
         &slot_rules,
         &slot_focus,
         &slot_parents,
@@ -310,6 +343,7 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Step 2: Drop non-essential ASCC slots (artifacts, failures, next_steps, notes).
     if slot_total(
         fixed_tokens,
+        &slot_constitution,
         &slot_rules,
         &slot_focus,
         &slot_parents,
@@ -326,6 +360,7 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Step 3: Replace focus with minimal digest.
     if slot_total(
         fixed_tokens,
+        &slot_constitution,
         &slot_rules,
         &slot_focus,
         &slot_parents,
@@ -342,6 +377,7 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Step 4: Drop artifact handles.
     if slot_total(
         fixed_tokens,
+        &slot_constitution,
         &slot_rules,
         &slot_focus,
         &slot_parents,
@@ -359,6 +395,7 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Step 5: Truncate user input.
     if slot_total(
         fixed_tokens,
+        &slot_constitution,
         &slot_rules,
         &slot_focus,
         &slot_parents,
@@ -368,6 +405,7 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     {
         let remaining = budget.saturating_sub(
             fixed_tokens
+                + estimate_tokens(&slot_constitution)
                 + estimate_tokens(&slot_rules)
                 + estimate_tokens(&slot_focus)
                 + estimate_tokens(&slot_handles),
@@ -380,6 +418,7 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Step 6: Drop rules (last resort).
     if slot_total(
         fixed_tokens,
+        &slot_constitution,
         &slot_rules,
         &slot_focus,
         &slot_parents,
@@ -396,8 +435,15 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // ── Assemble final prompt ────────────────────────────────────────
 
     let mut content = format!(
-        "{}{}{}{}{}{}{}",
-        slot_header, slot_rules, slot_focus, slot_parents, slot_handles, slot_user, slot_directive,
+        "{}{}{}{}{}{}{}{}",
+        slot_header,
+        slot_constitution,
+        slot_rules,
+        slot_focus,
+        slot_parents,
+        slot_handles,
+        slot_user,
+        slot_directive,
     );
 
     // Apply redaction if enabled.
@@ -453,6 +499,7 @@ fn apply_redaction(content: &str, patterns: &[String]) -> String {
 /// Sum all slot token estimates.
 fn slot_total(
     fixed: u32,
+    constitution: &str,
     rules: &str,
     focus: &str,
     parents: &str,
@@ -460,6 +507,7 @@ fn slot_total(
     user: &str,
 ) -> u32 {
     fixed
+        + estimate_tokens(constitution)
         + estimate_tokens(rules)
         + estimate_tokens(focus)
         + estimate_tokens(parents)
@@ -579,6 +627,39 @@ fn build_focus_digest(title: &str, state: &FocusState) -> String {
     } else {
         format!("FOCUS: {} — {}\n\n", title, state.intent)
     }
+}
+
+fn build_constitution_slot(principles: &[String], safety_rules: &[String]) -> String {
+    build_constitution_slot_limited(principles, safety_rules, principles.len(), safety_rules.len())
+}
+
+fn build_constitution_slot_limited(
+    principles: &[String],
+    safety_rules: &[String],
+    principle_limit: usize,
+    safety_limit: usize,
+) -> String {
+    let mut out = String::new();
+    let selected_principles = principles.iter().take(principle_limit).collect::<Vec<_>>();
+    let selected_safety = safety_rules.iter().take(safety_limit).collect::<Vec<_>>();
+
+    if !selected_principles.is_empty() {
+        out.push_str("CONSTITUTION PRINCIPLES:\n");
+        for p in selected_principles {
+            out.push_str(&format!("- {}\n", p));
+        }
+        out.push('\n');
+    }
+
+    if !selected_safety.is_empty() {
+        out.push_str("SAFETY RULES:\n");
+        for r in selected_safety {
+            out.push_str(&format!("- {}\n", r));
+        }
+        out.push('\n');
+    }
+
+    out
 }
 
 /// Slot 4: Parent context (max 2 ancestors, reduced sections only).

@@ -32,6 +32,20 @@ pub enum ThreadCmd {
         thread_id: String,
     },
 
+    /// Fork a thread
+    Fork {
+        /// Source thread ID
+        thread_id: String,
+
+        /// New thread name
+        #[arg(short, long)]
+        name: String,
+
+        /// Owner machine ID (optional)
+        #[arg(short, long)]
+        owner: Option<String>,
+    },
+
     /// Transfer thread ownership
     Transfer {
         /// Thread ID
@@ -118,6 +132,28 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
             );
             if let Some(owner) = thread["owner_machine_id"].as_str() {
                 println!("  Owner:        {}", owner);
+            }
+        }
+
+        ThreadCmd::Fork { thread_id, name, owner } => {
+            let payload = serde_json::json!({
+                "name": name,
+                "owner_machine_id": owner,
+            });
+
+            let response: Value = client
+                .post(&format!("/v1/threads/{}/fork", thread_id), &payload)
+                .await
+                .context("Failed to fork thread")?;
+
+            let thread = &response["thread"];
+            println!("Forked thread:");
+            println!("  ID:         {}", thread["id"].as_str().unwrap_or("?"));
+            println!("  Name:       {}", thread["name"].as_str().unwrap_or("?"));
+            println!("  Status:     {}", thread["status"].as_str().unwrap_or("?"));
+            println!("  Forked from:{}", thread["forked_from"].as_str().unwrap_or("?"));
+            if let Some(owner) = thread["owner_machine_id"].as_str() {
+                println!("  Owner:      {}", owner);
             }
         }
 

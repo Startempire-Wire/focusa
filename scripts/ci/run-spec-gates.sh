@@ -40,6 +40,7 @@ done
 ./tests/proxy_mode_b_parity_test.sh
 ./tests/checkpoint_trigger_test.sh
 ./tests/restart_recovery_test.sh
+./tests/fork_compact_recovery_test.sh
 ./tests/continuous_pruning_test.sh
 ./tests/thread_runtime_test.sh
 ./tests/proposal_submit_contract_test.sh
@@ -49,3 +50,4 @@ done
 ./tests/ontology_event_contract_test.sh
 ./tests/ontology_world_contract_test.sh
 ./tests/golden_tasks_eval.sh
+./tests/golden_tasks_comparative_eval.sh

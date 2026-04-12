@@ -3,6 +3,7 @@
 //! GET  /v1/threads — list threads
 //! POST /v1/threads — create a new thread
 //! GET  /v1/threads/:id — get thread details
+//! POST /v1/threads/:id/fork — fork a thread
 //! POST /v1/threads/:id/transfer — transfer thread ownership
 
 use crate::server::AppState;
@@ -149,6 +150,82 @@ async fn get_thread(
     })))
 }
 
+/// POST /v1/threads/:id/fork — fork a thread.
+#[derive(Deserialize)]
+struct ForkBody {
+    name: String,
+    #[serde(default)]
+    owner_machine_id: Option<String>,
+}
+
+async fn fork_thread(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(body): Json<ForkBody>,
+) -> AppResult<Json<Value>> {
+    if body.name.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "name cannot be empty"})),
+        ));
+    }
+
+    let thread_id = id.parse::<uuid::Uuid>().map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "Invalid thread ID"})),
+        )
+    })?;
+
+    let mut next_state = state.focusa.read().await.clone();
+    let source = next_state
+        .threads
+        .iter()
+        .find(|t| t.id == thread_id)
+        .cloned()
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Thread not found"})),
+            )
+        })?;
+
+    let mut forked = focusa_core::threads::fork_thread(&source, &body.name, body.owner_machine_id.as_deref());
+    let branch_marker = focusa_core::clt::insert_branch_marker(
+        &mut next_state.clt,
+        "thread_fork",
+        vec![source.id.to_string(), forked.id.to_string()],
+    );
+    forked.clt_head = Some(branch_marker);
+    next_state.threads.push(forked.clone());
+
+    state.persistence.save_state(&next_state).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": format!("failed to persist forked thread: {}", e)})),
+        )
+    })?;
+
+    {
+        let mut shared = state.focusa.write().await;
+        *shared = next_state;
+    }
+
+    Ok(Json(json!({
+        "thread": {
+            "id": forked.id.to_string(),
+            "name": forked.name,
+            "status": format!("{:?}", forked.status),
+            "owner_machine_id": forked.owner_machine_id,
+            "created_at": forked.created_at,
+            "updated_at": forked.updated_at,
+            "thesis": forked.thesis,
+            "clt_head": forked.clt_head,
+            "forked_from": source.id.to_string(),
+        }
+    })))
+}
+
 /// POST /v1/threads/:id/transfer — transfer thread ownership.
 #[derive(Deserialize)]
 struct TransferBody {
@@ -247,5 +324,6 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/threads", get(list_threads).post(create_thread))
         .route("/v1/threads/{id}", get(get_thread))
+        .route("/v1/threads/{id}/fork", post(fork_thread))
         .route("/v1/threads/{id}/transfer", post(transfer_ownership))
 }

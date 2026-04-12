@@ -11,6 +11,7 @@ use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::post};
+use focusa_core::expression::budget::{available_tokens, estimate_tokens};
 use focusa_core::memory::procedural;
 use focusa_core::types::*;
 use serde_json::{Value, json};
@@ -75,6 +76,60 @@ async fn turn_start(
         "status": "accepted",
         "turn_id": req.turn_id
     })))
+}
+
+fn assemble_baseline_raw(
+    focusa: &FocusaState,
+    req: &PromptAssembleRequest,
+    config: &FocusaConfig,
+) -> focusa_core::expression::engine::AssembledPrompt {
+    let raw_snapshot = json!({
+        "focus_stack": focusa.focus_stack,
+        "threads": focusa.threads,
+        "semantic_memory": focusa.memory.semantic,
+        "procedural_memory": focusa.memory.procedural,
+        "focus_gate": focusa.focus_gate.candidates,
+        "reference_handles": focusa.reference_index.handles,
+        "operator_input": req.raw_user_input,
+    });
+
+    let mut content = format!(
+        "RAW HARNESS BASELINE\nSTATE SNAPSHOT:\n{}\n\nUSER INPUT:\n{}\n\nDIRECTIVE: Respond with the next best step using the raw snapshot above.",
+        serde_json::to_string_pretty(&raw_snapshot).unwrap_or_default(),
+        req.raw_user_input,
+    );
+
+    let budget = available_tokens(config.max_prompt_tokens, config.reserve_for_response);
+    let mut warnings = Vec::new();
+    let mut degraded = false;
+    let mut token_estimate = estimate_tokens(&content);
+    if token_estimate > budget {
+        let marker = "\n[BASELINE RAW TRUNCATED — fit to token budget]";
+        let marker_tokens = estimate_tokens(marker);
+        let content_budget = budget.saturating_sub(marker_tokens);
+        let max_chars = (content_budget * 4) as usize;
+        let boundary = if max_chars >= content.len() {
+            content.len()
+        } else {
+            let mut idx = max_chars;
+            while idx > 0 && !content.is_char_boundary(idx) {
+                idx -= 1;
+            }
+            idx
+        };
+        content = format!("{}{}", &content[..boundary], marker);
+        token_estimate = estimate_tokens(&content);
+        degraded = true;
+        warnings.push("Baseline truncation: raw snapshot cut to fit budget".to_string());
+    }
+
+    focusa_core::expression::engine::AssembledPrompt {
+        content,
+        token_estimate,
+        handles_used: vec![],
+        degraded,
+        warnings,
+    }
 }
 
 /// POST /v1/prompt/assemble
@@ -170,7 +225,10 @@ async fn prompt_assemble(
         rehydrate_handles: None,
         thesis: focusa.threads.iter().find(|t| t.status == focusa_core::types::ThreadStatus::Active).map(|t| &t.thesis),
     };
-    let assembly = focusa_core::expression::engine::assemble_from(input);
+    let assembly = match req.strategy.as_deref() {
+        Some("baseline_raw") => assemble_baseline_raw(&focusa, &req, &effective_config),
+        _ => focusa_core::expression::engine::assemble_from(input),
+    };
 
     // Estimate token counts (rough: 4 chars per token).
     let estimate_tokens = |s: &str| (s.len() / 4) as u32;
@@ -218,6 +276,9 @@ async fn prompt_assemble(
         "assembled": output.clone(),
         "stats": context_stats.clone(),
         "handles_used": handles_owned,
+        "strategy": req.strategy.clone().unwrap_or_else(|| "focusa".to_string()),
+        "warnings": assembly.warnings,
+        "degraded": assembly.degraded,
         // Backward-compatible runtime keys
         "assembled_prompt": output,
         "context_stats": context_stats,

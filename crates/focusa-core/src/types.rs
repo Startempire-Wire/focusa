@@ -1850,6 +1850,10 @@ pub struct PromptAssembleRequest {
     /// Token budget target.
     #[serde(default, alias = "max_tokens_budget")]
     pub budget: Option<u32>,
+    /// Eval-only assembly strategy override.
+    /// "focusa" (default) or "baseline_raw".
+    #[serde(default)]
+    pub strategy: Option<String>,
 }
 
 /// Prompt assembly response to adapter.

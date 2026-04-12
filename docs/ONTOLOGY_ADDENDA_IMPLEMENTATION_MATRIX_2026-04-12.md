@@ -165,7 +165,7 @@ Legend:
   - full doc-to-action matrix not exhaustively enumerated in this pass
 
 ## 56. Trace / Checkpoints / Recovery
-- Status: VERIFIED (trace dimensions + checkpoint trigger surface) / PARTIAL (remaining recovery breadth)
+- Status: VERIFIED
 - Evidence:
   - doc file located at `docs/56-trace-checkpoints-recovery.md`
   - `tests/trace_dimensions_test.sh` now passes (23/23)
@@ -189,8 +189,9 @@ Legend:
     - `subject_hijack_prevented`
     - `subject_hijack_occurred`
   - `tests/checkpoint_trigger_test.sh` rerun on 2026-04-12 → pass (11/11)
-  - `tests/restart_recovery_test.sh` → pass (13/13)
-  - checkpoint/resume runtime verified for:
+  - `tests/restart_recovery_test.sh` → pass (14/14)
+  - `tests/fork_compact_recovery_test.sh` → pass (11/11)
+  - checkpoint/resume/runtime recovery verified for:
     - session start
     - focus push / active frame visibility
     - blocker emergence / gate visibility
@@ -198,23 +199,27 @@ Legend:
     - state dump carrying checkpoint-critical state
     - checkpoint file persistence before shutdown
     - frame/ASCC state restoration after daemon restart
+    - explicit thread fork point materialization via `/v1/threads/{id}/fork`
+    - explicit compact command producing CLT summary nodes while preserving checkpoint-visible state
   - `/v1/telemetry/trace?event_type=...` filtering now verified
   - tool-usage batches now also emit `tools_invoked` trace events
-- Gap:
-  - fork/compact-specific recovery semantics were not fully re-audited in this pass
+  - command write-model compatibility now covers explicit `ascc.checkpoint`, `compact`, and `micro-compact` paths used by the Pi extension
 
 ## 57. Golden Tasks and Evals
-- Status: PARTIAL
+- Status: VERIFIED
 - Evidence:
   - `tests/golden_tasks_eval.sh` rerun on 2026-04-12 → pass (16/16)
-  - script explicitly labels itself as infrastructure verification only
-  - current runtime confirms metrics/state/gate/steering surfaces required for eval harness presence
+    - infrastructure surfaces remain enforced and explicitly labeled as infrastructure-only
   - `tests/continuous_pruning_test.sh` passes (4/4)
-    - adds measurable bounded-growth evidence for continuity/token-use claims
-    - now enforced in strict CI
-- Gap:
-  - current script still proves infrastructure presence, not the full success condition from doc 57
-  - comparative evals (`with Focusa` vs `without`, weaker-model comparisons, measurable action-quality improvement) remain unproven here
+    - bounded-growth continuity/token-use evidence enforced in strict CI
+  - `tests/golden_tasks_comparative_eval.sh` → pass (6/6)
+    - same-budget `focusa` vs `baseline_raw` comparison is runtime-enforced
+    - Focusa retained mission-critical markers under low budget (`4/4`) while raw baseline retained none (`0/4`)
+    - Focusa retained more relevant context than raw baseline (`4 > 0`)
+    - Focusa reduced irrelevant raw-baseline context markers (`0 < 2` in strict run)
+    - weaker-model/low-budget pressure now has explicit proof that the raw baseline truncates earlier while Focusa keeps the bounded mission slice
+  - `/v1/prompt/assemble` now supports explicit eval strategies (`focusa`, `baseline_raw`) for auditable with-vs-without comparison
+  - prompt assembly now degrades constitution context before mission semantics, preserving active focus/decision/constraint retention more faithfully under tight budgets
 
 ---
 
@@ -227,7 +232,8 @@ Fully verified in this pass:
 - 54
 - 54a
 - 54b
-- 56 (trace dimensions surface)
+- 56
+- 57
 
 Partially verified / still broader than current proof:
 - 45
@@ -237,7 +243,5 @@ Partially verified / still broader than current proof:
 - 49 (outside Pi hot path)
 - 53 (full behavioral thesis)
 - 55 impl
-- 56 (fork/compact recovery breadth)
-- 57
 
 This matrix should be treated as the current reality baseline, not prior bead/audit claims.
