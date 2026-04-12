@@ -42,3 +42,4 @@ done
 ./tests/proposal_kind_enforcement_test.sh
 ./tests/proposal_governance_enforcement_test.sh
 ./tests/ontology_event_contract_test.sh
+./tests/golden_tasks_eval.sh
