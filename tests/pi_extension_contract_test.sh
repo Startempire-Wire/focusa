@@ -1,28 +1,7 @@
 #!/bin/bash
-# SPEC-52: Pi Extension Contract
-#
-# Pi Input Contract — daemon must supply:
-# 1. active mission
-# 2. active frame / thesis
-# 3. active working set
-# 4. applicable constraints
-# 5. recent relevant decisions
-# 6. recent verified deltas
-# 7. unresolved blockers/open loops
-# 8. allowed actions
-# 9. degraded-mode flag
-#
-# Pi Output Contract — Pi may emit (8 types):
-# - OntologyProposal
-# - OntologyActionIntent
-# - VerificationRequest
-# - EvidenceLinkedObservation
-# - FailureSignal
-# - BlockerSignal
-# - ScratchReasoningRecord
-# - DecisionCandidate
+# SPEC-52: Pi Extension Contract — strict CI gate
 
-set -e
+set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
@@ -37,176 +16,185 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
-echo "=== SPEC-52: Pi Extension Contract ==="
+http_code() {
+  curl -sS -o /tmp/focusa-pi-contract-body.json -w "%{http_code}" "$@"
+}
+
+json_assert() {
+  local expr="$1"
+  local desc="$2"
+  if jq -e "$expr" /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+    log_pass "$desc"
+  else
+    log_fail "$desc :: $(cat /tmp/focusa-pi-contract-body.json)"
+  fi
+}
+
+echo "=== SPEC-52: Pi Extension Contract (strict) ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
-# Test 0: Daemon health
-log_info "Test 0: Daemon health check"
-if curl -s "${BASE_URL}/v1/health" | grep -q '"ok":true'; then
-  log_pass "Daemon is running"
+log_info "Health + seeded state"
+code=$(http_code "${BASE_URL}/v1/health")
+if [ "$code" = "200" ]; then
+  json_assert '.ok == true' "Daemon running"
 else
-  log_fail "Daemon is not responding"
+  log_fail "Daemon not responding"
   exit 1
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Pi Input Contract (9 fields)
-# ═══════════════════════════════════════════════════════════════════
-log_info "Pi Input Contract (9 fields)"
-
-# Setup: Create active frame
-curl -s -X POST "${BASE_URL}/v1/focus/push" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"pi-contract-test","goal":"testing input contract","beads_issue_id":"pi-ct-001"}' >/dev/null
-
-# 1. active mission (via focus stack)
-resp=$(curl -s "${BASE_URL}/v1/focus/stack")
-if echo "$resp" | grep -q '"stack"'; then
-  log_pass "Input 1: active mission accessible"
+code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
+  -d '{"title":"pi-contract-test","goal":"testing input contract","beads_issue_id":"pi-ct-001"}')
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Seed focus frame accepted"
 else
-  log_fail "Input 1: active mission missing"
+  log_fail "Seed focus frame failed"
 fi
 
-# 2. active frame / thesis (via ASCC state)
-resp=$(curl -s "${BASE_URL}/v1/ascc/state")
-if echo "$resp" | grep -q '"active_frame"' || echo "$resp" | grep -q '"decisions"'; then
-  log_pass "Input 2: active frame/thesis accessible"
+code=$(http_code -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
+  -d '{"kind":"text","label":"pi-evidence-seed","content_b64":"cGlvdXRwdXQ="}')
+if [ "$code" = "200" ]; then
+  json_assert '.id != null' "Seed evidence stored"
 else
-  log_fail "Input 2: active frame/thesis missing"
+  log_fail "Seed evidence store failed"
 fi
 
-# 3. active working set (via semantic memory)
-resp=$(curl -s "${BASE_URL}/v1/memory/semantic")
-if echo "$resp" | grep -q '"semantic"'; then
-  log_pass "Input 3: active working set accessible"
+code=$(http_code -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" -H "Content-Type: application/json" \
+  -d '{"kind":"blocker","summary":"pi output blocker seed"}')
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Seed blocker accepted"
 else
-  log_fail "Input 3: active working set missing"
+  log_fail "Seed blocker failed"
 fi
 
-# 4. applicable constraints (via procedural memory)
-resp=$(curl -s "${BASE_URL}/v1/memory/procedural")
-if echo "$resp" | grep -q '"procedural"'; then
-  log_pass "Input 4: applicable constraints accessible"
+code=$(http_code -X POST "${BASE_URL}/v1/focus/update" -H "Content-Type: application/json" \
+  -d '{"delta":{"decisions":["Pi extension contract requires non-empty recent decision evidence"]}}')
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Seed ASCC decision accepted"
 else
-  log_fail "Input 4: applicable constraints missing"
+  log_fail "Seed ASCC decision failed"
 fi
 
-# 5. recent relevant decisions (via ASCC state)
-resp=$(curl -s "${BASE_URL}/v1/ascc/state")
-if echo "$resp" | grep -q '"decisions"'; then
-  log_pass "Input 5: recent decisions accessible"
+log_info "Pi Input Contract"
+code=$(http_code "${BASE_URL}/v1/focus/stack")
+if [ "$code" = "200" ]; then
+  json_assert '.stack.frames | length > 0' "Input 1: active mission/frame stack populated"
 else
-  log_fail "Input 5: recent decisions missing"
+  log_fail "Input 1 failed"
 fi
 
-# 6. recent verified deltas (via ECS store handles)
-resp=$(curl -s "${BASE_URL}/v1/ecs/handles")
-if echo "$resp" | grep -q '"handles"'; then
-  log_pass "Input 6: recent verified deltas (ECS) accessible"
+decision_visible=0
+for i in $(seq 1 10); do
+  code=$(http_code "${BASE_URL}/v1/ascc/state")
+  if [ "$code" = "200" ] && jq -e '((.active_frame != null) or (.frame_id != null)) and (((.decisions // .ascc.decisions // []) | length) > 0)' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+    decision_visible=1
+    break
+  fi
+  sleep 0.2
+done
+if [ "$decision_visible" = "1" ]; then
+  log_pass "Input 2/5: frame-thesis and seeded recent decisions accessible"
 else
-  log_fail "Input 6: recent verified deltas missing"
+  log_fail "Input 2/5: seeded recent decisions not observable :: $(cat /tmp/focusa-pi-contract-body.json)"
 fi
 
-# 7. unresolved blockers/open loops (via focus-gate)
-resp=$(curl -s "${BASE_URL}/v1/focus-gate/candidates")
-if echo "$resp" | grep -q '"candidates"'; then
-  log_pass "Input 7: unresolved blockers/open loops accessible"
+code=$(http_code "${BASE_URL}/v1/memory/semantic")
+if [ "$code" = "200" ]; then
+  json_assert '.semantic != null' "Input 3: active working set accessible"
 else
-  log_fail "Input 7: unresolved blockers missing"
+  log_fail "Input 3 failed"
 fi
 
-# 8. allowed actions (via commands/submit)
-resp=$(curl -s "${BASE_URL}/v1/commands/submit" \
-  -H "Content-Type: application/json" \
+code=$(http_code "${BASE_URL}/v1/memory/procedural")
+if [ "$code" = "200" ]; then
+  json_assert '.procedural != null' "Input 4: applicable constraints accessible"
+else
+  log_fail "Input 4 failed"
+fi
+
+code=$(http_code "${BASE_URL}/v1/ecs/handles")
+if [ "$code" = "200" ]; then
+  json_assert '.count > 0 and (.handles | length > 0)' "Input 6: verified deltas/evidence accessible"
+else
+  log_fail "Input 6 failed"
+fi
+
+code=$(http_code "${BASE_URL}/v1/focus-gate/candidates")
+if [ "$code" = "200" ]; then
+  json_assert '.candidates != null' "Input 7: unresolved blockers/open loops accessible"
+else
+  log_fail "Input 7 failed"
+fi
+
+code=$(http_code -X POST "${BASE_URL}/v1/commands/submit" -H "Content-Type: application/json" \
   -d '{"command":"memory.semantic.upsert","payload":{"key":"pi-test","value":"test"}}')
-if echo "$resp" | grep -q '"command_id"'; then
-  log_pass "Input 8: allowed actions (commands) accessible"
+if [ "$code" = "200" ]; then
+  json_assert '.command_id != null' "Input 8: allowed actions command channel accessible"
 else
-  log_fail "Input 8: allowed actions missing"
+  log_fail "Input 8 failed"
 fi
 
-# 9. degraded-mode flag (via autonomy status)
-resp=$(curl -s "${BASE_URL}/v1/autonomy")
-if echo "$resp" | grep -q '"recommendation"' || echo "$resp" | grep -q '"status"'; then
-  log_pass "Input 9: degraded-mode flag accessible"
+code=$(http_code "${BASE_URL}/v1/autonomy")
+if [ "$code" = "200" ]; then
+  json_assert '.recommendation != null or .status != null' "Input 9: degraded-mode/autonomy status accessible"
 else
-  log_fail "Input 9: degraded-mode flag missing"
+  log_fail "Input 9 failed with HTTP ${code}"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Pi Output Contract (8 emit types)
-# ═══════════════════════════════════════════════════════════════════
-log_info "Pi Output Contract (8 emit types)"
-
-# FailureSignal via gate/ingest-signal
-resp=$(curl -s -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" \
-  -H "Content-Type: application/json" \
+log_info "Pi Output Contract"
+code=$(http_code -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" -H "Content-Type: application/json" \
   -d '{"kind":"failure","summary":"pi output contract test"}')
-if echo "$resp" | grep -q '"status"'; then
-  log_pass "Output: FailureSignal endpoint accessible"
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Output: FailureSignal accepted"
 else
-  log_fail "Output: FailureSignal endpoint failed: $resp"
+  log_fail "Output FailureSignal failed"
 fi
 
-# BlockerSignal via gate/ingest-signal
-resp=$(curl -s -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" \
-  -H "Content-Type: application/json" \
+code=$(http_code -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" -H "Content-Type: application/json" \
   -d '{"kind":"blocker","summary":"pi blocker test"}')
-if echo "$resp" | grep -q '"status"'; then
-  log_pass "Output: BlockerSignal endpoint accessible"
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Output: BlockerSignal accepted"
 else
-  log_fail "Output: BlockerSignal endpoint failed: $resp"
+  log_fail "Output BlockerSignal failed"
 fi
 
-# EvidenceLinkedObservation via ECS store
-resp=$(curl -s -X POST "${BASE_URL}/v1/ecs/store" \
-  -H "Content-Type: application/json" \
+code=$(http_code -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
   -d '{"kind":"text","label":"pi-evidence","content_b64":"cGlvdXRwdXQ="}')
-if echo "$resp" | grep -q '"id"'; then
-  log_pass "Output: EvidenceLinkedObservation (ECS) endpoint accessible"
+if [ "$code" = "200" ]; then
+  json_assert '.id != null' "Output: EvidenceLinkedObservation persisted"
 else
-  log_fail "Output: EvidenceLinkedObservation endpoint failed: $resp"
+  log_fail "Output evidence store failed"
 fi
 
-# DecisionCandidate via semantic memory
-resp=$(curl -s -X POST "${BASE_URL}/v1/memory/semantic/upsert" \
-  -H "Content-Type: application/json" \
+code=$(http_code -X POST "${BASE_URL}/v1/memory/semantic/upsert" -H "Content-Type: application/json" \
   -d '{"key":"pi-decision-candidate","value":"test decision"}')
-if echo "$resp" | grep -q '"status"'; then
-  log_pass "Output: DecisionCandidate endpoint accessible"
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted" or .status == "ok" or .semantic != null' "Output: DecisionCandidate/upsert accepted"
 else
-  log_fail "Output: DecisionCandidate endpoint failed: $resp"
+  log_fail "Output DecisionCandidate failed"
 fi
 
-# ScratchReasoningRecord via scratch file (extension path)
 if [ -d "/tmp/pi-scratch" ] || mkdir -p /tmp/pi-scratch 2>/dev/null; then
-  log_pass "Output: ScratchReasoningRecord path accessible"
+  log_pass "Output: ScratchReasoningRecord scratch path available"
 else
-  log_fail "Output: ScratchReasoningRecord path failed"
+  log_fail "Output ScratchReasoningRecord path unavailable"
 fi
 
-# OntologyActionIntent via commands
-resp=$(curl -s -X POST "${BASE_URL}/v1/commands/submit" \
-  -H "Content-Type: application/json" \
+code=$(http_code -X POST "${BASE_URL}/v1/commands/submit" -H "Content-Type: application/json" \
   -d '{"command":"memory.procedural.reinforce","payload":{"rule_id":"pi-action-test"}}')
-if echo "$resp" | grep -q '"command_id"'; then
-  log_pass "Output: OntologyActionIntent (commands) endpoint accessible"
+if [ "$code" = "200" ]; then
+  json_assert '.command_id != null' "Output: OntologyActionIntent submitted"
 else
-  log_fail "Output: OntologyActionIntent endpoint failed: $resp"
+  log_fail "Output OntologyActionIntent failed"
 fi
 
-# VerificationRequest via reflection status
-resp=$(curl -s "${BASE_URL}/v1/reflect/status")
-if echo "$resp" | grep -q '"enabled"'; then
-  log_pass "Output: VerificationRequest (reflection) accessible"
+code=$(http_code "${BASE_URL}/v1/reflect/status")
+if [ "$code" = "200" ]; then
+  json_assert '.enabled != null' "Output: VerificationRequest/reflection available"
 else
-  log_fail "Output: VerificationRequest endpoint failed: $resp"
+  log_fail "Output VerificationRequest failed"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Summary
-# ═══════════════════════════════════════════════════════════════════
 echo ""
 echo "=== SPEC-52 PI EXTENSION CONTRACT RESULTS ==="
 echo "Tests passed: ${PASSED}"
@@ -214,9 +202,9 @@ echo "Tests failed: ${FAILED}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-  echo -e "${GREEN}All Pi extension contract API contracts verified${NC}"
+  echo -e "${GREEN}All strict Pi extension contract checks passed${NC}"
   exit 0
 else
-  echo -e "${RED}Some tests failed${NC}"
+  echo -e "${RED}Strict Pi extension contract checks failed${NC}"
   exit 1
 fi

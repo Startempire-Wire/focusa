@@ -405,7 +405,22 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
         content = apply_redaction(&content, &input.config.redaction_patterns);
     }
 
-    let token_estimate = estimate_tokens(&content);
+    let mut token_estimate = estimate_tokens(&content);
+
+    // Hard cap: prompt content must never exceed computed budget.
+    // If degradation cascade still overflows (e.g. huge handle list / fixed header),
+    // apply final UTF-8 safe truncation with explicit marker.
+    if token_estimate > budget {
+        let marker = "\n[PROMPT TRUNCATED — final hard cap applied]";
+        let marker_tokens = estimate_tokens(marker);
+        let content_budget = budget.saturating_sub(marker_tokens);
+        let max_chars = (content_budget * 4) as usize;
+        let boundary = find_char_boundary(&content, max_chars);
+        content = format!("{}{}", &content[..boundary], marker);
+        token_estimate = estimate_tokens(&content);
+        degraded = true;
+        warnings.push("Degradation step 7: final hard cap truncation applied".into());
+    }
 
     AssembledPrompt {
         content,

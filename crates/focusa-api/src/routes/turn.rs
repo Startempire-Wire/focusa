@@ -147,6 +147,14 @@ async fn prompt_assemble(
         focusa_core::expression::engine::extract_constitution(&focusa.constitution);
 
     // Assemble prompt with full context.
+    // Respect per-request budget override strictly: requested budget applies to
+    // prompt content itself, so reserve_for_response is zeroed for this call.
+    let mut effective_config = state.config.clone();
+    if let Some(budget) = req.budget {
+        effective_config.max_prompt_tokens = budget;
+        effective_config.reserve_for_response = 0;
+    }
+
     let input = focusa_core::expression::engine::AssemblyInput {
         focus_state: &focus_state,
         frame_title,
@@ -158,7 +166,7 @@ async fn prompt_assemble(
         directive: None,
         constitution_principles: &principles,
         safety_rules: &safety,
-        config: &state.config,
+        config: &effective_config,
         rehydrate_handles: None,
         thesis: focusa.threads.iter().find(|t| t.status == focusa_core::types::ThreadStatus::Active).map(|t| &t.thesis),
     };

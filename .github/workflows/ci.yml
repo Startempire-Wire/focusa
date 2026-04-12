@@ -15,27 +15,43 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
-      - name: Run tests
+      - name: Run unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
         run: cargo test --workspace
-      - name: Focusa API contract probe
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
+
+  spec-gates:
+    name: Spec Gates (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Install CI deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl python3
+      - name: API contract probe
+        env:
+          FOCUSA_BIND: 127.0.0.1:18787
         run: |
           set -euo pipefail
-          cargo run -p focusa-api --release --bin focusa-daemon >/tmp/focusa-daemon.log 2>&1 &
+          cargo run -p focusa-api --release --bin focusa-daemon >/tmp/focusa-daemon-probe.log 2>&1 &
           DAEMON_PID=$!
           cleanup() {
             kill "$DAEMON_PID" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8787/v1/health >/dev/null; then
+            if curl -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
               break
             fi
             sleep 1
           done
-
-          python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:8787 --out /tmp/focusa_api_spec_audit.json
-      - name: Clippy
-        run: cargo clippy --workspace -- -D warnings
+          python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:18787 --out /tmp/focusa_api_spec_audit.json
+      - name: Strict spec compliance gates
+        env:
+          FOCUSA_BASE_URL: http://127.0.0.1:18787
+          FOCUSA_BIND: 127.0.0.1:18787
+        run: ./scripts/ci/run-spec-gates.sh

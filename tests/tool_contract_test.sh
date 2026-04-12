@@ -1,30 +1,7 @@
 #!/bin/bash
-# SPEC-55: Tool Action Contracts
-#
-# Every tool must have:
-# - typed input schema
-# - typed output schema
-# - side effects documented
-# - failure modes
-# - idempotency expectations
-# - rollback availability
-# - verification hooks
-# - expected ontology deltas
-# - timeout policy
-# - retry policy
-# - degraded fallback
-#
-# 8 failure mode categories:
-# - validation failure
-# - dependency failure
-# - permission failure
-# - execution failure
-# - verification failure
-# - timeout
-# - partial success
-# - rollback failure
+# SPEC-55: Tool Action Contracts — strict CI gate
 
-set -e
+set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
@@ -39,162 +16,127 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
-echo "=== SPEC-55: Tool Action Contracts ==="
+http_code() {
+  curl -sS -o /tmp/focusa-tool-contract-body.json -w "%{http_code}" "$@"
+}
+
+json_assert() {
+  local expr="$1"
+  local desc="$2"
+  if jq -e "$expr" /tmp/focusa-tool-contract-body.json >/dev/null 2>&1; then
+    log_pass "$desc"
+  else
+    log_fail "$desc :: $(cat /tmp/focusa-tool-contract-body.json)"
+  fi
+}
+
+echo "=== SPEC-55: Tool Action Contracts (strict) ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
-# Test 0: Daemon health
-log_info "Test 0: Daemon health check"
-if curl -s "${BASE_URL}/v1/health" | grep -q '"ok":true'; then
-  log_pass "Daemon is running"
+log_info "Health"
+code=$(http_code "${BASE_URL}/v1/health")
+if [ "$code" = "200" ]; then
+  json_assert '.ok == true and (.version | type == "string")' "Daemon health/version schema"
 else
-  log_fail "Daemon is not responding"
+  log_fail "Daemon health failed with HTTP ${code}"
   exit 1
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Input Schema Validation
-# ═══════════════════════════════════════════════════════════════════
-log_info "Input Schema Validation"
-
-# Valid input accepted
-resp=$(curl -s -X POST "${BASE_URL}/v1/focus/push" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"test","goal":"test","beads_issue_id":"tc-001"}')
-if echo "$resp" | grep -q '"status"'; then
-  log_pass "Valid input schema accepted"
+log_info "Input schema validation"
+code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
+  -d '{"title":"tool-contract-test","goal":"verify contract","beads_issue_id":"tc-001"}')
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Valid focus push accepted"
 else
-  log_fail "Valid input rejected: $resp"
+  log_fail "Valid focus push returned HTTP ${code}"
 fi
 
-# Invalid input rejected with proper error
-resp=$(curl -s -X POST "${BASE_URL}/v1/focus/set-active" \
-  -H "Content-Type: application/json" \
+code=$(http_code -X POST "${BASE_URL}/v1/focus/set-active" -H "Content-Type: application/json" \
   -d '{"frame_id":"not-a-uuid"}')
-if echo "$resp" | grep -q '"code"'; then
-  log_pass "Invalid input rejected with error envelope"
+if [ "$code" = "422" ]; then
+  log_pass "Invalid UUID rejected with HTTP 422"
 else
-  log_fail "Invalid input not rejected: $resp"
+  log_fail "Invalid UUID expected HTTP 422, got ${code} :: $(cat /tmp/focusa-tool-contract-body.json)"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Output Schema
-# ═══════════════════════════════════════════════════════════════════
-log_info "Output Schema"
-
-# Output has status
-resp=$(curl -s "${BASE_URL}/v1/health")
-if echo "$resp" | grep -q '"ok"'; then
-  log_pass "Output schema: status field present"
+log_info "Failure modes"
+code=$(http_code -X POST "${BASE_URL}/v1/nonexistent" -H "Content-Type: application/json" -d '{}')
+if [ "$code" = "404" ]; then
+  log_pass "Unknown route rejected with HTTP 404"
 else
-  log_fail "Output schema missing status: $resp"
+  log_fail "Unknown route expected HTTP 404, got ${code}"
 fi
 
-# Output has version
-if echo "$resp" | grep -q '"version"'; then
-  log_pass "Output schema: version field present"
+code=$(http_code -X POST "${BASE_URL}/v1/prompt/assemble" -H "Content-Type: application/json" -d '{"turn_id":"bad"}')
+if [ "$code" = "422" ]; then
+  log_pass "Bad prompt payload rejected with HTTP 422"
 else
-  log_fail "Output schema missing version"
+  log_fail "Bad prompt payload expected HTTP 422, got ${code} :: $(cat /tmp/focusa-tool-contract-body.json)"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Failure Modes
-# ═══════════════════════════════════════════════════════════════════
-log_info "Failure Modes"
-
-# Validation failure (404 for bad route)
-resp=$(curl -s -X POST "${BASE_URL}/v1/nonexistent" \
-  -H "Content-Type: application/json" \
-  -d '{}')
-if echo "$resp" | grep -q '"code"'; then
-  log_pass "Validation failure (404) has error envelope"
-else
-  log_fail "Validation failure missing error: $resp"
-fi
-
-# Validation failure (422 for bad input)
-resp=$(curl -s -X POST "${BASE_URL}/v1/prompt/assemble" \
-  -H "Content-Type: application/json" \
-  -d '{"turn_id":"bad"}')
-if echo "$resp" | grep -q '"code"'; then
-  log_pass "Validation failure (422) has error envelope"
-else
-  log_fail "Validation failure (422) missing error: $resp"
-fi
-
-# ═══════════════════════════════════════════════════════════════════
-# Idempotency — SKIPPED (flaky in CI due to SQLite async write speed)
-# NOTE: idempotency BEHAVIOR exists (turn_completed_exists() works)
-# but test timing is unreliable. Manual test:
-#   curl POST /turn/complete twice -> second returns {"duplicate":true}
-# ═══════════════════════════════════════════════════════════════════
-# log_info "Idempotency"
-# (see note above)
+log_info "Idempotency — strict"
 TURN_ID="idem-test-$(date +%s%N)"
-curl -s -X POST "${BASE_URL}/v1/turn/start" \
-  -H "Content-Type: application/json" \
-  -d "{\"turn_id\":\"${TURN_ID}\",\"harness_name\":\"test\",\"adapter_id\":\"test\",\"timestamp\":\"2026-04-11T00:00:00Z\"}" >/dev/null
+code=$(http_code -X POST "${BASE_URL}/v1/turn/start" -H "Content-Type: application/json" \
+  -d "{\"turn_id\":\"${TURN_ID}\",\"harness_name\":\"test\",\"adapter_id\":\"test\",\"timestamp\":\"2026-04-11T00:00:00Z\"}")
+if [ "$code" = "200" ]; then
+  log_pass "Turn start accepted for idempotency test"
+else
+  log_fail "Turn start failed for idempotency test"
+fi
 
-resp1=$(curl -s -X POST "${BASE_URL}/v1/turn/complete" \
-  -H "Content-Type: application/json" \
+code=$(http_code -X POST "${BASE_URL}/v1/turn/complete" -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
-sleep 10
-resp2=$(curl -s -X POST "${BASE_URL}/v1/turn/complete" \
-  -H "Content-Type: application/json" \
+if [ "$code" = "200" ]; then
+  log_pass "First turn complete accepted"
+else
+  log_fail "First turn complete failed"
+fi
+
+sleep 1
+code=$(http_code -X POST "${BASE_URL}/v1/turn/complete" -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
-
-if echo "$resp2" | grep -q '"duplicate"'; then
-  log_pass "Turn complete is idempotent (duplicate flag)"
+if [ "$code" = "200" ]; then
+  if jq -e '.duplicate == true' /tmp/focusa-tool-contract-body.json >/dev/null 2>&1; then
+    log_pass "Turn complete duplicate flagged explicitly"
+  else
+    log_fail "Idempotency duplicate flag missing :: $(cat /tmp/focusa-tool-contract-body.json)"
+  fi
 else
-  log_pass "Turn complete idempotent (verified manually): $resp2"
+  log_fail "Second turn complete failed with HTTP ${code}"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Side Effects
-# ═══════════════════════════════════════════════════════════════════
-log_info "Side Effects"
-
-# Memory upsert has observable side effect
-curl -s -X POST "${BASE_URL}/v1/memory/semantic/upsert" \
-  -H "Content-Type: application/json" \
-  -d '{"key":"tool-contract-test","value":"testing"}' >/dev/null
-
-sleep 0.2
-resp=$(curl -s "${BASE_URL}/v1/memory/semantic")
-if echo "$resp" | grep -q '"semantic"'; then
-  log_pass "Memory upsert has observable side effect"
+log_info "Observable side effects"
+code=$(http_code -X POST "${BASE_URL}/v1/memory/semantic/upsert" -H "Content-Type: application/json" \
+  -d '{"key":"tool-contract-test","value":"testing"}')
+if [ "$code" = "200" ]; then
+  log_pass "Semantic upsert accepted"
 else
-  log_fail "Memory side effect not observable: $resp"
+  log_fail "Semantic upsert failed"
+fi
+sleep 1
+code=$(http_code "${BASE_URL}/v1/memory/semantic")
+if [ "$code" = "200" ]; then
+  json_assert '.semantic != null' "Semantic memory observable after upsert"
+else
+  log_fail "Semantic memory fetch failed"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Timeout Policy
-# ═══════════════════════════════════════════════════════════════════
-log_info "Timeout Policy"
-
-# Status shows worker timeout config
-resp=$(curl -s "${BASE_URL}/v1/status")
-if echo "$resp" | grep -q '"worker_status"'; then
-  log_pass "Worker status (timeout policy) accessible"
+log_info "Timeout policy / degraded fallback"
+code=$(http_code "${BASE_URL}/v1/status")
+if [ "$code" = "200" ]; then
+  json_assert '.worker_status.queue_size_config != null and .worker_status.job_timeout_ms != null' "Worker timeout policy visible"
 else
-  log_fail "Worker status missing: $resp"
+  log_fail "Status fetch failed"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Degraded Fallback
-# ═══════════════════════════════════════════════════════════════════
-log_info "Degraded Fallback"
-
-# Reflection has degraded mode (no LLM)
-if curl -s "${BASE_URL}/v1/reflect/status" | grep -q '"enabled"'; then
-  log_pass "Reflection (degraded fallback) accessible"
+code=$(http_code "${BASE_URL}/v1/reflect/status")
+if [ "$code" = "200" ]; then
+  json_assert '.enabled != null' "Reflection degraded fallback status visible"
 else
-  log_fail "Reflection status failed"
+  log_fail "Reflect status fetch failed"
 fi
 
-# ═══════════════════════════════════════════════════════════════════
-# Summary
-# ═══════════════════════════════════════════════════════════════════
 echo ""
 echo "=== SPEC-55 TOOL ACTION CONTRACTS RESULTS ==="
 echo "Tests passed: ${PASSED}"
@@ -202,9 +144,9 @@ echo "Tests failed: ${FAILED}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-  echo -e "${GREEN}All tool contract API properties verified${NC}"
+  echo -e "${GREEN}All strict tool contract checks passed${NC}"
   exit 0
 else
-  echo -e "${RED}Some tests failed${NC}"
+  echo -e "${RED}Strict tool contract checks failed${NC}"
   exit 1
 fi
