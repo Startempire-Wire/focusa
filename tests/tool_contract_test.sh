@@ -136,7 +136,7 @@ curl -s -X POST "${BASE_URL}/v1/turn/start" \
 resp1=$(curl -s -X POST "${BASE_URL}/v1/turn/complete" \
   -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
-sleep 3
+sleep 5
 resp2=$(curl -s -X POST "${BASE_URL}/v1/turn/complete" \
   -H "Content-Type: application/json" \
   -d "{\"turn_id\":\"${TURN_ID}\",\"assistant_output\":\"done\",\"artifacts\":[],\"errors\":[]}")
