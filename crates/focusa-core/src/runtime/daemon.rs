@@ -1163,13 +1163,13 @@ Return ONLY valid JSON:
     ///
     /// Checkpoint is derived from the frame's live FocusState.
     fn update_checkpoint(&mut self, frame_id: FrameId) {
-        let frame = match self.state.focus_stack.frames.iter().find(|f| f.id == frame_id) {
-            Some(f) => f,
+        let frame_index = match self.state.focus_stack.frames.iter().position(|f| f.id == frame_id) {
+            Some(idx) => idx,
             None => return,
         };
 
         // Skip if FocusState is completely empty (no content to checkpoint).
-        let sections = AsccSections::from(&frame.focus_state);
+        let sections = AsccSections::from(&self.state.focus_stack.frames[frame_index].focus_state);
         if sections.is_empty() {
             return;
         }
@@ -1181,9 +1181,13 @@ Return ONLY valid JSON:
             .map(|t| t.turn_id.clone())
             .unwrap_or_else(|| format!("daemon-{}", self.state.version));
 
+        let checkpoint_id = format!("ascc:{}", frame_id);
+        self.state.focus_stack.frames[frame_index].ascc_checkpoint_id = Some(checkpoint_id);
+        let frame = self.state.focus_stack.frames[frame_index].clone();
+
         match self.checkpoints.get_mut(&frame_id) {
             Some(cp) => {
-                cp.update_from_frame(frame, &turn_id);
+                cp.update_from_frame(&frame, &turn_id);
                 tracing::debug!(
                     frame_id = %frame_id,
                     revision = cp.revision,
@@ -1196,7 +1200,7 @@ Return ONLY valid JSON:
                 }
             }
             None => {
-                let cp = CheckpointRecord::from_frame(frame, &turn_id);
+                let cp = CheckpointRecord::from_frame(&frame, &turn_id);
                 tracing::info!(
                     frame_id = %frame_id,
                     revision = cp.revision,
@@ -1452,6 +1456,28 @@ Return ONLY valid JSON:
                 reason,
                 instance_id: _,
             } => Ok(vec![FocusaEvent::SessionClosed { reason }]),
+
+            Action::CheckpointFrame { frame_id, reason } => {
+                let target_frame = frame_id.or(self.state.focus_stack.active_id)
+                    .ok_or_else(|| anyhow::anyhow!("no active frame available for checkpoint ({})", reason))?;
+                self.update_checkpoint(target_frame);
+                self.persistence.save_state(&self.state)?;
+                self.sync_shared_state().await;
+                Ok(vec![])
+            }
+
+            Action::CompactContext { force, tier, turn_count: _, surface: _ } => {
+                if let Some(frame_id) = self.state.focus_stack.active_id {
+                    self.update_checkpoint(frame_id);
+                }
+                if let Some(session_id) = self.state.session.as_ref().map(|s| s.session_id) {
+                    let threshold = if force || tier == "micro" { 1 } else { 1000 };
+                    crate::clt::compact_if_needed(&mut self.state.clt, Some(session_id), threshold, 50).await;
+                }
+                self.persistence.save_state(&self.state)?;
+                self.sync_shared_state().await;
+                Ok(vec![])
+            }
 
             Action::ThreadAttach {
                 instance_id,

@@ -23,15 +23,30 @@ http_json() {
 
 before_count=$(http_json "${BASE_URL}/v1/focus/stack" | jq '.stack.frames | length')
 name="proposal-enforced-$(date +%s%N)"
+source="spec-50-test-${name}"
 
 log_info "Submit high-score focus_change proposal"
 submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
-  -d "{\"kind\":\"focus_change\",\"source\":\"spec-50-test\",\"score\":0.95,\"deadline_ms\":60000,\"payload\":{\"title\":\"${name}\",\"goal\":\"${name}\",\"beads_issue_id\":\"spec50-enforcement\",\"tags\":[\"spec50\"]}}")
+  -d "{\"kind\":\"focus_change\",\"source\":\"${source}\",\"score\":0.95,\"deadline_ms\":60000,\"payload\":{\"title\":\"${name}\",\"goal\":\"${name}\",\"beads_issue_id\":\"spec50-enforcement\",\"tags\":[\"spec50\"]}}")
 if echo "$submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "Proposal submission accepted"
 else
   log_fail "Proposal submission failed :: $submit"
+fi
+
+visible=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" --arg title "$name" '.proposals | any(.source == $source and .score >= 0.95 and .payload.title == $title and .status == "pending")' >/dev/null 2>&1; then
+    visible=1
+    break
+  fi
+  sleep 0.1
+done
+if [ "$visible" = "1" ]; then
+  log_pass "High-score focus proposal visible before resolve"
+else
+  log_fail "High-score focus proposal not visible before resolve"
 fi
 
 log_info "Resolve proposals"
@@ -58,7 +73,7 @@ else
   log_fail "Applied focus frame not visible in canonical stack"
 fi
 
-if http_json "${BASE_URL}/v1/proposals" | jq -e '.proposals | any(.source == "spec-50-test" and .status == "accepted")' >/dev/null 2>&1; then
+if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" '.proposals | any(.source == $source and .status == "accepted")' >/dev/null 2>&1; then
   log_pass "Winner proposal status persisted as accepted"
 else
   log_fail "Winner proposal status not persisted as accepted"

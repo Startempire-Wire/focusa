@@ -32,6 +32,7 @@ done
 
 ./tests/focusa_toggle_persistence_test.sh
 ./tests/tool_contract_test.sh
+./tests/command_write_contract_test.sh
 ./tests/trace_dimensions_test.sh
 ./tests/pi_extension_contract_test.sh
 ./tests/behavioral_alignment_test.sh

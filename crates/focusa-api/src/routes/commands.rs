@@ -22,10 +22,12 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize)]
 struct SubmitCommandRequest {
     command: String,
-    #[serde(default)]
+    #[serde(default, alias = "args")]
     payload: Value,
     #[serde(default)]
     reason: Option<String>,
+    #[serde(default)]
+    idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -80,7 +82,7 @@ fn default_boost() -> f32 {
 #[derive(Debug, Deserialize)]
 struct SuppressPayload {
     candidate_id: CandidateId,
-    #[serde(default = "default_scope")]
+    #[serde(default = "default_scope", alias = "duration")]
     scope: String,
 }
 
@@ -119,6 +121,26 @@ struct CloseSessionPayload {
     instance_id: Option<Uuid>,
 }
 
+#[derive(Debug, Deserialize)]
+struct CheckpointPayload {
+    #[serde(default)]
+    frame_id: Option<Uuid>,
+    #[serde(default = "default_close_reason")]
+    reason: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CompactPayload {
+    #[serde(default)]
+    force: bool,
+    #[serde(default = "default_compact_tier")]
+    tier: String,
+    #[serde(default)]
+    turn_count: Option<u64>,
+    #[serde(default)]
+    surface: Option<String>,
+}
+
 fn default_close_reason() -> String {
     "command_submit".to_string()
 }
@@ -137,6 +159,10 @@ struct DisconnectInstancePayload {
 
 fn default_disconnect_reason() -> String {
     "command_submit".to_string()
+}
+
+fn default_compact_tier() -> String {
+    "auto".to_string()
 }
 
 fn decode<T: for<'de> Deserialize<'de>>(
@@ -202,13 +228,13 @@ fn map_command_to_action(
                 boost: p.boost,
             })
         }
-        "gate.pin_candidate" => {
+        "gate.pin" | "gate.pin_candidate" => {
             let p: CandidatePayload = decode(payload, command)?;
             Ok(Action::PinCandidate {
                 candidate_id: p.candidate_id,
             })
         }
-        "gate.suppress_candidate" => {
+        "gate.suppress" | "gate.suppress_candidate" => {
             let p: SuppressPayload = decode(payload, command)?;
             Ok(Action::SuppressCandidate {
                 candidate_id: p.candidate_id,
@@ -241,6 +267,25 @@ fn map_command_to_action(
             Ok(Action::CloseSession {
                 reason: p.reason,
                 instance_id: p.instance_id,
+            })
+        }
+        "ascc.checkpoint" => {
+            let p: CheckpointPayload = decode(payload, command)?;
+            Ok(Action::CheckpointFrame {
+                frame_id: p.frame_id,
+                reason: p.reason,
+            })
+        }
+        "compact" | "micro-compact" => {
+            let mut p: CompactPayload = decode(payload, command)?;
+            if command == "micro-compact" && p.tier == default_compact_tier() {
+                p.tier = "micro".to_string();
+            }
+            Ok(Action::CompactContext {
+                force: p.force,
+                tier: p.tier,
+                turn_count: p.turn_count,
+                surface: p.surface,
             })
         }
         "instances.connect" => {
@@ -320,10 +365,12 @@ async fn submit_command(
             store.insert(command_id.clone(), record.clone());
 
             Ok(Json(json!({
+                "accepted": true,
                 "command_id": command_id,
                 "status": record.status,
                 "submitted_at": record.submitted_at,
                 "dispatched_at": record.dispatched_at,
+                "idempotency_key": req.idempotency_key,
             })))
         }
         Err(e) => {

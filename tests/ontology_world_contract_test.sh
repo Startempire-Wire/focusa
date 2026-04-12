@@ -86,7 +86,7 @@ else
 fi
 
 log_info "Runtime ontology world projection"
-code=$(http_code "${BASE_URL}/v1/ontology/world")
+code=$(http_code "${BASE_URL}/v1/ontology/world?frame_id=${frame_id}")
 if [ "$code" = "200" ]; then
   json_assert '.working_sets.active_mission_set.count >= 1' "Active mission working set exposed"
   if jq -e --arg title "$FRAME_TITLE" --arg goal "$FRAME_GOAL" '.objects | any(.object_type == "active_focus" and .title == $title) and any(.object_type == "goal" and .objective == $goal)' /tmp/focusa-ontology-world-body.json >/dev/null 2>&1; then

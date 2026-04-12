@@ -996,6 +996,16 @@ pub enum Action {
         reason: String,
         instance_id: Option<Uuid>,
     },
+    CheckpointFrame {
+        frame_id: Option<Uuid>,
+        reason: String,
+    },
+    CompactContext {
+        force: bool,
+        tier: String,
+        turn_count: Option<u64>,
+        surface: Option<String>,
+    },
 
     ThreadAttach {
         instance_id: Uuid,

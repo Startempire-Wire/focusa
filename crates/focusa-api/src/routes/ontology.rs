@@ -5,8 +5,9 @@
 //! working world inspectable at runtime.
 
 use crate::server::AppState;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::{Json, Router, routing::get};
+use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -31,6 +32,11 @@ const LINK_TYPES: &[&str] = &[
 const ACTION_TYPES: &[&str] = &[
     "refactor_module", "modify_schema", "add_route", "add_test", "verify_invariant", "promote_decision", "mark_blocked", "resolve_risk", "complete_task", "rollback_change",
 ];
+
+#[derive(Deserialize)]
+struct OntologyWorldQuery {
+    frame_id: Option<String>,
+}
 
 async fn primitives() -> Json<Value> {
     let object_types: Vec<Value> = OBJECT_TYPES
@@ -88,12 +94,18 @@ async fn primitives() -> Json<Value> {
     }))
 }
 
-async fn world(State(state): State<Arc<AppState>>) -> Json<Value> {
+async fn world(Query(query): Query<OntologyWorldQuery>, State(state): State<Arc<AppState>>) -> Json<Value> {
     let focusa = state.focusa.read().await;
-    let active_frame = focusa
-        .focus_stack
-        .active_id
-        .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid));
+    let selected_frame = query
+        .frame_id
+        .as_deref()
+        .and_then(|frame_id| focusa.focus_stack.frames.iter().find(|f| f.id.to_string() == frame_id));
+    let active_frame = selected_frame.or_else(|| {
+        focusa
+            .focus_stack
+            .active_id
+            .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid))
+    });
 
     let mut objects: Vec<Value> = Vec::new();
     let mut links: Vec<Value> = Vec::new();
