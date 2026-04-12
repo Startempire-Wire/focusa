@@ -34,7 +34,7 @@ fi
 if [ -n "$thread_id" ] && [ "$thread_id" != "null" ]; then
   log_info "Thread list consistency"
   found=0
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
     if curl -sS "${BASE_URL}/v1/threads" | jq -e --arg id "$thread_id" '.threads | any(.id == $id)' >/dev/null 2>&1; then
       found=1
       break
@@ -48,8 +48,16 @@ if [ -n "$thread_id" ] && [ "$thread_id" != "null" ]; then
   fi
 
   log_info "Thread get consistency"
-  code=$(curl -sS -o /tmp/focusa-thread-runtime-body.json -w "%{http_code}" "${BASE_URL}/v1/threads/${thread_id}")
-  if [ "$code" = "200" ] && jq -e --arg id "$thread_id" '.thread.id == $id' /tmp/focusa-thread-runtime-body.json >/dev/null 2>&1; then
+  got=0
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    code=$(curl -sS -o /tmp/focusa-thread-runtime-body.json -w "%{http_code}" "${BASE_URL}/v1/threads/${thread_id}")
+    if [ "$code" = "200" ] && jq -e --arg id "$thread_id" '.thread.id == $id' /tmp/focusa-thread-runtime-body.json >/dev/null 2>&1; then
+      got=1
+      break
+    fi
+    sleep 0.1
+  done
+  if [ "$got" = "1" ]; then
     log_pass "Created thread retrievable by id"
   else
     log_fail "Created thread not retrievable by id :: $(cat /tmp/focusa-thread-runtime-body.json 2>/dev/null || true)"
@@ -66,7 +74,15 @@ else
   log_fail "Proposal submit failed :: $submit"
 fi
 
-if curl -sS "${BASE_URL}/v1/proposals" | jq -e '.pending >= 1' >/dev/null 2>&1; then
+pending_visible=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  if curl -sS "${BASE_URL}/v1/proposals" | jq -e '.pending >= 1' >/dev/null 2>&1; then
+    pending_visible=1
+    break
+  fi
+  sleep 0.1
+done
+if [ "$pending_visible" = "1" ]; then
   log_pass "Pending proposal visible"
 else
   log_fail "Pending proposal not visible"

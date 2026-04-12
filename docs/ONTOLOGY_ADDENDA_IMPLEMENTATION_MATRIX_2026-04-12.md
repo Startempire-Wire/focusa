@@ -196,6 +196,9 @@ Legend:
   - `tests/golden_tasks_eval.sh` rerun on 2026-04-12 → pass (16/16)
   - script explicitly labels itself as infrastructure verification only
   - current runtime confirms metrics/state/gate/steering surfaces required for eval harness presence
+  - `tests/continuous_pruning_test.sh` passes (4/4)
+    - adds measurable bounded-growth evidence for continuity/token-use claims
+    - now enforced in strict CI
 - Gap:
   - current script still proves infrastructure presence, not the full success condition from doc 57
   - comparative evals (`with Focusa` vs `without`, weaker-model comparisons, measurable action-quality improvement) remain unproven here

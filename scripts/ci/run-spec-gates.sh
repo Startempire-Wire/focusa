@@ -36,6 +36,7 @@ done
 ./tests/behavioral_alignment_test.sh
 ./tests/channel_separation_test.sh
 ./tests/checkpoint_trigger_test.sh
+./tests/continuous_pruning_test.sh
 ./tests/trace_dimensions_test.sh
 ./tests/thread_runtime_test.sh
 ./tests/proposal_submit_contract_test.sh
