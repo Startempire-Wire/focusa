@@ -58,12 +58,25 @@ async fn record_tool_usage(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ToolUsageBody>,
 ) -> Result<Json<Value>, axum::http::StatusCode> {
+    use chrono::Utc;
+    use uuid::Uuid;
+
     // Feed tool names to telemetry for autonomy analysis.
+    let recorded = body.tools.len();
     let mut focusa = state.focusa.write().await;
     for tool in &body.tools {
         focusa.telemetry.tool_calls.push(tool.clone());
     }
-    Ok(Json(json!({"status": "accepted", "recorded": body.tools.len()})))
+    focusa.telemetry.trace_events.push(json!({
+        "event_id": Uuid::now_v7().to_string(),
+        "event_type": "tools_invoked",
+        "timestamp": Utc::now().to_rfc3339(),
+        "payload": {
+            "turn_id": body.turn_id,
+            "tools": body.tools,
+        },
+    }));
+    Ok(Json(json!({"status": "accepted", "recorded": recorded})))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -94,13 +107,18 @@ async fn record_trace_event(
         .and_then(|v| v.as_str())
         .unwrap_or("ModelTokens");
     let _event_type = match event_type_str {
+        "mission_frame_context" => TelemetryEventType::MissionFrameContext,
         "working_set_used" => TelemetryEventType::WorkingSetUsed,
         "constraints_consulted" => TelemetryEventType::ConstraintsConsulted,
         "decisions_consulted" => TelemetryEventType::DecisionsConsulted,
         "action_intents_proposed" => TelemetryEventType::ActionIntentsProposed,
+        "tools_invoked" => TelemetryEventType::ToolsInvoked,
         "verification_result" => TelemetryEventType::VerificationResult,
         "ontology_delta_applied" => TelemetryEventType::OntologyDeltaApplied,
+        "blockers_failures_emitted" => TelemetryEventType::BlockersFailuresEmitted,
+        "final_state_transition" => TelemetryEventType::FinalStateTransition,
         "operator_subject" => TelemetryEventType::OperatorSubject,
+        "active_subject_after_routing" => TelemetryEventType::ActiveSubjectAfterRouting,
         "steering_detected" => TelemetryEventType::SteeringDetected,
         "subject_hijack_prevented" => TelemetryEventType::SubjectHijackPrevented,
         "subject_hijack_occurred" => TelemetryEventType::SubjectHijackOccurred,
@@ -138,7 +156,18 @@ async fn get_trace_events(
         .unwrap_or(100)
         .min(1000);
 
-    let filtered: Vec<_> = events.iter().rev().take(limit).cloned().collect();
+    let event_type_filter = params.get("event_type").map(String::as_str);
+    let filtered: Vec<_> = events
+        .iter()
+        .rev()
+        .filter(|e| {
+            event_type_filter
+                .map(|wanted| e.get("event_type").and_then(|v| v.as_str()) == Some(wanted))
+                .unwrap_or(true)
+        })
+        .take(limit)
+        .cloned()
+        .collect();
     let count = filtered.len();
 
     Json(serde_json::json!({

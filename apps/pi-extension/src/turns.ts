@@ -70,6 +70,11 @@ export function registerTurns(pi: ExtensionAPI) {
         turn_id: `pi-turn-${S.turnCount}`,
         subject_hijack_prevented: true,
       });
+      focusaPost("/telemetry/trace", {
+        event_type: "active_subject_after_routing",
+        turn_id: `pi-turn-${S.turnCount}`,
+        active_subject_after_routing: operatorText.slice(0, 200),
+      });
       return;
     }
 
@@ -125,6 +130,11 @@ export function registerTurns(pi: ExtensionAPI) {
       turn_id: `pi-turn-${S.turnCount}`,
       focus_slice_size: estimateTokens(text),
     });
+    focusaPost("/telemetry/trace", {
+      event_type: "active_subject_after_routing",
+      turn_id: `pi-turn-${S.turnCount}`,
+      active_subject_after_routing: mission || operatorText.slice(0, 200),
+    });
 
     return { messages: [{ role: "system" as const, content: [{ type: "text" as const, text }] }, ...(event.messages || [])] };
   });
@@ -148,6 +158,11 @@ export function registerTurns(pi: ExtensionAPI) {
           frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`,
           delta: { failures: [`Operator correction: ${String(text).slice(0, 200)}`] },
         });
+        focusaPost("/telemetry/trace", {
+          event_type: "blockers_failures_emitted",
+          turn_id: `pi-turn-${S.turnCount}`,
+          blockers_failures_emitted: "operator_correction",
+        });
       }
       S.localFailures.push(`Operator correction: ${String(text).slice(0, 100)}`);
       // §35.7/§29: WBM trust metric update on correction
@@ -166,6 +181,11 @@ export function registerTurns(pi: ExtensionAPI) {
     S.compactResumePending = false;
     if (S.focusaAvailable) {
       focusaPost("/turn/start", { turn_id: `pi-turn-${S.turnCount}`, frame_id: S.activeFrameId });
+      focusaPost("/telemetry/trace", {
+        event_type: "mission_frame_context",
+        turn_id: `pi-turn-${S.turnCount}`,
+        frame_id: S.activeFrameId,
+      });
     }
   });
 
@@ -191,6 +211,14 @@ export function registerTurns(pi: ExtensionAPI) {
     if (S.focusaAvailable && S.toolUsageBatch.length) {
       focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: S.toolUsageBatch });
       S.toolUsageBatch = [];
+    }
+
+    if (S.focusaAvailable) {
+      focusaPost("/telemetry/trace", {
+        event_type: "final_state_transition",
+        turn_id: `pi-turn-${S.turnCount}`,
+        final_state_transition: S.localFailures.length ? "completed_with_failures" : "completed",
+      });
     }
 
     // §37.3 + §10.4: Widget with all badges
@@ -308,6 +336,11 @@ export function registerTurns(pi: ExtensionAPI) {
       focusaPost("/focus-gate/ingest-signal", {
         signal_type: "tool_error", surface: "pi",
         payload: { tool: toolName, error: content.slice(0, 500) },
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "blockers_failures_emitted",
+        turn_id: `pi-turn-${S.turnCount}`,
+        blockers_failures_emitted: toolName || "tool_error",
       });
     }
 

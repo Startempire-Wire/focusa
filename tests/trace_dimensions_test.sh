@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPEC 56: Trace dimensions test
-# Verify all 18 trace dimensions are trackable
+# Verify all 18 trace dimensions are trackable and retrievable
 
 set -e
 
@@ -15,13 +15,18 @@ echo "=== SPEC 56: Trace dimensions test ==="
 
 # All 18 trace dimension event types from SPEC 56
 TRACE_TYPES=(
+    "mission_frame_context"
     "working_set_used"
     "constraints_consulted"
     "decisions_consulted"
     "action_intents_proposed"
+    "tools_invoked"
     "verification_result"
     "ontology_delta_applied"
+    "blockers_failures_emitted"
+    "final_state_transition"
     "operator_subject"
+    "active_subject_after_routing"
     "steering_detected"
     "subject_hijack_prevented"
     "subject_hijack_occurred"
@@ -61,13 +66,13 @@ fi
 
 # Test 3: Trace events retrievable after stats converge
 EVENTS=$(curl -s "${BASE_URL}/v1/telemetry/trace?limit=100" | jq '.events | length')
-if [ "$EVENTS" -ge 10 ]; then
+if [ "$EVENTS" -ge 18 ]; then
     log_pass "Trace events retrievable: $EVENTS events"
 else
     log_fail "Trace events not retrievable"
 fi
 
-# Test 4: Steering detection flag (bounded retry for eventual visibility)
+# Test 4: event_type filter works for steering_detected
 STEERING=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
     STEERING=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=steering_detected" | jq '.events | length')
@@ -77,19 +82,25 @@ for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
     sleep 0.2
 done
 if [ "$STEERING" -gt 0 ]; then
-    log_pass "Steering detected flag tracked"
+    log_pass "Steering detected filter tracked"
 else
-    log_fail "Steering detected not tracked"
+    log_fail "Steering detected filter not tracked"
 fi
 
-# Test 5: Subject hijack tracking
-SUBJECT=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
+# Test 5: tool-usage route emits tools_invoked trace event
+TOOL_USAGE=$(curl -s -X POST "${BASE_URL}/v1/telemetry/tool-usage" \
     -H "Content-Type: application/json" \
-    -d '{"event_type":"subject_hijack_prevented","turn_id":"hijack-test","subject_hijack_prevented":true}')
-if echo "$SUBJECT" | grep -q '"status":"recorded"'; then
-    log_pass "Subject hijack prevention tracked"
+    -d '{"turn_id":"tool-trace-test","tools":["read","bash"]}')
+if echo "$TOOL_USAGE" | jq -e '.status == "accepted" and .recorded == 2' >/dev/null 2>&1; then
+    log_pass "Tool usage batch accepted"
 else
-    log_fail "Subject hijack not tracked"
+    log_fail "Tool usage batch rejected"
+fi
+TOOLS_INVOKED=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=tools_invoked" | jq '.events | length')
+if [ "$TOOLS_INVOKED" -gt 0 ]; then
+    log_pass "tools_invoked trace emitted"
+else
+    log_fail "tools_invoked trace missing"
 fi
 
 echo ""
