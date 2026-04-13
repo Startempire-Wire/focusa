@@ -63,15 +63,25 @@ else
   log_fail "Proposal resolution did not report canonical application :: $resolve"
 fi
 
-after_stack=$(http_json "${BASE_URL}/v1/focus/stack")
-after_count=$(echo "$after_stack" | jq '.stack.frames | length')
+after_stack=''
+after_count="$before_count"
+frame_visible=0
+for _ in $(seq 1 30); do
+  after_stack=$(http_json "${BASE_URL}/v1/focus/stack")
+  after_count=$(echo "$after_stack" | jq '.stack.frames | length')
+  if echo "$after_stack" | jq -e --arg title "$name" '.stack.frames | any(.title == $title)' >/dev/null 2>&1; then
+    frame_visible=1
+    break
+  fi
+  sleep 0.25
+done
 if [ "$after_count" -gt "$before_count" ]; then
   log_pass "Accepted proposal increased canonical focus stack size"
 else
   log_fail "Accepted proposal did not change canonical focus stack"
 fi
 
-if echo "$after_stack" | jq -e --arg title "$name" '.stack.frames | any(.title == $title)' >/dev/null 2>&1; then
+if [ "$frame_visible" = "1" ]; then
   log_pass "Applied focus frame visible in canonical stack"
 else
   log_fail "Applied focus frame not visible in canonical stack"
