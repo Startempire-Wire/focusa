@@ -62,7 +62,7 @@ else
 fi
 
 thesis_updated=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 60); do
   if curl -sS "${BASE_URL}/v1/threads/${thread_id}" | jq -e --arg intent "$thesis_intent" '.thread.thesis.primary_intent == $intent' >/dev/null 2>&1; then
     thesis_updated=1
     break
