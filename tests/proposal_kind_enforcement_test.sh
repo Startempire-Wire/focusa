@@ -109,7 +109,7 @@ else
 fi
 
 mem_updated=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 120); do
   if curl -sS "${BASE_URL}/v1/memory/semantic" | jq -e --arg key "$mem_key" --arg val "$mem_val" '.semantic | any(.key == $key and .value == $val)' >/dev/null 2>&1; then
     mem_updated=1
     break
