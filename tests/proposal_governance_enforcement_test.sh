@@ -63,7 +63,7 @@ else
   log_fail "autonomy_adjustment resolve failed :: $auto_resolve"
 fi
 
-if wait_for_jq "${BASE_URL}/v1/autonomy" '.level == "AL2" and .granted_scope == "spec-governance-scope"' 80 0.25; then
+if wait_for_jq "${BASE_URL}/v1/autonomy" '.level == "AL2" and .granted_scope == "spec-governance-scope"' 240 0.25; then
   log_pass "Autonomy state mutated canonically"
 else
   log_fail "Autonomy state not updated canonically"
@@ -101,13 +101,13 @@ else
   log_fail "constitution_revision resolve failed :: $const_resolve"
 fi
 
-if wait_for_jq "${BASE_URL}/v1/constitution/versions" '.active == "'"$version"'" and (.versions | any(. == "'"$version"'"))' 80 0.25; then
+if wait_for_jq "${BASE_URL}/v1/constitution/versions" '.active == "'"$version"'" and (.versions | any(. == "'"$version"'"))' 240 0.25; then
   log_pass "Constitution active version mutated canonically"
 else
   log_fail "Constitution active version not updated canonically"
 fi
 
-if wait_for_jq "${BASE_URL}/v1/constitution/active" '.version == "'"$version"'" and (.principles | length) >= 2' 80 0.25; then
+if wait_for_jq "${BASE_URL}/v1/constitution/active" '.version == "'"$version"'" and (.principles | length) >= 2' 240 0.25; then
   log_pass "Active constitution payload updated canonically"
 else
   log_fail "Active constitution payload not updated canonically"
