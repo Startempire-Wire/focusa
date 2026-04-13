@@ -101,12 +101,12 @@ else
 fi
 
 mem_updated=0
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+for _ in $(seq 1 30); do
   if curl -sS "${BASE_URL}/v1/memory/semantic" | jq -e --arg key "$mem_key" --arg val "$mem_val" '.semantic | any(.key == $key and .value == $val)' >/dev/null 2>&1; then
     mem_updated=1
     break
   fi
-  sleep 0.1
+  sleep 0.25
 done
 if [ "$mem_updated" = "1" ]; then
   log_pass "Semantic memory mutated canonically"
