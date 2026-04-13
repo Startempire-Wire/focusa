@@ -114,6 +114,10 @@ for _ in $(seq 1 120); do
     mem_updated=1
     break
   fi
+  if curl -sS "${BASE_URL}/v1/memory/semantic" | jq -e --arg key "$mem_key" '.semantic | any(.key == $key)' >/dev/null 2>&1; then
+    mem_updated=1
+    break
+  fi
   sleep 0.25
 done
 if [ "$mem_updated" = "1" ]; then
