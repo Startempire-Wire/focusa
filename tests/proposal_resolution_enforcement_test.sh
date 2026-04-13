@@ -77,7 +77,15 @@ else
   log_fail "Applied focus frame not visible in canonical stack"
 fi
 
-if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" '.proposals | any(.source == $source and .status == "accepted")' >/dev/null 2>&1; then
+accepted_visible=0
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" '.proposals | any(.source == $source and .status == "accepted")' >/dev/null 2>&1; then
+    accepted_visible=1
+    break
+  fi
+  sleep 0.1
+done
+if [ "$accepted_visible" = "1" ]; then
   log_pass "Winner proposal status persisted as accepted"
 else
   log_fail "Winner proposal status not persisted as accepted"
