@@ -16,7 +16,7 @@ mod server;
 use focusa_core::runtime::daemon::Daemon;
 use focusa_core::types::{FocusaConfig, FocusaState};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,9 +44,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Event bus for SSE.
     let (events_tx, _events_rx) = tokio::sync::broadcast::channel::<String>(1024);
+    let write_serial_lock = Arc::new(Mutex::new(()));
 
     // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
-    let mut daemon = Daemon::new(config.clone(), shared_state.clone())?;
+    let mut daemon = Daemon::new(config.clone(), shared_state.clone(), write_serial_lock.clone())?;
     daemon.attach_event_bus(focusa_core::runtime::event_bus::EventBus::new(
         events_tx.clone(),
     ));
@@ -71,6 +72,7 @@ async fn main() -> anyhow::Result<()> {
             events_tx_for_api,
             config,
             persistence,
+            write_serial_lock,
         )
         .await
         {

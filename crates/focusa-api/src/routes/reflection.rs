@@ -1205,7 +1205,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
     use std::time::Instant;
-    use tokio::sync::{RwLock, broadcast, mpsc};
+    use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -1230,6 +1230,7 @@ mod tests {
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg,
             persistence,
+            write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
             started_at: Instant::now(),

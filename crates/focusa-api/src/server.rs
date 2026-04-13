@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{RwLock, broadcast, mpsc};
+use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -62,6 +62,8 @@ pub struct AppState {
     pub config: FocusaConfig,
     /// Direct persistence access for sync routes.
     pub persistence: SqlitePersistence,
+    /// Serializes canonical state writers across daemon actions and sync API routes.
+    pub write_serial_lock: Arc<Mutex<()>>,
     /// In-memory command write-model state for /v1/commands/* endpoints.
     pub command_store: CommandStore,
     /// Token store for capability permissions (docs/25-26).
@@ -169,6 +171,7 @@ pub async fn run(
     events_tx: broadcast::Sender<String>,
     config: FocusaConfig,
     persistence: SqlitePersistence,
+    write_serial_lock: Arc<Mutex<()>>,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
 
@@ -181,6 +184,7 @@ pub async fn run(
         event_broadcaster: broadcaster,
         config,
         persistence,
+        write_serial_lock,
         command_store: Arc::new(RwLock::new(HashMap::new())),
         token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
         started_at: Instant::now(),

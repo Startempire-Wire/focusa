@@ -51,6 +51,7 @@ async fn load_constitution(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let _write_guard = state.write_serial_lock.lock().await;
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("constitution:write") {
         return Err(forbid("constitution:write"));
@@ -123,17 +124,28 @@ async fn load_constitution(
 
     // Create new version and activate
     let version = format!("soul-{}", chrono::Utc::now().format("%Y%m%d-%H%M%S"));
-    let mut focusa = state.focusa.write().await;
+    let snapshot = {
+        let mut focusa = state.focusa.write().await;
 
-    focusa_core::constitution::create_version(
-        &mut focusa.constitution,
-        "wirebot",
-        &version,
-        principles.clone(),
-        safety_rules.clone(),
-        expression_rules.clone(),
-    );
-    let _ = focusa_core::constitution::activate_version(&mut focusa.constitution, &version);
+        focusa_core::constitution::create_version(
+            &mut focusa.constitution,
+            "wirebot",
+            &version,
+            principles.clone(),
+            safety_rules.clone(),
+            expression_rules.clone(),
+        );
+        let _ = focusa_core::constitution::activate_version(&mut focusa.constitution, &version);
+        focusa.version += 1;
+        focusa.clone()
+    };
+
+    state.persistence.save_state(&snapshot).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": format!("failed to persist constitution state: {}", e)})),
+        )
+    })?;
 
     Ok(Json(json!({
         "status": "loaded",

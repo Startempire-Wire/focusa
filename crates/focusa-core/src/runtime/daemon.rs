@@ -33,7 +33,7 @@ use crate::workers::{executor, priority_queue};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{Mutex, RwLock, mpsc};
 use uuid::Uuid;
 
 /// The main daemon handle.
@@ -47,6 +47,8 @@ pub struct Daemon {
     /// Shared state handle — written after every successful reduction so the API
     /// server (and any other reader) always sees current state.
     shared_state: Arc<RwLock<FocusaState>>,
+    /// Serializes canonical state writers across daemon actions and sync API routes.
+    write_serial_lock: Arc<Mutex<()>>,
     persistence: Persistence,
     ecs: ReferenceStore,
     intuition: IntuitionEngine,
@@ -72,6 +74,7 @@ impl Daemon {
     pub fn new(
         config: FocusaConfig,
         shared_state: Arc<RwLock<FocusaState>>,
+        write_serial_lock: Arc<Mutex<()>>,
     ) -> anyhow::Result<Self> {
         let persistence = Persistence::new(&config)?;
         let ecs_root = persistence.data_dir.join("ecs");
@@ -106,6 +109,7 @@ impl Daemon {
             current_instance_id: None,
             current_thread_id: None,
             shared_state,
+            write_serial_lock,
             persistence,
             ecs,
             intuition,
@@ -291,6 +295,10 @@ impl Daemon {
 
     /// Translate an Action to event(s), reduce, persist, observe.
     async fn process_action(&mut self, action: Action) -> anyhow::Result<()> {
+        let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        let _write_guard = write_serial_lock.lock().await;
+        self.reconcile_external_state().await;
+
         // Track whether this action touches the focus stack (for observe_stack).
         let is_stack_action = matches!(
             action,
@@ -1796,6 +1804,35 @@ Return ONLY valid JSON:
                 };
                 let _ = self.process_action(crate::types::Action::IngestSignal { signal }).await;
             }
+    }
+
+    async fn reconcile_external_state(&mut self) {
+        let adopted = {
+            let shared = self.shared_state.read().await;
+            let should_adopt = if shared.version != self.state.version {
+                true
+            } else {
+                match (serde_json::to_vec(&*shared), serde_json::to_vec(&self.state)) {
+                    (Ok(shared_bytes), Ok(local_bytes)) => shared_bytes != local_bytes,
+                    _ => false,
+                }
+            };
+
+            if should_adopt {
+                Some(shared.clone())
+            } else {
+                None
+            }
+        };
+
+        if let Some(shared_state) = adopted {
+            tracing::info!(
+                local_version = self.state.version,
+                shared_version = shared_state.version,
+                "Adopting externally mutated shared state before daemon action"
+            );
+            self.state = shared_state;
+        }
     }
 
     /// Sync internal state to the shared handle for API readers.

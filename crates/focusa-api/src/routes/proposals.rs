@@ -472,6 +472,8 @@ async fn resolve_proposals(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let _write_guard = state.write_serial_lock.lock().await;
+
     let machine_id = state.persistence.machine_id().map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -790,6 +792,8 @@ async fn resolve_proposals(
             ));
         }
     }
+
+    next_state.version += 1;
 
     state.persistence.save_state(&next_state).map_err(|e| {
         (
