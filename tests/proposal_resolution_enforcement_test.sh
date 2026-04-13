@@ -84,19 +84,36 @@ else
   log_fail "Proposal resolution did not report canonical application :: $resolve"
 fi
 
+focus_count_changed=0
+focus_title_visible=0
+proposal_accepted=0
+
 if wait_for_jq "${BASE_URL}/v1/focus/stack" '.stack.frames | length > '"$before_count" 80 0.25; then
+  focus_count_changed=1
   log_pass "Accepted proposal increased canonical focus stack size"
 else
   log_fail "Accepted proposal did not change canonical focus stack"
 fi
 
 if wait_for_jq "${BASE_URL}/v1/focus/stack" '.stack.frames | any(.title == "'"$name"'")' 80 0.25; then
+  focus_title_visible=1
   log_pass "Applied focus frame visible in canonical stack"
 else
   log_fail "Applied focus frame not visible in canonical stack"
 fi
 
-log_pass "Canonical focus mutation verified after accepted proposal resolution"
+if wait_for_jq "${BASE_URL}/v1/proposals" '.proposals | any(.source == "'"$source"'" and .kind == "focus_change" and .status == "accepted")' 80 0.25; then
+  proposal_accepted=1
+  log_pass "Accepted focus proposal persisted canonically"
+else
+  log_fail "Accepted focus proposal not persisted canonically"
+fi
+
+if [ "$focus_count_changed" = "1" ] || [ "$focus_title_visible" = "1" ] || [ "$proposal_accepted" = "1" ]; then
+  log_pass "Canonical focus mutation verified after accepted proposal resolution"
+else
+  log_fail "Canonical focus mutation not verified after accepted proposal resolution"
+fi
 
 echo ""
 echo "=== PROPOSAL RESOLUTION ENFORCEMENT RESULTS ==="
