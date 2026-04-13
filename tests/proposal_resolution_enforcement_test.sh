@@ -21,6 +21,20 @@ http_json() {
   curl -sS "$@"
 }
 
+wait_for_jq() {
+  local url="$1"
+  local expr="$2"
+  local tries="${3:-80}"
+  local delay="${4:-0.25}"
+  for _ in $(seq 1 "$tries"); do
+    if http_json "$url" | jq -e "$expr" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+  return 1
+}
+
 for _ in $(seq 1 20); do
   pending_focus=$(curl -sS "${BASE_URL}/v1/proposals" | jq '[(.proposals // [])[] | select(.kind == "focus_change" and .status == "pending")] | length')
   if [ "$pending_focus" = "0" ]; then
@@ -70,25 +84,13 @@ else
   log_fail "Proposal resolution did not report canonical application :: $resolve"
 fi
 
-after_stack=''
-after_count="$before_count"
-frame_visible=0
-for _ in $(seq 1 30); do
-  after_stack=$(http_json "${BASE_URL}/v1/focus/stack")
-  after_count=$(echo "$after_stack" | jq '.stack.frames | length')
-  if echo "$after_stack" | jq -e --arg title "$name" '.stack.frames | any(.title == $title)' >/dev/null 2>&1; then
-    frame_visible=1
-    break
-  fi
-  sleep 0.25
-done
-if [ "$after_count" -gt "$before_count" ]; then
+if wait_for_jq "${BASE_URL}/v1/focus/stack" '.stack.frames | length > '"$before_count" 80 0.25; then
   log_pass "Accepted proposal increased canonical focus stack size"
 else
   log_fail "Accepted proposal did not change canonical focus stack"
 fi
 
-if [ "$frame_visible" = "1" ]; then
+if wait_for_jq "${BASE_URL}/v1/focus/stack" '.stack.frames | any(.title == "'"$name"'")' 80 0.25; then
   log_pass "Applied focus frame visible in canonical stack"
 else
   log_fail "Applied focus frame not visible in canonical stack"
