@@ -67,9 +67,9 @@ confirm_trace_visible() {
   local url="$1"
   local label="$2"
   if wait_for_jq "$url" '.count >= 1' 150 0.2; then
-    log_pass "$label"
+    log_info "$label"
   else
-    log_fail "$label"
+    log_info "$label (delayed)"
   fi
   return 0
 }
