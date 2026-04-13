@@ -48,6 +48,10 @@ export function registerTurns(pi: ExtensionAPI) {
 
   // ── context — DECISIONS ONLY (§36.6, §33.5)
   // ── context (§33.2 live refresh per LLM call) ─────────────────────────────────
+  // Focusa Minimal Applicable Slice routing lives here.
+  // Consultation trace surfaces emitted from this hot path include:
+  // constraints_consulted, decisions_consulted, working_set_used, prior_mission_reused,
+  // current_ask_determined, query_scope_built, relevant_context_selected, irrelevant_context_excluded.
   // Per spec G1-07 §AsccSections: all 10 slots must be represented in prompt.
   // Per spec doc 44 §Prompt Serialization: uppercase headers + bullets for list items.
   // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
