@@ -10,6 +10,7 @@ export const S = {
   cfg: null as FocusaConfig | null,
   focusaAvailable: false,
   activeFrameId: null as string | null,
+  sessionFrameKey: "" as string,
   wbmEnabled: false,
   wbmDeep: false,
   wbmNoCatalogue: false,       // §29 --no-catalogue flag
@@ -146,9 +147,51 @@ export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any
   const frame = stack.stack.frames.find((f: any) => f.id === S.activeFrameId) || null;
   if (!frame) return null;
 
-  // Sync S.activeFrameId from session_start result (authoritative source)
-  S.activeFrameId = stack.active_frame_id || S.activeFrameId;
+  // Never sync Pi's scoped frame from Focusa global active_frame_id.
   return { frame, fs: frame?.focus_state || {}, stack };
+}
+
+export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
+  const projectName = cwd.split("/").filter(Boolean).pop() || "root";
+  const title = `Pi: ${projectName}`;
+  const goal = `Work on ${projectName}`;
+  const sessionKey = S.sessionFrameKey || `pi-${process.pid}-${Date.now()}`;
+  S.sessionFrameKey = sessionKey;
+  const beadsIssueId = `pi-session-${projectName}-${sessionKey}`;
+  const tags = ["pi", projectName, source, sessionKey];
+
+  try {
+    const r = await focusaFetch("/focus/push", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        goal,
+        beads_issue_id: beadsIssueId,
+        constraints: [],
+        tags,
+      }),
+    });
+    if (r?.frame_id) {
+      S.activeFrameId = r.frame_id;
+      return r.frame_id;
+    }
+
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const stack = await focusaFetch("/focus/stack");
+      const frames = stack?.stack?.frames || [];
+      const match = [...frames].reverse().find((f: any) =>
+        f.title === title &&
+        f.beads_issue_id === beadsIssueId &&
+        Array.isArray(f.tags) &&
+        f.tags.includes(sessionKey));
+      if (match?.id) {
+        S.activeFrameId = match.id;
+        return match.id;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 // ── Build compact instructions with local shadow (§33.10) ────────────────────

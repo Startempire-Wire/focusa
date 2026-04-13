@@ -3,7 +3,30 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, pushDelta } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState } from "./state.js";
+import { pushDelta } from "./tools.js";
+
+function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number) {
+  const mode = S.cfg?.contextStatusMode || "actionable";
+  if (mode === "off") {
+    ctx.ui.setStatus("focusa-ctx", "");
+    return;
+  }
+  if (tier === "warn") {
+    if (mode === "all" && typeof pct === "number") ctx.ui.setStatus("focusa-ctx", `🧠 Focusa ctx ${pct.toFixed(0)}% · monitor`);
+    else ctx.ui.setStatus("focusa-ctx", "");
+    return;
+  }
+  if (tier === "auto" && typeof pct === "number") {
+    ctx.ui.setStatus("focusa-ctx", `🧠 Focusa ctx ${pct.toFixed(0)}% · compacting`);
+    return;
+  }
+  if (tier === "hard" && typeof pct === "number") {
+    ctx.ui.setStatus("focusa-ctx", `🧠 Focusa ctx ${pct.toFixed(0)}% · critical · fork/new`);
+    return;
+  }
+  ctx.ui.setStatus("focusa-ctx", "");
+}
 
 export function registerCompaction(pi: ExtensionAPI) {
   // ── session_before_compact (§33.1 ASCC replacement, §33.10 fallback) ───────
@@ -185,6 +208,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
 
   if (pct >= cfg.hardPct) {
     S.currentTier = "hard";
+    setContextStatus(ctx, "hard", pct);
     ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compacting. Consider /fork or /new.`, "warning");
     // §18: Suggest handoff after N compactions
     if (S.totalCompactions >= cfg.autoSuggestHandoffAfterNCompactions) {
@@ -209,6 +233,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     }
   } else if (pct >= cfg.compactPct && canCompact) {
     S.currentTier = "auto";
+    setContextStatus(ctx, "auto", pct);
     ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {
@@ -228,10 +253,10 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     }
   } else if (pct >= cfg.warnPct) {
     S.currentTier = "warn";
-    ctx.ui.setStatus("focusa-ctx", `📊 ${pct.toFixed(0)}%`);
+    setContextStatus(ctx, "warn", pct);
   } else {
     S.currentTier = "";
-    ctx.ui.setStatus("focusa-ctx", "");
+    setContextStatus(ctx, "");
   }
 }
 

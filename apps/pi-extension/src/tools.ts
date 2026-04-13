@@ -101,7 +101,7 @@ function validateSlot(value: string, maxChars: number): boolean {
 }
 
 // Push delta to Focusa — validates ALL slot values before write.
-async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<boolean> {
+export async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<boolean> {
   if (!S.focusaAvailable || !S.activeFrameId) return false;
 
   // Validate every string slot before sending.

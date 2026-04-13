@@ -7,35 +7,13 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact } from "./state.js";
-
-function latestUserText(messages: any[] | undefined): string {
-  const latest = [...(messages || [])].reverse().find((m: any) => m?.role === "user");
-  return extractText(latest?.content || latest?.message || "");
-}
-
-function classifyOperatorIntent(text: string): {
-  directQuestion: boolean;
-  steeringChange: boolean;
-  focusRelevant: boolean;
-} {
-  const t = text.trim().toLowerCase();
-  const directQuestion = /\?$/.test(t) || /^(what|why|how|when|where|who|can|could|should|is|are|do|does|did)\b/.test(t);
-  const steeringChange = [
-    "no ", "stop", "instead", "actually", "wait", "wrong", "not what i asked", "new task", "switch to", "different"
-  ].some((needle) => t.includes(needle));
-  const focusRelevant = /(focusa|focus state|stack|constraint|decision|thread|ontology|mission|frame|checkpoint|context)/.test(t);
-  return { directQuestion, steeringChange, focusRelevant };
-}
-
-function uniqueItems(items: any[] | undefined): string[] {
-  return [...new Set((items || []).filter(Boolean).map((x: any) => String(x).trim()).filter(Boolean))];
-}
 import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 
 export function registerTurns(pi: ExtensionAPI) {
-  // ── before_agent_start (§29 WBM injection only; operator-first per docs 51/54a/54b) ────────────
+  // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
   pi.on("before_agent_start", async (event, ctx) => {
+    // Reconnect check
     if (!S.focusaAvailable) {
       const h = await focusaFetch("/health");
       if (h?.ok) {
@@ -44,132 +22,82 @@ export function registerTurns(pi: ExtensionAPI) {
       }
     }
 
-    // WBM remains additive, but Focusa no longer appends coercive behavioral prose here.
+    // §35.2: Behavioral instructions (ONE TIME per prompt — §36.6 layering)
+    const behavioral = [
+      "\n## Focusa Cognitive Governance (Active)",
+      "You are operating within Focusa, a cognitive runtime that preserves focus and decisions.\n",
+      "RULES:",
+      "- Use the focusa_decide tool when you make a significant decision",
+      "- Use the focusa_constraint tool ONLY for hard constraints (e.g. 'NEVER delete production data', 'must preserve X')",
+      "- Use the focusa_failure tool when something fails",
+      "- Do NOT record internal monologue, reasoning, or self-referential notes as constraints",
+      "  (e.g. 'cannot advance without operator direction' is NOT a constraint — it's context)",
+      "- Check the CONSTRAINTS in Focus State before acting — do not violate them",
+      "- The DECISIONS listed below were made earlier — do not contradict without explanation",
+      "- If context was compacted, Focus State below is your source of truth",
+    ].join("\n");
+
+    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral;
+
+    // §29: WBM inbound context injection
     if (S.wbmEnabled) {
       const wbmCtx = await fetchWbmContext();
-      (event as any).systemPrompt = `${(event as any).systemPrompt || ""}\n\n${wbmCtx}`.trim();
+      (event as any).systemPrompt += "\n\n" + wbmCtx;
     }
   });
 
-  // ── context — operator-first minimal applicable slice (docs 51/54a/54b) ─────
-  // No always-on full focus-state block. Slice assembly happens after reading newest
-  // operator input and suppresses irrelevant Focusa state on steering changes.
+  // ── context — DECISIONS ONLY (§36.6, §33.5)
+  // ── context (§33.2 live refresh per LLM call) ─────────────────────────────────
+  // Per spec G1-07 §AsccSections: all 10 slots must be represented in prompt.
+  // Per spec doc 44 §Prompt Serialization: uppercase headers + bullets for list items.
+  // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
+  // Per spec doc 44 §33.2: inject live Focus State before EVERY LLM call.
   pi.on("context", async (event: any, ctx: any) => {
     if (!S.focusaAvailable || !S.activeFrameId) return;
 
-    const operatorText = latestUserText(event.messages);
-    const intent = classifyOperatorIntent(operatorText);
     const data = await getFocusState();
     if (!data?.fs) return;
     const { fs, frame } = data;
 
-    // Steering change / direct-answer cases suppress broad injected state.
-    if (!intent.focusRelevant && (intent.directQuestion || intent.steeringChange)) {
-      focusaPost("/telemetry/trace", {
-        event_type: "subject_hijack_prevented",
-        turn_id: `pi-turn-${S.turnCount}`,
-        subject_hijack_prevented: true,
-      });
-      focusaPost("/telemetry/trace", {
-        event_type: "active_subject_after_routing",
-        turn_id: `pi-turn-${S.turnCount}`,
-        active_subject_after_routing: operatorText.slice(0, 200),
-      });
-      return;
-    }
+    // §7.1: Format each of the 10 ASCC slots per §Prompt Serialization spec
+    const fmt = (label: string, items: string[] | undefined) =>
+      items?.length
+        ? `${label}:\n${items.map((x: string) => `  - ${x}`).join("\n")}`
+        : `${label}:\n  (none)`;
 
-    const mission = frame?.thread_thesis || frame?.goal || frame?.title || fs.intent || "";
-    const constraints = uniqueItems(fs.constraints).slice(0, 4);
-    const decisions = uniqueItems(fs.decisions).slice(0, 4);
-    const nextSteps = uniqueItems(fs.next_steps).slice(0, 3);
-    const blockers = uniqueItems([...(fs.failures || []), ...(fs.open_questions || [])]).slice(0, 3);
-    const recent = uniqueItems(fs.recent_results).slice(0, 2);
-    const artifacts = uniqueItems((fs.artifacts || []).map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`)).slice(0, 3);
-
-    const sections: string[] = [];
-    const usedMission = Boolean(mission);
-    const usedConstraints = constraints.length > 0;
-    const usedDecisions = decisions.length > 0 && (intent.focusRelevant || /why|decision|previous|already|earlier|reuse/.test(operatorText.toLowerCase()));
-    const reusedPriorMission = Boolean(mission && /continue|resume|pick up|where were we|status/.test(operatorText.toLowerCase()));
-
-    if (usedMission) sections.push(`MISSION:\n  - ${mission}`);
-    if (usedConstraints) sections.push(`APPLICABLE_CONSTRAINTS:\n${constraints.map((x) => `  - ${x}`).join("\n")}`);
-    if (usedDecisions) {
-      sections.push(`RELEVANT_DECISIONS:\n${decisions.map((x) => `  - ${x}`).join("\n")}`);
-    }
-    if (nextSteps.length && !intent.directQuestion) {
-      sections.push(`OPEN_LOOPS:\n${nextSteps.map((x) => `  - ${x}`).join("\n")}`);
-    }
-    if (blockers.length && /blocked|failing|error|issue|problem|why/.test(operatorText.toLowerCase())) {
-      sections.push(`BLOCKERS:\n${blockers.map((x) => `  - ${x}`).join("\n")}`);
-    }
-    if (recent.length && /latest|recent|changed|what happened|status/.test(operatorText.toLowerCase())) {
-      sections.push(`RECENT_VERIFIED_DELTAS:\n${recent.map((x) => `  - ${x}`).join("\n")}`);
-    }
-    if (artifacts.length && /file|artifact|handle|output|evidence/.test(operatorText.toLowerCase())) {
-      sections.push(`ARTIFACT_HANDLES:\n${artifacts.map((x) => `  - ${x}`).join("\n")}`);
-    }
-
-    if (!sections.length) return;
-
+    // §36.7: Budget check — cap injection to 15% of headroom, max 1500 tokens
     const usage = ctx.getContextUsage?.();
     const window = S.activeContextWindow || 128000;
     const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
-    const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.08), 120), 600);
+    const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
 
-    let text = `[Focusa Minimal Applicable Slice]\n${sections.join("\n")}`;
+    // §Prompt Serialization: uppercase section headers, bullets for list items
+    const lines: string[] = [
+      `[Focusa Focus State — 10-slot live refresh]`,
+      `FOCUS_FRAME: ${frame?.title || "(untitled)"}`,
+      `INTENT: ${fs.intent || "(none)"}`,
+      `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`,
+      fmt("DECISIONS", fs.decisions),
+      fmt("ARTIFACTS", fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || []),
+      fmt("CONSTRAINTS", fs.constraints),
+      fmt("OPEN_QUESTIONS", fs.open_questions),
+      fmt("NEXT_STEPS", fs.next_steps),
+      fmt("RECENT_RESULTS", fs.recent_results),
+      fmt("FAILURES", fs.failures),
+      fmt("NOTES", fs.notes),
+    ];
+
+    // §36.7: Budget cap — truncate if over token budget
+    let text = lines.join("\n");
     const tokens = estimateTokens(text);
     if (tokens > maxTokens) {
-      const trimmed: string[] = [];
-      for (const section of sections) {
-        const candidate = `[Focusa Minimal Applicable Slice]\n${[...trimmed, section].join("\n")}`;
-        if (estimateTokens(candidate) > maxTokens) break;
-        trimmed.push(section);
-      }
-      if (!trimmed.length) return;
-      text = `[Focusa Minimal Applicable Slice]\n${trimmed.join("\n")}`;
+      // Truncate from bottom (NOTES → FAILURES → RECENT_RESULTS, etc.)
+      text = lines.slice(0, 4).join("\n") +
+        `\n[... Focus State truncated — ${tokens - maxTokens} tokens over budget]`;
     }
 
-    focusaPost("/telemetry/trace", {
-      event_type: "focus_slice_size",
-      turn_id: `pi-turn-${S.turnCount}`,
-      focus_slice_size: estimateTokens(text),
-    });
-    focusaPost("/telemetry/trace", {
-      event_type: "active_subject_after_routing",
-      turn_id: `pi-turn-${S.turnCount}`,
-      active_subject_after_routing: mission || operatorText.slice(0, 200),
-    });
-    if (usedMission) {
-      focusaPost("/telemetry/trace", {
-        event_type: "working_set_used",
-        turn_id: `pi-turn-${S.turnCount}`,
-        working_set_used: frame?.id || S.activeFrameId,
-      });
-    }
-    if (usedConstraints) {
-      focusaPost("/telemetry/trace", {
-        event_type: "constraints_consulted",
-        turn_id: `pi-turn-${S.turnCount}`,
-        constraints_consulted: constraints.slice(0, 4),
-      });
-    }
-    if (usedDecisions) {
-      focusaPost("/telemetry/trace", {
-        event_type: "decisions_consulted",
-        turn_id: `pi-turn-${S.turnCount}`,
-        decisions_consulted: decisions.slice(0, 4),
-      });
-    }
-    if (reusedPriorMission) {
-      focusaPost("/telemetry/trace", {
-        event_type: "prior_mission_reused",
-        turn_id: `pi-turn-${S.turnCount}`,
-        prior_mission_reused: mission,
-      });
-    }
-
-    return { messages: [{ role: "system" as const, content: [{ type: "text" as const, text }] }, ...(event.messages || [])] };
+    // §33.2: Prepend Focus State as first message before every LLM call
+    return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text }] }, ...(event.messages || [])] };
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
@@ -191,11 +119,6 @@ export function registerTurns(pi: ExtensionAPI) {
           frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`,
           delta: { failures: [`Operator correction: ${String(text).slice(0, 200)}`] },
         });
-        focusaPost("/telemetry/trace", {
-          event_type: "blockers_failures_emitted",
-          turn_id: `pi-turn-${S.turnCount}`,
-          blockers_failures_emitted: "operator_correction",
-        });
       }
       S.localFailures.push(`Operator correction: ${String(text).slice(0, 100)}`);
       // §35.7/§29: WBM trust metric update on correction
@@ -214,11 +137,6 @@ export function registerTurns(pi: ExtensionAPI) {
     S.compactResumePending = false;
     if (S.focusaAvailable) {
       focusaPost("/turn/start", { turn_id: `pi-turn-${S.turnCount}`, frame_id: S.activeFrameId });
-      focusaPost("/telemetry/trace", {
-        event_type: "mission_frame_context",
-        turn_id: `pi-turn-${S.turnCount}`,
-        frame_id: S.activeFrameId,
-      });
     }
   });
 
@@ -244,14 +162,6 @@ export function registerTurns(pi: ExtensionAPI) {
     if (S.focusaAvailable && S.toolUsageBatch.length) {
       focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: S.toolUsageBatch });
       S.toolUsageBatch = [];
-    }
-
-    if (S.focusaAvailable) {
-      focusaPost("/telemetry/trace", {
-        event_type: "final_state_transition",
-        turn_id: `pi-turn-${S.turnCount}`,
-        final_state_transition: S.localFailures.length ? "completed_with_failures" : "completed",
-      });
     }
 
     // §37.3 + §10.4: Widget with all badges
@@ -369,11 +279,6 @@ export function registerTurns(pi: ExtensionAPI) {
       focusaPost("/focus-gate/ingest-signal", {
         signal_type: "tool_error", surface: "pi",
         payload: { tool: toolName, error: content.slice(0, 500) },
-      });
-      focusaPost("/telemetry/trace", {
-        event_type: "blockers_failures_emitted",
-        turn_id: `pi-turn-${S.turnCount}`,
-        blockers_failures_emitted: toolName || "tool_error",
       });
     }
 

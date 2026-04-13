@@ -1,14 +1,21 @@
 // Config loading: .pi/settings.json → env vars → defaults
 // Spec: §10.2 (keys), §18 (schema), §19 (env vars), §23 (presets), §25.1 (validation)
 
-import { readFileSync } from "fs";
-import { join } from "path";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
+
+const RESERVED_PI_KEYS = new Set(["extensions", "skills", "prompts", "themes", "packages"]);
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
 
 export interface FocusaConfig {
   enabled: boolean;
   warnPct: number;
   compactPct: number;
   hardPct: number;
+  contextStatusMode: "off" | "actionable" | "all";
   cooldownMs: number;
   maxCompactionsPerHour: number;
   minTurnsBetweenCompactions: number;
@@ -43,6 +50,7 @@ const DEFAULTS: FocusaConfig = {
   warnPct: 50,
   compactPct: 70,
   hardPct: 85,
+  contextStatusMode: "actionable",
   cooldownMs: 180_000,
   maxCompactionsPerHour: 8,
   minTurnsBetweenCompactions: 3,
@@ -69,6 +77,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_WARN_PCT: "warnPct",
   FOCUSA_PI_COMPACT_PCT: "compactPct",
   FOCUSA_PI_HARD_PCT: "hardPct",
+  FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
   FOCUSA_PI_COOLDOWN_MS: "cooldownMs",
   FOCUSA_PI_MAX_COMPACTIONS_PER_HOUR: "maxCompactionsPerHour",
   FOCUSA_PI_MIN_TURNS_BETWEEN_COMPACTIONS: "minTurnsBetweenCompactions",
@@ -94,6 +103,8 @@ function validate(cfg: FocusaConfig): string[] {
   const errs: string[] = [];
   if (!(0 < cfg.warnPct && cfg.warnPct < cfg.compactPct && cfg.compactPct < cfg.hardPct && cfg.hardPct < 100))
     errs.push(`Invalid tier ordering: 0 < warnPct(${cfg.warnPct}) < compactPct(${cfg.compactPct}) < hardPct(${cfg.hardPct}) < 100`);
+  if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
+    errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
   if (cfg.cooldownMs < 30_000) errs.push(`cooldownMs(${cfg.cooldownMs}) must be >= 30000`);
   if (cfg.maxCompactionsPerHour < 1) errs.push(`maxCompactionsPerHour must be >= 1`);
   if (cfg.externalizeThresholdBytes < 2048) errs.push(`externalizeThresholdBytes must be >= 2048`);
@@ -101,24 +112,42 @@ function validate(cfg: FocusaConfig): string[] {
   return errs;
 }
 
+function readSettingsFile(path: string): any {
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf-8"));
+    return isPlainObject(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function extractFocusaConfig(raw: any): Partial<FocusaConfig> {
+  const rootConfig = isPlainObject(raw?.focusaPiBridge) ? raw.focusaPiBridge : null;
+  const legacyConfig = isPlainObject(raw?.extensions) && isPlainObject(raw.extensions?.focusaPiBridge)
+    ? raw.extensions.focusaPiBridge
+    : null;
+  const ext = rootConfig ?? legacyConfig;
+  if (!ext) return {};
+  let fileConfig: Partial<FocusaConfig> = {};
+  if (ext.preset && PRESETS[ext.preset]) fileConfig = { ...PRESETS[ext.preset] };
+  return { ...fileConfig, ...ext };
+}
+
+function resolveSettingsPaths(cwd?: string): string[] {
+  return [cwd ? join(cwd, ".pi/settings.json") : "", join(process.env.HOME || "", ".pi/agent/settings.json")].filter(Boolean);
+}
+
 // Load config: §18 precedence: env vars > settings.json > defaults
 export function loadConfig(cwd?: string): { config: FocusaConfig; errors: string[] } {
   let fileConfig: Partial<FocusaConfig> = {};
 
-  // Try .pi/settings.json
-  const paths = [cwd ? join(cwd, ".pi/settings.json") : "", join(process.env.HOME || "", ".pi/agent/settings.json")];
-  for (const p of paths) {
-    if (!p) continue;
-    try {
-      const raw = JSON.parse(readFileSync(p, "utf-8"));
-      const ext = raw?.extensions?.focusaPiBridge;
-      if (ext) {
-        // Apply preset first if specified
-        if (ext.preset && PRESETS[ext.preset]) fileConfig = { ...PRESETS[ext.preset] };
-        fileConfig = { ...fileConfig, ...ext };
-        break;
-      }
-    } catch { /* no settings file */ }
+  for (const p of resolveSettingsPaths(cwd)) {
+    const raw = readSettingsFile(p);
+    const ext = extractFocusaConfig(raw);
+    if (Object.keys(ext).length > 0) {
+      fileConfig = ext;
+      break;
+    }
   }
 
   // Merge: defaults → file → env
@@ -136,6 +165,30 @@ export function loadConfig(cwd?: string): { config: FocusaConfig; errors: string
 
   const errors = validate(cfg);
   return { config: cfg, errors };
+}
+
+export function saveConfigOverrides(cwd: string | undefined, overrides: Partial<FocusaConfig>, scope: "project" | "user" = "project"):
+  { config: FocusaConfig; errors: string[]; path: string } {
+  const path = scope === "project" && cwd
+    ? join(cwd, ".pi/settings.json")
+    : join(process.env.HOME || "", ".pi/agent/settings.json");
+
+  const raw = readSettingsFile(path);
+  if (!isPlainObject(raw)) throw new Error(`Refusing to write Focusa config into non-object settings file: ${path}`);
+  if (RESERVED_PI_KEYS.has("extensions") && isPlainObject(raw.extensions) && "focusaPiBridge" in raw.extensions) {
+    delete raw.extensions.focusaPiBridge;
+    if (Object.keys(raw.extensions).length === 0) delete raw.extensions;
+  }
+  raw.focusaPiBridge = {
+    ...(isPlainObject(raw.focusaPiBridge) ? raw.focusaPiBridge : {}),
+    ...overrides,
+  };
+
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(raw, null, 2)}\n`, "utf-8");
+
+  const { config, errors } = loadConfig(cwd);
+  return { config, errors, path };
 }
 
 // §23: Get preset names

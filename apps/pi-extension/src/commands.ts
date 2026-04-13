@@ -3,9 +3,169 @@
 // Plus: §33.5 isolation commands: /focusa-on, /focusa-off, /focusa-reset
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState } from "./state.js";
+import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
+import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
+import { S, focusaFetch, getFocusState, persistState, createPiFrame } from "./state.js";
+import { saveConfigOverrides } from "./config.js";
+
+function nonEmptyLines(items: any[] | undefined): string[] {
+  return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
+}
+
+const WARN_OPTIONS = ["40", "50", "60", "70"];
+const COMPACT_OPTIONS = ["60", "70", "80", "85", "90"];
+const HARD_OPTIONS = ["75", "85", "92", "95", "97"];
+
+function nextHigher(options: string[], value: number): string {
+  return options.find((v) => Number(v) > value) || options[options.length - 1];
+}
+
+function nextLower(options: string[], value: number): string {
+  const lower = options.filter((v) => Number(v) < value);
+  return lower[lower.length - 1] || options[0];
+}
+
+function normalizeTierConfig(draft: { warnPct: number; compactPct: number; hardPct: number }) {
+  if (draft.warnPct >= draft.compactPct) draft.compactPct = Number(nextHigher(COMPACT_OPTIONS, draft.warnPct));
+  if (draft.compactPct >= draft.hardPct) draft.hardPct = Number(nextHigher(HARD_OPTIONS, draft.compactPct));
+  if (draft.compactPct >= draft.hardPct) draft.compactPct = Number(nextLower(COMPACT_OPTIONS, draft.hardPct));
+  if (draft.warnPct >= draft.compactPct) draft.warnPct = Number(nextLower(WARN_OPTIONS, draft.compactPct));
+}
+
+function renderFocusaContext(data: { frame: any; fs: any }): string {
+  const { frame, fs } = data;
+  const lines: string[] = [
+    "# Focusa Context",
+    "",
+    "Rendered live from focusa-pi-bridge current state.",
+    "",
+  ];
+
+  if (frame?.title) {
+    lines.push(`## Current Focus Frame: ${frame.title}`);
+    if (frame?.goal) lines.push(`**Goal:** ${frame.goal}`);
+    lines.push("");
+  }
+
+  const decisions = nonEmptyLines(fs?.decisions);
+  if (decisions.length) {
+    lines.push("## Active Decisions");
+    lines.push(...decisions.map((item) => `- ${item}`));
+    lines.push("");
+  }
+
+  const constraints = nonEmptyLines(fs?.constraints);
+  if (constraints.length) {
+    lines.push("## Constraints");
+    lines.push(...constraints.map((item) => `- ${item}`));
+    lines.push("");
+  }
+
+  const currentFocus = String(fs?.current_focus || "").trim();
+  if (currentFocus) {
+    lines.push("## Current Focus");
+    lines.push(currentFocus);
+    lines.push("");
+  }
+
+  const openQuestions = nonEmptyLines(fs?.open_questions);
+  if (openQuestions.length) {
+    lines.push("## Open Questions");
+    lines.push(...openQuestions.map((item) => `- ${item}`));
+    lines.push("");
+  }
+
+  const failures = nonEmptyLines(fs?.failures);
+  if (failures.length) {
+    lines.push("## Known Failures");
+    lines.push(...failures.map((item) => `- ${item}`));
+    lines.push("");
+  }
+
+  lines.push("---");
+  lines.push("Focusa structured context — rendered from live state; follow operator intent first.");
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 
 export function registerCommands(pi: ExtensionAPI) {
+  // /focusa-context (§34.2H runtime render)
+  pi.registerCommand("focusa-context", {
+    description: "Render current Focusa context inline in the conversation",
+    handler: async (_args, ctx) => {
+      if (!S.focusaAvailable) {
+        const text = "Focusa offline — no live context available.";
+        ctx.ui.notify(text, "warning");
+        pi.sendMessage({ customType: "focusa-context", content: text, display: true });
+        return;
+      }
+      let data = await getFocusState();
+      if (!data) {
+        await createPiFrame(ctx.cwd, "pi-auto-recover");
+        data = await getFocusState();
+      }
+      if (!data) {
+        const text = "No active Focusa frame for this Pi session.";
+        ctx.ui.notify(text, "info");
+        pi.sendMessage({ customType: "focusa-context", content: text, display: true });
+        return;
+      }
+      const rendered = renderFocusaContext(data);
+      ctx.ui.notify("Rendered live Focusa context", "info");
+      pi.sendMessage({ customType: "focusa-context", content: rendered, display: true });
+    },
+  });
+
+  // /focusa-settings — native settings UI
+  pi.registerCommand("focusa-settings", {
+    description: "Open Focusa settings panel",
+    handler: async (_args, ctx) => {
+      const draft = {
+        contextStatusMode: S.cfg?.contextStatusMode || "actionable",
+        warnPct: S.cfg?.warnPct || 50,
+        compactPct: S.cfg?.compactPct || 70,
+        hardPct: S.cfg?.hardPct || 85,
+      };
+
+      const buildItems = (): SettingItem[] => [
+        { id: "contextStatusMode", label: "Footer context badge", currentValue: draft.contextStatusMode, values: ["off", "actionable", "all"] },
+        { id: "warnPct", label: "Warn threshold %", currentValue: String(draft.warnPct), values: WARN_OPTIONS },
+        { id: "compactPct", label: "Auto-compact threshold %", currentValue: String(draft.compactPct), values: COMPACT_OPTIONS },
+        { id: "hardPct", label: "Critical threshold %", currentValue: String(draft.hardPct), values: HARD_OPTIONS },
+      ];
+
+      await ctx.ui.custom((_tui, theme, _kb, done) => {
+        const container = new Container();
+        container.addChild(new Text(theme.fg("accent", theme.bold("Focusa Settings")), 1, 1));
+
+        const settingsList = new SettingsList(
+          buildItems(),
+          8,
+          getSettingsListTheme(),
+          (id, newValue) => {
+            if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
+            if (id === "warnPct") draft.warnPct = Number(newValue);
+            if (id === "compactPct") draft.compactPct = Number(newValue);
+            if (id === "hardPct") draft.hardPct = Number(newValue);
+            normalizeTierConfig(draft);
+            const saved = saveConfigOverrides(ctx.cwd, draft, "project");
+            S.cfg = saved.config;
+            if (saved.errors.length) ctx.ui.notify(saved.errors.join("\n"), "warning");
+            else ctx.ui.notify(`Saved Focusa settings → ${saved.path}`, "info");
+          },
+          () => done(undefined),
+          { enableSearch: true },
+        );
+        container.addChild(settingsList);
+
+        return {
+          render: (w: number) => container.render(w),
+          invalidate: () => container.invalidate(),
+          handleInput: (data: string) => settingsList.handleInput?.(data),
+        };
+      });
+    },
+  });
+
   // /focusa-status (§10.3)
   pi.registerCommand("focusa-status", {
     description: "Show Focusa integration status",
@@ -24,135 +184,34 @@ export function registerCommands(pi: ExtensionAPI) {
     },
   });
 
-  // /focusa-stack (§10.3)
-  pi.registerCommand("focusa-stack", {
-    description: "Show Focus Stack frames",
-    handler: async (_args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const data = await getFocusState();
-      if (!data) { ctx.ui.notify("Empty stack", "info"); return; }
-      const lines = data.stack.stack.frames.map((f: any, i: number) =>
-        `${f.id === data.stack.active_frame_id ? "→ " : "  "}${i}: ${f.title || "(unnamed)"} [${f.id}]`,
-      );
-      ctx.ui.notify(lines.join("\n"), "info");
-    },
-  });
-
-  // /focusa-pin <candidate_id> (§10.3, §22.2)
-  pi.registerCommand("focusa-pin", {
-    description: "Pin a Focus Gate candidate",
-    handler: async (args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const id = args?.trim();
-      if (!id) { ctx.ui.notify("Usage: /focusa-pin <candidate_id>", "info"); return; }
-      const r = await focusaFetch("/commands/submit", {
-        method: "POST",
-        body: JSON.stringify({ command: "gate.pin", args: { candidate_id: id }, idempotency_key: `pin-${id}-${Date.now()}` }),
-      });
-      ctx.ui.notify(r?.accepted ? `Pinned: ${id}` : "Pin failed", r?.accepted ? "info" : "error");
-    },
-  });
-
-  // /focusa-suppress <candidate_id> [duration] (§10.3, §22.2)
-  pi.registerCommand("focusa-suppress", {
-    description: "Suppress a Focus Gate candidate",
-    handler: async (args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const parts = (args || "").trim().split(/\s+/);
-      if (!parts[0]) { ctx.ui.notify("Usage: /focusa-suppress <candidate_id> [duration]", "info"); return; }
-      const r = await focusaFetch("/commands/submit", {
-        method: "POST",
-        body: JSON.stringify({ command: "gate.suppress", args: { candidate_id: parts[0], duration: parts[1] || "10m" }, idempotency_key: `suppress-${parts[0]}-${Date.now()}` }),
-      });
-      ctx.ui.notify(r?.accepted ? `Suppressed: ${parts[0]}` : "Suppress failed", r?.accepted ? "info" : "error");
-    },
-  });
-
-  // /focusa-checkpoint (§10.3)
-  pi.registerCommand("focusa-checkpoint", {
-    description: "Create ASCC checkpoint",
-    handler: async (_args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const r = await focusaFetch("/commands/submit", {
-        method: "POST",
-        body: JSON.stringify({ command: "ascc.checkpoint", args: {}, idempotency_key: `ckpt-${Date.now()}` }),
-      });
-      ctx.ui.notify(r?.accepted ? "✓ Checkpoint created" : "Checkpoint failed", r?.accepted ? "info" : "error");
-    },
-  });
-
-  // /focusa-rehydrate <handle_id> [max_tokens] (§10.3)
-  pi.registerCommand("focusa-rehydrate", {
-    description: "Rehydrate ECS handle content",
-    handler: async (args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const parts = (args || "").trim().split(/\s+/);
-      if (!parts[0]) { ctx.ui.notify("Usage: /focusa-rehydrate <handle_id> [max_tokens]", "info"); return; }
-      const r = await focusaFetch(`/ecs/rehydrate?handle=${encodeURIComponent(parts[0])}&max_tokens=${parts[1] || "300"}`);
-      ctx.ui.notify(r?.content ? `[${parts[0]}]:\n${String(r.content).slice(0, 2000)}` : "Handle not found or rehydrate failed", r?.content ? "info" : "error");
-    },
-  });
-
-  // /focusa-gate-explain <candidate_id> (§10.3, §22.1)
-  pi.registerCommand("focusa-gate-explain", {
-    description: "Explain Focus Gate candidate scoring",
-    handler: async (args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const id = args?.trim();
-      if (!id) { ctx.ui.notify("Usage: /focusa-gate-explain <candidate_id>", "info"); return; }
-      const r = await focusaFetch(`/focus-gate/explain?candidate_id=${encodeURIComponent(id)}`);
-      ctx.ui.notify(r ? JSON.stringify(r, null, 2).slice(0, 2000) : "Explain failed", r ? "info" : "error");
-    },
-  });
-
-  // /focusa-explain-decision [query] (§34.2E)
-  pi.registerCommand("focusa-explain-decision", {
-    description: "Show/search recorded decisions",
-    handler: async (args, ctx) => {
-      const data = S.focusaAvailable ? await getFocusState() : null;
-      const remote = data?.fs?.decisions || [];
-      const all = [...remote, ...S.localDecisions];
-      if (!all.length) { ctx.ui.notify("No decisions recorded", "info"); return; }
-      const q = (args || "").trim().toLowerCase();
-      const matched = q ? all.filter((d: string) => d.toLowerCase().includes(q)) : all;
-      ctx.ui.notify(matched.length ? matched.map((d: string, i: number) => `${i + 1}. ${d}`).join("\n") : "No matches", "info");
-    },
-  });
-
-  // /focusa-lineage (§34.2F)
-  pi.registerCommand("focusa-lineage", {
-    description: "Show CLT lineage path",
-    handler: async (_args, ctx) => {
-      if (!S.focusaAvailable) { ctx.ui.notify("Focusa offline", "warning"); return; }
-      const r = await focusaFetch("/clt");
-      if (!r?.nodes?.length) { ctx.ui.notify("No lineage nodes", "info"); return; }
-      const lines = r.nodes.slice(-10).map((n: any) => `[${n.node_id}] ${n.node_type} ${n.created_at?.slice(0, 19) || ""}`);
-      ctx.ui.notify(lines.join("\n"), "info");
-    },
-  });
-
   // /focusa-on (§33.5) — re-enable Focusa writes after /focusa-off
   pi.registerCommand("focusa-on", {
     description: "Re-enable Focusa integration and writes",
     handler: async (_args, ctx) => {
-      if (S.focusaAvailable) { ctx.ui.notify("Focusa already enabled", "info"); return; }
       const h = await focusaFetch("/health");
-      if (h?.ok) {
-        S.focusaAvailable = true;
-        S.outageStart = null;
-        S.healthBackoffMs = 30_000;
-        // Push a fresh Pi frame so writes go to clean slate
-        if (!S.activeFrameId) {
-          const r = await focusaFetch("/focus/push", {
-            method: "POST",
-            body: JSON.stringify({ title: `Pi session in ${ctx.cwd}`, source: "pi-auto" }),
-          });
-          if (r?.frame_id) S.activeFrameId = r.frame_id;
-        }
-        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
-        ctx.ui.notify("✅ Focusa re-enabled", "info");
-      } else {
+      if (!h?.ok) {
         ctx.ui.notify("❌ Focusa unavailable", "error");
+        return;
+      }
+
+      const alreadyEnabled = S.focusaAvailable;
+      S.focusaAvailable = true;
+      S.outageStart = null;
+      S.healthBackoffMs = 30_000;
+
+      if (!S.activeFrameId) {
+        await createPiFrame(ctx.cwd, "pi-auto");
+      }
+
+      ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+      if (S.activeFrameId) persistState();
+
+      if (alreadyEnabled && S.activeFrameId) {
+        ctx.ui.notify(`✅ Focusa already enabled — frame ready: ${S.activeFrameId}`, "info");
+      } else if (S.activeFrameId) {
+        ctx.ui.notify(`✅ Focusa enabled — frame ready: ${S.activeFrameId}`, "info");
+      } else {
+        ctx.ui.notify("⚠️ Focusa enabled but no Pi frame could be created", "warning");
       }
     },
   });
@@ -163,18 +222,15 @@ export function registerCommands(pi: ExtensionAPI) {
     handler: async (_args, ctx) => {
       if (!S.focusaAvailable) { ctx.ui.notify("Focusa already disabled", "info"); return; }
       S.focusaAvailable = false;
-      // Leave local shadow intact — operator can still see decisions via status
       ctx.ui.setStatus("focusa", "🧠 Focusa [disabled]");
       ctx.ui.notify("⚠️ Focusa writes disabled — Focus State local only", "warning");
     },
   });
 
   // /focusa-reset (§33.5) — clear all Focus State entries in Focusa's DB + push fresh frame
-  // Use when Focus State is polluted or stale. Wipes decisions/constraints/failures.
   pi.registerCommand("focusa-reset", {
     description: "Clear Focus State in Focusa + push fresh Pi frame",
     handler: async (_args, ctx) => {
-      // Step 1: Clear local shadow
       const cleared = {
         decisions: S.localDecisions.length,
         constraints: S.localConstraints.length,
@@ -190,37 +246,27 @@ export function registerCommands(pi: ExtensionAPI) {
       S.compactResumePending = false;
       S.forkSuggested = false;
       S.currentTier = "";
+      const previousFrameId = S.activeFrameId;
+      S.activeFrameId = null;
+      persistState();
 
-      // Step 2: Clear Focusa frame (if available and we have a frame)
-      if (S.activeFrameId) {
+      if (S.focusaAvailable && previousFrameId) {
         await focusaFetch("/focus/update", {
           method: "POST",
           body: JSON.stringify({
-            frame_id: S.activeFrameId,
-            turn_id: `pi-turn-${S.turnCount}`,
-            delta: {
-              decisions: [],
-              constraints: [],
-              failures: [],
-              notes: [],
-              open_questions: [],
-              next_steps: [],
-              recent_results: [],
-            },
+            frame_id: previousFrameId,
+            turn_id: `pi-turn-${S.turnCount || 0}`,
+            delta: { decisions: [], constraints: [], failures: [], recent_results: [] },
           }),
         }).catch(() => {});
       }
 
-      // Step 3: Push fresh Pi frame (always, ensures clean slate)
       if (S.focusaAvailable) {
-        const r = await focusaFetch("/focus/push", {
-          method: "POST",
-          body: JSON.stringify({ title: `Pi session in ${ctx.cwd}`, source: "pi-reset" }),
-        });
-        if (r?.frame_id) {
-          S.activeFrameId = r.frame_id;
+        const frameId = await createPiFrame(ctx.cwd, "pi-reset");
+        if (frameId) {
+          S.activeFrameId = frameId;
           ctx.ui.notify(
-            `✅ Focus State reset (cleared D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\nFresh Pi frame: ${r.frame_id}`,
+            `✅ Focus State reset (cleared D:${cleared.decisions} C:${cleared.constraints} F:${cleared.failures})\nFresh Pi frame: ${frameId}`,
             "info",
           );
         } else {

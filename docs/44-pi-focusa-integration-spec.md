@@ -1359,7 +1359,7 @@ After two full passes, the recommended integration architecture is:
 │    session_shutdown → flush + close                  │
 │                                                      │
 │  Layer 3: Real-Time Integration                      │
-│    context → inject minimal applicable slice         │
+│    context → inject live Focus State per LLM call    │
 │    tool_result → auto-externalize to ECS             │
 │    tool_call → feed Intuition Engine                 │
 │    agent_end → extract work meta (/wbm)              │
@@ -1454,20 +1454,34 @@ pi.on("before_agent_start", async (event, ctx) => {
 
 ### 35.2 THE LLM DOESN'T KNOW TO USE FOCUSA (CRITICAL)
 
-> **Legacy guidance — superseded for operator-priority behavior.**
-> Newer docs `51`, `54a`, and `54b` require operator-first routing and minimal applicable slices.
-> Behavioral/system-prompt coaxing must not override or compete with the operator's newest input.
->
-> **Superseded guidance:** the older recommendation below is retained only as historical context and should not be used as the current default implementation.
->
-> Legacy approach:
-> - append behavioral instructions in `before_agent_start`
-> - prepend a broad Focus State block each call
->
-> Current preferred approach:
-> - interpret operator intent first
-> - inject only the minimal applicable Focusa slice
-> - suppress irrelevant Focusa state on steering/direct-question turns
+Injecting Focus State data (`[FOCUSA LIVE STATE]`) is necessary but not sufficient. The LLM also needs **behavioral instructions** telling it what to DO with that data.
+
+**Required: System prompt augmentation.**
+
+```typescript
+pi.on("before_agent_start", async (event, ctx) => {
+  if (!focusaEnabled) return;
+  
+  const focusaInstructions = `
+## Focusa Cognitive Governance (Active)
+You are operating within Focusa, a cognitive runtime that preserves focus and decisions.
+
+RULES:
+- When you make a significant decision, state it clearly as "DECISION: ..."
+- Check the CONSTRAINTS section below before acting — do not violate them
+- When something fails, note it as "FAILURE: ..."  
+- When you discover a new constraint, note it as "CONSTRAINT: ..."
+- The DECISIONS listed below were made in this session — do not contradict them without explanation
+- If context was compacted, the Focus State below is your source of truth for what was decided
+`;
+
+  return {
+    systemPrompt: event.systemPrompt + "\n" + focusaInstructions,
+  };
+});
+```
+
+Without this, the LLM sees Focus State data but has no instruction to respect constraints, record decisions, or avoid contradicting prior work.
 
 ### 35.3 USER WORKFLOW IS UNDEFINED (HIGH)
 
@@ -1643,7 +1657,7 @@ The extension should try options 1-2 automatically. Never hardcode tokens.
 | # | Gap | Severity | Why It's Obvious |
 |---|---|---|---|
 | 1 | No auto-frame on session start | **CRITICAL** | Without a frame, Focusa has no Focus State. Everything is inert. |
-| 2 | LLM has no operator-first Focusa routing | **CRITICAL** | Data without relevance gating becomes noise. Operator intent must be interpreted before any Focusa slice is injected. |
+| 2 | LLM has no Focusa behavioral instructions | **CRITICAL** | Data without instructions is noise. LLM must know to record decisions. |
 | 3 | User workflow never described | **HIGH** | Spec says what extension CAN do, not what happens when user starts Pi. |
 | 4 | No local decision shadow for offline compaction | **HIGH** | Focusa down = decisions lost on compact. Trivial local fix. |
 | 5 | Token counts not passed to Focusa | **MEDIUM** | Pi has exact tokens. Focusa telemetry shows null. Easy bridge. |
@@ -1800,8 +1814,8 @@ pi.on("session_tree", async (event, ctx) => {
 ### 36.6 CRITICAL: Injection Layering Rules (Prevents Double-Injection)
 
 Doc 44 has FOUR context injection mechanisms that could fire simultaneously:
-1. `before_agent_start` — optional non-coercive setup only (legacy §35.2 superseded)
-2. `context` — minimal applicable Focusa slice after operator-intent interpretation
+1. `before_agent_start` — behavioral instructions + state (§35.2)
+2. `context` — live Focus State per LLM call (§33.2)
 3. `before_provider_request` — Focusa assembled prompt (§33.5)
 4. `session_before_compact` — compaction instructions (§33.10)
 
@@ -1811,8 +1825,8 @@ Doc 44 has FOUR context injection mechanisms that could fire simultaneously:
 
 | Hook | Purpose | Active? | Content |
 |---|---|---|---|
-| `before_agent_start` | Optional non-coercive setup | **YES — additive only** | No behavioral coaxing that competes with operator input |
-| `context` | Minimal applicable slice | **YES — conditional** | Only task-relevant mission/constraints/decisions/blockers |
+| `before_agent_start` | Behavioral instructions (ONE TIME per prompt) | **YES — always** | Focusa rules: "record decisions as DECISION:, check constraints..." |
+| `context` | Live Focus State refresh (PER LLM CALL) | **YES — always** | Compact state: intent + decisions + constraints (≤500 tok) |
 | `before_provider_request` | Full assembled prompt injection | **NO — disabled by default** | Only enable if NOT using `context` hook (Mode B alternative) |
 | `session_before_compact` | Compaction preservation | **YES — on compact only** | ASCC full state as compaction summary or instructions |
 
@@ -1856,7 +1870,7 @@ Reviewed 2026-04-02: Verified the spec delivers on Focusa's core invariant, the 
 
 | Purpose | Delivered? | How |
 |---|---|---|
-| "Meaning lives in Focus State, not in conversation" | ✅ | §33.1 ASCC compaction, §35.1 auto-frame, operator-first minimal-slice injection, §35.4 local shadow |
+| "Meaning lives in Focus State, not in conversation" | ✅ | §33.1 ASCC compaction, §35.1 auto-frame, §35.2 behavioral instructions, §35.4 local shadow |
 | Single organism across all surfaces | ✅ | §29 /wbm two-way bridge, WINS portal approval flow, 5-sink delivery |
 | JARVIS 7 domains for Pi surface | ✅ | All 7 mapped in organism spec §9.11 |
 | Pi gets smarter over time | ✅ | If beads implemented: procedural rules, Mem0, wiki, ARI, thesis |
@@ -1954,7 +1968,7 @@ pi.registerTool({
 - Historical extraction can find tool calls reliably (`toolName: "focusa_decide"`)
 - LLM sees `✅ Decision recorded` confirmation — positive reinforcement
 
-**This replaces legacy §35.2 behavioral instructions as the decision-capture mechanism.** Operator-first minimal-slice routing should remain primary; prompt-level behavioral backup should not compete with the operator's newest input.
+**This replaces §35.2 behavioral instructions as the primary decision capture mechanism.** §35.2 instructions remain as backup for when LLM doesn't call the tool.
 
 ### 37.3 Widget: Persistent Focus State Display
 
@@ -2251,23 +2265,3 @@ async function checkFocusaHealth() {
 ```
 
 **Rule:** Check health on session_start and periodically (every 60s). Disable tools when down. Re-enable when back. The LLM never sees tools it can't use.
-
----
-
-## See Also (Spec Supplements)
-
-The following spec documents supplement this integration spec:
-
-| Doc | Title | Relationship |
-|-----|-------|-------------|
-| docs/52 | Pi Extension Contract | §33-§38 extension behavior requirements |
-| docs/53 | Pi Behavioral Alignment Contract | §35-§37 mandatory behaviors and prohibitions |
-| docs/54 | Pi Visible Output Boundary | §38.1 channel separation, anti-echo safeguards |
-| docs/54a | Operator Priority and Subject Preservation | §36.6 operator input precedence, steering detection |
-| docs/54b | Context Injection and Attention Routing | §33.2 minimal slice injection model |
-| docs/45 | Ontology Overview | Background on Focusa ontology system |
-| docs/55 | Tool and Action Contracts | §33.3-§33.4 ECS and tool usage contracts |
-| docs/56 | Trace Checkpoints and Recovery | §34.2A ASCC checkpoint and recovery |
-| docs/57 | Golden Tasks and Evals | §35.8 evaluation framework |
-
-**This integration spec (docs/44) is the primary spec.** Docs 52-57 are supplements that detail specific requirements. When conflicts arise, this spec governs.

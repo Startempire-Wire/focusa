@@ -69,7 +69,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     },
   });
 
-  pi.registerShortcut("ctrl+shift+w", {
+  pi.registerShortcut("ctrl+shift+b", {
     description: "Toggle Wirebot Mode",
     handler: async (ctx) => {
       S.wbmEnabled = !S.wbmEnabled;

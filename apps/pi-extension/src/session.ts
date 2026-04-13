@@ -5,10 +5,25 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, persistState, getFocusState } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, persistState, getFocusState, createPiFrame } from "./state.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
+
+async function ensureActiveFrame(ctx: any, sessionId?: string) {
+  if (!S.focusaAvailable || S.activeFrameId) return S.activeFrameId;
+
+  focusaPost("/instance/connect", {
+    instance_id: `pi-${process.pid}`,
+    surface: "pi",
+    session_id: sessionId || `pi-session-${Date.now()}`,
+    cwd: ctx.cwd,
+  });
+
+  const frameId = await createPiFrame(ctx.cwd, "pi-auto");
+  if (frameId) persistState();
+  return frameId;
+}
 
 function connectSSE() {
   if (sseAbort) sseAbort.abort();
@@ -82,6 +97,8 @@ export function registerSession(pi: ExtensionAPI) {
     S.seenFirstBeforeAgentStart = false; // Reset: inject directive on first before_agent_start only
     S.lastCompactDecision = "";
     S.compactResumePending = false;
+    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {
@@ -127,22 +144,7 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
 
-    // §34.2A: Register instance
-    focusaPost("/instance/connect", {
-      instance_id: `pi-${process.pid}`,
-      surface: "pi",
-      session_id: (event as any).sessionId || `pi-session-${Date.now()}`,
-      cwd: ctx.cwd,
-    });
-
-    // §35.1: Auto-frame push
-    if (!S.activeFrameId) {
-      const r = await focusaFetch("/focus/push", {
-        method: "POST",
-        body: JSON.stringify({ title: `Pi session in ${ctx.cwd}`, source: "pi-auto" }),
-      });
-      if (r?.frame_id) S.activeFrameId = r.frame_id;
-    }
+    await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
 
     // §35.8: Session name sync from focus frame
     const data = await focusaFetch("/focus/stack");
@@ -186,6 +188,7 @@ export function registerSession(pi: ExtensionAPI) {
         pi.setActiveTools(names);
         ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
         ctx.ui.notify("Focusa daemon reconnected — tools re-enabled", "info");
+        await ensureActiveFrame(ctx);
         connectSSE();
 
         // §11/§25.7: Soft resync — reconcile local shadow with Focusa on reconnect
@@ -269,6 +272,8 @@ export function registerSession(pi: ExtensionAPI) {
   pi.on("session_switch", async (event, ctx) => {
     S.localDecisions = []; S.localConstraints = []; S.localFailures = [];
     S.turnCount = 0; S.cataloguedDecisions = []; S.cataloguedFacts = [];
+    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.fileEditCounts = {}; S.compilationErrors = []; S.longSessionSignaled = false;
     S.totalCompactions = 0; S.wbmNoCatalogue = false;
 
@@ -277,7 +282,6 @@ export function registerSession(pi: ExtensionAPI) {
     for (let i = switchEntries.length - 1; i >= 0; i--) {
       if (switchEntries[i].customType === "focusa-state" && switchEntries[i].data) {
         const d = switchEntries[i].data;
-        S.activeFrameId = d.frameId ?? null;
         S.localDecisions = d.decisions || [];
         S.localConstraints = d.constraints || [];
         S.localFailures = d.failures || [];
@@ -289,12 +293,8 @@ export function registerSession(pi: ExtensionAPI) {
       }
     }
 
-    if (S.focusaAvailable) {
-      focusaPost("/instance/connect", {
-        instance_id: `pi-${process.pid}`, surface: "pi",
-        session_id: (event as any).sessionId || "unknown",
-      });
-    }
+    if (!S.wbmEnabled) S.activeFrameId = null;
+    if (S.focusaAvailable) await ensureActiveFrame(ctx, (event as any).sessionId || "unknown");
   });
 
   // ── session_before_fork (§36.5) ───────────────────────────────────────────
