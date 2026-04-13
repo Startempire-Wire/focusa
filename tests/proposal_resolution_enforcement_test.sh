@@ -78,7 +78,7 @@ log_info "Resolve proposals"
 resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
   -d "{\"kind\":\"focus_change\",\"source\":\"${source}\"}")
-if echo "$resolve" | jq -e '.status == "accepted" and .applied_kind == "focus_frame_pushed"' >/dev/null 2>&1; then
+if echo "$resolve" | jq -e --arg source "$source" '.status == "accepted" and .applied_kind == "focus_frame_pushed" and .winner.source == $source' >/dev/null 2>&1; then
   log_pass "Proposal resolution reported canonical application"
 else
   log_fail "Proposal resolution did not report canonical application :: $resolve"
