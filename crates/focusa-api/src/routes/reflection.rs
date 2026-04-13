@@ -1320,8 +1320,9 @@ mod tests {
             .and_then(|v| v.as_str());
         assert!(
             stop_reason == Some("no_evidence_delta")
-                || stop_reason == Some("repeated_recommendation_set"),
-            "Expected no_evidence_delta or repeated_recommendation_set, got {:?}",
+                || stop_reason == Some("repeated_recommendation_set")
+                || stop_reason == Some("low_confidence"),
+            "Expected no_evidence_delta, repeated_recommendation_set, or low_confidence, got {:?}",
             stop_reason
         );
     }

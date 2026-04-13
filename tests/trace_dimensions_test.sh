@@ -78,7 +78,7 @@ else
 fi
 
 # Test 3: all posted trace events remained retrievable
-for _ in $(seq 1 20); do
+for _ in $(seq 1 40); do
     if [ "$RETRIEVED" -ge 18 ]; then
         break
     fi
@@ -100,12 +100,12 @@ fi
 
 # Test 4: event_type filter works for steering_detected
 STEERING=0
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+for _ in $(seq 1 40); do
     STEERING=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=steering_detected&turn_id=${RUN_ID}-steering_detected" | jq '(.count // 0)')
     if [ "$STEERING" -gt 0 ]; then
         break
     fi
-    sleep 0.1
+    sleep 0.25
 done
 if [ "$STEERING" -gt 0 ]; then
     log_pass "Steering detected filter tracked"

@@ -311,6 +311,22 @@ export function formatVerifiedDeltaItems(handles: Array<{ kind?: string; id?: st
   return out;
 }
 
+export function buildCanonicalReferenceAliases(items: string[] | undefined): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const re = /^\[HANDLE:([^:]+):([^\s]+)\s+"([^"]+)"\]$/;
+  for (const item of items || []) {
+    const match = item.match(re);
+    if (!match) continue;
+    const [, kind, id, label] = match;
+    const alias = `${label} -> ${kind}:${id}`;
+    if (seen.has(alias)) continue;
+    seen.add(alias);
+    out.push(alias);
+  }
+  return out;
+}
+
 export function orderSliceSections(sections: PiSliceSection[]): PiSliceSection[] {
   return [...sections].sort((a, b) => {
     const priorityDelta = (a.priority ?? 100) - (b.priority ?? 100);

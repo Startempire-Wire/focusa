@@ -6,7 +6,7 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, orderSliceSections } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections } from "./state.js";
 import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 
@@ -104,6 +104,7 @@ export function registerTurns(pi: ExtensionAPI) {
       minScore: 2,
       allowStaleFallback: scopeKind === "mission_carryover",
     });
+    const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
 
     const sectionEntries = [
       { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
@@ -114,7 +115,8 @@ export function registerTurns(pi: ExtensionAPI) {
       { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
       { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0, priority: 12, relevanceScore: missionIncluded ? 40 : 0 },
       { key: "projection_boundary", text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}` , include: true, selectedCount: 1, excludedCount: 0, priority: 13, relevanceScore: 90 },
-      { key: "canonical_sources", text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles`, include: true, selectedCount: 3, excludedCount: 0, priority: 14, relevanceScore: 90 },
+      { key: "canonical_sources", text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles reference_index`, include: true, selectedCount: 4, excludedCount: 0, priority: 14, relevanceScore: 90 },
+      buildSliceSection("canonical_references", "REFERENCE_ALIASES", canonicalReferenceAliases, canonicalReferenceAliases.length > 0, (values) => fmt("REFERENCE_ALIASES", values), 0, 15, 85),
       buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
       buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
       buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
@@ -237,8 +239,9 @@ export function registerTurns(pi: ExtensionAPI) {
           carryover_policy: S.queryScope?.carryoverPolicy,
           mission_included: missionIncluded,
         },
-        canonical_sources: ["focus_state", "semantic_memory", "ecs_handles"],
+        canonical_sources: ["focus_state", "semantic_memory", "ecs_handles", "reference_index"],
         retention_policy: "active_use_reduction_over_destructive_loss",
+        resolved_reference_count: canonicalReferenceAliases.length,
       });
       focusaPost("/telemetry/trace", {
         event_type: "relevant_context_selected",
@@ -264,6 +267,8 @@ export function registerTurns(pi: ExtensionAPI) {
           selected_count: relevantVerifiedDeltas.items.length,
           pruned_count: verifiedDeltaItems.length - relevantVerifiedDeltas.items.length,
           retention_policy: "active_use_reduction_over_destructive_loss",
+          resolved_reference_count: canonicalReferenceAliases.length,
+          resolved_reference_aliases: canonicalReferenceAliases,
         });
       }
       if (excludedContext.length) {
