@@ -33,6 +33,12 @@ export interface PiFocusSelection {
   scores: Array<{ value: string; score: number }>;
 }
 
+export interface PiRankedItem {
+  value: string;
+  updatedAt?: string | null;
+  pinned?: boolean;
+}
+
 export interface PiSliceSection {
   key: string;
   text: string;
@@ -200,35 +206,69 @@ function scoreRelevance(candidate: string, askText: string): number {
   return score;
 }
 
-export function selectRelevantItems(
-  items: string[] | undefined,
+function freshnessBoost(updatedAt?: string | null, pinned?: boolean): number {
+  if (pinned) return 4;
+  if (!updatedAt) return 0;
+  const ts = Date.parse(updatedAt);
+  if (Number.isNaN(ts)) return 0;
+  const ageHours = (Date.now() - ts) / 3_600_000;
+  if (ageHours <= 6) return 4;
+  if (ageHours <= 24) return 3;
+  if (ageHours <= 72) return 2;
+  if (ageHours <= 168) return 1;
+  if (ageHours >= 24 * 30) return -3;
+  if (ageHours >= 24 * 14) return -2;
+  if (ageHours >= 24 * 7) return -1;
+  return 0;
+}
+
+export function selectRelevantRankedItems(
+  items: PiRankedItem[] | undefined,
   askText: string,
-  options?: { maxItems?: number; fallbackItems?: number; minScore?: number },
+  options?: { maxItems?: number; fallbackItems?: number; minScore?: number; allowStaleFallback?: boolean },
 ): PiFocusSelection {
-  const values = (items || []).filter((item): item is string => Boolean(item && item.trim()));
+  const values = (items || []).filter((item): item is PiRankedItem => Boolean(item?.value && item.value.trim()));
   if (!values.length) return { items: [], excluded: [], scores: [] };
 
   const maxItems = options?.maxItems ?? 3;
   const fallbackItems = options?.fallbackItems ?? Math.min(2, maxItems);
   const minScore = options?.minScore ?? 2;
+  const allowStaleFallback = options?.allowStaleFallback ?? true;
   const ranked = values
-    .map((value, index) => ({ value, index, score: scoreRelevance(value, askText) }))
+    .map((item, index) => ({
+      value: item.value,
+      index,
+      score: scoreRelevance(item.value, askText) + freshnessBoost(item.updatedAt, item.pinned),
+    }))
     .sort((a, b) => b.score - a.score || b.index - a.index);
 
   const relevant = ranked.filter((entry) => entry.score >= minScore).slice(0, maxItems);
+  const fallbackPool = allowStaleFallback ? ranked : ranked.filter((entry) => entry.score >= 0);
   const chosen = relevant.length
     ? relevant
     : fallbackItems > 0
-      ? ranked.slice(Math.max(ranked.length - fallbackItems, 0))
+      ? fallbackPool.slice(Math.max(fallbackPool.length - fallbackItems, 0))
       : [];
   const chosenValues = chosen.map((entry) => entry.value);
   const chosenSet = new Set(chosenValues);
 
   return {
     items: chosenValues,
-    excluded: values.filter((value) => !chosenSet.has(value)),
+    excluded: values.map(({ value }) => value).filter((value) => !chosenSet.has(value)),
     scores: ranked.map(({ value, score }) => ({ value, score })),
   };
+}
+
+export function selectRelevantItems(
+  items: string[] | undefined,
+  askText: string,
+  options?: { maxItems?: number; fallbackItems?: number; minScore?: number },
+): PiFocusSelection {
+  return selectRelevantRankedItems(
+    (items || []).filter((item): item is string => Boolean(item && item.trim())).map((value) => ({ value })),
+    askText,
+    options,
+  );
 }
 
 export function selectionRelevanceScore(selection: PiFocusSelection): number {
@@ -240,27 +280,35 @@ export function selectionRelevanceScore(selection: PiFocusSelection): number {
   return scores.length ? Math.max(...scores) : 0;
 }
 
-export function formatWorkingSetItems(records: Array<{ key?: string; value?: string }> | undefined): string[] {
-  return (records || [])
-    .map((record) => {
-      const key = String(record?.key || "").trim();
-      const value = String(record?.value || "").trim();
-      if (!key || !value) return "";
-      return `${key} = ${value}`;
-    })
-    .filter(Boolean);
+export function formatWorkingSetItems(records: Array<{ key?: string; value?: string; updated_at?: string; pinned?: boolean }> | undefined): PiRankedItem[] {
+  const out: PiRankedItem[] = [];
+  for (const record of records || []) {
+    const key = String(record?.key || "").trim();
+    const value = String(record?.value || "").trim();
+    if (!key || !value) continue;
+    out.push({
+      value: `${key} = ${value}`,
+      updatedAt: record?.updated_at || null,
+      pinned: Boolean(record?.pinned),
+    });
+  }
+  return out;
 }
 
-export function formatVerifiedDeltaItems(handles: Array<{ kind?: string; id?: string; label?: string }> | undefined): string[] {
-  return (handles || [])
-    .map((handle) => {
-      const kind = String(handle?.kind || "other").trim() || "other";
-      const id = String(handle?.id || "").trim();
-      const label = String(handle?.label || "unnamed").trim() || "unnamed";
-      if (!id) return "";
-      return `[HANDLE:${kind}:${id} "${label}"]`;
-    })
-    .filter(Boolean);
+export function formatVerifiedDeltaItems(handles: Array<{ kind?: string; id?: string; label?: string; created_at?: string; pinned?: boolean }> | undefined): PiRankedItem[] {
+  const out: PiRankedItem[] = [];
+  for (const handle of handles || []) {
+    const kind = String(handle?.kind || "other").trim() || "other";
+    const id = String(handle?.id || "").trim();
+    const label = String(handle?.label || "unnamed").trim() || "unnamed";
+    if (!id) continue;
+    out.push({
+      value: `[HANDLE:${kind}:${id} "${label}"]`,
+      updatedAt: handle?.created_at || null,
+      pinned: Boolean(handle?.pinned),
+    });
+  }
+  return out;
 }
 
 export function orderSliceSections(sections: PiSliceSection[]): PiSliceSection[] {

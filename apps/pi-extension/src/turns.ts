@@ -6,7 +6,7 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, orderSliceSections } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, orderSliceSections } from "./state.js";
 import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 
@@ -90,10 +90,20 @@ export function registerTurns(pi: ExtensionAPI) {
     const relevantArtifacts = selectRelevantItems(artifactLabels, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
     const semanticMemory = await focusaFetch("/memory/semantic");
     const workingSetItems = formatWorkingSetItems(semanticMemory?.semantic);
-    const relevantWorkingSet = selectRelevantItems(workingSetItems, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
+    const relevantWorkingSet = selectRelevantRankedItems(workingSetItems, askText, {
+      maxItems: 3,
+      fallbackItems: scopeKind === "mission_carryover" ? 2 : 0,
+      minScore: 2,
+      allowStaleFallback: scopeKind === "mission_carryover",
+    });
     const ecsHandles = await focusaFetch("/ecs/handles");
     const verifiedDeltaItems = formatVerifiedDeltaItems(ecsHandles?.handles);
-    const relevantVerifiedDeltas = selectRelevantItems(verifiedDeltaItems, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
+    const relevantVerifiedDeltas = selectRelevantRankedItems(verifiedDeltaItems, askText, {
+      maxItems: 2,
+      fallbackItems: scopeKind === "mission_carryover" ? 1 : 0,
+      minScore: 2,
+      allowStaleFallback: scopeKind === "mission_carryover",
+    });
 
     const sectionEntries = [
       { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
@@ -228,6 +238,7 @@ export function registerTurns(pi: ExtensionAPI) {
           mission_included: missionIncluded,
         },
         canonical_sources: ["focus_state", "semantic_memory", "ecs_handles"],
+        retention_policy: "active_use_reduction_over_destructive_loss",
       });
       focusaPost("/telemetry/trace", {
         event_type: "relevant_context_selected",
@@ -241,6 +252,8 @@ export function registerTurns(pi: ExtensionAPI) {
           ...common,
           working_set_used: relevantWorkingSet.items,
           selected_count: relevantWorkingSet.items.length,
+          pruned_count: workingSetItems.length - relevantWorkingSet.items.length,
+          retention_policy: "active_use_reduction_over_destructive_loss",
         });
       }
       if (relevantVerifiedDeltas.items.length) {
@@ -249,6 +262,8 @@ export function registerTurns(pi: ExtensionAPI) {
           ...common,
           verification_surface: "verified_deltas",
           selected_count: relevantVerifiedDeltas.items.length,
+          pruned_count: verifiedDeltaItems.length - relevantVerifiedDeltas.items.length,
+          retention_policy: "active_use_reduction_over_destructive_loss",
         });
       }
       if (excludedContext.length) {
