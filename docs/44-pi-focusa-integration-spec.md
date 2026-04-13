@@ -245,17 +245,65 @@ Failure modes:
 1. Focusa unavailable before turn start
 2. Focusa fails during assemble
 3. Focusa drops mid-stream
+4. Focusa write attempted with no active Pi frame
+5. Focusa write rejected by slot validation
+6. Focusa write transport/update failure after frame resolution
 
 Behavior (faithful to proxy specs):
 1. passthrough to normal Pi behavior
 2. emit visible warning
 3. keep working; no hard stop
 4. retain audit event for outage window
+5. never collapse distinct write failures into one generic message
 
 Recovery:
 - auto-reconnect with backoff
 - soft resync (state/info, recent candidates)
 - never replay writes blindly; re-submit with idempotency keys where supported
+- if Focusa is healthy but Pi has no active frame, attempt automatic frame recovery before surfacing failure
+
+### 11.1 Write-path result semantics
+
+Pi bridge write paths must distinguish at least these result reasons:
+- `offline`
+- `no_active_frame`
+- `validation_rejected`
+- `write_failed`
+
+These reasons apply to `pushDelta()`-driven Focus State writes and must drive:
+- user-facing diagnostics
+- telemetry
+- fallback behavior
+- regression checks
+
+### 11.2 Missing-frame recovery
+
+A missing Pi frame is a recoverable condition.
+The bridge must:
+1. detect `activeFrameId == null`
+2. attempt shared `ensurePiFrame()` recovery once
+3. retry the write against the recovered frame
+4. only surface `no_active_frame` if recovery fails
+
+Frame creation must converge through a shared in-flight resolver so session lifecycle, commands, and tool writes do not race each other into duplicate or null frame states.
+
+### 11.3 Scratchpad fallback for unrecoverable cognitive writes
+
+For operator-critical writes:
+- `focusa_decide`
+- `focusa_constraint`
+- `focusa_failure`
+
+If Focus State persistence still fails after recovery attempts, the bridge must automatically mirror the intended payload to scratchpad with:
+- kind
+- reason code
+- payload
+- relevant metadata
+- turn number
+- timestamp
+
+This fallback is evidence preservation, not canonical Focus State persistence.
+User messaging must say whether fallback was saved automatically or also failed.
 
 ---
 
@@ -279,10 +327,22 @@ Track before/after:
 4. token usage per task
 5. successful long-session completion rate
 6. user interruption count for lost-context recovery
+7. Focusa write failure rate by reason code
+8. automatic frame-recovery success rate
+9. scratchpad fallback activation rate for cognitive writes
+
+Operational telemetry events should include:
+- `focusa_write_attempt`
+- `focusa_write_recovery_attempt`
+- `focusa_write_recovery_result`
+- `focusa_write_succeeded`
+- `focusa_write_failed`
+- `focusa_write_fallback`
 
 Success criteria:
 - 50%+ drop in overflow/retry incidents in long sessions
 - measurable reduction in manual “remind context” interventions
+- declining `no_active_frame` failures after lifecycle hardening
 
 ---
 
@@ -314,6 +374,11 @@ Phase 4 (smarter routing)
 5. Cross-harness continuity test (Pi -> Claude Code -> Pi)
 6. Threshold policy test: 50/70/85 tiers trigger expected actions
 7. Continuous pruning test: session token growth remains bounded without frequent full compaction
+8. No-active-frame recovery test: clear `activeFrameId`, invoke a Focusa write, verify frame recovery and successful write
+9. Validation-rejection test: submit an invalid slot payload, verify `validation_rejected` and no remote write
+10. Remote-write failure test: simulate failing `/focus/update`, verify `write_failed` result and truthful diagnostic
+11. Scratchpad fallback test: fail `focusa_decide`/`focusa_constraint`/`focusa_failure` writes after recovery, verify auto-created fallback entry in `/tmp/pi-scratch/turn-XXXX/notes.txt`
+12. Telemetry test: verify reason-coded write/recovery/fallback events are emitted with slot targets
 
 ---
 

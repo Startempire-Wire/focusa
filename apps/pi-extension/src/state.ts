@@ -10,7 +10,9 @@ export const S = {
   cfg: null as FocusaConfig | null,
   focusaAvailable: false,
   activeFrameId: null as string | null,
+  activeFramePromise: null as Promise<string | null> | null,
   sessionFrameKey: "" as string,
+  sessionCwd: "" as string,
   wbmEnabled: false,
   wbmDeep: false,
   wbmNoCatalogue: false,       // §29 --no-catalogue flag
@@ -153,6 +155,7 @@ export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any
 }
 
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
+  S.sessionCwd = cwd;
   const projectName = cwd.split("/").filter(Boolean).pop() || "root";
   const title = `Pi: ${projectName}`;
   const goal = `Work on ${projectName}`;
@@ -231,6 +234,33 @@ export async function wbExec(args: string[], fallbackUrl?: string, fallbackBody?
 }
 
 // ── Persist Focusa state to Pi session (§33.7) ──────────────────────────────
+export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
+  if (!S.focusaAvailable || S.activeFrameId) return S.activeFrameId;
+  if (S.activeFramePromise) return await S.activeFramePromise;
+
+  const resolvedCwd = cwd || S.sessionCwd || process.cwd();
+  S.sessionCwd = resolvedCwd;
+
+  S.activeFramePromise = (async () => {
+    focusaPost("/instance/connect", {
+      instance_id: `pi-${process.pid}`,
+      surface: "pi",
+      session_id: sessionId || S.sessionFrameKey || `pi-session-${Date.now()}`,
+      cwd: resolvedCwd,
+    });
+
+    const frameId = await createPiFrame(resolvedCwd, source);
+    if (frameId) persistState();
+    return frameId;
+  })();
+
+  try {
+    return await S.activeFramePromise;
+  } finally {
+    S.activeFramePromise = null;
+  }
+}
+
 export function persistState(): void {
   S.pi?.appendEntry("focusa-state", {
     frameId: S.activeFrameId,

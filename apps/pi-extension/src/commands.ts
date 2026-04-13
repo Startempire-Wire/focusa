@@ -5,7 +5,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSettingsListTheme } from "@mariozechner/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
-import { S, focusaFetch, getFocusState, persistState, createPiFrame } from "./state.js";
+import { S, focusaFetch, getFocusState, persistState, createPiFrame, ensurePiFrame } from "./state.js";
 import { saveConfigOverrides } from "./config.js";
 
 function nonEmptyLines(items: any[] | undefined): string[] {
@@ -100,7 +100,7 @@ export function registerCommands(pi: ExtensionAPI) {
       }
       let data = await getFocusState();
       if (!data) {
-        await createPiFrame(ctx.cwd, "pi-auto-recover");
+        await ensurePiFrame(ctx.cwd, undefined, "pi-auto-recover");
         data = await getFocusState();
       }
       if (!data) {
@@ -200,7 +200,7 @@ export function registerCommands(pi: ExtensionAPI) {
       S.healthBackoffMs = 30_000;
 
       if (!S.activeFrameId) {
-        await createPiFrame(ctx.cwd, "pi-auto");
+        await ensurePiFrame(ctx.cwd, undefined, "pi-auto");
       }
 
       ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
@@ -262,7 +262,7 @@ export function registerCommands(pi: ExtensionAPI) {
       }
 
       if (S.focusaAvailable) {
-        const frameId = await createPiFrame(ctx.cwd, "pi-reset");
+        const frameId = await ensurePiFrame(ctx.cwd, undefined, "pi-reset");
         if (frameId) {
           S.activeFrameId = frameId;
           ctx.ui.notify(

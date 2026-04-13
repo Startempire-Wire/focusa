@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, focusaFetch, focusaPost } from "./state.js";
+import { S, focusaFetch, focusaPost, ensurePiFrame } from "./state.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -23,6 +23,58 @@ function ensureScratchDir(): void {
     const { execSync } = require("child_process");
     execSync(`mkdir -p "${SCRATCHPAD_DIR}"`, { stdio: "pipe" });
   } catch { /* best effort */ }
+}
+
+function appendScratchpadLine(note: string, tag?: string): { saved: boolean; turn: number } {
+  const turn = S.turnCount;
+  const dir = scratchDir(turn);
+  ensureScratchDir();
+  const ts = new Date().toISOString().slice(11, 23);
+  const line = `[${ts}]${tag ? ` [${tag}]` : ""} ${note}`;
+  try {
+    const { execSync } = require("child_process");
+    execSync(`mkdir -p "${dir}" && echo ${JSON.stringify(line)} >> "${dir}/notes.txt"`, { stdio: "pipe" });
+    return { saved: true, turn };
+  } catch {
+    return { saved: false, turn };
+  }
+}
+
+function emitWriteTelemetry(event: string, body: Record<string, any>): void {
+  if (!S.cfg?.emitMetrics) return;
+  focusaPost("/telemetry/event", {
+    event,
+    surface: "pi",
+    turn_id: `pi-turn-${S.turnCount}`,
+    frame_id: S.activeFrameId,
+    ...body,
+  });
+}
+
+function deltaTargets(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): string[] {
+  return Object.entries(delta)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key);
+}
+
+function mirrorFailedFocusWrite(kind: "decision" | "constraint" | "failure", reason: PushDeltaFailureReason, payload: string, meta: Record<string, string | undefined>): { saved: boolean; turn: number } {
+  const note = JSON.stringify({
+    type: "focusa_write_fallback",
+    kind,
+    reason,
+    payload,
+    meta,
+    turn: S.turnCount,
+    at: new Date().toISOString(),
+  });
+  const scratch = appendScratchpadLine(note, "focusa-fallback");
+  emitWriteTelemetry("focusa_write_fallback", {
+    kind,
+    reason,
+    scratch_saved: scratch.saved,
+    scratch_turn: scratch.turn,
+  });
+  return scratch;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,20 +152,58 @@ function validateSlot(value: string, maxChars: number): boolean {
   return true;
 }
 
+export type PushDeltaFailureReason = "offline" | "no_active_frame" | "validation_rejected" | "write_failed";
+
+export type PushDeltaResult =
+  | { ok: true }
+  | { ok: false; reason: PushDeltaFailureReason };
+
+function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
+  switch (reason) {
+    case "offline":
+      return "Focusa offline";
+    case "no_active_frame":
+      return "No active Pi frame";
+    case "validation_rejected":
+      return "Focus State validation rejected the write";
+    case "write_failed":
+    default:
+      return "Focusa write failed";
+  }
+}
+
 // Push delta to Focusa — validates ALL slot values before write.
-export async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<boolean> {
-  if (!S.focusaAvailable || !S.activeFrameId) return false;
+export async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<PushDeltaResult> {
+  const targets = deltaTargets(delta);
+  let recoveredFrame = false;
+  emitWriteTelemetry("focusa_write_attempt", { targets, had_frame: !!S.activeFrameId });
+
+  if (!S.focusaAvailable) {
+    emitWriteTelemetry("focusa_write_failed", { targets, reason: "offline" });
+    return { ok: false, reason: "offline" };
+  }
 
   // Validate every string slot before sending.
-  if (delta.decisions?.some(v => !validateSlot(v, 160))) return false;
-  if (delta.constraints?.some(v => !validateSlot(v, 200))) return false;
-  if (delta.failures?.some(v => !validateSlot(v, 300))) return false;
-  if (delta.intent && !validateSlot(delta.intent, 500)) return false;
-  if (delta.current_focus && !validateSlot(delta.current_focus, 300)) return false;
-  if (delta.next_steps?.some(v => !validateSlot(v, 160))) return false;
-  if (delta.open_questions?.some(v => !validateSlot(v, 200))) return false;
-  if (delta.recent_results?.some(v => !validateSlot(v, 300))) return false;
-  if (delta.notes?.some(v => !validateSlot(v, 200))) return false;
+  if (delta.decisions?.some(v => !validateSlot(v, 160))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.constraints?.some(v => !validateSlot(v, 200))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.failures?.some(v => !validateSlot(v, 300))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.intent && !validateSlot(delta.intent, 500)) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.current_focus && !validateSlot(delta.current_focus, 300)) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.next_steps?.some(v => !validateSlot(v, 160))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.open_questions?.some(v => !validateSlot(v, 200))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.recent_results?.some(v => !validateSlot(v, 300))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+  if (delta.notes?.some(v => !validateSlot(v, 200))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
+
+  if (!S.activeFrameId) {
+    emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: "no_active_frame" });
+    const frameId = await ensurePiFrame(undefined, undefined, "pi-auto-recover");
+    recoveredFrame = !!frameId;
+    emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "no_active_frame", recovered: recoveredFrame });
+    if (!frameId) {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "no_active_frame" });
+      return { ok: false, reason: "no_active_frame" };
+    }
+  }
 
   try {
     await focusaFetch("/focus/update", {
@@ -124,8 +214,12 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
         delta,
       }),
     });
-    return true;
-  } catch { return false; }
+    emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame });
+    return { ok: true };
+  } catch {
+    emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame });
+    return { ok: false, reason: "write_failed" };
+  }
 }
 
 export function registerTools(pi: ExtensionAPI) {
@@ -152,18 +246,10 @@ export function registerTools(pi: ExtensionAPI) {
     ],
     async execute(_id, params) {
       const { note, tag } = params as { note: string; tag?: string };
-      const turn = S.turnCount;
-      const dir = scratchDir(turn);
-      ensureScratchDir();
-      const ts = new Date().toISOString().slice(11, 23);
-      const line = `[${ts}]${tag ? ` [${tag}]` : ""} ${note}`;
-      try {
-        const { execSync } = require("child_process");
-        execSync(`mkdir -p "${dir}" && echo ${JSON.stringify(line)} >> "${dir}/notes.txt"`, { stdio: "pipe" });
-      } catch { /* best effort */ }
+      const scratch = appendScratchpadLine(note, tag);
       return {
-        content: [{ type: "text" as const, text: `📝 Scratchpad saved (turn ${turn}): ${note.slice(0, 80)}${note.length > 80 ? "…" : ""}` }],
-        details: { note, tag, turn },
+        content: [{ type: "text" as const, text: `📝 Scratchpad saved (turn ${scratch.turn}): ${note.slice(0, 80)}${note.length > 80 ? "…" : ""}` }],
+        details: { note, tag, turn: scratch.turn },
       };
     },
   });
@@ -208,11 +294,13 @@ export function registerTools(pi: ExtensionAPI) {
         };
       }
       const turn = S.turnCount;
-      const ok = await pushDelta({ decisions: [decision] });
-      if (!ok) {
+      const result = await pushDelta({ decisions: [decision] });
+      if (!result.ok) {
+        const fallback = mirrorFailedFocusWrite("decision", result.reason, decision, { rationale: rationale?.slice(0, 200) });
+        const fallbackText = fallback.saved ? `Saved to scratchpad automatically (turn ${fallback.turn}).` : "Scratchpad fallback also failed.";
         return {
-          content: [{ type: "text" as const, text: `⚠️ Focus State unavailable — decision NOT recorded. Save to scratchpad: ${decision.slice(0, 80)}` }],
-          details: { valid: false, reason: "Focusa unavailable", decision, rationale: rationale?.slice(0, 200) },
+          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — decision NOT recorded in Focus State. ${fallbackText}` }],
+          details: { valid: false, reason: result.reason, decision, rationale: rationale?.slice(0, 200) },
         };
       }
       return {
@@ -262,11 +350,13 @@ export function registerTools(pi: ExtensionAPI) {
         };
       }
       const turn = S.turnCount;
-      const ok = await pushDelta({ constraints: [constraint] });
-      if (!ok) {
+      const result = await pushDelta({ constraints: [constraint] });
+      if (!result.ok) {
+        const fallback = mirrorFailedFocusWrite("constraint", result.reason, constraint, { source });
+        const fallbackText = fallback.saved ? `Saved to scratchpad automatically (turn ${fallback.turn}).` : "Scratchpad fallback also failed.";
         return {
-          content: [{ type: "text" as const, text: `⚠️ Focus State unavailable — constraint NOT recorded. Save to scratchpad: ${constraint.slice(0, 80)}` }],
-          details: { valid: false, reason: "Focusa unavailable", constraint, source },
+          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — constraint NOT recorded in Focus State. ${fallbackText}` }],
+          details: { valid: false, reason: result.reason, constraint, source },
         };
       }
       return {
@@ -305,11 +395,13 @@ export function registerTools(pi: ExtensionAPI) {
         };
       }
       const turn = S.turnCount;
-      const ok = await pushDelta({ failures: [failure] });
-      if (!ok) {
+      const result = await pushDelta({ failures: [failure] });
+      if (!result.ok) {
+        const fallback = mirrorFailedFocusWrite("failure", result.reason, failure, { recovery });
+        const fallbackText = fallback.saved ? `Saved to scratchpad automatically (turn ${fallback.turn}).` : "Scratchpad fallback also failed.";
         return {
-          content: [{ type: "text" as const, text: `⚠️ Focus State unavailable — failure NOT recorded. Save to scratchpad: ${failure.slice(0, 80)}` }],
-          details: { valid: false, reason: "Focusa unavailable", failure, recovery },
+          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — failure NOT recorded in Focus State. ${fallbackText}` }],
+          details: { valid: false, reason: result.reason, failure, recovery },
         };
       }
       return {
@@ -330,12 +422,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { intent } = params as { intent: string };
-      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, intent } };
       if (intent.length > 500) return { content: [{ type: "text", text: "Intent exceeds 500 chars. Distill to 1-3 sentences." }], details: { valid: false, intent } };
-      const ok = await pushDelta({ intent });
-      return ok
-        ? { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, intent } }
-        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, intent } };
+      const result = await pushDelta({ intent });
+      return result.ok
+        ? { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } }
+        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, intent } };
     },
   });
 
@@ -351,12 +442,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { focus } = params as { focus: string };
-      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, focus } };
       if (focus.length > 300) return { content: [{ type: "text", text: "Current focus exceeds 300 chars." }], details: { valid: false, focus } };
-      const ok = await pushDelta({ current_focus: focus });
-      return ok
-        ? { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, focus } }
-        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, focus } };
+      const result = await pushDelta({ current_focus: focus });
+      return result.ok
+        ? { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } }
+        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, focus } };
     },
   });
 
@@ -371,12 +461,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { step } = params as { step: string };
-      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, step } };
       if (step.length > 160) return { content: [{ type: "text", text: "Step exceeds 160 chars." }], details: { valid: false, step } };
-      const ok = await pushDelta({ next_steps: [step] });
-      return ok
-        ? { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, step } }
-        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, step } };
+      const result = await pushDelta({ next_steps: [step] });
+      return result.ok
+        ? { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } }
+        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, step } };
     },
   });
 
@@ -390,12 +479,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { question } = params as { question: string };
-      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, question } };
       if (question.length > 200) return { content: [{ type: "text", text: "Question exceeds 200 chars." }], details: { valid: false, question } };
-      const ok = await pushDelta({ open_questions: [question] });
-      return ok
-        ? { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, question } }
-        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, question } };
+      const result = await pushDelta({ open_questions: [question] });
+      return result.ok
+        ? { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } }
+        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, question } };
     },
   });
 
@@ -410,12 +498,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { result } = params as { result: string };
-      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, result } };
       if (result.length > 300) return { content: [{ type: "text", text: "Result exceeds 300 chars." }], details: { valid: false, result } };
-      const ok = await pushDelta({ recent_results: [result] });
-      return ok
-        ? { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, result } }
-        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, result } };
+      const writeResult = await pushDelta({ recent_results: [result] });
+      return writeResult.ok
+        ? { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } }
+        : { content: [{ type: "text", text: `${formatPushDeltaFailure(writeResult.reason)}.` }], details: { valid: false, result } };
     },
   });
 
@@ -430,12 +517,11 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { note } = params as { note: string };
-      if (!S.focusaAvailable || !S.activeFrameId) return { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, note } };
       if (note.length > 200) return { content: [{ type: "text", text: "Note exceeds 200 chars." }], details: { valid: false, note } };
-      const ok = await pushDelta({ notes: [note] });
-      return ok
-        ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, note } }
-        : { content: [{ type: "text", text: "Focusa unavailable." }], details: { valid: false, note } };
+      const result = await pushDelta({ notes: [note] });
+      return result.ok
+        ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } }
+        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, note } };
     },
   });
 }

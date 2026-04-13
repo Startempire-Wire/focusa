@@ -5,24 +5,13 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, persistState, getFocusState, createPiFrame } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, persistState, getFocusState, createPiFrame, ensurePiFrame } from "./state.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 
 async function ensureActiveFrame(ctx: any, sessionId?: string) {
-  if (!S.focusaAvailable || S.activeFrameId) return S.activeFrameId;
-
-  focusaPost("/instance/connect", {
-    instance_id: `pi-${process.pid}`,
-    surface: "pi",
-    session_id: sessionId || `pi-session-${Date.now()}`,
-    cwd: ctx.cwd,
-  });
-
-  const frameId = await createPiFrame(ctx.cwd, "pi-auto");
-  if (frameId) persistState();
-  return frameId;
+  return ensurePiFrame(ctx.cwd, sessionId, "pi-auto");
 }
 
 function connectSSE() {
@@ -98,6 +87,7 @@ export function registerSession(pi: ExtensionAPI) {
     S.lastCompactDecision = "";
     S.compactResumePending = false;
     S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.sessionCwd = ctx.cwd;
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {
@@ -272,7 +262,7 @@ export function registerSession(pi: ExtensionAPI) {
     S.localDecisions = []; S.localConstraints = []; S.localFailures = [];
     S.turnCount = 0; S.cataloguedDecisions = []; S.cataloguedFacts = [];
     S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
-    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.sessionCwd = ctx.cwd;
     S.fileEditCounts = {}; S.compilationErrors = []; S.longSessionSignaled = false;
     S.totalCompactions = 0; S.wbmNoCatalogue = false;
 
