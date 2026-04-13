@@ -50,4 +50,5 @@ done
 ./tests/ontology_event_contract_test.sh
 ./tests/ontology_world_contract_test.sh
 ./tests/golden_tasks_eval.sh
+./tests/scope_routing_regression_eval.sh
 ./tests/golden_tasks_comparative_eval.sh
