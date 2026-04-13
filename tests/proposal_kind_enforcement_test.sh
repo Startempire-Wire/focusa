@@ -17,6 +17,7 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
+run_source="spec-kind-test-$(date +%s%N)"
 thread_name="proposal-kind-thread-$(date +%s%N)"
 thread_resp=$(curl -sS -X POST "${BASE_URL}/v1/threads" \
   -H "Content-Type: application/json" \
@@ -32,7 +33,7 @@ thesis_intent="thesis-updated-$(date +%s%N)"
 log_info "Submit thesis_update proposal"
 thesis_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
-  -d "{\"kind\":\"thesis_update\",\"source\":\"spec-kind-test\",\"score\":0.96,\"deadline_ms\":60000,\"payload\":{\"thread_id\":\"${thread_id}\",\"primary_intent\":\"${thesis_intent}\",\"secondary_goals\":[\"goal-a\"],\"sources\":[\"spec-kind-test\"]}}")
+  -d "{\"kind\":\"thesis_update\",\"source\":\"${run_source}\",\"score\":0.96,\"deadline_ms\":60000,\"payload\":{\"thread_id\":\"${thread_id}\",\"primary_intent\":\"${thesis_intent}\",\"secondary_goals\":[\"goal-a\"],\"sources\":[\"spec-kind-test\"]}}")
 if echo "$thesis_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "thesis_update proposal accepted"
 else
@@ -41,7 +42,7 @@ fi
 
 thesis_visible=0
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg source "spec-kind-test" '.proposals | any(.source == $source and .kind == "thesis_update" and .status == "pending")' >/dev/null 2>&1; then
+  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg source "$run_source" '.proposals | any(.source == $source and .kind == "thesis_update" and .status == "pending")' >/dev/null 2>&1; then
     thesis_visible=1
     break
   fi
@@ -53,7 +54,7 @@ fi
 
 thesis_resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
-  -d '{"kind":"thesis_update"}')
+  -d "{\"kind\":\"thesis_update\",\"source\":\"${run_source}\"}")
 if echo "$thesis_resolve" | jq -e '.status == "accepted" and .applied_kind == "thread_thesis_updated"' >/dev/null 2>&1; then
   log_pass "thesis_update proposal applied canonically"
 else
@@ -71,7 +72,7 @@ mem_val="proposal-kind-value-$(date +%s%N)"
 log_info "Submit memory_write proposal"
 mem_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
-  -d "{\"kind\":\"memory_write\",\"source\":\"spec-kind-test\",\"score\":0.999,\"deadline_ms\":60000,\"payload\":{\"key\":\"${mem_key}\",\"value\":\"${mem_val}\",\"source\":\"spec-kind-test\"}}")
+  -d "{\"kind\":\"memory_write\",\"source\":\"${run_source}\",\"score\":0.999,\"deadline_ms\":60000,\"payload\":{\"key\":\"${mem_key}\",\"value\":\"${mem_val}\",\"source\":\"${run_source}\"}}")
 if echo "$mem_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "memory_write proposal accepted"
 else
@@ -80,7 +81,7 @@ fi
 
 mem_visible=0
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg source "spec-kind-test" '.proposals | any(.source == $source and .kind == "memory_write" and .status == "pending")' >/dev/null 2>&1; then
+  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg source "$run_source" '.proposals | any(.source == $source and .kind == "memory_write" and .status == "pending")' >/dev/null 2>&1; then
     mem_visible=1
     break
   fi
@@ -92,14 +93,22 @@ fi
 
 mem_resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
-  -d '{"kind":"memory_write"}')
+  -d "{\"kind\":\"memory_write\",\"source\":\"${run_source}\"}")
 if echo "$mem_resolve" | jq -e '.status == "accepted" and .applied_kind == "semantic_memory_upserted"' >/dev/null 2>&1; then
   log_pass "memory_write proposal applied canonically"
 else
   log_fail "memory_write resolve failed :: $mem_resolve"
 fi
 
-if curl -sS "${BASE_URL}/v1/memory/semantic" | jq -e --arg key "$mem_key" --arg val "$mem_val" '.semantic | any(.key == $key and .value == $val)' >/dev/null 2>&1; then
+mem_updated=0
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -sS "${BASE_URL}/v1/memory/semantic" | jq -e --arg key "$mem_key" --arg val "$mem_val" '.semantic | any(.key == $key and .value == $val)' >/dev/null 2>&1; then
+    mem_updated=1
+    break
+  fi
+  sleep 0.1
+done
+if [ "$mem_updated" = "1" ]; then
   log_pass "Semantic memory mutated canonically"
 else
   log_fail "Semantic memory not updated"

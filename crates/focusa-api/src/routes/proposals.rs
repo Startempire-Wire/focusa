@@ -485,6 +485,10 @@ async fn resolve_proposals(
         .get("kind")
         .and_then(|v| v.as_str())
         .map(parse_proposal_kind);
+    let source_filter = body
+        .get("source")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
 
     let pending: Vec<_> = snapshot
         .pre
@@ -492,6 +496,7 @@ async fn resolve_proposals(
         .iter()
         .filter(|p| matches!(p.status, ProposalStatus::Pending))
         .filter(|p| kind_filter.map(|k| p.kind == k).unwrap_or(true))
+        .filter(|p| source_filter.as_ref().map(|s| &p.source == s).unwrap_or(true))
         .cloned()
         .collect();
 
@@ -731,6 +736,7 @@ async fn resolve_proposals(
             for proposal in &mut next_state.pre.proposals {
                 if matches!(proposal.status, ProposalStatus::Pending)
                     && kind_filter.map(|k| proposal.kind == k).unwrap_or(true)
+                    && source_filter.as_ref().map(|s| &proposal.source == s).unwrap_or(true)
                 {
                     applied_events.push(FocusaEvent::OntologyProposalRejected {
                         proposal_id: proposal.id,

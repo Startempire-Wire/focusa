@@ -21,6 +21,10 @@ http_json() {
   curl -sS "$@"
 }
 
+curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"focus_change","source":"spec50-cleanup"}' >/dev/null 2>&1 || true
+
 before_count=$(http_json "${BASE_URL}/v1/focus/stack" | jq '.stack.frames | length')
 name="proposal-enforced-$(date +%s%N)"
 source="spec-50-test-${name}"
@@ -28,7 +32,7 @@ source="spec-50-test-${name}"
 log_info "Submit high-score focus_change proposal"
 submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
-  -d "{\"kind\":\"focus_change\",\"source\":\"${source}\",\"score\":0.95,\"deadline_ms\":60000,\"payload\":{\"title\":\"${name}\",\"goal\":\"${name}\",\"beads_issue_id\":\"spec50-enforcement\",\"tags\":[\"spec50\"]}}")
+  -d "{\"kind\":\"focus_change\",\"source\":\"${source}\",\"score\":0.999,\"deadline_ms\":60000,\"payload\":{\"title\":\"${name}\",\"goal\":\"${name}\",\"beads_issue_id\":\"spec50-enforcement\",\"tags\":[\"spec50\"]}}")
 if echo "$submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "Proposal submission accepted"
 else
@@ -37,7 +41,7 @@ fi
 
 visible=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-  if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" --arg title "$name" '.proposals | any(.source == $source and .score >= 0.95 and .payload.title == $title and .status == "pending")' >/dev/null 2>&1; then
+  if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" --arg title "$name" '.proposals | any(.source == $source and .score >= 0.999 and .payload.title == $title and .status == "pending")' >/dev/null 2>&1; then
     visible=1
     break
   fi
@@ -52,7 +56,7 @@ fi
 log_info "Resolve proposals"
 resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
-  -d '{"kind":"focus_change"}')
+  -d "{\"kind\":\"focus_change\",\"source\":\"${source}\"}")
 if echo "$resolve" | jq -e '.status == "accepted" and .applied_kind == "focus_frame_pushed"' >/dev/null 2>&1; then
   log_pass "Proposal resolution reported canonical application"
 else
