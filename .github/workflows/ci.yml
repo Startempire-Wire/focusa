@@ -31,7 +31,7 @@ jobs:
       - name: Install CI deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq curl python3
+          sudo apt-get install -y jq curl python3 ripgrep
       - name: API contract probe
         env:
           FOCUSA_BIND: 127.0.0.1:18787
