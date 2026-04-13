@@ -19,6 +19,7 @@ use uuid::Uuid;
 
 /// Extension format: { instance_id, surface, session_id, cwd }
 /// Canonical format: { kind }
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 struct ConnectBody {
     instance_id: Option<String>,

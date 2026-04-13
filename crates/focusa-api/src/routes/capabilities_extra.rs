@@ -628,14 +628,14 @@ async fn constitution_propose(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "constitution:propose")?;
     // Submit as a proposal via PRE (docs/41).
-    let _ = state.command_tx.send(focusa_core::types::Action::SubmitProposal {
+    state.command_tx.send(focusa_core::types::Action::SubmitProposal {
         kind: focusa_core::types::ProposalKind::ConstitutionRevision,
         source: "agent".into(),
         payload: serde_json::json!({
             "draft": body.draft,
             "justification": body.justification,
         }),
-        deadline_ms: 3600_000, // 1 hour.
+        deadline_ms: 3_600_000, // 1 hour.
         score: None,
     }).await.map_err(|_| (
         axum::http::StatusCode::INTERNAL_SERVER_ERROR,

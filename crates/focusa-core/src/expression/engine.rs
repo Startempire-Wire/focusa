@@ -250,8 +250,8 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
 
     // Slot 3: Active focus frame + thread thesis.
     let mut slot_focus = build_focus_slot(input.frame_title, input.focus_state, input.ascc);
-    if let Some(thesis) = input.thesis {
-        if !thesis.primary_intent.is_empty() {
+    if let Some(thesis) = input.thesis
+        && !thesis.primary_intent.is_empty() {
             slot_focus.push_str(&format!("\nTHREAD THESIS:\n  Intent: {}\n", thesis.primary_intent));
             if !thesis.secondary_goals.is_empty() {
                 slot_focus.push_str(&format!("  Goals: {}\n", thesis.secondary_goals.join(", ")));
@@ -263,7 +263,6 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
                 slot_focus.push_str(&format!("  Confidence: {:.0}%\n", thesis.confidence.score * 100.0));
             }
         }
-    }
 
     // Slot 4: Parent context.
     let mut slot_parents = build_parents_slot(input.parent_frames);

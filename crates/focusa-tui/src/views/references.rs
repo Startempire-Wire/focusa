@@ -35,7 +35,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .unwrap_or_default();
 
     if handles.is_empty() {
-        let msg = if app.extra_data.get("references").is_none() {
+        let msg = if !app.extra_data.contains_key("references") {
             "Loading references..."
         } else {
             "No handles in reference index.\n\nArtifacts are stored externally (ECS) and referenced via handles."

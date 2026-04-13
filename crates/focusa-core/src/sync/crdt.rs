@@ -80,10 +80,10 @@ impl VectorClock {
 
     /// Check if this clock descends from (has seen) another clock.
     pub fn descends_from(&self, other: &VectorClock) -> bool {
-        match self.compare(other) {
-            Some(std::cmp::Ordering::Greater) | Some(std::cmp::Ordering::Equal) => true,
-            _ => false,
-        }
+        matches!(
+            self.compare(other),
+            Some(std::cmp::Ordering::Greater) | Some(std::cmp::Ordering::Equal)
+        )
     }
 }
 

@@ -141,6 +141,11 @@ impl PrioritySender {
     pub async fn len(&self) -> usize {
         self.queue.len().await
     }
+
+    /// Check whether the queue is empty.
+    pub async fn is_empty(&self) -> bool {
+        self.len().await == 0
+    }
 }
 
 /// Receiver handle for priority queue.

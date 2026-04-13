@@ -1,12 +1,15 @@
 //! Worker Job Executor — runs background cognition jobs.
 //!
-//! Jobs:
+//! Current worker job kinds:
 //!   - classify_turn: Classify a turn as task/question/correction/meta.
-//!   - extract_ascc_delta: Extract ASCC delta from assistant response.
-//!   - detect_ufi_signals: Detect UFI signals from user message.
-//!   - compute_ari_observation: Score autonomy dimensions for a turn.
+//!   - extract_ascc_delta: Extract structured delta proposals from assistant response.
+//!   - detect_repetition: Detect repeated content patterns.
+//!   - scan_for_errors: Extract likely error signals from output.
+//!   - suggest_memory: Propose candidate memory-worthy patterns.
 //!
-//! All jobs run under strict time budget (default 200ms).
+//! Jobs run under explicit time budgets.
+//! 200ms remains the default outer worker timeout unless overridden by job/config.
+//! Some jobs may use bounded LLM-backed execution with heuristic fallback.
 //! Results are returned via channel — reducer decides acceptance.
 
 use crate::types::*;
@@ -463,8 +466,8 @@ mod tests {
 
 /// Execute a worker job with LLM extraction (async).
 /// 
-/// Tries MiniMax M2.7 first, falls back to regex heuristic on failure.
-/// Per UNIFIED_ORGANISM_SPEC §11.3.
+/// Tries bounded LLM-backed extraction first, then falls back to local heuristics on failure.
+/// Output remains advisory; reducer still decides acceptance/promotion.
 pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
     let content = job.correlation_id.as_deref().unwrap_or("");
     if content.is_empty() {
@@ -475,27 +478,27 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
     let prompt = match job.kind {
         WorkerJobKind::ClassifyTurn => format!(
             "Classify this user input as one of: task, question, correction, meta, clarification, acknowledgement.\nReturn JSON: {{\"classification\": \"...\", \"confidence\": 0.0-1.0}}\n\nINPUT:\n{}", 
-            truncate_content(&content, 2000)
+            truncate_content(content, 2000)
         ),
         WorkerJobKind::ExtractAsccDelta => format!(
             "Extract structured information from this text.\nReturn JSON with arrays for: decisions, constraints, failures, next_steps, open_questions, recent_results, notes, why_reasons.\nFor decisions, always include WHY (look for: because, the reason, I chose X over Y, this is better because).\nOnly include items actually present.\n\nTEXT:\n{}",
-            truncate_content(&content, 4000)
+            truncate_content(content, 4000)
         ),
         WorkerJobKind::DetectRepetition => format!(
             "Is this content semantically repetitive (saying the same thing multiple ways)?\nReturn JSON: {{\"is_repetitive\": true/false, \"ratio\": 0.0-1.0, \"evidence\": \"...\"}}\n\nCONTENT:\n{}",
-            truncate_content(&content, 2000)
+            truncate_content(content, 2000)
         ),
         WorkerJobKind::ScanForErrors => format!(
             "Identify errors, stack traces, and failure patterns in this text.\nReturn JSON: {{\"errors\": [{{\"type\": \"...\", \"severity\": \"...\", \"context\": \"...\"}}]}}\n\nTEXT:\n{}",
-            truncate_content(&content, 2000)
+            truncate_content(content, 2000)
         ),
         WorkerJobKind::SuggestMemory => format!(
             "Extract stable facts, preferences, and behavioral patterns worth remembering from this text.\nReturn JSON: {{\"suggestions\": [\"fact1\", \"fact2\"], \"count\": N}}\n\nTEXT:\n{}",
-            truncate_content(&content, 2000)
+            truncate_content(content, 2000)
         ),
     };
 
-    // Try LLM call (MiniMax M2.7 direct API, 8s timeout)
+    // Try bounded LLM call first; outer daemon worker timeout still applies.
     let client = reqwest::Client::new();
     let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
     if api_key.is_empty() {
@@ -517,8 +520,8 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
 
     match llm_result {
         Ok(Ok(resp)) => {
-            if let Ok(data) = resp.json::<serde_json::Value>().await {
-                if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+            if let Ok(data) = resp.json::<serde_json::Value>().await
+                && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
                     // Try to parse the JSON from LLM response
                     let start = text.find('{').unwrap_or(0);
                     let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
@@ -531,7 +534,6 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
                         };
                     }
                 }
-            }
             // LLM returned but couldn't parse — fall back to regex
             tracing::debug!(kind = ?job.kind, "LLM worker: response unparseable, falling back to regex");
             execute_job(job)

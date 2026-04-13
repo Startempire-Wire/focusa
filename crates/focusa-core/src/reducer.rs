@@ -268,13 +268,12 @@ pub fn reduce_with_meta(
             }
 
             // Update FrameStats on active frame (G1-detail-05 §FrameStats).
-            if let Some(active_id) = state.focus_stack.active_id {
-                if let Some(frame) = state.focus_stack.frames.iter_mut().find(|f| f.id == active_id) {
+            if let Some(active_id) = state.focus_stack.active_id
+                && let Some(frame) = state.focus_stack.frames.iter_mut().find(|f| f.id == active_id) {
                     frame.stats.turn_count += 1;
                     frame.stats.last_turn_id = Some(turn_id.clone());
                     frame.stats.last_token_estimate = prompt_tokens;
                 }
-            }
 
             // Emit errors as intuition signals.
             for err in errors {

@@ -173,10 +173,10 @@ fn compute_recency_score(
         return 0.5;
     }
     
-    let normalized = (elapsed_ms / total_ms).clamp(0.0, 1.0);
+    
     
     // Later proposals get higher score.
-    normalized
+    (elapsed_ms / total_ms).clamp(0.0, 1.0)
 }
 
 /// Apply RFM-based risk adjustment.

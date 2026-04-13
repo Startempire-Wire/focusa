@@ -316,8 +316,7 @@ pub fn strip_tool_markup_text(input: &str) -> String {
 
 fn remove_between_all(input: &str, start: &str, end: &str) -> String {
     let mut out = input.to_string();
-    loop {
-        let Some(sidx) = out.find(start) else { break };
+    while let Some(sidx) = out.find(start) {
         let Some(eidx_rel) = out[sidx + start.len()..].find(end) else {
             out.replace_range(sidx.., "");
             break;

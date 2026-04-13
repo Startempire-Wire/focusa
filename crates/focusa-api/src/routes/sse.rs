@@ -16,14 +16,17 @@ use std::time::Duration;
 use tokio::sync::broadcast;
 
 pub type EventSender = broadcast::Sender<String>;
+#[allow(dead_code)]
 pub type EventReceiver = broadcast::Receiver<String>;
 
 /// SSE event broadcaster.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct EventBroadcaster {
     sender: EventSender,
 }
 
+#[allow(dead_code)]
 impl EventBroadcaster {
     pub fn new() -> Self {
         let (sender, _receiver) = broadcast::channel(100);

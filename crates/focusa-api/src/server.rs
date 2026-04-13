@@ -57,6 +57,7 @@ pub struct AppState {
     /// Event broadcast channel (SSE clients subscribe).
     pub events_tx: broadcast::Sender<String>,
     /// SSE event broadcaster for real-time TUI updates.
+    #[allow(dead_code)]
     pub event_broadcaster: EventBroadcaster,
     pub config: FocusaConfig,
     /// Direct persistence access for sync routes.

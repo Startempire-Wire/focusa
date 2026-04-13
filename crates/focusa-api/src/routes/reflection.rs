@@ -375,6 +375,7 @@ fn check_and_bump_guardrails(
     Ok(None)
 }
 
+#[allow(dead_code)]
 struct ReflectionInputs {
     stack_depth: usize,
     active_frame_present: bool,
@@ -461,7 +462,7 @@ async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
         latest_event_ts: latest_ts,
         event_count,
         recent_events_summary: events_summary,
-        focus_state_summary: focus_state_summary,
+        focus_state_summary,
         semantic_keys: semantic_keys.to_vec(),
         procedural_rules: procedural_rules.to_vec(),
         llm_observations: llm_obs,
@@ -542,8 +543,8 @@ Focus on:
     
     match result {
         Ok(Ok(resp)) => {
-            if let Ok(data) = resp.json::<Value>().await {
-                if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+            if let Ok(data) = resp.json::<Value>().await
+                && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
                     // Extract JSON from response
                     let start = text.find('{').unwrap_or(0);
                     let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
@@ -561,7 +562,6 @@ Focus on:
                         return (obs, risks, recs, conf, true);
                     }
                 }
-            }
             tracing::warn!("Reflection LLM: response unparseable");
             (vec![], vec![], vec![], None, false)
         }
@@ -897,27 +897,23 @@ async fn reflect_history(
             )
         })?;
 
-        if let Some(since) = since_ts.as_ref() {
-            if created_at < *since {
+        if let Some(since) = since_ts.as_ref()
+            && created_at < *since {
                 continue;
             }
-        }
-        if let Some(until) = until_ts.as_ref() {
-            if created_at > *until {
+        if let Some(until) = until_ts.as_ref()
+            && created_at > *until {
                 continue;
             }
-        }
-        if let Some(cursor_before) = cursor_before_ts.as_ref() {
-            if created_at >= *cursor_before {
+        if let Some(cursor_before) = cursor_before_ts.as_ref()
+            && created_at >= *cursor_before {
                 continue;
             }
-        }
 
-        if let Some(want_mode) = wanted_mode.as_ref() {
-            if row.1 != *want_mode {
+        if let Some(want_mode) = wanted_mode.as_ref()
+            && row.1 != *want_mode {
                 continue;
             }
-        }
 
         let parsed: Value = serde_json::from_str(&row.5).unwrap_or(json!({"raw": row.5}));
         if let Some(want) = wanted_reason.as_ref() {

@@ -138,15 +138,14 @@ fn sanitize_messages_response_for_discord(value: &mut Value) -> usize {
     let mut removed_markers = 0usize;
     if let Some(content) = value.get_mut("content").and_then(|v| v.as_array_mut()) {
         for block in content {
-            if block.get("type").and_then(|v| v.as_str()) == Some("text") {
-                if let Some(text) = block.get("text").and_then(|v| v.as_str()) {
+            if block.get("type").and_then(|v| v.as_str()) == Some("text")
+                && let Some(text) = block.get("text").and_then(|v| v.as_str()) {
                     let before = count_tool_markup_markers(text);
                     let cleaned = strip_tool_markup_text(text);
                     let after = count_tool_markup_markers(&cleaned);
                     removed_markers += before.saturating_sub(after);
                     block["text"] = Value::String(cleaned);
                 }
-            }
         }
     }
     removed_markers
@@ -163,33 +162,29 @@ fn extract_messages_stream_text(body: &str) -> (String, usize) {
         if data == "[DONE]" {
             break;
         }
-        if let Ok(value) = serde_json::from_str::<Value>(data) {
-            if value.get("type").and_then(|v| v.as_str()) == Some("content_block_delta") {
-                if let Some(text) = value
+        if let Ok(value) = serde_json::from_str::<Value>(data)
+            && value.get("type").and_then(|v| v.as_str()) == Some("content_block_delta")
+                && let Some(text) = value
                     .get("delta")
                     .and_then(|d| d.get("text"))
                     .and_then(|t| t.as_str())
                 {
                     out.push_str(text);
                 }
-            }
-        }
     }
     let removed = count_tool_markup_markers(&out);
     (strip_tool_markup_text(&out), removed)
 }
 
 fn messages_auth(headers: &HeaderMap) -> Option<anthropic::AnthropicAuth> {
-    if let Ok(key) = std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_KEY")) {
-        if !key.is_empty() {
+    if let Ok(key) = std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_KEY"))
+        && !key.is_empty() {
             return Some(anthropic::AnthropicAuth::ApiKey(key));
         }
-    }
-    if let Ok(token) = std::env::var("FOCUSA_MESSAGES_BEARER").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_BEARER")) {
-        if !token.is_empty() {
+    if let Ok(token) = std::env::var("FOCUSA_MESSAGES_BEARER").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_BEARER"))
+        && !token.is_empty() {
             return Some(anthropic::AnthropicAuth::Bearer(token));
         }
-    }
     if let Some(key) = headers.get("x-api-key").and_then(|v| v.to_str().ok()) {
         return Some(anthropic::AnthropicAuth::ApiKey(key.to_string()));
     }
@@ -273,7 +268,7 @@ async fn stream_messages_response(
     let body_stream = try_stream! {
         let mut buf: Vec<u8> = Vec::new();
         while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            let chunk = chunk.map_err(std::io::Error::other)?;
             buf.extend_from_slice(&chunk);
             yield chunk;
         }
@@ -398,8 +393,8 @@ async fn chat_completions(
             if let Ok(Ok(resp)) = tokio::time::timeout(
                 std::time::Duration::from_secs(2),
                 enrichment_client.get("http://127.0.0.1:7400/me").send(),
-            ).await {
-                if let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
+            ).await
+                && let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
                     let mut constraints = Vec::new();
                     if let Some(interruptibility) = ctx_json.pointer("/state/interruptibility").and_then(|v| v.as_str()) {
                         if interruptibility == "very_low" {
@@ -411,11 +406,10 @@ async fn chat_completions(
                     if ctx_json.pointer("/timely/is_quiet_hours").and_then(|v| v.as_bool()).unwrap_or(false) {
                         constraints.push("Quiet hours — be concise, avoid churn".to_string());
                     }
-                    if let Some(agent_should) = ctx_json.pointer("/policy/agent_should").and_then(|v| v.as_str()) {
-                        if agent_should == "queue_questions" {
+                    if let Some(agent_should) = ctx_json.pointer("/policy/agent_should").and_then(|v| v.as_str())
+                        && agent_should == "queue_questions" {
                             constraints.push("Policy: queue questions, do not interrupt operator".to_string());
                         }
-                    }
                     if !constraints.is_empty() {
                         let focusa_read = enrichment_state.focusa.read().await;
                         if let Some(frame_id) = focusa_read.focus_stack.active_id {
@@ -435,23 +429,21 @@ async fn chat_completions(
                         }
                     }
                 }
-            }
 
             // Pairing Engine → Focus Gate signals
-            if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN").ok().or_else(|| std::env::var("GATEWAY_TOKEN").ok()) {
-                if let Ok(Ok(resp)) = tokio::time::timeout(
+            if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN").ok().or_else(|| std::env::var("GATEWAY_TOKEN").ok())
+                && let Ok(Ok(resp)) = tokio::time::timeout(
                     std::time::Duration::from_secs(2),
                     enrichment_client.get("http://127.0.0.1:8100/v1/score")
                         .header("Authorization", format!("Bearer {}", sb_token))
                         .send(),
-                ).await {
-                    if let Ok(score_json) = resp.json::<serde_json::Value>().await {
+                ).await
+                    && let Ok(score_json) = resp.json::<serde_json::Value>().await {
                         let mut signal_summaries = Vec::new();
-                        if let Some(drift_score) = score_json.pointer("/drift/score").and_then(|v| v.as_f64()) {
-                            if drift_score < 30.0 {
+                        if let Some(drift_score) = score_json.pointer("/drift/score").and_then(|v| v.as_f64())
+                            && drift_score < 30.0 {
                                 signal_summaries.push(format!("Operator-agent drift score: {} (disconnected)", drift_score));
                             }
-                        }
                         if score_json.pointer("/drift/rabbit/active").and_then(|v| v.as_bool()).unwrap_or(false) {
                             let rt = score_json.pointer("/drift/rabbit/type").and_then(|v| v.as_str()).unwrap_or("unknown");
                             signal_summaries.push(format!("R.A.B.I.T. detected: {}", rt));
@@ -473,8 +465,6 @@ async fn chat_completions(
                             let _ = enrichment_state.command_tx.send(Action::IngestSignal { signal }).await;
                         }
                     }
-                }
-            }
         });
     }
 
@@ -532,9 +522,9 @@ async fn chat_completions(
             let mut focusa = state.focusa.write().await;
 
             // Inject Mem0 results
-            if let Ok(Ok(resp)) = mem0_result {
-                if let Ok(data) = resp.json::<serde_json::Value>().await {
-                    if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+            if let Ok(Ok(resp)) = mem0_result
+                && let Ok(data) = resp.json::<serde_json::Value>().await
+                    && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                         for (i, mem) in results.iter().enumerate().take(3) {
                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
                                 focusa_core::memory::semantic::upsert(
@@ -549,14 +539,12 @@ async fn chat_completions(
                             tracing::debug!(count = results.len().min(3), "Pre-turn: Mem0 memories injected");
                         }
                     }
-                }
-            }
 
             // Inject Wiki results
-            if let Ok(Ok(output)) = wiki_result {
-                if output.status.success() {
-                    if let Ok(wiki_json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                        if let Some(pages) = wiki_json.as_array().or_else(|| wiki_json.get("pages").and_then(|v| v.as_array())) {
+            if let Ok(Ok(output)) = wiki_result
+                && output.status.success()
+                    && let Ok(wiki_json) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
+                        && let Some(pages) = wiki_json.as_array().or_else(|| wiki_json.get("pages").and_then(|v| v.as_array())) {
                             for (i, page) in pages.iter().enumerate().take(2) {
                                 let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
                                 let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
@@ -573,9 +561,6 @@ async fn chat_completions(
                                 tracing::debug!(count = pages.len().min(2), "Pre-turn: Wiki results injected");
                             }
                         }
-                    }
-                }
-            }
 
             drop(focusa);
         }
@@ -596,15 +581,14 @@ async fn chat_completions(
     // Update active turn with assembled prompt if enhancement occurred.
     if let Some(ref proxy_result) = result {
         let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn {
-            if turn.turn_id == turn_id {
+        if let Some(ref mut turn) = focusa.active_turn
+            && turn.turn_id == turn_id {
                 turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
             }
-        }
         drop(focusa);
 
         // Emit PromptAssembled event per G1-detail-11 §Events.
-        let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone().into()));
+        let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone()));
         let _ = state.command_tx.send(Action::EmitEvent { event: prompt_event }).await;
     }
 
@@ -659,7 +643,7 @@ async fn chat_completions(
                                     tracing::warn!("R1+ inline eval: response rejected, regenerating once");
                                     // Regenerate: re-forward the request
                                     if let Some(ref regen_req) = regen_request {
-                                        if let Ok(regen) = openai::forward_request(&client, &url, &key, regen_req).await {
+                                        if let Ok(regen) = openai::forward_request(client, &url, &key, regen_req).await {
                                             tracing::info!("R1+ regeneration complete");
                                             regen // Use regenerated response
                                         } else {
@@ -883,9 +867,9 @@ async fn messages_proxy(
                         .output()).await },
             );
             let mut focusa = state.focusa.write().await;
-            if let Ok(Ok(resp)) = mem0_r {
-                if let Ok(data) = resp.json::<serde_json::Value>().await {
-                    if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+            if let Ok(Ok(resp)) = mem0_r
+                && let Ok(data) = resp.json::<serde_json::Value>().await
+                    && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                         for (i, mem) in results.iter().enumerate().take(3) {
                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
                                 focusa_core::memory::semantic::upsert(&mut focusa.memory,
@@ -894,12 +878,10 @@ async fn messages_proxy(
                             }
                         }
                     }
-                }
-            }
-            if let Ok(Ok(output)) = wiki_r {
-                if output.status.success() {
-                    if let Ok(wj) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                        if let Some(pages) = wj.as_array().or_else(|| wj.get("pages").and_then(|v| v.as_array())) {
+            if let Ok(Ok(output)) = wiki_r
+                && output.status.success()
+                    && let Ok(wj) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
+                        && let Some(pages) = wj.as_array().or_else(|| wj.get("pages").and_then(|v| v.as_array())) {
                             for (i, page) in pages.iter().enumerate().take(2) {
                                 let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
                                 let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
@@ -911,9 +893,6 @@ async fn messages_proxy(
                                 }
                             }
                         }
-                    }
-                }
-            }
             drop(focusa);
         }
     }
@@ -926,15 +905,14 @@ async fn messages_proxy(
     // Update active turn with assembled prompt if enhancement occurred.
     if let Some(ref proxy_result) = result {
         let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn {
-            if turn.turn_id == turn_id {
+        if let Some(ref mut turn) = focusa.active_turn
+            && turn.turn_id == turn_id {
                 turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
             }
-        }
         drop(focusa);
 
         // Emit PromptAssembled event per G1-detail-11 §Events.
-        let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone().into()));
+        let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone()));
         let _ = state.command_tx.send(Action::EmitEvent { event: prompt_event }).await;
     }
 

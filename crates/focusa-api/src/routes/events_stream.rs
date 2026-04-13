@@ -9,6 +9,7 @@ use axum::{Router, routing::get};
 use std::convert::Infallible;
 use std::sync::Arc;
 
+#[allow(dead_code)]
 async fn stream(
     State(state): State<Arc<AppState>>,
 ) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
@@ -32,6 +33,7 @@ async fn stream(
     Sse::new(stream).keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(15)))
 }
 
+#[allow(dead_code)]
 pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/v1/events/stream", get(stream))
 }

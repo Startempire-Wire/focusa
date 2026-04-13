@@ -58,15 +58,14 @@ pub fn enforce_ttls(memory: &mut ExplicitMemory) {
         if record.pinned {
             return true;
         }
-        if let Some(ttl) = record.ttl {
-            if now > record.created_at + ttl {
+        if let Some(ttl) = record.ttl
+            && now > record.created_at + ttl {
                 tracing::info!(
                     key = %record.key,
                     "Semantic memory expired (TTL)"
                 );
                 return false;
             }
-        }
         true
     });
     let removed = before - memory.semantic.len();

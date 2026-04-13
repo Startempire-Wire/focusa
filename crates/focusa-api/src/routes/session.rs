@@ -132,6 +132,7 @@ async fn start_session(
     Ok(Json(json!({"status": "accepted"})))
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct ResumeSessionBody {
     session_id: String,

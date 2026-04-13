@@ -64,18 +64,16 @@ pub fn replay_events(
     
     for entry in entries {
         // Filter by session if specified.
-        if let Some(target_sid) = config.session_id {
-            if entry.session_id != Some(target_sid) {
+        if let Some(target_sid) = config.session_id
+            && entry.session_id != Some(target_sid) {
                 continue;
             }
-        }
         
         // Filter by timestamp if specified.
-        if let Some(until) = config.until {
-            if entry.timestamp > until {
+        if let Some(until) = config.until
+            && entry.timestamp > until {
                 break;
             }
-        }
         
         // Extract event from entry.
         let event = entry.event.clone();
@@ -150,18 +148,13 @@ fn extract_sft_example(_before: &FocusaState, after: &FocusaState) -> Option<ser
     // In a real implementation, this would look at the active_turn
     // and frame state to build a training example
     
-    if let Some(_turn) = &after.active_turn {
-        // Build SFT example from turn data
-        Some(serde_json::json!({
+    after.active_turn.as_ref().map(|_turn| serde_json::json!({
             "instruction": "placeholder - would extract from turn",
             "response": "placeholder - would extract from assistant_output",
             "metadata": {
                 "timestamp": chrono::Utc::now().to_rfc3339(),
             }
         }))
-    } else {
-        None
-    }
 }
 
 fn extract_preference_example(_before: &FocusaState, _after: &FocusaState) -> Option<serde_json::Value> {

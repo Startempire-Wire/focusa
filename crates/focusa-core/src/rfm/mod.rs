@@ -261,8 +261,8 @@ Return ONLY valid JSON:
             .send(),
     ).await {
         Ok(Ok(resp)) => {
-            if let Ok(data) = resp.json::<serde_json::Value>().await {
-                if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+            if let Ok(data) = resp.json::<serde_json::Value>().await
+                && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
                     let start = text.find('{').unwrap_or(0);
                     let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
                     if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
@@ -276,7 +276,6 @@ Return ONLY valid JSON:
                         return (c_ok, g_ok, detail);
                     }
                 }
-            }
             (true, true, "LLM response unparseable".into())
         }
         _ => (true, true, "LLM timeout".into()),

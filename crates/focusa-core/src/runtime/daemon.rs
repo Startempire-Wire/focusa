@@ -162,9 +162,9 @@ impl Daemon {
                     client.post("http://127.0.0.1:8200/v1/search")
                         .json(&serde_json::json!({"query": "wirebot context", "namespace": "wirebot_verious", "limit": 5}))
                         .send(),
-                ).await {
-                    if let Ok(data) = resp.json::<serde_json::Value>().await {
-                        if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                ).await
+                    && let Ok(data) = resp.json::<serde_json::Value>().await
+                        && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                             for (i, mem) in results.iter().enumerate().take(5) {
                                 if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
                                     let _ = cmd_tx.send(crate::types::Action::UpsertSemantic {
@@ -176,8 +176,6 @@ impl Daemon {
                             }
                             tracing::info!(count = results.len().min(5), "Startup: Mem0 memories seeded");
                         }
-                    }
-                }
 
                 // Wiki skill seeding via GraphQL
                 let wiki_api_key = std::env::var("WIKI_API_KEY").unwrap_or_default();
@@ -191,9 +189,9 @@ impl Daemon {
                             .header("Authorization", format!("Bearer {}", wiki_api_key))
                             .json(&gql)
                             .send(),
-                    ).await {
-                        if let Ok(data) = resp.json::<serde_json::Value>().await {
-                            if let Some(pages) = data.pointer("/data/pages/list").and_then(|v| v.as_array()) {
+                    ).await
+                        && let Ok(data) = resp.json::<serde_json::Value>().await
+                            && let Some(pages) = data.pointer("/data/pages/list").and_then(|v| v.as_array()) {
                                 for page in pages.iter().take(10) {
                                     let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
                                     let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
@@ -207,8 +205,6 @@ impl Daemon {
                                 }
                                 tracing::info!(count = pages.len(), "Startup: wiki skills seeded");
                             }
-                        }
-                    }
                 }
 
                 // Graph relation seeding: query Mem0 /v1/graph for entity relations (§14 Phase 4.2)
@@ -217,9 +213,9 @@ impl Daemon {
                     client.post("http://127.0.0.1:8200/v1/graph")
                         .json(&serde_json::json!({"query": "wirebot projects skills", "entity": "wirebot"}))
                         .send(),
-                ).await {
-                    if let Ok(data) = resp.json::<serde_json::Value>().await {
-                        if let Some(relations) = data.get("relations").and_then(|v| v.as_array()) {
+                ).await
+                    && let Ok(data) = resp.json::<serde_json::Value>().await
+                        && let Some(relations) = data.get("relations").and_then(|v| v.as_array()) {
                             for (i, rel) in relations.iter().enumerate().take(5) {
                                 let rel_str = serde_json::to_string(rel).unwrap_or_default();
                                 if !rel_str.is_empty() && rel_str != "null" {
@@ -234,8 +230,6 @@ impl Daemon {
                                 tracing::info!(count = relations.len(), "Startup: graph relations seeded");
                             }
                         }
-                    }
-                }
             });
         }
 
@@ -349,11 +343,10 @@ impl Daemon {
                     } = event
                     {
                         let frame_id = self.state.focus_stack.active_id;
-                        if let Some(output) = assistant_output.as_deref() {
-                            if !output.is_empty() {
+                        if let Some(output) = assistant_output.as_deref()
+                            && !output.is_empty() {
                                 self.intuition.observe_turn(frame_id, output);
                             }
-                        }
                         for err in errors {
                             self.intuition.observe_turn(frame_id, err);
                         }
@@ -374,7 +367,7 @@ impl Daemon {
                         {
                             let rfm_level = self.state.rfm.level;
                             let should_evaluate = rfm_level >= crate::types::RfmLevel::R1
-                                || self.state.telemetry.total_events % 3 == 0;
+                                || self.state.telemetry.total_events.is_multiple_of(3);
                             
                             if should_evaluate {
                             let eval_user = raw_user_input.clone().unwrap_or_default();
@@ -432,9 +425,9 @@ Return:
                                             "temperature": 0.1,
                                         }))
                                         .send(),
-                                ).await {
-                                    if let Ok(data) = resp.json::<serde_json::Value>().await {
-                                        if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                                ).await
+                                    && let Ok(data) = resp.json::<serde_json::Value>().await
+                                        && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
                                             let start = text.find('{').unwrap_or(0);
                                             let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
                                             if let Ok(eval) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
@@ -470,8 +463,8 @@ Return:
                                                 }).await;
                                                 
                                                 // Constraint violations → add to Focus State failures for next turn
-                                                if !violations.is_empty() {
-                                                    if let Some(fid) = eval_frame_id {
+                                                if !violations.is_empty()
+                                                    && let Some(fid) = eval_frame_id {
                                                         let failure_text = violations.iter()
                                                             .map(|v| format!("Constraint violated: {}", v))
                                                             .collect::<Vec<_>>();
@@ -484,7 +477,6 @@ Return:
                                                             },
                                                         }).await;
                                                     }
-                                                }
                                                 
                                                 // Low quality → add note to Focus State
                                                 if overall < 0.5 || !answers {
@@ -503,8 +495,6 @@ Return:
                                                 }
                                             }
                                         }
-                                    }
-                                }
                             });
                         } // should_evaluate
                         }
@@ -530,8 +520,8 @@ Return:
                         );
 
                         // RFM: run validators on assistant output (docs/36 §6).
-                        if let Some(output) = assistant_output.as_deref() {
-                            if !output.is_empty() {
+                        if let Some(output) = assistant_output.as_deref()
+                            && !output.is_empty() {
                                 let frame_constraints: Vec<String> = frame_id
                                     .and_then(|fid| {
                                         self.state.focus_stack.frames.iter().find(|f| f.id == fid)
@@ -609,11 +599,10 @@ Return:
                                     // The proxy/adapter layer should re-prompt with RFM context.
                                 }
                             }
-                        }
 
                         // UFI/UXP: detect friction signals from user input (docs/14).
-                        if let Some(input) = raw_user_input.as_deref() {
-                            if !input.is_empty() {
+                        if let Some(input) = raw_user_input.as_deref()
+                            && !input.is_empty() {
                                 let ufi_signals =
                                     crate::workers::executor::detect_ufi_signals(input);
                                 let session_id =
@@ -636,7 +625,6 @@ Return:
                                     );
                                 }
                             }
-                        }
                     }
 
                     // Thread Thesis refinement: every 3rd turn, call LLM to update thesis.
@@ -645,8 +633,8 @@ Return:
                         ref assistant_output,
                         ref raw_user_input,
                         ..
-                    } = event {
-                        if self.state.telemetry.total_events % 3 == 0 {
+                    } = event
+                        && self.state.telemetry.total_events.is_multiple_of(3) {
                             // Get thesis from active thread, focus state from active frame
                             let thread_thesis = self.state.threads.iter()
                                 .find(|t| t.status == crate::types::ThreadStatus::Active)
@@ -719,9 +707,9 @@ Return ONLY valid JSON:
                                                 "temperature": 0.2,
                                             }))
                                             .send(),
-                                    ).await {
-                                        if let Ok(data) = resp.json::<serde_json::Value>().await {
-                                            if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                                    ).await
+                                        && let Ok(data) = resp.json::<serde_json::Value>().await
+                                            && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
                                                 let start = text.find('{').unwrap_or(0);
                                                 let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
@@ -760,12 +748,9 @@ Return ONLY valid JSON:
                                                     }).await;
                                                 }
                                             }
-                                        }
-                                    }
                                 });
                             }
                         }
-                    }
 
                     // DEEP PATH: anticipatory queries for next turn (§11.7).
                     // After turn completes, predict what user will ask next,
@@ -800,9 +785,9 @@ Return ONLY valid JSON:
                                         "temperature": 0.3,
                                     }))
                                     .send(),
-                            ).await {
-                                if let Ok(data) = resp.json::<serde_json::Value>().await {
-                                    if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                            ).await
+                                && let Ok(data) = resp.json::<serde_json::Value>().await
+                                    && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
                                         let start = text.find('[').unwrap_or(0);
                                         let end = text.rfind(']').map(|i| i + 1).unwrap_or(text.len());
                                         if let Ok(queries) = serde_json::from_str::<Vec<String>>(&text[start..end]) {
@@ -814,17 +799,15 @@ Return ONLY valid JSON:
                                                     client.post("http://127.0.0.1:8200/v1/search")
                                                         .json(&serde_json::json!({"query": q, "namespace": "wirebot_verious", "limit": 2}))
                                                         .send(),
-                                                ).await {
-                                                    if let Ok(data) = resp.json::<serde_json::Value>().await {
-                                                        if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                                                ).await
+                                                    && let Ok(data) = resp.json::<serde_json::Value>().await
+                                                        && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                                                             for mem in results.iter().take(2) {
                                                                 if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
                                                                     context.push(text.to_string());
                                                                 }
                                                             }
                                                         }
-                                                    }
-                                                }
                                             }
                                             if !context.is_empty() {
                                                 // Store anticipated context for next turn
@@ -839,8 +822,6 @@ Return ONLY valid JSON:
                                             }
                                         }
                                     }
-                                }
-                            }
                         });
                     }
 
@@ -853,8 +834,7 @@ Return ONLY valid JSON:
                         ref assistant_output,
                         ..
                     } = event
-                    {
-                        if let Some(output) = assistant_output.as_deref() {
+                        && let Some(output) = assistant_output.as_deref() {
                             let bytes = output.len() as u64;
                             let est_tokens = (bytes / 4) as u32;
                             if bytes > self.config.ecs_externalize_bytes_threshold
@@ -897,7 +877,6 @@ Return ONLY valid JSON:
                                 }
                             }
                         }
-                    }
 
                     // ASCC: update checkpoint after FocusState changes (G1-07).
                     if let FocusaEvent::FocusStateUpdated { frame_id, .. } = &event {
@@ -938,9 +917,9 @@ Return ONLY valid JSON:
                                 client.post("http://127.0.0.1:8200/v1/search")
                                     .json(&serde_json::json!({"query": query, "namespace": "wirebot_verious", "limit": 10}))
                                     .send(),
-                            ).await {
-                                if let Ok(data) = resp.json::<serde_json::Value>().await {
-                                    if let Some(results) = data.get("results").and_then(|v| v.as_array()) {
+                            ).await
+                                && let Ok(data) = resp.json::<serde_json::Value>().await
+                                    && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                                         for (i, mem) in results.iter().enumerate().take(5) {
                                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
                                                 let key = format!("mem0.seed.{}", i);
@@ -953,8 +932,6 @@ Return ONLY valid JSON:
                                         }
                                         tracing::info!(count = results.len().min(5), "Session-start: Mem0 memories seeded");
                                     }
-                                }
-                            }
                             
                             // Wiki skill seeding: query wiki GraphQL for skill-tagged pages,
                             // seed as semantic memory entries (§14 Phase 2.4)
@@ -970,9 +947,9 @@ Return ONLY valid JSON:
                                         .header("Authorization", format!("Bearer {}", wiki_api_key))
                                         .json(&gql)
                                         .send(),
-                                ).await {
-                                    if let Ok(data) = resp.json::<serde_json::Value>().await {
-                                        if let Some(pages) = data.pointer("/data/pages/list").and_then(|v| v.as_array()) {
+                                ).await
+                                    && let Ok(data) = resp.json::<serde_json::Value>().await
+                                        && let Some(pages) = data.pointer("/data/pages/list").and_then(|v| v.as_array()) {
                                             for page in pages.iter().take(5) {
                                                 let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
                                                 let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
@@ -988,8 +965,6 @@ Return ONLY valid JSON:
                                                 tracing::info!(count = pages.len(), "Session-start: wiki skills seeded");
                                             }
                                         }
-                                    }
-                                }
                             }
                         });
                     }
@@ -1308,8 +1283,8 @@ Return ONLY valid JSON:
 
         // extract_ascc_delta: extract decisions/constraints/failures/next_steps
         // from assistant output into structured FocusStateDelta.
-        if let Some(output) = assistant_output {
-            if !output.is_empty() {
+        if let Some(output) = assistant_output
+            && !output.is_empty() {
                 let job = WorkerJob {
                     id: Uuid::now_v7(),
                     kind: WorkerJobKind::ExtractAsccDelta,
@@ -1324,11 +1299,10 @@ Return ONLY valid JSON:
                     tracing::warn!(turn_id, "Worker queue full: dropped ExtractAsccDelta job");
                 }
             }
-        }
 
         // scan_for_errors: detect error patterns in assistant output.
-        if let Some(output) = assistant_output {
-            if !output.is_empty() {
+        if let Some(output) = assistant_output
+            && !output.is_empty() {
                 let job = WorkerJob {
                     id: Uuid::now_v7(),
                     kind: WorkerJobKind::ScanForErrors,
@@ -1343,11 +1317,10 @@ Return ONLY valid JSON:
                     tracing::warn!(turn_id, "Worker queue full: dropped ScanForErrors job");
                 }
             }
-        }
 
         // detect_repetition: check for repeated content patterns.
-        if let Some(output) = assistant_output {
-            if !output.is_empty() {
+        if let Some(output) = assistant_output
+            && !output.is_empty() {
                 let job = WorkerJob {
                     id: Uuid::now_v7(),
                     kind: WorkerJobKind::DetectRepetition,
@@ -1362,11 +1335,10 @@ Return ONLY valid JSON:
                     tracing::debug!(turn_id, "Worker queue full: dropped DetectRepetition job");
                 }
             }
-        }
 
         // classify_turn: classify user input as task/question/correction/meta.
-        if let Some(input) = raw_user_input {
-            if !input.is_empty() {
+        if let Some(input) = raw_user_input
+            && !input.is_empty() {
                 let job = WorkerJob {
                     id: Uuid::now_v7(),
                     kind: WorkerJobKind::ClassifyTurn,
@@ -1381,12 +1353,11 @@ Return ONLY valid JSON:
                     tracing::debug!(turn_id, "Worker queue full: dropped ClassifyTurn job");
                 }
             }
-        }
 
         // suggest_memory: look for stable patterns worth remembering.
         // Only run if there's substantial output.
-        if let Some(output) = assistant_output {
-            if output.len() > 200 {
+        if let Some(output) = assistant_output
+            && output.len() > 200 {
                 let job = WorkerJob {
                     id: Uuid::now_v7(),
                     kind: WorkerJobKind::SuggestMemory,
@@ -1401,7 +1372,6 @@ Return ONLY valid JSON:
                     tracing::debug!(turn_id, "Worker queue full: dropped SuggestMemory job");
                 }
             }
-        }
     }
 
     /// Translate Action → FocusaEvent(s).
@@ -1567,16 +1537,13 @@ Return ONLY valid JSON:
                     tokio::process::Command::new("mesh")
                         .args(["task", "list", "--format", "json"])
                         .output(),
-                ).await {
-                    if let Ok(output) = output {
-                        if let Ok(tasks_str) = std::str::from_utf8(&output.stdout) {
-                            if tasks_str.contains(&beads_issue_id) {
-                                tags.push(format!("flow-mesh:linked"));
+                ).await
+                    && let Ok(output) = output
+                        && let Ok(tasks_str) = std::str::from_utf8(&output.stdout)
+                            && tasks_str.contains(&beads_issue_id) {
+                                tags.push("flow-mesh:linked".to_string());
                                 tracing::info!(beads_id = %beads_issue_id, "Focus frame linked to Flow Mesh task");
                             }
-                        }
-                    }
-                }
 
                 Ok(vec![FocusaEvent::FocusFramePushed {
                     frame_id: Uuid::now_v7(),
@@ -1815,8 +1782,8 @@ Return ONLY valid JSON:
         }
 
         // Check disk — Guardian JSON: {data: {disk: {used_pct: 77}}}
-        if let Some(disk_pct) = status.pointer("/data/disk/used_pct").and_then(|v| v.as_f64()) {
-            if disk_pct > 90.0 {
+        if let Some(disk_pct) = status.pointer("/data/disk/used_pct").and_then(|v| v.as_f64())
+            && disk_pct > 90.0 {
                 let signal = crate::types::Signal {
                     id: Uuid::now_v7(),
                     ts: Utc::now(),
@@ -1829,7 +1796,6 @@ Return ONLY valid JSON:
                 };
                 let _ = self.process_action(crate::types::Action::IngestSignal { signal }).await;
             }
-        }
     }
 
     /// Sync internal state to the shared handle for API readers.
@@ -2078,8 +2044,8 @@ Return ONLY valid JSON:
                 // Create procedural rules from worker suggestions.
                 if let Some(suggestions) = result.payload.get("suggestions").and_then(|v| v.as_array()) {
                     for suggestion in suggestions {
-                        if let Some(text) = suggestion.as_str() {
-                            if text.len() > 10 {
+                        if let Some(text) = suggestion.as_str()
+                            && text.len() > 10 {
                                 let rule_id = format!("worker-suggest-{}", Uuid::now_v7());
                                 self.state.memory.procedural.push(RuleRecord {
                                     id: rule_id.clone(),
@@ -2094,7 +2060,6 @@ Return ONLY valid JSON:
                                 });
                                 tracing::info!(rule_id, text = %text.chars().take(80).collect::<String>(), "Procedural rule created from worker suggestion");
                             }
-                        }
                     }
                     if let Err(e) = self.persistence.save_state(&self.state) {
                         tracing::error!("Failed to save state after rule creation: {}", e);
