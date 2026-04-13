@@ -580,11 +580,10 @@ fn parse_symbols(content: &str, language: &str) -> Vec<(String, String)> {
             }
             _ => None,
         };
-        if let Some((name, kind)) = parsed {
-            if !name.is_empty() {
+        if let Some((name, kind)) = parsed
+            && !name.is_empty() {
                 out.push((name.to_string(), kind.to_string()));
             }
-        }
         if out.len() >= MAX_DISCOVERED_SYMBOLS {
             break;
         }
@@ -735,8 +734,8 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
     }
 
     let package_json = root.join("package.json");
-    if let Some(content) = read_text(&package_json) {
-        if let Some((pkg_name, deps)) = parse_package_json(&content) {
+    if let Some(content) = read_text(&package_json)
+        && let Some((pkg_name, deps)) = parse_package_json(&content) {
             let package_id = stable_id("package", &format!("npm:{}", pkg_name));
             package_ids.push(package_id.clone());
             objects.push(json!({
@@ -773,7 +772,6 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                 }));
             }
         }
-    }
 
     let package_id = package_ids
         .first()
@@ -814,8 +812,8 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
         }));
         files_scanned += 1;
 
-        if let Some(parent) = rel_path.parent().and_then(|p| p.to_str()) {
-            if !parent.is_empty() {
+        if let Some(parent) = rel_path.parent().and_then(|p| p.to_str())
+            && !parent.is_empty() {
                 let module_id = stable_id("module", parent);
                 if module_ids.insert(module_id.clone()) {
                     objects.push(json!({
@@ -839,7 +837,6 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                     "status": "verified",
                 }));
             }
-        }
 
         if file_type == "test" {
             let test_id = stable_id("test", &rel);

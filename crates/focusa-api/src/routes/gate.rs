@@ -172,11 +172,11 @@ impl SignalBody {
         let summary = if let Some(ref s) = self.summary {
             s.clone()
         } else if let Some(ref p) = self.payload {
-            if let Some(ref tool) = p.get("tool") {
+            if let Some(tool) = p.get("tool") {
                 format!("Tool error: {}", tool.as_str().unwrap_or("unknown"))
-            } else if let Some(ref msg) = p.get("error") {
-                format!("Error: {}", msg.as_str().unwrap_or("unknown")[..200].to_string())
-            } else if let Some(ref model) = p.get("model_id") {
+            } else if let Some(msg) = p.get("error") {
+                format!("Error: {}", &msg.as_str().unwrap_or("unknown")[..200])
+            } else if let Some(model) = p.get("model_id") {
                 format!("Model: {}", model.as_str().unwrap_or("unknown"))
             } else if let Some(ref cnt) = p.get("count") {
                 format!("Error rate: {} errors", cnt)

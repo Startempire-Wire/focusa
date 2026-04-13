@@ -207,16 +207,14 @@ async fn update_delta(
     };
 
     // Per-slot validation with kind + capacity cap check
-    if let Some(ref intent) = delta.intent {
-        if !validate_slot(intent, 500, "intent") {
+    if let Some(ref intent) = delta.intent
+        && !validate_slot(intent, 500, "intent") {
             return Ok(Json(json!({"status": "rejected", "reason": "intent: validation failed"})));
         }
-    }
-    if let Some(ref cs) = delta.current_state {
-        if !validate_slot(cs, 300, "current_state") {
+    if let Some(ref cs) = delta.current_state
+        && !validate_slot(cs, 300, "current_state") {
             return Ok(Json(json!({"status": "rejected", "reason": "current_state: validation failed"})));
         }
-    }
     for (kind, values, max_chars) in [
         ("decisions", &delta.decisions, 160),
         ("constraints", &delta.constraints, 200),
