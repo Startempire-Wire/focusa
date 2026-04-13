@@ -6,6 +6,8 @@ use axum::{Json, Router, routing::{get, post}};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
+use uuid::Uuid;
+use chrono::Utc;
 
 /// GET /v1/telemetry/tokens — token usage metrics.
 async fn tokens(State(state): State<Arc<AppState>>) -> Json<Value> {
@@ -58,12 +60,12 @@ async fn record_tool_usage(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ToolUsageBody>,
 ) -> Result<Json<Value>, axum::http::StatusCode> {
-    use chrono::Utc;
-    use uuid::Uuid;
-
     // Feed tool names to telemetry for autonomy analysis.
     let recorded = body.tools.len();
+    let turn_id = body.turn_id.clone();
+    let tools = body.tools.clone();
     let mut focusa = state.focusa.write().await;
+    focusa.telemetry.total_events += 1;
     for tool in &body.tools {
         focusa.telemetry.tool_calls.push(tool.clone());
     }
@@ -71,12 +73,13 @@ async fn record_tool_usage(
         "event_id": Uuid::now_v7().to_string(),
         "event_type": "tools_invoked",
         "timestamp": Utc::now().to_rfc3339(),
+        "turn_id": turn_id,
         "payload": {
             "turn_id": body.turn_id,
             "tools": body.tools,
         },
     }));
-    Ok(Json(json!({"status": "accepted", "recorded": recorded})))
+    Ok(Json(json!({"status": "accepted", "recorded": recorded, "turn_id": turn_id, "tools": tools})))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -85,11 +88,72 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/telemetry/cost", get(cost))
         .route("/v1/telemetry/tools", get(tool_usage))
         .route("/v1/telemetry/tool-usage", post(record_tool_usage))
+        .route("/v1/telemetry/activity", post(record_activity_event))
+        .route("/v1/telemetry/ops", post(record_operational_event))
+        // Deprecated compatibility alias for legacy extension callers.
+        .route("/v1/telemetry/event", post(record_operational_event))
         // SPEC 56: Trace dimension endpoints
         .route("/v1/telemetry/trace", post(record_trace_event))
         .route("/v1/telemetry/trace", get(get_trace_events))
         .route("/v1/telemetry/trace/stats", get(get_trace_stats))
 }
+// ═══════════════════════════════════════════════════════════════════════════════
+// Operational + Activity Telemetry
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// POST /v1/telemetry/activity — record session/activity telemetry.
+async fn record_activity_event(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> Json<serde_json::Value> {
+    let event_name = body.get("event")
+        .and_then(|v| v.as_str())
+        .unwrap_or("activity_event");
+
+    let mut focusa = state.focusa.write().await;
+    focusa.telemetry.total_events += 1;
+    focusa.telemetry.trace_events.push(serde_json::json!({
+        "event_id": Uuid::now_v7().to_string(),
+        "channel": "activity",
+        "event": event_name,
+        "timestamp": Utc::now().to_rfc3339(),
+        "payload": body,
+    }));
+
+    Json(serde_json::json!({
+        "status": "recorded",
+        "channel": "activity",
+        "event": event_name,
+    }))
+}
+
+/// POST /v1/telemetry/ops — record operational telemetry.
+/// `/v1/telemetry/event` is kept as a deprecated compatibility alias.
+async fn record_operational_event(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> Json<serde_json::Value> {
+    let event_name = body.get("event")
+        .and_then(|v| v.as_str())
+        .unwrap_or("operational_event");
+
+    let mut focusa = state.focusa.write().await;
+    focusa.telemetry.total_events += 1;
+    focusa.telemetry.trace_events.push(serde_json::json!({
+        "event_id": Uuid::now_v7().to_string(),
+        "channel": "ops",
+        "event": event_name,
+        "timestamp": Utc::now().to_rfc3339(),
+        "payload": body,
+    }));
+
+    Json(serde_json::json!({
+        "status": "recorded",
+        "channel": "ops",
+        "event": event_name,
+    }))
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SPEC 56: Trace Dimensions
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -100,8 +164,6 @@ async fn record_trace_event(
     Json(body): Json<serde_json::Value>,
 ) -> Json<serde_json::Value> {
     use focusa_core::types::TelemetryEventType;
-    use uuid::Uuid;
-    use chrono::Utc;
 
     let event_type_str = body.get("event_type")
         .and_then(|v| v.as_str())
@@ -130,10 +192,12 @@ async fn record_trace_event(
 
     // Store in focusa telemetry state (in-memory)
     let mut focusa = state.focusa.write().await;
+    focusa.telemetry.total_events += 1;
     focusa.telemetry.trace_events.push(serde_json::json!({
         "event_id": Uuid::now_v7().to_string(),
         "event_type": event_type_str,
         "timestamp": Utc::now().to_rfc3339(),
+        "turn_id": body.get("turn_id").cloned().unwrap_or(serde_json::Value::Null),
         "payload": body,
     }));
 
@@ -169,15 +233,20 @@ async fn get_trace_events(
         })
         .filter(|e| {
             turn_id_filter
-                .map(|wanted| e.get("payload").and_then(|p| p.get("turn_id")).and_then(|v| v.as_str()) == Some(wanted))
+                .map(|wanted| {
+                    let nested = e.get("payload").and_then(|p| p.get("turn_id")).and_then(|v| v.as_str());
+                    let top = e.get("turn_id").and_then(|v| v.as_str());
+                    nested == Some(wanted) || top == Some(wanted)
+                })
                 .unwrap_or(true)
         })
         .filter(|e| {
             turn_id_prefix_filter
                 .map(|wanted| {
-                    e.get("payload")
-                        .and_then(|p| p.get("turn_id"))
-                        .and_then(|v| v.as_str())
+                    let nested = e.get("payload").and_then(|p| p.get("turn_id")).and_then(|v| v.as_str());
+                    let top = e.get("turn_id").and_then(|v| v.as_str());
+                    nested
+                        .or(top)
                         .map(|turn_id| turn_id.starts_with(wanted))
                         .unwrap_or(false)
                 })

@@ -4,6 +4,43 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { FocusaConfig } from "./config.js";
 
+export type PiCurrentAskKind = "question" | "instruction" | "correction" | "meta" | "unknown";
+
+export interface PiCurrentAsk {
+  text: string;
+  kind: PiCurrentAskKind;
+  sourceTurnId: string;
+  updatedAt: number;
+}
+
+export interface PiQueryScope {
+  scopeKind: "fresh_question" | "mission_carryover" | "correction" | "meta";
+  carryoverPolicy: "suppress_by_default" | "allow_if_relevant" | "prefer_reset";
+  sourceTurnId: string;
+  updatedAt: number;
+}
+
+export interface PiExcludedContext {
+  labels: string[];
+  reason: "budget_truncation" | "fresh_scope" | "correction_reset" | "irrelevance" | "none";
+  sourceTurnId: string;
+  updatedAt: number;
+}
+
+export interface PiFocusSelection {
+  items: string[];
+  excluded: string[];
+  scores: Array<{ value: string; score: number }>;
+}
+
+export interface PiSliceSection {
+  key: string;
+  text: string;
+  include: boolean;
+  selectedCount?: number;
+  excludedCount?: number;
+}
+
 // ── Mutable shared state ─────────────────────────────────────────────────────
 export const S = {
   pi: null as ExtensionAPI | null,
@@ -21,6 +58,10 @@ export const S = {
   localDecisions: [] as string[],
   localConstraints: [] as string[],
   localFailures: [] as string[],
+  // Transient routing metadata — truthful bridge toward CurrentAsk/QueryScope work.
+  currentAsk: null as PiCurrentAsk | null,
+  queryScope: null as PiQueryScope | null,
+  excludedContext: null as PiExcludedContext | null,
   // Compaction tier (§20)
   lastCompactTime: 0,
   compactsThisHour: 0,
@@ -92,6 +133,134 @@ export function focusaPost(path: string, body: any): void {
   focusaFetch(path, { method: "POST", body: JSON.stringify(body) }).catch(() => {});
 }
 
+export function classifyCurrentAsk(text: string): PiCurrentAskKind {
+  const lower = text.trim().toLowerCase();
+  if (!lower) return "unknown";
+  if (/^(no\b|undo\b|revert\b|wrong\b|that's incorrect\b|not what i asked\b)/i.test(lower)) return "correction";
+  if (lower.endsWith("?") || /^(what|why|how|when|where|who|which|can|could|should|is|are|do|does|did)\b/.test(lower)) return "question";
+  if (/^(note|remember|fyi|for context|meta|discussion:)\b/.test(lower)) return "meta";
+  return "instruction";
+}
+
+export function deriveQueryScope(askKind: PiCurrentAskKind): Pick<PiQueryScope, "scopeKind" | "carryoverPolicy"> {
+  return {
+    scopeKind: askKind === "question"
+      ? "fresh_question"
+      : askKind === "correction"
+        ? "correction"
+        : askKind === "meta"
+          ? "meta"
+          : "mission_carryover",
+    carryoverPolicy: askKind === "question"
+      ? "suppress_by_default"
+      : askKind === "correction"
+        ? "prefer_reset"
+        : "allow_if_relevant",
+  };
+}
+
+function tokenizeForRelevance(text: string): string[] {
+  return Array.from(new Set(
+    text
+      .toLowerCase()
+      .match(/[a-z0-9_./:-]{3,}/g) || [],
+  ));
+}
+
+function scoreRelevance(candidate: string, askText: string): number {
+  const askTokens = tokenizeForRelevance(askText);
+  if (!askTokens.length) return 0;
+
+  const candidateText = candidate.toLowerCase();
+  const candidateTokens = new Set(tokenizeForRelevance(candidate));
+  let score = 0;
+
+  for (const token of askTokens) {
+    if (candidateTokens.has(token)) {
+      score += token.length >= 8 ? 5 : 3;
+      continue;
+    }
+    if (candidateText.includes(token)) {
+      score += token.length >= 8 ? 3 : 2;
+      continue;
+    }
+    if (token.includes("/") && candidateText.includes(token.split("/").pop() || token)) {
+      score += 2;
+    }
+  }
+
+  const normalizedAsk = askText.trim().toLowerCase();
+  if (normalizedAsk && candidateText.includes(normalizedAsk)) score += 8;
+  if (/\b(test|failing|error|bug|trace|constraint|decision|scope|question|correction)\b/.test(normalizedAsk) && /\b(test|failing|error|bug|trace|constraint|decision|scope|question|correction)\b/.test(candidateText)) {
+    score += 2;
+  }
+
+  return score;
+}
+
+export function selectRelevantItems(
+  items: string[] | undefined,
+  askText: string,
+  options?: { maxItems?: number; fallbackItems?: number; minScore?: number },
+): PiFocusSelection {
+  const values = (items || []).filter((item): item is string => Boolean(item && item.trim()));
+  if (!values.length) return { items: [], excluded: [], scores: [] };
+
+  const maxItems = options?.maxItems ?? 3;
+  const fallbackItems = options?.fallbackItems ?? Math.min(2, maxItems);
+  const minScore = options?.minScore ?? 2;
+  const ranked = values
+    .map((value, index) => ({ value, index, score: scoreRelevance(value, askText) }))
+    .sort((a, b) => b.score - a.score || b.index - a.index);
+
+  const relevant = ranked.filter((entry) => entry.score >= minScore).slice(0, maxItems);
+  const chosen = relevant.length
+    ? relevant
+    : fallbackItems > 0
+      ? ranked.slice(Math.max(ranked.length - fallbackItems, 0))
+      : [];
+  const chosenValues = chosen.map((entry) => entry.value);
+  const chosenSet = new Set(chosenValues);
+
+  return {
+    items: chosenValues,
+    excluded: values.filter((value) => !chosenSet.has(value)),
+    scores: ranked.map(({ value, score }) => ({ value, score })),
+  };
+}
+
+export function shouldIncludeMissionContext(
+  askText: string,
+  scopeKind: PiQueryScope["scopeKind"],
+  missionLike: string[],
+): boolean {
+  if (scopeKind === "mission_carryover" || scopeKind === "meta") return true;
+  if (!missionLike.some(Boolean)) return false;
+
+  const joinedMission = missionLike.filter(Boolean).join(" \n ").toLowerCase();
+  const askTokens = tokenizeForRelevance(askText);
+  if (!askTokens.length) return false;
+  return askTokens.some((token) => joinedMission.includes(token));
+}
+
+export function buildSliceSection(
+  key: string,
+  label: string,
+  items: string[] | undefined,
+  include: boolean,
+  formatter?: (values: string[]) => string,
+  excludedCount?: number,
+): PiSliceSection {
+  const values = (items || []).filter(Boolean);
+  return {
+    key,
+    text: formatter ? formatter(values) : `${label}: ${values[0] || "(none)"}`,
+    include: include && values.length > 0,
+    selectedCount: values.length,
+    excludedCount,
+  };
+}
+
 // ── Health check (§38.3, §11 backoff) ────────────────────────────────────────
 export async function checkFocusa(): Promise<boolean> {
   const h = await focusaFetch("/health");
@@ -104,7 +273,7 @@ export async function checkFocusa(): Promise<boolean> {
     // §11: Outage recovery — record audit event
     if (!wasAvailable && S.outageStart) {
       const durationMs = Date.now() - S.outageStart;
-      focusaPost("/telemetry/event", {
+      focusaPost("/telemetry/ops", {
         event: "outage_recovered",
         surface: "pi",
         duration_ms: durationMs,
@@ -120,7 +289,7 @@ export async function checkFocusa(): Promise<boolean> {
     if (wasAvailable && !S.outageStart) {
       S.outageStart = Date.now();
       // Fire-and-forget — may fail since Focusa is down
-      focusaFetch("/telemetry/event", {
+      focusaFetch("/telemetry/ops", {
         method: "POST",
         body: JSON.stringify({ event: "outage_started", surface: "pi", turn_count: S.turnCount }),
       }).catch(() => {});

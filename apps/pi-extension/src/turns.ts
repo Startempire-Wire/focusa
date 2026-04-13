@@ -6,7 +6,7 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, shouldIncludeMissionContext, buildSliceSection } from "./state.js";
 import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 
@@ -71,29 +71,138 @@ export function registerTurns(pi: ExtensionAPI) {
     const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
     const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
 
+    const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
+    const askText = S.currentAsk?.text || "";
+    const missionIncluded = shouldIncludeMissionContext(askText, scopeKind, [fs.intent || "", fs.current_focus || "", fs.current_state || "", frame?.title || ""]);
+    const relevantDecisions = selectRelevantItems(fs.decisions, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
+    const relevantConstraints = selectRelevantItems(fs.constraints, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
+    const recentResults = selectRelevantItems(fs.recent_results, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
+    const nextSteps = selectRelevantItems(fs.next_steps, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
+    const openQuestions = selectRelevantItems(fs.open_questions, askText, { maxItems: 2, fallbackItems: 0, minScore: 2 });
+    const failures = selectRelevantItems(fs.failures, askText, { maxItems: 2, fallbackItems: scopeKind === "correction" ? 1 : 0, minScore: 2 });
+    const artifactLabels = fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || [];
+    const relevantArtifacts = selectRelevantItems(artifactLabels, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
+
+    const sectionEntries = [
+      { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0 },
+      { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0 },
+      { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0 },
+      { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0 },
+      { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0 },
+      buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length),
+      buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length),
+      buildSliceSection("recent_results", "RECENT_RESULTS", recentResults.items, scopeKind !== "fresh_question" && recentResults.items.length > 0, (values) => fmt("RECENT_RESULTS", values), recentResults.excluded.length),
+      buildSliceSection("failures", "FAILURES", failures.items, (scopeKind === "correction" || scopeKind === "mission_carryover") && failures.items.length > 0, (values) => fmt("FAILURES", values), failures.excluded.length),
+      buildSliceSection("next_steps", "NEXT_STEPS", nextSteps.items, scopeKind === "mission_carryover" && nextSteps.items.length > 0, (values) => fmt("NEXT_STEPS", values), nextSteps.excluded.length),
+      buildSliceSection("artifacts", "ARTIFACT_HANDLES", relevantArtifacts.items, relevantArtifacts.items.length > 0, (values) => fmt("ARTIFACT_HANDLES", values), relevantArtifacts.excluded.length),
+      buildSliceSection("open_questions", "OPEN_QUESTIONS", openQuestions.items, scopeKind === "meta" && openQuestions.items.length > 0, (values) => fmt("OPEN_QUESTIONS", values), openQuestions.excluded.length),
+    ];
+
+    const scopedEntries = sectionEntries.filter((entry) => entry.include);
+    const scopeExcludedLabels = sectionEntries.filter((entry) => !entry.include).map((entry) => entry.key);
+    const irrelevantExcludedLabels = [
+      ...(relevantDecisions.excluded.length ? ["decisions"] : []),
+      ...(relevantConstraints.excluded.length ? ["constraints"] : []),
+      ...(recentResults.excluded.length ? ["recent_results"] : []),
+      ...(nextSteps.excluded.length ? ["next_steps"] : []),
+      ...(openQuestions.excluded.length ? ["open_questions"] : []),
+      ...(failures.excluded.length ? ["failures"] : []),
+      ...(relevantArtifacts.excluded.length ? ["artifacts"] : []),
+    ];
+
     // §Prompt Serialization: uppercase section headers, bullets for list items
     const lines: string[] = [
-      `[Focusa Focus State — 10-slot live refresh]`,
-      `FOCUS_FRAME: ${frame?.title || "(untitled)"}`,
-      `INTENT: ${fs.intent || "(none)"}`,
-      `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`,
-      fmt("DECISIONS", fs.decisions),
-      fmt("ARTIFACTS", fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || []),
-      fmt("CONSTRAINTS", fs.constraints),
-      fmt("OPEN_QUESTIONS", fs.open_questions),
-      fmt("NEXT_STEPS", fs.next_steps),
-      fmt("RECENT_RESULTS", fs.recent_results),
-      fmt("FAILURES", fs.failures),
-      fmt("NOTES", fs.notes),
+      `[Focusa Focus Slice — minimal applicable context]`,
+      ...scopedEntries.map((entry) => entry.text),
     ];
 
     // §36.7: Budget cap — truncate if over token budget
     let text = lines.join("\n");
-    const tokens = estimateTokens(text);
-    if (tokens > maxTokens) {
+    const fullTokens = estimateTokens(text);
+    const truncated = fullTokens > maxTokens;
+    if (truncated) {
       // Truncate from bottom (NOTES → FAILURES → RECENT_RESULTS, etc.)
       text = lines.slice(0, 4).join("\n") +
-        `\n[... Focus State truncated — ${tokens - maxTokens} tokens over budget]`;
+        `\n[... Focus State truncated — ${fullTokens - maxTokens} tokens over budget]`;
+    }
+    const injectedTokens = estimateTokens(text);
+
+    // Minimal context-injection trace telemetry for SPEC 56 / doc 78 gap closure.
+    // Emit explicit typed trace events for the fields we can objectively compute today,
+    // without pretending the hot path already has richer routing/hijack semantics.
+    const lastUserMsg = [...(event.messages || [])].reverse().find((m: any) => m?.role === "user");
+    const lastUserText = extractText(lastUserMsg?.content || "").slice(0, 200);
+    const priorMissionReused = scopeKind === "mission_carryover" && Boolean(fs.intent || fs.current_focus || fs.current_state || (fs.decisions && fs.decisions.length));
+    const budgetExcludedLabels = truncated ? ["artifacts", "constraints", "open_questions", "next_steps", "recent_results", "failures"] : [];
+    const relevantContextLabels = scopedEntries.map((entry) => entry.key);
+    const excludedContext = Array.from(new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels]));
+    const sourceTurnId = `pi-turn-${S.turnCount}`;
+    const exclusionReason = truncated
+      ? "budget_truncation"
+      : irrelevantExcludedLabels.length
+        ? "irrelevance"
+        : scopeKind === "fresh_question"
+          ? "fresh_scope"
+          : scopeKind === "correction"
+            ? "correction_reset"
+            : "none";
+    S.excludedContext = {
+      labels: excludedContext,
+      reason: exclusionReason,
+      sourceTurnId,
+      updatedAt: Date.now(),
+    };
+
+    if (S.cfg?.emitMetrics) {
+      const common = {
+        turn_id: sourceTurnId,
+        frame_id: S.activeFrameId,
+        surface: "pi",
+        routing_mode: "minimal_focus_slice_builder",
+        focus_slice_estimated_tokens: injectedTokens,
+        focus_slice_full_tokens: fullTokens,
+        focus_slice_truncated: truncated,
+        excluded_context: excludedContext,
+        current_ask_kind: S.currentAsk?.kind,
+        query_scope_kind: S.queryScope?.scopeKind,
+        carryover_policy: S.queryScope?.carryoverPolicy,
+      };
+      if (lastUserText) {
+        focusaPost("/telemetry/trace", {
+          event_type: "operator_subject",
+          ...common,
+          operator_subject_preview: lastUserText,
+        });
+        focusaPost("/telemetry/trace", {
+          event_type: "active_subject_after_routing",
+          ...common,
+          active_subject_after_routing: lastUserText,
+        });
+      }
+      focusaPost("/telemetry/trace", {
+        event_type: "prior_mission_reused",
+        ...common,
+        prior_mission_reused: priorMissionReused,
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "focus_slice_size",
+        ...common,
+        focus_slice_size: lines.length,
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "relevant_context_selected",
+        ...common,
+        relevant_context_labels: relevantContextLabels,
+        selected_counts: Object.fromEntries(scopedEntries.map((entry) => [entry.key, entry.selectedCount || 0])),
+      });
+      if (excludedContext.length) {
+        focusaPost("/telemetry/trace", {
+          event_type: "irrelevant_context_excluded",
+          ...common,
+          exclusion_reason: exclusionReason,
+          excluded_context_labels: excludedContext,
+        });
+      }
     }
 
     // §33.2: Prepend Focus State as first message before every LLM call
@@ -103,6 +212,62 @@ export function registerTurns(pi: ExtensionAPI) {
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
   pi.on("input", async (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
+    const sourceTurnId = `pi-turn-${S.turnCount}`;
+    const askKind = classifyCurrentAsk(String(text));
+    S.currentAsk = {
+      text: String(text).slice(0, 500),
+      kind: askKind,
+      sourceTurnId,
+      updatedAt: Date.now(),
+    };
+    const queryScope = deriveQueryScope(askKind);
+    S.queryScope = {
+      ...queryScope,
+      sourceTurnId,
+      updatedAt: Date.now(),
+    };
+    S.excludedContext = {
+      labels: [],
+      reason: askKind === "question"
+        ? "fresh_scope"
+        : askKind === "correction"
+          ? "correction_reset"
+          : "none",
+      sourceTurnId,
+      updatedAt: Date.now(),
+    };
+
+    if (S.cfg?.emitMetrics) {
+      const common = {
+        turn_id: sourceTurnId,
+        frame_id: S.activeFrameId,
+        surface: "pi",
+        current_ask_kind: S.currentAsk.kind,
+        query_scope_kind: S.queryScope.scopeKind,
+        carryover_policy: S.queryScope.carryoverPolicy,
+      };
+      focusaPost("/telemetry/trace", {
+        event_type: "operator_subject",
+        ...common,
+        operator_subject_preview: S.currentAsk.text.slice(0, 200),
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "current_ask_determined",
+        ...common,
+        current_ask_text_preview: S.currentAsk.text.slice(0, 200),
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "query_scope_built",
+        ...common,
+        query_scope_kind: S.queryScope.scopeKind,
+        carryover_policy: S.queryScope.carryoverPolicy,
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "steering_detected",
+        ...common,
+        steering_detected: askKind !== "instruction",
+      });
+    }
 
     if (S.focusaAvailable) {
       focusaPost("/focus-gate/ingest-signal", {
@@ -161,6 +326,13 @@ export function registerTurns(pi: ExtensionAPI) {
     // §33.4: Flush batched tool usage
     if (S.focusaAvailable && S.toolUsageBatch.length) {
       focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: S.toolUsageBatch });
+      focusaPost("/telemetry/trace", {
+        event_type: "tools_invoked",
+        turn_id: `pi-turn-${S.turnCount}`,
+        frame_id: S.activeFrameId,
+        surface: "pi",
+        tools: S.toolUsageBatch,
+      });
       S.toolUsageBatch = [];
     }
 
