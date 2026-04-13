@@ -21,12 +21,15 @@ http_json() {
   curl -sS "$@"
 }
 
-for _ in 1 2 3 4 5; do
-  cleanup=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
+for _ in $(seq 1 20); do
+  pending_focus=$(curl -sS "${BASE_URL}/v1/proposals" | jq '[(.proposals // [])[] | select(.kind == "focus_change" and .status == "pending")] | length')
+  if [ "$pending_focus" = "0" ]; then
+    break
+  fi
+  curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
     -H "Content-Type: application/json" \
-    -d '{"kind":"focus_change"}' || true)
-  echo "$cleanup" | jq -e '.status == "no_proposals"' >/dev/null 2>&1 && break
-  sleep 0.1
+    -d '{"kind":"focus_change"}' >/dev/null 2>&1 || true
+  sleep 0.25
 done
 
 before_count=$(http_json "${BASE_URL}/v1/focus/stack" | jq '.stack.frames | length')
