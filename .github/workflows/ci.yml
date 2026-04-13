@@ -37,18 +37,20 @@ jobs:
           FOCUSA_BIND: 127.0.0.1:18787
         run: |
           set -euo pipefail
-          cargo run -p focusa-api --release --bin focusa-daemon >/tmp/focusa-daemon-probe.log 2>&1 &
+          cargo build -p focusa-api --release --bin focusa-daemon
+          ./target/release/focusa-daemon >/tmp/focusa-daemon-probe.log 2>&1 &
           DAEMON_PID=$!
           cleanup() {
             kill "$DAEMON_PID" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-          for i in $(seq 1 60); do
+          for i in $(seq 1 120); do
             if curl -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
               break
             fi
             sleep 1
           done
+          curl -fsS http://127.0.0.1:18787/v1/health >/dev/null
           python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:18787 --out /tmp/focusa_api_spec_audit.json
       - name: Strict spec compliance gates
         env:
