@@ -50,13 +50,13 @@ for t in "${TRACE_TYPES[@]}"; do
     fi
 
     found=0
-    for _ in 1 2 3 4 5 6 7 8 9 10; do
+    for _ in $(seq 1 30); do
         found=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=${t}&turn_id=${RUN_ID}-${t}" | jq '(.count // 0)')
         if [ "$found" -gt 0 ]; then
             RETRIEVED=$((RETRIEVED+1))
             break
         fi
-        sleep 0.1
+        sleep 0.25
     done
 done
 

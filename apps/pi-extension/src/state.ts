@@ -39,6 +39,8 @@ export interface PiSliceSection {
   include: boolean;
   selectedCount?: number;
   excludedCount?: number;
+  priority?: number;
+  relevanceScore?: number;
 }
 
 // ── Mutable shared state ─────────────────────────────────────────────────────
@@ -229,6 +231,48 @@ export function selectRelevantItems(
   };
 }
 
+export function selectionRelevanceScore(selection: PiFocusSelection): number {
+  if (!selection.items.length || !selection.scores.length) return 0;
+  const selected = new Set(selection.items);
+  const scores = selection.scores
+    .filter(({ value }) => selected.has(value))
+    .map(({ score }) => score);
+  return scores.length ? Math.max(...scores) : 0;
+}
+
+export function formatWorkingSetItems(records: Array<{ key?: string; value?: string }> | undefined): string[] {
+  return (records || [])
+    .map((record) => {
+      const key = String(record?.key || "").trim();
+      const value = String(record?.value || "").trim();
+      if (!key || !value) return "";
+      return `${key} = ${value}`;
+    })
+    .filter(Boolean);
+}
+
+export function formatVerifiedDeltaItems(handles: Array<{ kind?: string; id?: string; label?: string }> | undefined): string[] {
+  return (handles || [])
+    .map((handle) => {
+      const kind = String(handle?.kind || "other").trim() || "other";
+      const id = String(handle?.id || "").trim();
+      const label = String(handle?.label || "unnamed").trim() || "unnamed";
+      if (!id) return "";
+      return `[HANDLE:${kind}:${id} "${label}"]`;
+    })
+    .filter(Boolean);
+}
+
+export function orderSliceSections(sections: PiSliceSection[]): PiSliceSection[] {
+  return [...sections].sort((a, b) => {
+    const priorityDelta = (a.priority ?? 100) - (b.priority ?? 100);
+    if (priorityDelta !== 0) return priorityDelta;
+    const relevanceDelta = (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0);
+    if (relevanceDelta !== 0) return relevanceDelta;
+    return (b.selectedCount ?? 0) - (a.selectedCount ?? 0);
+  });
+}
+
 export function shouldIncludeMissionContext(
   askText: string,
   scopeKind: PiQueryScope["scopeKind"],
@@ -250,6 +294,8 @@ export function buildSliceSection(
   include: boolean,
   formatter?: (values: string[]) => string,
   excludedCount?: number,
+  priority?: number,
+  relevanceScore?: number,
 ): PiSliceSection {
   const values = (items || []).filter(Boolean);
   return {
@@ -258,6 +304,8 @@ export function buildSliceSection(
     include: include && values.length > 0,
     selectedCount: values.length,
     excludedCount,
+    priority,
+    relevanceScore,
   };
 }
 

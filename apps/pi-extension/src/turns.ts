@@ -6,7 +6,7 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, shouldIncludeMissionContext, buildSliceSection } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, orderSliceSections } from "./state.js";
 import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 
@@ -86,27 +86,37 @@ export function registerTurns(pi: ExtensionAPI) {
     const failures = selectRelevantItems(fs.failures, askText, { maxItems: 2, fallbackItems: scopeKind === "correction" ? 1 : 0, minScore: 2 });
     const artifactLabels = fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || [];
     const relevantArtifacts = selectRelevantItems(artifactLabels, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
+    const semanticMemory = await focusaFetch("/memory/semantic");
+    const workingSetItems = formatWorkingSetItems(semanticMemory?.semantic);
+    const relevantWorkingSet = selectRelevantItems(workingSetItems, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
+    const ecsHandles = await focusaFetch("/ecs/handles");
+    const verifiedDeltaItems = formatVerifiedDeltaItems(ecsHandles?.handles);
+    const relevantVerifiedDeltas = selectRelevantItems(verifiedDeltaItems, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
 
     const sectionEntries = [
-      { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0 },
-      { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0 },
-      { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0 },
-      { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0 },
-      { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0 },
-      buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length),
-      buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length),
-      buildSliceSection("recent_results", "RECENT_RESULTS", recentResults.items, scopeKind !== "fresh_question" && recentResults.items.length > 0, (values) => fmt("RECENT_RESULTS", values), recentResults.excluded.length),
-      buildSliceSection("failures", "FAILURES", failures.items, (scopeKind === "correction" || scopeKind === "mission_carryover") && failures.items.length > 0, (values) => fmt("FAILURES", values), failures.excluded.length),
-      buildSliceSection("next_steps", "NEXT_STEPS", nextSteps.items, scopeKind === "mission_carryover" && nextSteps.items.length > 0, (values) => fmt("NEXT_STEPS", values), nextSteps.excluded.length),
-      buildSliceSection("artifacts", "ARTIFACT_HANDLES", relevantArtifacts.items, relevantArtifacts.items.length > 0, (values) => fmt("ARTIFACT_HANDLES", values), relevantArtifacts.excluded.length),
-      buildSliceSection("open_questions", "OPEN_QUESTIONS", openQuestions.items, scopeKind === "meta" && openQuestions.items.length > 0, (values) => fmt("OPEN_QUESTIONS", values), openQuestions.excluded.length),
+      { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
+      { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
+      { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
+      { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
+      { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0, priority: 12, relevanceScore: missionIncluded ? 40 : 0 },
+      buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
+      buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
+      buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
+      buildSliceSection("verified_deltas", "VERIFIED_DELTAS", relevantVerifiedDeltas.items, relevantVerifiedDeltas.items.length > 0, (values) => fmt("VERIFIED_DELTAS", values), relevantVerifiedDeltas.excluded.length, 20, selectionRelevanceScore(relevantVerifiedDeltas)),
+      buildSliceSection("recent_results", "RECENT_RESULTS", recentResults.items, scopeKind !== "fresh_question" && recentResults.items.length > 0, (values) => fmt("RECENT_RESULTS", values), recentResults.excluded.length, 20, selectionRelevanceScore(recentResults)),
+      buildSliceSection("failures", "FAILURES", failures.items, (scopeKind === "correction" || scopeKind === "mission_carryover") && failures.items.length > 0, (values) => fmt("FAILURES", values), failures.excluded.length, 20, selectionRelevanceScore(failures)),
+      buildSliceSection("next_steps", "NEXT_STEPS", nextSteps.items, scopeKind === "mission_carryover" && nextSteps.items.length > 0, (values) => fmt("NEXT_STEPS", values), nextSteps.excluded.length, 20, selectionRelevanceScore(nextSteps)),
+      buildSliceSection("artifacts", "ARTIFACT_HANDLES", relevantArtifacts.items, relevantArtifacts.items.length > 0, (values) => fmt("ARTIFACT_HANDLES", values), relevantArtifacts.excluded.length, 20, selectionRelevanceScore(relevantArtifacts)),
+      buildSliceSection("open_questions", "OPEN_QUESTIONS", openQuestions.items, scopeKind === "meta" && openQuestions.items.length > 0, (values) => fmt("OPEN_QUESTIONS", values), openQuestions.excluded.length, 20, selectionRelevanceScore(openQuestions)),
     ];
 
-    const scopedEntries = sectionEntries.filter((entry) => entry.include);
+    const scopedEntries = orderSliceSections(sectionEntries).filter((entry) => entry.include);
     const scopeExcludedLabels = sectionEntries.filter((entry) => !entry.include).map((entry) => entry.key);
     const irrelevantExcludedLabels = [
       ...(relevantDecisions.excluded.length ? ["decisions"] : []),
       ...(relevantConstraints.excluded.length ? ["constraints"] : []),
+      ...(relevantWorkingSet.excluded.length ? ["working_set"] : []),
+      ...(relevantVerifiedDeltas.excluded.length ? ["verified_deltas"] : []),
       ...(recentResults.excluded.length ? ["recent_results"] : []),
       ...(nextSteps.excluded.length ? ["next_steps"] : []),
       ...(openQuestions.excluded.length ? ["open_questions"] : []),
@@ -137,8 +147,11 @@ export function registerTurns(pi: ExtensionAPI) {
     const lastUserMsg = [...(event.messages || [])].reverse().find((m: any) => m?.role === "user");
     const lastUserText = extractText(lastUserMsg?.content || "").slice(0, 200);
     const priorMissionReused = scopeKind === "mission_carryover" && Boolean(fs.intent || fs.current_focus || fs.current_state || (fs.decisions && fs.decisions.length));
-    const budgetExcludedLabels = truncated ? ["artifacts", "constraints", "open_questions", "next_steps", "recent_results", "failures"] : [];
+    const budgetExcludedLabels = truncated ? ["artifacts", "verified_deltas", "working_set", "constraints", "open_questions", "next_steps", "recent_results", "failures"] : [];
     const relevantContextLabels = scopedEntries.map((entry) => entry.key);
+    const focusSliceRelevanceScore = scopedEntries.length
+      ? scopedEntries.reduce((sum, entry) => sum + (entry.relevanceScore || 0), 0) / scopedEntries.length
+      : 0;
     const excludedContext = Array.from(new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels]));
     const sourceTurnId = `pi-turn-${S.turnCount}`;
     const exclusionReason = truncated
@@ -170,6 +183,7 @@ export function registerTurns(pi: ExtensionAPI) {
         current_ask_kind: S.currentAsk?.kind,
         query_scope_kind: S.queryScope?.scopeKind,
         carryover_policy: S.queryScope?.carryoverPolicy,
+        projection_kind: "operator_view",
       };
       if (lastUserText) {
         focusaPost("/telemetry/trace", {
@@ -194,11 +208,32 @@ export function registerTurns(pi: ExtensionAPI) {
         focus_slice_size: lines.length,
       });
       focusaPost("/telemetry/trace", {
+        event_type: "focus_slice_relevance_score",
+        ...common,
+        focus_slice_relevance_score: focusSliceRelevanceScore,
+      });
+      focusaPost("/telemetry/trace", {
         event_type: "relevant_context_selected",
         ...common,
         relevant_context_labels: relevantContextLabels,
         selected_counts: Object.fromEntries(scopedEntries.map((entry) => [entry.key, entry.selectedCount || 0])),
       });
+      if (relevantWorkingSet.items.length) {
+        focusaPost("/telemetry/trace", {
+          event_type: "working_set_used",
+          ...common,
+          working_set_used: relevantWorkingSet.items,
+          selected_count: relevantWorkingSet.items.length,
+        });
+      }
+      if (relevantVerifiedDeltas.items.length) {
+        focusaPost("/telemetry/trace", {
+          event_type: "verification_result",
+          ...common,
+          verification_surface: "verified_deltas",
+          selected_count: relevantVerifiedDeltas.items.length,
+        });
+      }
       if (excludedContext.length) {
         focusaPost("/telemetry/trace", {
           event_type: "irrelevant_context_excluded",
