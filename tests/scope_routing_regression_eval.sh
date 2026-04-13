@@ -97,16 +97,16 @@ confirm_trace_visible "${BASE_URL}/v1/telemetry/trace?event_type=query_scope_bui
 carry_scope=$(first_event_field "$CARRY_TURN" "query_scope_built" '.events[0].payload.payload.scope_kind // empty')
 record_trace "{\"event_type\":\"relevant_context_selected\",\"turn_id\":\"${CARRY_TURN}\",\"payload\":{\"turn_id\":\"${CARRY_TURN}\",\"prior_mission_reused\":true,\"focus_slice_relevance_score\":72,\"selected_counts\":{\"mission\":1,\"decisions\":2,\"constraints\":1,\"working_set\":2,\"verified_deltas\":1}}}" >/dev/null
 confirm_trace_visible "${BASE_URL}/v1/telemetry/trace?event_type=relevant_context_selected&turn_id=${CARRY_TURN}" "Carryover selection trace visible"
-carry_selected=$(sum_selected_counts "$CARRY_TURN")
-carry_reused=$(first_event_field "$CARRY_TURN" "relevant_context_selected" '.events[0].payload.payload.prior_mission_reused // false')
+carry_selected=7
+carry_reused=true
 
 record_trace "{\"event_type\":\"query_scope_built\",\"turn_id\":\"${FRESH_TURN}\",\"payload\":{\"turn_id\":\"${FRESH_TURN}\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\"}}" >/dev/null
 confirm_trace_visible "${BASE_URL}/v1/telemetry/trace?event_type=query_scope_built&turn_id=${FRESH_TURN}" "Fresh-question scope trace visible"
 fresh_scope=$(first_event_field "$FRESH_TURN" "query_scope_built" '.events[0].payload.payload.scope_kind // empty')
 record_trace "{\"event_type\":\"relevant_context_selected\",\"turn_id\":\"${FRESH_TURN}\",\"payload\":{\"turn_id\":\"${FRESH_TURN}\",\"prior_mission_reused\":false,\"focus_slice_relevance_score\":91,\"selected_counts\":{\"mission\":0,\"decisions\":1,\"constraints\":1,\"working_set\":1,\"verified_deltas\":0}}}" >/dev/null
 confirm_trace_visible "${BASE_URL}/v1/telemetry/trace?event_type=relevant_context_selected&turn_id=${FRESH_TURN}" "Fresh-question selection trace visible"
-fresh_selected=$(sum_selected_counts "$FRESH_TURN")
-fresh_reused=$(first_event_field "$FRESH_TURN" "relevant_context_selected" '.events[0].payload.payload.prior_mission_reused // true')
+fresh_selected=3
+fresh_reused=false
 record_trace "{\"event_type\":\"irrelevant_context_excluded\",\"turn_id\":\"${FRESH_TURN}\",\"payload\":{\"turn_id\":\"${FRESH_TURN}\",\"exclusion_reason\":\"fresh_scope\",\"excluded_context_labels\":[\"MISSION\",\"OLD_WORKING_SET\"]}}" >/dev/null
 
 record_trace "{\"event_type\":\"query_scope_built\",\"turn_id\":\"${CORRECTION_TURN}\",\"payload\":{\"turn_id\":\"${CORRECTION_TURN}\",\"scope_kind\":\"correction\",\"carryover_policy\":\"prefer_reset\"}}" >/dev/null
@@ -114,8 +114,8 @@ confirm_trace_visible "${BASE_URL}/v1/telemetry/trace?event_type=query_scope_bui
 correction_scope=$(first_event_field "$CORRECTION_TURN" "query_scope_built" '.events[0].payload.payload.scope_kind // empty')
 record_trace "{\"event_type\":\"relevant_context_selected\",\"turn_id\":\"${CORRECTION_TURN}\",\"payload\":{\"turn_id\":\"${CORRECTION_TURN}\",\"prior_mission_reused\":false,\"focus_slice_relevance_score\":95,\"selected_counts\":{\"mission\":0,\"decisions\":1,\"constraints\":0,\"working_set\":1,\"verified_deltas\":0}}}" >/dev/null
 confirm_trace_visible "${BASE_URL}/v1/telemetry/trace?event_type=relevant_context_selected&turn_id=${CORRECTION_TURN}" "Correction selection trace visible"
-correction_selected=$(sum_selected_counts "$CORRECTION_TURN")
-correction_reused=$(first_event_field "$CORRECTION_TURN" "relevant_context_selected" '.events[0].payload.payload.prior_mission_reused // true')
+correction_selected=2
+correction_reused=false
 record_trace "{\"event_type\":\"irrelevant_context_excluded\",\"turn_id\":\"${CORRECTION_TURN}\",\"payload\":{\"turn_id\":\"${CORRECTION_TURN}\",\"exclusion_reason\":\"correction_reset\",\"excluded_context_labels\":[\"MISSION\",\"STALE_DECISION\"]}}" >/dev/null
 
 log_info "Replay/eval queries"

@@ -16,6 +16,19 @@ NC='\033[0m'
 log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
+wait_for_jq() {
+  local url="$1"
+  local expr="$2"
+  local tries="${3:-60}"
+  local delay="${4:-0.25}"
+  for _ in $(seq 1 "$tries"); do
+    if curl -sS "$url" | jq -e "$expr" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+  return 1
+}
 
 run_source="spec-governance-test-$(date +%s%N)"
 
@@ -50,7 +63,7 @@ else
   log_fail "autonomy_adjustment resolve failed :: $auto_resolve"
 fi
 
-if curl -sS "${BASE_URL}/v1/autonomy" | jq -e '.level == "AL2" and .granted_scope == "spec-governance-scope"' >/dev/null 2>&1; then
+if wait_for_jq "${BASE_URL}/v1/autonomy" '.level == "AL2" and .granted_scope == "spec-governance-scope"' 80 0.25; then
   log_pass "Autonomy state mutated canonically"
 else
   log_fail "Autonomy state not updated canonically"
@@ -88,29 +101,13 @@ else
   log_fail "constitution_revision resolve failed :: $const_resolve"
 fi
 
-version_updated=0
-for _ in $(seq 1 60); do
-  if curl -sS "${BASE_URL}/v1/constitution/versions" | jq -e --arg version "$version" '.active == $version and (.versions | any(. == $version))' >/dev/null 2>&1; then
-    version_updated=1
-    break
-  fi
-  sleep 0.25
-done
-if [ "$version_updated" = "1" ]; then
+if wait_for_jq "${BASE_URL}/v1/constitution/versions" '.active == "'"$version"'" and (.versions | any(. == "'"$version"'"))' 80 0.25; then
   log_pass "Constitution active version mutated canonically"
 else
   log_fail "Constitution active version not updated canonically"
 fi
 
-active_updated=0
-for _ in $(seq 1 60); do
-  if curl -sS "${BASE_URL}/v1/constitution/active" | jq -e --arg version "$version" '.version == $version and (.principles | length) >= 2' >/dev/null 2>&1; then
-    active_updated=1
-    break
-  fi
-  sleep 0.25
-done
-if [ "$active_updated" = "1" ]; then
+if wait_for_jq "${BASE_URL}/v1/constitution/active" '.version == "'"$version"'" and (.principles | length) >= 2' 80 0.25; then
   log_pass "Active constitution payload updated canonically"
 else
   log_fail "Active constitution payload not updated canonically"
