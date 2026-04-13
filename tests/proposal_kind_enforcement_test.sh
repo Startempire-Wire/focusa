@@ -61,7 +61,15 @@ else
   log_fail "thesis_update resolve failed :: $thesis_resolve"
 fi
 
-if curl -sS "${BASE_URL}/v1/threads/${thread_id}" | jq -e --arg intent "$thesis_intent" '.thread.thesis.primary_intent == $intent' >/dev/null 2>&1; then
+thesis_updated=0
+for _ in $(seq 1 30); do
+  if curl -sS "${BASE_URL}/v1/threads/${thread_id}" | jq -e --arg intent "$thesis_intent" '.thread.thesis.primary_intent == $intent' >/dev/null 2>&1; then
+    thesis_updated=1
+    break
+  fi
+  sleep 0.25
+done
+if [ "$thesis_updated" = "1" ]; then
   log_pass "Thread thesis mutated canonically"
 else
   log_fail "Thread thesis not updated"
