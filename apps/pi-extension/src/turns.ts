@@ -24,7 +24,7 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §35.2: Behavioral instructions (ONE TIME per prompt — §36.6 layering)
     const behavioral = [
-      "\n## Focusa Cognitive Governance (Active)",
+      "\n## Focusa Cognitive Guidance",
       "You are operating within Focusa, a cognitive runtime that preserves focus and decisions.\n",
       "RULES:",
       "- Use the focusa_decide tool when you make a significant decision",
@@ -51,7 +51,7 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec G1-07 §AsccSections: all 10 slots must be represented in prompt.
   // Per spec doc 44 §Prompt Serialization: uppercase headers + bullets for list items.
   // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
-  // Per spec doc 44 §33.2: inject live Focus State before EVERY LLM call.
+  // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", async (event: any, ctx: any) => {
     if (!S.focusaAvailable || !S.activeFrameId) return;
 

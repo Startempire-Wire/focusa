@@ -63,12 +63,12 @@ if rg -n "Focusa Cognitive Governance \(Active\)|10-slot live refresh|inject liv
 else
     log_pass "Legacy coercive/always-on Focusa injection removed"
 fi
-if rg -n "Focusa Minimal Applicable Slice|subject_hijack_prevented|steeringChange|latestUserText|classifyOperatorIntent" "$TURNS_TS" >/dev/null 2>&1; then
+if rg -n "Focusa Focus Slice — minimal applicable context|minimal_focus_slice_builder|current_ask_determined|query_scope_built|relevant_context_selected|irrelevant_context_excluded" "$TURNS_TS" >/dev/null 2>&1; then
     log_pass "Operator-first minimal-slice logic present"
 else
     log_fail "Operator-first minimal-slice logic missing"
 fi
-if rg -n "constraints_consulted|decisions_consulted|working_set_used|prior_mission_reused" "$TURNS_TS" >/dev/null 2>&1; then
+if rg -n "constraints_consulted|decisions_consulted|working_set_used|prior_mission_reused|relevant_context_selected|selected_counts" "$TURNS_TS" >/dev/null 2>&1; then
     log_pass "Consultation trace emissions present in Pi hot path"
 else
     log_fail "Consultation trace emissions missing from Pi hot path"
