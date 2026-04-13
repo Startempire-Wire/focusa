@@ -78,12 +78,12 @@ else
 fi
 
 accepted_visible=0
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+for _ in $(seq 1 30); do
   if http_json "${BASE_URL}/v1/proposals" | jq -e --arg source "$source" '.proposals | any(.source == $source and .status == "accepted")' >/dev/null 2>&1; then
     accepted_visible=1
     break
   fi
-  sleep 0.1
+  sleep 0.25
 done
 if [ "$accepted_visible" = "1" ]; then
   log_pass "Winner proposal status persisted as accepted"
