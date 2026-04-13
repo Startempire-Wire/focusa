@@ -74,7 +74,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     handler: async (ctx) => {
       S.wbmEnabled = !S.wbmEnabled;
       ctx.ui.notify(`WBM: ${S.wbmEnabled ? "ON" : "OFF"}`, "info");
-      ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+      ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
     },
   });
 

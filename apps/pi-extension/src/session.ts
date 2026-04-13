@@ -98,12 +98,11 @@ export function registerSession(pi: ExtensionAPI) {
     S.lastCompactDecision = "";
     S.compactResumePending = false;
     S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
-    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {
       S.focusaAvailable = false;
-      ctx.ui.setStatus("focusa", "🧠 Focusa [disabled]");
+      ctx.ui.setStatus("focusa", "⏸️ Focusa disabled");
       return;
     }
     if (pi.getFlag("--wbm")) S.wbmEnabled = true;
@@ -140,7 +139,7 @@ export function registerSession(pi: ExtensionAPI) {
     if (!S.wbmEnabled) S.activeFrameId = null;
 
     if (!S.focusaAvailable) {
-      ctx.ui.setStatus("focusa", "🧠 Focusa [offline]");
+      ctx.ui.setStatus("focusa", "📡 Focusa offline");
       return;
     }
 
@@ -175,7 +174,7 @@ export function registerSession(pi: ExtensionAPI) {
         const filtered = active.filter((t: any) =>
           !["focusa_decide", "focusa_constraint", "focusa_failure"].includes(typeof t === "string" ? t : t.name));
         pi.setActiveTools(filtered.map((t: any) => typeof t === "string" ? t : t.name));
-        ctx.ui.setStatus("focusa", "🧠 Focusa [offline]");
+        ctx.ui.setStatus("focusa", "📡 Focusa offline");
         ctx.ui.notify("Focusa daemon went offline — tools disabled", "warning");
         if (sseAbort) { sseAbort.abort(); sseAbort = null; }
       } else if (!wasAvailable && S.focusaAvailable) {
@@ -186,7 +185,7 @@ export function registerSession(pi: ExtensionAPI) {
           ["focusa_decide", "focusa_constraint", "focusa_failure"].includes(t.name));
         const names = [...new Set([...active.map((t: any) => typeof t === "string" ? t : t.name), ...focusaTools.map((t: any) => t.name)])];
         pi.setActiveTools(names);
-        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
         ctx.ui.notify("Focusa daemon reconnected — tools re-enabled", "info");
         await ensureActiveFrame(ctx);
         connectSSE();
@@ -228,7 +227,7 @@ export function registerSession(pi: ExtensionAPI) {
     }
     scheduleHealthCheck();
 
-    ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+    ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
   });
 
   // ── session_shutdown — single handler (§33.8, §34.2A, §37.9) ──────────────

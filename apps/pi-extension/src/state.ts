@@ -26,6 +26,7 @@ export const S = {
   compactHourStart: Date.now(),
   activeContextWindow: 200_000,  // claude-opus-4-6 has 200K window; updated on model_select events
   currentTier: "" as "" | "warn" | "auto" | "hard", // §10.4 tier badge
+  currentContextPct: null as number | null,
   // Streaming delta (§36.1)
   lastStreamLen: 0,
   // Auto-resume dedup: set when compaction fires, cleared after continuation sent

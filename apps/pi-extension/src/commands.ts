@@ -203,7 +203,7 @@ export function registerCommands(pi: ExtensionAPI) {
         await createPiFrame(ctx.cwd, "pi-auto");
       }
 
-      ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+      ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
       if (S.activeFrameId) persistState();
 
       if (alreadyEnabled && S.activeFrameId) {
@@ -222,7 +222,7 @@ export function registerCommands(pi: ExtensionAPI) {
     handler: async (_args, ctx) => {
       if (!S.focusaAvailable) { ctx.ui.notify("Focusa already disabled", "info"); return; }
       S.focusaAvailable = false;
-      ctx.ui.setStatus("focusa", "🧠 Focusa [disabled]");
+      ctx.ui.setStatus("focusa", "⏸️ Focusa disabled");
       ctx.ui.notify("⚠️ Focusa writes disabled — Focus State local only", "warning");
     },
   });

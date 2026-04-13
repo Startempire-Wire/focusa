@@ -7,22 +7,23 @@ import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState }
 import { pushDelta } from "./tools.js";
 
 function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number) {
+  S.currentContextPct = typeof pct === "number" ? pct : null;
   const mode = S.cfg?.contextStatusMode || "actionable";
   if (mode === "off") {
     ctx.ui.setStatus("focusa-ctx", "");
     return;
   }
   if (tier === "warn") {
-    if (mode === "all" && typeof pct === "number") ctx.ui.setStatus("focusa-ctx", `🧠 Focusa ctx ${pct.toFixed(0)}% · monitor`);
+    if (mode === "all" && typeof pct === "number") ctx.ui.setStatus("focusa-ctx", `📦 Context ${pct.toFixed(0)}% monitor`);
     else ctx.ui.setStatus("focusa-ctx", "");
     return;
   }
   if (tier === "auto" && typeof pct === "number") {
-    ctx.ui.setStatus("focusa-ctx", `🧠 Focusa ctx ${pct.toFixed(0)}% · compacting`);
+    ctx.ui.setStatus("focusa-ctx", `🗜️ Context ${pct.toFixed(0)}% compacting`);
     return;
   }
   if (tier === "hard" && typeof pct === "number") {
-    ctx.ui.setStatus("focusa-ctx", `🧠 Focusa ctx ${pct.toFixed(0)}% · critical · fork/new`);
+    ctx.ui.setStatus("focusa-ctx", `🚧 Context ${pct.toFixed(0)}% critical fork/new`);
     return;
   }
   ctx.ui.setStatus("focusa-ctx", "");

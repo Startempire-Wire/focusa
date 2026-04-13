@@ -18,7 +18,7 @@ export function registerTurns(pi: ExtensionAPI) {
       const h = await focusaFetch("/health");
       if (h?.ok) {
         S.focusaAvailable = true;
-        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
       }
     }
 
@@ -169,9 +169,15 @@ export function registerTurns(pi: ExtensionAPI) {
     if (S.localDecisions.length) w.push(`📌 ${S.localDecisions.length} decisions`);
     if (S.localConstraints.length) w.push(`🔒 ${S.localConstraints.length} constraints`);
     if (S.localFailures.length) w.push(`⚠️ ${S.localFailures.length} failures`);
-    if (S.wbmEnabled) w.push(`⚡ WBM ${S.wbmDeep ? "deep" : "on"}`);
-    // §10.4: Compaction tier badge
-    if (S.currentTier) w.push(`🔴 ${S.currentTier.toUpperCase()}`);
+    if (S.wbmEnabled) w.push(S.wbmDeep ? "⚡ WBM deep" : "🤖 WBM on");
+    if (S.currentTier && typeof S.currentContextPct === "number") {
+      const label = S.currentTier === "warn"
+        ? "monitor"
+        : S.currentTier === "auto"
+          ? "compacting"
+          : "critical · fork/new";
+      w.push(`📦 Context ${S.currentContextPct.toFixed(0)}% ${label}`);
+    }
     // §10.4: Degraded-context badge
     if (!S.focusaAvailable) w.push("⚪ degraded");
     // §10.4: Thesis snippet
@@ -180,7 +186,7 @@ export function registerTurns(pi: ExtensionAPI) {
       if (data?.frame?.thread_thesis) w.push(`🎯 ${data.frame.thread_thesis.slice(0, 50)}`);
     }
     // §30: Metacognitive indicator
-    if (S.lastMetacogEvent) w.push(`🧠 ${S.lastMetacogEvent}`);
+    if (S.lastMetacogEvent) w.push(`✨ ${S.lastMetacogEvent}`);
     ctx.ui.setWidget("focusa", w.length ? w : undefined);
 
     // §34.2C: Update Focus State on significant progress

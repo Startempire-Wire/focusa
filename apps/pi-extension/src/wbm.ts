@@ -168,15 +168,15 @@ export function registerWbm(pi: ExtensionAPI) {
           // §29: --no-catalogue flag
           S.wbmNoCatalogue = parts.includes("--no-catalogue") || parts.includes("--no-catalog");
           const suffix = S.wbmNoCatalogue ? " (no catalogue)" : "";
-          ctx.ui.notify(`⚡ Wirebot Mode: ON${suffix}`, "info");
-          ctx.ui.setStatus("focusa", `🧠 Focusa [WBM${suffix}]`);
+          ctx.ui.notify(`Wirebot Mode: ON${suffix}`, "info");
+          ctx.ui.setStatus("focusa", `🤖 Focusa WBM${suffix}`);
           break;
         }
         case "off":
           S.wbmEnabled = false; S.wbmDeep = false; S.wbmNoCatalogue = false;
           S.cataloguedDecisions = []; S.cataloguedFacts = [];
           ctx.ui.notify("Wirebot Mode: OFF", "info");
-          ctx.ui.setStatus("focusa", "🧠 Focusa");
+          ctx.ui.setStatus("focusa", "🧭 Focusa");
           break;
 
         case "status":
@@ -191,8 +191,8 @@ export function registerWbm(pi: ExtensionAPI) {
         case "deep":
           S.wbmEnabled = true; S.wbmDeep = true;
           const wbmCtx = await fetchWbmContext();
-          ctx.ui.notify(`⚡ WBM Deep — context loaded (${wbmCtx.length} chars)`, "info");
-          ctx.ui.setStatus("focusa", "🧠 Focusa [WBM-deep]");
+          ctx.ui.notify(`WBM Deep: context loaded (${wbmCtx.length} chars)`, "info");
+          ctx.ui.setStatus("focusa", "⚡ Focusa WBM deep");
           break;
 
         case "flush": {
@@ -226,7 +226,7 @@ export function registerWbm(pi: ExtensionAPI) {
         default:
           S.wbmEnabled = !S.wbmEnabled;
           ctx.ui.notify(`WBM: ${S.wbmEnabled ? "ON" : "OFF"}`, "info");
-          ctx.ui.setStatus("focusa", S.wbmEnabled ? "🧠 Focusa [WBM]" : "🧠 Focusa");
+          ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
       }
     },
   });
