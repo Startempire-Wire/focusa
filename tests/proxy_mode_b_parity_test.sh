@@ -8,8 +8,9 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OPENAI_RS="${REPO_ROOT}/crates/focusa-core/src/adapters/openai.rs"
 ANTHROPIC_RS="${REPO_ROOT}/crates/focusa-core/src/adapters/anthropic.rs"
 CARGO_BIN="${CARGO_BIN:-cargo}"
-CARGO_HOME="${CARGO_HOME:-/tmp/focusa-cargo-home}"
-RUSTUP_HOME="${RUSTUP_HOME:-/root/.rustup}"
+HOME_DIR="${HOME:-$(cd ~ && pwd)}"
+CARGO_HOME="${CARGO_HOME:-${HOME_DIR}/.cargo}"
+RUSTUP_HOME="${RUSTUP_HOME:-${HOME_DIR}/.rustup}"
 TARGET_DIR="${FOCUSA_CARGO_TARGET_DIR:-/tmp/focusa-target}"
 
 FAILED=0
