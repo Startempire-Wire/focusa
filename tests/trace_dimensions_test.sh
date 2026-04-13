@@ -78,6 +78,20 @@ else
 fi
 
 # Test 3: all posted trace events remained retrievable
+for _ in $(seq 1 20); do
+    if [ "$RETRIEVED" -ge 18 ]; then
+        break
+    fi
+    RETRIEVED=0
+    for t in "${TRACE_TYPES[@]}"; do
+        found=$(curl -s "${BASE_URL}/v1/telemetry/trace?event_type=${t}&turn_id=${RUN_ID}-${t}" | jq '(.count // 0)')
+        if [ "$found" -gt 0 ]; then
+            RETRIEVED=$((RETRIEVED+1))
+        fi
+    done
+    [ "$RETRIEVED" -ge 18 ] && break
+    sleep 0.25
+done
 if [ "$RETRIEVED" -ge 18 ]; then
     log_pass "Trace events retrievable: $RETRIEVED events"
 else

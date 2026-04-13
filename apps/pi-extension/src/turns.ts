@@ -78,6 +78,8 @@ export function registerTurns(pi: ExtensionAPI) {
     const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
     const askText = S.currentAsk?.text || "";
     const missionIncluded = shouldIncludeMissionContext(askText, scopeKind, [fs.intent || "", fs.current_focus || "", fs.current_state || "", frame?.title || ""]);
+    const projectionKind = "operator_view";
+    const viewProfile = "pi_operator_view";
     const relevantDecisions = selectRelevantItems(fs.decisions, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
     const relevantConstraints = selectRelevantItems(fs.constraints, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
     const recentResults = selectRelevantItems(fs.recent_results, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
@@ -94,11 +96,15 @@ export function registerTurns(pi: ExtensionAPI) {
     const relevantVerifiedDeltas = selectRelevantItems(verifiedDeltaItems, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
 
     const sectionEntries = [
-      { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
-      { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
+      { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
+      { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
+      { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 2, relevanceScore: 100 },
+      { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 3, relevanceScore: 100 },
       { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
       { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
       { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0, priority: 12, relevanceScore: missionIncluded ? 40 : 0 },
+      { key: "projection_boundary", text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}` , include: true, selectedCount: 1, excludedCount: 0, priority: 13, relevanceScore: 90 },
+      { key: "canonical_sources", text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles`, include: true, selectedCount: 3, excludedCount: 0, priority: 14, relevanceScore: 90 },
       buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
       buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
       buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
@@ -183,7 +189,8 @@ export function registerTurns(pi: ExtensionAPI) {
         current_ask_kind: S.currentAsk?.kind,
         query_scope_kind: S.queryScope?.scopeKind,
         carryover_policy: S.queryScope?.carryoverPolicy,
-        projection_kind: "operator_view",
+        projection_kind: projectionKind,
+        view_profile: viewProfile,
       };
       if (lastUserText) {
         focusaPost("/telemetry/trace", {
@@ -211,6 +218,16 @@ export function registerTurns(pi: ExtensionAPI) {
         event_type: "focus_slice_relevance_score",
         ...common,
         focus_slice_relevance_score: focusSliceRelevanceScore,
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "mission_frame_context",
+        ...common,
+        projection_boundary: {
+          token_budget: maxTokens,
+          carryover_policy: S.queryScope?.carryoverPolicy,
+          mission_included: missionIncluded,
+        },
+        canonical_sources: ["focus_state", "semantic_memory", "ecs_handles"],
       });
       focusaPost("/telemetry/trace", {
         event_type: "relevant_context_selected",
