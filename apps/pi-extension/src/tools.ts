@@ -186,6 +186,14 @@ function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
   }
 }
 
+function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailureReason): string {
+  const base = formatPushDeltaFailure(reason);
+  if (reason === "no_active_frame") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; retry after /focusa-status.`;
+  if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded. Retry when Focusa is reachable.`;
+  if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded. Distill wording or use scratchpad.`;
+  return `⚠️ ${base} — ${slotLabel} NOT recorded.`;
+}
+
 // Push delta to Focusa — validates ALL slot values before write.
 export async function pushDelta(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): Promise<PushDeltaResult> {
   const targets = deltaTargets(delta);
@@ -457,7 +465,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ intent: intent.trim() });
       return result.ok
         ? { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } }
-        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, intent } };
+        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("intent", result.reason) }], details: { valid: false, intent } };
     },
   });
 
@@ -478,7 +486,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ current_focus: focus.trim() });
       return result.ok
         ? { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } }
-        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, focus } };
+        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("current focus", result.reason) }], details: { valid: false, focus } };
     },
   });
 
@@ -498,7 +506,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ next_steps: [step.trim()] });
       return result.ok
         ? { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } }
-        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, step } };
+        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("next step", result.reason) }], details: { valid: false, step } };
     },
   });
 
@@ -517,7 +525,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ open_questions: [question.trim()] });
       return result.ok
         ? { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } }
-        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, question } };
+        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("open question", result.reason) }], details: { valid: false, question } };
     },
   });
 
@@ -537,7 +545,7 @@ export function registerTools(pi: ExtensionAPI) {
       const writeResult = await pushDelta({ recent_results: [result.trim()] });
       return writeResult.ok
         ? { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } }
-        : { content: [{ type: "text", text: `${formatPushDeltaFailure(writeResult.reason)}.` }], details: { valid: false, result } };
+        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("recent result", writeResult.reason) }], details: { valid: false, result } };
     },
   });
 
@@ -557,7 +565,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ notes: [note.trim()] });
       return result.ok
         ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } }
-        : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, note } };
+        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("note", result.reason) }], details: { valid: false, note } };
     },
   });
 
