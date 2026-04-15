@@ -2065,10 +2065,10 @@ pi.registerTool({
 
 In addition to slash commands, the extension should expose thin LLM-callable bridge tools for daemon-owned continuous loop control:
 - `focusa_work_loop_status`
-- `focusa_work_loop_control` (`on|pause|resume|stop`)
+- `focusa_work_loop_control` (`on|pause|resume|stop`, optional `root_work_item_id` bootstrap)
 - `focusa_work_loop_context` (current ask/scope/steering context)
 - `focusa_work_loop_checkpoint`
-- `focusa_work_loop_select_next`
+- `focusa_work_loop_select_next` (optional `parent_work_item_id`; infer from active task or `bd ready`)
 
 These tools must remain transport-only bridges to `/v1/work-loop/*` APIs and must not reimplement continuation policy inside the extension.
 

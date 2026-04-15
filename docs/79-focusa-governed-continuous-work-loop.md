@@ -1287,7 +1287,7 @@ If control cannot proceed, status must say why in plain language (for example: "
 ### 26.1 Command Shape
 The common UX should be simple:
 - `keep working until blocked`
-- `/focus-work on`
+- `/focus-work on [root_work_item_id]` (if omitted, daemon/tooling should infer from active task or `bd ready`)
 - `/focus-work pause`
 - `/focus-work resume`
 - `/focus-work stop`

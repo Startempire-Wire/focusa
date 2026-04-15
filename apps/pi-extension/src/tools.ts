@@ -606,6 +606,29 @@ export function registerTools(pi: ExtensionAPI) {
     return claimed || `pi-${process.pid}`;
   }
 
+  function firstBdReadyIdFromText(text: string): string | null {
+    const t = String(text || "");
+    const m = t.match(/\b([a-z0-9]+-[a-z0-9]+(?:\.[0-9]+)?)\b/i);
+    return m ? m[1] : null;
+  }
+
+  async function inferRootWorkItemId(explicit?: string): Promise<string | null> {
+    const direct = String(explicit || "").trim();
+    if (direct) return direct;
+
+    const status = await focusaFetchDetailed("/work-loop/status");
+    const currentTask = String(status.body?.current_task?.work_item_id || "").trim();
+    if (currentTask) return currentTask;
+
+    try {
+      const { execSync } = require("child_process");
+      const out = String(execSync("bd ready", { stdio: ["ignore", "pipe", "ignore"] }) || "");
+      return firstBdReadyIdFromText(out);
+    } catch {
+      return null;
+    }
+  }
+
   pi.registerTool({
     name: "focusa_work_loop_status",
     label: "Work Loop Status",
@@ -620,8 +643,12 @@ export function registerTools(pi: ExtensionAPI) {
         };
       }
       const loopStatus = result.body;
+      const statusText = String(loopStatus?.status || loopStatus?.work_loop?.status || "unknown");
+      const enabled = typeof loopStatus?.enabled === "boolean"
+        ? loopStatus.enabled
+        : !!loopStatus?.work_loop?.enabled;
       return {
-        content: [{ type: "text", text: `Work-loop: ${loopStatus?.work_loop?.status || "unknown"} (enabled=${loopStatus?.work_loop?.enabled ? "yes" : "no"})` }],
+        content: [{ type: "text", text: `Work-loop: ${statusText} (enabled=${enabled ? "yes" : "no"})` }],
         details: { ok: true, status: result.status, response: result.body },
       };
     },
@@ -645,14 +672,17 @@ export function registerTools(pi: ExtensionAPI) {
         Type.Literal("push"),
         Type.Literal("audit"),
       ])),
+      root_work_item_id: Type.Optional(Type.String({ description: "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready." })),
     }),
     async execute(_id, params) {
-      const { action, reason, preset } = params as { action: "on" | "pause" | "resume" | "stop"; reason?: string; preset?: "conservative" | "balanced" | "push" | "audit" };
+      const { action, reason, preset, root_work_item_id } = params as { action: "on" | "pause" | "resume" | "stop"; reason?: string; preset?: "conservative" | "balanced" | "push" | "audit"; root_work_item_id?: string };
       const writerId = await preferredWriterId();
 
       if (action === "on") {
+        const rootWorkItemId = await inferRootWorkItemId(root_work_item_id);
         const payload = {
           preset: preset || S.cfg?.workLoopPreset || "balanced",
+          root_work_item_id: rootWorkItemId || undefined,
           policy_overrides: {
             max_turns: S.cfg?.workLoopMaxTurns,
             max_wall_clock_ms: S.cfg?.workLoopMaxWallClockMs,
@@ -776,13 +806,11 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { parent_work_item_id } = params as { parent_work_item_id?: string };
       const writerId = await preferredWriterId();
-      const status = await focusaFetchDetailed("/work-loop/status");
-      const inferredParent = String(status.body?.current_task?.work_item_id || "").trim();
-      const parentWorkItemId = String(parent_work_item_id || inferredParent || "").trim();
+      const parentWorkItemId = await inferRootWorkItemId(parent_work_item_id);
       if (!parentWorkItemId) {
         return {
-          content: [{ type: "text", text: "work-loop select-next → blocked: no active parent work item" }],
-          details: { ok: false, status: 422, response: { error: "parent_work_item_id required when no current_task is active" } },
+          content: [{ type: "text", text: "work-loop select-next → blocked: no active parent work item (pass parent_work_item_id or create ready BD)" }],
+          details: { ok: false, status: 422, response: { error: "parent_work_item_id required when no current_task is active and no bd ready item is available" } },
         };
       }
       const res = await focusaFetchDetailed("/work-loop/select-next", {
