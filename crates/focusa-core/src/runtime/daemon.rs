@@ -1436,6 +1436,70 @@ Return ONLY valid JSON:
             .await;
     }
 
+    async fn next_ready_packet_global(&self, skip_work_item_id: Option<&str>) -> anyhow::Result<Option<SpecLinkedTaskPacket>> {
+        let output = tokio::process::Command::new("bd")
+            .args(["ready"])
+            .output()
+            .await
+            .context("failed to run bd ready")?;
+        if !output.status.success() {
+            return Ok(None);
+        }
+        let text = String::from_utf8_lossy(&output.stdout).to_string();
+        let mut picked: Option<String> = None;
+        for token in text.split_whitespace() {
+            let candidate = token
+                .trim_matches(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '.'))
+                .to_string();
+            if !candidate.contains('-') {
+                continue;
+            }
+            if let Some(skip) = skip_work_item_id {
+                if candidate == skip {
+                    continue;
+                }
+            }
+            picked = Some(candidate);
+            break;
+        }
+
+        let Some(work_item_id) = picked else {
+            return Ok(None);
+        };
+
+        let show = tokio::process::Command::new("bd")
+            .args(["show", &work_item_id, "--json"])
+            .output()
+            .await
+            .context("failed to run bd show --json for ready item")?;
+
+        let title = if show.status.success() {
+            let payload: Vec<Value> = serde_json::from_slice(&show.stdout).unwrap_or_default();
+            payload
+                .first()
+                .and_then(|v| v.get("title"))
+                .and_then(Value::as_str)
+                .unwrap_or("untitled work item")
+                .to_string()
+        } else {
+            "untitled work item".to_string()
+        };
+
+        Ok(Some(self.adapt_packet_for_current_loop_state(SpecLinkedTaskPacket {
+            work_item_id,
+            title: title.clone(),
+            task_class: Self::infer_task_class(&title),
+            linked_spec_refs: vec!["docs/79-focusa-governed-continuous-work-loop.md".to_string()],
+            acceptance_criteria: vec![],
+            required_verification_tier: Some("task-class".to_string()),
+            allowed_scope: vec![],
+            dependencies: vec![],
+            tranche_id: None,
+            blocker_class: None,
+            checkpoint_summary: None,
+        })))
+    }
+
     async fn next_ready_packet_for_parent(&self, parent_work_item_id: &str) -> anyhow::Result<Option<SpecLinkedTaskPacket>> {
         let output = tokio::process::Command::new("bd")
             .args(["show", parent_work_item_id, "--json"])
@@ -1443,15 +1507,21 @@ Return ONLY valid JSON:
             .await
             .context("failed to run bd show --json")?;
         if !output.status.success() {
-            return Ok(None);
+            return self
+                .next_ready_packet_global(self.state.work_loop.current_task.as_ref().map(|t| t.work_item_id.as_str()))
+                .await;
         }
         let payload: Vec<Value> = serde_json::from_slice(&output.stdout)
             .context("failed to parse bd show json")?;
         let Some(parent) = payload.first() else {
-            return Ok(None);
+            return self
+                .next_ready_packet_global(self.state.work_loop.current_task.as_ref().map(|t| t.work_item_id.as_str()))
+                .await;
         };
         let Some(dependents) = parent.get("dependents").and_then(Value::as_array) else {
-            return Ok(None);
+            return self
+                .next_ready_packet_global(self.state.work_loop.current_task.as_ref().map(|t| t.work_item_id.as_str()))
+                .await;
         };
         let degraded = self.state.work_loop.status == WorkLoopStatus::TransportDegraded;
         let blocked_current_id = self
@@ -1496,7 +1566,9 @@ Return ONLY valid JSON:
                 }
             });
         let Some(next) = next else {
-            return Ok(None);
+            return self
+                .next_ready_packet_global(self.state.work_loop.current_task.as_ref().map(|t| t.work_item_id.as_str()))
+                .await;
         };
         let work_item_id = next
             .get("id")
