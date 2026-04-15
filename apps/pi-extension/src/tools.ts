@@ -600,6 +600,12 @@ export function registerTools(pi: ExtensionAPI) {
     return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
   }
 
+  async function preferredWriterId(): Promise<string> {
+    const status = await focusaFetchDetailed("/work-loop/status");
+    const claimed = String(status.body?.active_writer || "").trim();
+    return claimed || `pi-${process.pid}`;
+  }
+
   pi.registerTool({
     name: "focusa_work_loop_status",
     label: "Work Loop Status",
@@ -642,7 +648,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { action, reason, preset } = params as { action: "on" | "pause" | "resume" | "stop"; reason?: string; preset?: "conservative" | "balanced" | "push" | "audit" };
-      const writerId = `pi-${process.pid}`;
+      const writerId = await preferredWriterId();
 
       if (action === "on") {
         const payload = {
@@ -716,7 +722,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!p.current_ask?.trim()) {
         return { content: [{ type: "text", text: "current_ask required." }], details: { ok: false, status: 0, response: null } };
       }
-      const writerId = `pi-${process.pid}`;
+      const writerId = await preferredWriterId();
       const res = await focusaFetchDetailed("/work-loop/context", {
         method: "POST",
         headers: { "x-focusa-writer-id": writerId },
@@ -747,7 +753,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { summary } = params as { summary?: string };
-      const writerId = `pi-${process.pid}`;
+      const writerId = await preferredWriterId();
       const res = await focusaFetchDetailed("/work-loop/checkpoint", {
         method: "POST",
         headers: { "x-focusa-writer-id": writerId },
@@ -764,13 +770,25 @@ export function registerTools(pi: ExtensionAPI) {
     name: "focusa_work_loop_select_next",
     label: "Work Loop Select Next",
     description: "Ask daemon to defer blocked work and select next ready work item.",
-    parameters: Type.Object({}),
-    async execute() {
-      const writerId = `pi-${process.pid}`;
+    parameters: Type.Object({
+      parent_work_item_id: Type.Optional(Type.String({ description: "Parent work item id. If omitted, use active current_task work_item_id." })),
+    }),
+    async execute(_id, params) {
+      const { parent_work_item_id } = params as { parent_work_item_id?: string };
+      const writerId = await preferredWriterId();
+      const status = await focusaFetchDetailed("/work-loop/status");
+      const inferredParent = String(status.body?.current_task?.work_item_id || "").trim();
+      const parentWorkItemId = String(parent_work_item_id || inferredParent || "").trim();
+      if (!parentWorkItemId) {
+        return {
+          content: [{ type: "text", text: "work-loop select-next → blocked: no active parent work item" }],
+          details: { ok: false, status: 422, response: { error: "parent_work_item_id required when no current_task is active" } },
+        };
+      }
       const res = await focusaFetchDetailed("/work-loop/select-next", {
         method: "POST",
         headers: { "x-focusa-writer-id": writerId },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ parent_work_item_id: parentWorkItemId }),
       });
       return {
         content: [{ type: "text", text: `work-loop select-next → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
