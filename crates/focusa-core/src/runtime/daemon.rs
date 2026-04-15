@@ -21,6 +21,7 @@
 //!   - Flush persistence
 //!   - Close event log cleanly
 
+use anyhow::Context;
 use crate::intuition::engine::IntuitionEngine;
 
 const ACTIVE_TURN_TTL_SECS: i64 = 1800;
@@ -31,6 +32,7 @@ use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
 use crate::types::*;
 use crate::workers::{executor, priority_queue};
 use chrono::{DateTime, Utc};
+use serde_json::Value;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{Mutex, RwLock, mpsc};
@@ -863,11 +865,8 @@ Return ONLY valid JSON:
                                             "Auto-externalized large turn output to ECS"
                                         );
                                         // Register handle in state via reducer.
-                                        let kind_str = crate::reference::artifact::handle_kind_str(handle.kind);
                                         let reg_event = FocusaEvent::ArtifactRegistered {
-                                            artifact_id: handle.id,
-                                            artifact_type: kind_str.to_string(),
-                                            summary: label,
+                                            handle: handle.clone(),
                                             storage_uri: format!("ecs://{}", handle.sha256),
                                         };
                                         if let Ok(result) = reducer::reduce(
@@ -1382,6 +1381,223 @@ Return ONLY valid JSON:
             }
     }
 
+    fn infer_task_class(title: &str) -> TaskClass {
+        let lower = title.to_ascii_lowercase();
+        if lower.contains("refactor") {
+            TaskClass::Refactor
+        } else if lower.contains("doc") || lower.contains("spec") {
+            TaskClass::DocSpec
+        } else if lower.contains("architecture") || lower.contains("authority") || lower.contains("policy") {
+            TaskClass::Architecture
+        } else if lower.contains("api") || lower.contains("transport") || lower.contains("integration") {
+            TaskClass::Integration
+        } else if lower.contains("implement") || lower.contains("daemon") || lower.contains("route") || lower.contains("kernel") {
+            TaskClass::Code
+        } else {
+            TaskClass::Unknown
+        }
+    }
+
+    fn verification_tier_for_task_class(task_class: TaskClass) -> &'static str {
+        match task_class {
+            TaskClass::Code | TaskClass::Refactor => "code-task-verification",
+            TaskClass::DocSpec => "doc-spec-verification",
+            TaskClass::Architecture | TaskClass::Integration => "architecture-integration-verification",
+            TaskClass::Unknown => "generic-verification",
+        }
+    }
+
+    async fn claim_bd_item_if_possible(work_item_id: &str) {
+        let _ = tokio::process::Command::new("bd")
+            .args(["update", work_item_id, "--status", "in_progress"])
+            .output()
+            .await;
+    }
+
+    async fn record_bd_blocked_transition_if_possible(work_item_id: &str, reason: &str) {
+        let note = format!(
+            "Continuous loop blocked: {}",
+            reason.chars().take(220).collect::<String>()
+        );
+        let _ = tokio::process::Command::new("bd")
+            .args(["update", work_item_id, "--append-notes", &note])
+            .output()
+            .await;
+    }
+
+    async fn record_bd_completion_transition_if_possible(work_item_id: &str, summary: &str) {
+        let reason = format!(
+            "Completed via continuous loop: {}",
+            summary.chars().take(220).collect::<String>()
+        );
+        let _ = tokio::process::Command::new("bd")
+            .args(["close", work_item_id, "--reason", &reason])
+            .output()
+            .await;
+    }
+
+    async fn next_ready_packet_for_parent(&self, parent_work_item_id: &str) -> anyhow::Result<Option<SpecLinkedTaskPacket>> {
+        let output = tokio::process::Command::new("bd")
+            .args(["show", parent_work_item_id, "--json"])
+            .output()
+            .await
+            .context("failed to run bd show --json")?;
+        if !output.status.success() {
+            return Ok(None);
+        }
+        let payload: Vec<Value> = serde_json::from_slice(&output.stdout)
+            .context("failed to parse bd show json")?;
+        let Some(parent) = payload.first() else {
+            return Ok(None);
+        };
+        let Some(dependents) = parent.get("dependents").and_then(Value::as_array) else {
+            return Ok(None);
+        };
+        let degraded = self.state.work_loop.status == WorkLoopStatus::TransportDegraded;
+        let next = dependents
+            .iter()
+            .find(|dep: &&Value| {
+                let status_ok = dep.get("status").and_then(Value::as_str) == Some("open");
+                let title = dep.get("title").and_then(Value::as_str).unwrap_or_default();
+                status_ok && (!degraded || !Self::work_item_is_risky_under_degradation(title))
+            })
+            .or_else(|| {
+                dependents.iter().find(|dep: &&Value| {
+                    let status_ok = dep.get("status").and_then(Value::as_str) == Some("in_progress");
+                    let title = dep.get("title").and_then(Value::as_str).unwrap_or_default();
+                    status_ok && (!degraded || !Self::work_item_is_risky_under_degradation(title))
+                })
+            })
+            .or_else(|| {
+                if degraded {
+                    None
+                } else {
+                    dependents.iter().find(|dep: &&Value| dep.get("status").and_then(Value::as_str) == Some("open"))
+                }
+            });
+        let Some(next) = next else {
+            return Ok(None);
+        };
+        let work_item_id = next
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        let title = next
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("untitled work item")
+            .to_string();
+        Ok(Some(self.adapt_packet_for_current_loop_state(SpecLinkedTaskPacket {
+            work_item_id,
+            title: title.clone(),
+            task_class: Self::infer_task_class(&title),
+            linked_spec_refs: vec!["docs/79-focusa-governed-continuous-work-loop.md".to_string()],
+            acceptance_criteria: vec![],
+            required_verification_tier: Some("task-class".to_string()),
+            allowed_scope: vec![],
+            dependencies: vec![parent_work_item_id.to_string()],
+            tranche_id: Some(parent_work_item_id.to_string()),
+            blocker_class: None,
+            checkpoint_summary: None,
+        })))
+    }
+
+    async fn tranche_has_remaining_ready_work(&self, tranche_id: &str, current_work_item_id: Option<&str>) -> anyhow::Result<bool> {
+        let output = tokio::process::Command::new("bd")
+            .args(["show", tranche_id, "--json"])
+            .output()
+            .await
+            .context("failed to run bd show for tranche readiness")?;
+        if !output.status.success() {
+            return Ok(false);
+        }
+        let payload: Vec<Value> = serde_json::from_slice(&output.stdout)
+            .context("failed to parse tranche bd show json")?;
+        let Some(parent) = payload.first() else {
+            return Ok(false);
+        };
+        let Some(dependents) = parent.get("dependents").and_then(Value::as_array) else {
+            return Ok(false);
+        };
+        Ok(dependents.iter().any(|dep| {
+            let id = dep.get("id").and_then(Value::as_str);
+            let status = dep.get("status").and_then(Value::as_str);
+            id != current_work_item_id && matches!(status, Some("open") | Some("in_progress"))
+        }))
+    }
+
+    fn adapt_packet_for_current_loop_state(&self, mut packet: SpecLinkedTaskPacket) -> SpecLinkedTaskPacket {
+        if packet.acceptance_criteria.is_empty() {
+            packet.acceptance_criteria = vec![
+                format!("implement linked spec for {}", packet.title),
+                "record verified BD transition before close".to_string(),
+            ];
+        }
+        if packet.required_verification_tier.as_deref() == Some("task-class")
+            || packet.required_verification_tier.is_none()
+        {
+            packet.required_verification_tier = Some(
+                Self::verification_tier_for_task_class(packet.task_class).to_string(),
+            );
+        }
+        if self.state.work_loop.status == WorkLoopStatus::TransportDegraded {
+            packet.allowed_scope = vec![
+                "narrow-scope-only".to_string(),
+                "checkpoint-before-broadening".to_string(),
+            ];
+            packet.required_verification_tier = Some("heightened-degraded".to_string());
+            packet.checkpoint_summary = Some(
+                "transport degraded: narrow scope and checkpoint/verify aggressively"
+                    .to_string(),
+            );
+        }
+        if let Some(delegation) = self.state.work_loop.delegated_authorship.as_ref() {
+            packet.allowed_scope.push(format!("delegated-scope:{}", delegation.scope));
+            let cascade_note = format!(
+                "authoritative amendment by {} within scope {}{}",
+                delegation.delegate_id,
+                delegation.scope,
+                delegation
+                    .amendment_summary
+                    .as_ref()
+                    .map(|s| format!(": {s}"))
+                    .unwrap_or_default()
+            );
+            packet.checkpoint_summary = Some(match packet.checkpoint_summary.take() {
+                Some(existing) => format!("{} | {}", existing, cascade_note),
+                None => cascade_note,
+            });
+        }
+        packet
+    }
+
+    fn work_item_is_risky_under_degradation(title: &str) -> bool {
+        let lower = title.to_ascii_lowercase();
+        [
+            "delete",
+            "drop",
+            "remove",
+            "rename",
+            "migrate",
+            "rewrite",
+            "destructive",
+            "governance",
+        ]
+        .iter()
+        .any(|needle| lower.contains(needle))
+    }
+
+    async fn worktree_is_clean() -> bool {
+        match tokio::process::Command::new("git")
+            .args(["status", "--short"])
+            .output()
+            .await {
+            Ok(output) if output.status.success() => String::from_utf8_lossy(&output.stdout).trim().is_empty(),
+            _ => true,
+        }
+    }
+
     /// Translate Action → FocusaEvent(s).
     ///
     /// This is where IDs are generated and command parameters become event data.
@@ -1511,19 +1727,602 @@ Return ONLY valid JSON:
             }
 
             Action::UpdateThesis { frame_id: _, thesis } => {
-                // Update thesis on the first active thread (threads carry thesis, not frames)
-                if let Some(thread) = self.state.threads.iter_mut().find(|t| t.status == crate::types::ThreadStatus::Active) {
-                    thread.thesis = thesis;
-                    thread.updated_at = chrono::Utc::now();
-                    tracing::info!(thread_id = %thread.id, "Thread thesis updated via LLM");
-                } else if !self.state.threads.is_empty() {
-                    // Update first thread if none active
-                    self.state.threads[0].thesis = thesis;
-                    self.state.threads[0].updated_at = chrono::Utc::now();
-                    tracing::info!("Thread thesis updated (first thread)");
+                let thread_id = self
+                    .state
+                    .threads
+                    .iter()
+                    .find(|t| t.status == crate::types::ThreadStatus::Active)
+                    .or_else(|| self.state.threads.first())
+                    .map(|t| t.id);
+                if let Some(thread_id) = thread_id {
+                    tracing::info!(thread_id = %thread_id, "Thread thesis update queued via reducer event");
+                    Ok(vec![FocusaEvent::ThreadThesisUpdated { thread_id, thesis }])
+                } else {
+                    tracing::warn!("No threads available for thesis update");
+                    Ok(vec![])
                 }
-                Ok(vec![])
             }
+
+            // ─── Continuous Work Loop ─────────────────────────────────
+            Action::EnableContinuousWork {
+                project_run_id,
+                policy,
+            } => Ok(vec![
+                FocusaEvent::ContinuousWorkModeEnabled {
+                    project_run_id,
+                    policy,
+                },
+                FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                    checkpoint_id: Uuid::now_v7(),
+                    summary: "checkpoint: continuous work enabled".to_string(),
+                },
+            ]),
+
+            Action::SetContinuousWorkItem {
+                task_run_id,
+                packet,
+            } => {
+                let packet = self.adapt_packet_for_current_loop_state(packet);
+                if !packet.has_authoritative_grounding() {
+                    return Err(anyhow::anyhow!(
+                        "continuous work item {} missing linked_spec_refs",
+                        packet.work_item_id
+                    ));
+                }
+                Ok(vec![
+                    FocusaEvent::ContinuousWorkItemSelected {
+                        task_run_id,
+                        packet: packet.clone(),
+                    },
+                    FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                        checkpoint_id: Uuid::now_v7(),
+                        summary: format!("checkpoint: switched to work item {}", packet.work_item_id),
+                    },
+                ])
+            }
+
+            Action::SetDelegatedContinuousAuthorship {
+                delegate_id,
+                scope,
+                amendment_summary,
+            } => {
+                let delegate_id = delegate_id.unwrap_or_default();
+                if delegate_id.is_empty() {
+                    let reason = amendment_summary
+                        .unwrap_or_else(|| "delegated authorship cleared".to_string());
+                    Ok(vec![FocusaEvent::ContinuousAuthorshipDelegationCleared { reason }])
+                } else {
+                    Ok(vec![FocusaEvent::ContinuousAuthorshipDelegated {
+                        delegate_id,
+                        scope: scope.unwrap_or_else(|| "bounded".to_string()),
+                        amendment_summary,
+                    }])
+                }
+            }
+
+            Action::SetContinuousPauseFlags {
+                destructive_confirmation_required,
+                governance_decision_pending,
+                operator_override_active,
+                reason,
+            } => Ok(vec![FocusaEvent::ContinuousPauseFlagsUpdated {
+                destructive_confirmation_required,
+                governance_decision_pending,
+                operator_override_active,
+                reason,
+            }]),
+
+            Action::SetContinuousDecisionContext {
+                current_ask,
+                ask_kind,
+                scope_kind,
+                carryover_policy,
+                excluded_context_reason,
+                excluded_context_labels,
+                source_turn_id,
+                operator_steering_detected,
+            } => Ok(vec![FocusaEvent::ContinuousDecisionContextUpdated {
+                current_ask,
+                ask_kind,
+                scope_kind,
+                carryover_policy,
+                excluded_context_reason,
+                excluded_context_labels,
+                source_turn_id,
+                operator_steering_detected,
+            }]),
+
+            Action::AttachContinuousTransportSession { adapter, session_id } => Ok(vec![
+                FocusaEvent::ContinuousTransportSessionAttached { adapter, session_id },
+            ]),
+
+            Action::AbortContinuousTransportSession { reason } => Ok(vec![
+                FocusaEvent::ContinuousTransportAbortForwarded { reason },
+            ]),
+
+            Action::IngestContinuousTransportEvent {
+                sequence,
+                kind,
+                session_id,
+                turn_id,
+                summary,
+            } => Ok(vec![FocusaEvent::ContinuousTransportEventIngested {
+                sequence,
+                kind,
+                session_id,
+                turn_id,
+                summary,
+            }]),
+
+            Action::SelectNextContinuousSubtask { parent_work_item_id } => {
+                let packet = self
+                    .next_ready_packet_for_parent(&parent_work_item_id)
+                    .await?
+                    .ok_or_else(|| anyhow::anyhow!("no safe open or in_progress dependents under {}", parent_work_item_id))?;
+                Self::claim_bd_item_if_possible(&packet.work_item_id).await;
+                Ok(vec![
+                    FocusaEvent::ContinuousWorkItemSelected {
+                        task_run_id: Some(Uuid::now_v7()),
+                        packet: packet.clone(),
+                    },
+                    FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                        checkpoint_id: Uuid::now_v7(),
+                        summary: format!("checkpoint: switched to work item {}", packet.work_item_id),
+                    },
+                ])
+            }
+
+            Action::PauseContinuousWork { reason } => {
+                Ok(vec![
+                    FocusaEvent::ContinuousTurnPaused {
+                        reason: reason.clone(),
+                    },
+                    FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                        checkpoint_id: Uuid::now_v7(),
+                        summary: format!("checkpoint: paused continuous work ({reason})"),
+                    },
+                ])
+            }
+
+            Action::ResumeContinuousWork { reason } => {
+                Ok(vec![FocusaEvent::ContinuousLoopResumed { reason }])
+            }
+
+            Action::StopContinuousWork { reason } => Ok(vec![
+                FocusaEvent::ContinuousTurnPaused {
+                    reason: reason.clone(),
+                },
+                FocusaEvent::ContinuousWorkModeDisabled { reason },
+            ]),
+
+            Action::RequestNextContinuousTurn {
+                task_run_id,
+                work_item_id,
+                reason,
+            } => {
+                let wl = &self.state.work_loop;
+                let current_task = wl.current_task.as_ref();
+                let scope_change_requested = matches!(wl.decision_context.scope_kind.as_deref(), Some("scope_change"));
+                let governance_scoped = current_task.map(|task| task.allowed_scope.iter().any(|scope| scope.to_ascii_lowercase().contains("governance"))).unwrap_or(false);
+                let destructive_requested = current_task.map(|task| Self::work_item_is_risky_under_degradation(&task.title)).unwrap_or(false);
+                let elapsed_ms = wl.enabled_at.map(|ts| (chrono::Utc::now() - ts).num_milliseconds().max(0) as u64).unwrap_or(0);
+
+                let since_last_turn_ms = wl.last_turn_requested_at
+                    .map(|ts| (chrono::Utc::now() - ts).num_milliseconds().max(0) as u64)
+                    .unwrap_or(u64::MAX);
+                if wl.policy.max_retries > 0 && wl.consecutive_failures_for_task_class >= wl.policy.max_retries {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousLoopBudgetExhausted {
+                            reason: "max_retries budget exhausted".to_string(),
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on retry budget".to_string(),
+                        },
+                    ]);
+                }
+                if wl.policy.max_consecutive_failures > 0 && wl.consecutive_failures_for_task_class >= wl.policy.max_consecutive_failures {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousLoopBudgetExhausted {
+                            reason: "max_consecutive_failures budget exhausted".to_string(),
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on consecutive-failure budget".to_string(),
+                        },
+                    ]);
+                }
+                if since_last_turn_ms < wl.policy.cooldown_ms {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnPaused {
+                            reason: format!("cooldown active: wait {} ms before next turn", wl.policy.cooldown_ms.saturating_sub(since_last_turn_ms)),
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: paused for cooldown".to_string(),
+                        },
+                    ]);
+                }
+                if wl.policy.require_explainable_continue_reason && reason.trim().is_empty() {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::Governance,
+                            reason: "continuation reason is required before requesting the next turn".to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on missing continuation reason".to_string(),
+                        },
+                    ]);
+                }
+                if wl.policy.require_operator_for_scope_change && scope_change_requested {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::Governance,
+                            reason: "scope change requires operator approval before next turn".to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on scope change approval".to_string(),
+                        },
+                    ]);
+                }
+                if wl.policy.require_operator_for_governance && governance_scoped {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::Governance,
+                            reason: "governance-scoped continuation requires operator approval".to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on governance approval".to_string(),
+                        },
+                    ]);
+                }
+                if !wl.policy.allow_destructive_actions && destructive_requested {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::Governance,
+                            reason: "destructive or high-risk continuation is disabled by policy".to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on destructive-action policy".to_string(),
+                        },
+                    ]);
+                }
+                if wl.policy.max_turns.map(|max| wl.turn_count >= max).unwrap_or(false) {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousLoopBudgetExhausted {
+                            reason: "max_turns budget exhausted".to_string(),
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on max_turns budget".to_string(),
+                        },
+                    ]);
+                }
+                if wl.policy.max_wall_clock_ms.map(|max| elapsed_ms >= max).unwrap_or(false) {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousLoopBudgetExhausted {
+                            reason: "max_wall_clock_ms budget exhausted".to_string(),
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on wall-clock budget".to_string(),
+                        },
+                    ]);
+                }
+                if !Self::worktree_is_clean().await {
+                    Ok(vec![
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::Environment,
+                            reason: "worktree is not clean before requesting the next continuous turn".to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: paused on dirty worktree before next turn".to_string(),
+                        },
+                    ])
+                } else {
+                    Ok(vec![
+                        FocusaEvent::ContinuousTurnRequested {
+                            task_run_id,
+                            work_item_id: work_item_id.clone(),
+                            reason,
+                        },
+                        FocusaEvent::ContinuousTurnStarted {
+                            task_run_id,
+                            work_item_id,
+                        },
+                    ])
+                }
+            },
+
+            Action::ObserveContinuousTurnOutcome {
+                task_run_id,
+                work_item_id,
+                summary,
+                continue_reason,
+                verification_satisfied,
+                spec_conformant,
+            } => {
+                self.state.work_loop.pending_proposals_requiring_resolution = crate::pre::pending_count(&self.state.pre);
+                self.state.work_loop.current_autonomy_level = Some(self.state.autonomy.level);
+                if let Some(current_task) = self.state.work_loop.current_task.as_ref() {
+                    let title = current_task.title.to_ascii_lowercase();
+                    let risk_class = if current_task.allowed_scope.iter().any(|scope| scope.to_ascii_lowercase().contains("governance"))
+                        || ["delete", "drop", "remove", "rename", "migrate", "rewrite", "destructive", "governance"].iter().any(|needle| title.contains(needle)) {
+                        "high"
+                    } else if matches!(current_task.task_class, TaskClass::Architecture | TaskClass::Integration) {
+                        "medium"
+                    } else {
+                        "low"
+                    };
+                    self.state.work_loop.next_work_risk_class = Some(risk_class.to_string());
+                    let empty_reason = continue_reason.as_deref().map(str::trim).unwrap_or("").is_empty();
+                    let repeated_summary = self.state.work_loop.last_observed_summary.as_deref() == Some(summary.as_str());
+                    let predicted_low_productivity = !verification_satisfied || empty_reason || summary.trim().is_empty() || repeated_summary;
+                    let low_productivity_streak = if predicted_low_productivity {
+                        self.state.work_loop.consecutive_low_productivity_turns + 1
+                    } else {
+                        0
+                    };
+                    let same_work_item_retry_count = if work_item_id.is_some()
+                        && self.state.work_loop.last_observed_work_item_id == work_item_id {
+                        self.state.work_loop.consecutive_same_work_item_retries + 1
+                    } else if work_item_id.is_some() {
+                        1
+                    } else {
+                        0
+                    };
+                    self.state.work_loop.consecutive_low_productivity_turns = low_productivity_streak;
+                    self.state.work_loop.consecutive_same_work_item_retries = if verification_satisfied { 0 } else { same_work_item_retry_count };
+                    self.state.work_loop.last_observed_work_item_id = work_item_id.clone();
+                    if predicted_low_productivity
+                        && low_productivity_streak > self.state.work_loop.policy.max_consecutive_low_productivity_turns {
+                        return Ok(vec![
+                            FocusaEvent::ContinuousTurnObserved {
+                                task_run_id,
+                                summary,
+                            },
+                            FocusaEvent::ContinuousTurnBlocked {
+                                blocker_class: BlockerClass::ModelQuality,
+                                reason: "low-productivity turn budget exhausted".to_string(),
+                                work_item_id,
+                            },
+                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: "checkpoint: blocked on low-productivity loop".to_string(),
+                            },
+                        ]);
+                    }
+                    if !verification_satisfied
+                        && same_work_item_retry_count > self.state.work_loop.policy.max_same_subproblem_retries {
+                        return Ok(vec![
+                            FocusaEvent::ContinuousTurnObserved {
+                                task_run_id,
+                                summary,
+                            },
+                            FocusaEvent::ContinuousTurnBlocked {
+                                blocker_class: BlockerClass::ModelQuality,
+                                reason: "same-subproblem retry budget exhausted".to_string(),
+                                work_item_id,
+                            },
+                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: "checkpoint: blocked on repeated same-subproblem retries".to_string(),
+                            },
+                        ]);
+                    }
+                    if self.state.work_loop.pending_proposals_requiring_resolution > 0
+                        && self.state.work_loop.pause_flags.governance_decision_pending {
+                        return Ok(vec![
+                            FocusaEvent::ContinuousTurnObserved {
+                                task_run_id,
+                                summary,
+                            },
+                            FocusaEvent::ContinuousTurnBlocked {
+                                blocker_class: BlockerClass::Governance,
+                                reason: "pending proposals require resolution before continuation".to_string(),
+                                work_item_id,
+                            },
+                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: "checkpoint: blocked pending proposal resolution".to_string(),
+                            },
+                        ]);
+                    }
+                    if self.state.work_loop.decision_context.operator_steering_detected
+                        && self.state.work_loop.policy.auto_pause_on_operator_message {
+                        return Ok(vec![
+                            FocusaEvent::ContinuousTurnObserved {
+                                task_run_id,
+                                summary,
+                            },
+                            FocusaEvent::ContinuousTurnPaused {
+                                reason: "operator steering detected".to_string(),
+                            },
+                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: "checkpoint: paused for operator steering".to_string(),
+                            },
+                        ]);
+                    }
+                    if self.state.work_loop.current_autonomy_level == Some(crate::types::AutonomyLevel::AL0)
+                        && risk_class == "high" {
+                        return Ok(vec![
+                            FocusaEvent::ContinuousTurnObserved {
+                                task_run_id,
+                                summary,
+                            },
+                            FocusaEvent::ContinuousTurnBlocked {
+                                blocker_class: BlockerClass::Governance,
+                                reason: "autonomy level too low for high-risk continuation".to_string(),
+                                work_item_id,
+                            },
+                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: "checkpoint: blocked by autonomy/risk policy".to_string(),
+                            },
+                        ]);
+                    }
+                    if !current_task.has_authoritative_grounding() || !current_task.has_acceptance_criteria() {
+                        return Ok(vec![
+                            FocusaEvent::ContinuousTurnObserved {
+                                task_run_id,
+                                summary,
+                            },
+                            FocusaEvent::ContinuousTurnBlocked {
+                                blocker_class: BlockerClass::SpecGap,
+                                reason: "selected work item is missing authoritative spec grounding or acceptance criteria".to_string(),
+                                work_item_id,
+                            },
+                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: "checkpoint: blocked on stale or underspecified work item".to_string(),
+                            },
+                        ]);
+                    }
+                    if let Some(delegation) = self.state.work_loop.delegated_authorship.as_ref() {
+                        let delegated_marker = format!("delegated-scope:{}", delegation.scope);
+                        if !current_task.allowed_scope.iter().any(|scope| scope == &delegated_marker) {
+                            return Ok(vec![
+                                FocusaEvent::ContinuousTurnObserved {
+                                    task_run_id,
+                                    summary,
+                                },
+                                FocusaEvent::ContinuousTurnBlocked {
+                                    blocker_class: BlockerClass::SpecGap,
+                                    reason: "authoritative spec amendment made the selected work item stale; replan required".to_string(),
+                                    work_item_id,
+                                },
+                                FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                    checkpoint_id: Uuid::now_v7(),
+                                    summary: "checkpoint: stale bead/spec mismatch detected".to_string(),
+                                },
+                            ]);
+                        }
+                    }
+                }
+                if self.state.work_loop.policy.require_verification_before_persist
+                    && !verification_satisfied
+                {
+                    if let Some(id) = work_item_id.as_deref() {
+                        Self::record_bd_blocked_transition_if_possible(id, "required verification not yet satisfied").await;
+                    }
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnObserved {
+                            task_run_id,
+                            summary,
+                        },
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::Verification,
+                            reason: "required verification not yet satisfied".to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked pending verification".to_string(),
+                        },
+                    ]);
+                }
+
+                if !spec_conformant {
+                    if let Some(id) = work_item_id.as_deref() {
+                        Self::record_bd_blocked_transition_if_possible(id, "implementation remains non-conformant with linked spec").await;
+                    }
+                    return Ok(vec![
+                        FocusaEvent::ContinuousTurnObserved {
+                            task_run_id,
+                            summary,
+                        },
+                        FocusaEvent::ContinuousTurnBlocked {
+                            blocker_class: BlockerClass::SpecGap,
+                            reason: "implementation remains non-conformant with linked spec"
+                                .to_string(),
+                            work_item_id,
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: blocked on spec conformance".to_string(),
+                        },
+                    ]);
+                }
+
+                let current_task = self.state.work_loop.current_task.clone();
+                let mut events = vec![
+                    FocusaEvent::ContinuousTurnObserved {
+                        task_run_id,
+                        summary,
+                    },
+                    FocusaEvent::ContinuousTurnCompleted {
+                        task_run_id,
+                        work_item_id: work_item_id.clone(),
+                        continue_reason,
+                        verification_satisfied,
+                        spec_conformant,
+                    },
+                ];
+                if verification_satisfied {
+                    events.push(FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                        checkpoint_id: Uuid::now_v7(),
+                        summary: "checkpoint: verification satisfied".to_string(),
+                    });
+                }
+                if let Some(id) = work_item_id.as_deref() {
+                    Self::record_bd_completion_transition_if_possible(id, "verified completion; continuous loop advanced outcome").await;
+                }
+                if let Some(task) = current_task.as_ref() {
+                    if let Some(parent_work_item_id) = task.dependencies.first() {
+                        if let Some(next_packet) = self
+                            .next_ready_packet_for_parent(parent_work_item_id)
+                            .await?
+                            .filter(|packet| Some(packet.work_item_id.as_str()) != work_item_id.as_deref())
+                        {
+                            Self::claim_bd_item_if_possible(&next_packet.work_item_id).await;
+                            events.push(FocusaEvent::ContinuousWorkItemSelected {
+                                task_run_id: Some(Uuid::now_v7()),
+                                packet: next_packet.clone(),
+                            });
+                            events.push(FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                                checkpoint_id: Uuid::now_v7(),
+                                summary: format!("checkpoint: auto-advanced to {}", next_packet.work_item_id),
+                            });
+                        }
+                    }
+                    if let Some(tranche_id) = task.tranche_id.as_deref() {
+                        if !self
+                            .tranche_has_remaining_ready_work(tranche_id, work_item_id.as_deref())
+                            .await?
+                        {
+                            events.push(FocusaEvent::ContinuousTrancheCompleted {
+                                tranche_id: Some(tranche_id.to_string()),
+                                reason: "verified completion exhausted ready work in tranche"
+                                    .to_string(),
+                            });
+                        }
+                    }
+                }
+                Ok(events)
+            }
+
+            Action::CheckpointContinuousLoop {
+                checkpoint_id,
+                summary,
+            } => Ok(vec![FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                checkpoint_id,
+                summary,
+            }]),
+
+            Action::MarkContinuousLoopTransportDegraded { reason } => Ok(vec![
+                FocusaEvent::ContinuousLoopTransportDegraded { reason },
+            ]),
 
             Action::EmitEvent { event } => {
                 // Direct event emission from API routes.
@@ -1569,6 +2368,28 @@ Return ONLY valid JSON:
                     .focus_stack
                     .active_id
                     .ok_or_else(|| anyhow::anyhow!("PopFrame but no active frame"))?;
+
+                let active = self
+                    .state
+                    .focus_stack
+                    .frames
+                    .iter()
+                    .find(|f| f.id == frame_id)
+                    .ok_or_else(|| anyhow::anyhow!("PopFrame active frame {} missing", frame_id))?;
+                let parent_id = active
+                    .parent_id
+                    .ok_or_else(|| anyhow::anyhow!("PopFrame cannot complete root frame {}", frame_id))?;
+                let parent = self
+                    .state
+                    .focus_stack
+                    .frames
+                    .iter()
+                    .find(|f| f.id == parent_id)
+                    .ok_or_else(|| anyhow::anyhow!("PopFrame parent frame {} missing", parent_id))?;
+                if parent.status != crate::types::FrameStatus::Paused {
+                    anyhow::bail!("PopFrame parent frame {} must be Paused, found {:?}", parent_id, parent.status);
+                }
+
                 // Clean up intuition engine state for this frame.
                 self.intuition.clear_frame(frame_id);
                 Ok(vec![FocusaEvent::FocusFrameCompleted {
@@ -1578,6 +2399,27 @@ Return ONLY valid JSON:
             }
 
             Action::SetActiveFrame { frame_id } => {
+                let active_id = self
+                    .state
+                    .focus_stack
+                    .active_id
+                    .ok_or_else(|| anyhow::anyhow!("SetActiveFrame but no active frame"))?;
+                if active_id == frame_id {
+                    return Ok(vec![]);
+                }
+                if !self.state.focus_stack.stack_path_cache.contains(&frame_id) {
+                    anyhow::bail!("SetActiveFrame target {} is not in current stack path", frame_id);
+                }
+                let target = self
+                    .state
+                    .focus_stack
+                    .frames
+                    .iter()
+                    .find(|f| f.id == frame_id)
+                    .ok_or_else(|| anyhow::anyhow!("SetActiveFrame target {} not found", frame_id))?;
+                if target.status != crate::types::FrameStatus::Paused {
+                    anyhow::bail!("SetActiveFrame target {} must be Paused, found {:?}", frame_id, target.status);
+                }
                 Ok(vec![FocusaEvent::FocusFrameResumed { frame_id }])
             }
 
@@ -1643,12 +2485,9 @@ Return ONLY valid JSON:
                 content,
             } => {
                 let session_id = self.state.session.as_ref().map(|s| s.session_id);
-                let handle = self.ecs.store(kind, label.clone(), &content, session_id)?;
-                let kind_str = crate::reference::artifact::handle_kind_str(handle.kind);
+                let handle = self.ecs.store(kind, label, &content, session_id)?;
                 Ok(vec![FocusaEvent::ArtifactRegistered {
-                    artifact_id: handle.id,
-                    artifact_type: kind_str.to_string(),
-                    summary: label,
+                    handle: handle.clone(),
                     storage_uri: format!("ecs://{}", handle.sha256),
                 }])
             }
@@ -1658,20 +2497,28 @@ Return ONLY valid JSON:
                 Ok(vec![])
             }
 
+            Action::CacheBust { category } => {
+                self.cache.bust(category);
+                Ok(vec![])
+            }
+
             // ─── Memory ──────────────────────────────────────────────────
-            // Memory ops mutate state directly (outside reducer) but emit audit
-            // events for observability per G1-detail-15 §memory.semantic_upserted,
-            // memory.rule_reinforced, memory.decay_tick.
+            // Semantic upserts now flow through reducer-backed events.
             Action::UpsertSemantic { key, value, source } => {
-                let event = crate::memory::semantic::upsert(
-                    &mut self.state.memory,
-                    key.clone(),
-                    value.clone(),
-                    source,
-                );
-                self.persistence.save_state(&self.state)?;
-                self.sync_shared_state().await;
-                Ok(vec![event])
+                Ok(vec![FocusaEvent::SemanticMemoryUpserted {
+                    key,
+                    value,
+                    source: match source {
+                        crate::types::MemorySource::User => "user".to_string(),
+                        crate::types::MemorySource::Worker => "worker".to_string(),
+                        crate::types::MemorySource::Manual => "manual".to_string(),
+                        crate::types::MemorySource::Operator => "operator".to_string(),
+                        crate::types::MemorySource::Constitution => "constitution".to_string(),
+                        crate::types::MemorySource::FocusState => "focus_state".to_string(),
+                        crate::types::MemorySource::ContextCore => "context_core".to_string(),
+                        crate::types::MemorySource::Mem0 => "mem0".to_string(),
+                    },
+                }])
             }
 
             Action::ReinforceRule { rule_id } => {

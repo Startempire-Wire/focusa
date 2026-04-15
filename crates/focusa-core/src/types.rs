@@ -31,6 +31,356 @@ pub type HandleId = Uuid;
 /// Artifact identifier.
 pub type ArtifactId = Uuid;
 
+/// Project-level autonomous execution run identifier.
+pub type ProjectRunId = Uuid;
+/// Tranche-level autonomous execution run identifier.
+pub type TrancheRunId = Uuid;
+/// Task-level autonomous execution run identifier.
+pub type TaskRunId = Uuid;
+/// Checkpoint identifier for continuous work recovery.
+pub type CheckpointId = Uuid;
+
+// ─── Continuous Work Loop (spec 79) ─────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkLoopStatus {
+    #[default]
+    Idle,
+    SelectingReadyWork,
+    PreparingTurn,
+    AwaitingHarnessTurn,
+    EvaluatingOutcome,
+    AdvancingTask,
+    Paused,
+    Blocked,
+    Completed,
+    Aborted,
+    TransportDegraded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkLoopPreset {
+    Conservative,
+    #[default]
+    Balanced,
+    Push,
+    Audit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TaskClass {
+    #[default]
+    Unknown,
+    Code,
+    Refactor,
+    DocSpec,
+    Architecture,
+    Integration,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkItemLifecycle {
+    #[default]
+    Ready,
+    InProgress,
+    Deferred,
+    Blocked,
+    Completed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum BlockerClass {
+    #[default]
+    Unknown,
+    Tooling,
+    Environment,
+    Dependency,
+    SpecGap,
+    Verification,
+    Governance,
+    Permission,
+    Transport,
+    ModelQuality,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorshipMode {
+    #[default]
+    OperatorOnly,
+    Delegated,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunIdentityState {
+    pub project_run_id: ProjectRunId,
+    pub tranche_run_id: Option<TrancheRunId>,
+    pub task_run_id: Option<TaskRunId>,
+    pub worker_session_id: Option<String>,
+    pub last_checkpoint_id: Option<CheckpointId>,
+}
+
+impl Default for RunIdentityState {
+    fn default() -> Self {
+        Self {
+            project_run_id: Uuid::now_v7(),
+            tranche_run_id: None,
+            task_run_id: None,
+            worker_session_id: None,
+            last_checkpoint_id: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkerCapabilityProfile {
+    pub worker_id: String,
+    pub tool_use_supported: bool,
+    pub edit_reliable: bool,
+    pub structured_output_reliable: bool,
+    pub code_generation_strong: bool,
+    pub context_window_class: Option<String>,
+    pub latency_class: Option<String>,
+    pub cost_tier: Option<String>,
+    pub fallback_available: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkLoopPolicy {
+    pub preset: WorkLoopPreset,
+    pub max_turns: Option<u32>,
+    pub max_wall_clock_ms: Option<u64>,
+    pub max_retries: u32,
+    pub cooldown_ms: u64,
+    pub allow_destructive_actions: bool,
+    pub require_operator_for_governance: bool,
+    pub require_operator_for_scope_change: bool,
+    pub require_verification_before_persist: bool,
+    pub max_consecutive_low_productivity_turns: u32,
+    pub max_consecutive_failures: u32,
+    pub auto_pause_on_operator_message: bool,
+    pub require_explainable_continue_reason: bool,
+    pub max_same_subproblem_retries: u32,
+    pub status_heartbeat_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkLoopPolicyOverrides {
+    pub max_turns: Option<u32>,
+    pub max_wall_clock_ms: Option<u64>,
+    pub max_retries: Option<u32>,
+    pub cooldown_ms: Option<u64>,
+    pub allow_destructive_actions: Option<bool>,
+    pub require_operator_for_governance: Option<bool>,
+    pub require_operator_for_scope_change: Option<bool>,
+    pub require_verification_before_persist: Option<bool>,
+    pub max_consecutive_low_productivity_turns: Option<u32>,
+    pub max_consecutive_failures: Option<u32>,
+    pub auto_pause_on_operator_message: Option<bool>,
+    pub require_explainable_continue_reason: Option<bool>,
+    pub max_same_subproblem_retries: Option<u32>,
+    pub status_heartbeat_ms: Option<u64>,
+}
+
+impl WorkLoopPolicy {
+    pub fn for_preset(preset: WorkLoopPreset) -> Self {
+        match preset {
+            WorkLoopPreset::Conservative => Self {
+                preset,
+                max_turns: Some(6),
+                max_wall_clock_ms: Some(15 * 60 * 1_000),
+                max_retries: 2,
+                cooldown_ms: 2_000,
+                allow_destructive_actions: false,
+                require_operator_for_governance: true,
+                require_operator_for_scope_change: true,
+                require_verification_before_persist: true,
+                max_consecutive_low_productivity_turns: 2,
+                max_consecutive_failures: 2,
+                auto_pause_on_operator_message: false,
+                require_explainable_continue_reason: true,
+                max_same_subproblem_retries: 1,
+                status_heartbeat_ms: 3_000,
+            },
+            WorkLoopPreset::Balanced => Self {
+                preset,
+                max_turns: Some(12),
+                max_wall_clock_ms: Some(30 * 60 * 1_000),
+                max_retries: 3,
+                cooldown_ms: 1_000,
+                allow_destructive_actions: false,
+                require_operator_for_governance: true,
+                require_operator_for_scope_change: true,
+                require_verification_before_persist: true,
+                max_consecutive_low_productivity_turns: 3,
+                max_consecutive_failures: 3,
+                auto_pause_on_operator_message: false,
+                require_explainable_continue_reason: true,
+                max_same_subproblem_retries: 2,
+                status_heartbeat_ms: 5_000,
+            },
+            WorkLoopPreset::Push => Self {
+                preset,
+                max_turns: Some(24),
+                max_wall_clock_ms: Some(60 * 60 * 1_000),
+                max_retries: 4,
+                cooldown_ms: 500,
+                allow_destructive_actions: false,
+                require_operator_for_governance: true,
+                require_operator_for_scope_change: true,
+                require_verification_before_persist: true,
+                max_consecutive_low_productivity_turns: 4,
+                max_consecutive_failures: 4,
+                auto_pause_on_operator_message: false,
+                require_explainable_continue_reason: true,
+                max_same_subproblem_retries: 3,
+                status_heartbeat_ms: 5_000,
+            },
+            WorkLoopPreset::Audit => Self {
+                preset,
+                max_turns: Some(10),
+                max_wall_clock_ms: Some(20 * 60 * 1_000),
+                max_retries: 2,
+                cooldown_ms: 1_500,
+                allow_destructive_actions: false,
+                require_operator_for_governance: true,
+                require_operator_for_scope_change: true,
+                require_verification_before_persist: true,
+                max_consecutive_low_productivity_turns: 2,
+                max_consecutive_failures: 2,
+                auto_pause_on_operator_message: false,
+                require_explainable_continue_reason: true,
+                max_same_subproblem_retries: 1,
+                status_heartbeat_ms: 2_000,
+            },
+        }
+    }
+
+    pub fn with_overrides(preset: WorkLoopPreset, overrides: WorkLoopPolicyOverrides) -> Self {
+        let mut policy = Self::for_preset(preset);
+        if let Some(v) = overrides.max_turns { policy.max_turns = Some(v); }
+        if let Some(v) = overrides.max_wall_clock_ms { policy.max_wall_clock_ms = Some(v); }
+        if let Some(v) = overrides.max_retries { policy.max_retries = v; }
+        if let Some(v) = overrides.cooldown_ms { policy.cooldown_ms = v; }
+        if let Some(v) = overrides.allow_destructive_actions { policy.allow_destructive_actions = v; }
+        if let Some(v) = overrides.require_operator_for_governance { policy.require_operator_for_governance = v; }
+        if let Some(v) = overrides.require_operator_for_scope_change { policy.require_operator_for_scope_change = v; }
+        if let Some(v) = overrides.require_verification_before_persist { policy.require_verification_before_persist = v; }
+        if let Some(v) = overrides.max_consecutive_low_productivity_turns { policy.max_consecutive_low_productivity_turns = v; }
+        if let Some(v) = overrides.max_consecutive_failures { policy.max_consecutive_failures = v; }
+        if let Some(v) = overrides.auto_pause_on_operator_message { policy.auto_pause_on_operator_message = v; }
+        if let Some(v) = overrides.require_explainable_continue_reason { policy.require_explainable_continue_reason = v; }
+        if let Some(v) = overrides.max_same_subproblem_retries { policy.max_same_subproblem_retries = v; }
+        if let Some(v) = overrides.status_heartbeat_ms { policy.status_heartbeat_ms = v; }
+        policy
+    }
+}
+
+impl Default for WorkLoopPolicy {
+    fn default() -> Self {
+        Self::for_preset(WorkLoopPreset::Balanced)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SpecLinkedTaskPacket {
+    pub work_item_id: String,
+    pub title: String,
+    pub task_class: TaskClass,
+    pub linked_spec_refs: Vec<String>,
+    pub acceptance_criteria: Vec<String>,
+    pub required_verification_tier: Option<String>,
+    pub allowed_scope: Vec<String>,
+    pub dependencies: Vec<String>,
+    pub tranche_id: Option<String>,
+    pub blocker_class: Option<BlockerClass>,
+    pub checkpoint_summary: Option<String>,
+}
+
+impl SpecLinkedTaskPacket {
+    pub fn has_authoritative_grounding(&self) -> bool {
+        !self.linked_spec_refs.is_empty()
+    }
+
+    pub fn has_acceptance_criteria(&self) -> bool {
+        !self.acceptance_criteria.is_empty()
+    }
+
+    pub fn requires_verification(&self) -> bool {
+        self.required_verification_tier.is_some()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DelegatedAuthorshipState {
+    pub delegate_id: String,
+    pub scope: String,
+    pub amendment_summary: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkLoopPauseFlags {
+    pub destructive_confirmation_required: bool,
+    pub governance_decision_pending: bool,
+    pub operator_override_active: bool,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkLoopDecisionContext {
+    pub current_ask: Option<String>,
+    pub ask_kind: Option<String>,
+    pub scope_kind: Option<String>,
+    pub carryover_policy: Option<String>,
+    pub excluded_context_reason: Option<String>,
+    pub excluded_context_labels: Vec<String>,
+    pub source_turn_id: Option<String>,
+    pub operator_steering_detected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkLoopState {
+    pub enabled: bool,
+    pub status: WorkLoopStatus,
+    pub authorship_mode: AuthorshipMode,
+    pub policy: WorkLoopPolicy,
+    pub run: RunIdentityState,
+    pub current_task: Option<SpecLinkedTaskPacket>,
+    pub last_completed_task_id: Option<String>,
+    pub last_recorded_bd_transition_id: Option<String>,
+    pub last_blocker_class: Option<BlockerClass>,
+    pub last_blocker_reason: Option<String>,
+    pub last_continue_reason: Option<String>,
+    pub last_observed_summary: Option<String>,
+    pub last_safe_reentry_prompt_basis: Option<String>,
+    pub restored_context_summary: Option<String>,
+    pub transport_adapter: Option<String>,
+    pub transport_session_state: Option<String>,
+    pub last_transport_event_kind: Option<String>,
+    pub last_transport_event_summary: Option<String>,
+    pub last_transport_event_sequence: u64,
+    pub transport_abort_reason: Option<String>,
+    pub enabled_at: Option<DateTime<Utc>>,
+    pub last_turn_requested_at: Option<DateTime<Utc>>,
+    pub turn_count: u32,
+    pub consecutive_failures_for_task_class: u32,
+    pub consecutive_low_productivity_turns: u32,
+    pub consecutive_same_work_item_retries: u32,
+    pub last_observed_work_item_id: Option<String>,
+    pub pause_flags: WorkLoopPauseFlags,
+    pub decision_context: WorkLoopDecisionContext,
+    pub pending_proposals_requiring_resolution: usize,
+    pub next_work_risk_class: Option<String>,
+    pub current_autonomy_level: Option<AutonomyLevel>,
+    pub delegated_authorship: Option<DelegatedAuthorshipState>,
+    pub active_worker: Option<WorkerCapabilityProfile>,
+}
+
 // ─── Canonical State (from core-reducer.md) ─────────────────────────────────
 
 /// The complete cognitive state of a Focusa instance.
@@ -52,6 +402,9 @@ pub struct FocusaState {
     pub rfm: RfmState,
     pub pre: PreState,
     pub contribution: ContributionState,
+    /// Canonical continuous work loop state (spec 79).
+    #[serde(default)]
+    pub work_loop: WorkLoopState,
 
     /// Runtime reality (docs/40): instances, sessions, attachments.
     pub instances: Vec<Instance>,
@@ -90,6 +443,7 @@ impl FocusaState {
             rfm: RfmState::default(),
             pre: PreState::default(),
             contribution: ContributionState::default(),
+            work_loop: WorkLoopState::default(),
             instances: vec![],
             attachments: vec![],
             threads: vec![],
@@ -566,6 +920,16 @@ pub enum FocusaEvent {
         primary_intent: String,
         owner_machine_id: Option<String>,
     },
+    ThreadForked {
+        source_thread_id: Uuid,
+        thread_id: Uuid,
+        name: String,
+        owner_machine_id: Option<String>,
+    },
+    ThreadThesisUpdated {
+        thread_id: Uuid,
+        thesis: ThreadThesis,
+    },
 
     // Session lifecycle
     SessionStarted {
@@ -596,6 +960,106 @@ pub enum FocusaEvent {
         errors: Vec<String>,
         prompt_tokens: Option<u32>,
         completion_tokens: Option<u32>,
+    },
+
+    // Continuous work loop (spec 79)
+    ContinuousWorkModeEnabled {
+        project_run_id: ProjectRunId,
+        policy: WorkLoopPolicy,
+    },
+    ContinuousWorkModeDisabled {
+        reason: String,
+    },
+    ContinuousWorkItemSelected {
+        task_run_id: Option<TaskRunId>,
+        packet: SpecLinkedTaskPacket,
+    },
+    ContinuousTurnRequested {
+        task_run_id: Option<TaskRunId>,
+        work_item_id: Option<String>,
+        reason: String,
+    },
+    ContinuousTurnStarted {
+        task_run_id: Option<TaskRunId>,
+        work_item_id: Option<String>,
+    },
+    ContinuousTurnObserved {
+        task_run_id: Option<TaskRunId>,
+        summary: String,
+    },
+    ContinuousTurnCompleted {
+        task_run_id: Option<TaskRunId>,
+        work_item_id: Option<String>,
+        continue_reason: Option<String>,
+        verification_satisfied: bool,
+        spec_conformant: bool,
+    },
+    ContinuousTurnPaused {
+        reason: String,
+    },
+    ContinuousTurnBlocked {
+        blocker_class: BlockerClass,
+        reason: String,
+        work_item_id: Option<String>,
+    },
+    ContinuousTurnEscalated {
+        reason: String,
+        work_item_id: Option<String>,
+    },
+    ContinuousTrancheCompleted {
+        tranche_id: Option<String>,
+        reason: String,
+    },
+    ContinuousLoopBudgetExhausted {
+        reason: String,
+    },
+    ContinuousLoopTransportDegraded {
+        reason: String,
+    },
+    ContinuousLoopResumed {
+        reason: String,
+    },
+    ContinuousAuthorshipDelegated {
+        delegate_id: String,
+        scope: String,
+        amendment_summary: Option<String>,
+    },
+    ContinuousAuthorshipDelegationCleared {
+        reason: String,
+    },
+    ContinuousPauseFlagsUpdated {
+        destructive_confirmation_required: bool,
+        governance_decision_pending: bool,
+        operator_override_active: bool,
+        reason: Option<String>,
+    },
+    ContinuousDecisionContextUpdated {
+        current_ask: Option<String>,
+        ask_kind: Option<String>,
+        scope_kind: Option<String>,
+        carryover_policy: Option<String>,
+        excluded_context_reason: Option<String>,
+        excluded_context_labels: Option<Vec<String>>,
+        source_turn_id: Option<String>,
+        operator_steering_detected: Option<bool>,
+    },
+    ContinuousTransportSessionAttached {
+        adapter: String,
+        session_id: String,
+    },
+    ContinuousTransportAbortForwarded {
+        reason: String,
+    },
+    ContinuousTransportEventIngested {
+        sequence: u64,
+        kind: String,
+        session_id: Option<String>,
+        turn_id: Option<String>,
+        summary: Option<String>,
+    },
+    ContinuousLoopRecoveryCheckpointed {
+        checkpoint_id: CheckpointId,
+        summary: String,
     },
 
     // Focus Stack
@@ -653,9 +1117,7 @@ pub enum FocusaEvent {
 
     // Reference Store
     ArtifactRegistered {
-        artifact_id: ArtifactId,
-        artifact_type: String,
-        summary: String,
+        handle: HandleRef,
         storage_uri: String,
     },
     ArtifactPinned {
@@ -698,12 +1160,40 @@ pub enum FocusaEvent {
         degraded: bool,
     },
 
+    AutonomyAdjusted {
+        level: AutonomyLevel,
+        scope: Option<String>,
+        ttl: Option<DateTime<Utc>>,
+        reason: String,
+    },
+
     // Memory
     /// Per G1-09 §Memory Operations: semantic memory upserted.
     SemanticMemoryUpserted {
         key: String,
         value: String,
         source: String,
+    },
+
+    // PRE / governance
+    ProposalSubmitted {
+        proposal_id: Uuid,
+        kind: ProposalKind,
+        source: String,
+        payload: serde_json::Value,
+        deadline_ms: u64,
+        score: Option<f64>,
+    },
+    ProposalStatusChanged {
+        proposal_id: Uuid,
+        status: ProposalStatus,
+    },
+    ConstitutionLoaded {
+        version: String,
+        agent_id: String,
+        principles: Vec<ConstitutionPrinciple>,
+        safety_rules: Vec<String>,
+        expression_rules: Vec<String>,
     },
     /// Per G1-09 §Memory Operations: procedural rule reinforced.
     RuleReinforced {
@@ -955,6 +1445,9 @@ pub enum Action {
     ResolveHandle {
         handle_id: HandleId,
     },
+    CacheBust {
+        category: CacheBustCategory,
+    },
 
     // Memory
     UpsertSemantic {
@@ -1040,6 +1533,83 @@ pub enum Action {
         prediction_type: String,
         confidence: f64,
         context: String,
+    },
+
+    // Continuous work loop
+    EnableContinuousWork {
+        project_run_id: ProjectRunId,
+        policy: WorkLoopPolicy,
+    },
+    PauseContinuousWork {
+        reason: String,
+    },
+    ResumeContinuousWork {
+        reason: String,
+    },
+    StopContinuousWork {
+        reason: String,
+    },
+    SetContinuousWorkItem {
+        task_run_id: Option<TaskRunId>,
+        packet: SpecLinkedTaskPacket,
+    },
+    SelectNextContinuousSubtask {
+        parent_work_item_id: String,
+    },
+    SetDelegatedContinuousAuthorship {
+        delegate_id: Option<String>,
+        scope: Option<String>,
+        amendment_summary: Option<String>,
+    },
+    SetContinuousPauseFlags {
+        destructive_confirmation_required: bool,
+        governance_decision_pending: bool,
+        operator_override_active: bool,
+        reason: Option<String>,
+    },
+    SetContinuousDecisionContext {
+        current_ask: Option<String>,
+        ask_kind: Option<String>,
+        scope_kind: Option<String>,
+        carryover_policy: Option<String>,
+        excluded_context_reason: Option<String>,
+        excluded_context_labels: Option<Vec<String>>,
+        source_turn_id: Option<String>,
+        operator_steering_detected: Option<bool>,
+    },
+    AttachContinuousTransportSession {
+        adapter: String,
+        session_id: String,
+    },
+    AbortContinuousTransportSession {
+        reason: String,
+    },
+    IngestContinuousTransportEvent {
+        sequence: u64,
+        kind: String,
+        session_id: Option<String>,
+        turn_id: Option<String>,
+        summary: Option<String>,
+    },
+    RequestNextContinuousTurn {
+        task_run_id: Option<TaskRunId>,
+        work_item_id: Option<String>,
+        reason: String,
+    },
+    ObserveContinuousTurnOutcome {
+        task_run_id: Option<TaskRunId>,
+        work_item_id: Option<String>,
+        summary: String,
+        continue_reason: Option<String>,
+        verification_satisfied: bool,
+        spec_conformant: bool,
+    },
+    CheckpointContinuousLoop {
+        checkpoint_id: CheckpointId,
+        summary: String,
+    },
+    MarkContinuousLoopTransportDegraded {
+        reason: String,
     },
 
     // Events

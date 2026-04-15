@@ -5,23 +5,70 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, persistState, getFocusState, createPiFrame, ensurePiFrame } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext } from "./state.js";
+import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
+let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function seedCurrentAskFromPersistedState(ctx: any, data: any) {
+  const restoredAsk = data?.currentAsk;
+  const cleanedRestoredAsk = stripQuotedFocusaContext(restoredAsk?.text || "");
+  if (cleanedRestoredAsk && !isNonTaskStatusLikeText(cleanedRestoredAsk)) {
+    S.currentAsk = {
+      text: trimFrameText(cleanedRestoredAsk, 500),
+      kind: restoredAsk.kind || classifyCurrentAsk(cleanedRestoredAsk),
+      sourceTurnId: restoredAsk.sourceTurnId || "restored",
+      updatedAt: restoredAsk.updatedAt || Date.now(),
+    };
+    if (data?.queryScope) S.queryScope = data.queryScope;
+    return;
+  }
+
+  const goal = stripQuotedFocusaContext(String(data?.frameGoal || "").trim());
+  const title = String(data?.frameTitle || "").trim();
+  const cwd = ctx?.cwd || S.sessionCwd || process.cwd();
+  if (!goal || isNonTaskStatusLikeText(goal) || isGenericPiFrameForCwd(cwd, title, goal)) return;
+  if (!/^Pi (Task|Question|Correction): /.test(title)) return;
+
+  S.currentAsk = {
+    text: trimFrameText(goal, 500),
+    kind: classifyCurrentAsk(goal),
+    sourceTurnId: "restored-frame-goal",
+    updatedAt: Date.now(),
+  };
+}
 
 async function ensureActiveFrame(ctx: any, sessionId?: string) {
   return ensurePiFrame(ctx.cwd, sessionId, "pi-auto");
 }
 
+async function ensureFocusaSession(ctx: any) {
+  const status = await focusaFetch("/status").catch(() => null);
+  if (status?.session?.status === "active") return status.session;
+  return focusaFetch("/session/start", {
+    method: "POST",
+    body: JSON.stringify({
+      adapter_id: "pi",
+      workspace_id: ctx.cwd || S.sessionCwd || "pi-workspace",
+    }),
+  });
+}
+
 function connectSSE() {
+  if (sseReconnectTimer) {
+    clearTimeout(sseReconnectTimer);
+    sseReconnectTimer = null;
+  }
   if (sseAbort) sseAbort.abort();
   if (!S.focusaAvailable) return;
 
   const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-  sseAbort = new AbortController();
+  const controller = new AbortController();
+  sseAbort = controller;
 
-  fetch(`${base}/events/stream`, { signal: sseAbort.signal })
+  fetch(`${base}/events/stream`, { signal: controller.signal })
     .then(async (res) => {
       if (!res.body) return;
       const reader = res.body.getReader();
@@ -43,9 +90,13 @@ function connectSSE() {
       }
     })
     .catch(() => {
+      if (controller.signal.aborted || !S.focusaAvailable) return;
       // §30: "If background work fails, the extension shows nothing (fail silent)"
       // Reconnect with backoff — use same exponential backoff as health checks (§11)
-      setTimeout(() => { if (S.focusaAvailable) connectSSE(); }, S.healthBackoffMs);
+      sseReconnectTimer = setTimeout(() => {
+        sseReconnectTimer = null;
+        if (S.focusaAvailable) connectSSE();
+      }, S.healthBackoffMs);
     });
 }
 
@@ -107,9 +158,9 @@ export function registerSession(pi: ExtensionAPI) {
     const entries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
-      if (e.customType === "focusa-state" && e.data) {
-        // §33.5: Only restore decisions (safe, Pi-scoped). Never restore
-        // activeFrameId, constraints, or failures — those are stale pollution.
+      if ((e.customType === "focusa-wbm-state" || e.customType === "focusa-state") && e.data) {
+        // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
+        // but do not blindly reuse stale frame identity outside WBM mode.
         S.localDecisions = e.data.decisions || [];
         S.turnCount = e.data.turnCount || 0;
         S.wbmEnabled = e.data.wbmEnabled || S.wbmEnabled;
@@ -117,6 +168,17 @@ export function registerSession(pi: ExtensionAPI) {
         S.cataloguedDecisions = e.data.cataloguedDecisions || [];
         S.cataloguedFacts = e.data.cataloguedFacts || [];
         S.totalCompactions = e.data.totalCompactions || 0;
+        S.activeFrameTitle = e.data.frameTitle || "";
+        S.activeFrameGoal = e.data.frameGoal || "";
+        seedCurrentAskFromPersistedState(ctx, e.data);
+        S.lastFocusSnapshot = {
+          decisions: e.data.authoritativeDecisions || [],
+          constraints: e.data.authoritativeConstraints || [],
+          failures: e.data.authoritativeFailures || [],
+          intent: e.data.intent || "",
+          currentFocus: e.data.currentFocus || "",
+        };
+        if (e.data.sessionId) S.sessionFrameKey = e.data.sessionId;
         // Explicitly clear stale pollution — do NOT carry across sessions
         S.localConstraints = [];
         S.localFailures = [];
@@ -133,15 +195,20 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
 
+    await ensureFocusaSession(ctx);
     await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
 
-    // §35.8: Session name sync from focus frame
+    // §35.8: Session name sync from Pi's scoped focus frame, never global active frame
     const data = await focusaFetch("/focus/stack");
-    if (data?.stack?.frames?.length) {
-      const active = data.stack.frames.find((f: any) => f.id === data.active_frame_id);
+    if (data?.stack?.frames?.length && S.activeFrameId) {
+      const active = data.stack.frames.find((f: any) => f.id === S.activeFrameId);
       if (active?.title) {
+        S.activeFrameTitle = active.title;
+        S.activeFrameGoal = active.goal || S.activeFrameGoal;
         pi.setSessionName(active.title);
       }
+    } else if (S.activeFrameTitle) {
+      pi.setSessionName(S.activeFrameTitle);
     }
 
     // §37.9: Context Core activity signal + wb me --set pi_active
@@ -151,66 +218,76 @@ export function registerSession(pi: ExtensionAPI) {
     // §30 + §37.10: Start SSE connection for metacognitive + cross-surface events
     connectSSE();
 
+    // Keep Pi footer task label fresh between explicit commands.
+    // Lightweight sync: refresh scoped frame title and propagate to session label.
+    const footerRefreshMs = 3_000;
+    if (S.footerSyncInterval) clearInterval(S.footerSyncInterval);
+    S.footerSyncInterval = setInterval(async () => {
+      if (!S.focusaAvailable) return;
+      await getFocusState().catch(() => null);
+      if (S.activeFrameTitle) pi.setSessionName(S.activeFrameTitle);
+    }, footerRefreshMs);
+
+    // Debounce transient health blips to reduce false "offline" warnings.
+    // Require consecutive failures before disabling tools.
+    const offlineWarnThreshold = 2;
+    let outageMode = false;
+
     // §38.3 + §11: Health check with exponential backoff via recursive setTimeout
     function scheduleHealthCheck() {
       if (S.healthInterval) clearTimeout(S.healthInterval);
       S.healthInterval = setTimeout(async () => {
-        const wasAvailable = S.focusaAvailable;
         await checkFocusa();
 
-      if (wasAvailable && !S.focusaAvailable) {
-        // Went down — disable tools, disconnect SSE
-        const active = pi.getActiveTools();
-        const filtered = active.filter((t: any) =>
-          !["focusa_decide", "focusa_constraint", "focusa_failure"].includes(typeof t === "string" ? t : t.name));
-        pi.setActiveTools(filtered.map((t: any) => typeof t === "string" ? t : t.name));
-        ctx.ui.setStatus("focusa", "📡 Focusa offline");
-        ctx.ui.notify("Focusa daemon went offline — tools disabled", "warning");
-        if (sseAbort) { sseAbort.abort(); sseAbort = null; }
-      } else if (!wasAvailable && S.focusaAvailable) {
-        // Came back — re-enable tools, reconnect SSE
-        const all = pi.getAllTools();
-        const active = pi.getActiveTools();
-        const focusaTools = all.filter((t: any) =>
-          ["focusa_decide", "focusa_constraint", "focusa_failure"].includes(t.name));
-        const names = [...new Set([...active.map((t: any) => typeof t === "string" ? t : t.name), ...focusaTools.map((t: any) => t.name)])];
-        pi.setActiveTools(names);
-        ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
-        ctx.ui.notify("Focusa daemon reconnected — tools re-enabled", "info");
-        await ensureActiveFrame(ctx);
-        connectSSE();
+        if (!S.focusaAvailable && !outageMode && S.healthFailCount >= offlineWarnThreshold) {
+          // Confirmed outage (not single blip) — disable tools, disconnect SSE
+          const active = pi.getActiveTools();
+          const filtered = active.filter((t: any) =>
+            !["focusa_decide", "focusa_constraint", "focusa_failure"].includes(typeof t === "string" ? t : t.name));
+          pi.setActiveTools(filtered.map((t: any) => typeof t === "string" ? t : t.name));
+          ctx.ui.setStatus("focusa", "📡 Focusa offline");
+          ctx.ui.notify(`Focusa daemon went offline (${S.healthFailCount} consecutive health check failures) — tools disabled`, "warning");
+          if (sseAbort) { sseAbort.abort(); sseAbort = null; }
+          outageMode = true;
+        } else if (S.focusaAvailable && outageMode) {
+          // Came back — re-enable tools, reconnect SSE
+          const all = pi.getAllTools();
+          const active = pi.getActiveTools();
+          const focusaTools = all.filter((t: any) =>
+            ["focusa_decide", "focusa_constraint", "focusa_failure"].includes(t.name));
+          const names = [...new Set([...active.map((t: any) => typeof t === "string" ? t : t.name), ...focusaTools.map((t: any) => t.name)])];
+          pi.setActiveTools(names);
+          ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+          ctx.ui.notify("Focusa daemon reconnected — tools re-enabled", "info");
+          await ensureActiveFrame(ctx);
+          connectSSE();
 
-        // §11/§25.7: Soft resync — reconcile local shadow with Focusa on reconnect
-        if (S.activeFrameId) {
-          // Push any local shadow accumulated during outage
-          if (S.localDecisions.length || S.localConstraints.length || S.localFailures.length) {
-            await focusaFetch("/focus/update", {
-              method: "POST",
-              body: JSON.stringify({
-                frame_id: S.activeFrameId,
-                turn_id: `pi-turn-${S.turnCount}`,
-                delta: {
-                  decisions: S.localDecisions.slice(-10),
-                  constraints: S.localConstraints.slice(-10),
-                  failures: S.localFailures.slice(-5),
-                  notes: ["Reconciled after Focusa outage"],
-                },
-              }),
-            });
-          }
-          // Fetch fresh state + recent candidates
-          const data = await getFocusState();
-          if (data?.fs) {
-            ctx.ui.notify(`Resync complete — ${data.fs.decisions?.length || 0} decisions, ${data.fs.constraints?.length || 0} constraints`, "info");
-          }
-          // Fetch recent Focus Gate candidates
-          focusaFetch("/focus-gate/candidates?limit=5").then((r: any) => {
-            if (r?.candidates?.length) {
-              ctx.ui.notify(`Focus Gate: ${r.candidates.length} pending candidates`, "info");
+          // §11/§25.7: Soft resync — reconcile local shadow with Focusa on reconnect
+          if (S.activeFrameId) {
+            // Push any local shadow accumulated during outage
+            if (S.localDecisions.length || S.localConstraints.length || S.localFailures.length) {
+              await pushDelta({
+                decisions: S.localDecisions.slice(-10),
+                constraints: S.localConstraints.slice(-10),
+                failures: S.localFailures.slice(-5),
+                notes: ["Reconciled after Focusa outage"],
+              }).catch(() => null);
             }
-          }).catch(() => {});
+            // Fetch fresh state + recent candidates
+            const data = await getFocusState();
+            if (data?.fs) {
+              ctx.ui.notify(`Resync complete — ${data.fs.decisions?.length || 0} decisions, ${data.fs.constraints?.length || 0} constraints`, "info");
+            }
+            // Fetch recent Focus Gate candidates
+            focusaFetch("/focus-gate/candidates?limit=5").then((r: any) => {
+              if (r?.candidates?.length) {
+                ctx.ui.notify(`Focus Gate: ${r.candidates.length} pending candidates`, "info");
+              }
+            }).catch(() => {});
+          }
+          outageMode = false;
         }
-      }
+
         // Schedule next check with (possibly updated) backoff interval
         scheduleHealthCheck();
       }, S.healthBackoffMs);
@@ -222,18 +299,19 @@ export function registerSession(pi: ExtensionAPI) {
 
   // ── session_shutdown — single handler (§33.8, §34.2A, §37.9) ──────────────
   pi.on("session_shutdown", async (_event, _ctx) => {
-    persistState();
+    await persistAuthoritativeState();
 
     // §37.9: Tell Context Core Pi is no longer active
     S.pi?.exec("wb", ["me", "--set", "pi_active=false"]).catch(() => {});
 
     // Close SSE
+    if (sseReconnectTimer) { clearTimeout(sseReconnectTimer); sseReconnectTimer = null; }
     if (sseAbort) { sseAbort.abort(); sseAbort = null; }
 
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (S.focusaAvailable) {
       await focusaFetch("/session/close", {
         method: "POST",
-        body: JSON.stringify({ frame_id: S.activeFrameId, turn_count: S.turnCount }),
+        body: JSON.stringify({ reason: "pi_session_shutdown" }),
       });
     }
     if (S.focusaAvailable) {
@@ -241,18 +319,22 @@ export function registerSession(pi: ExtensionAPI) {
       focusaPost("/telemetry/activity", { surface: "pi", event: "session_shutdown" });
     }
     if (S.healthInterval) { clearInterval(S.healthInterval); S.healthInterval = null; }
+    if (S.footerSyncInterval) { clearInterval(S.footerSyncInterval); S.footerSyncInterval = null; }
   });
 
   // ── session_before_switch (§37.7) ─────────────────────────────────────────
   pi.on("session_before_switch", async (_event, _ctx) => {
-    persistState();
+    await persistAuthoritativeState();
     if (S.focusaAvailable && S.activeFrameId) {
-      await focusaFetch("/focus/update", {
+      await pushDelta({
+        decisions: S.localDecisions.slice(-5),
+        constraints: S.localConstraints.slice(-5),
+      }).catch(() => null);
+    }
+    if (S.focusaAvailable) {
+      await focusaFetch("/session/close", {
         method: "POST",
-        body: JSON.stringify({
-          frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`,
-          delta: { decisions: S.localDecisions.slice(-5), constraints: S.localConstraints.slice(-5) },
-        }),
+        body: JSON.stringify({ reason: "pi_session_switch" }),
       });
     }
   });
@@ -260,16 +342,18 @@ export function registerSession(pi: ExtensionAPI) {
   // ── session_switch (§37.7) ────────────────────────────────────────────────
   pi.on("session_switch", async (event, ctx) => {
     S.localDecisions = []; S.localConstraints = []; S.localFailures = [];
+    S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
     S.turnCount = 0; S.cataloguedDecisions = []; S.cataloguedFacts = [];
     S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.sessionCwd = ctx.cwd;
+    S.activeFrameTitle = ""; S.activeFrameGoal = "";
     S.fileEditCounts = {}; S.compilationErrors = []; S.longSessionSignaled = false;
     S.totalCompactions = 0; S.wbmNoCatalogue = false;
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     S.forkSuggested = false;
     for (let i = switchEntries.length - 1; i >= 0; i--) {
-      if (switchEntries[i].customType === "focusa-state" && switchEntries[i].data) {
+      if ((switchEntries[i].customType === "focusa-wbm-state" || switchEntries[i].customType === "focusa-state") && switchEntries[i].data) {
         const d = switchEntries[i].data;
         S.localDecisions = d.decisions || [];
         S.localConstraints = d.constraints || [];
@@ -278,17 +362,31 @@ export function registerSession(pi: ExtensionAPI) {
         S.wbmEnabled = d.wbmEnabled || false;
         S.wbmNoCatalogue = d.wbmNoCatalogue || false;
         S.totalCompactions = d.totalCompactions || 0;
+        S.activeFrameTitle = d.frameTitle || "";
+        S.activeFrameGoal = d.frameGoal || "";
+        seedCurrentAskFromPersistedState(ctx, d);
+        S.lastFocusSnapshot = {
+          decisions: d.authoritativeDecisions || [],
+          constraints: d.authoritativeConstraints || [],
+          failures: d.authoritativeFailures || [],
+          intent: d.intent || "",
+          currentFocus: d.currentFocus || "",
+        };
+        if (d.sessionId) S.sessionFrameKey = d.sessionId;
         break;
       }
     }
 
     if (!S.wbmEnabled) S.activeFrameId = null;
-    if (S.focusaAvailable) await ensureActiveFrame(ctx, (event as any).sessionId || "unknown");
+    if (S.focusaAvailable) {
+      await ensureFocusaSession(ctx);
+      await ensureActiveFrame(ctx, (event as any).sessionId || "unknown");
+    }
   });
 
   // ── session_before_fork (§36.5) ───────────────────────────────────────────
   pi.on("session_before_fork", async (_event, _ctx) => {
-    persistState();
+    await persistAuthoritativeState();
     if (S.focusaAvailable && S.activeFrameId) {
       focusaPost("/focus/update", {
         frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`,
@@ -311,6 +409,6 @@ export function registerSession(pi: ExtensionAPI) {
 
   // ── session_before_tree (§36.5) ───────────────────────────────────────────
   pi.on("session_before_tree", async (_event, _ctx) => {
-    persistState();
+    await persistAuthoritativeState();
   });
 }

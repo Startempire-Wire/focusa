@@ -80,7 +80,7 @@ echo "Run ID: ${RUN_ID}"
 echo ""
 
 log_info "Implementation markers"
-if rg -n "current_ask_determined|query_scope_built|relevant_context_selected|irrelevant_context_excluded" "$TURNS_TS" >/dev/null 2>&1; then
+if rg -n "current_ask_determined|query_scope_built|relevant_context_selected|irrelevant_context_excluded|subject_hijack_prevented" "$TURNS_TS" >/dev/null 2>&1; then
   log_pass "Scope-routing trace emitters exist in Pi hot path"
 else
   log_fail "Scope-routing trace emitters missing in Pi hot path"
@@ -89,6 +89,11 @@ if rg -n 'reason: "budget_truncation" \| "fresh_scope" \| "correction_reset" \| 
   log_pass "Excluded-context reason taxonomy exists"
 else
   log_fail "Excluded-context reason taxonomy missing"
+fi
+if rg -n 'isExplicitContinuationAsk|isOperatorSteeringInput|shouldIncludeMissionContext' "$STATE_TS" >/dev/null 2>&1; then
+  log_pass "Mission carryover is gated by explicit continuation/relevance helpers"
+else
+  log_fail "Mission carryover gating helpers missing"
 fi
 
 log_info "Record replay fixtures"

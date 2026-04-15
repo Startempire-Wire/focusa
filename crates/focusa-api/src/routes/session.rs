@@ -13,7 +13,7 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::Action;
+use focusa_core::types::{Action, SessionStatus};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -31,10 +31,20 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     ) = {
         let focusa = state.focusa.read().await;
 
-        let active_frame = focusa
-            .focus_stack
-            .active_id
-            .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid));
+        let session_is_active = focusa
+            .session
+            .as_ref()
+            .map(|s| s.status == SessionStatus::Active)
+            .unwrap_or(false);
+
+        let active_frame = if session_is_active {
+            focusa
+                .focus_stack
+                .active_id
+                .and_then(|aid| focusa.focus_stack.frames.iter().find(|f| f.id == aid))
+        } else {
+            None
+        };
 
         let active_frame_summary = active_frame.map(|f| {
             json!({
@@ -74,7 +84,11 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         (
             focusa.session.clone(),
             focusa.focus_stack.frames.len(),
-            focusa.focus_stack.active_id,
+            if session_is_active {
+                focusa.focus_stack.active_id
+            } else {
+                None
+            },
             focusa.version,
             active_frame_summary,
             prompt_stats,
@@ -88,6 +102,7 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
 
     Json(json!({
         "session": session,
+        "session_allows_focus_mutation": session.as_ref().map(|s| s.status == SessionStatus::Active).unwrap_or(false),
         "stack_depth": stack_depth,
         "active_frame_id": active_frame_id,
         "active_frame": active_frame_summary,

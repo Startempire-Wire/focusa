@@ -28,6 +28,21 @@ export interface FocusaConfig {
   emitMetrics: boolean;
   autoSuggestForkPct: number;
   autoSuggestHandoffAfterNCompactions: number;
+  workLoopPreset: "conservative" | "balanced" | "push" | "audit";
+  workLoopMaxTurns: number;
+  workLoopMaxWallClockMs: number;
+  workLoopMaxRetries: number;
+  workLoopCooldownMs: number;
+  workLoopAllowDestructiveActions: boolean;
+  workLoopRequireOperatorForGovernance: boolean;
+  workLoopRequireOperatorForScopeChange: boolean;
+  workLoopRequireVerificationBeforePersist: boolean;
+  workLoopMaxConsecutiveLowProductivityTurns: number;
+  workLoopMaxConsecutiveFailures: number;
+  workLoopAutoPauseOnOperatorMessage: boolean;
+  workLoopRequireExplainableContinueReason: boolean;
+  workLoopMaxSameSubproblemRetries: number;
+  workLoopStatusHeartbeatMs: number;
   // Service URLs (§38.2 multi-machine)
   scoreboardUrl: string;
   scoreboardToken: string;
@@ -63,6 +78,21 @@ const DEFAULTS: FocusaConfig = {
   emitMetrics: true,
   autoSuggestForkPct: 90,
   autoSuggestHandoffAfterNCompactions: 3,
+  workLoopPreset: "balanced",
+  workLoopMaxTurns: 12,
+  workLoopMaxWallClockMs: 1_800_000,
+  workLoopMaxRetries: 3,
+  workLoopCooldownMs: 1_000,
+  workLoopAllowDestructiveActions: false,
+  workLoopRequireOperatorForGovernance: true,
+  workLoopRequireOperatorForScopeChange: true,
+  workLoopRequireVerificationBeforePersist: true,
+  workLoopMaxConsecutiveLowProductivityTurns: 3,
+  workLoopMaxConsecutiveFailures: 3,
+  workLoopAutoPauseOnOperatorMessage: false,
+  workLoopRequireExplainableContinueReason: true,
+  workLoopMaxSameSubproblemRetries: 2,
+  workLoopStatusHeartbeatMs: 5_000,
   scoreboardUrl: "http://127.0.0.1:8100",
   scoreboardToken: "",
   contextCoreUrl: "http://127.0.0.1:7400",
@@ -90,6 +120,21 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_EMIT_METRICS: "emitMetrics",
   FOCUSA_PI_AUTO_SUGGEST_FORK_PCT: "autoSuggestForkPct",
   FOCUSA_PI_AUTO_SUGGEST_HANDOFF_AFTER: "autoSuggestHandoffAfterNCompactions",
+  FOCUSA_PI_WORK_LOOP_PRESET: "workLoopPreset",
+  FOCUSA_PI_WORK_LOOP_MAX_TURNS: "workLoopMaxTurns",
+  FOCUSA_PI_WORK_LOOP_MAX_WALL_CLOCK_MS: "workLoopMaxWallClockMs",
+  FOCUSA_PI_WORK_LOOP_MAX_RETRIES: "workLoopMaxRetries",
+  FOCUSA_PI_WORK_LOOP_COOLDOWN_MS: "workLoopCooldownMs",
+  FOCUSA_PI_WORK_LOOP_ALLOW_DESTRUCTIVE_ACTIONS: "workLoopAllowDestructiveActions",
+  FOCUSA_PI_WORK_LOOP_REQUIRE_OPERATOR_FOR_GOVERNANCE: "workLoopRequireOperatorForGovernance",
+  FOCUSA_PI_WORK_LOOP_REQUIRE_OPERATOR_FOR_SCOPE_CHANGE: "workLoopRequireOperatorForScopeChange",
+  FOCUSA_PI_WORK_LOOP_REQUIRE_VERIFICATION_BEFORE_PERSIST: "workLoopRequireVerificationBeforePersist",
+  FOCUSA_PI_WORK_LOOP_MAX_LOW_PRODUCTIVITY_TURNS: "workLoopMaxConsecutiveLowProductivityTurns",
+  FOCUSA_PI_WORK_LOOP_MAX_CONSECUTIVE_FAILURES: "workLoopMaxConsecutiveFailures",
+  FOCUSA_PI_WORK_LOOP_AUTO_PAUSE_ON_OPERATOR_MESSAGE: "workLoopAutoPauseOnOperatorMessage",
+  FOCUSA_PI_WORK_LOOP_REQUIRE_EXPLAINABLE_CONTINUE_REASON: "workLoopRequireExplainableContinueReason",
+  FOCUSA_PI_WORK_LOOP_MAX_SAME_SUBPROBLEM_RETRIES: "workLoopMaxSameSubproblemRetries",
+  FOCUSA_PI_WORK_LOOP_STATUS_HEARTBEAT_MS: "workLoopStatusHeartbeatMs",
   FOCUSA_PI_MICRO_COMPACT_TURNS: "microCompactEveryNTurns",
   SCOREBOARD_URL: "scoreboardUrl",
   SCOREBOARD_TOKEN: "scoreboardToken",
@@ -109,6 +154,16 @@ function validate(cfg: FocusaConfig): string[] {
   if (cfg.maxCompactionsPerHour < 1) errs.push(`maxCompactionsPerHour must be >= 1`);
   if (cfg.externalizeThresholdBytes < 2048) errs.push(`externalizeThresholdBytes must be >= 2048`);
   if (cfg.externalizeThresholdTokens < 200) errs.push(`externalizeThresholdTokens must be >= 200`);
+  if (!["conservative", "balanced", "push", "audit"].includes(cfg.workLoopPreset))
+    errs.push(`workLoopPreset(${cfg.workLoopPreset}) must be one of: conservative, balanced, push, audit`);
+  if (cfg.workLoopMaxTurns < 1) errs.push(`workLoopMaxTurns must be >= 1`);
+  if (cfg.workLoopMaxWallClockMs < 60_000) errs.push(`workLoopMaxWallClockMs must be >= 60000`);
+  if (cfg.workLoopMaxRetries < 0) errs.push(`workLoopMaxRetries must be >= 0`);
+  if (cfg.workLoopCooldownMs < 0) errs.push(`workLoopCooldownMs must be >= 0`);
+  if (cfg.workLoopMaxConsecutiveLowProductivityTurns < 1) errs.push(`workLoopMaxConsecutiveLowProductivityTurns must be >= 1`);
+  if (cfg.workLoopMaxConsecutiveFailures < 1) errs.push(`workLoopMaxConsecutiveFailures must be >= 1`);
+  if (cfg.workLoopMaxSameSubproblemRetries < 0) errs.push(`workLoopMaxSameSubproblemRetries must be >= 0`);
+  if (cfg.workLoopStatusHeartbeatMs < 1_000) errs.push(`workLoopStatusHeartbeatMs must be >= 1000`);
   return errs;
 }
 

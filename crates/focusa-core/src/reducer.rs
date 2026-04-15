@@ -24,6 +24,54 @@
 use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::types::*;
+
+fn recommended_worker_for_task(
+    task_class: TaskClass,
+    degraded: bool,
+    repeated_failures: u32,
+) -> WorkerCapabilityProfile {
+    let fallback = repeated_failures >= 2;
+    let (worker_id, edit_reliable, structured_output_reliable, code_generation_strong) = match (task_class, fallback) {
+        (TaskClass::DocSpec | TaskClass::Architecture, false) => (
+            "fidelity-spec-worker",
+            true,
+            true,
+            false,
+        ),
+        (TaskClass::DocSpec | TaskClass::Architecture, true) => (
+            "fidelity-spec-fallback-worker",
+            true,
+            true,
+            false,
+        ),
+        (TaskClass::Code | TaskClass::Integration | TaskClass::Refactor, false) => (
+            "fidelity-code-worker",
+            true,
+            true,
+            true,
+        ),
+        (TaskClass::Code | TaskClass::Integration | TaskClass::Refactor, true) => (
+            "fidelity-code-fallback-worker",
+            true,
+            true,
+            true,
+        ),
+        (TaskClass::Unknown, false) => ("balanced-worker", true, true, true),
+        (TaskClass::Unknown, true) => ("balanced-fallback-worker", true, true, true),
+    };
+
+    WorkerCapabilityProfile {
+        worker_id: worker_id.to_string(),
+        tool_use_supported: true,
+        edit_reliable,
+        structured_output_reliable,
+        code_generation_strong,
+        context_window_class: Some(if degraded { "degraded-bounded" } else { "standard" }.to_string()),
+        latency_class: Some(if degraded || fallback { "slower-safer" } else { "balanced" }.to_string()),
+        cost_tier: Some("standard".to_string()),
+        fallback_available: !fallback,
+    }
+}
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -291,6 +339,314 @@ pub fn reduce_with_meta(
             }
         }
 
+        // ─── Continuous Work Loop ───────────────────────────────────────
+        FocusaEvent::ContinuousWorkModeEnabled {
+            project_run_id,
+            policy,
+        } => {
+            state.work_loop.enabled = true;
+            state.work_loop.status = WorkLoopStatus::Idle;
+            state.work_loop.policy = policy;
+            state.work_loop.run.project_run_id = project_run_id;
+            state.work_loop.last_blocker_class = None;
+            state.work_loop.last_blocker_reason = None;
+            state.work_loop.last_continue_reason = None;
+            state.work_loop.last_observed_summary = None;
+            state.work_loop.last_safe_reentry_prompt_basis = Some(
+                "resume from enabled continuous work".to_string(),
+            );
+            state.work_loop.restored_context_summary = Some(
+                "project mission active; constraints and verification posture inherited from current state"
+                    .to_string(),
+            );
+            state.work_loop.enabled_at = Some(Utc::now());
+            state.work_loop.last_turn_requested_at = None;
+            state.work_loop.turn_count = 0;
+            state.work_loop.consecutive_failures_for_task_class = 0;
+            state.work_loop.consecutive_low_productivity_turns = 0;
+            state.work_loop.consecutive_same_work_item_retries = 0;
+            state.work_loop.last_observed_work_item_id = None;
+        }
+        FocusaEvent::ContinuousWorkModeDisabled { reason } => {
+            state.work_loop.enabled = false;
+            state.work_loop.status = WorkLoopStatus::Idle;
+            state.work_loop.current_task = None;
+            state.work_loop.last_continue_reason = Some(reason);
+            state.work_loop.enabled_at = None;
+            state.work_loop.last_turn_requested_at = None;
+        }
+        FocusaEvent::ContinuousPauseFlagsUpdated {
+            destructive_confirmation_required,
+            governance_decision_pending,
+            operator_override_active,
+            reason,
+        } => {
+            state.work_loop.pause_flags = WorkLoopPauseFlags {
+                destructive_confirmation_required,
+                governance_decision_pending,
+                operator_override_active,
+                reason: reason.clone(),
+            };
+            if destructive_confirmation_required
+                || governance_decision_pending
+                || operator_override_active
+            {
+                state.work_loop.status = WorkLoopStatus::Paused;
+                state.work_loop.last_blocker_reason = reason;
+            }
+        }
+        FocusaEvent::ContinuousDecisionContextUpdated {
+            current_ask,
+            ask_kind,
+            scope_kind,
+            carryover_policy,
+            excluded_context_reason,
+            excluded_context_labels,
+            source_turn_id,
+            operator_steering_detected,
+        } => {
+            if current_ask.is_some() {
+                state.work_loop.decision_context.current_ask = current_ask;
+            }
+            if ask_kind.is_some() {
+                state.work_loop.decision_context.ask_kind = ask_kind;
+            }
+            if scope_kind.is_some() {
+                state.work_loop.decision_context.scope_kind = scope_kind;
+            }
+            if carryover_policy.is_some() {
+                state.work_loop.decision_context.carryover_policy = carryover_policy;
+            }
+            if excluded_context_reason.is_some() {
+                state.work_loop.decision_context.excluded_context_reason = excluded_context_reason;
+            }
+            if let Some(labels) = excluded_context_labels {
+                state.work_loop.decision_context.excluded_context_labels = labels;
+            }
+            if source_turn_id.is_some() {
+                state.work_loop.decision_context.source_turn_id = source_turn_id;
+            }
+            if let Some(steering) = operator_steering_detected {
+                state.work_loop.decision_context.operator_steering_detected = steering;
+            }
+            if operator_steering_detected == Some(true) {
+                state.work_loop.last_continue_reason = Some("operator steering detected".to_string());
+                // Steering redirects active work; it must not imply stop/pause.
+                if state.work_loop.pause_flags.reason.as_deref() == Some("operator steering detected") {
+                    state.work_loop.pause_flags = WorkLoopPauseFlags::default();
+                    if state.work_loop.enabled && state.work_loop.status == WorkLoopStatus::Paused {
+                        state.work_loop.status = WorkLoopStatus::Idle;
+                    }
+                }
+            }
+        }
+        FocusaEvent::ContinuousTransportSessionAttached { adapter, session_id } => {
+            state.work_loop.transport_adapter = Some(adapter);
+            state.work_loop.run.worker_session_id = Some(session_id.clone());
+            state.work_loop.transport_session_state = Some("attached".to_string());
+            state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
+            state.work_loop.last_transport_event_summary = Some(session_id);
+        }
+        FocusaEvent::ContinuousTransportAbortForwarded { reason } => {
+            state.work_loop.transport_abort_reason = Some(reason.clone());
+            state.work_loop.transport_session_state = Some("abort_requested".to_string());
+            state.work_loop.last_transport_event_kind = Some("abort_requested".to_string());
+            state.work_loop.last_transport_event_summary = Some(reason);
+        }
+        FocusaEvent::ContinuousTransportEventIngested {
+            sequence,
+            kind,
+            session_id,
+            turn_id,
+            summary,
+        } => {
+            state.work_loop.last_transport_event_sequence = sequence;
+            state.work_loop.last_transport_event_kind = Some(kind.clone());
+            state.work_loop.last_transport_event_summary = Some(match (session_id, turn_id, summary) {
+                (Some(session_id), Some(turn_id), Some(summary)) => {
+                    format!("session={session_id} turn={turn_id} {summary}")
+                }
+                (Some(session_id), _, Some(summary)) => format!("session={session_id} {summary}"),
+                (_, Some(turn_id), Some(summary)) => format!("turn={turn_id} {summary}"),
+                (_, _, Some(summary)) => summary,
+                (_, Some(turn_id), None) => format!("turn={turn_id}"),
+                (Some(session_id), _, None) => format!("session={session_id}"),
+                _ => kind.clone(),
+            });
+            state.work_loop.transport_session_state = Some(match kind.as_str() {
+                "agent_start" => "running".to_string(),
+                "turn_start" => "turn_active".to_string(),
+                "message_update" => "streaming".to_string(),
+                "turn_end" => "turn_completed".to_string(),
+                "agent_end" => "agent_completed".to_string(),
+                _ => "observed".to_string(),
+            });
+        }
+        FocusaEvent::ContinuousAuthorshipDelegated {
+            delegate_id,
+            scope,
+            amendment_summary,
+        } => {
+            let requires_replan = amendment_summary.is_some();
+            state.work_loop.authorship_mode = AuthorshipMode::Delegated;
+            state.work_loop.delegated_authorship = Some(DelegatedAuthorshipState {
+                delegate_id,
+                scope,
+                amendment_summary,
+            });
+            if requires_replan {
+                state.work_loop.status = WorkLoopStatus::Paused;
+                state.work_loop.current_task = None;
+                state.work_loop.last_blocker_class = Some(BlockerClass::SpecGap);
+                state.work_loop.last_blocker_reason = Some(
+                    "authoritative spec amendment requires replan of current/queued work"
+                        .to_string(),
+                );
+            }
+        }
+        FocusaEvent::ContinuousAuthorshipDelegationCleared { reason } => {
+            state.work_loop.authorship_mode = AuthorshipMode::OperatorOnly;
+            state.work_loop.delegated_authorship = None;
+            state.work_loop.last_continue_reason = Some(reason);
+        }
+        FocusaEvent::ContinuousWorkItemSelected {
+            task_run_id,
+            packet,
+        } => {
+            let degraded = state.work_loop.status == WorkLoopStatus::TransportDegraded;
+            let worker = recommended_worker_for_task(
+                packet.task_class,
+                degraded,
+                state.work_loop.consecutive_failures_for_task_class,
+            );
+            let task_run_id = task_run_id.or_else(|| Some(Uuid::now_v7()));
+            state.work_loop.status = WorkLoopStatus::SelectingReadyWork;
+            state.work_loop.run.task_run_id = task_run_id;
+            state.work_loop.run.tranche_run_id = packet.tranche_id.as_ref().map(|_| Uuid::now_v7());
+            state.work_loop.run.worker_session_id = state
+                .work_loop
+                .run
+                .task_run_id
+                .map(|task_id| format!("{}:{}", worker.worker_id, task_id));
+            state.work_loop.active_worker = Some(worker);
+            state.work_loop.last_safe_reentry_prompt_basis = Some(format!(
+                "resume selected work item {}: {}",
+                packet.work_item_id, packet.title
+            ));
+            state.work_loop.restored_context_summary = Some(format!(
+                "allowed_scope={:?}; linked_spec_refs={:?}; verification_tier={:?}",
+                packet.allowed_scope, packet.linked_spec_refs, packet.required_verification_tier
+            ));
+            state.work_loop.current_task = Some(packet);
+        }
+        FocusaEvent::ContinuousTurnRequested {
+            task_run_id,
+            work_item_id: _,
+            reason,
+        } => {
+            state.work_loop.status = WorkLoopStatus::PreparingTurn;
+            state.work_loop.run.task_run_id = task_run_id;
+            state.work_loop.last_continue_reason = Some(reason);
+            state.work_loop.last_turn_requested_at = Some(Utc::now());
+            state.work_loop.turn_count += 1;
+        }
+        FocusaEvent::ContinuousTurnStarted {
+            task_run_id,
+            work_item_id: _,
+        } => {
+            state.work_loop.status = WorkLoopStatus::AwaitingHarnessTurn;
+            state.work_loop.run.task_run_id = task_run_id;
+        }
+        FocusaEvent::ContinuousTurnObserved {
+            task_run_id,
+            summary,
+        } => {
+            state.work_loop.status = WorkLoopStatus::EvaluatingOutcome;
+            state.work_loop.run.task_run_id = task_run_id;
+            state.work_loop.last_observed_summary = Some(summary.clone());
+            state.work_loop.last_safe_reentry_prompt_basis = Some(summary.clone());
+            state.work_loop.last_continue_reason = Some(summary);
+        }
+        FocusaEvent::ContinuousTurnCompleted {
+            task_run_id,
+            work_item_id,
+            continue_reason,
+            verification_satisfied: _,
+            spec_conformant: _,
+        } => {
+            state.work_loop.status = WorkLoopStatus::AdvancingTask;
+            state.work_loop.run.task_run_id = task_run_id;
+            state.work_loop.last_completed_task_id = work_item_id.clone();
+            state.work_loop.last_recorded_bd_transition_id = work_item_id.clone();
+            state.work_loop.last_continue_reason = continue_reason;
+            state.work_loop.consecutive_failures_for_task_class = 0;
+            state.work_loop.consecutive_low_productivity_turns = 0;
+            state.work_loop.consecutive_same_work_item_retries = 0;
+            state.work_loop.last_observed_work_item_id = work_item_id.clone();
+            state.work_loop.run.worker_session_id = None;
+            state.work_loop.current_task = None;
+        }
+        FocusaEvent::ContinuousTurnPaused { reason } => {
+            state.work_loop.status = WorkLoopStatus::Paused;
+            state.work_loop.last_safe_reentry_prompt_basis = Some(reason.clone());
+            state.work_loop.last_continue_reason = Some(reason);
+        }
+        FocusaEvent::ContinuousTurnBlocked {
+            blocker_class,
+            reason,
+            work_item_id: _,
+        } => {
+            state.work_loop.status = WorkLoopStatus::Blocked;
+            state.work_loop.last_blocker_class = Some(blocker_class);
+            state.work_loop.last_blocker_reason = Some(reason);
+            state.work_loop.consecutive_failures_for_task_class += 1;
+            if let Some(current_task) = state.work_loop.current_task.as_ref() {
+                let degraded = state.work_loop.status == WorkLoopStatus::TransportDegraded;
+                state.work_loop.active_worker = Some(recommended_worker_for_task(
+                    current_task.task_class,
+                    degraded,
+                    state.work_loop.consecutive_failures_for_task_class,
+                ));
+            }
+        }
+        FocusaEvent::ContinuousTurnEscalated {
+            reason,
+            work_item_id: _,
+        } => {
+            state.work_loop.status = WorkLoopStatus::Paused;
+            state.work_loop.last_blocker_reason = Some(reason);
+        }
+        FocusaEvent::ContinuousTrancheCompleted {
+            tranche_id: _,
+            reason,
+        } => {
+            state.work_loop.status = WorkLoopStatus::AdvancingTask;
+            state.work_loop.last_continue_reason = Some(reason);
+            state.work_loop.run.tranche_run_id = None;
+        }
+        FocusaEvent::ContinuousLoopBudgetExhausted { reason } => {
+            state.work_loop.status = WorkLoopStatus::Paused;
+            state.work_loop.last_blocker_reason = Some(reason);
+        }
+        FocusaEvent::ContinuousLoopTransportDegraded { reason } => {
+            state.work_loop.status = WorkLoopStatus::TransportDegraded;
+            state.work_loop.last_blocker_reason = Some(reason);
+        }
+        FocusaEvent::ContinuousLoopResumed { reason } => {
+            state.work_loop.status = WorkLoopStatus::Idle;
+            state.work_loop.pause_flags = WorkLoopPauseFlags::default();
+            state.work_loop.last_safe_reentry_prompt_basis = Some(reason.clone());
+            state.work_loop.last_continue_reason = Some(reason);
+        }
+        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+            checkpoint_id,
+            summary,
+        } => {
+            state.work_loop.run.last_checkpoint_id = Some(checkpoint_id);
+            state.work_loop.last_safe_reentry_prompt_basis = Some(summary.clone());
+            state.work_loop.last_continue_reason = Some(summary);
+        }
+
         // ─── Focus Stack ─────────────────────────────────────────────────
         FocusaEvent::FocusFramePushed {
             frame_id,
@@ -388,6 +744,13 @@ pub fn reduce_with_meta(
                         pid, parent.status
                     )));
                 }
+            }
+
+            if parent_id.is_none() {
+                return Err(ReducerError::InvariantViolation(format!(
+                    "FocusFrameCompleted cannot complete root frame {} without parent handoff",
+                    frame_id
+                )));
             }
 
             // All checks passed — mutate.
@@ -627,38 +990,21 @@ pub fn reduce_with_meta(
         }
 
         // ─── Reference Store ─────────────────────────────────────────────
-        FocusaEvent::ArtifactRegistered {
-            artifact_id,
-            artifact_type,
-            summary,
-            storage_uri: _,
-        } => {
+        FocusaEvent::ArtifactRegistered { handle, storage_uri: _ } => {
             // Check immutability: if this artifact_id already exists, reject.
             if state
                 .reference_index
                 .handles
                 .iter()
-                .any(|h| h.id == artifact_id)
+                .any(|h| h.id == handle.id)
             {
                 return Err(ReducerError::InvariantViolation(format!(
                     "Artifact {} already registered — artifacts are immutable",
-                    artifact_id
+                    handle.id
                 )));
             }
 
-            // Create a minimal HandleRef from event data.
-            // Full metadata lives in ecs/handles/ on disk.
-            let kind = parse_handle_kind(&artifact_type);
-            state.reference_index.handles.push(HandleRef {
-                id: artifact_id,
-                kind,
-                label: summary,
-                size: 0,
-                sha256: String::new(),
-                created_at: Utc::now(),
-                session_id: state.session.as_ref().map(|s| s.session_id),
-                pinned: false,
-            });
+            state.reference_index.handles.push(handle);
         }
 
         FocusaEvent::ArtifactPinned { artifact_id } => {
@@ -705,11 +1051,32 @@ pub fn reduce_with_meta(
             // Prompt assembly events are telemetry only.
         }
 
+        FocusaEvent::AutonomyAdjusted {
+            level,
+            scope,
+            ttl,
+            reason,
+        } => {
+            crate::autonomy::grant_level(&mut state.autonomy, level, scope, ttl, &reason);
+        }
+
         // ─── Memory ──────────────────────────────────────────────────────
-        FocusaEvent::SemanticMemoryUpserted { .. }
-        | FocusaEvent::RuleReinforced { .. }
+        FocusaEvent::SemanticMemoryUpserted { key, value, source } => {
+            let memory_source = match source.as_str() {
+                "worker" => crate::types::MemorySource::Worker,
+                "manual" => crate::types::MemorySource::Manual,
+                "operator" => crate::types::MemorySource::Operator,
+                "constitution" => crate::types::MemorySource::Constitution,
+                "focus_state" => crate::types::MemorySource::FocusState,
+                "context_core" => crate::types::MemorySource::ContextCore,
+                "mem0" => crate::types::MemorySource::Mem0,
+                _ => crate::types::MemorySource::User,
+            };
+            let _ = crate::memory::semantic::upsert(&mut state.memory, key, value, memory_source);
+        }
+        FocusaEvent::RuleReinforced { .. }
         | FocusaEvent::MemoryDecayTick { .. } => {
-            // Memory events are telemetry only — state mutation happens via Actions.
+            // Memory maintenance events remain advisory here.
         }
 
         // ─── RFM ─────────────────────────────────────────────────────────
@@ -820,6 +1187,105 @@ pub fn reduce_with_meta(
                 owner_machine_id,
             });
         }
+
+        FocusaEvent::ThreadForked {
+            source_thread_id,
+            thread_id,
+            name,
+            owner_machine_id,
+        } => {
+            if state.threads.iter().any(|t| t.id == thread_id) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Thread {} already exists",
+                    thread_id
+                )));
+            }
+            let source = state
+                .threads
+                .iter()
+                .find(|t| t.id == source_thread_id)
+                .cloned()
+                .ok_or_else(|| ReducerError::InvalidEvent(format!(
+                    "Source thread {} not found for fork",
+                    source_thread_id
+                )))?;
+            let mut forked = crate::threads::fork_thread(&source, &name, owner_machine_id.as_deref());
+            forked.id = thread_id;
+            let branch_marker = crate::clt::insert_branch_marker(
+                &mut state.clt,
+                "thread_fork",
+                vec![source.id.to_string(), forked.id.to_string()],
+            );
+            forked.clt_head = Some(branch_marker);
+            state.threads.push(forked);
+        }
+
+        FocusaEvent::ThreadThesisUpdated { thread_id, thesis } => {
+            let thread = state
+                .threads
+                .iter_mut()
+                .find(|t| t.id == thread_id)
+                .ok_or_else(|| ReducerError::InvalidEvent(format!(
+                    "Thread {} not found for thesis update",
+                    thread_id
+                )))?;
+            thread.thesis = thesis;
+            thread.updated_at = Utc::now();
+        }
+
+        FocusaEvent::ProposalSubmitted {
+            proposal_id,
+            kind,
+            source,
+            payload,
+            deadline_ms,
+            score,
+        } => {
+            let now = Utc::now();
+            let deadline = now + chrono::Duration::milliseconds(deadline_ms as i64);
+            state.pre.proposals.push(crate::types::Proposal {
+                id: proposal_id,
+                kind,
+                source,
+                created_at: now,
+                deadline,
+                payload,
+                score: score.unwrap_or(0.0).clamp(0.0, 1.0),
+                status: crate::types::ProposalStatus::Pending,
+            });
+        }
+
+        FocusaEvent::ProposalStatusChanged { proposal_id, status } => {
+            let proposal = state
+                .pre
+                .proposals
+                .iter_mut()
+                .find(|p| p.id == proposal_id)
+                .ok_or_else(|| ReducerError::InvalidEvent(format!(
+                    "Proposal {} not found for status update",
+                    proposal_id
+                )))?;
+            proposal.status = status;
+        }
+
+        FocusaEvent::ConstitutionLoaded {
+            version,
+            agent_id,
+            principles,
+            safety_rules,
+            expression_rules,
+        } => {
+            crate::constitution::create_version(
+                &mut state.constitution,
+                &agent_id,
+                &version,
+                principles,
+                safety_rules,
+                expression_rules,
+            );
+            crate::constitution::activate_version(&mut state.constitution, &version)
+                .map_err(ReducerError::InvalidEvent)?;
+        }
     }
 
     state.version += 1;
@@ -918,19 +1384,6 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
     // No event type carries raw conversation data.
 
     Ok(())
-}
-
-/// Parse a string artifact type to HandleKind (best-effort).
-fn parse_handle_kind(s: &str) -> HandleKind {
-    match s.to_lowercase().as_str() {
-        "log" => HandleKind::Log,
-        "diff" => HandleKind::Diff,
-        "text" => HandleKind::Text,
-        "json" => HandleKind::Json,
-        "url" => HandleKind::Url,
-        "file_snapshot" | "file" => HandleKind::FileSnapshot,
-        _ => HandleKind::Other,
-    }
 }
 
 /// Errors from the reducer.
@@ -1140,10 +1593,9 @@ mod tests {
             frame_id: root_id,
             completion_reason: CompletionReason::GoalAchieved,
         };
-        let state = reduce(state, event).unwrap().new_state;
+        let result = reduce(state, event);
 
-        assert_eq!(state.focus_stack.active_id, None);
-        assert_eq!(state.focus_stack.root_id, None);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -1347,32 +1799,55 @@ mod tests {
     fn test_artifact_register() {
         let aid = Uuid::now_v7();
         let event = FocusaEvent::ArtifactRegistered {
-            artifact_id: aid,
-            artifact_type: "log".into(),
-            summary: "Build output".into(),
+            handle: HandleRef {
+                id: aid,
+                kind: HandleKind::Log,
+                label: "Build output".into(),
+                size: 42,
+                sha256: "abc".into(),
+                created_at: Utc::now(),
+                session_id: None,
+                pinned: false,
+            },
             storage_uri: "ecs://abc".into(),
         };
         let state = reduce(fresh_state(), event).unwrap().new_state;
         assert_eq!(state.reference_index.handles.len(), 1);
         assert_eq!(state.reference_index.handles[0].kind, HandleKind::Log);
+        assert_eq!(state.reference_index.handles[0].size, 42);
+        assert_eq!(state.reference_index.handles[0].sha256, "abc");
     }
 
     #[test]
     fn test_artifact_immutability() {
         let aid = Uuid::now_v7();
         let event = FocusaEvent::ArtifactRegistered {
-            artifact_id: aid,
-            artifact_type: "log".into(),
-            summary: "v1".into(),
+            handle: HandleRef {
+                id: aid,
+                kind: HandleKind::Log,
+                label: "v1".into(),
+                size: 1,
+                sha256: "abc".into(),
+                created_at: Utc::now(),
+                session_id: None,
+                pinned: false,
+            },
             storage_uri: "ecs://abc".into(),
         };
         let state = reduce(fresh_state(), event).unwrap().new_state;
 
         // Re-registering same artifact_id should fail (immutability invariant).
         let event2 = FocusaEvent::ArtifactRegistered {
-            artifact_id: aid,
-            artifact_type: "log".into(),
-            summary: "v2".into(),
+            handle: HandleRef {
+                id: aid,
+                kind: HandleKind::Log,
+                label: "v2".into(),
+                size: 2,
+                sha256: "def".into(),
+                created_at: Utc::now(),
+                session_id: None,
+                pinned: false,
+            },
             storage_uri: "ecs://def".into(),
         };
         let result = reduce(state, event2);
@@ -1385,9 +1860,16 @@ mod tests {
         let state = reduce(
             fresh_state(),
             FocusaEvent::ArtifactRegistered {
-                artifact_id: aid,
-                artifact_type: "text".into(),
-                summary: "temp".into(),
+                handle: HandleRef {
+                    id: aid,
+                    kind: HandleKind::Text,
+                    label: "temp".into(),
+                    size: 1,
+                    sha256: "abc".into(),
+                    created_at: Utc::now(),
+                    session_id: None,
+                    pinned: false,
+                },
                 storage_uri: "ecs://abc".into(),
             },
         )
@@ -1409,9 +1891,16 @@ mod tests {
         let state = reduce(
             fresh_state(),
             FocusaEvent::ArtifactRegistered {
-                artifact_id: aid,
-                artifact_type: "log".into(),
-                summary: "important".into(),
+                handle: HandleRef {
+                    id: aid,
+                    kind: HandleKind::Log,
+                    label: "important".into(),
+                    size: 1,
+                    sha256: "abc".into(),
+                    created_at: Utc::now(),
+                    session_id: None,
+                    pinned: false,
+                },
                 storage_uri: "ecs://abc".into(),
             },
         )
@@ -1430,6 +1919,19 @@ mod tests {
     }
 
     // ─── Invariant checker ───────────────────────────────────────────
+
+    #[test]
+    fn test_complete_root_frame_rejected() {
+        let (state, root_id) = push_frame(fresh_state(), "Root");
+        let result = reduce(
+            state,
+            FocusaEvent::FocusFrameCompleted {
+                frame_id: root_id,
+                completion_reason: CompletionReason::GoalAchieved,
+            },
+        );
+        assert!(result.is_err());
+    }
 
     #[test]
     fn test_invariant_bidirectional() {

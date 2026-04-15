@@ -6,9 +6,10 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext } from "./state.js";
 import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
+import { pushDelta } from "./tools.js";
 
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
@@ -188,6 +189,14 @@ export function registerTurns(pi: ExtensionAPI) {
       updatedAt: Date.now(),
     };
 
+    if (S.focusaAvailable) {
+      focusaPost("/work-loop/context", {
+        excluded_context_reason: exclusionReason,
+        excluded_context_labels: excludedContext,
+        source_turn_id: sourceTurnId,
+      });
+    }
+
     if (S.cfg?.emitMetrics) {
       const common = {
         turn_id: sourceTurnId,
@@ -279,6 +288,14 @@ export function registerTurns(pi: ExtensionAPI) {
           excluded_context_labels: excludedContext,
         });
       }
+      if (!missionIncluded && (scopeKind === "fresh_question" || scopeKind === "correction" || excludedContext.length > 0)) {
+        focusaPost("/telemetry/trace", {
+          event_type: "subject_hijack_prevented",
+          ...common,
+          subject_hijack_prevented: true,
+          prevented_by: exclusionReason,
+        });
+      }
     }
 
     // §33.2: Prepend Focus State as first message before every LLM call
@@ -288,15 +305,18 @@ export function registerTurns(pi: ExtensionAPI) {
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
   pi.on("input", async (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
+    const cleanedText = stripQuotedFocusaContext(String(text));
     const sourceTurnId = `pi-turn-${S.turnCount}`;
     const askKind = classifyCurrentAsk(String(text));
+    const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
     S.currentAsk = {
-      text: String(text).slice(0, 500),
+      text: storedAskText.slice(0, 500),
       kind: askKind,
       sourceTurnId,
       updatedAt: Date.now(),
     };
     const queryScope = deriveQueryScope(askKind);
+    const steeringDetected = isOperatorSteeringInput(String(text), askKind);
     S.queryScope = {
       ...queryScope,
       sourceTurnId,
@@ -312,6 +332,29 @@ export function registerTurns(pi: ExtensionAPI) {
       sourceTurnId,
       updatedAt: Date.now(),
     };
+
+    if (S.focusaAvailable && S.activeFrameId) {
+      await rescopePiFrameFromCurrentAsk((_ctx as any)?.cwd, "pi-post-input-rescope").catch(() => null);
+      await getFocusState().catch(() => null);
+      if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
+    }
+
+    if (S.focusaAvailable) {
+      focusaFetch("/work-loop/context", {
+        method: "POST",
+        headers: { "x-focusa-writer-id": `pi-${process.pid}` },
+        body: JSON.stringify({
+          current_ask: S.currentAsk.text,
+          ask_kind: S.currentAsk.kind,
+          scope_kind: S.queryScope.scopeKind,
+          carryover_policy: S.queryScope.carryoverPolicy,
+          excluded_context_reason: S.excludedContext.reason,
+          excluded_context_labels: [],
+          source_turn_id: sourceTurnId,
+          operator_steering_detected: steeringDetected,
+        }),
+      }).catch(() => null);
+    }
 
     if (S.cfg?.emitMetrics) {
       const common = {
@@ -341,7 +384,7 @@ export function registerTurns(pi: ExtensionAPI) {
       focusaPost("/telemetry/trace", {
         event_type: "steering_detected",
         ...common,
-        steering_detected: askKind !== "instruction",
+        steering_detected: steeringDetected,
       });
     }
 
@@ -355,13 +398,11 @@ export function registerTurns(pi: ExtensionAPI) {
     const lower = String(text).toLowerCase();
     const corrections = ["no that is wrong", "revert", "undo", "that's incorrect", "wrong approach", "go back", "not what i asked"];
     if (corrections.some(c => lower.includes(c))) {
+      const correction = `Operator correction: ${String(text).slice(0, 100)}`;
+      S.localFailures.push(correction);
       if (S.focusaAvailable && S.activeFrameId) {
-        focusaPost("/focus/update", {
-          frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`,
-          delta: { failures: [`Operator correction: ${String(text).slice(0, 200)}`] },
-        });
+        await pushDelta({ failures: [correction] }).catch(() => null);
       }
-      S.localFailures.push(`Operator correction: ${String(text).slice(0, 100)}`);
       // §35.7/§29: WBM trust metric update on correction
       if (S.wbmEnabled) {
         wbExec(["trust", "set", "--corrections", "+1"]).catch(() => {});
@@ -386,10 +427,17 @@ export function registerTurns(pi: ExtensionAPI) {
     const ev = event as any;
     const cfg = S.cfg;
 
-    // §35.5: Token counts
+    // §35.5: Token counts + assistant output
     if (S.focusaAvailable) {
+      const assistantOutput = extractText(ev.message?.content || ev.message || "");
       focusaPost("/turn/complete", {
-        turn_id: `pi-turn-${S.turnCount}`, frame_id: S.activeFrameId,
+        turn_id: `pi-turn-${S.turnCount}`,
+        frame_id: S.activeFrameId,
+        assistant_output: assistantOutput,
+        artifacts: [],
+        errors: [],
+        prompt_tokens: ev.usage?.inputTokens || ev.usage?.input || 0,
+        completion_tokens: ev.usage?.outputTokens || ev.usage?.output || 0,
         tokens: {
           input: ev.usage?.inputTokens || ev.usage?.input || 0,
           output: ev.usage?.outputTokens || ev.usage?.output || 0,
@@ -414,9 +462,12 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §37.3 + §10.4: Widget with all badges
     const w: string[] = [];
-    if (S.localDecisions.length) w.push(`📌 ${S.localDecisions.length} decisions`);
-    if (S.localConstraints.length) w.push(`🔒 ${S.localConstraints.length} constraints`);
-    if (S.localFailures.length) w.push(`⚠️ ${S.localFailures.length} failures`);
+    let liveFocus: Awaited<ReturnType<typeof getFocusState>> = null;
+    if (S.focusaAvailable) liveFocus = await getFocusState();
+    const snapshot = getEffectiveFocusSnapshot(liveFocus?.fs);
+    if (snapshot.decisions.length) w.push(`📌 ${snapshot.decisions.length} decisions`);
+    if (snapshot.constraints.length) w.push(`🔒 ${snapshot.constraints.length} constraints`);
+    if (snapshot.failures.length) w.push(`⚠️ ${snapshot.failures.length} failures`);
     if (S.wbmEnabled) w.push(S.wbmDeep ? "⚡ WBM deep" : "🤖 WBM on");
     if (S.currentTier && typeof S.currentContextPct === "number") {
       const label = S.currentTier === "warn"
@@ -429,10 +480,7 @@ export function registerTurns(pi: ExtensionAPI) {
     // §10.4: Degraded-context badge
     if (!S.focusaAvailable) w.push("⚪ degraded");
     // §10.4: Thesis snippet
-    if (S.focusaAvailable) {
-      const data = await getFocusState();
-      if (data?.frame?.thread_thesis) w.push(`🎯 ${data.frame.thread_thesis.slice(0, 50)}`);
-    }
+    if (liveFocus?.frame?.thread_thesis) w.push(`🎯 ${liveFocus.frame.thread_thesis.slice(0, 50)}`);
     // §30: Metacognitive indicator
     if (S.lastMetacogEvent) w.push(`✨ ${S.lastMetacogEvent}`);
     ctx.ui.setWidget("focusa", w.length ? w : undefined);
@@ -441,18 +489,11 @@ export function registerTurns(pi: ExtensionAPI) {
     if (S.focusaAvailable && S.activeFrameId) {
       const hasSignificant = S.localDecisions.length > 0 || S.localConstraints.length > 0 || S.localFailures.length > 0;
       if (hasSignificant) {
-        focusaFetch("/focus/update", {
-          method: "POST",
-          body: JSON.stringify({
-            frame_id: S.activeFrameId,
-            turn_id: `pi-turn-${S.turnCount}`,
-            delta: {
-              decisions: S.localDecisions.slice(-5),
-              constraints: S.localConstraints.slice(-5),
-              failures: S.localFailures.slice(-3),
-            },
-          }),
-        }).catch(() => {});
+        await pushDelta({
+          decisions: S.localDecisions.slice(-5),
+          constraints: S.localConstraints.slice(-5),
+          failures: S.localFailures.slice(-3),
+        }).catch(() => null);
       }
     }
 

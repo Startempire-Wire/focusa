@@ -15,7 +15,7 @@ use axum::{
     Json, Router,
     routing::{get, post, patch},
 };
-use focusa_core::types::{Action, CompletionReason, FocusStateDelta};
+use focusa_core::types::{Action, CompletionReason, FocusStackState, FocusStateDelta, FrameStatus, SessionState, SessionStatus};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -27,6 +27,88 @@ async fn get_stack(State(state): State<Arc<AppState>>) -> Json<serde_json::Value
         "stack": focusa.focus_stack,
         "active_frame_id": focusa.focus_stack.active_id,
     }))
+}
+
+fn ensure_active_session(session: Option<&SessionState>) -> Result<(), serde_json::Value> {
+    match session {
+        Some(session) if session.status == SessionStatus::Active => Ok(()),
+        Some(session) => Err(json!({
+            "status": "rejected",
+            "reason": "session_inactive",
+            "session_status": session.status,
+        })),
+        None => Err(json!({
+            "status": "rejected",
+            "reason": "no_active_session",
+        })),
+    }
+}
+
+fn validate_can_pop(stack: &FocusStackState) -> Result<(), serde_json::Value> {
+    let active_id = match stack.active_id {
+        Some(id) => id,
+        None => return Err(json!({"status": "no_active_frame"})),
+    };
+
+    let active = stack
+        .frames
+        .iter()
+        .find(|f| f.id == active_id)
+        .ok_or_else(|| json!({"status": "rejected", "reason": "active_frame_missing"}))?;
+
+    let parent_id = active.parent_id.ok_or_else(|| {
+        json!({"status": "rejected", "reason": "cannot_complete_root_frame"})
+    })?;
+
+    let parent = stack
+        .frames
+        .iter()
+        .find(|f| f.id == parent_id)
+        .ok_or_else(|| json!({"status": "rejected", "reason": "parent_frame_missing"}))?;
+
+    if parent.status != FrameStatus::Paused {
+        return Err(json!({
+            "status": "rejected",
+            "reason": "parent_not_paused",
+            "parent_status": parent.status,
+        }));
+    }
+
+    Ok(())
+}
+
+fn validate_set_active(stack: &FocusStackState, frame_id: Uuid) -> Result<bool, serde_json::Value> {
+    let active_id = match stack.active_id {
+        Some(id) => id,
+        None => return Err(json!({"status": "no_active_frame"})),
+    };
+
+    if active_id == frame_id {
+        return Ok(false);
+    }
+
+    if !stack.stack_path_cache.contains(&frame_id) {
+        return Err(json!({
+            "status": "rejected",
+            "reason": "target_not_in_current_stack_path",
+        }));
+    }
+
+    let target = stack
+        .frames
+        .iter()
+        .find(|f| f.id == frame_id)
+        .ok_or_else(|| json!({"status": "rejected", "reason": "frame_not_found"}))?;
+
+    if target.status != FrameStatus::Paused {
+        return Err(json!({
+            "status": "rejected",
+            "reason": "target_not_paused",
+            "frame_status": target.status,
+        }));
+    }
+
+    Ok(true)
 }
 
 #[derive(Deserialize)]
@@ -47,12 +129,27 @@ async fn push_frame(
     State(state): State<Arc<AppState>>,
     Json(body): Json<PushFrameBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    {
+        let focusa = state.focusa.read().await;
+        if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
+            return Ok(Json(resp));
+        }
+    }
+
+    let beads_issue_id = body.beads_issue_id.unwrap_or_default();
+    if beads_issue_id.trim().is_empty() {
+        return Ok(Json(json!({
+            "status": "rejected",
+            "reason": "missing_beads_issue_id",
+        })));
+    }
+
     state
         .command_tx
         .send(Action::PushFrame {
             title: body.title.unwrap_or_default(),
             goal: body.goal.unwrap_or_default(),
-            beads_issue_id: body.beads_issue_id.unwrap_or_default(),
+            beads_issue_id,
             constraints: body.constraints,
             tags: body.tags,
         })
@@ -76,6 +173,16 @@ async fn pop_frame(
     State(state): State<Arc<AppState>>,
     Json(body): Json<PopFrameBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    {
+        let focusa = state.focusa.read().await;
+        if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
+            return Ok(Json(resp));
+        }
+        if let Err(resp) = validate_can_pop(&focusa.focus_stack) {
+            return Ok(Json(resp));
+        }
+    }
+
     state
         .command_tx
         .send(Action::PopFrame {
@@ -96,6 +203,18 @@ async fn set_active(
     State(state): State<Arc<AppState>>,
     Json(body): Json<SetActiveBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    {
+        let focusa = state.focusa.read().await;
+        if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
+            return Ok(Json(resp));
+        }
+        match validate_set_active(&focusa.focus_stack, body.frame_id) {
+            Ok(true) => {}
+            Ok(false) => return Ok(Json(json!({"status": "accepted", "noop": true}))),
+            Err(resp) => return Ok(Json(resp)),
+        }
+    }
+
     state
         .command_tx
         .send(Action::SetActiveFrame {
@@ -113,6 +232,10 @@ async fn set_active(
 /// §AsccSections §Validation: validates ALL slots at API boundary before any write.
 #[derive(Deserialize)]
 struct UpdateDeltaBody {
+    #[serde(default)]
+    frame_id: Option<Uuid>,
+    #[serde(default)]
+    turn_id: Option<String>,
     delta: FocusStateDelta,
 }
 
@@ -254,27 +377,38 @@ async fn update_delta(
         }
     }
 
-    // Get active frame ID.
-    let frame_id = {
+    // Prefer an explicit frame_id from the caller; otherwise fall back to the
+    // daemon's active frame. This preserves Pi session-scoped frame writes
+    // without relying on global active-frame alignment.
+    let fid = {
         let focusa = state.focusa.read().await;
-        focusa.focus_stack.active_id
-    };
-
-    let Some(fid) = frame_id else {
-        return Ok(Json(json!({"status": "no_active_frame"})));
+        if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
+            return Ok(Json(resp));
+        }
+        if let Some(frame_id) = body.frame_id {
+            if focusa.focus_stack.frames.iter().any(|frame| frame.id == frame_id) {
+                frame_id
+            } else {
+                return Ok(Json(json!({"status": "no_active_frame"})));
+            }
+        } else if let Some(active_id) = focusa.focus_stack.active_id {
+            active_id
+        } else {
+            return Ok(Json(json!({"status": "no_active_frame"})));
+        }
     };
 
     state
         .command_tx
         .send(Action::UpdateCheckpointDelta {
             frame_id: fid,
-            turn_id: Uuid::now_v7().to_string(),
+            turn_id: body.turn_id.unwrap_or_else(|| Uuid::now_v7().to_string()),
             delta: body.delta,
         })
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(json!({"status": "accepted"})))
+    Ok(Json(json!({"status": "accepted", "frame_id": fid})))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

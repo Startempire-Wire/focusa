@@ -78,7 +78,7 @@ pub enum SchedulerCmd {
 }
 
 pub async fn run(cmd: ReflectionCmd, json_output: bool) -> anyhow::Result<()> {
-    let api = ApiClient::new();
+    let api = ApiClient::with_timeout_secs(20);
 
     match cmd {
         ReflectionCmd::Run {

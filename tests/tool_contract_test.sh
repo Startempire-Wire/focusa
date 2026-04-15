@@ -34,6 +34,27 @@ echo "=== SPEC-55: Tool Action Contracts (strict) ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TOOLS_TS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
+
+if rg -n 'type PushDeltaFailureReason = "offline" \| "no_active_frame" \| "validation_rejected" \| "write_failed"' "$TOOLS_TS" >/dev/null 2>&1; then
+  log_pass "PushDelta exposes required write failure reasons"
+else
+  log_fail "PushDelta failure reasons missing required contract taxonomy"
+fi
+
+if rg -n 'response\.status === "no_active_frame"|response\.status === "rejected"|response\.status !== "accepted"' "$TOOLS_TS" >/dev/null 2>&1; then
+  log_pass "PushDelta inspects write status envelope before reporting success"
+else
+  log_fail "PushDelta does not inspect write status envelope faithfully"
+fi
+
+if rg -n 'mirrorFailedFocusWrite\("decision"|mirrorFailedFocusWrite\("constraint"|mirrorFailedFocusWrite\("failure"' "$TOOLS_TS" >/dev/null 2>&1; then
+  log_pass "Operator-critical write tools mirror unrecoverable failures to scratchpad"
+else
+  log_fail "Operator-critical write fallback mirroring missing"
+fi
+
 log_info "Health"
 code=$(http_code "${BASE_URL}/v1/health")
 if [ "$code" = "200" ]; then

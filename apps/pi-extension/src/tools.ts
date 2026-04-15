@@ -42,7 +42,7 @@ function appendScratchpadLine(note: string, tag?: string): { saved: boolean; tur
 
 function emitWriteTelemetry(event: string, body: Record<string, any>): void {
   if (!S.cfg?.emitMetrics) return;
-  focusaPost("/telemetry/event", {
+  focusaPost("/telemetry/ops", {
     event,
     surface: "pi",
     turn_id: `pi-turn-${S.turnCount}`,
@@ -206,7 +206,7 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
   }
 
   try {
-    await focusaFetch("/focus/update", {
+    const response = await focusaFetch("/focus/update", {
       method: "POST",
       body: JSON.stringify({
         frame_id: S.activeFrameId,
@@ -214,7 +214,23 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
         delta,
       }),
     });
-    emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame });
+    if (!response || response.status === "write_failed") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame });
+      return { ok: false, reason: "write_failed" };
+    }
+    if (response.status === "no_active_frame") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "no_active_frame", recovered_frame: recoveredFrame });
+      return { ok: false, reason: "no_active_frame" };
+    }
+    if (response.status === "rejected") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected", recovered_frame: recoveredFrame });
+      return { ok: false, reason: "validation_rejected" };
+    }
+    if (response.status !== "accepted") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame, status: response.status || "unknown" });
+      return { ok: false, reason: "write_failed" };
+    }
+    emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame, frame_id: response.frame_id || S.activeFrameId });
     return { ok: true };
   } catch {
     emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame });
@@ -522,6 +538,224 @@ export function registerTools(pi: ExtensionAPI) {
       return result.ok
         ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, note } };
+    },
+  });
+
+  // ── Continuous Work Loop bridge tools (Spec79 §23 small bridge surface) ──
+
+  async function focusaFetchDetailed(path: string, opts: RequestInit = {}): Promise<{ ok: boolean; status: number; body: any | null }> {
+    const timeout = S.cfg?.focusaApiTimeoutMs || 5000;
+    const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const token = S.cfg?.focusaToken || "";
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), timeout);
+    try {
+      const r = await fetch(`${base}${path}`, {
+        ...opts,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(opts.headers as Record<string, string> || {}),
+        },
+        signal: ac.signal,
+      });
+      let body: any = null;
+      try { body = await r.json(); } catch { body = null; }
+      return { ok: r.ok, status: r.status, body };
+    } catch {
+      return { ok: false, status: 0, body: null };
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  function explainWorkLoopResult(result: { ok: boolean; status: number; body: any | null }, fallback: string): string {
+    if (result.ok) return fallback;
+    const msg = String(result.body?.error || "").toLowerCase();
+    const activeWriter = result.body?.active_writer ? ` (${result.body.active_writer})` : "";
+    if (msg.includes("claimed by another writer")) return `blocked: loop controlled by another session${activeWriter}`;
+    if (msg.includes("worktree is not clean")) return "blocked: worktree has uncommitted changes";
+    if (msg.includes("missing required header")) return "blocked: controller identity header missing";
+    if (result.status === 0) return "blocked: daemon unavailable";
+    return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
+  }
+
+  pi.registerTool({
+    name: "focusa_work_loop_status",
+    label: "Work Loop Status",
+    description: "Get current continuous work-loop state and budgets.",
+    parameters: Type.Object({}),
+    async execute() {
+      const result = await focusaFetchDetailed("/work-loop/status");
+      if (!result.ok || !result.body) {
+        return {
+          content: [{ type: "text", text: `Work-loop status ${explainWorkLoopResult(result, "ok")}` }],
+          details: { ok: false, status: result.status, response: result.body ?? null },
+        };
+      }
+      const loopStatus = result.body;
+      return {
+        content: [{ type: "text", text: `Work-loop: ${loopStatus?.work_loop?.status || "unknown"} (enabled=${loopStatus?.work_loop?.enabled ? "yes" : "no"})` }],
+        details: { ok: true, status: result.status, response: result.body },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_work_loop_control",
+    label: "Work Loop Control",
+    description: "Control continuous work loop: on, pause, resume, stop.",
+    parameters: Type.Object({
+      action: Type.Union([
+        Type.Literal("on"),
+        Type.Literal("pause"),
+        Type.Literal("resume"),
+        Type.Literal("stop"),
+      ]),
+      reason: Type.Optional(Type.String({ description: "Optional operator reason (max 200 chars)." })),
+      preset: Type.Optional(Type.Union([
+        Type.Literal("conservative"),
+        Type.Literal("balanced"),
+        Type.Literal("push"),
+        Type.Literal("audit"),
+      ])),
+    }),
+    async execute(_id, params) {
+      const { action, reason, preset } = params as { action: "on" | "pause" | "resume" | "stop"; reason?: string; preset?: "conservative" | "balanced" | "push" | "audit" };
+      const writerId = `pi-${process.pid}`;
+
+      if (action === "on") {
+        const payload = {
+          preset: preset || S.cfg?.workLoopPreset || "balanced",
+          policy_overrides: {
+            max_turns: S.cfg?.workLoopMaxTurns,
+            max_wall_clock_ms: S.cfg?.workLoopMaxWallClockMs,
+            max_retries: S.cfg?.workLoopMaxRetries,
+            cooldown_ms: S.cfg?.workLoopCooldownMs,
+            allow_destructive_actions: S.cfg?.workLoopAllowDestructiveActions,
+            require_operator_for_governance: S.cfg?.workLoopRequireOperatorForGovernance,
+            require_operator_for_scope_change: S.cfg?.workLoopRequireOperatorForScopeChange,
+            require_verification_before_persist: S.cfg?.workLoopRequireVerificationBeforePersist,
+            max_consecutive_low_productivity_turns: S.cfg?.workLoopMaxConsecutiveLowProductivityTurns,
+            max_consecutive_failures: S.cfg?.workLoopMaxConsecutiveFailures,
+            auto_pause_on_operator_message: S.cfg?.workLoopAutoPauseOnOperatorMessage,
+            require_explainable_continue_reason: S.cfg?.workLoopRequireExplainableContinueReason,
+            max_same_subproblem_retries: S.cfg?.workLoopMaxSameSubproblemRetries,
+            status_heartbeat_ms: S.cfg?.workLoopStatusHeartbeatMs,
+          },
+        };
+        const res = await focusaFetchDetailed("/work-loop/enable", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": writerId, "x-focusa-approval": "approved" },
+          body: JSON.stringify(payload),
+        });
+        return {
+          content: [{ type: "text", text: `work-loop on → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
+          details: { ok: res.ok, action: String(action), status: res.status, response: res.body },
+        };
+      }
+
+      const route = action === "pause" ? "/work-loop/pause" : action === "resume" ? "/work-loop/resume" : "/work-loop/stop";
+      const res = await focusaFetchDetailed(route, {
+        method: "POST",
+        headers: { "x-focusa-writer-id": writerId },
+        body: JSON.stringify({ reason: reason?.slice(0, 200) || `operator ${action} via focusa_work_loop_control` }),
+      });
+      return {
+        content: [{ type: "text", text: `work-loop ${action} → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
+        details: { ok: res.ok, action: String(action), status: res.status, response: res.body },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_work_loop_context",
+    label: "Work Loop Context",
+    description: "Update continuation decision context (current ask/scope/steering).",
+    parameters: Type.Object({
+      current_ask: Type.String({ description: "Current ask for continuation context (max 240 chars)." }),
+      ask_kind: Type.Optional(Type.String({ description: "ask_kind hint (optional)." })),
+      scope_kind: Type.Optional(Type.String({ description: "scope_kind hint (optional)." })),
+      carryover_policy: Type.Optional(Type.String({ description: "carryover policy hint (optional)." })),
+      excluded_context_reason: Type.Optional(Type.String({ description: "Reason for excluding carryover context (optional)." })),
+      excluded_context_labels: Type.Optional(Type.Array(Type.String())),
+      operator_steering_detected: Type.Optional(Type.Boolean()),
+      source_turn_id: Type.Optional(Type.String()),
+    }),
+    async execute(_id, params) {
+      const p = params as {
+        current_ask: string;
+        ask_kind?: string;
+        scope_kind?: string;
+        carryover_policy?: string;
+        excluded_context_reason?: string;
+        excluded_context_labels?: string[];
+        operator_steering_detected?: boolean;
+        source_turn_id?: string;
+      };
+      if (!p.current_ask?.trim()) {
+        return { content: [{ type: "text", text: "current_ask required." }], details: { ok: false, status: 0, response: null } };
+      }
+      const writerId = `pi-${process.pid}`;
+      const res = await focusaFetchDetailed("/work-loop/context", {
+        method: "POST",
+        headers: { "x-focusa-writer-id": writerId },
+        body: JSON.stringify({
+          current_ask: p.current_ask.slice(0, 240),
+          ask_kind: p.ask_kind,
+          scope_kind: p.scope_kind,
+          carryover_policy: p.carryover_policy,
+          excluded_context_reason: p.excluded_context_reason,
+          excluded_context_labels: p.excluded_context_labels,
+          operator_steering_detected: p.operator_steering_detected,
+          source_turn_id: p.source_turn_id || `pi-turn-${S.turnCount}`,
+        }),
+      });
+      return {
+        content: [{ type: "text", text: `work-loop context → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
+        details: { ok: res.ok, status: res.status, response: res.body },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_work_loop_checkpoint",
+    label: "Work Loop Checkpoint",
+    description: "Create a manual continuous-loop checkpoint.",
+    parameters: Type.Object({
+      summary: Type.Optional(Type.String({ description: "Checkpoint summary (max 240 chars)." })),
+    }),
+    async execute(_id, params) {
+      const { summary } = params as { summary?: string };
+      const writerId = `pi-${process.pid}`;
+      const res = await focusaFetchDetailed("/work-loop/checkpoint", {
+        method: "POST",
+        headers: { "x-focusa-writer-id": writerId },
+        body: JSON.stringify({ summary: (summary || "manual checkpoint via focusa_work_loop_checkpoint").slice(0, 240) }),
+      });
+      return {
+        content: [{ type: "text", text: `work-loop checkpoint → ${explainWorkLoopResult(res, String(res.body?.checkpoint_id || res.body?.status || "accepted"))}` }],
+        details: { ok: res.ok, status: res.status, response: res.body },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_work_loop_select_next",
+    label: "Work Loop Select Next",
+    description: "Ask daemon to defer blocked work and select next ready work item.",
+    parameters: Type.Object({}),
+    async execute() {
+      const writerId = `pi-${process.pid}`;
+      const res = await focusaFetchDetailed("/work-loop/select-next", {
+        method: "POST",
+        headers: { "x-focusa-writer-id": writerId },
+        body: JSON.stringify({}),
+      });
+      return {
+        content: [{ type: "text", text: `work-loop select-next → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
+        details: { ok: res.ok, status: res.status, response: res.body },
+      };
     },
   });
 }

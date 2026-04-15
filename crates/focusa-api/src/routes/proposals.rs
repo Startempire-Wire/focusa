@@ -45,39 +45,34 @@ async fn submit_proposal(
         _ => ProposalKind::FocusChange,
     };
 
+    let proposal_id = Uuid::now_v7();
     let payload_for_audit = payload.clone();
     let submit_source = source.to_string();
 
-    let _ = state
-        .command_tx
-        .send(Action::SubmitProposal {
-            kind,
-            source: submit_source.clone(),
-            payload,
-            deadline_ms,
-            score,
-        })
-        .await;
+    let event = FocusaEvent::ProposalSubmitted {
+        proposal_id,
+        kind,
+        source: submit_source.clone(),
+        payload,
+        deadline_ms,
+        score,
+    };
 
-    let mut proposal_id = None;
+    let _ = state.command_tx.send(Action::EmitEvent { event }).await;
+
+    let mut visible = false;
     for _ in 0..40 {
         {
             let s = state.focusa.read().await;
-            proposal_id = s
-                .pre
-                .proposals
-                .iter()
-                .rev()
-                .find(|p| p.kind == kind && p.source == submit_source)
-                .map(|p| p.id);
+            visible = s.pre.proposals.iter().any(|p| p.id == proposal_id);
         }
-        if proposal_id.is_some() {
+        if visible {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 
-    if let Some(proposal_id) = proposal_id
+    if visible
         && let Ok(machine_id) = state.persistence.machine_id()
     {
         let entry = EventLogEntry {
@@ -97,7 +92,7 @@ async fn submit_proposal(
 
     Json(json!({
         "status": "accepted",
-        "proposal_id": proposal_id.map(|id| id.to_string()),
+        "proposal_id": if visible { Some(proposal_id.to_string()) } else { None },
         "kind": kind_str,
         "target_class": proposal_target_class(kind),
     }))
@@ -156,10 +151,9 @@ fn apply_focus_change_proposal(
     .map_err(|e| e.to_string())
 }
 
-fn apply_thesis_update_proposal(
-    state: &mut focusa_core::types::FocusaState,
+fn thesis_update_event(
     winner: &focusa_core::types::Proposal,
-) -> Result<(), String> {
+) -> Result<FocusaEvent, String> {
     let primary_intent = winner
         .payload
         .get("primary_intent")
@@ -206,42 +200,33 @@ fn apply_thesis_update_proposal(
         .unwrap_or("proposal resolution accepted")
         .to_string();
 
-    let requested_thread_id = winner
+    let thread_id = winner
         .payload
         .get("thread_id")
         .and_then(|v| v.as_str())
-        .and_then(|s| uuid::Uuid::parse_str(s).ok());
+        .and_then(|s| uuid::Uuid::parse_str(s).ok())
+        .ok_or_else(|| "thesis_update requires payload.thread_id".to_string())?;
 
-    let thread_index = if let Some(thread_id) = requested_thread_id {
-        state
-            .threads
-            .iter()
-            .position(|t| t.id == thread_id)
-            .ok_or_else(|| format!("thread {} not found for thesis update", thread_id))?
-    } else {
-        state
-            .threads
-            .iter()
-            .position(|t| t.status == focusa_core::types::ThreadStatus::Active)
-            .or_else(|| (!state.threads.is_empty()).then_some(0))
-            .ok_or_else(|| "no thread available for thesis update".to_string())?
-    };
-    let thread = &mut state.threads[thread_index];
-
-    thread.thesis.primary_intent = primary_intent;
-    thread.thesis.secondary_goals = secondary_goals;
-    thread.thesis.open_questions = open_questions;
-    thread.thesis.assumptions = assumptions;
-    thread.thesis.sources = sources;
-    thread.thesis.confidence.score = confidence_score;
-    thread.thesis.confidence.rationale = confidence_rationale;
-    thread.thesis.updated_at = Some(chrono::Utc::now());
-    thread.updated_at = chrono::Utc::now();
-    Ok(())
+    Ok(FocusaEvent::ThreadThesisUpdated {
+        thread_id,
+        thesis: focusa_core::types::ThreadThesis {
+            primary_intent,
+            secondary_goals,
+            constraints: focusa_core::types::ThesisConstraints::default(),
+            open_questions,
+            assumptions,
+            confidence: focusa_core::types::ThesisConfidence {
+                score: confidence_score,
+                rationale: confidence_rationale,
+            },
+            scope: focusa_core::types::ThesisScope::default(),
+            sources,
+            updated_at: Some(chrono::Utc::now()),
+        },
+    })
 }
 
-fn apply_memory_write_proposal(
-    state: &mut focusa_core::types::FocusaState,
+fn memory_write_event(
     winner: &focusa_core::types::Proposal,
 ) -> Result<FocusaEvent, String> {
     let key = winner
@@ -262,27 +247,16 @@ fn apply_memory_write_proposal(
         .and_then(|v| v.as_str())
         .unwrap_or("proposal");
 
-    let event = focusa_core::memory::semantic::upsert(
-        &mut state.memory,
+    Ok(FocusaEvent::SemanticMemoryUpserted {
         key,
         value,
-        focusa_core::types::MemorySource::User,
-    );
-
-    Ok(match event {
-        FocusaEvent::SemanticMemoryUpserted { key, value, .. } => FocusaEvent::SemanticMemoryUpserted {
-            key,
-            value,
-            source: source.to_string(),
-        },
-        other => other,
+        source: source.to_string(),
     })
 }
 
-fn apply_autonomy_adjustment_proposal(
-    state: &mut focusa_core::types::FocusaState,
+fn autonomy_adjustment_event(
     winner: &focusa_core::types::Proposal,
-) -> Result<(), String> {
+) -> Result<FocusaEvent, String> {
     let level = winner
         .payload
         .get("level")
@@ -305,14 +279,17 @@ fn apply_autonomy_adjustment_proposal(
         .and_then(|v| v.as_str())
         .unwrap_or("proposal resolution accepted");
 
-    focusa_core::autonomy::grant_level(&mut state.autonomy, level, scope, ttl, reason);
-    Ok(())
+    Ok(FocusaEvent::AutonomyAdjusted {
+        level,
+        scope,
+        ttl,
+        reason: reason.to_string(),
+    })
 }
 
-fn apply_constitution_revision_proposal(
-    state: &mut focusa_core::types::FocusaState,
+fn constitution_revision_event(
     winner: &focusa_core::types::Proposal,
-) -> Result<(), String> {
+) -> Result<FocusaEvent, String> {
     let version = winner
         .payload
         .get("version")
@@ -359,16 +336,13 @@ fn apply_constitution_revision_proposal(
         return Err("constitution_revision requires at least one principle/safety/expression rule".to_string());
     }
 
-    focusa_core::constitution::create_version(
-        &mut state.constitution,
-        agent_id,
-        &version,
+    Ok(FocusaEvent::ConstitutionLoaded {
+        version,
+        agent_id: agent_id.to_string(),
         principles,
         safety_rules,
         expression_rules,
-    );
-    focusa_core::constitution::activate_version(&mut state.constitution, &version)?;
-    Ok(())
+    })
 }
 
 fn parse_proposal_kind(kind_str: &str) -> ProposalKind {
@@ -472,15 +446,6 @@ async fn resolve_proposals(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _write_guard = state.write_serial_lock.lock().await;
-
-    let machine_id = state.persistence.machine_id().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": format!("failed to get machine id: {}", e)})),
-        )
-    })?;
-
     let snapshot = state.focusa.read().await.clone();
 
     let kind_filter = body
@@ -513,242 +478,96 @@ async fn resolve_proposals(
     let window_start = chrono::Utc::now();
     let outcome = focusa_core::pre::resolution::resolve_proposals(&pending, &snapshot, &config, window_start);
 
-    let mut next_state = snapshot.clone();
-    let mut applied_events: Vec<FocusaEvent> = Vec::new();
+    let mut events_to_emit: Vec<FocusaEvent> = Vec::new();
+    let mut visibility_target: Option<(ProposalKind, Value)> = None;
 
     let result = match outcome {
         focusa_core::pre::resolution::ResolutionOutcome::Accepted { winner, score, reason } => {
-            match winner.kind {
+            visibility_target = Some((winner.kind, winner.payload.clone()));
+            let (applied_kind, mut domain_events) = match winner.kind {
                 ProposalKind::FocusChange => {
-                    let reduction = apply_focus_change_proposal(next_state.clone(), &winner, &machine_id);
-                    match reduction {
-                        Ok(reduction) => {
-                            next_state = reduction.new_state;
-                            applied_events.extend(reduction.emitted_events.clone());
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id {
-                                    proposal.status = ProposalStatus::Accepted;
-                                } else if matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            applied_events.push(FocusaEvent::OntologyVerificationApplied {
-                                proposal_id: Some(winner.id),
-                                verification: "pre_resolution".to_string(),
-                                outcome: "accepted".to_string(),
-                            });
-                            applied_events.push(FocusaEvent::OntologyProposalPromoted {
-                                proposal_id: winner.id,
-                                target_class: proposal_target_class(winner.kind).to_string(),
-                                applied_kind: "focus_frame_pushed".to_string(),
-                            });
-                            applied_events.push(FocusaEvent::OntologyWorkingSetRefreshed {
-                                scope: "focus".to_string(),
-                                reason: "focus_change accepted".to_string(),
-                            });
-                            json!({
-                                "status": "accepted",
-                                "winner": winner,
-                                "score": score,
-                                "reason": reason,
-                                "applied_kind": "focus_frame_pushed"
-                            })
-                        }
-                        Err(err) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id || matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            json!({
-                                "status": "rejected_all",
-                                "reason": format!("accepted proposal could not be canonically applied: {}", err),
-                            })
-                        }
-                    }
+                    let reduction = apply_focus_change_proposal(snapshot.clone(), &winner, "api")
+                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?;
+                    ("focus_frame_pushed", reduction.emitted_events)
                 }
-                ProposalKind::ThesisUpdate => {
-                    match apply_thesis_update_proposal(&mut next_state, &winner) {
-                        Ok(()) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id {
-                                    proposal.status = ProposalStatus::Accepted;
-                                } else if matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            applied_events.push(FocusaEvent::OntologyVerificationApplied {
-                                proposal_id: Some(winner.id),
-                                verification: "pre_resolution".to_string(),
-                                outcome: "accepted".to_string(),
-                            });
-                            applied_events.push(FocusaEvent::OntologyProposalPromoted {
-                                proposal_id: winner.id,
-                                target_class: proposal_target_class(winner.kind).to_string(),
-                                applied_kind: "thread_thesis_updated".to_string(),
-                            });
-                            json!({
-                                "status": "accepted",
-                                "winner": winner,
-                                "score": score,
-                                "reason": reason,
-                                "applied_kind": "thread_thesis_updated"
-                            })
-                        }
-                        Err(err) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id || matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            json!({
-                                "status": "rejected_all",
-                                "reason": format!("accepted proposal could not be canonically applied: {}", err),
-                            })
-                        }
-                    }
-                }
-                ProposalKind::MemoryWrite => {
-                    match apply_memory_write_proposal(&mut next_state, &winner) {
-                        Ok(event) => {
-                            applied_events.push(event);
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id {
-                                    proposal.status = ProposalStatus::Accepted;
-                                } else if matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            applied_events.push(FocusaEvent::OntologyVerificationApplied {
-                                proposal_id: Some(winner.id),
-                                verification: "pre_resolution".to_string(),
-                                outcome: "accepted".to_string(),
-                            });
-                            applied_events.push(FocusaEvent::OntologyProposalPromoted {
-                                proposal_id: winner.id,
-                                target_class: proposal_target_class(winner.kind).to_string(),
-                                applied_kind: "semantic_memory_upserted".to_string(),
-                            });
-                            json!({
-                                "status": "accepted",
-                                "winner": winner,
-                                "score": score,
-                                "reason": reason,
-                                "applied_kind": "semantic_memory_upserted"
-                            })
-                        }
-                        Err(err) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id || matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            json!({
-                                "status": "rejected_all",
-                                "reason": format!("accepted proposal could not be canonically applied: {}", err),
-                            })
-                        }
-                    }
-                }
-                ProposalKind::AutonomyAdjustment => {
-                    match apply_autonomy_adjustment_proposal(&mut next_state, &winner) {
-                        Ok(()) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id {
-                                    proposal.status = ProposalStatus::Accepted;
-                                } else if matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            applied_events.push(FocusaEvent::OntologyVerificationApplied {
-                                proposal_id: Some(winner.id),
-                                verification: "pre_resolution".to_string(),
-                                outcome: "accepted".to_string(),
-                            });
-                            applied_events.push(FocusaEvent::OntologyProposalPromoted {
-                                proposal_id: winner.id,
-                                target_class: proposal_target_class(winner.kind).to_string(),
-                                applied_kind: "autonomy_level_granted".to_string(),
-                            });
-                            json!({
-                                "status": "accepted",
-                                "winner": winner,
-                                "score": score,
-                                "reason": reason,
-                                "applied_kind": "autonomy_level_granted"
-                            })
-                        }
-                        Err(err) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id || matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            json!({
-                                "status": "rejected_all",
-                                "reason": format!("accepted proposal could not be canonically applied: {}", err),
-                            })
-                        }
-                    }
-                }
-                ProposalKind::ConstitutionRevision => {
-                    match apply_constitution_revision_proposal(&mut next_state, &winner) {
-                        Ok(()) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id {
-                                    proposal.status = ProposalStatus::Accepted;
-                                } else if matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            applied_events.push(FocusaEvent::OntologyVerificationApplied {
-                                proposal_id: Some(winner.id),
-                                verification: "pre_resolution".to_string(),
-                                outcome: "accepted".to_string(),
-                            });
-                            applied_events.push(FocusaEvent::OntologyProposalPromoted {
-                                proposal_id: winner.id,
-                                target_class: proposal_target_class(winner.kind).to_string(),
-                                applied_kind: "constitution_version_activated".to_string(),
-                            });
-                            json!({
-                                "status": "accepted",
-                                "winner": winner,
-                                "score": score,
-                                "reason": reason,
-                                "applied_kind": "constitution_version_activated"
-                            })
-                        }
-                        Err(err) => {
-                            for proposal in &mut next_state.pre.proposals {
-                                if proposal.id == winner.id || matches!(proposal.status, ProposalStatus::Pending) {
-                                    proposal.status = ProposalStatus::Rejected;
-                                }
-                            }
-                            json!({
-                                "status": "rejected_all",
-                                "reason": format!("accepted proposal could not be canonically applied: {}", err),
-                            })
-                        }
-                    }
-                }
-            }
-        }
-        focusa_core::pre::resolution::ResolutionOutcome::RejectedAll { reason } => {
-            for proposal in &mut next_state.pre.proposals {
-                if matches!(proposal.status, ProposalStatus::Pending)
-                    && kind_filter.map(|k| proposal.kind == k).unwrap_or(true)
-                    && source_filter.as_ref().map(|s| &proposal.source == s).unwrap_or(true)
-                {
-                    applied_events.push(FocusaEvent::OntologyProposalRejected {
+                ProposalKind::ThesisUpdate => (
+                    "thread_thesis_updated",
+                    vec![thesis_update_event(&winner)
+                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
+                ),
+                ProposalKind::AutonomyAdjustment => (
+                    "autonomy_adjusted",
+                    vec![autonomy_adjustment_event(&winner)
+                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
+                ),
+                ProposalKind::ConstitutionRevision => (
+                    "constitution_loaded",
+                    vec![constitution_revision_event(&winner)
+                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
+                ),
+                ProposalKind::MemoryWrite => (
+                    "semantic_memory_upserted",
+                    vec![memory_write_event(&winner)
+                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
+                ),
+            };
+
+            events_to_emit.append(&mut domain_events);
+            for proposal in &pending {
+                let status = if proposal.id == winner.id {
+                    ProposalStatus::Accepted
+                } else {
+                    ProposalStatus::Rejected
+                };
+                events_to_emit.push(FocusaEvent::ProposalStatusChanged {
+                    proposal_id: proposal.id,
+                    status,
+                });
+                if proposal.id != winner.id {
+                    events_to_emit.push(FocusaEvent::OntologyProposalRejected {
                         proposal_id: proposal.id,
                         target_class: proposal_target_class(proposal.kind).to_string(),
                         reason: reason.clone(),
                     });
-                    proposal.status = ProposalStatus::Rejected;
                 }
             }
-            applied_events.push(FocusaEvent::OntologyVerificationApplied {
+            events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
+                proposal_id: Some(winner.id),
+                verification: "pre_resolution".to_string(),
+                outcome: "accepted".to_string(),
+            });
+            events_to_emit.push(FocusaEvent::OntologyProposalPromoted {
+                proposal_id: winner.id,
+                target_class: proposal_target_class(winner.kind).to_string(),
+                applied_kind: applied_kind.to_string(),
+            });
+            if winner.kind == ProposalKind::FocusChange {
+                events_to_emit.push(FocusaEvent::OntologyWorkingSetRefreshed {
+                    scope: "focus".to_string(),
+                    reason: "focus_change accepted".to_string(),
+                });
+            }
+            json!({
+                "status": "accepted",
+                "winner": winner,
+                "score": score,
+                "reason": reason,
+                "applied_kind": applied_kind,
+            })
+        }
+        focusa_core::pre::resolution::ResolutionOutcome::RejectedAll { reason } => {
+            for proposal in &pending {
+                events_to_emit.push(FocusaEvent::ProposalStatusChanged {
+                    proposal_id: proposal.id,
+                    status: ProposalStatus::Rejected,
+                });
+                events_to_emit.push(FocusaEvent::OntologyProposalRejected {
+                    proposal_id: proposal.id,
+                    target_class: proposal_target_class(proposal.kind).to_string(),
+                    reason: reason.clone(),
+                });
+            }
+            events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
                 proposal_id: None,
                 verification: "pre_resolution".to_string(),
                 outcome: "rejected_all".to_string(),
@@ -759,7 +578,7 @@ async fn resolve_proposals(
             })
         }
         focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired { proposals, reason } => {
-            applied_events.push(FocusaEvent::OntologyVerificationApplied {
+            events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
                 proposal_id: None,
                 verification: "pre_resolution".to_string(),
                 outcome: "clarification_required".to_string(),
@@ -772,39 +591,61 @@ async fn resolve_proposals(
         }
     };
 
-    for event in applied_events {
-        let entry = EventLogEntry {
-            id: Uuid::now_v7(),
-            timestamp: chrono::Utc::now(),
-            event,
-            correlation_id: Some("api:resolve_proposals".to_string()),
-            origin: SignalOrigin::Cli,
-            machine_id: Some(machine_id.clone()),
-            instance_id: None,
-            session_id: next_state.session.as_ref().map(|s| s.session_id),
-            thread_id: None,
-            is_observation: false,
-        };
-        if let Err(e) = state.persistence.append_event(&entry) {
-            return Err((
+    for event in events_to_emit {
+        state.command_tx.send(Action::EmitEvent { event }).await.map_err(|_| {
+            (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": format!("failed to persist proposal event: {}", e)})),
-            ));
-        }
+                Json(json!({"error": "failed to dispatch proposal resolution event"})),
+            )
+        })?;
     }
 
-    next_state.version += 1;
-
-    state.persistence.save_state(&next_state).map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": format!("failed to save proposal resolution state: {}", e)})),
-        )
-    })?;
-
-    {
-        let mut shared = state.focusa.write().await;
-        *shared = next_state;
+    if let Some((kind, payload)) = visibility_target {
+        for _ in 0..120 {
+            let visible = {
+                let s = state.focusa.read().await;
+                match kind {
+                    ProposalKind::FocusChange => payload
+                        .get("title")
+                        .and_then(|v| v.as_str())
+                        .map(|title| s.focus_stack.frames.iter().any(|f| f.title == title))
+                        .unwrap_or(false),
+                    ProposalKind::ThesisUpdate => {
+                        let thread_id = payload.get("thread_id").and_then(|v| v.as_str());
+                        let primary_intent = payload.get("primary_intent").and_then(|v| v.as_str());
+                        match (thread_id, primary_intent) {
+                            (Some(thread_id), Some(primary_intent)) => s
+                                .threads
+                                .iter()
+                                .find(|t| t.id.to_string() == thread_id)
+                                .map(|t| t.thesis.primary_intent == primary_intent)
+                                .unwrap_or(false),
+                            _ => false,
+                        }
+                    }
+                    ProposalKind::AutonomyAdjustment => payload
+                        .get("level")
+                        .and_then(|v| v.as_str())
+                        .map(|level| format!("{:?}", s.autonomy.level) == level)
+                        .unwrap_or(false),
+                    ProposalKind::ConstitutionRevision => payload
+                        .get("version")
+                        .and_then(|v| v.as_str())
+                        .map(|version| s.constitution.active_version.as_deref() == Some(version))
+                        .unwrap_or(false),
+                    ProposalKind::MemoryWrite => payload
+                        .get("key")
+                        .and_then(|v| v.as_str())
+                        .zip(payload.get("value").and_then(|v| v.as_str()))
+                        .map(|(key, value)| s.memory.semantic.iter().any(|m| m.key == key && m.value == value))
+                        .unwrap_or(false),
+                }
+            };
+            if visible {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        }
     }
 
     Ok(Json(result))

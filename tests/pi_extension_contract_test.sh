@@ -34,6 +34,35 @@ echo "=== SPEC-52: Pi Extension Contract (strict) ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+STATE_FILE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
+SESSION_FILE="${ROOT_DIR}/apps/pi-extension/src/session.ts"
+
+if rg -n 'appendEntry\("focusa-wbm-state"' "$STATE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi persists resumable WBM state via focusa-wbm-state"
+else
+  log_fail "Pi does not persist resumable WBM state via focusa-wbm-state"
+fi
+
+if rg -n 'appendEntry\("focusa-state"|authoritativeDecisions|authoritativeConstraints|authoritativeFailures|persistAuthoritativeState' "$STATE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi persists authoritative Focusa snapshot alongside local shadow"
+else
+  log_fail "Pi missing authoritative Focusa snapshot persistence"
+fi
+
+if rg -n 'sessionId: S\.sessionFrameKey' "$STATE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi persisted state includes sessionId for resume"
+else
+  log_fail "Pi persisted state missing sessionId for resume"
+fi
+
+if rg -n 'focusa-wbm-state" \|\| e\.customType === "focusa-state"' "$SESSION_FILE" >/dev/null 2>&1 \
+  && rg -n 'if \(e\.data\.sessionId\) S\.sessionFrameKey = e\.data\.sessionId' "$SESSION_FILE" >/dev/null 2>&1; then
+  log_pass "Pi session restore accepts resumable WBM state and restores session key"
+else
+  log_fail "Pi session restore missing resumable WBM state support"
+fi
+
 log_info "Health + seeded state"
 code=$(http_code "${BASE_URL}/v1/health")
 if [ "$code" = "200" ]; then
@@ -41,6 +70,14 @@ if [ "$code" = "200" ]; then
 else
   log_fail "Daemon not responding"
   exit 1
+fi
+
+code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
+  -d '{"adapter_id":"pi-contract","workspace_id":"pi-extension-contract"}')
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Seed session accepted"
+else
+  log_fail "Seed session failed"
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
@@ -199,6 +236,83 @@ if [ "$code" = "200" ]; then
   json_assert '.enabled != null' "Output: VerificationRequest/reflection available"
 else
   log_fail "Output VerificationRequest failed"
+fi
+
+STATE_TS="apps/pi-extension/src/state.ts"
+INDEX_TS="apps/pi-extension/src/index.ts"
+SESSION_TS="apps/pi-extension/src/session.ts"
+COMMANDS_TS="apps/pi-extension/src/commands.ts"
+if rg -n 'derivePiFrameIntent|S\.currentAsk|Pi Task:|Pi Question:|Pi Correction:' "$STATE_TS" >/dev/null 2>&1; then
+  log_pass "Pi frame creation is task-first rather than cwd-only"
+else
+  log_fail "Pi frame creation still appears cwd-only"
+fi
+
+if rg -n 'frameTitle|frameGoal|Title:|Goal:' "$INDEX_TS" >/dev/null 2>&1; then
+  log_pass "Persisted Focusa renderer exposes frame title/goal context"
+else
+  log_fail "Persisted Focusa renderer missing frame title/goal context"
+fi
+
+if rg -n 'authoritativeDecisions|authoritativeConstraints|authoritativeFailures|Mission: \$\{d\.intent\}|Focus: \$\{d\.currentFocus\}' "$INDEX_TS" >/dev/null 2>&1; then
+  log_pass "Persisted renderer prefers authoritative snapshot content"
+else
+  log_fail "Persisted renderer missing authoritative snapshot content"
+fi
+
+if rg -n 'S\.activeFrameId|S\.activeFrameTitle|S\.activeFrameGoal|pi\.setSessionName' "$SESSION_TS" >/dev/null 2>&1; then
+  log_pass "Session sync uses Pi scoped frame metadata rather than global frame fallback"
+else
+  log_fail "Session sync still appears to rely on global frame fallback"
+fi
+
+if rg -n 'reason: "pi_session_shutdown"|reason: "pi_session_switch"' "$SESSION_TS" >/dev/null 2>&1; then
+  log_pass "Pi session lifecycle closes Focusa sessions with explicit reasons"
+else
+  log_fail "Pi session lifecycle missing explicit close reasons"
+fi
+
+if rg -n 'persistAuthoritativeState\(' "$SESSION_TS" "$COMMANDS_TS" "apps/pi-extension/src/compaction.ts" >/dev/null 2>&1; then
+  log_pass "Pi persists refreshed authoritative state before lifecycle/compaction boundaries"
+else
+  log_fail "Pi missing refreshed authoritative persistence at lifecycle/compaction boundaries"
+fi
+
+if rg -n 'normalizeCompactionArtifacts|kind: "file"|Session compacted\. Modified:|Session compacted\. Read:' "apps/pi-extension/src/compaction.ts" >/dev/null 2>&1; then
+  log_pass "Pi compaction file tracking writes canonical artifact lines and notes"
+else
+  log_fail "Pi compaction file tracking still appears non-canonical"
+fi
+
+if rg -n 'assistant_output|prompt_tokens|completion_tokens|extractText\(ev\.message\?\.content' "apps/pi-extension/src/turns.ts" >/dev/null 2>&1; then
+  log_pass "Pi turn completion reports assistant output and canonical token fields"
+else
+  log_fail "Pi turn completion still appears token-only or output-blind"
+fi
+
+if rg -n 'await pushDelta\(|Operator correction:|lastFocusSnapshot = \{ decisions: \[], constraints: \[], failures: \[], intent: "", currentFocus: "" \}' "apps/pi-extension/src/turns.ts" "$COMMANDS_TS" >/dev/null 2>&1 \
+  && rg -n 'Reconciled after Focusa outage|await pushDelta\(' "apps/pi-extension/src/session.ts" >/dev/null 2>&1; then
+  log_pass "Pi progress/reset/reconnect paths use validated writes and clear authoritative snapshot state"
+else
+  log_fail "Pi progress/reset/reconnect paths still appear partially local-shadow only"
+fi
+
+if rg -n 'rescopePiFrameFromCurrentAsk|startup frame rescoped after first real ask|pi-post-input-rescope|isNonTaskStatusLikeText|stripQuotedFocusaContext|currentAsk: S\.currentAsk|seedCurrentAskFromPersistedState' "apps/pi-extension/src/state.ts" "apps/pi-extension/src/turns.ts" "apps/pi-extension/src/session.ts" >/dev/null 2>&1; then
+  log_pass "Pi startup fallback frame is rescoped only from real asks and strips quoted Focusa payloads on restart/input"
+else
+  log_fail "Pi startup fallback frame still appears vulnerable to sticky/status-driven rescope or quoted-payload pollution"
+fi
+
+if rg -n 'Title: \$\{S\.activeFrameTitle\}|Goal: \$\{S\.activeFrameGoal\}|S\.lastFocusSnapshot|current_state|Mission: \$\{mission\}|Focus: \$\{currentFocus\}|frame\.status !== "active"|tags\.includes\(S\.sessionFrameKey|isContaminatedFrameIdentity|focusaFetch\("/ascc/state"\)|current_focus \|\| fs\?\.current_state|## Next Steps' "$COMMANDS_TS" "$STATE_TS" >/dev/null 2>&1; then
+  log_pass "Focusa status/context surfaces authoritative frame and live ASCC context"
+else
+  log_fail "Focusa status/context surfaces still appear stack-only or ASCC-blind"
+fi
+
+if rg -n 'Mission: \$\{mission\}|Focus: \$\{focus\}|getEffectiveFocusSnapshot|S\.lastFocusSnapshot|current_state' "$COMMANDS_TS" "$INDEX_TS" "$STATE_TS" "apps/pi-extension/src/turns.ts" >/dev/null 2>&1; then
+  log_pass "Loop/shortcut/widget surfaces prefer authoritative mission/focus context"
+else
+  log_fail "Loop/shortcut/widget surfaces still appear local-shadow only"
 fi
 
 echo ""

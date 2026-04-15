@@ -18,12 +18,18 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new() -> Self {
-        let base = std::env::var("FOCUSA_API_URL").unwrap_or_else(|_| DEFAULT_BASE.to_string());
+        Self::with_timeout_secs(DEFAULT_TIMEOUT_SECS)
+    }
+
+    pub fn with_timeout_secs(default_timeout_secs: u64) -> Self {
+        let base = std::env::var("FOCUSA_API_URL")
+            .or_else(|_| std::env::var("FOCUSA_BASE_URL"))
+            .unwrap_or_else(|_| DEFAULT_BASE.to_string());
 
         let timeout = std::env::var("FOCUSA_API_TIMEOUT")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_TIMEOUT_SECS);
+            .unwrap_or(default_timeout_secs);
 
         let client = ClientBuilder::new()
             .timeout(Duration::from_secs(timeout))

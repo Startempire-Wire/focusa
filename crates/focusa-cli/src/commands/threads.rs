@@ -5,6 +5,11 @@ use anyhow::{Context, Result};
 use clap::Subcommand;
 use serde_json::Value;
 
+fn print_json(value: &Value) -> Result<()> {
+    println!("{}", serde_json::to_string_pretty(value)?);
+    Ok(())
+}
+
 /// Thread management commands (docs/38).
 #[derive(Subcommand)]
 pub enum ThreadCmd {
@@ -61,13 +66,17 @@ pub enum ThreadCmd {
     },
 }
 
-pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> {
+pub async fn run(cmd: ThreadCmd, json_mode: bool, client: &ApiClient) -> Result<()> {
     match cmd {
         ThreadCmd::List => {
             let response: Value = client
                 .get("/v1/threads")
                 .await
                 .context("Failed to fetch threads")?;
+
+            if json_mode {
+                return print_json(&response);
+            }
 
             let threads = response["threads"].as_array().cloned().unwrap_or_default();
 
@@ -104,6 +113,10 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
                 .await
                 .context("Failed to create thread")?;
 
+            if json_mode {
+                return print_json(&response);
+            }
+
             let thread = &response["thread"];
             println!("Created thread:");
             println!("  ID:   {}", thread["id"].as_str().unwrap_or("?"));
@@ -118,6 +131,10 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
                 .get(&format!("/v1/threads/{}", thread_id))
                 .await
                 .context("Failed to fetch thread")?;
+
+            if json_mode {
+                return print_json(&response);
+            }
 
             let thread = &response["thread"];
             println!("Thread: {}", thread["name"].as_str().unwrap_or("?"));
@@ -146,6 +163,10 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
                 .await
                 .context("Failed to fork thread")?;
 
+            if json_mode {
+                return print_json(&response);
+            }
+
             let thread = &response["thread"];
             println!("Forked thread:");
             println!("  ID:         {}", thread["id"].as_str().unwrap_or("?"));
@@ -171,6 +192,10 @@ pub async fn run(cmd: ThreadCmd, _json: bool, client: &ApiClient) -> Result<()> 
                 .post(&format!("/v1/threads/{}/transfer", thread_id), &payload)
                 .await
                 .context("Failed to transfer thread ownership")?;
+
+            if json_mode {
+                return print_json(&response);
+            }
 
             println!("Transferred ownership:");
             println!(

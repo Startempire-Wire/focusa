@@ -246,14 +246,25 @@ mod tests {
         assert_eq!(state.focus_stack.frames.len(), 1);
         assert_eq!(state.focus_stack.active_id, Some(frame_id));
         
-        // Complete frame
+        let child_id = Uuid::now_v7();
+        let child = FocusaEvent::FocusFramePushed {
+            frame_id: child_id,
+            beads_issue_id: "TEST-CHILD".into(),
+            title: "Child".into(),
+            goal: "Child goal".into(),
+            constraints: vec![],
+            tags: vec![],
+        };
+        state = reducer::reduce(state, child).unwrap().new_state;
+
+        // Complete child frame
         let event2 = FocusaEvent::FocusFrameCompleted {
-            frame_id,
+            frame_id: child_id,
             completion_reason: CompletionReason::GoalAchieved,
         };
         state = reducer::reduce(state, event2).unwrap().new_state;
         
-        assert_eq!(state.focus_stack.frames[0].status, FrameStatus::Completed);
+        assert_eq!(state.focus_stack.frames[1].status, FrameStatus::Completed);
     }
     
     // STRESS TEST: Replay 1000 events
@@ -310,8 +321,8 @@ mod tests {
         assert_eq!(state.focus_stack.frames.len(), 50);
         assert_eq!(state.focus_stack.stack_path_cache.len(), 50);
         
-        // Pop all frames
-        for frame_id in frame_ids.into_iter().rev() {
+        // Pop all non-root frames
+        for frame_id in frame_ids.into_iter().skip(1).rev() {
             let event = FocusaEvent::FocusFrameCompleted {
                 frame_id,
                 completion_reason: CompletionReason::GoalAchieved,
@@ -319,7 +330,7 @@ mod tests {
             state = reducer::reduce(state, event).unwrap().new_state;
         }
         
-        assert!(state.focus_stack.active_id.is_none());
+        assert_eq!(state.focus_stack.active_id, state.focus_stack.root_id);
     }
     
     // STRESS TEST: Rapid memory operations
@@ -435,11 +446,13 @@ mod tests {
                 related_frame_id: Some(frame_id),
             }).unwrap().new_state;
             
-            // Complete frame
-            state = reducer::reduce(state, FocusaEvent::FocusFrameCompleted {
-                frame_id,
-                completion_reason: CompletionReason::GoalAchieved,
-            }).unwrap().new_state;
+            if i > 0 {
+                // Complete non-root frame
+                state = reducer::reduce(state, FocusaEvent::FocusFrameCompleted {
+                    frame_id,
+                    completion_reason: CompletionReason::GoalAchieved,
+                }).unwrap().new_state;
+            }
         }
         
         assert_eq!(state.focus_stack.frames.len(), 100);

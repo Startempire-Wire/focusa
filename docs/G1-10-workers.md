@@ -1,14 +1,21 @@
 # docs/10-workers.md — Background Workers & Async Cognition (MVP)
 
 ## Purpose
-Background workers implement **System-1–like cognition**:
+Background workers implement **System-1–like secondary cognition**:
 - fast
 - asynchronous
-- non-blocking
-- heuristic-driven
+- non-blocking to prompt assembly
+- bounded by explicit time budgets
 - advisory only
 
 They must **never** block prompt assembly or harness I/O.
+
+Workers may use either:
+- local heuristic execution
+- bounded LLM-backed execution
+
+The execution method does not change worker authority.
+Workers remain advisory result producers whose outputs must still flow through reducer/governance acceptance paths.
 
 In MVP, there is **one worker pipeline** with clearly defined job types.
 
@@ -33,7 +40,10 @@ Workers do **not**:
 - mutate focus stack directly
 - assemble prompts
 - execute tools
-- call the harness/model
+- perform direct canonical/reducer-bypass writes
+- gain authority merely because an LLM was used during execution
+
+Workers may call bounded model-backed extraction/evaluation paths when configured, but such calls remain subordinate to the same advisory-only contract.
 
 ---
 
@@ -69,7 +79,9 @@ Fields:
 ### Scheduling
 - jobs enqueued by daemon reducer
 - high-priority jobs first
-- max execution time per job (default 200ms)
+- each job must have an explicit time budget
+- 200ms remains the default local/heuristic budget unless overridden by job/config
+- bounded LLM-backed jobs may use a larger configured timeout, but only with cancellation/failure handling and without turning workers into critical-path prompt assembly
 - if timeout exceeded → cancel and emit failure event
 
 ### Safety
@@ -86,7 +98,7 @@ Input:
 - turn transcript (via handle or small text)
 Output:
 - tags (file paths, errors, tools, intent shifts)
-- emit `gate.signal_ingested`
+- candidate classification result for downstream gate/reducer handling
 
 ### extract_ascc_delta
 Input:
@@ -95,6 +107,7 @@ Input:
 Output:
 - structured delta proposal
 - reducer applies merge rules (worker does not mutate state)
+- extraction may be heuristic or LLM-assisted, but output remains proposal-level rather than canonical truth
 
 ### detect_repetition
 Input:
@@ -123,6 +136,9 @@ Reducer decides:
 - whether to accept results
 - whether to emit Focus Gate signals
 - whether to enqueue follow-up jobs
+- whether any worker output is promoted, persisted, suppressed, or discarded
+
+This remains true for both heuristic and LLM-backed worker execution.
 
 ---
 
@@ -152,3 +168,6 @@ All persistence handled by reducer.
 - Worker never blocks prompt assembly
 - Jobs respect timeout
 - Queue backpressure works
+- LLM-backed worker execution still returns advisory outputs only
+- Timeout/fallback behavior is observable in traces/events
+- Reducer remains the only authority that can turn worker output into lasting state change

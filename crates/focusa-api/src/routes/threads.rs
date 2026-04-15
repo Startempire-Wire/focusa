@@ -177,39 +177,54 @@ async fn fork_thread(
         )
     })?;
 
-    let mut next_state = state.focusa.read().await.clone();
-    let source = next_state
-        .threads
-        .iter()
-        .find(|t| t.id == thread_id)
-        .cloned()
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(json!({"error": "Thread not found"})),
-            )
-        })?;
+    let source = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .threads
+            .iter()
+            .find(|t| t.id == thread_id)
+            .cloned()
+            .ok_or_else(|| {
+                (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({"error": "Thread not found"})),
+                )
+            })?
+    };
 
-    let mut forked = focusa_core::threads::fork_thread(&source, &body.name, body.owner_machine_id.as_deref());
-    let branch_marker = focusa_core::clt::insert_branch_marker(
-        &mut next_state.clt,
-        "thread_fork",
-        vec![source.id.to_string(), forked.id.to_string()],
-    );
-    forked.clt_head = Some(branch_marker);
-    next_state.threads.push(forked.clone());
+    let forked_id = Uuid::now_v7();
+    let event = FocusaEvent::ThreadForked {
+        source_thread_id: source.id,
+        thread_id: forked_id,
+        name: body.name.clone(),
+        owner_machine_id: body.owner_machine_id.clone(),
+    };
 
-    state.persistence.save_state(&next_state).map_err(|e| {
+    state.command_tx.send(Action::EmitEvent { event }).await.map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": format!("failed to persist forked thread: {}", e)})),
+            Json(json!({"error": "failed to dispatch thread fork"})),
         )
     })?;
 
-    {
-        let mut shared = state.focusa.write().await;
-        *shared = next_state;
+    let mut forked = None;
+    for _ in 0..80 {
+        {
+            let focusa = state.focusa.read().await;
+            forked = focusa.threads.iter().find(|t| t.id == forked_id).cloned();
+        }
+        if forked.is_some() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
+
+    let forked = forked.ok_or_else(|| {
+        (
+            StatusCode::ACCEPTED,
+            Json(json!({"status": "accepted", "thread_id": forked_id.to_string(), "warning": "thread fork dispatched but not yet visible"})),
+        )
+    })?;
 
     Ok(Json(json!({
         "thread": {

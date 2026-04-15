@@ -1,8 +1,9 @@
 //! Training Dataset Export & Contribution routes.
 //!
-//! Source: docs/20-21 (export), docs/22 (contribution)
+//! Source: docs/21 (export), docs/22 (contribution)
 //!
-//! GET  /v1/training/status      — export + contribution pipeline status
+//! GET  /v1/export/status         — export pipeline status
+//! GET  /v1/training/status       — contribution pipeline status (legacy)
 //! POST /v1/contribute/enable     — enable contribution
 //! POST /v1/contribute/pause      — pause contribution
 //! GET  /v1/contribute/queue      — inspect contribution queue
@@ -19,8 +20,21 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-/// GET /v1/training/status — export + contribution pipeline status.
-async fn export_status(State(state): State<Arc<AppState>>) -> Json<Value> {
+/// GET /v1/export/status — export pipeline status.
+async fn export_status(State(_state): State<Arc<AppState>>) -> Json<Value> {
+    Json(json!({
+        "implemented": false,
+        "dataset_types": ["sft", "preference", "contrastive", "long-horizon"],
+        "supported_formats": ["jsonl", "parquet"],
+        "history_count": 0,
+        "last_export_at": Value::Null,
+        "status": "not_implemented",
+        "reason": "dataset export pipeline not implemented yet",
+    }))
+}
+
+/// GET /v1/training/status — contribution pipeline status.
+async fn contribution_status(State(state): State<Arc<AppState>>) -> Json<Value> {
     let s = state.focusa.read().await;
     Json(json!({
         "contribution_enabled": s.contribution.enabled,
@@ -81,7 +95,8 @@ async fn contribute_submit(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/v1/training/status", get(export_status))
+        .route("/v1/export/status", get(export_status))
+        .route("/v1/training/status", get(contribution_status))
         .route("/v1/contribute/enable", post(contribute_enable))
         .route("/v1/contribute/pause", post(contribute_pause))
         .route("/v1/contribute/approve", post(contribute_approve))

@@ -11,8 +11,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::{Json, Router, routing::get, routing::post};
 use chrono::Utc;
 use focusa_core::types::{
-    Action, CandidateId, CompletionReason, InstanceKind, MemorySource, Signal, SignalKind,
-    SignalOrigin,
+    Action, CacheBustCategory, CandidateId, CompletionReason, FocusStackState, FrameStatus,
+    InstanceKind, MemorySource, SessionState, SessionStatus, Signal, SignalKind, SignalOrigin,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -104,6 +104,11 @@ struct ReinforcePayload {
 }
 
 #[derive(Debug, Deserialize)]
+struct CacheBustPayload {
+    category: CacheBustCategory,
+}
+
+#[derive(Debug, Deserialize)]
 struct StartSessionPayload {
     #[serde(default)]
     adapter_id: Option<String>,
@@ -177,6 +182,125 @@ fn decode<T: for<'de> Deserialize<'de>>(
             })),
         )
     })
+}
+
+fn ensure_active_session(session: Option<&SessionState>) -> Result<(), Value> {
+    match session {
+        Some(session) if session.status == SessionStatus::Active => Ok(()),
+        Some(session) => Err(json!({
+            "status": "rejected",
+            "reason": "session_inactive",
+            "session_status": session.status,
+        })),
+        None => Err(json!({
+            "status": "rejected",
+            "reason": "no_active_session",
+        })),
+    }
+}
+
+fn validate_can_pop(stack: &FocusStackState) -> Result<(), Value> {
+    let active_id = match stack.active_id {
+        Some(id) => id,
+        None => return Err(json!({"status": "no_active_frame"})),
+    };
+
+    let active = stack
+        .frames
+        .iter()
+        .find(|f| f.id == active_id)
+        .ok_or_else(|| json!({"status": "rejected", "reason": "active_frame_missing"}))?;
+
+    let parent_id = active.parent_id.ok_or_else(|| {
+        json!({"status": "rejected", "reason": "cannot_complete_root_frame"})
+    })?;
+
+    let parent = stack
+        .frames
+        .iter()
+        .find(|f| f.id == parent_id)
+        .ok_or_else(|| json!({"status": "rejected", "reason": "parent_frame_missing"}))?;
+
+    if parent.status != FrameStatus::Paused {
+        return Err(json!({
+            "status": "rejected",
+            "reason": "parent_not_paused",
+            "parent_status": parent.status,
+        }));
+    }
+
+    Ok(())
+}
+
+fn validate_set_active(stack: &FocusStackState, frame_id: Uuid) -> Result<(), Value> {
+    let active_id = match stack.active_id {
+        Some(id) => id,
+        None => return Err(json!({"status": "no_active_frame"})),
+    };
+
+    if active_id == frame_id {
+        return Ok(());
+    }
+
+    if !stack.stack_path_cache.contains(&frame_id) {
+        return Err(json!({
+            "status": "rejected",
+            "reason": "target_not_in_current_stack_path",
+        }));
+    }
+
+    let target = stack
+        .frames
+        .iter()
+        .find(|f| f.id == frame_id)
+        .ok_or_else(|| json!({"status": "rejected", "reason": "frame_not_found"}))?;
+
+    if target.status != FrameStatus::Paused {
+        return Err(json!({
+            "status": "rejected",
+            "reason": "target_not_paused",
+            "frame_status": target.status,
+        }));
+    }
+
+    Ok(())
+}
+
+fn validate_action(action: &Action, session: Option<&SessionState>, stack: &FocusStackState) -> Result<(), Value> {
+    match action {
+        Action::PushFrame { beads_issue_id, .. } => {
+            ensure_active_session(session)?;
+            if beads_issue_id.trim().is_empty() {
+                return Err(json!({
+                    "status": "rejected",
+                    "reason": "missing_beads_issue_id",
+                }));
+            }
+            Ok(())
+        }
+        Action::PopFrame { .. } => {
+            ensure_active_session(session)?;
+            validate_can_pop(stack)
+        }
+        Action::SetActiveFrame { frame_id } => {
+            ensure_active_session(session)?;
+            validate_set_active(stack, *frame_id)
+        }
+        Action::StartSession { .. } => {
+            if let Some(session) = session
+                && session.status == SessionStatus::Active
+            {
+                return Err(json!({
+                    "status": "rejected",
+                    "reason": "session_already_active",
+                    "session_id": session.session_id,
+                }));
+            }
+            Ok(())
+        }
+        Action::CloseSession { .. } => ensure_active_session(session),
+        _ => Ok(()),
+    }
 }
 
 fn map_command_to_action(
@@ -254,6 +378,12 @@ fn map_command_to_action(
             Ok(Action::ReinforceRule { rule_id: p.rule_id })
         }
         "memory.decay_tick" => Ok(Action::DecayTick),
+        "cache.bust" => {
+            let p: CacheBustPayload = decode(payload, command)?;
+            Ok(Action::CacheBust {
+                category: p.category,
+            })
+        }
         "session.start" => {
             let p: StartSessionPayload = decode(payload, command)?;
             Ok(Action::StartSession {
@@ -323,6 +453,13 @@ async fn submit_command(
     let now = Utc::now();
 
     let action = map_command_to_action(&req.command, req.payload)?;
+
+    {
+        let focusa = state.focusa.read().await;
+        if let Err(resp) = validate_action(&action, focusa.session.as_ref(), &focusa.focus_stack) {
+            return Err((StatusCode::BAD_REQUEST, Json(resp)));
+        }
+    }
 
     let mut record = CommandRecord {
         command_id: command_id.clone(),

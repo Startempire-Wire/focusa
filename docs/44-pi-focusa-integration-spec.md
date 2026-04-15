@@ -211,8 +211,17 @@ Required config keys:
 - `fallbackMode` (`passthrough` default)
 - `emitMetrics` (default true)
 
+Beginner UX requirement (preset-first):
+- settings UI MUST surface preconfigured profiles before low-level policy knobs
+- minimum quick profiles: `starter`, `builder`, `hands_off`, `audit_safe`
+- quick profiles MUST keep safety gates on by default (`allow_destructive_actions=false`, verification + operator approvals required)
+- steering semantics: operator steering MUST redirect trajectory without mandatory pause (`auto_pause_on_operator_message=false` by default)
+- advanced customization remains available via explicit advanced mode
+
 ## 10.3 Commands (Pi)
 - `/focusa-status`
+- `/focusa-settings` (quick beginner setup)
+- `/focusa-settings advanced` (full expert controls)
 - `/focusa-pin <candidate_id>`
 - `/focusa-suppress <candidate_id> [duration]`
 - `/focusa-checkpoint`
@@ -1469,29 +1478,47 @@ The entire Focusa cognitive layer requires an active Focus Frame. Without one:
 
 **Required: Auto-frame on session start.**
 
+Per core Focus Stack / HEC, a frame represents a **unit of work** and carries a human-readable `title` plus a one-sentence `goal`. Therefore Pi must derive auto-frame metadata from the **active task/mission semantics**, not from the cwd basename. Filesystem/project context may inform tags and last-resort fallback labels, but it is not the primary determinant of focus.
+
+**Derivation order (normative):**
+1. Current beads task / explicit work item
+2. Current operator ask / mission if recoverable from session state
+3. Explicit user-provided `/focusa-push` values
+4. Project/cwd fallback only when no semantic work item is available
+
 ```typescript
 pi.on("session_start", async (_event, ctx) => {
   // Check if Focusa has an active frame
   const stack = await fetch(":8787/v1/focus/stack").then(r => r.json()).catch(() => null);
   
   if (!stack?.active_frame_id) {
-    // Derive frame from project context
     const cwd = ctx.cwd;
     const projectName = cwd.split("/").pop() || "unknown";
-    
-    // Check for beads in project
+
+    // Prefer the active work item over cwd-derived labels
     let beadsId = "pi-session";
+    let frameTitle: string | null = null;
+    let frameGoal: string | null = null;
     try {
       const result = await pi.exec("bd", ["ready"], { timeout: 3000 });
-      if (result.stdout.trim()) beadsId = result.stdout.trim().split(/\s/)[0];
+      const ready = result.stdout.trim();
+      if (ready) {
+        beadsId = ready.split(/\s/)[0];
+        frameTitle = extractTaskTitle(ready);              // short human label
+        frameGoal = extractTaskGoal(ready, frameTitle);    // one-sentence goal
+      }
     } catch {}
+
+    // Last resort only: project-context fallback
+    if (!frameTitle) frameTitle = `Pi: ${projectName}`;
+    if (!frameGoal) frameGoal = `Work within ${projectName} until a concrete task is selected`;
     
     // Push frame
     await fetch(":8787/v1/focus/push", {
       method: "POST",
       body: JSON.stringify({
-        title: `Pi: ${projectName}`,
-        goal: `Work on ${projectName}`,
+        title: frameTitle,
+        goal: frameGoal,
         beads_issue_id: beadsId,
         constraints: [],
         tags: ["pi", projectName]
@@ -1559,8 +1586,9 @@ The spec defines what the extension CAN do but never describes the user's actual
 2. Extension loads, checks Focusa health
 3. If no active frame:
    a. Check project beads (bd ready) for current task
-   b. If task found → auto-push frame with task title/goal
-   c. If no task → show status bar "No focus frame — use /focusa-push to set one"
+   b. If task found → auto-push frame with that task's short title + one-sentence goal
+   c. Else if session/operator state exposes a concrete ask → auto-push frame from that mission semantics
+   d. If neither exists → either leave frame unset and show status bar "No focus frame — use /focusa-push to set one", or create an explicitly-marked fallback frame whose title/goal are clearly provisional
 4. If /wbm previously active (from appendEntry state) → auto-restore
 5. Show status bar: "🧠 Focusa" or "🧠 WBM" or "⚪ Focusa (no frame)"
 6. User works normally — extension handles everything in background
@@ -2033,6 +2061,22 @@ pi.registerTool({
 - Historical extraction can find tool calls reliably (`toolName: "focusa_decide"`)
 - LLM sees `✅ Decision recorded` confirmation — positive reinforcement
 
+### 37.2A Continuous Work-Loop Bridge Tools
+
+In addition to slash commands, the extension should expose thin LLM-callable bridge tools for daemon-owned continuous loop control:
+- `focusa_work_loop_status`
+- `focusa_work_loop_control` (`on|pause|resume|stop`)
+- `focusa_work_loop_context` (current ask/scope/steering context)
+- `focusa_work_loop_checkpoint`
+- `focusa_work_loop_select_next`
+
+These tools must remain transport-only bridges to `/v1/work-loop/*` APIs and must not reimplement continuation policy inside the extension.
+
+Simple control model for operators:
+- one active loop controller at a time
+- steering updates direction without forced pause
+- if control is blocked, return a plain reason (not a vague failure)
+
 **This replaces §35.2 behavioral instructions as the primary decision capture mechanism.** §35.2 instructions remain as backup for when LLM doesn't call the tool.
 
 ### 37.3 Widget: Persistent Focus State Display
@@ -2295,7 +2339,7 @@ async function wbMemoryInject(text: string): Promise<boolean> {
 
 ### 38.3 Disable Focusa Tools When Daemon Down
 
-When Focusa is unreachable, `focusa_decide`/`focusa_constraint`/`focusa_failure` tools should be disabled to avoid confusing the LLM with tools that can't execute:
+When Focusa is unreachable, `focusa_decide`/`focusa_constraint`/`focusa_failure` tools should be disabled to avoid confusing the LLM with tools that cannot persist Focus State writes. Continuous-loop bridge tools may remain visible but must return explicit unavailable status when daemon calls fail:
 
 ```typescript
 let focusaToolsActive = true;
@@ -2313,16 +2357,16 @@ async function checkFocusaHealth() {
       pi.setActiveTools([...currentActive, "focusa_decide", "focusa_constraint", "focusa_failure"]);
       focusaToolsActive = true;
     } else if (!isUp && focusaToolsActive) {
-      // Focusa went down — disable tools
+      // Focusa went down — disable metacognitive write tools
       const currentActive = pi.getActiveTools().map(t => t.name);
-      pi.setActiveTools(currentActive.filter(n => !n.startsWith("focusa_")));
+      pi.setActiveTools(currentActive.filter(n => !["focusa_decide", "focusa_constraint", "focusa_failure"].includes(n)));
       focusaToolsActive = false;
       ctx.ui.notify("Focusa unavailable — metacognition tools disabled", "warn");
     }
   } catch {
     if (focusaToolsActive) {
       const currentActive = pi.getActiveTools().map(t => t.name);
-      pi.setActiveTools(currentActive.filter(n => !n.startsWith("focusa_")));
+      pi.setActiveTools(currentActive.filter(n => !["focusa_decide", "focusa_constraint", "focusa_failure"].includes(n)));
       focusaToolsActive = false;
     }
   }

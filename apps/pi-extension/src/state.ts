@@ -56,6 +56,8 @@ export const S = {
   focusaAvailable: false,
   activeFrameId: null as string | null,
   activeFramePromise: null as Promise<string | null> | null,
+  activeFrameTitle: "" as string,
+  activeFrameGoal: "" as string,
   sessionFrameKey: "" as string,
   sessionCwd: "" as string,
   wbmEnabled: false,
@@ -70,6 +72,13 @@ export const S = {
   currentAsk: null as PiCurrentAsk | null,
   queryScope: null as PiQueryScope | null,
   excludedContext: null as PiExcludedContext | null,
+  lastFocusSnapshot: {
+    decisions: [] as string[],
+    constraints: [] as string[],
+    failures: [] as string[],
+    intent: "" as string,
+    currentFocus: "" as string,
+  },
   // Compaction tier (§20)
   lastCompactTime: 0,
   compactsThisHour: 0,
@@ -101,6 +110,8 @@ export const S = {
   cataloguedFacts: [] as string[],
   // Health (§38.3)
   healthInterval: null as ReturnType<typeof setInterval> | null,
+  // Footer/session-title sync cadence (keeps Pi footer task label fresh between commands)
+  footerSyncInterval: null as ReturnType<typeof setInterval> | null,
   healthBackoffMs: 30_000,     // §11 exponential backoff
   healthFailCount: 0,
   // Outage audit (§11)
@@ -141,13 +152,71 @@ export function focusaPost(path: string, body: any): void {
   focusaFetch(path, { method: "POST", body: JSON.stringify(body) }).catch(() => {});
 }
 
+function hasQuotedFocusaPayload(text: string): boolean {
+  return /\[focusa-context\]|#\s*focusa context|rendered live from focusa-pi-bridge current state\.?|current focus frame:|\bgoal:\b/i.test(String(text || ""));
+}
+
+function isContaminatedFrameIdentity(frame: any): boolean {
+  const title = String(frame?.title || "");
+  const goal = String(frame?.goal || "");
+  return hasQuotedFocusaPayload(title) || hasQuotedFocusaPayload(goal);
+}
+
+function isFocusaPayloadWrapperText(text: string): boolean {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!normalized) return false;
+  if (/^(restarted again,?\s*)?(still wrong|wrong|not true|this is|this output|this context|look|see|after restart|same issue|again)[:\s]*$/.test(normalized)) return true;
+  if (/^(why|how|what)[:\s]*$/.test(normalized)) return true;
+  return false;
+}
+
+export function stripQuotedFocusaContext(text: string): string {
+  const raw = String(text || "");
+  if (!raw) return "";
+
+  let stripped = raw;
+  stripped = stripped.replace(/\[focusa-context\][\s\S]*$/i, "");
+  stripped = stripped.replace(/#\s*focusa context[\s\S]*$/i, "");
+  stripped = stripped.replace(/rendered live from focusa-pi-bridge current state\.?[\s\S]*$/i, "");
+  stripped = stripped.replace(/focusa:\s.*?(?:frame:|title:|goal:|wbm:|turns:|config:)[\s\S]*$/i, "");
+  stripped = stripped.replace(/[\s:;-]+$/g, "");
+  const normalized = stripped.replace(/\s+/g, " ").trim();
+  if (hasQuotedFocusaPayload(raw) && isFocusaPayloadWrapperText(normalized)) return "";
+  return normalized;
+}
+
+export function isNonTaskStatusLikeText(text: string): boolean {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return false;
+  if (/^\//.test(normalized)) return true;
+  if (/^#\s*focusa context\b/i.test(normalized)) return true;
+  if (/^rendered live from focusa-pi-bridge current state\.?/i.test(normalized)) return true;
+  if (/^focusa:\s/i.test(normalized) && /(frame:|title:|goal:|wbm:|turns:|config:)/i.test(normalized)) return true;
+  if (hasQuotedFocusaPayload(normalized)) return !stripQuotedFocusaContext(normalized);
+  return false;
+}
+
 export function classifyCurrentAsk(text: string): PiCurrentAskKind {
-  const lower = text.trim().toLowerCase();
-  if (!lower) return "unknown";
-  if (/^(no\b|undo\b|revert\b|wrong\b|that's incorrect\b|not what i asked\b)/i.test(lower)) return "correction";
+  const cleaned = stripQuotedFocusaContext(text);
+  const lower = cleaned.trim().toLowerCase();
+  if (isNonTaskStatusLikeText(text)) return "meta";
+  if (!lower) return hasQuotedFocusaPayload(text) ? "meta" : "unknown";
+  if (/^(no\b|undo\b|revert\b|wrong\b|that's incorrect\b|not what i asked\b|stop\b|instead\b|ignore previous\b|new task\b|different task\b|go back\b|don't\b)/i.test(lower)) return "correction";
   if (lower.endsWith("?") || /^(what|why|how|when|where|who|which|can|could|should|is|are|do|does|did)\b/.test(lower)) return "question";
   if (/^(note|remember|fyi|for context|meta|discussion:)\b/.test(lower)) return "meta";
   return "instruction";
+}
+
+export function isExplicitContinuationAsk(text: string): boolean {
+  return /^(continue\b|go ahead\b|proceed\b|keep going\b|finish\b|resume\b|carry on\b|pick up where you left off\b|same task\b)/i.test(text.trim());
+}
+
+export function isOperatorSteeringInput(text: string, askKind: PiCurrentAskKind): boolean {
+  const trimmed = stripQuotedFocusaContext(text).trim();
+  if (!trimmed) return false;
+  if (askKind === "question" || askKind === "correction") return true;
+  if (askKind === "meta") return false;
+  return /\b(continue|resume|instead|stop|don't|answer|focus on|work on|switch to|use|fix|implement|explain|summarize|show|verify|check)\b/i.test(trimmed);
 }
 
 export function deriveQueryScope(askKind: PiCurrentAskKind): Pick<PiQueryScope, "scopeKind" | "carryoverPolicy"> {
@@ -342,13 +411,17 @@ export function shouldIncludeMissionContext(
   scopeKind: PiQueryScope["scopeKind"],
   missionLike: string[],
 ): boolean {
-  if (scopeKind === "mission_carryover" || scopeKind === "meta") return true;
+  if (scopeKind === "meta") return true;
   if (!missionLike.some(Boolean)) return false;
+  if (isExplicitContinuationAsk(askText)) return true;
 
   const joinedMission = missionLike.filter(Boolean).join(" \n ").toLowerCase();
   const askTokens = tokenizeForRelevance(askText);
-  if (!askTokens.length) return false;
-  return askTokens.some((token) => joinedMission.includes(token));
+  if (!askTokens.length) return scopeKind === "mission_carryover";
+
+  const overlapsMission = askTokens.some((token) => joinedMission.includes(token));
+  if (scopeKind === "fresh_question" || scopeKind === "correction") return overlapsMission;
+  return overlapsMission;
 }
 
 export function buildSliceSection(
@@ -421,29 +494,104 @@ export function extractText(content: any): string {
 // CRITICAL: Never use Focusa's global active_frame_id — that belongs to Wirebot.
 // Pi sessions must only read their own frame. If Pi has no frame, return empty.
 export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
-  // §33.5: Strict scoping — if Pi has no frame, never leak global active frame
-  if (!S.activeFrameId) return null;
+  // §33.5 + §34.2H: Pi context reads its own scoped frame from /focus/stack and hydrates live ASCC state from /ascc/state.
+  if (!S.activeFrameId && !S.sessionFrameKey) return null;
 
-  const stack = await focusaFetch("/focus/stack");
+  const [stack, asccState] = await Promise.all([
+    focusaFetch("/focus/stack"),
+    focusaFetch("/ascc/state").catch(() => null),
+  ]);
   if (!stack?.stack?.frames?.length) return null;
 
-  // §33.5: Find Pi's frame by S.activeFrameId — never fall back to global active
-  const frame = stack.stack.frames.find((f: any) => f.id === S.activeFrameId) || null;
-  if (!frame) return null;
+  const frames = stack.stack.frames;
+  let frame = S.activeFrameId ? frames.find((f: any) => f.id === S.activeFrameId) || null : null;
+
+  if ((!frame || frame.status !== "active" || isContaminatedFrameIdentity(frame)) && S.sessionFrameKey) {
+    const scopedActive = [...frames].reverse().find((f: any) =>
+      f.status === "active" && Array.isArray(f.tags) && f.tags.includes(S.sessionFrameKey || "") && !isContaminatedFrameIdentity(f)
+    ) || null;
+    if (scopedActive) {
+      frame = scopedActive;
+      S.activeFrameId = scopedActive.id;
+    } else if (frame && isContaminatedFrameIdentity(frame)) {
+      S.activeFrameId = null;
+      S.activeFrameTitle = "";
+      S.activeFrameGoal = "";
+      return null;
+    }
+  }
+
+  if (!frame || isContaminatedFrameIdentity(frame)) {
+    S.activeFrameId = null;
+    S.activeFrameTitle = "";
+    S.activeFrameGoal = "";
+    return null;
+  }
+
+  const liveAscc = asccState?.frame_id === frame.id ? (asccState?.ascc || asccState?.focus_state || null) : null;
+  const frameState = frame?.focus_state || {};
+  const fs = {
+    ...frameState,
+    ...(liveAscc || {}),
+    current_focus: liveAscc?.current_focus || frameState.current_focus || frameState.current_state || "",
+    current_state: liveAscc?.current_state || frameState.current_state || frameState.current_focus || "",
+  };
+
+  S.activeFrameTitle = frame.title || S.activeFrameTitle || "";
+  S.activeFrameGoal = frame.goal || S.activeFrameGoal || "";
+  if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
+  S.lastFocusSnapshot = {
+    decisions: Array.isArray(fs?.decisions) ? fs.decisions : [],
+    constraints: Array.isArray(fs?.constraints) ? fs.constraints : [],
+    failures: Array.isArray(fs?.failures) ? fs.failures : [],
+    intent: fs?.intent || "",
+    currentFocus: fs?.current_focus || fs?.current_state || "",
+  };
 
   // Never sync Pi's scoped frame from Focusa global active_frame_id.
-  return { frame, fs: frame?.focus_state || {}, stack };
+  return { frame, fs, stack };
+}
+
+export function trimFrameText(text: string, max = 80): string {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}…`;
+}
+
+function derivePiFrameIntent(cwd: string): { projectName: string; title: string; goal: string } {
+  const projectName = cwd.split("/").filter(Boolean).pop() || "root";
+  const ask = trimFrameText(S.currentAsk?.text || "", 100);
+  const askKind = S.currentAsk?.kind || "unknown";
+
+  if (ask && askKind !== "meta") {
+    const titlePrefix = askKind === "question"
+      ? "Pi Question"
+      : askKind === "correction"
+        ? "Pi Correction"
+        : "Pi Task";
+    return {
+      projectName,
+      title: `${titlePrefix}: ${trimFrameText(ask, 70)}`,
+      goal: ask,
+    };
+  }
+
+  return {
+    projectName,
+    title: `Pi: ${projectName}`,
+    goal: `Work on ${projectName}`,
+  };
 }
 
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
   S.sessionCwd = cwd;
-  const projectName = cwd.split("/").filter(Boolean).pop() || "root";
-  const title = `Pi: ${projectName}`;
-  const goal = `Work on ${projectName}`;
+  const { projectName, title, goal } = derivePiFrameIntent(cwd);
+  S.activeFrameTitle = title;
+  S.activeFrameGoal = goal;
   const sessionKey = S.sessionFrameKey || `pi-${process.pid}-${Date.now()}`;
   S.sessionFrameKey = sessionKey;
   const beadsIssueId = `pi-session-${projectName}-${sessionKey}`;
-  const tags = ["pi", projectName, source, sessionKey];
+  const tags = ["pi", projectName, source, sessionKey, "task-first-frame"]; 
 
   try {
     const r = await focusaFetch("/focus/push", {
@@ -458,6 +606,7 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
     });
     if (r?.frame_id) {
       S.activeFrameId = r.frame_id;
+      if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
       return r.frame_id;
     }
 
@@ -472,6 +621,9 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
         f.tags.includes(sessionKey));
       if (match?.id) {
         S.activeFrameId = match.id;
+        S.activeFrameTitle = match.title || title;
+        S.activeFrameGoal = match.goal || goal;
+        if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
         return match.id;
       }
     }
@@ -514,6 +666,11 @@ export async function wbExec(args: string[], fallbackUrl?: string, fallbackBody?
   return null;
 }
 
+export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?: string | null): boolean {
+  const projectName = cwd.split("/").filter(Boolean).pop() || "root";
+  return (title || "") === `Pi: ${projectName}` && (goal || "") === `Work on ${projectName}`;
+}
+
 // ── Persist Focusa state to Pi session (§33.7) ──────────────────────────────
 export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
   if (!S.focusaAvailable || S.activeFrameId) return S.activeFrameId;
@@ -542,12 +699,82 @@ export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "
   }
 }
 
+export async function rescopePiFrameFromCurrentAsk(cwd?: string, source = "pi-ask-rescope"): Promise<string | null> {
+  if (!S.focusaAvailable || !S.activeFrameId) return S.activeFrameId;
+  const resolvedCwd = cwd || S.sessionCwd || process.cwd();
+  const ask = trimFrameText(stripQuotedFocusaContext(S.currentAsk?.text || ""), 100);
+  const askKind = S.currentAsk?.kind || "unknown";
+  if (!ask || askKind === "meta" || isNonTaskStatusLikeText(ask)) return S.activeFrameId;
+
+  const activeGoal = trimFrameText(stripQuotedFocusaContext(S.activeFrameGoal || ""), 100).toLowerCase();
+  const askNorm = ask.toLowerCase();
+  const sameMission = Boolean(activeGoal) && (
+    askNorm === activeGoal ||
+    askNorm.includes(activeGoal) ||
+    activeGoal.includes(askNorm)
+  );
+
+  const genericFrame = isGenericPiFrameForCwd(resolvedCwd, S.activeFrameTitle, S.activeFrameGoal);
+  const explicitContinuation = isExplicitContinuationAsk(ask);
+  const shouldRescope = genericFrame || (!explicitContinuation && !sameMission && askNorm.length >= 6);
+  if (!shouldRescope) return S.activeFrameId;
+
+  try {
+    await focusaFetch("/focus/pop", {
+      method: "POST",
+      body: JSON.stringify({
+        completion_reason: genericFrame
+          ? "startup frame rescoped after first real ask"
+          : "frame rescoped after mission shift",
+      }),
+    });
+  } catch {
+    return S.activeFrameId;
+  }
+
+  S.activeFrameId = null;
+  return await createPiFrame(resolvedCwd, source);
+}
+
+export function getEffectiveFocusSnapshot(fs?: any): {
+  decisions: string[];
+  constraints: string[];
+  failures: string[];
+  intent: string;
+  currentFocus: string;
+} {
+  return {
+    decisions: fs?.decisions || S.lastFocusSnapshot.decisions || S.localDecisions,
+    constraints: fs?.constraints || S.lastFocusSnapshot.constraints || S.localConstraints,
+    failures: fs?.failures || S.lastFocusSnapshot.failures || S.localFailures,
+    intent: fs?.intent || S.lastFocusSnapshot.intent || "",
+    currentFocus: fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || "",
+  };
+}
+
+export async function persistAuthoritativeState(): Promise<void> {
+  if (S.focusaAvailable && S.activeFrameId) {
+    await getFocusState().catch(() => null);
+  }
+  persistState();
+}
+
 export function persistState(): void {
-  S.pi?.appendEntry("focusa-state", {
+  const payload = {
+    sessionId: S.sessionFrameKey,
     frameId: S.activeFrameId,
+    frameTitle: S.activeFrameTitle,
+    frameGoal: S.activeFrameGoal,
+    currentAsk: S.currentAsk,
+    queryScope: S.queryScope,
     decisions: S.localDecisions,
     constraints: S.localConstraints,
     failures: S.localFailures,
+    authoritativeDecisions: S.lastFocusSnapshot.decisions,
+    authoritativeConstraints: S.lastFocusSnapshot.constraints,
+    authoritativeFailures: S.lastFocusSnapshot.failures,
+    intent: S.lastFocusSnapshot.intent,
+    currentFocus: S.lastFocusSnapshot.currentFocus,
     turnCount: S.turnCount,
     wbmEnabled: S.wbmEnabled,
     wbmNoCatalogue: S.wbmNoCatalogue,
@@ -555,7 +782,9 @@ export function persistState(): void {
     cataloguedFacts: S.cataloguedFacts,
     totalCompactions: S.totalCompactions,
     timestamp: Date.now(),
-  });
+  };
+  S.pi?.appendEntry("focusa-state", payload);
+  S.pi?.appendEntry("focusa-wbm-state", payload);
 }
 
 // ── Estimate tokens from bytes (§7.4) ────────────────────────────────────────

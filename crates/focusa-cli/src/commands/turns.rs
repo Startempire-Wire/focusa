@@ -57,11 +57,21 @@ fn short_id(id: &str) -> &str {
     if id.len() >= 8 { &id[..8] } else { id }
 }
 
+fn normalize_event_type(event_type: &str) -> &str {
+    match event_type {
+        "TurnStarted" => "turn_started",
+        "TurnCompleted" => "turn_completed",
+        other => other,
+    }
+}
+
 fn collect_turns(events: &[Value]) -> Vec<TurnInfo> {
     let mut map: HashMap<String, TurnInfo> = HashMap::new();
 
     for event in events {
-        let event_type = event.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        let event_type = normalize_event_type(
+            event.get("type").and_then(|v| v.as_str()).unwrap_or(""),
+        );
         let turn_id = event.get("turn_id").and_then(|v| v.as_str()).unwrap_or("");
         if turn_id.is_empty() {
             continue;
@@ -112,8 +122,44 @@ fn collect_turns(events: &[Value]) -> Vec<TurnInfo> {
     }
 
     let mut turns: Vec<TurnInfo> = map.into_values().collect();
-    turns.sort_by_key(|t| t.started_at);
+    turns.sort_by_key(|t| t.started_at.or(t.completed_at));
     turns
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collect_turns;
+    use serde_json::json;
+
+    #[test]
+    fn collect_turns_accepts_pascal_case_persisted_event_types() {
+        let turn_id = "turn-1";
+        let events = vec![
+            json!({
+                "type": "TurnStarted",
+                "turn_id": turn_id,
+                "session_id": "session-1",
+                "timestamp": "2026-04-14T20:00:00Z",
+                "harness_name": "pi"
+            }),
+            json!({
+                "type": "TurnCompleted",
+                "turn_id": turn_id,
+                "session_id": "session-1",
+                "timestamp": "2026-04-14T20:00:05Z",
+                "harness_name": "pi",
+                "assistant_output": "done",
+                "errors": []
+            }),
+        ];
+
+        let turns = collect_turns(&events);
+        assert_eq!(turns.len(), 1);
+        assert_eq!(turns[0].turn_id, turn_id);
+        assert!(turns[0].started_at.is_some());
+        assert!(turns[0].completed_at.is_some());
+        assert_eq!(turns[0].output_len, Some(4));
+    }
 }
 
 async fn resolve_session_filter(

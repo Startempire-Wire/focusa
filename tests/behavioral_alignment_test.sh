@@ -68,7 +68,7 @@ if rg -n "Focusa Focus Slice — minimal applicable context|minimal_focus_slice_
 else
     log_fail "Operator-first minimal-slice logic missing"
 fi
-if rg -n "constraints_consulted|decisions_consulted|working_set_used|prior_mission_reused|relevant_context_selected|selected_counts|focus_slice_relevance_score|verification_result|projection_kind|view_profile|projection_boundary|canonical_sources|resolved_reference_count|resolved_reference_aliases" "$TURNS_TS" >/dev/null 2>&1; then
+if rg -n "constraints_consulted|decisions_consulted|working_set_used|prior_mission_reused|relevant_context_selected|selected_counts|focus_slice_relevance_score|verification_result|projection_kind|view_profile|projection_boundary|canonical_sources|resolved_reference_count|resolved_reference_aliases|subject_hijack_prevented" "$TURNS_TS" >/dev/null 2>&1; then
     log_pass "Consultation trace emissions present in Pi hot path"
 else
     log_fail "Consultation trace emissions missing from Pi hot path"
@@ -86,8 +86,13 @@ for event_type in constraints_consulted decisions_consulted working_set_used pri
     fi
 done
 
-# Test 7: Trace steering detection
+# Test 7: Steering detection trace
 echo "7. Steering detection trace:"
+if rg -n 'isOperatorSteeringInput|steering_detected: steeringDetected' "$TURNS_TS" >/dev/null 2>&1; then
+    log_pass "Steering detection is driven by operator-input heuristics"
+else
+    log_fail "Steering detection still lacks explicit operator-input heuristics"
+fi
 STEERING=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
     -H "Content-Type: application/json" \
     -d '{"event_type":"steering_detected","turn_id":"steering-test","steering_detected":true}')
@@ -99,6 +104,11 @@ fi
 
 # Test 8: Trace subject hijack prevention
 echo "8. Subject hijack prevention trace:"
+if rg -n 'event_type: "subject_hijack_prevented"' "$TURNS_TS" >/dev/null 2>&1; then
+    log_pass "Subject hijack prevention emitted from Pi hot path"
+else
+    log_fail "Subject hijack prevention missing from Pi hot path"
+fi
 HIJACK=$(curl -s -X POST "${BASE_URL}/v1/telemetry/trace" \
     -H "Content-Type: application/json" \
     -d '{"event_type":"subject_hijack_prevented","turn_id":"hijack-test","subject_hijack_prevented":true}')

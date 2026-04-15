@@ -6,6 +6,7 @@ use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::{get, post}};
+use focusa_core::types::{Action, FocusaEvent};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -51,7 +52,6 @@ async fn load_constitution(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let _write_guard = state.write_serial_lock.lock().await;
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("constitution:write") {
         return Err(forbid("constitution:write"));
@@ -124,28 +124,41 @@ async fn load_constitution(
 
     // Create new version and activate
     let version = format!("soul-{}", chrono::Utc::now().format("%Y%m%d-%H%M%S"));
-    let snapshot = {
-        let mut focusa = state.focusa.write().await;
-
-        focusa_core::constitution::create_version(
-            &mut focusa.constitution,
-            "wirebot",
-            &version,
-            principles.clone(),
-            safety_rules.clone(),
-            expression_rules.clone(),
-        );
-        let _ = focusa_core::constitution::activate_version(&mut focusa.constitution, &version);
-        focusa.version += 1;
-        focusa.clone()
+    let event = FocusaEvent::ConstitutionLoaded {
+        version: version.clone(),
+        agent_id: "wirebot".to_string(),
+        principles: principles.clone(),
+        safety_rules: safety_rules.clone(),
+        expression_rules: expression_rules.clone(),
     };
 
-    state.persistence.save_state(&snapshot).map_err(|e| {
+    state.command_tx.send(Action::EmitEvent { event }).await.map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": format!("failed to persist constitution state: {}", e)})),
+            Json(json!({"error": "failed to dispatch constitution load"})),
         )
     })?;
+
+    let mut visible = false;
+    for _ in 0..80 {
+        {
+            let s = state.focusa.read().await;
+            if focusa_core::constitution::active(&s.constitution)
+                .is_some_and(|c| c.version == version)
+            {
+                visible = true;
+                break;
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+    }
+
+    if !visible {
+        return Err((
+            StatusCode::ACCEPTED,
+            Json(json!({"status": "accepted", "warning": "constitution load dispatched but not yet visible", "version": version})),
+        ));
+    }
 
     Ok(Json(json!({
         "status": "loaded",

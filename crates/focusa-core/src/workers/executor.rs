@@ -136,6 +136,16 @@ fn classify_turn(content: &str) -> JobResult {
 /// Extracts all 10 ASCC slots where detectable:
 ///   intent, current_state, decisions, constraints, failures,
 ///   next_steps, open_questions, recent_results, notes, artifacts
+fn is_response_scaffold_line(line: &str) -> bool {
+    let lower = line.trim().to_lowercase();
+    lower.starts_with("status:")
+        || lower.starts_with("next action:")
+        || lower.starts_with("blocker:")
+        || lower == "status"
+        || lower == "next action"
+        || lower == "blocker"
+}
+
 fn extract_ascc_delta(content: &str) -> JobResult {
     let mut decisions = Vec::new();
     let mut next_steps = Vec::new();
@@ -145,11 +155,11 @@ fn extract_ascc_delta(content: &str) -> JobResult {
     let mut recent_results = Vec::new();
     let mut notes = Vec::new();
 
-    // Extract a brief summary as current_state (first meaningful line, capped).
+    // Extract a brief summary as current_state (first meaningful non-scaffold line, capped).
     let current_state: String = content
         .lines()
         .map(|l| l.trim())
-        .find(|l| l.len() > 10 && !l.starts_with('#') && !l.starts_with("```"))
+        .find(|l| l.len() > 10 && !l.starts_with('#') && !l.starts_with("```") && !is_response_scaffold_line(l))
         .unwrap_or("")
         .chars()
         .take(200)
@@ -157,7 +167,7 @@ fn extract_ascc_delta(content: &str) -> JobResult {
 
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.len() < 5 {
+        if trimmed.is_empty() || trimmed.len() < 5 || is_response_scaffold_line(trimmed) {
             continue;
         }
         let lower = trimmed.to_lowercase();
@@ -422,9 +432,6 @@ pub fn detect_ufi_signals(content: &str) -> Vec<UfiSignalType> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{JobPriority, WorkerJob};
-    use chrono::Utc;
-    use uuid::Uuid;
 
     #[test]
     fn test_classify_question() {
@@ -454,6 +461,15 @@ mod tests {
         assert!(!result.payload["decisions"].as_array().unwrap().is_empty());
         assert!(!result.payload["next_steps"].as_array().unwrap().is_empty());
         assert!(!result.payload["constraints"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_response_scaffold_not_extracted_as_focus_or_next_steps() {
+        let content = "Status: good — live process restarted.\nNext action: run /focusa-context now.\nBlocker: none.";
+        let result = extract_ascc_delta(content);
+        assert!(result.success);
+        assert_eq!(result.payload["current_state"], "");
+        assert!(result.payload["next_steps"].as_array().unwrap().is_empty());
     }
 
     #[test]

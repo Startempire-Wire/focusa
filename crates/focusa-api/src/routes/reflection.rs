@@ -1233,7 +1233,9 @@ mod tests {
             write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
+            active_writer: Arc::new(tokio::sync::RwLock::new(None)),
             started_at: Instant::now(),
+            pi_rpc_session: Arc::new(Mutex::new(None)),
         });
 
         build_router(state)

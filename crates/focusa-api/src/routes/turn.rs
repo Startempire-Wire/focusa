@@ -8,6 +8,7 @@
 //! Source: docs/G1-detail-04-proxy-adapter.md
 
 use crate::routes::ontology;
+use crate::routes::work_loop::maybe_dispatch_continuous_turn_prompt;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -58,19 +59,20 @@ async fn turn_start(
 
     if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
         tracing::error!("Failed to emit TurnStarted event: {}", e);
-    }
-
-    // Also store in active_turn for correlation (for prompt_assemble to access).
-    {
-        let mut focusa = state.focusa.write().await;
-        focusa.active_turn = Some(ActiveTurn {
-            turn_id: req.turn_id.clone(),
-            adapter_id: req.adapter_id,
-            harness_name: req.harness_name,
-            started_at: req.timestamp,
-            raw_user_input: None,
-            assembled_prompt: None,
-        });
+    } else {
+        for _ in 0..40 {
+            {
+                let focusa = state.focusa.read().await;
+                if focusa
+                    .active_turn
+                    .as_ref()
+                    .is_some_and(|t| t.turn_id == req.turn_id)
+                {
+                    break;
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        }
     }
 
     Ok(Json(json!({
@@ -356,8 +358,8 @@ async fn turn_complete(
         }
     }
 
-    // Get harness_name and raw_user_input from active turn if available.
-    let (harness_name, raw_user_input) = {
+    // Get harness_name/raw_user_input plus current continuous-work task if available.
+    let (harness_name, raw_user_input, current_task, work_loop_enabled) = {
         let focusa = state.focusa.read().await;
         let hn = focusa
             .active_turn
@@ -368,7 +370,12 @@ async fn turn_complete(
             .active_turn
             .as_ref()
             .and_then(|t| t.raw_user_input.clone());
-        (hn, rui)
+        (
+            hn,
+            rui,
+            focusa.work_loop.current_task.clone(),
+            focusa.work_loop.enabled,
+        )
     };
 
     // Emit TurnCompleted event via command channel for persistence.
@@ -387,6 +394,35 @@ async fn turn_complete(
 
     if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
         tracing::error!("Failed to emit TurnCompleted event: {}", e);
+    }
+
+    if work_loop_enabled {
+        if let Some(task) = current_task {
+            let summary = if req.assistant_output.trim().is_empty() {
+                "continuous turn completed with empty assistant output".to_string()
+            } else {
+                format!("continuous turn completed for {}", task.work_item_id)
+            };
+            let verification_satisfied = req.errors.is_empty() && !req.assistant_output.trim().is_empty();
+            let spec_conformant = req.errors.is_empty();
+            let continue_reason = if spec_conformant {
+                Some("turn completed without recorded errors".to_string())
+            } else {
+                Some("turn completed with recorded errors".to_string())
+            };
+            if let Err(e) = state.command_tx.send(Action::ObserveContinuousTurnOutcome {
+                task_run_id: None,
+                work_item_id: Some(task.work_item_id.clone()),
+                summary,
+                continue_reason,
+                verification_satisfied,
+                spec_conformant,
+            }).await {
+                tracing::error!("Failed to observe continuous turn outcome: {}", e);
+            } else {
+                let _ = maybe_dispatch_continuous_turn_prompt(&state, "continuous turn outcome evaluated and ready work remains").await;
+            }
+        }
     }
 
     Ok(Json(json!({
@@ -466,7 +502,9 @@ mod tests {
             write_serial_lock: Arc::new(Mutex::new(())),
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
+            active_writer: Arc::new(tokio::sync::RwLock::new(None)),
             started_at: Instant::now(),
+            pi_rpc_session: Arc::new(Mutex::new(None)),
         });
 
         (build_router(state), persistence)

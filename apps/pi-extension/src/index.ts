@@ -5,7 +5,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createRequire } from "module";
-import { S } from "./state.js";
+import { S, getEffectiveFocusSnapshot } from "./state.js";
 
 // ESM compat: require() for synchronous imports in message renderer callback
 const require = createRequire(import.meta.url);
@@ -63,9 +63,13 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     description: "Show Focusa status",
     handler: async (ctx) => {
       const up = S.focusaAvailable ? "✅" : "❌";
-      const d = S.localDecisions.length, c = S.localConstraints.length, f = S.localFailures.length;
+      const snapshot = getEffectiveFocusSnapshot();
       const tier = S.currentTier ? ` | ${S.currentTier.toUpperCase()}` : "";
-      ctx.ui.notify(`Focusa: ${up} | Frame: ${S.activeFrameId ?? "none"} | D:${d} C:${c} F:${f}${tier}`, "info");
+      const title = S.activeFrameTitle ? ` | ${S.activeFrameTitle}` : "";
+      const goal = S.activeFrameGoal ? ` | ${S.activeFrameGoal}` : "";
+      const mission = snapshot.intent ? ` | Mission: ${snapshot.intent}` : "";
+      const focus = snapshot.currentFocus ? ` | Focus: ${snapshot.currentFocus}` : "";
+      ctx.ui.notify(`Focusa: ${up}${title}${goal}${mission}${focus} | Frame: ${S.activeFrameId ?? "none"} | D:${snapshot.decisions.length} C:${snapshot.constraints.length} F:${snapshot.failures.length}${tier}`, "info");
     },
   });
 
@@ -89,18 +93,28 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     type: "boolean",
   });
 
-  // ── §37.6: Custom message renderer for focusa-state entries ───────────
-  pi.registerMessageRenderer("focusa-state", (message, _options, theme) => {
+  // ── §37.6: Custom message renderer for persisted Focusa state entries ───
+  const renderFocusaState = (message: any, _options: any, theme: any) => {
     const { Text } = require("@mariozechner/pi-tui");
     const d = (message as any).details;
     if (!d) return undefined;
+    const decisions = d.authoritativeDecisions || d.decisions || [];
+    const constraints = d.authoritativeConstraints || d.constraints || [];
+    const failures = d.authoritativeFailures || d.failures || [];
     const parts: string[] = ["📎 Focusa State"];
+    if (d.frameTitle) parts.push(`Title: ${d.frameTitle}`);
+    if (d.frameGoal) parts.push(`Goal: ${d.frameGoal}`);
+    if (d.intent) parts.push(`Mission: ${d.intent}`);
+    if (d.currentFocus) parts.push(`Focus: ${d.currentFocus}`);
     if (d.frameId) parts.push(`Frame: ${d.frameId}`);
-    if (d.decisions?.length) parts.push(`D:${d.decisions.length}`);
-    if (d.constraints?.length) parts.push(`C:${d.constraints.length}`);
-    if (d.failures?.length) parts.push(`F:${d.failures.length}`);
+    if (d.sessionId) parts.push(`Session: ${d.sessionId}`);
+    if (decisions.length) parts.push(`D:${decisions.length}`);
+    if (constraints.length) parts.push(`C:${constraints.length}`);
+    if (failures.length) parts.push(`F:${failures.length}`);
     parts.push(`T:${d.turnCount || 0}`);
     if (d.totalCompactions) parts.push(`Compactions:${d.totalCompactions}`);
     return new Text(theme.fg("dim", parts.join(" | ")), 0, 0);
-  });
+  };
+  pi.registerMessageRenderer("focusa-state", renderFocusaState);
+  pi.registerMessageRenderer("focusa-wbm-state", renderFocusaState);
 }

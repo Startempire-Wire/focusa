@@ -3,8 +3,21 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState } from "./state.js";
 import { pushDelta } from "./tools.js";
+
+function basename(value: string): string {
+  const parts = String(value || "").split("/").filter(Boolean);
+  return parts[parts.length - 1] || String(value || "file");
+}
+
+function normalizeCompactionArtifacts(files: any[]): Array<{ kind: "file"; label: string; path_or_id: string }> {
+  return (Array.isArray(files) ? files : [])
+    .map((file) => String(file || "").trim())
+    .filter(Boolean)
+    .slice(0, 20)
+    .map((file) => ({ kind: "file" as const, label: basename(file), path_or_id: file }));
+}
 
 function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number) {
   S.currentContextPct = typeof pct === "number" ? pct : null;
@@ -44,7 +57,7 @@ export function registerCompaction(pi: ExtensionAPI) {
       });
     }
     // Always persist to Pi session entries as backup
-    persistState();
+    await persistAuthoritativeState();
 
     // §33.1: Try Focusa ASCC replacement FIRST
     if (S.focusaAvailable) {
@@ -102,18 +115,27 @@ export function registerCompaction(pi: ExtensionAPI) {
       }
     }
 
-    // §35.6: Feed modified files to Focusa
+    // §35.6: Feed modified/read files to Focusa as canonical artifact lines
     const compaction = (event as any).compactionEntry;
-    const files = compaction?.details?.modifiedFiles || compaction?.details?.fileOps;
-    if (S.focusaAvailable && S.activeFrameId && files?.length) {
-      focusaFetch("/focus/update", {
+    const modifiedFiles = compaction?.details?.modifiedFiles || compaction?.details?.fileOps || [];
+    const readFiles = compaction?.details?.readFiles || [];
+    const artifacts = normalizeCompactionArtifacts(modifiedFiles);
+    const compactNotes: string[] = [];
+    if (artifacts.length) compactNotes.push(`Session compacted. Modified: ${artifacts.map((a) => a.path_or_id).join(", ")}`);
+    if (Array.isArray(readFiles) && readFiles.length) compactNotes.push(`Session compacted. Read: ${readFiles.slice(0, 20).join(", ")}`);
+    if (S.focusaAvailable && S.activeFrameId && (artifacts.length || compactNotes.length)) {
+      await focusaFetch("/focus/update", {
         method: "POST",
         body: JSON.stringify({
           frame_id: S.activeFrameId,
           turn_id: `pi-turn-${S.turnCount}`,
-          delta: { artifacts: (Array.isArray(files) ? files : []).slice(0, 20) },
+          delta: {
+            ...(artifacts.length ? { artifacts } : {}),
+            ...(compactNotes.length ? { notes: compactNotes } : {}),
+          },
         }),
       }).catch(() => {});
+      await persistAuthoritativeState();
     }
 
     // §38.3 CRITICAL FIX: queueMicrotask defers to next event-loop tick,

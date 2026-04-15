@@ -301,13 +301,6 @@ async fn stream_messages_response(
             completion_tokens: None,
         };
         let _ = state.command_tx.send(Action::EmitEvent { event }).await;
-
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref turn) = focusa.active_turn
-            && turn.turn_id == turn_id
-        {
-            focusa.active_turn.take();
-        }
     };
 
     let body_stream: Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>> =
@@ -346,17 +339,6 @@ async fn chat_completions(
         .map(|m| m.content.clone())
         .unwrap_or_default();
 
-    {
-        let mut focusa = state.focusa.write().await;
-        focusa.active_turn = Some(ActiveTurn {
-            turn_id: turn_id.clone(),
-            adapter_id: "openai-proxy".to_string(),
-            harness_name: "openai".to_string(),
-            started_at: Utc::now(),
-            raw_user_input: Some(user_input.clone()),
-            assembled_prompt: None,
-        });
-    }
     tracing::info!(turn_id = %turn_id, harness = "openai", "Turn started");
 
     let start_event = FocusaEvent::TurnStarted {
@@ -519,20 +501,17 @@ async fn chat_completions(
                 },
             );
 
-            let mut focusa = state.focusa.write().await;
-
             // Inject Mem0 results
             if let Ok(Ok(resp)) = mem0_result
                 && let Ok(data) = resp.json::<serde_json::Value>().await
                     && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                         for (i, mem) in results.iter().enumerate().take(3) {
                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
-                                focusa_core::memory::semantic::upsert(
-                                    &mut focusa.memory,
-                                    format!("mem0.preturn.{}", i),
-                                    text.to_string(),
-                                    focusa_core::types::MemorySource::Mem0,
-                                );
+                                let _ = state.command_tx.send(Action::UpsertSemantic {
+                                    key: format!("mem0.preturn.{}", i),
+                                    value: text.to_string(),
+                                    source: focusa_core::types::MemorySource::Mem0,
+                                }).await;
                             }
                         }
                         if !results.is_empty() {
@@ -549,24 +528,22 @@ async fn chat_completions(
                                 let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
                                 let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
                                 if !title.is_empty() {
-                                    focusa_core::memory::semantic::upsert(
-                                        &mut focusa.memory,
-                                        format!("wiki.preturn.{}", i),
-                                        format!("Wiki: {} ({})", title, path),
-                                        focusa_core::types::MemorySource::Worker,
-                                    );
+                                    let _ = state.command_tx.send(Action::UpsertSemantic {
+                                        key: format!("wiki.preturn.{}", i),
+                                        value: format!("Wiki: {} ({})", title, path),
+                                        source: focusa_core::types::MemorySource::Worker,
+                                    }).await;
                                 }
                             }
                             if !pages.is_empty() {
                                 tracing::debug!(count = pages.len().min(2), "Pre-turn: Wiki results injected");
                             }
                         }
-
-            drop(focusa);
         }
     }
 
     // 1d. Resolve contradictions in memory before assembly (§7).
+    // Remaining direct memory maintenance; candidate for reducer-backed decay/cleanup tranche.
     {
         let mut focusa = state.focusa.write().await;
         focusa_core::memory::semantic::resolve_contradictions(&mut focusa.memory);
@@ -725,16 +702,6 @@ async fn chat_completions(
         "Turn completed"
     );
 
-    // Clear active_turn to prevent stale data.
-    {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref turn) = focusa.active_turn
-            && turn.turn_id == turn_id
-        {
-            focusa.active_turn.take();
-        }
-    }
-
     // 5. UPDATE FRAME CHECKPOINT.
     {
         let frame_id = {
@@ -805,17 +772,6 @@ async fn messages_proxy(
     // 1. TURN START.
     let user_input = anthropic::extract_user_input(&request.messages);
 
-    {
-        let mut focusa = state.focusa.write().await;
-        focusa.active_turn = Some(ActiveTurn {
-            turn_id: turn_id.clone(),
-            adapter_id: "messages-proxy".to_string(),
-            harness_name: "messages".to_string(),
-            started_at: Utc::now(),
-            raw_user_input: Some(user_input.clone()),
-            assembled_prompt: None,
-        });
-    }
     tracing::info!(turn_id = %turn_id, harness = "messages", "Turn started");
 
     let start_event = FocusaEvent::TurnStarted {
@@ -866,15 +822,16 @@ async fn messages_proxy(
                         .args(["wiki", "search", &wq, "--format", "json"])
                         .output()).await },
             );
-            let mut focusa = state.focusa.write().await;
             if let Ok(Ok(resp)) = mem0_r
                 && let Ok(data) = resp.json::<serde_json::Value>().await
                     && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
                         for (i, mem) in results.iter().enumerate().take(3) {
                             if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
-                                focusa_core::memory::semantic::upsert(&mut focusa.memory,
-                                    format!("mem0.preturn.{}", i), text.to_string(),
-                                    focusa_core::types::MemorySource::Mem0);
+                                let _ = state.command_tx.send(Action::UpsertSemantic {
+                                    key: format!("mem0.preturn.{}", i),
+                                    value: text.to_string(),
+                                    source: focusa_core::types::MemorySource::Mem0,
+                                }).await;
                             }
                         }
                     }
@@ -886,14 +843,14 @@ async fn messages_proxy(
                                 let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
                                 let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
                                 if !title.is_empty() {
-                                    focusa_core::memory::semantic::upsert(&mut focusa.memory,
-                                        format!("wiki.preturn.{}", i),
-                                        format!("Wiki: {} ({})", title, path),
-                                        focusa_core::types::MemorySource::Worker);
+                                    let _ = state.command_tx.send(Action::UpsertSemantic {
+                                        key: format!("wiki.preturn.{}", i),
+                                        value: format!("Wiki: {} ({})", title, path),
+                                        source: focusa_core::types::MemorySource::Worker,
+                                    }).await;
                                 }
                             }
                         }
-            drop(focusa);
         }
     }
 
@@ -1059,16 +1016,6 @@ async fn messages_proxy(
         output_len = assistant_output.len(),
         "Turn completed"
     );
-
-    // Clear active_turn to prevent stale data.
-    {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref turn) = focusa.active_turn
-            && turn.turn_id == turn_id
-        {
-            focusa.active_turn.take();
-        }
-    }
 
     // 5. UPDATE FRAME.
     {

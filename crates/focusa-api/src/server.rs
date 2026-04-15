@@ -16,7 +16,9 @@ use focusa_core::types::{Action, FocusaConfig, FocusaState};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock as TokioRwLock;
 use std::time::{Duration, Instant};
+use tokio::process::{Child, ChildStdin};
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +50,14 @@ pub struct CommandRecord {
 
 pub type CommandStore = Arc<RwLock<HashMap<String, CommandRecord>>>;
 
+pub struct PiRpcSession {
+    pub child: Child,
+    pub stdin: ChildStdin,
+    pub session_id: String,
+    pub cwd: Option<String>,
+    pub started_at: Instant,
+}
+
 /// Shared state between API server and daemon.
 pub struct AppState {
     /// Read-only snapshot of cognitive state (daemon writes, API reads).
@@ -68,8 +78,12 @@ pub struct AppState {
     pub command_store: CommandStore,
     /// Token store for capability permissions (docs/25-26).
     pub token_store: Arc<RwLock<focusa_core::permissions::TokenStore>>,
+    /// Claimed writer authority for continuous work-loop mutations.
+    pub active_writer: Arc<TokioRwLock<Option<String>>>,
     /// Process start time for uptime reporting.
     pub started_at: Instant,
+    /// Optional daemon-owned Pi RPC transport session for continuous work.
+    pub pi_rpc_session: Arc<Mutex<Option<PiRpcSession>>>,
 }
 
 /// Build the axum Router with all routes.
@@ -104,6 +118,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::reflection::router())
         .merge(routes::skills::router())
         .merge(routes::training::router())
+        .merge(routes::work_loop::router())
         .merge(routes::turn::router())
         .merge(routes::ascc::router())
         .merge(routes::tokens::router())
@@ -187,7 +202,9 @@ pub async fn run(
         write_serial_lock,
         command_store: Arc::new(RwLock::new(HashMap::new())),
         token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
+        active_writer: Arc::new(TokioRwLock::new(None)),
         started_at: Instant::now(),
+        pi_rpc_session: Arc::new(Mutex::new(None)),
     });
 
     let app = build_router(state);
