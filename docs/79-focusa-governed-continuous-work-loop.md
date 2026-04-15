@@ -1280,7 +1280,8 @@ Default mental model:
 - one operator
 - one active loop
 - steering changes direction, not stop
-- stop only when blocked, paused, or explicitly stopped
+- daemon auto-prompts next ready work without requiring operator re-prompt
+- stop only when truly blocked, paused, or explicitly stopped
 
 If control cannot proceed, status must say why in plain language (for example: "loop controlled by another session").
 

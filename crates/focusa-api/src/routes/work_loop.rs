@@ -13,6 +13,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
+use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
@@ -493,10 +494,68 @@ async fn dispatch_pi_prompt(state: &Arc<AppState>, message: String) -> Result<()
     Ok(())
 }
 
+async fn maybe_auto_advance_from_blocked(state: &Arc<AppState>, reason: &str) -> Result<bool, (StatusCode, Json<Value>)> {
+    let (enabled, status, current_task, blocker_reason) = {
+        let focusa = state.focusa.read().await;
+        (
+            focusa.work_loop.enabled,
+            focusa.work_loop.status,
+            focusa.work_loop.current_task.clone(),
+            focusa.work_loop
+                .last_blocker_reason
+                .clone()
+                .unwrap_or_else(|| "blocked in continuous loop".to_string()),
+        )
+    };
+
+    if !enabled || status != WorkLoopStatus::Blocked {
+        return Ok(false);
+    }
+
+    let Some(task) = current_task else {
+        return Ok(false);
+    };
+
+    let parent_work_item_id = task
+        .tranche_id
+        .clone()
+        .unwrap_or_else(|| task.work_item_id.clone());
+
+    defer_work_item_for_alternate_switch(&task.work_item_id, &blocker_reason).await;
+
+    state
+        .command_tx
+        .send(Action::SelectNextContinuousSubtask { parent_work_item_id })
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("dispatch failed: {e}") })),
+            )
+        })?;
+
+    let _ = state
+        .command_tx
+        .send(Action::CheckpointContinuousLoop {
+            checkpoint_id: Uuid::now_v7(),
+            summary: format!(
+                "auto-advanced from blocked task {} ({})",
+                task.work_item_id,
+                reason.chars().take(120).collect::<String>()
+            ),
+        })
+        .await;
+
+    sleep(Duration::from_millis(120)).await;
+    Ok(true)
+}
+
 pub async fn maybe_dispatch_continuous_turn_prompt(
     state: &Arc<AppState>,
     reason: &str,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
+    let _ = maybe_auto_advance_from_blocked(state, reason).await?;
+
     let (enabled, status, task_run_id, current_task, mission, focus, last_checkpoint_id, last_turn_requested_at, status_heartbeat_ms) = {
         let focusa = state.focusa.read().await;
         let active_frame = focusa
