@@ -1454,15 +1454,33 @@ Return ONLY valid JSON:
             return Ok(None);
         };
         let degraded = self.state.work_loop.status == WorkLoopStatus::TransportDegraded;
+        let blocked_current_id = self
+            .state
+            .work_loop
+            .current_task
+            .as_ref()
+            .map(|t| t.work_item_id.clone());
+        let is_blocked_current = |dep: &&Value| {
+            blocked_current_id
+                .as_deref()
+                .map(|id| dep.get("id").and_then(Value::as_str) == Some(id))
+                .unwrap_or(false)
+        };
         let next = dependents
             .iter()
             .find(|dep: &&Value| {
+                if is_blocked_current(dep) {
+                    return false;
+                }
                 let status_ok = dep.get("status").and_then(Value::as_str) == Some("open");
                 let title = dep.get("title").and_then(Value::as_str).unwrap_or_default();
                 status_ok && (!degraded || !Self::work_item_is_risky_under_degradation(title))
             })
             .or_else(|| {
                 dependents.iter().find(|dep: &&Value| {
+                    if is_blocked_current(dep) {
+                        return false;
+                    }
                     let status_ok = dep.get("status").and_then(Value::as_str) == Some("in_progress");
                     let title = dep.get("title").and_then(Value::as_str).unwrap_or_default();
                     status_ok && (!degraded || !Self::work_item_is_risky_under_degradation(title))
@@ -1472,7 +1490,9 @@ Return ONLY valid JSON:
                 if degraded {
                     None
                 } else {
-                    dependents.iter().find(|dep: &&Value| dep.get("status").and_then(Value::as_str) == Some("open"))
+                    dependents.iter().find(|dep: &&Value| {
+                        !is_blocked_current(dep) && dep.get("status").and_then(Value::as_str) == Some("open")
+                    })
                 }
             });
         let Some(next) = next else {
