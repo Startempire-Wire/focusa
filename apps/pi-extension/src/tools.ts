@@ -146,10 +146,24 @@ function validateSlot(value: string, maxChars: number): boolean {
   const lower = value.toLowerCase();
   if (/\b(implement | add | create | update | remove | fix all | check | verify | next:|signal:)/.test(lower)) return false;
   if (/\b(i think|i tried|i'm working|i was|in this session|while i was|my fs\.|my fix|let me|i need to|i will|i'll need)/.test(lower)) return false;
+  if (/\b(status:|next action:|blocker:)/.test(lower)) return false;
   if (/(\*\*|\u2705|\u274C|- \[ \]|---|```)/.test(value)) return false;
   if (lower.includes("now") && lower.includes("need to")) return false;
   if (lower.includes("continue") && value.length > 80) return false;
   return true;
+}
+
+function validateNamedSlot(value: string, maxChars: number, kind: "intent" | "current_focus" | "next_step" | "open_question" | "recent_result" | "note"): { valid: boolean; reason?: string } {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return { valid: false, reason: `${kind.replace("_", " ")} cannot be empty.` };
+  if (trimmed.length > maxChars) return { valid: false, reason: `${kind.replace("_", " ")} exceeds ${maxChars} chars.` };
+  if (kind === "open_question" && !trimmed.includes("?")) {
+    return { valid: false, reason: "Open question should be phrased as a question (include '?')." };
+  }
+  if (!validateSlot(trimmed, maxChars)) {
+    return { valid: false, reason: `Rejected by Focus State slot validator — distill this ${kind.replace("_", " ")} to concise objective text or move verbose/process notes to scratchpad.` };
+  }
+  return { valid: true };
 }
 
 export type PushDeltaFailureReason = "offline" | "no_active_frame" | "validation_rejected" | "write_failed";
@@ -438,8 +452,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { intent } = params as { intent: string };
-      if (intent.length > 500) return { content: [{ type: "text", text: "Intent exceeds 500 chars. Distill to 1-3 sentences." }], details: { valid: false, intent } };
-      const result = await pushDelta({ intent });
+      const v = validateNamedSlot(intent, 500, "intent");
+      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid intent." }], details: { valid: false, intent } };
+      const result = await pushDelta({ intent: intent.trim() });
       return result.ok
         ? { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, intent } };
@@ -458,8 +473,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { focus } = params as { focus: string };
-      if (focus.length > 300) return { content: [{ type: "text", text: "Current focus exceeds 300 chars." }], details: { valid: false, focus } };
-      const result = await pushDelta({ current_focus: focus });
+      const v = validateNamedSlot(focus, 300, "current_focus");
+      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid current focus." }], details: { valid: false, focus } };
+      const result = await pushDelta({ current_focus: focus.trim() });
       return result.ok
         ? { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, focus } };
@@ -477,8 +493,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { step } = params as { step: string };
-      if (step.length > 160) return { content: [{ type: "text", text: "Step exceeds 160 chars." }], details: { valid: false, step } };
-      const result = await pushDelta({ next_steps: [step] });
+      const v = validateNamedSlot(step, 160, "next_step");
+      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid next step." }], details: { valid: false, step } };
+      const result = await pushDelta({ next_steps: [step.trim()] });
       return result.ok
         ? { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, step } };
@@ -495,8 +512,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { question } = params as { question: string };
-      if (question.length > 200) return { content: [{ type: "text", text: "Question exceeds 200 chars." }], details: { valid: false, question } };
-      const result = await pushDelta({ open_questions: [question] });
+      const v = validateNamedSlot(question, 200, "open_question");
+      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid open question." }], details: { valid: false, question } };
+      const result = await pushDelta({ open_questions: [question.trim()] });
       return result.ok
         ? { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, question } };
@@ -514,8 +532,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { result } = params as { result: string };
-      if (result.length > 300) return { content: [{ type: "text", text: "Result exceeds 300 chars." }], details: { valid: false, result } };
-      const writeResult = await pushDelta({ recent_results: [result] });
+      const v = validateNamedSlot(result, 300, "recent_result");
+      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid recent result." }], details: { valid: false, result } };
+      const writeResult = await pushDelta({ recent_results: [result.trim()] });
       return writeResult.ok
         ? { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(writeResult.reason)}.` }], details: { valid: false, result } };
@@ -533,8 +552,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { note } = params as { note: string };
-      if (note.length > 200) return { content: [{ type: "text", text: "Note exceeds 200 chars." }], details: { valid: false, note } };
-      const result = await pushDelta({ notes: [note] });
+      const v = validateNamedSlot(note, 200, "note");
+      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid note." }], details: { valid: false, note } };
+      const result = await pushDelta({ notes: [note.trim()] });
       return result.ok
         ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } }
         : { content: [{ type: "text", text: `${formatPushDeltaFailure(result.reason)}.` }], details: { valid: false, note } };
