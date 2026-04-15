@@ -1588,16 +1588,6 @@ Return ONLY valid JSON:
         .any(|needle| lower.contains(needle))
     }
 
-    async fn worktree_is_clean() -> bool {
-        match tokio::process::Command::new("git")
-            .args(["status", "--short"])
-            .output()
-            .await {
-            Ok(output) if output.status.success() => String::from_utf8_lossy(&output.stdout).trim().is_empty(),
-            _ => true,
-        }
-    }
-
     /// Translate Action → FocusaEvent(s).
     ///
     /// This is where IDs are generated and command parameters become event data.
@@ -2017,31 +2007,17 @@ Return ONLY valid JSON:
                         },
                     ]);
                 }
-                if !Self::worktree_is_clean().await {
-                    Ok(vec![
-                        FocusaEvent::ContinuousTurnBlocked {
-                            blocker_class: BlockerClass::Environment,
-                            reason: "worktree is not clean before requesting the next continuous turn".to_string(),
-                            work_item_id,
-                        },
-                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
-                            checkpoint_id: Uuid::now_v7(),
-                            summary: "checkpoint: paused on dirty worktree before next turn".to_string(),
-                        },
-                    ])
-                } else {
-                    Ok(vec![
-                        FocusaEvent::ContinuousTurnRequested {
-                            task_run_id,
-                            work_item_id: work_item_id.clone(),
-                            reason,
-                        },
-                        FocusaEvent::ContinuousTurnStarted {
-                            task_run_id,
-                            work_item_id,
-                        },
-                    ])
-                }
+                Ok(vec![
+                    FocusaEvent::ContinuousTurnRequested {
+                        task_run_id,
+                        work_item_id: work_item_id.clone(),
+                        reason,
+                    },
+                    FocusaEvent::ContinuousTurnStarted {
+                        task_run_id,
+                        work_item_id,
+                    },
+                ])
             },
 
             Action::ObserveContinuousTurnOutcome {

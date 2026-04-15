@@ -412,20 +412,6 @@ async fn defer_work_item_for_alternate_switch(work_item_id: &str, reason: &str) 
         .await;
 }
 
-async fn ensure_clean_worktree() -> Result<(), (StatusCode, Json<Value>)> {
-    let snapshot = worktree_status_snapshot().await;
-    match snapshot.get("clean").and_then(Value::as_bool) {
-        Some(true) => Ok(()),
-        _ => Err((
-            StatusCode::CONFLICT,
-            Json(json!({
-                "error": "worktree is not clean; refusing autonomous work-loop mutation",
-                "worktree": snapshot,
-            })),
-        )),
-    }
-}
-
 fn transport_health_for_status(wl: &focusa_core::types::WorkLoopState) -> Value {
     json!({
         "status": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
@@ -773,7 +759,6 @@ async fn enable(
         "continuous work enable crosses a governance boundary and must be explicitly approved",
     )?;
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    ensure_clean_worktree().await?;
 
     let preset = payload.preset.unwrap_or_default();
     let policy = WorkLoopPolicy::with_overrides(preset, payload.policy_overrides.unwrap_or_default());
@@ -854,7 +839,6 @@ async fn resume(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    ensure_clean_worktree().await?;
 
     state.command_tx.send(Action::ResumeContinuousWork {
         reason: payload.reason.unwrap_or_default(),
@@ -879,7 +863,6 @@ async fn select_next(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    ensure_clean_worktree().await?;
 
     let (current_task_id, blocked, blocker_reason) = {
         let s = state.focusa.read().await;

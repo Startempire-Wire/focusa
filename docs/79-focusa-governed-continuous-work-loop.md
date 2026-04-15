@@ -1282,7 +1282,9 @@ Default mental model:
 - steering changes direction, not stop
 - stop only when blocked, paused, or explicitly stopped
 
-If control cannot proceed, status must say why in plain language (for example: "loop controlled by another session" or "worktree has uncommitted changes").
+If control cannot proceed, status must say why in plain language (for example: "loop controlled by another session").
+
+Worktree state should remain visible in status, but uncommitted changes should not hard-stop continuation by themselves.
 
 ### 26.1 Command Shape
 The common UX should be simple:
