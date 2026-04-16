@@ -1438,52 +1438,42 @@ Return ONLY valid JSON:
 
     async fn next_ready_packet_global(&self, skip_work_item_id: Option<&str>) -> anyhow::Result<Option<SpecLinkedTaskPacket>> {
         let output = tokio::process::Command::new("bd")
-            .args(["ready"])
+            .args(["ready", "--json"])
             .output()
             .await
-            .context("failed to run bd ready")?;
+            .context("failed to run bd ready --json")?;
         if !output.status.success() {
             return Ok(None);
         }
-        let text = String::from_utf8_lossy(&output.stdout).to_string();
-        let mut picked: Option<String> = None;
-        for token in text.split_whitespace() {
-            let candidate = token
-                .trim_matches(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '.'))
-                .to_string();
-            if !candidate.contains('-') {
-                continue;
+
+        let ready_items: Vec<Value> = serde_json::from_slice(&output.stdout).unwrap_or_default();
+        let picked = ready_items.iter().find(|item| {
+            let id = item.get("id").and_then(Value::as_str).unwrap_or_default();
+            if id.is_empty() {
+                return false;
             }
             if let Some(skip) = skip_work_item_id {
-                if candidate == skip {
-                    continue;
+                if id == skip {
+                    return false;
                 }
             }
-            picked = Some(candidate);
-            break;
-        }
+            true
+        });
 
-        let Some(work_item_id) = picked else {
+        let Some(picked) = picked else {
             return Ok(None);
         };
 
-        let show = tokio::process::Command::new("bd")
-            .args(["show", &work_item_id, "--json"])
-            .output()
-            .await
-            .context("failed to run bd show --json for ready item")?;
-
-        let title = if show.status.success() {
-            let payload: Vec<Value> = serde_json::from_slice(&show.stdout).unwrap_or_default();
-            payload
-                .first()
-                .and_then(|v| v.get("title"))
-                .and_then(Value::as_str)
-                .unwrap_or("untitled work item")
-                .to_string()
-        } else {
-            "untitled work item".to_string()
-        };
+        let work_item_id = picked
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        let title = picked
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("untitled work item")
+            .to_string();
 
         Ok(Some(self.adapt_packet_for_current_loop_state(SpecLinkedTaskPacket {
             work_item_id,

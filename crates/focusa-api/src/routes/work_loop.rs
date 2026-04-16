@@ -552,39 +552,34 @@ async fn maybe_auto_advance_from_blocked(state: &Arc<AppState>, reason: &str) ->
 
 async fn maybe_select_global_ready_work_item(state: &Arc<AppState>) -> Result<bool, (StatusCode, Json<Value>)> {
     let output = Command::new("bd")
-        .args(["ready"])
+        .args(["ready", "--json"])
         .output()
         .await
-        .map_err(|e| bad_request(format!("failed to run bd ready: {e}")))?;
+        .map_err(|e| bad_request(format!("failed to run bd ready --json: {e}")))?;
     if !output.status.success() {
         return Ok(false);
     }
 
-    let text = String::from_utf8_lossy(&output.stdout);
-    let selected = text
-        .split_whitespace()
-        .map(|token| token.trim_matches(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '.')))
-        .find(|token| token.starts_with("focusa-") && token.len() > 7)
-        .map(str::to_string);
+    let ready_items = serde_json::from_slice::<Vec<Value>>(&output.stdout)
+        .map_err(|e| bad_request(format!("failed to parse bd ready json: {e}")))?;
 
-    let Some(work_item_id) = selected else {
+    let selected = ready_items
+        .iter()
+        .find_map(|item| {
+            let id = item.get("id").and_then(Value::as_str)?;
+            if id.trim().is_empty() {
+                return None;
+            }
+            let title = item
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or("untitled work item")
+                .to_string();
+            Some((id.to_string(), title))
+        });
+
+    let Some((work_item_id, title)) = selected else {
         return Ok(false);
-    };
-
-    let show_output = Command::new("bd")
-        .args(["show", &work_item_id, "--json"])
-        .output()
-        .await
-        .map_err(|e| bad_request(format!("failed to inspect ready work item: {e}")))?;
-
-    let title = if show_output.status.success() {
-        serde_json::from_slice::<Vec<Value>>(&show_output.stdout)
-            .ok()
-            .and_then(|v| v.first().cloned())
-            .and_then(|v| v.get("title").and_then(Value::as_str).map(str::to_string))
-            .unwrap_or_else(|| "untitled work item".to_string())
-    } else {
-        "untitled work item".to_string()
     };
 
     let task_run_id = {
