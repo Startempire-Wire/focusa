@@ -1976,7 +1976,15 @@ Return ONLY valid JSON:
                 let current_task = wl.current_task.as_ref();
                 let scope_change_requested = matches!(wl.decision_context.scope_kind.as_deref(), Some("scope_change"));
                 let governance_scoped = current_task.map(|task| task.allowed_scope.iter().any(|scope| scope.to_ascii_lowercase().contains("governance"))).unwrap_or(false);
-                let destructive_requested = current_task.map(|task| Self::work_item_is_risky_under_degradation(&task.title)).unwrap_or(false);
+                let destructive_requested = wl.pause_flags.destructive_confirmation_required
+                    || current_task
+                        .map(|task| {
+                            task.allowed_scope.iter().any(|scope| {
+                                let lower = scope.to_ascii_lowercase();
+                                lower.contains("destructive") || lower.contains("destructive_action")
+                            })
+                        })
+                        .unwrap_or(false);
                 let elapsed_ms = wl.enabled_at.map(|ts| (chrono::Utc::now() - ts).num_milliseconds().max(0) as u64).unwrap_or(0);
 
                 let since_last_turn_ms = wl.last_turn_requested_at
@@ -2209,24 +2217,6 @@ Return ONLY valid JSON:
                             FocusaEvent::ContinuousLoopRecoveryCheckpointed {
                                 checkpoint_id: Uuid::now_v7(),
                                 summary: "checkpoint: paused for operator steering".to_string(),
-                            },
-                        ]);
-                    }
-                    if self.state.work_loop.current_autonomy_level == Some(crate::types::AutonomyLevel::AL0)
-                        && risk_class == "high" {
-                        return Ok(vec![
-                            FocusaEvent::ContinuousTurnObserved {
-                                task_run_id,
-                                summary,
-                            },
-                            FocusaEvent::ContinuousTurnBlocked {
-                                blocker_class: BlockerClass::Governance,
-                                reason: "autonomy level too low for high-risk continuation".to_string(),
-                                work_item_id,
-                            },
-                            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
-                                checkpoint_id: Uuid::now_v7(),
-                                summary: "checkpoint: blocked by autonomy/risk policy".to_string(),
                             },
                         ]);
                     }

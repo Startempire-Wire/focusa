@@ -25,11 +25,13 @@ The continuous executor must therefore treat docs as completion authority and `b
 - Hard governance/safety gates are still intentional blockers (for example destructive-policy or autonomy boundary), not continuity bugs.
 
 ### 0.2 Current destructive/high-risk gate definition (implementation-specific)
-Current runtime behavior blocks continuation when either condition is true:
-- policy says destructive actions are disallowed and task title matches high-risk lexical signals (`delete`, `drop`, `remove`, `rename`, `migrate`, `rewrite`, `destructive`, `governance`)
-- computed risk class is `high` while autonomy level is `AL0`
+Current runtime behavior blocks continuation when policy disallows destructive actions and at least one explicit destructive signal is present:
+- `destructive_confirmation_required` pause flag is set, or
+- task `allowed_scope` explicitly carries destructive-action semantics
 
-This is a pragmatic safety layer, not a final intent-level risk system. For software buildout, this gate should evolve toward operation-intent checks (actual destructive commands/actions) rather than title-word heuristics.
+`risk_class` and autonomy level remain observability inputs, but do not hard-block continuation by themselves.
+
+This keeps safety enforcement tied to explicit operation-intent signals rather than title-word heuristics.
 
 ### Pi sources
 - Pi RPC mode exposes a headless JSON protocol over stdin/stdout, including `prompt` and `abort` commands and streamed events such as `agent_start`, `agent_end`, `turn_start`, `turn_end`, and `message_update` (`/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/docs/rpc.md`).
