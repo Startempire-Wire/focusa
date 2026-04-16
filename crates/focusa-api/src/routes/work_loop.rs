@@ -550,6 +550,78 @@ async fn maybe_auto_advance_from_blocked(state: &Arc<AppState>, reason: &str) ->
     Ok(true)
 }
 
+async fn maybe_select_global_ready_work_item(state: &Arc<AppState>) -> Result<bool, (StatusCode, Json<Value>)> {
+    let output = Command::new("bd")
+        .args(["ready"])
+        .output()
+        .await
+        .map_err(|e| bad_request(format!("failed to run bd ready: {e}")))?;
+    if !output.status.success() {
+        return Ok(false);
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    let selected = text
+        .split_whitespace()
+        .map(|token| token.trim_matches(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '.')))
+        .find(|token| token.starts_with("focusa-") && token.len() > 7)
+        .map(str::to_string);
+
+    let Some(work_item_id) = selected else {
+        return Ok(false);
+    };
+
+    let show_output = Command::new("bd")
+        .args(["show", &work_item_id, "--json"])
+        .output()
+        .await
+        .map_err(|e| bad_request(format!("failed to inspect ready work item: {e}")))?;
+
+    let title = if show_output.status.success() {
+        serde_json::from_slice::<Vec<Value>>(&show_output.stdout)
+            .ok()
+            .and_then(|v| v.first().cloned())
+            .and_then(|v| v.get("title").and_then(Value::as_str).map(str::to_string))
+            .unwrap_or_else(|| "untitled work item".to_string())
+    } else {
+        "untitled work item".to_string()
+    };
+
+    let task_run_id = {
+        let focusa = state.focusa.read().await;
+        focusa.work_loop.run.task_run_id
+    };
+
+    state
+        .command_tx
+        .send(Action::SetContinuousWorkItem {
+            task_run_id,
+            packet: SpecLinkedTaskPacket {
+                work_item_id,
+                title: title.clone(),
+                task_class: focusa_core::types::TaskClass::Unknown,
+                linked_spec_refs: vec!["docs/79-focusa-governed-continuous-work-loop.md".to_string()],
+                acceptance_criteria: vec![],
+                required_verification_tier: Some("task-class".to_string()),
+                allowed_scope: vec![],
+                dependencies: vec![],
+                tranche_id: None,
+                blocker_class: None,
+                checkpoint_summary: None,
+            },
+        })
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("dispatch failed: {e}") })),
+            )
+        })?;
+
+    sleep(Duration::from_millis(120)).await;
+    Ok(true)
+}
+
 pub async fn maybe_dispatch_continuous_turn_prompt(
     state: &Arc<AppState>,
     reason: &str,
@@ -575,13 +647,42 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         )
     };
 
-    if !enabled || !matches!(status, WorkLoopStatus::SelectingReadyWork | WorkLoopStatus::Idle) {
+    if !enabled || !matches!(status, WorkLoopStatus::SelectingReadyWork | WorkLoopStatus::Idle | WorkLoopStatus::AwaitingHarnessTurn | WorkLoopStatus::AdvancingTask | WorkLoopStatus::EvaluatingOutcome) {
+        return Ok(false);
+    }
+
+    if current_task.is_none() {
+        if maybe_select_global_ready_work_item(state).await? {
+            let refreshed_task = {
+                let focusa = state.focusa.read().await;
+                focusa.work_loop.current_task.clone()
+            };
+            if let Some(task) = refreshed_task {
+                state.command_tx.send(Action::RequestNextContinuousTurn {
+                    task_run_id,
+                    work_item_id: Some(task.work_item_id.clone()),
+                    reason: "re-selected work after unassigned turn state".to_string(),
+                }).await.map_err(|e| (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("dispatch failed: {e}") })),
+                ))?;
+
+                let prompt = render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
+                dispatch_pi_prompt(state, prompt).await?;
+                return Ok(true);
+            }
+        }
         return Ok(false);
     }
 
     if let Some(last_turn_at) = last_turn_requested_at {
         let since_last_turn_ms = (Utc::now() - last_turn_at).num_milliseconds().max(0) as u64;
-        if since_last_turn_ms < status_heartbeat_ms {
+        if status == WorkLoopStatus::AwaitingHarnessTurn {
+            let reprompt_stale_ms = status_heartbeat_ms.saturating_mul(3).max(1_500);
+            if since_last_turn_ms < reprompt_stale_ms {
+                return Ok(false);
+            }
+        } else if since_last_turn_ms < status_heartbeat_ms {
             return Ok(false);
         }
     }
