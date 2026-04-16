@@ -1,6 +1,6 @@
 # 79 — Focusa-Governed Continuous Work Loop (FGCWL)
 
-Status: Draft for implementation  
+Status: Implemented baseline (active) — keep in sync with runtime behavior  
 Owner: Focusa runtime / Pi integration  
 Depends on: `docs/core-reducer.md`, `docs/G1-detail-03-runtime-daemon.md`, `docs/44-pi-focusa-integration-spec.md`, `docs/52-pi-extension-contract.md`, `docs/41-proposal-resolution-engine.md`, `docs/46-ontology-core-primitives.md`, `docs/54a-operator-priority-and-subject-preservation.md`, `docs/54b-context-injection-and-attention-routing.md`, `docs/56-trace-checkpoints-recovery.md`, `docs/57-golden-tasks-and-evals.md`, `docs/61-domain-general-cognition-core.md`, `docs/67-query-scope-and-relevance-control.md`, `docs/68-current-ask-and-scope-integration.md`, `docs/70-shared-interfaces-statuses-and-lifecycle.md`, `docs/78-bounded-secondary-cognition-and-persistent-autonomy.md`, `apps/pi-extension/src/state.ts`, `apps/pi-extension/src/tools.ts`, Pi `docs/rpc.md`, Pi `docs/extensions.md`
 
@@ -15,6 +15,14 @@ It also inherits the project operating workflow already in force for this enviro
 - **BD-first**: ordered `bd` work items are decomposed from the supreme spec and serve as the executable work graph for decomposition, progress, blocking, and completion.
 
 The continuous executor must therefore treat docs as completion authority and `bd` as the primary traversal substrate for multi-task and multi-tranche runs. The authoritative spec is the supreme normative source for execution, interpretation, completion, and conflict resolution. `bd` is a reliable guide because it is spec-derived, but `bd` never outranks spec; if there is any conflict, ambiguity, or tension, the authoritative spec decides.
+
+### 0.1 Current implementation reality (2026-04-16)
+- Daemon auto-advances from blocked tasks to alternate ready work when available.
+- If a selected parent/tranche has no safe ready dependents, scheduler falls back to global `bd ready` selection.
+- Stale `awaiting_harness_turn` states are re-prompted automatically (bounded by heartbeat policy).
+- If `current_task` drops to null mid-loop, runtime re-seeds from ready work instead of idling.
+- Operational guardrail: `scripts/work_loop_watchdog.sh` can keep driver/session and select-next recovery alive during transient null-task gaps.
+- Hard governance/safety gates are still intentional blockers (for example destructive-policy or autonomy boundary), not continuity bugs.
 
 ### Pi sources
 - Pi RPC mode exposes a headless JSON protocol over stdin/stdout, including `prompt` and `abort` commands and streamed events such as `agent_start`, `agent_end`, `turn_start`, `turn_end`, and `message_update` (`/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/docs/rpc.md`).
