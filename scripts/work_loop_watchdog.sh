@@ -33,7 +33,7 @@ while true; do
       -d '{"cwd":"/home/wirebot/focusa"}' >/dev/null || true
   fi
 
-  if [[ -z "$current_task" && ( "$status" == "awaiting_harness_turn" || "$status" == "idle" || "$status" == "selecting_ready_work" ) ]]; then
+  if [[ -z "$current_task" && ( "$status" == "awaiting_harness_turn" || "$status" == "idle" || "$status" == "selecting_ready_work" || "$status" == "advancing_task" || "$status" == "evaluating_outcome" ) ]]; then
     parent=$(pick_parent_epic)
     if [[ -n "$parent" ]]; then
       curl -sS -X POST "$BASE/v1/work-loop/select-next" \
