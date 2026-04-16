@@ -24,6 +24,13 @@ The continuous executor must therefore treat docs as completion authority and `b
 - Operational guardrail: `scripts/work_loop_watchdog.sh` can keep driver/session and select-next recovery alive during transient null-task gaps.
 - Hard governance/safety gates are still intentional blockers (for example destructive-policy or autonomy boundary), not continuity bugs.
 
+### 0.2 Current destructive/high-risk gate definition (implementation-specific)
+Current runtime behavior blocks continuation when either condition is true:
+- policy says destructive actions are disallowed and task title matches high-risk lexical signals (`delete`, `drop`, `remove`, `rename`, `migrate`, `rewrite`, `destructive`, `governance`)
+- computed risk class is `high` while autonomy level is `AL0`
+
+This is a pragmatic safety layer, not a final intent-level risk system. For software buildout, this gate should evolve toward operation-intent checks (actual destructive commands/actions) rather than title-word heuristics.
+
 ### Pi sources
 - Pi RPC mode exposes a headless JSON protocol over stdin/stdout, including `prompt` and `abort` commands and streamed events such as `agent_start`, `agent_end`, `turn_start`, `turn_end`, and `message_update` (`/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/docs/rpc.md`).
 - Pi extensions can register commands, tools, UI surfaces, and lifecycle hooks such as `session_start`, `session_shutdown`, and `tool_call`, but are still extension logic running inside Pi (`/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/docs/extensions.md`; `/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/examples/extensions/system-prompt-header.ts`).
@@ -1163,6 +1170,8 @@ A user should be able to say the equivalent of "keep working until blocked" with
 
 ### 26.3 Budget Hierarchy
 "Infinite turns until completed" means continuity, not unmetered waste.
+
+When the operator explicitly requests continuous execution, implementation may use effectively unbounded operational budgets (very large caps) to avoid artificial stop/re-prompt churn; those caps are throughput controls, not safety controls.
 
 Budgets SHOULD be expressible at multiple levels:
 - per turn
