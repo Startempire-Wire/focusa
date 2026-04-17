@@ -19,6 +19,8 @@ function normalizeCompactionArtifacts(files: any[]): Array<{ kind: "file"; label
     .map((file) => ({ kind: "file" as const, label: basename(file), path_or_id: file }));
 }
 
+let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
 function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number) {
   S.currentContextPct = typeof pct === "number" ? pct : null;
   const mode = S.cfg?.contextStatusMode || "actionable";
@@ -40,6 +42,34 @@ function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: n
     return;
   }
   ctx.ui.setStatus("focusa-ctx", "");
+}
+
+function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, attempt: number) {
+  if (!S.compactResumePending) return;
+  // No artificial exhaustion cap: keep retrying while pending, with bounded cadence.
+  const boundedAttempt = Math.min(Math.max(attempt, 1), 6);
+  const delayMs = Math.min(4000, 700 * boundedAttempt);
+  compactResumeRetryTimer = setTimeout(() => {
+    compactResumeRetryTimer = null;
+    if (!S.compactResumePending) return;
+    const agent = (ctx as any).sessionManager?.getAgent?.();
+    if (agent) {
+      agent.continue().catch(() => {});
+    }
+    // If continuation queue was dropped, resend hidden steer on later attempts.
+    if (boundedAttempt >= 2 && S.pi) {
+      try {
+        S.pi.sendMessage(
+          { customType: "focusa-compact-resume", content: steerMessage, display: false },
+          { deliverAs: "steer" },
+        );
+      } catch {
+        // no-op
+      }
+    }
+    const nextAttempt = boundedAttempt >= 6 ? 6 : boundedAttempt + 1;
+    scheduleCompactionResumeRetry(ctx, steerMessage, nextAttempt);
+  }, delayMs);
 }
 
 export function registerCompaction(pi: ExtensionAPI) {
@@ -144,6 +174,10 @@ export function registerCompaction(pi: ExtensionAPI) {
     // sendMessage is still async when hasQueuedMessages() fires -> miss.
     // Also dedup: only resume once per compaction cycle.
     if (!S.compactResumePending) {
+      if (compactResumeRetryTimer) {
+        clearTimeout(compactResumeRetryTimer);
+        compactResumeRetryTimer = null;
+      }
       S.compactResumePending = true;
       const pi2 = S.pi;
       if (pi2) {
@@ -153,10 +187,7 @@ export function registerCompaction(pi: ExtensionAPI) {
             ? `Review the above decisions and constraints. Continue with the next logical step.`
             : `Continue executing. Context was compacted — preserve all progress.`;
           const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
-          try {
-            pi2.sendMessage({
-              customType: "focusa-compact-resume",
-              content: `# Compaction Complete${note}
+          const steerMessage = `# Compaction Complete${note}
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
 ## Directive
@@ -172,16 +203,18 @@ When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
 - **Failure diagnosis** → focusa_failure (specific component + why it failed)
 - **Validation** fails if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), or exceeding char limits
 
-See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`,
+See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
+          try {
+            pi2.sendMessage({
+              customType: "focusa-compact-resume",
+              content: steerMessage,
               display: false,
             }, { deliverAs: "steer" });
-            // Belt-and-suspenders: call agent.continue() directly via sessionManager.
-            // Pi's compaction_end → hasQueuedMessages() check may miss sendMessage timing,
-            // so we bypass the queue entirely and force continuation.
             const agent = (ctx as any).sessionManager?.getAgent?.();
             if (agent) {
               agent.continue().catch(() => {});
             }
+            scheduleCompactionResumeRetry(ctx, steerMessage, 1);
             ctx.ui.notify(`✅ Compaction done — resuming work`, "info");
           } catch (e) {
             console.warn("[focusa] auto-resume failed:", e);
