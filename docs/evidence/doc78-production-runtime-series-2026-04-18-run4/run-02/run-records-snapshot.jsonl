@@ -1,0 +1,26 @@
+{
+  "run_index": 1,
+  "run_name": "run-01",
+  "run_dir": "/tmp/doc78-series-run4-1776478914/run-01",
+  "run_started_at": "2026-04-18T02:22:02Z",
+  "run_finished_at": "2026-04-18T02:22:07Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 40,
+  "ok": true
+}
+{
+  "run_index": 2,
+  "run_name": "run-02",
+  "run_dir": "/tmp/doc78-series-run4-1776478914/run-02",
+  "run_started_at": "2026-04-18T02:22:07Z",
+  "run_finished_at": "2026-04-18T02:22:14Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 41,
+  "ok": true
+}

@@ -89,12 +89,27 @@ pub fn apply_delta(state: &mut FocusState, delta: &FocusStateDelta) {
     }
     // Remove answered questions: if decisions, recent_results, or current_state
     // contain keywords from an open question, consider it answered.
-    if delta.decisions.is_some() || delta.recent_results.is_some() || delta.current_state.is_some() {
+    if delta.decisions.is_some() || delta.recent_results.is_some() || delta.current_state.is_some()
+    {
         let answer_text = [
-            delta.decisions.as_ref().map(|v| v.join(" ")).unwrap_or_default(),
-            delta.recent_results.as_ref().map(|v| v.join(" ")).unwrap_or_default(),
-            delta.current_state.as_deref().unwrap_or_default().to_string(),
-        ].join(" ").to_lowercase();
+            delta
+                .decisions
+                .as_ref()
+                .map(|v| v.join(" "))
+                .unwrap_or_default(),
+            delta
+                .recent_results
+                .as_ref()
+                .map(|v| v.join(" "))
+                .unwrap_or_default(),
+            delta
+                .current_state
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+        ]
+        .join(" ")
+        .to_lowercase();
         if !answer_text.is_empty() {
             state.open_questions.retain(|q| {
                 let q_lower = q.to_lowercase();
@@ -103,14 +118,22 @@ pub fn apply_delta(state: &mut FocusState, delta: &FocusStateDelta) {
                     .split_whitespace()
                     .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_string())
                     .filter(|w| w.len() > 4)
-                    .filter(|w| !matches!(w.as_str(), "should" | "which" | "where" | "there" | "about" | "would" | "could"))
+                    .filter(|w| {
+                        !matches!(
+                            w.as_str(),
+                            "should" | "which" | "where" | "there" | "about" | "would" | "could"
+                        )
+                    })
                     .collect();
                 let key_words: Vec<&str> = stripped.iter().map(|s| s.as_str()).collect();
                 // If most key words appear in the answer text, consider answered.
                 if key_words.is_empty() {
                     return true; // Can't determine — keep.
                 }
-                let matched = key_words.iter().filter(|w| answer_text.contains(**w)).count();
+                let matched = key_words
+                    .iter()
+                    .filter(|w| answer_text.contains(**w))
+                    .count();
                 let ratio = matched as f64 / key_words.len() as f64;
                 ratio < 0.6 // Keep if less than 60% of key words match.
             });
@@ -238,7 +261,10 @@ mod tests {
         );
         // The authentication question should remain.
         assert!(
-            state.open_questions.iter().any(|q| q.contains("authentication")),
+            state
+                .open_questions
+                .iter()
+                .any(|q| q.contains("authentication")),
             "Unanswered question should remain"
         );
     }

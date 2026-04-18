@@ -188,9 +188,9 @@ impl SignalBody {
         } else {
             "Signal".to_string()
         };
-        let fc = self.frame_context.or_else(|| {
-            self.frame_id.as_ref().and_then(|s| Uuid::parse_str(s).ok())
-        });
+        let fc = self
+            .frame_context
+            .or_else(|| self.frame_id.as_ref().and_then(|s| Uuid::parse_str(s).ok()));
         (kind.to_string(), summary, fc)
     }
 }

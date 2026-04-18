@@ -6,8 +6,8 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext } from "./state.js";
-import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
+import type { PiGoverningPriorKind } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals } from "./state.js";import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 
@@ -81,8 +81,28 @@ export function registerTurns(pi: ExtensionAPI) {
     const missionIncluded = shouldIncludeMissionContext(askText, scopeKind, [fs.intent || "", fs.current_focus || "", fs.current_state || "", frame?.title || ""]);
     const projectionKind = "operator_view";
     const viewProfile = "pi_operator_view";
+    const activeGoverningPriors: PiGoverningPriorKind[] = [
+      "hard_safety_prior",
+      "identity_prior",
+      "current_ask_prior",
+      "affordance_reality_prior",
+    ];
+    if (scopeKind === "mission_carryover") {
+      activeGoverningPriors.push("mission_commitment_prior");
+    }
+
     const relevantDecisions = selectRelevantItems(fs.decisions, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
     const relevantConstraints = selectRelevantItems(fs.constraints, askText, { maxItems: 3, fallbackItems: scopeKind === "mission_carryover" ? 2 : 0, minScore: 2 });
+    const decisionRetention = retentionBucketsFromSelection(relevantDecisions, { maxDecayed: 2, maxHistorical: 2 });
+    const constraintRetention = retentionBucketsFromSelection(relevantConstraints, { maxDecayed: 2, maxHistorical: 2 });
+    const decayedContextItems = [
+      ...constraintRetention.decayed.map((value) => `constraint: ${value}`),
+      ...decisionRetention.decayed.map((value) => `decision: ${value}`),
+    ];
+    const historicalContextItems = [
+      ...constraintRetention.historical.map((value) => `constraint: ${value}`),
+      ...decisionRetention.historical.map((value) => `decision: ${value}`),
+    ];
     const recentResults = selectRelevantItems(fs.recent_results, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
     const nextSteps = selectRelevantItems(fs.next_steps, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
     const openQuestions = selectRelevantItems(fs.open_questions, askText, { maxItems: 2, fallbackItems: 0, minScore: 2 });
@@ -96,6 +116,7 @@ export function registerTurns(pi: ExtensionAPI) {
       fallbackItems: scopeKind === "mission_carryover" ? 2 : 0,
       minScore: 2,
       allowStaleFallback: scopeKind === "mission_carryover",
+      governingPriors: activeGoverningPriors,
     });
     const ecsHandles = await focusaFetch("/ecs/handles");
     const verifiedDeltaItems = formatVerifiedDeltaItems(ecsHandles?.handles);
@@ -104,6 +125,7 @@ export function registerTurns(pi: ExtensionAPI) {
       fallbackItems: scopeKind === "mission_carryover" ? 1 : 0,
       minScore: 2,
       allowStaleFallback: scopeKind === "mission_carryover",
+      governingPriors: activeGoverningPriors,
     });
     const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
 
@@ -121,6 +143,8 @@ export function registerTurns(pi: ExtensionAPI) {
       buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
       buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
       buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
+      buildSliceSection("decayed_context", "DECAYED_CONTEXT", decayedContextItems, (scopeKind === "mission_carryover" || scopeKind === "correction" || scopeKind === "meta") && decayedContextItems.length > 0, (values) => fmt("DECAYED_CONTEXT", values), 0, 21, 6),
+      buildSliceSection("historical_context", "HISTORICAL_CONTEXT", historicalContextItems, (scopeKind === "mission_carryover" || scopeKind === "meta") && historicalContextItems.length > 0, (values) => fmt("HISTORICAL_CONTEXT", values), 0, 22, 4),
       buildSliceSection("verified_deltas", "VERIFIED_DELTAS", relevantVerifiedDeltas.items, relevantVerifiedDeltas.items.length > 0, (values) => fmt("VERIFIED_DELTAS", values), relevantVerifiedDeltas.excluded.length, 20, selectionRelevanceScore(relevantVerifiedDeltas)),
       buildSliceSection("recent_results", "RECENT_RESULTS", recentResults.items, scopeKind !== "fresh_question" && recentResults.items.length > 0, (values) => fmt("RECENT_RESULTS", values), recentResults.excluded.length, 20, selectionRelevanceScore(recentResults)),
       buildSliceSection("failures", "FAILURES", failures.items, (scopeKind === "correction" || scopeKind === "mission_carryover") && failures.items.length > 0, (values) => fmt("FAILURES", values), failures.excluded.length, 20, selectionRelevanceScore(failures)),
@@ -131,9 +155,11 @@ export function registerTurns(pi: ExtensionAPI) {
 
     const scopedEntries = orderSliceSections(sectionEntries).filter((entry) => entry.include);
     const scopeExcludedLabels = sectionEntries.filter((entry) => !entry.include).map((entry) => entry.key);
+    const retainedDecisionHistoryCount = decisionRetention.decayed.length + decisionRetention.historical.length;
+    const retainedConstraintHistoryCount = constraintRetention.decayed.length + constraintRetention.historical.length;
     const irrelevantExcludedLabels = [
-      ...(relevantDecisions.excluded.length ? ["decisions"] : []),
-      ...(relevantConstraints.excluded.length ? ["constraints"] : []),
+      ...(relevantDecisions.excluded.length > retainedDecisionHistoryCount ? ["decisions"] : []),
+      ...(relevantConstraints.excluded.length > retainedConstraintHistoryCount ? ["constraints"] : []),
       ...(relevantWorkingSet.excluded.length ? ["working_set"] : []),
       ...(relevantVerifiedDeltas.excluded.length ? ["verified_deltas"] : []),
       ...(recentResults.excluded.length ? ["recent_results"] : []),
@@ -172,20 +198,26 @@ export function registerTurns(pi: ExtensionAPI) {
       ? scopedEntries.reduce((sum, entry) => sum + (entry.relevanceScore || 0), 0) / scopedEntries.length
       : 0;
     const excludedContext = Array.from(new Set([...scopeExcludedLabels, ...irrelevantExcludedLabels, ...budgetExcludedLabels]));
-    const sourceTurnId = `pi-turn-${S.turnCount}`;
+    const contextTurnId = `pi-turn-${S.turnCount}`;
+    const scopeSourceTurnId = S.queryScope?.sourceTurnId || S.currentAsk?.sourceTurnId || contextTurnId;
+    const workingSetPriorHits = relevantWorkingSet.scores
+      .filter(({ value, priorBoost }) => relevantWorkingSet.items.includes(value) && (priorBoost || 0) > 0)
+      .map(({ value, priorBoost, appliedPriors }) => ({ value, priorBoost: priorBoost || 0, appliedPriors: appliedPriors || [] }));
+    const verifiedDeltaPriorHits = relevantVerifiedDeltas.scores
+      .filter(({ value, priorBoost }) => relevantVerifiedDeltas.items.includes(value) && (priorBoost || 0) > 0)
+      .map(({ value, priorBoost, appliedPriors }) => ({ value, priorBoost: priorBoost || 0, appliedPriors: appliedPriors || [] }));
+    const resetReason = scopeKind === "fresh_question"
+      ? "fresh_scope"
+      : scopeKind === "correction"
+        ? "correction_reset"
+        : null;
     const exclusionReason = truncated
       ? "budget_truncation"
-      : irrelevantExcludedLabels.length
-        ? "irrelevance"
-        : scopeKind === "fresh_question"
-          ? "fresh_scope"
-          : scopeKind === "correction"
-            ? "correction_reset"
-            : "none";
+      : resetReason || (irrelevantExcludedLabels.length ? "irrelevance" : "none");
     S.excludedContext = {
       labels: excludedContext,
       reason: exclusionReason,
-      sourceTurnId,
+      sourceTurnId: scopeSourceTurnId,
       updatedAt: Date.now(),
     };
 
@@ -193,13 +225,13 @@ export function registerTurns(pi: ExtensionAPI) {
       focusaPost("/work-loop/context", {
         excluded_context_reason: exclusionReason,
         excluded_context_labels: excludedContext,
-        source_turn_id: sourceTurnId,
+        source_turn_id: scopeSourceTurnId,
       });
     }
 
     if (S.cfg?.emitMetrics) {
       const common = {
-        turn_id: sourceTurnId,
+        turn_id: contextTurnId,
         frame_id: S.activeFrameId,
         surface: "pi",
         routing_mode: "minimal_focus_slice_builder",
@@ -250,6 +282,18 @@ export function registerTurns(pi: ExtensionAPI) {
         },
         canonical_sources: ["focus_state", "semantic_memory", "ecs_handles", "reference_index"],
         retention_policy: "active_use_reduction_over_destructive_loss",
+        retention_buckets: {
+          decisions: {
+            active: decisionRetention.active.length,
+            decayed: decisionRetention.decayed.length,
+            historical: decisionRetention.historical.length,
+          },
+          constraints: {
+            active: constraintRetention.active.length,
+            decayed: constraintRetention.decayed.length,
+            historical: constraintRetention.historical.length,
+          },
+        },
         resolved_reference_count: canonicalReferenceAliases.length,
       });
       focusaPost("/telemetry/trace", {
@@ -257,6 +301,16 @@ export function registerTurns(pi: ExtensionAPI) {
         ...common,
         relevant_context_labels: relevantContextLabels,
         selected_counts: Object.fromEntries(scopedEntries.map((entry) => [entry.key, entry.selectedCount || 0])),
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "governing_priors_applied",
+        ...common,
+        governing_priors: activeGoverningPriors,
+        ranking_consumers: ["working_set", "verified_deltas"],
+        prior_hits: {
+          working_set: workingSetPriorHits,
+          verified_deltas: verifiedDeltaPriorHits,
+        },
       });
       if (relevantWorkingSet.items.length) {
         focusaPost("/telemetry/trace", {
@@ -306,7 +360,9 @@ export function registerTurns(pi: ExtensionAPI) {
   pi.on("input", async (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
     const cleanedText = stripQuotedFocusaContext(String(text));
-    const sourceTurnId = `pi-turn-${S.turnCount}`;
+    // Input is the pre-turn boundary for the upcoming model call.
+    // Use the next turn id so CurrentAsk/QueryScope survive unchanged into context injection.
+    const sourceTurnId = `pi-turn-${S.turnCount + 1}`;
     const askKind = classifyCurrentAsk(String(text));
     const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
     S.currentAsk = {
@@ -430,6 +486,86 @@ export function registerTurns(pi: ExtensionAPI) {
     // §35.5: Token counts + assistant output
     if (S.focusaAvailable) {
       const assistantOutput = extractText(ev.message?.content || ev.message || "");
+      const detectedLeakClasses = detectForbiddenVisibleOutputLeakClasses(assistantOutput);
+      if (detectedLeakClasses.length) {
+        focusaPost("/focus-gate/ingest-signal", {
+          signal_type: "visible_output_leak",
+          surface: "pi",
+          frame_id: S.activeFrameId,
+          payload: {
+            leak_classes: detectedLeakClasses,
+            preview: assistantOutput.slice(0, 280),
+          },
+        });
+        focusaPost("/telemetry/trace", {
+          event_type: "visible_output_leak_detected",
+          turn_id: `pi-turn-${S.turnCount}`,
+          frame_id: S.activeFrameId,
+          surface: "pi",
+          leak_classes: detectedLeakClasses,
+        });
+      }
+
+      const scopeFailures = detectScopeFailureSignals({
+        askText: S.currentAsk?.text || "",
+        askKind: S.currentAsk?.kind || "unknown",
+        scopeKind: S.queryScope?.scopeKind || "mission_carryover",
+        assistantOutput,
+        leakClasses: detectedLeakClasses,
+      });
+      const scopeTraceBase = {
+        turn_id: `pi-turn-${S.turnCount}`,
+        frame_id: S.activeFrameId,
+        surface: "pi",
+        ask_kind: S.currentAsk?.kind || "unknown",
+        scope_kind: S.queryScope?.scopeKind || "mission_carryover",
+        carryover_policy: S.queryScope?.carryoverPolicy || "allow_if_relevant",
+      };
+      if (scopeFailures.length === 0) {
+        focusaPost("/telemetry/trace", {
+          event_type: "scope_verified",
+          ...scopeTraceBase,
+          verified: true,
+          excluded_context_reason: S.excludedContext?.reason || "none",
+        });
+      } else {
+        for (const failure of scopeFailures) {
+          if (failure.kind === "scope_contamination") {
+            focusaPost("/telemetry/trace", {
+              event_type: "scope_contamination_detected",
+              ...scopeTraceBase,
+              failure_kind: failure.kind,
+              severity: failure.severity,
+              reason: failure.reason,
+            });
+          } else if (failure.kind === "wrong_question_answered") {
+            focusaPost("/telemetry/trace", {
+              event_type: "wrong_question_detected",
+              ...scopeTraceBase,
+              failure_kind: failure.kind,
+              severity: failure.severity,
+              reason: failure.reason,
+            });
+          } else if (failure.kind === "answer_broadening") {
+            focusaPost("/telemetry/trace", {
+              event_type: "answer_broadening_detected",
+              ...scopeTraceBase,
+              failure_kind: failure.kind,
+              severity: failure.severity,
+              reason: failure.reason,
+            });
+          }
+
+          focusaPost("/telemetry/trace", {
+            event_type: "scope_failure_recorded",
+            ...scopeTraceBase,
+            failure_kind: failure.kind,
+            severity: failure.severity,
+            reason: failure.reason,
+          });
+        }
+      }
+
       focusaPost("/turn/complete", {
         turn_id: `pi-turn-${S.turnCount}`,
         frame_id: S.activeFrameId,

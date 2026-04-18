@@ -152,7 +152,11 @@ pub async fn run(cmd: ThreadCmd, json_mode: bool, client: &ApiClient) -> Result<
             }
         }
 
-        ThreadCmd::Fork { thread_id, name, owner } => {
+        ThreadCmd::Fork {
+            thread_id,
+            name,
+            owner,
+        } => {
             let payload = serde_json::json!({
                 "name": name,
                 "owner_machine_id": owner,
@@ -172,7 +176,10 @@ pub async fn run(cmd: ThreadCmd, json_mode: bool, client: &ApiClient) -> Result<
             println!("  ID:         {}", thread["id"].as_str().unwrap_or("?"));
             println!("  Name:       {}", thread["name"].as_str().unwrap_or("?"));
             println!("  Status:     {}", thread["status"].as_str().unwrap_or("?"));
-            println!("  Forked from:{}", thread["forked_from"].as_str().unwrap_or("?"));
+            println!(
+                "  Forked from:{}",
+                thread["forked_from"].as_str().unwrap_or("?")
+            );
             if let Some(owner) = thread["owner_machine_id"].as_str() {
                 println!("  Owner:      {}", owner);
             }

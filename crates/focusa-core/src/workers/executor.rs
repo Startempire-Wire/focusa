@@ -35,7 +35,7 @@ pub struct JobResult {
 pub fn execute_job(job: &WorkerJob) -> JobResult {
     let job_id = job.id;
     let job_kind = job.kind;
-    
+
     // Catch panics to isolate worker failures from daemon.
     let result = std::panic::catch_unwind(|| {
         let content = job.correlation_id.as_deref().unwrap_or("");
@@ -47,7 +47,7 @@ pub fn execute_job(job: &WorkerJob) -> JobResult {
             WorkerJobKind::SuggestMemory => suggest_memory(content),
         }
     });
-    
+
     match result {
         Ok(mut job_result) => {
             // Preserve the input job's ID so callers can correlate results.
@@ -63,9 +63,9 @@ pub fn execute_job(job: &WorkerJob) -> JobResult {
             } else {
                 "worker job panicked".to_string()
             };
-            
+
             tracing::error!(job_id = %job_id, kind = ?job_kind, "Worker job panicked: {}", panic_msg);
-            
+
             JobResult {
                 job_id,
                 job_type: format!("{:?}", job_kind),
@@ -159,7 +159,12 @@ fn extract_ascc_delta(content: &str) -> JobResult {
     let current_state: String = content
         .lines()
         .map(|l| l.trim())
-        .find(|l| l.len() > 10 && !l.starts_with('#') && !l.starts_with("```") && !is_response_scaffold_line(l))
+        .find(|l| {
+            l.len() > 10
+                && !l.starts_with('#')
+                && !l.starts_with("```")
+                && !is_response_scaffold_line(l)
+        })
         .unwrap_or("")
         .chars()
         .take(200)
@@ -195,11 +200,11 @@ fn extract_ascc_delta(content: &str) -> JobResult {
             || lower.contains("need to ")
             || lower.contains("should ")
             || lower.contains("will ")
-            && (lower.contains("implement")
-                || lower.contains("add")
-                || lower.contains("fix")
-                || lower.contains("update")
-                || lower.contains("create"))
+                && (lower.contains("implement")
+                    || lower.contains("add")
+                    || lower.contains("fix")
+                    || lower.contains("update")
+                    || lower.contains("create"))
         {
             next_steps.push(truncate_line(trimmed, 160));
         }
@@ -481,7 +486,7 @@ mod tests {
 }
 
 /// Execute a worker job with LLM extraction (async).
-/// 
+///
 /// Tries bounded LLM-backed extraction first, then falls back to local heuristics on failure.
 /// Output remains advisory; reducer still decides acceptance/promotion.
 pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
@@ -493,7 +498,7 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
     // Build LLM prompt based on job kind
     let prompt = match job.kind {
         WorkerJobKind::ClassifyTurn => format!(
-            "Classify this user input as one of: task, question, correction, meta, clarification, acknowledgement.\nReturn JSON: {{\"classification\": \"...\", \"confidence\": 0.0-1.0}}\n\nINPUT:\n{}", 
+            "Classify this user input as one of: task, question, correction, meta, clarification, acknowledgement.\nReturn JSON: {{\"classification\": \"...\", \"confidence\": 0.0-1.0}}\n\nINPUT:\n{}",
             truncate_content(content, 2000)
         ),
         WorkerJobKind::ExtractAsccDelta => format!(
@@ -520,10 +525,11 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
     if api_key.is_empty() {
         return execute_job(job);
     }
-    
+
     let llm_result = tokio::time::timeout(
         std::time::Duration::from_secs(8),
-        client.post("https://api.minimax.io/v1/chat/completions")
+        client
+            .post("https://api.minimax.io/v1/chat/completions")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&serde_json::json!({
@@ -532,24 +538,28 @@ pub async fn execute_job_llm(job: &WorkerJob) -> JobResult {
                 "max_tokens": 500,
             }))
             .send(),
-    ).await;
+    )
+    .await;
 
     match llm_result {
         Ok(Ok(resp)) => {
             if let Ok(data) = resp.json::<serde_json::Value>().await
-                && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
-                    // Try to parse the JSON from LLM response
-                    let start = text.find('{').unwrap_or(0);
-                    let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
-                    if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
-                        return JobResult {
-                            job_id: job.id,
-                            job_type: format!("{:?}", job.kind),
-                            payload,
-                            success: true,
-                        };
-                    }
+                && let Some(text) = data
+                    .pointer("/choices/0/message/content")
+                    .and_then(|v| v.as_str())
+            {
+                // Try to parse the JSON from LLM response
+                let start = text.find('{').unwrap_or(0);
+                let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
+                    return JobResult {
+                        job_id: job.id,
+                        job_type: format!("{:?}", job.kind),
+                        payload,
+                        success: true,
+                    };
                 }
+            }
             // LLM returned but couldn't parse — fall back to regex
             tracing::debug!(kind = ?job.kind, "LLM worker: response unparseable, falling back to regex");
             execute_job(job)

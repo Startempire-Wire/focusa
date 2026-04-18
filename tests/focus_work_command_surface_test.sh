@@ -3,6 +3,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CMD_FILE="${ROOT_DIR}/apps/pi-extension/src/commands.ts"
+TOOLS_FILE="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -16,6 +17,8 @@ if rg -n 'work-loop/enable|work-loop/pause|work-loop/resume|work-loop/stop' "$CM
 if rg -n 'daemon_supervised_session|Supervision:' "$CMD_FILE" >/dev/null 2>&1 && rg -n 'Focus:' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi loop surfaces expose supervision and focus summary"; else log_fail "Pi loop surfaces missing supervision/focus summary"; fi
 if rg -n 'workLoopPreset|workLoopMaxTurns|workLoopRequireOperatorForGovernance' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi settings panel exposes work-loop policy controls"; else log_fail "Pi settings panel missing work-loop policy controls"; fi
 if rg -n 'Loop: .*Status: .*Project: .*Tranche:' "$CMD_FILE" >/dev/null 2>&1 && rg -n 'Budget:' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi status surface exposes loop visibility details"; else log_fail "Pi status surface missing loop visibility details"; fi
+if rg -n '/work-loop/replay/closure-bundle|/work-loop/replay/closure-evidence|Replay: .*continuity_gate=|Objectives: non_closure=' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi command surfaces project replay consumer state with continuity gate/objective semantics"; else log_fail "Pi command surfaces missing replay consumer projection"; fi
+if rg -n 'name: "focusa_work_loop_status"' "$TOOLS_FILE" >/dev/null 2>&1 && rg -n '/work-loop/replay/closure-bundle|/work-loop/replay/closure-evidence|Replay consumer: .*continuity_gate=|non_closure_objectives=' "$TOOLS_FILE" >/dev/null 2>&1; then log_pass "focusa_work_loop_status tool surfaces replay consumer route and gate semantics"; else log_fail "focusa_work_loop_status tool missing replay consumer projection"; fi
 echo "=== FOCUS-WORK COMMAND SURFACE RESULTS ==="
 echo "Tests passed: $PASSED"
 echo "Tests failed: $FAILED"

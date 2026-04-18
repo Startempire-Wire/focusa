@@ -13,9 +13,12 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{
     Json, Router,
-    routing::{get, post, patch},
+    routing::{get, patch, post},
 };
-use focusa_core::types::{Action, CompletionReason, FocusStackState, FocusStateDelta, FrameStatus, SessionState, SessionStatus};
+use focusa_core::types::{
+    Action, CompletionReason, FocusStackState, FocusStateDelta, FrameStatus, SessionState,
+    SessionStatus,
+};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -56,9 +59,9 @@ fn validate_can_pop(stack: &FocusStackState) -> Result<(), serde_json::Value> {
         .find(|f| f.id == active_id)
         .ok_or_else(|| json!({"status": "rejected", "reason": "active_frame_missing"}))?;
 
-    let parent_id = active.parent_id.ok_or_else(|| {
-        json!({"status": "rejected", "reason": "cannot_complete_root_frame"})
-    })?;
+    let parent_id = active
+        .parent_id
+        .ok_or_else(|| json!({"status": "rejected", "reason": "cannot_complete_root_frame"}))?;
 
     let parent = stack
         .frames
@@ -254,14 +257,20 @@ fn validate_slot(value: &str, max_chars: usize, slot_kind: &str) -> bool {
     }
 
     // Verbose process narration patterns — NEVER valid in any slot
-    if lower.contains("root cause") || lower.contains("bypass") || lower.contains("pollut")
-        || lower.contains("investigation") || lower.contains("pattern ") && lower.contains("match")
+    if lower.contains("root cause")
+        || lower.contains("bypass")
+        || lower.contains("pollut")
+        || lower.contains("investigation")
+        || lower.contains("pattern ") && lower.contains("match")
         || lower.contains("verbose") && lower.len() < 100
-        || lower.contains("i was able to") || lower.contains("it appears that")
-        || lower.contains("this confirms") || lower.contains("as suspected")
+        || lower.contains("i was able to")
+        || lower.contains("it appears that")
+        || lower.contains("this confirms")
+        || lower.contains("as suspected")
         || lower.contains("confirmed in the running system")
         || lower.contains("still the old version")
-        || lower.contains("three bugs") || lower.contains("daemon restarted")
+        || lower.contains("three bugs")
+        || lower.contains("daemon restarted")
         || lower.contains("binary confirmed")
     {
         return false;
@@ -273,27 +282,51 @@ fn validate_slot(value: &str, max_chars: usize, slot_kind: &str) -> bool {
     }
 
     // Task patterns
-    if lower.contains("implement ") || lower.contains(" add ") || lower.contains("create ")
-        || lower.contains("update ") || lower.contains("remove ") || lower.contains("fix all")
-        || lower.contains("next:") || lower.contains("signal:")
+    if lower.contains("implement ")
+        || lower.contains(" add ")
+        || lower.contains("create ")
+        || lower.contains("update ")
+        || lower.contains("remove ")
+        || lower.contains("fix all")
+        || lower.contains("next:")
+        || lower.contains("signal:")
     {
         return false;
     }
     // Self-reference
-    if lower.contains("i think") || lower.contains("i tried") || lower.contains("i'm working")
-        || lower.contains("i was") || lower.contains("in this session") || lower.contains("while i was")
-        || lower.contains("my fs.") || lower.contains("my fix") || lower.contains("let me")
-        || lower.contains("i need to") || lower.contains("i will") || lower.contains("i'll need")
+    if lower.contains("i think")
+        || lower.contains("i tried")
+        || lower.contains("i'm working")
+        || lower.contains("i was")
+        || lower.contains("in this session")
+        || lower.contains("while i was")
+        || lower.contains("my fs.")
+        || lower.contains("my fix")
+        || lower.contains("let me")
+        || lower.contains("i need to")
+        || lower.contains("i will")
+        || lower.contains("i'll need")
     {
         return false;
     }
     // Markdown / noise patterns
-    if value.contains("**") || value.contains("\u{2705}") || value.contains("\u{274C}")
-        || value.contains("- [ ]") || value.contains("---") || value.contains("```")
-        || value.contains("|") || value.starts_with("2.") || value.starts_with("3.")
-        || value.starts_with("- ") || lower.contains("spec-compliant") || lower.contains("matches")
-        || lower.contains("exactly") || lower.contains("fixme")
-        || value.starts_with("Modified:") || value.starts_with("Added:") || value.starts_with("Deleted:")
+    if value.contains("**")
+        || value.contains("\u{2705}")
+        || value.contains("\u{274C}")
+        || value.contains("- [ ]")
+        || value.contains("---")
+        || value.contains("```")
+        || value.contains("|")
+        || value.starts_with("2.")
+        || value.starts_with("3.")
+        || value.starts_with("- ")
+        || lower.contains("spec-compliant")
+        || lower.contains("matches")
+        || lower.contains("exactly")
+        || lower.contains("fixme")
+        || value.starts_with("Modified:")
+        || value.starts_with("Added:")
+        || value.starts_with("Deleted:")
     {
         return false;
     }
@@ -326,18 +359,29 @@ async fn update_delta(
     let delta = &body.delta;
     let frame = {
         let focusa = state.focusa.read().await;
-        focusa.focus_stack.frames.iter().find(|f| Some(f.id) == focusa.focus_stack.active_id).cloned()
+        focusa
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| Some(f.id) == focusa.focus_stack.active_id)
+            .cloned()
     };
 
     // Per-slot validation with kind + capacity cap check
     if let Some(ref intent) = delta.intent
-        && !validate_slot(intent, 500, "intent") {
-            return Ok(Json(json!({"status": "rejected", "reason": "intent: validation failed"})));
-        }
+        && !validate_slot(intent, 500, "intent")
+    {
+        return Ok(Json(
+            json!({"status": "rejected", "reason": "intent: validation failed"}),
+        ));
+    }
     if let Some(ref cs) = delta.current_state
-        && !validate_slot(cs, 300, "current_state") {
-            return Ok(Json(json!({"status": "rejected", "reason": "current_state: validation failed"})));
-        }
+        && !validate_slot(cs, 300, "current_state")
+    {
+        return Ok(Json(
+            json!({"status": "rejected", "reason": "current_state: validation failed"}),
+        ));
+    }
     for (kind, values, max_chars) in [
         ("decisions", &delta.decisions, 160),
         ("constraints", &delta.constraints, 200),
@@ -360,11 +404,15 @@ async fn update_delta(
                     _ => 0,
                 };
                 if current_len >= slot_cap(kind) {
-                    return Ok(Json(json!({"status": "rejected", "reason": format!("{}: at capacity ({})", kind, current_len)})));
+                    return Ok(Json(
+                        json!({"status": "rejected", "reason": format!("{}: at capacity ({})", kind, current_len)}),
+                    ));
                 }
             }
             if vals.iter().any(|s| !validate_slot(s, max_chars, kind)) {
-                return Ok(Json(json!({"status": "rejected", "reason": format!("{}: validation failed", kind)})));
+                return Ok(Json(
+                    json!({"status": "rejected", "reason": format!("{}: validation failed", kind)}),
+                ));
             }
         }
     }
@@ -372,7 +420,9 @@ async fn update_delta(
     if let Some(ref artifacts) = delta.artifacts {
         for a in artifacts {
             if a.label.is_empty() || a.label.len() > 100 {
-                return Ok(Json(json!({"status": "rejected", "reason": "artifacts: label validation failed"})));
+                return Ok(Json(
+                    json!({"status": "rejected", "reason": "artifacts: label validation failed"}),
+                ));
             }
         }
     }
@@ -386,7 +436,12 @@ async fn update_delta(
             return Ok(Json(resp));
         }
         if let Some(frame_id) = body.frame_id {
-            if focusa.focus_stack.frames.iter().any(|frame| frame.id == frame_id) {
+            if focusa
+                .focus_stack
+                .frames
+                .iter()
+                .any(|frame| frame.id == frame_id)
+            {
                 frame_id
             } else {
                 return Ok(Json(json!({"status": "no_active_frame"})));
@@ -439,7 +494,6 @@ async fn get_enabled(State(state): State<Arc<AppState>>) -> Json<serde_json::Val
     Json(json!({"enabled": enabled}))
 }
 
-
 #[derive(Deserialize)]
 struct SetEnabledBody {
     enabled: bool,
@@ -452,13 +506,15 @@ async fn set_enabled(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let path = pi_enabled_path(&state.config);
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        std::fs::create_dir_all(parent).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
     let content = format!("enabled={}", if body.enabled { "1" } else { "0" });
-    std::fs::write(&path, content)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    tracing::info!(path = path.display().to_string(), enabled = body.enabled, "Pi focusa toggle updated");
+    std::fs::write(&path, content).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    tracing::info!(
+        path = path.display().to_string(),
+        enabled = body.enabled,
+        "Pi focusa toggle updated"
+    );
     Ok(Json(json!({"status": "updated", "enabled": body.enabled})))
 }
 

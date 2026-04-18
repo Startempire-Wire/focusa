@@ -51,7 +51,9 @@ fn upstream_url() -> String {
 }
 
 fn messages_upstream_url() -> String {
-    std::env::var("FOCUSA_MESSAGES_UPSTREAM").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_UPSTREAM")).unwrap_or_else(|_| DEFAULT_MESSAGES_UPSTREAM.into())
+    std::env::var("FOCUSA_MESSAGES_UPSTREAM")
+        .or_else(|_| std::env::var("FOCUSA_ANTHROPIC_UPSTREAM"))
+        .unwrap_or_else(|_| DEFAULT_MESSAGES_UPSTREAM.into())
 }
 
 fn kimi_upstream_url() -> String {
@@ -139,13 +141,14 @@ fn sanitize_messages_response_for_discord(value: &mut Value) -> usize {
     if let Some(content) = value.get_mut("content").and_then(|v| v.as_array_mut()) {
         for block in content {
             if block.get("type").and_then(|v| v.as_str()) == Some("text")
-                && let Some(text) = block.get("text").and_then(|v| v.as_str()) {
-                    let before = count_tool_markup_markers(text);
-                    let cleaned = strip_tool_markup_text(text);
-                    let after = count_tool_markup_markers(&cleaned);
-                    removed_markers += before.saturating_sub(after);
-                    block["text"] = Value::String(cleaned);
-                }
+                && let Some(text) = block.get("text").and_then(|v| v.as_str())
+            {
+                let before = count_tool_markup_markers(text);
+                let cleaned = strip_tool_markup_text(text);
+                let after = count_tool_markup_markers(&cleaned);
+                removed_markers += before.saturating_sub(after);
+                block["text"] = Value::String(cleaned);
+            }
         }
     }
     removed_markers
@@ -164,27 +167,31 @@ fn extract_messages_stream_text(body: &str) -> (String, usize) {
         }
         if let Ok(value) = serde_json::from_str::<Value>(data)
             && value.get("type").and_then(|v| v.as_str()) == Some("content_block_delta")
-                && let Some(text) = value
-                    .get("delta")
-                    .and_then(|d| d.get("text"))
-                    .and_then(|t| t.as_str())
-                {
-                    out.push_str(text);
-                }
+            && let Some(text) = value
+                .get("delta")
+                .and_then(|d| d.get("text"))
+                .and_then(|t| t.as_str())
+        {
+            out.push_str(text);
+        }
     }
     let removed = count_tool_markup_markers(&out);
     (strip_tool_markup_text(&out), removed)
 }
 
 fn messages_auth(headers: &HeaderMap) -> Option<anthropic::AnthropicAuth> {
-    if let Ok(key) = std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_KEY"))
-        && !key.is_empty() {
-            return Some(anthropic::AnthropicAuth::ApiKey(key));
-        }
-    if let Ok(token) = std::env::var("FOCUSA_MESSAGES_BEARER").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_BEARER"))
-        && !token.is_empty() {
-            return Some(anthropic::AnthropicAuth::Bearer(token));
-        }
+    if let Ok(key) =
+        std::env::var("FOCUSA_MESSAGES_API_KEY").or_else(|_| std::env::var("FOCUSA_ANTHROPIC_KEY"))
+        && !key.is_empty()
+    {
+        return Some(anthropic::AnthropicAuth::ApiKey(key));
+    }
+    if let Ok(token) = std::env::var("FOCUSA_MESSAGES_BEARER")
+        .or_else(|_| std::env::var("FOCUSA_ANTHROPIC_BEARER"))
+        && !token.is_empty()
+    {
+        return Some(anthropic::AnthropicAuth::Bearer(token));
+    }
     if let Some(key) = headers.get("x-api-key").and_then(|v| v.to_str().ok()) {
         return Some(anthropic::AnthropicAuth::ApiKey(key.to_string()));
     }
@@ -375,78 +382,130 @@ async fn chat_completions(
             if let Ok(Ok(resp)) = tokio::time::timeout(
                 std::time::Duration::from_secs(2),
                 enrichment_client.get("http://127.0.0.1:7400/me").send(),
-            ).await
-                && let Ok(ctx_json) = resp.json::<serde_json::Value>().await {
-                    let mut constraints = Vec::new();
-                    if let Some(interruptibility) = ctx_json.pointer("/state/interruptibility").and_then(|v| v.as_str()) {
-                        if interruptibility == "very_low" {
-                            constraints.push("Operator interruptibility: very low — do not ask questions, queue them".to_string());
-                        } else if interruptibility == "low" {
-                            constraints.push("Operator interruptibility: low — minimize questions".to_string());
-                        }
+            )
+            .await
+                && let Ok(ctx_json) = resp.json::<serde_json::Value>().await
+            {
+                let mut constraints = Vec::new();
+                if let Some(interruptibility) = ctx_json
+                    .pointer("/state/interruptibility")
+                    .and_then(|v| v.as_str())
+                {
+                    if interruptibility == "very_low" {
+                        constraints.push("Operator interruptibility: very low — do not ask questions, queue them".to_string());
+                    } else if interruptibility == "low" {
+                        constraints.push(
+                            "Operator interruptibility: low — minimize questions".to_string(),
+                        );
                     }
-                    if ctx_json.pointer("/timely/is_quiet_hours").and_then(|v| v.as_bool()).unwrap_or(false) {
-                        constraints.push("Quiet hours — be concise, avoid churn".to_string());
-                    }
-                    if let Some(agent_should) = ctx_json.pointer("/policy/agent_should").and_then(|v| v.as_str())
-                        && agent_should == "queue_questions" {
-                            constraints.push("Policy: queue questions, do not interrupt operator".to_string());
-                        }
-                    if !constraints.is_empty() {
-                        let focusa_read = enrichment_state.focusa.read().await;
-                        if let Some(frame_id) = focusa_read.focus_stack.active_id {
-                            let existing: Vec<String> = focusa_read.focus_stack.frames.iter()
-                                .find(|f| f.id == frame_id)
-                                .map(|f| f.focus_state.constraints.clone())
-                                .unwrap_or_default();
-                            drop(focusa_read);
-                            let new_c: Vec<String> = constraints.into_iter().filter(|c| !existing.contains(c)).collect();
-                            if !new_c.is_empty() {
-                                let _ = enrichment_state.command_tx.send(Action::UpdateCheckpointDelta {
+                }
+                if ctx_json
+                    .pointer("/timely/is_quiet_hours")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                {
+                    constraints.push("Quiet hours — be concise, avoid churn".to_string());
+                }
+                if let Some(agent_should) = ctx_json
+                    .pointer("/policy/agent_should")
+                    .and_then(|v| v.as_str())
+                    && agent_should == "queue_questions"
+                {
+                    constraints
+                        .push("Policy: queue questions, do not interrupt operator".to_string());
+                }
+                if !constraints.is_empty() {
+                    let focusa_read = enrichment_state.focusa.read().await;
+                    if let Some(frame_id) = focusa_read.focus_stack.active_id {
+                        let existing: Vec<String> = focusa_read
+                            .focus_stack
+                            .frames
+                            .iter()
+                            .find(|f| f.id == frame_id)
+                            .map(|f| f.focus_state.constraints.clone())
+                            .unwrap_or_default();
+                        drop(focusa_read);
+                        let new_c: Vec<String> = constraints
+                            .into_iter()
+                            .filter(|c| !existing.contains(c))
+                            .collect();
+                        if !new_c.is_empty() {
+                            let _ = enrichment_state
+                                .command_tx
+                                .send(Action::UpdateCheckpointDelta {
                                     frame_id,
                                     turn_id: enrichment_turn_id.clone(),
-                                    delta: FocusStateDelta { constraints: Some(new_c), ..Default::default() },
-                                }).await;
-                            }
+                                    delta: FocusStateDelta {
+                                        constraints: Some(new_c),
+                                        ..Default::default()
+                                    },
+                                })
+                                .await;
                         }
                     }
                 }
+            }
 
             // Pairing Engine → Focus Gate signals
-            if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN").ok().or_else(|| std::env::var("GATEWAY_TOKEN").ok())
+            if let Some(sb_token) = std::env::var("SCOREBOARD_TOKEN")
+                .ok()
+                .or_else(|| std::env::var("GATEWAY_TOKEN").ok())
                 && let Ok(Ok(resp)) = tokio::time::timeout(
                     std::time::Duration::from_secs(2),
-                    enrichment_client.get("http://127.0.0.1:8100/v1/score")
+                    enrichment_client
+                        .get("http://127.0.0.1:8100/v1/score")
                         .header("Authorization", format!("Bearer {}", sb_token))
                         .send(),
-                ).await
-                    && let Ok(score_json) = resp.json::<serde_json::Value>().await {
-                        let mut signal_summaries = Vec::new();
-                        if let Some(drift_score) = score_json.pointer("/drift/score").and_then(|v| v.as_f64())
-                            && drift_score < 30.0 {
-                                signal_summaries.push(format!("Operator-agent drift score: {} (disconnected)", drift_score));
-                            }
-                        if score_json.pointer("/drift/rabbit/active").and_then(|v| v.as_bool()).unwrap_or(false) {
-                            let rt = score_json.pointer("/drift/rabbit/type").and_then(|v| v.as_str()).unwrap_or("unknown");
-                            signal_summaries.push(format!("R.A.B.I.T. detected: {}", rt));
-                        }
-                        if score_json.pointer("/drift/handshake_streak").and_then(|v| v.as_i64()).unwrap_or(1) == 0 {
-                            signal_summaries.push("Neural handshake streak broken".to_string());
-                        }
-                        for summary in signal_summaries {
-                            let signal = Signal {
-                                id: uuid::Uuid::now_v7(),
-                                ts: Utc::now(),
-                                origin: SignalOrigin::Adapter,
-                                kind: SignalKind::Warning,
-                                frame_context: None,
-                                summary,
-                                payload_ref: None,
-                                tags: vec![],
-                            };
-                            let _ = enrichment_state.command_tx.send(Action::IngestSignal { signal }).await;
-                        }
-                    }
+                )
+                .await
+                && let Ok(score_json) = resp.json::<serde_json::Value>().await
+            {
+                let mut signal_summaries = Vec::new();
+                if let Some(drift_score) =
+                    score_json.pointer("/drift/score").and_then(|v| v.as_f64())
+                    && drift_score < 30.0
+                {
+                    signal_summaries.push(format!(
+                        "Operator-agent drift score: {} (disconnected)",
+                        drift_score
+                    ));
+                }
+                if score_json
+                    .pointer("/drift/rabbit/active")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                {
+                    let rt = score_json
+                        .pointer("/drift/rabbit/type")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown");
+                    signal_summaries.push(format!("R.A.B.I.T. detected: {}", rt));
+                }
+                if score_json
+                    .pointer("/drift/handshake_streak")
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(1)
+                    == 0
+                {
+                    signal_summaries.push("Neural handshake streak broken".to_string());
+                }
+                for summary in signal_summaries {
+                    let signal = Signal {
+                        id: uuid::Uuid::now_v7(),
+                        ts: Utc::now(),
+                        origin: SignalOrigin::Adapter,
+                        kind: SignalKind::Warning,
+                        frame_context: None,
+                        summary,
+                        payload_ref: None,
+                        tags: vec![],
+                    };
+                    let _ = enrichment_state
+                        .command_tx
+                        .send(Action::IngestSignal { signal })
+                        .await;
+                }
+            }
         });
     }
 
@@ -456,19 +515,26 @@ async fn chat_completions(
     {
         if !user_input.is_empty() {
             // Keyword extraction: split on whitespace, filter stopwords, take top 5
-            let stopwords = ["the","a","an","is","are","was","were","be","been","being",
-                "have","has","had","do","does","did","will","would","could","should",
-                "may","might","can","shall","to","of","in","for","on","with","at","by",
-                "from","as","into","about","like","through","after","over","between",
-                "out","up","it","its","this","that","these","those","i","me","my","we",
-                "you","your","he","she","they","them","and","or","but","not","so","if"];
-            let keywords: Vec<&str> = user_input.split_whitespace()
+            let stopwords = [
+                "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has",
+                "had", "do", "does", "did", "will", "would", "could", "should", "may", "might",
+                "can", "shall", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as",
+                "into", "about", "like", "through", "after", "over", "between", "out", "up", "it",
+                "its", "this", "that", "these", "those", "i", "me", "my", "we", "you", "your",
+                "he", "she", "they", "them", "and", "or", "but", "not", "so", "if",
+            ];
+            let keywords: Vec<&str> = user_input
+                .split_whitespace()
                 .filter(|w| w.len() > 2 && !stopwords.contains(&w.to_lowercase().as_str()))
                 .take(5)
                 .collect();
             let keyword_query = keywords.join(" ");
             let query_text = if keyword_query.is_empty() {
-                if user_input.len() > 100 { &user_input[..100] } else { &user_input }
+                if user_input.len() > 100 {
+                    &user_input[..100]
+                } else {
+                    &user_input
+                }
             } else {
                 &keyword_query
             };
@@ -482,14 +548,16 @@ async fn chat_completions(
                 async {
                     tokio::time::timeout(
                         std::time::Duration::from_millis(200),
-                        mem0_client.post("http://127.0.0.1:8200/v1/search")
+                        mem0_client
+                            .post("http://127.0.0.1:8200/v1/search")
                             .json(&serde_json::json!({
                                 "query": mem0_query,
                                 "namespace": "wirebot_verious",
                                 "limit": 5
                             }))
                             .send(),
-                    ).await
+                    )
+                    .await
                 },
                 async {
                     tokio::time::timeout(
@@ -497,48 +565,65 @@ async fn chat_completions(
                         tokio::process::Command::new("wb")
                             .args(["wiki", "search", &wiki_query, "--format", "json"])
                             .output(),
-                    ).await
+                    )
+                    .await
                 },
             );
 
             // Inject Mem0 results
             if let Ok(Ok(resp)) = mem0_result
                 && let Ok(data) = resp.json::<serde_json::Value>().await
-                    && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
-                        for (i, mem) in results.iter().enumerate().take(3) {
-                            if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
-                                let _ = state.command_tx.send(Action::UpsertSemantic {
-                                    key: format!("mem0.preturn.{}", i),
-                                    value: text.to_string(),
-                                    source: focusa_core::types::MemorySource::Mem0,
-                                }).await;
-                            }
-                        }
-                        if !results.is_empty() {
-                            tracing::debug!(count = results.len().min(3), "Pre-turn: Mem0 memories injected");
-                        }
+                && let Some(results) = data.get("results").and_then(|v| v.as_array())
+            {
+                for (i, mem) in results.iter().enumerate().take(3) {
+                    if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                        let _ = state
+                            .command_tx
+                            .send(Action::UpsertSemantic {
+                                key: format!("mem0.preturn.{}", i),
+                                value: text.to_string(),
+                                source: focusa_core::types::MemorySource::Mem0,
+                            })
+                            .await;
                     }
+                }
+                if !results.is_empty() {
+                    tracing::debug!(
+                        count = results.len().min(3),
+                        "Pre-turn: Mem0 memories injected"
+                    );
+                }
+            }
 
             // Inject Wiki results
             if let Ok(Ok(output)) = wiki_result
                 && output.status.success()
-                    && let Ok(wiki_json) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
-                        && let Some(pages) = wiki_json.as_array().or_else(|| wiki_json.get("pages").and_then(|v| v.as_array())) {
-                            for (i, page) in pages.iter().enumerate().take(2) {
-                                let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
-                                let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                                if !title.is_empty() {
-                                    let _ = state.command_tx.send(Action::UpsertSemantic {
-                                        key: format!("wiki.preturn.{}", i),
-                                        value: format!("Wiki: {} ({})", title, path),
-                                        source: focusa_core::types::MemorySource::Worker,
-                                    }).await;
-                                }
-                            }
-                            if !pages.is_empty() {
-                                tracing::debug!(count = pages.len().min(2), "Pre-turn: Wiki results injected");
-                            }
-                        }
+                && let Ok(wiki_json) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
+                && let Some(pages) = wiki_json
+                    .as_array()
+                    .or_else(|| wiki_json.get("pages").and_then(|v| v.as_array()))
+            {
+                for (i, page) in pages.iter().enumerate().take(2) {
+                    let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                    let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                    if !title.is_empty() {
+                        let _ = state
+                            .command_tx
+                            .send(Action::UpsertSemantic {
+                                key: format!("wiki.preturn.{}", i),
+                                value: format!("Wiki: {} ({})", title, path),
+                                source: focusa_core::types::MemorySource::Worker,
+                            })
+                            .await;
+                    }
+                }
+                if !pages.is_empty() {
+                    tracing::debug!(
+                        count = pages.len().min(2),
+                        "Pre-turn: Wiki results injected"
+                    );
+                }
+            }
         }
     }
 
@@ -559,14 +644,20 @@ async fn chat_completions(
     if let Some(ref proxy_result) = result {
         let mut focusa = state.focusa.write().await;
         if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == turn_id {
-                turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
-            }
+            && turn.turn_id == turn_id
+        {
+            turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
+        }
         drop(focusa);
 
         // Emit PromptAssembled event per G1-detail-11 §Events.
         let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone()));
-        let _ = state.command_tx.send(Action::EmitEvent { event: prompt_event }).await;
+        let _ = state
+            .command_tx
+            .send(Action::EmitEvent {
+                event: prompt_event,
+            })
+            .await;
     }
 
     // 3. FORWARD TO UPSTREAM.
@@ -604,7 +695,8 @@ async fn chat_completions(
                     );
                     if let Ok(Ok(resp)) = tokio::time::timeout(
                         std::time::Duration::from_secs(3),
-                        eval_client.post("https://api.minimax.io/v1/chat/completions")
+                        eval_client
+                            .post("https://api.minimax.io/v1/chat/completions")
                             .header("Authorization", format!("Bearer {}", api_key))
                             .json(&serde_json::json!({
                                 "model": "MiniMax-M2.7",
@@ -613,14 +705,24 @@ async fn chat_completions(
                                 "temperature": 0.0,
                             }))
                             .send(),
-                    ).await {
+                    )
+                    .await
+                    {
                         if let Ok(data) = resp.json::<serde_json::Value>().await {
-                            if let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
+                            if let Some(text) = data
+                                .pointer("/choices/0/message/content")
+                                .and_then(|v| v.as_str())
+                            {
                                 if text.to_lowercase().contains("no") {
-                                    tracing::warn!("R1+ inline eval: response rejected, regenerating once");
+                                    tracing::warn!(
+                                        "R1+ inline eval: response rejected, regenerating once"
+                                    );
                                     // Regenerate: re-forward the request
                                     if let Some(ref regen_req) = regen_request {
-                                        if let Ok(regen) = openai::forward_request(client, &url, &key, regen_req).await {
+                                        if let Ok(regen) =
+                                            openai::forward_request(client, &url, &key, regen_req)
+                                                .await
+                                        {
                                             tracing::info!("R1+ regeneration complete");
                                             regen // Use regenerated response
                                         } else {
@@ -715,15 +817,30 @@ async fn chat_completions(
             let (current_state, recent_results, failures) = if error_str.is_some() {
                 let err_msg = error_str.as_deref().unwrap_or("unknown error");
                 (
-                    format!("Turn {} failed: {}", turn_id, &err_msg[..err_msg.len().min(150)]),
+                    format!(
+                        "Turn {} failed: {}",
+                        turn_id,
+                        &err_msg[..err_msg.len().min(150)]
+                    ),
                     None,
-                    Some(vec![format!("Turn {} error: {}", turn_id, &err_msg[..err_msg.len().min(150)])]),
+                    Some(vec![format!(
+                        "Turn {} error: {}",
+                        turn_id,
+                        &err_msg[..err_msg.len().min(150)]
+                    )]),
                 )
             } else {
                 let summary: String = assistant_output.chars().take(150).collect();
                 (
-                    format!("Turn {} ({}+{} tokens): {}", turn_id, prompt_tokens, completion_tokens, summary),
-                    Some(vec![format!("Turn {}: {} tokens used", turn_id, prompt_tokens + completion_tokens)]),
+                    format!(
+                        "Turn {} ({}+{} tokens): {}",
+                        turn_id, prompt_tokens, completion_tokens, summary
+                    ),
+                    Some(vec![format!(
+                        "Turn {}: {} tokens used",
+                        turn_id,
+                        prompt_tokens + completion_tokens
+                    )]),
                     None,
                 )
             };
@@ -798,59 +915,86 @@ async fn messages_proxy(
     // 1c. PRE-TURN ENRICHMENT — Fast Mem0 + Wiki (50ms each, parallel, §11.7).
     {
         if !user_input.is_empty() {
-            let stopwords = ["the","a","an","is","are","was","were","be","to","of","in",
-                "for","on","with","at","by","from","as","it","this","that","i","me",
-                "we","you","and","or","but","not","so","if"];
-            let keywords: Vec<&str> = user_input.split_whitespace()
+            let stopwords = [
+                "the", "a", "an", "is", "are", "was", "were", "be", "to", "of", "in", "for", "on",
+                "with", "at", "by", "from", "as", "it", "this", "that", "i", "me", "we", "you",
+                "and", "or", "but", "not", "so", "if",
+            ];
+            let keywords: Vec<&str> = user_input
+                .split_whitespace()
                 .filter(|w| w.len() > 2 && !stopwords.contains(&w.to_lowercase().as_str()))
-                .take(5).collect();
+                .take(5)
+                .collect();
             let kw = keywords.join(" ");
             let query_text = if kw.is_empty() {
-                if user_input.len() > 100 { &user_input[..100] } else { &user_input }
-            } else { &kw };
+                if user_input.len() > 100 {
+                    &user_input[..100]
+                } else {
+                    &user_input
+                }
+            } else {
+                &kw
+            };
 
             let mc = client.clone();
             let mq = query_text.to_string();
             let wq = query_text.to_string();
             let (mem0_r, wiki_r) = tokio::join!(
-                async { tokio::time::timeout(std::time::Duration::from_millis(200),
+                async {
+                    tokio::time::timeout(std::time::Duration::from_millis(200),
                     mc.post("http://127.0.0.1:8200/v1/search")
                         .json(&serde_json::json!({"query": mq, "namespace": "wirebot_verious", "limit": 5}))
-                        .send()).await },
-                async { tokio::time::timeout(std::time::Duration::from_millis(50),
-                    tokio::process::Command::new("wb")
-                        .args(["wiki", "search", &wq, "--format", "json"])
-                        .output()).await },
+                        .send()).await
+                },
+                async {
+                    tokio::time::timeout(
+                        std::time::Duration::from_millis(50),
+                        tokio::process::Command::new("wb")
+                            .args(["wiki", "search", &wq, "--format", "json"])
+                            .output(),
+                    )
+                    .await
+                },
             );
             if let Ok(Ok(resp)) = mem0_r
                 && let Ok(data) = resp.json::<serde_json::Value>().await
-                    && let Some(results) = data.get("results").and_then(|v| v.as_array()) {
-                        for (i, mem) in results.iter().enumerate().take(3) {
-                            if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
-                                let _ = state.command_tx.send(Action::UpsertSemantic {
-                                    key: format!("mem0.preturn.{}", i),
-                                    value: text.to_string(),
-                                    source: focusa_core::types::MemorySource::Mem0,
-                                }).await;
-                            }
-                        }
+                && let Some(results) = data.get("results").and_then(|v| v.as_array())
+            {
+                for (i, mem) in results.iter().enumerate().take(3) {
+                    if let Some(text) = mem.get("memory").and_then(|v| v.as_str()) {
+                        let _ = state
+                            .command_tx
+                            .send(Action::UpsertSemantic {
+                                key: format!("mem0.preturn.{}", i),
+                                value: text.to_string(),
+                                source: focusa_core::types::MemorySource::Mem0,
+                            })
+                            .await;
                     }
+                }
+            }
             if let Ok(Ok(output)) = wiki_r
                 && output.status.success()
-                    && let Ok(wj) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
-                        && let Some(pages) = wj.as_array().or_else(|| wj.get("pages").and_then(|v| v.as_array())) {
-                            for (i, page) in pages.iter().enumerate().take(2) {
-                                let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
-                                let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                                if !title.is_empty() {
-                                    let _ = state.command_tx.send(Action::UpsertSemantic {
-                                        key: format!("wiki.preturn.{}", i),
-                                        value: format!("Wiki: {} ({})", title, path),
-                                        source: focusa_core::types::MemorySource::Worker,
-                                    }).await;
-                                }
-                            }
-                        }
+                && let Ok(wj) = serde_json::from_slice::<serde_json::Value>(&output.stdout)
+                && let Some(pages) = wj
+                    .as_array()
+                    .or_else(|| wj.get("pages").and_then(|v| v.as_array()))
+            {
+                for (i, page) in pages.iter().enumerate().take(2) {
+                    let title = page.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                    let path = page.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                    if !title.is_empty() {
+                        let _ = state
+                            .command_tx
+                            .send(Action::UpsertSemantic {
+                                key: format!("wiki.preturn.{}", i),
+                                value: format!("Wiki: {} ({})", title, path),
+                                source: focusa_core::types::MemorySource::Worker,
+                            })
+                            .await;
+                    }
+                }
+            }
         }
     }
 
@@ -863,14 +1007,20 @@ async fn messages_proxy(
     if let Some(ref proxy_result) = result {
         let mut focusa = state.focusa.write().await;
         if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == turn_id {
-                turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
-            }
+            && turn.turn_id == turn_id
+        {
+            turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
+        }
         drop(focusa);
 
         // Emit PromptAssembled event per G1-detail-11 §Events.
         let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone()));
-        let _ = state.command_tx.send(Action::EmitEvent { event: prompt_event }).await;
+        let _ = state
+            .command_tx
+            .send(Action::EmitEvent {
+                event: prompt_event,
+            })
+            .await;
     }
 
     // 3. FORWARD.
@@ -1028,15 +1178,30 @@ async fn messages_proxy(
             let (current_state, recent_results, failures) = if error_str.is_some() {
                 let err_msg = error_str.as_deref().unwrap_or("unknown error");
                 (
-                    format!("Turn {} failed: {}", turn_id, &err_msg[..err_msg.len().min(150)]),
+                    format!(
+                        "Turn {} failed: {}",
+                        turn_id,
+                        &err_msg[..err_msg.len().min(150)]
+                    ),
                     None,
-                    Some(vec![format!("Turn {} error: {}", turn_id, &err_msg[..err_msg.len().min(150)])]),
+                    Some(vec![format!(
+                        "Turn {} error: {}",
+                        turn_id,
+                        &err_msg[..err_msg.len().min(150)]
+                    )]),
                 )
             } else {
                 let summary: String = assistant_output.chars().take(150).collect();
                 (
-                    format!("Turn {} ({}+{} tokens): {}", turn_id, input_tokens, output_tokens, summary),
-                    Some(vec![format!("Turn {}: {} tokens used", turn_id, input_tokens + output_tokens)]),
+                    format!(
+                        "Turn {} ({}+{} tokens): {}",
+                        turn_id, input_tokens, output_tokens, summary
+                    ),
+                    Some(vec![format!(
+                        "Turn {}: {} tokens used",
+                        turn_id,
+                        input_tokens + output_tokens
+                    )]),
                     None,
                 )
             };

@@ -233,7 +233,11 @@ async fn prompt_assemble(
         safety_rules: &safety,
         config: &effective_config,
         rehydrate_handles: None,
-        thesis: focusa.threads.iter().find(|t| t.status == focusa_core::types::ThreadStatus::Active).map(|t| &t.thesis),
+        thesis: focusa
+            .threads
+            .iter()
+            .find(|t| t.status == focusa_core::types::ThreadStatus::Active)
+            .map(|t| &t.thesis),
     };
     let assembly = match req.strategy.as_deref() {
         Some("baseline_raw") => assemble_baseline_raw(&focusa, &req, &effective_config),
@@ -388,8 +392,12 @@ async fn turn_complete(
         artifacts_used: req.artifacts.clone(),
         errors: req.errors.clone(),
         // §35.5: Support both canonical + extension token formats
-        prompt_tokens: req.prompt_tokens.or(req.tokens.as_ref().and_then(|t| t.input_tokens)),
-        completion_tokens: req.completion_tokens.or(req.tokens.as_ref().and_then(|t| t.output_tokens)),
+        prompt_tokens: req
+            .prompt_tokens
+            .or(req.tokens.as_ref().and_then(|t| t.input_tokens)),
+        completion_tokens: req
+            .completion_tokens
+            .or(req.tokens.as_ref().and_then(|t| t.output_tokens)),
     };
 
     if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
@@ -398,29 +406,48 @@ async fn turn_complete(
 
     if work_loop_enabled {
         if let Some(task) = current_task {
-            let summary = if req.assistant_output.trim().is_empty() {
+            let assistant_output = req.assistant_output.trim();
+            let assistant_excerpt = assistant_output.chars().take(220).collect::<String>();
+            let summary = if assistant_output.is_empty() {
                 "continuous turn completed with empty assistant output".to_string()
             } else {
-                format!("continuous turn completed for {}", task.work_item_id)
+                format!(
+                    "continuous turn completed for {}: {assistant_excerpt}",
+                    task.work_item_id
+                )
             };
-            let verification_satisfied = req.errors.is_empty() && !req.assistant_output.trim().is_empty();
-            let spec_conformant = req.errors.is_empty();
+            let verification_satisfied = req.errors.is_empty() && !assistant_output.is_empty();
+            let spec_conformant = req.errors.is_empty()
+                && !assistant_output.contains("BLOCKER:")
+                && !assistant_output.contains("ESCALATE:");
             let continue_reason = if spec_conformant {
-                Some("turn completed without recorded errors".to_string())
+                Some(format!(
+                    "turn completed without recorded errors; evidence: {assistant_excerpt}"
+                ))
             } else {
-                Some("turn completed with recorded errors".to_string())
+                Some(format!(
+                    "turn completed with recorded errors or blocker markers; evidence: {assistant_excerpt}"
+                ))
             };
-            if let Err(e) = state.command_tx.send(Action::ObserveContinuousTurnOutcome {
-                task_run_id: None,
-                work_item_id: Some(task.work_item_id.clone()),
-                summary,
-                continue_reason,
-                verification_satisfied,
-                spec_conformant,
-            }).await {
+            if let Err(e) = state
+                .command_tx
+                .send(Action::ObserveContinuousTurnOutcome {
+                    task_run_id: None,
+                    work_item_id: Some(task.work_item_id.clone()),
+                    summary,
+                    continue_reason,
+                    verification_satisfied,
+                    spec_conformant,
+                })
+                .await
+            {
                 tracing::error!("Failed to observe continuous turn outcome: {}", e);
             } else {
-                let _ = maybe_dispatch_continuous_turn_prompt(&state, "continuous turn outcome evaluated and ready work remains").await;
+                let _ = maybe_dispatch_continuous_turn_prompt(
+                    &state,
+                    "continuous turn outcome evaluated and ready work remains",
+                )
+                .await;
             }
         }
     }

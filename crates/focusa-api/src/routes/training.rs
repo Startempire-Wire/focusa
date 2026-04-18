@@ -13,7 +13,10 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::training;
 use focusa_core::types::*;
 use serde::Deserialize;
@@ -47,18 +50,14 @@ async fn contribution_status(State(state): State<Arc<AppState>>) -> Json<Value> 
 }
 
 /// POST /v1/contribute/enable — enable contribution (docs/22 §3.1: explicit only).
-async fn contribute_enable(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<Value>, StatusCode> {
+async fn contribute_enable(State(state): State<Arc<AppState>>) -> Result<Json<Value>, StatusCode> {
     let mut s = state.focusa.write().await;
     s.contribution.enabled = true;
     Ok(Json(json!({ "status": "enabled" })))
 }
 
 /// POST /v1/contribute/pause — pause contribution.
-async fn contribute_pause(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<Value>, StatusCode> {
+async fn contribute_pause(State(state): State<Arc<AppState>>) -> Result<Json<Value>, StatusCode> {
     let mut s = state.focusa.write().await;
     s.contribution.enabled = false;
     Ok(Json(json!({ "status": "paused" })))
@@ -75,19 +74,15 @@ async fn contribute_approve(
     Json(body): Json<ApproveBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let mut s = state.focusa.write().await;
-    training::approve_contribution(&mut s.contribution, body.item_id).map_err(|e| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": e })),
-        )
-    })?;
-    Ok(Json(json!({ "status": "approved", "item_id": body.item_id })))
+    training::approve_contribution(&mut s.contribution, body.item_id)
+        .map_err(|e| (StatusCode::NOT_FOUND, Json(json!({ "error": e }))))?;
+    Ok(Json(
+        json!({ "status": "approved", "item_id": body.item_id }),
+    ))
 }
 
 /// POST /v1/contribute/submit — submit approved items.
-async fn contribute_submit(
-    State(state): State<Arc<AppState>>,
-) -> Json<Value> {
+async fn contribute_submit(State(state): State<Arc<AppState>>) -> Json<Value> {
     let mut s = state.focusa.write().await;
     let count = training::submit_approved(&mut s.contribution);
     Json(json!({ "submitted": count }))

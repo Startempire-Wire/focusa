@@ -27,16 +27,51 @@ export interface PiExcludedContext {
   updatedAt: number;
 }
 
+export type ScopeFailureKind =
+  | "scope_contamination"
+  | "adjacent_thread_leakage"
+  | "answer_broadening"
+  | "wrong_question_answered"
+  | "context_overcarry";
+
+export interface ScopeFailureSignal {
+  kind: ScopeFailureKind;
+  severity: "low" | "medium" | "high";
+  reason: string;
+}
+
+export type PiGoverningPriorKind =
+  | "hard_safety_prior"
+  | "identity_prior"
+  | "current_ask_prior"
+  | "mission_commitment_prior"
+  | "affordance_reality_prior";
+
 export interface PiFocusSelection {
   items: string[];
   excluded: string[];
-  scores: Array<{ value: string; score: number }>;
+  scores: Array<{
+    value: string;
+    score: number;
+    relevanceScore?: number;
+    freshnessBoost?: number;
+    priorBoost?: number;
+    appliedPriors?: PiGoverningPriorKind[];
+  }>;
+}
+
+export interface PiRetentionBuckets {
+  active: string[];
+  decayed: string[];
+  historical: string[];
+  scores: PiFocusSelection["scores"];
 }
 
 export interface PiRankedItem {
   value: string;
   updatedAt?: string | null;
   pinned?: boolean;
+  priorKinds?: PiGoverningPriorKind[];
 }
 
 export interface PiSliceSection {
@@ -185,6 +220,42 @@ export function stripQuotedFocusaContext(text: string): string {
   return normalized;
 }
 
+export const FORBIDDEN_VISIBLE_OUTPUT_LEAK_CLASSES = [
+  {
+    class_id: "raw_focus_state_serialization",
+    description: "Raw Focusa slice/state payload leaked into visible assistant text",
+    pattern: /\[focusa focus slice|\bprojection_kind:\b|\bview_profile:\b|\bquery_scope:\b|\bcanonical_sources:\b|\bworking_set:\b|\bverified_deltas:\b/i,
+  },
+  {
+    class_id: "internal_routing_reasons",
+    description: "Internal routing/selection reason labels leaked into visible assistant text",
+    pattern: /\brelevant_context_selected\b|\birrelevant_context_excluded\b|\bprior_mission_reused\b|\bquery_scope_built\b|\bsubject_hijack_prevented\b/i,
+  },
+  {
+    class_id: "metacognitive_prose",
+    description: "Internal metacognitive/planner phrasing leaked into visible assistant text",
+    pattern: /\bminimal_focus_slice_builder\b|\bconsultation trace\b|\bfocusa cognitive guidance\b|\boperator-first routing\b/i,
+  },
+  {
+    class_id: "hidden_trace_dimensions",
+    description: "Hidden trace/event dimensions leaked into visible assistant text",
+    pattern: /\bfocus_slice_relevance_score\b|\bresolved_reference_count\b|\bselected_counts\b|\bprojection_boundary\b|\bcanonical_sources\b/i,
+  },
+  {
+    class_id: "reducer_internal_state",
+    description: "Reducer/daemon internal state identifiers leaked into visible assistant text",
+    pattern: /\bactive_writer\b|\bpause_flags\b|\blast_recorded_bd_transition_id\b|\btransport_session_state\b|\bwork_loop\.run\b|\bstate\.version\b/i,
+  },
+] as const;
+
+export function detectForbiddenVisibleOutputLeakClasses(text: string): string[] {
+  const normalized = stripQuotedFocusaContext(String(text || "")).trim();
+  if (!normalized) return [];
+  return FORBIDDEN_VISIBLE_OUTPUT_LEAK_CLASSES
+    .filter((entry) => entry.pattern.test(normalized))
+    .map((entry) => entry.class_id);
+}
+
 export function isNonTaskStatusLikeText(text: string): boolean {
   const normalized = String(text || "").replace(/\s+/g, " ").trim();
   if (!normalized) return false;
@@ -236,6 +307,72 @@ export function deriveQueryScope(askKind: PiCurrentAskKind): Pick<PiQueryScope, 
   };
 }
 
+export function detectScopeFailureSignals(params: {
+  askText: string;
+  askKind: PiCurrentAskKind;
+  scopeKind: PiQueryScope["scopeKind"];
+  assistantOutput: string;
+  leakClasses?: string[];
+}): ScopeFailureSignal[] {
+  const askText = stripQuotedFocusaContext(params.askText || "").trim().toLowerCase();
+  const output = String(params.assistantOutput || "").trim();
+  if (!output) return [];
+
+  const outputLower = output.toLowerCase();
+  const askTokens = tokenizeForRelevance(askText).filter((token) => token.length >= 4).slice(0, 12);
+  const overlapCount = askTokens.filter((token) => outputLower.includes(token)).length;
+  const failures: ScopeFailureSignal[] = [];
+
+  const addFailure = (signal: ScopeFailureSignal) => {
+    if (!failures.some((existing) => existing.kind === signal.kind)) failures.push(signal);
+  };
+
+  if ((params.leakClasses || []).some((cls) => cls === "raw_focus_state_serialization" || cls === "internal_routing_reasons")) {
+    addFailure({
+      kind: "scope_contamination",
+      severity: "high",
+      reason: "assistant output leaked internal Focusa routing/state payload",
+    });
+  }
+
+  if (askTokens.length >= 2 && overlapCount === 0 && output.length >= 120) {
+    addFailure({
+      kind: "wrong_question_answered",
+      severity: "medium",
+      reason: "assistant output has no lexical overlap with current ask",
+    });
+  }
+
+  if ((params.scopeKind === "fresh_question" || params.scopeKind === "correction") && /\b(as we discussed|as noted earlier|continuing from|from the previous task|carry(ing)? over)\b/i.test(outputLower)) {
+    addFailure({
+      kind: "context_overcarry",
+      severity: "medium",
+      reason: "fresh/correction scope output referenced prior-thread carryover",
+    });
+  }
+
+  if ((params.scopeKind === "fresh_question" || params.scopeKind === "correction") && /\b(other thread|adjacent thread|another task|previous thread|neighbor(ing)? task)\b/i.test(outputLower)) {
+    addFailure({
+      kind: "adjacent_thread_leakage",
+      severity: "medium",
+      reason: "fresh/correction scope output referenced adjacent thread/task",
+    });
+  }
+
+  if ((params.askKind === "question" || params.askKind === "instruction")
+      && (params.scopeKind === "fresh_question" || params.scopeKind === "correction")
+      && /\b(more broadly|in general|also consider|additionally|in broader terms)\b/i.test(outputLower)
+      && overlapCount <= Math.max(1, Math.floor(askTokens.length / 4))) {
+    addFailure({
+      kind: "answer_broadening",
+      severity: "low",
+      reason: "fresh/correction scope output broadened beyond ask-specific terms",
+    });
+  }
+
+  return failures;
+}
+
 function tokenizeForRelevance(text: string): string[] {
   return Array.from(new Set(
     text
@@ -275,6 +412,14 @@ function scoreRelevance(candidate: string, askText: string): number {
   return score;
 }
 
+const GOVERNING_PRIOR_BAND_BOOST: Record<PiGoverningPriorKind, number> = {
+  hard_safety_prior: 10,
+  identity_prior: 8,
+  current_ask_prior: 7,
+  mission_commitment_prior: 5,
+  affordance_reality_prior: 4,
+};
+
 function freshnessBoost(updatedAt?: string | null, pinned?: boolean): number {
   if (pinned) return 4;
   if (!updatedAt) return 0;
@@ -291,10 +436,40 @@ function freshnessBoost(updatedAt?: string | null, pinned?: boolean): number {
   return 0;
 }
 
+function normalizeActiveGoverningPriors(priors: PiGoverningPriorKind[] | undefined): PiGoverningPriorKind[] {
+  const seen = new Set<PiGoverningPriorKind>();
+  const out: PiGoverningPriorKind[] = [];
+  for (const prior of priors || []) {
+    if (seen.has(prior)) continue;
+    seen.add(prior);
+    out.push(prior);
+  }
+  return out;
+}
+
+function governingPriorContribution(
+  itemPriorKinds: PiGoverningPriorKind[] | undefined,
+  activePriors: PiGoverningPriorKind[],
+): { priorBoost: number; appliedPriors: PiGoverningPriorKind[] } {
+  const itemPriorSet = new Set(itemPriorKinds || []);
+  const appliedPriors = activePriors.filter((prior) => itemPriorSet.has(prior));
+  const priorBoost = appliedPriors.reduce((max, prior) => {
+    const boost = GOVERNING_PRIOR_BAND_BOOST[prior] || 0;
+    return boost > max ? boost : max;
+  }, 0);
+  return { priorBoost, appliedPriors };
+}
+
 export function selectRelevantRankedItems(
   items: PiRankedItem[] | undefined,
   askText: string,
-  options?: { maxItems?: number; fallbackItems?: number; minScore?: number; allowStaleFallback?: boolean },
+  options?: {
+    maxItems?: number;
+    fallbackItems?: number;
+    minScore?: number;
+    allowStaleFallback?: boolean;
+    governingPriors?: PiGoverningPriorKind[];
+  },
 ): PiFocusSelection {
   const values = (items || []).filter((item): item is PiRankedItem => Boolean(item?.value && item.value.trim()));
   if (!values.length) return { items: [], excluded: [], scores: [] };
@@ -303,12 +478,22 @@ export function selectRelevantRankedItems(
   const fallbackItems = options?.fallbackItems ?? Math.min(2, maxItems);
   const minScore = options?.minScore ?? 2;
   const allowStaleFallback = options?.allowStaleFallback ?? true;
+  const activePriors = normalizeActiveGoverningPriors(options?.governingPriors);
   const ranked = values
-    .map((item, index) => ({
-      value: item.value,
-      index,
-      score: scoreRelevance(item.value, askText) + freshnessBoost(item.updatedAt, item.pinned),
-    }))
+    .map((item, index) => {
+      const relevanceScore = scoreRelevance(item.value, askText);
+      const freshness = freshnessBoost(item.updatedAt, item.pinned);
+      const { priorBoost, appliedPriors } = governingPriorContribution(item.priorKinds, activePriors);
+      return {
+        value: item.value,
+        index,
+        score: relevanceScore + freshness + priorBoost,
+        relevanceScore,
+        freshnessBoost: freshness,
+        priorBoost,
+        appliedPriors,
+      };
+    })
     .sort((a, b) => b.score - a.score || b.index - a.index);
 
   const relevant = ranked.filter((entry) => entry.score >= minScore).slice(0, maxItems);
@@ -324,7 +509,14 @@ export function selectRelevantRankedItems(
   return {
     items: chosenValues,
     excluded: values.map(({ value }) => value).filter((value) => !chosenSet.has(value)),
-    scores: ranked.map(({ value, score }) => ({ value, score })),
+    scores: ranked.map(({ value, score, relevanceScore, freshnessBoost, priorBoost, appliedPriors }) => ({
+      value,
+      score,
+      relevanceScore,
+      freshnessBoost,
+      priorBoost,
+      appliedPriors,
+    })),
   };
 }
 
@@ -349,16 +541,79 @@ export function selectionRelevanceScore(selection: PiFocusSelection): number {
   return scores.length ? Math.max(...scores) : 0;
 }
 
+export function retentionBucketsFromSelection(
+  selection: PiFocusSelection,
+  options?: { maxDecayed?: number; maxHistorical?: number },
+): PiRetentionBuckets {
+  const maxDecayed = Math.max(options?.maxDecayed ?? 2, 0);
+  const maxHistorical = Math.max(options?.maxHistorical ?? 2, 0);
+  const active = [...selection.items];
+  const activeSet = new Set(active);
+  const nonActive = selection.scores.filter((entry) => !activeSet.has(entry.value));
+
+  const decayed = nonActive
+    .filter((entry) => (entry.score ?? 0) >= 0)
+    .slice(0, maxDecayed)
+    .map((entry) => entry.value);
+
+  const decayedSet = new Set(decayed);
+  let historicalPool = nonActive.filter(
+    (entry) => (entry.score ?? 0) < 0 && !decayedSet.has(entry.value),
+  );
+  if (!historicalPool.length) {
+    historicalPool = nonActive.filter((entry) => !decayedSet.has(entry.value));
+  }
+
+  const historical = historicalPool
+    .slice(Math.max(historicalPool.length - maxHistorical, 0))
+    .map((entry) => entry.value);
+
+  return {
+    active,
+    decayed,
+    historical,
+    scores: selection.scores,
+  };
+}
+
+function inferGoverningPriorKinds(text: string): PiGoverningPriorKind[] {
+  const lower = text.toLowerCase();
+  const out: PiGoverningPriorKind[] = [];
+  const add = (kind: PiGoverningPriorKind) => {
+    if (!out.includes(kind)) out.push(kind);
+  };
+
+  if (/\b(safety|forbid|forbidden|never|must_not|must not|policy|destructive|high[-_ ]risk|constraint)\b/.test(lower)) {
+    add("hard_safety_prior");
+  }
+  if (/\b(identity|role|operator|owner|author|user|persona)\b/.test(lower)) {
+    add("identity_prior");
+  }
+  if (/\b(current[_ ]ask|query|scope|question|correction|steering|subject)\b/.test(lower)) {
+    add("current_ask_prior");
+  }
+  if (/\b(mission|intent|goal|focus|commitment|work[_ ]item|task|tranche)\b/.test(lower)) {
+    add("mission_commitment_prior");
+  }
+  if (/\b(affordance|permission|tool|execution|environment|transport|worktree|dependency|resource)\b/.test(lower)) {
+    add("affordance_reality_prior");
+  }
+
+  return out;
+}
+
 export function formatWorkingSetItems(records: Array<{ key?: string; value?: string; updated_at?: string; pinned?: boolean }> | undefined): PiRankedItem[] {
   const out: PiRankedItem[] = [];
   for (const record of records || []) {
     const key = String(record?.key || "").trim();
     const value = String(record?.value || "").trim();
     if (!key || !value) continue;
+    const priorKinds = inferGoverningPriorKinds(`${key} ${value}`);
     out.push({
       value: `${key} = ${value}`,
       updatedAt: record?.updated_at || null,
       pinned: Boolean(record?.pinned),
+      priorKinds,
     });
   }
   return out;
@@ -371,10 +626,12 @@ export function formatVerifiedDeltaItems(handles: Array<{ kind?: string; id?: st
     const id = String(handle?.id || "").trim();
     const label = String(handle?.label || "unnamed").trim() || "unnamed";
     if (!id) continue;
+    const priorKinds = inferGoverningPriorKinds(`${kind} ${label}`);
     out.push({
       value: `[HANDLE:${kind}:${id} "${label}"]`,
       updatedAt: handle?.created_at || null,
       pinned: Boolean(handle?.pinned),
+      priorKinds,
     });
   }
   return out;

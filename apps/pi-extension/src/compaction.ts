@@ -46,9 +46,10 @@ function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: n
 
 function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, attempt: number) {
   if (!S.compactResumePending) return;
-  // No artificial exhaustion cap: keep retrying while pending, with bounded cadence.
-  const boundedAttempt = Math.min(Math.max(attempt, 1), 6);
-  const delayMs = Math.min(4000, 700 * boundedAttempt);
+  // No artificial exhaustion or attempt cap: keep retrying while pending.
+  // Cadence remains bounded by delay ceiling to avoid tight retry loops.
+  const retryAttempt = Math.max(attempt, 1);
+  const delayMs = Math.min(4000, 700 * retryAttempt);
   compactResumeRetryTimer = setTimeout(() => {
     compactResumeRetryTimer = null;
     if (!S.compactResumePending) return;
@@ -57,7 +58,7 @@ function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, attempt: 
       agent.continue().catch(() => {});
     }
     // If continuation queue was dropped, resend hidden steer on later attempts.
-    if (boundedAttempt >= 2 && S.pi) {
+    if (retryAttempt >= 2 && S.pi) {
       try {
         S.pi.sendMessage(
           { customType: "focusa-compact-resume", content: steerMessage, display: false },
@@ -67,8 +68,7 @@ function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, attempt: 
         // no-op
       }
     }
-    const nextAttempt = boundedAttempt >= 6 ? 6 : boundedAttempt + 1;
-    scheduleCompactionResumeRetry(ctx, steerMessage, nextAttempt);
+    scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
   }, delayMs);
 }
 

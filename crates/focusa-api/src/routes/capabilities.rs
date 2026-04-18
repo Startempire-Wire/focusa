@@ -55,10 +55,7 @@ struct AgentsQuery {
     cursor: Option<String>,
 }
 
-fn active_frame(
-    frames: &[FrameRecord],
-    active_id: Option<uuid::Uuid>,
-) -> Option<&FrameRecord> {
+fn active_frame(frames: &[FrameRecord], active_id: Option<uuid::Uuid>) -> Option<&FrameRecord> {
     let id = active_id?;
     frames.iter().find(|f| f.id == id)
 }

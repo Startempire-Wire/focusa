@@ -157,7 +157,7 @@ pub fn assemble(
         safety_rules: &[],
         config,
         rehydrate_handles: None,
-            thesis: None,
+        thesis: None,
     };
     assemble_from(input)
 }
@@ -240,10 +240,8 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
 
     // Slot 1b: Constitution context. Under tight budgets, this degrades before
     // active mission semantics so intent/constraints/decisions survive longer.
-    let mut slot_constitution = build_constitution_slot(
-        input.constitution_principles,
-        input.safety_rules,
-    );
+    let mut slot_constitution =
+        build_constitution_slot(input.constitution_principles, input.safety_rules);
 
     // Slot 2: Operating rules.
     let mut slot_rules = build_rules_slot(input.rules);
@@ -251,18 +249,28 @@ pub fn assemble_from(input: AssemblyInput<'_>) -> AssembledPrompt {
     // Slot 3: Active focus frame + thread thesis.
     let mut slot_focus = build_focus_slot(input.frame_title, input.focus_state, input.ascc);
     if let Some(thesis) = input.thesis
-        && !thesis.primary_intent.is_empty() {
-            slot_focus.push_str(&format!("\nTHREAD THESIS:\n  Intent: {}\n", thesis.primary_intent));
-            if !thesis.secondary_goals.is_empty() {
-                slot_focus.push_str(&format!("  Goals: {}\n", thesis.secondary_goals.join(", ")));
-            }
-            if !thesis.open_questions.is_empty() {
-                slot_focus.push_str(&format!("  Open questions: {}\n", thesis.open_questions.join("; ")));
-            }
-            if thesis.confidence.score > 0.0 {
-                slot_focus.push_str(&format!("  Confidence: {:.0}%\n", thesis.confidence.score * 100.0));
-            }
+        && !thesis.primary_intent.is_empty()
+    {
+        slot_focus.push_str(&format!(
+            "\nTHREAD THESIS:\n  Intent: {}\n",
+            thesis.primary_intent
+        ));
+        if !thesis.secondary_goals.is_empty() {
+            slot_focus.push_str(&format!("  Goals: {}\n", thesis.secondary_goals.join(", ")));
         }
+        if !thesis.open_questions.is_empty() {
+            slot_focus.push_str(&format!(
+                "  Open questions: {}\n",
+                thesis.open_questions.join("; ")
+            ));
+        }
+        if thesis.confidence.score > 0.0 {
+            slot_focus.push_str(&format!(
+                "  Confidence: {:.0}%\n",
+                thesis.confidence.score * 100.0
+            ));
+        }
+    }
 
     // Slot 4: Parent context.
     let mut slot_parents = build_parents_slot(input.parent_frames);
@@ -604,7 +612,11 @@ fn build_focus_slot_reduced(
             if sections.slot_meta.artifacts.pinned && !sections.artifacts.is_empty() {
                 out.push_str("ARTIFACTS:\n");
                 for a in &sections.artifacts {
-                    out.push_str(&format!("  - [{}] {}\n", artifact_kind_str(a.kind), a.label));
+                    out.push_str(&format!(
+                        "  - [{}] {}\n",
+                        artifact_kind_str(a.kind),
+                        a.label
+                    ));
                 }
             }
         }
@@ -629,7 +641,12 @@ fn build_focus_digest(title: &str, state: &FocusState) -> String {
 }
 
 fn build_constitution_slot(principles: &[String], safety_rules: &[String]) -> String {
-    build_constitution_slot_limited(principles, safety_rules, principles.len(), safety_rules.len())
+    build_constitution_slot_limited(
+        principles,
+        safety_rules,
+        principles.len(),
+        safety_rules.len(),
+    )
 }
 
 fn build_constitution_slot_limited(
@@ -912,7 +929,7 @@ mod tests {
     fn test_rehydration_field() {
         let config = test_config();
         let state = test_state();
-        
+
         // Test with rehydration disabled (None).
         let input_no_rehydrate = AssemblyInput {
             focus_state: &state,
@@ -931,7 +948,7 @@ mod tests {
         };
         let result1 = assemble_from(input_no_rehydrate);
         assert!(!result1.content.contains("[REHYDRATED]"));
-        
+
         // Test with rehydration enabled (Some).
         let input_with_rehydrate = AssemblyInput {
             focus_state: &state,

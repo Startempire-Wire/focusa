@@ -6,39 +6,249 @@
 
 use crate::server::AppState;
 use axum::extract::{Query, State};
-use axum::{routing::get, Json, Router};
+use axum::{Json, Router, routing::get};
 use focusa_core::types::{FocusaState, FrameRecord, HandleKind};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 const OBJECT_TYPES: &[&str] = &[
-    "repo", "package", "module", "file", "symbol", "route", "endpoint", "schema", "migration", "dependency", "test", "environment",
-    "task", "bug", "feature", "decision", "convention", "constraint", "risk", "milestone",
-    "goal", "subgoal", "active_focus", "open_loop", "acceptance_criterion",
-    "patch", "diff", "failure", "verification", "artifact",
+    "repo",
+    "package",
+    "module",
+    "file",
+    "symbol",
+    "route",
+    "endpoint",
+    "schema",
+    "migration",
+    "dependency",
+    "test",
+    "environment",
+    "capability",
+    "tool_surface",
+    "permission",
+    "authority_boundary",
+    "precondition",
+    "resource",
+    "cost_model",
+    "latency_profile",
+    "reliability_profile",
+    "reversibility_profile",
+    "ownership",
+    "execution_context",
+    "affordance",
+    "page",
+    "region",
+    "component",
+    "variant",
+    "content_slot",
+    "token",
+    "layout_rule",
+    "interaction",
+    "ui_state",
+    "binding",
+    "validation_rule",
+    "visual_artifact",
+    "task",
+    "bug",
+    "feature",
+    "decision",
+    "convention",
+    "constraint",
+    "risk",
+    "milestone",
+    "goal",
+    "subgoal",
+    "active_focus",
+    "open_loop",
+    "acceptance_criterion",
+    "patch",
+    "diff",
+    "failure",
+    "verification",
+    "artifact",
+    "current_ask",
+    "query_scope",
+    "relevant_context_set",
+    "excluded_context_set",
+    "scope_failure",
+    "canonical_entity",
+    "reference_alias",
+    "resolution_candidate",
+    "resolution_decision",
+    "supersession_record",
+    "projection",
+    "view_profile",
+    "projection_rule",
+    "projection_boundary",
+    "ontology_version",
+    "compatibility_profile",
+    "migration_plan",
+    "deprecation_record",
+    "governance_decision",
+    "actor",
+    "role_profile",
+    "ontology_domain",
+    "shared_layer",
 ];
 const STATUS_VOCABULARY: &[&str] = &[
-    "active", "speculative", "blocked", "verified", "stale", "deprecated", "canonical", "experimental",
+    "proposed",
+    "candidate",
+    "active",
+    "speculative",
+    "blocked",
+    "verified",
+    "failed",
+    "stale",
+    "deprecated",
+    "superseded",
+    "retired",
+    "completed",
+    "canonical",
+    "experimental",
 ];
 const MEMBERSHIP_CLASSES: &[&str] = &[
-    "pinned", "deterministic", "verified", "inferred", "provisional",
+    "pinned",
+    "deterministic",
+    "verified",
+    "inferred",
+    "provisional",
 ];
 const PROVENANCE_CLASSES: &[&str] = &[
-    "parser_derived", "tool_derived", "user_asserted", "model_inferred", "reducer_promoted", "verification_confirmed",
+    "parser_derived",
+    "tool_derived",
+    "user_asserted",
+    "operator_asserted",
+    "artifact_derived",
+    "screenshot_derived",
+    "runtime_observed",
+    "model_inferred",
+    "reducer_promoted",
+    "verification_confirmed",
 ];
 const LINK_TYPES: &[&str] = &[
-    "imports", "calls", "renders", "persists_to", "depends_on", "configured_by", "tested_by", "implements", "violates", "blocks", "supersedes", "belongs_to_goal", "verifies", "derived_from",
-    "contains", "declared_in", "targets_schema", "owned_by_repo",
+    "imports",
+    "calls",
+    "renders",
+    "persists_to",
+    "depends_on",
+    "configured_by",
+    "tested_by",
+    "implements",
+    "violates",
+    "blocks",
+    "supersedes",
+    "belongs_to_goal",
+    "verifies",
+    "derived_from",
+    "contains",
+    "declared_in",
+    "targets_schema",
+    "owned_by_repo",
+    "enabled_by",
+    "requires_permission",
+    "bounded_by_authority",
+    "consumes_resource",
+    "has_reliability",
+    "has_reversibility",
+    "available_in_context",
+    "blocks_execution_of",
+    "supports_execution_of",
+    "composed_of",
+    "variants_of",
+    "fills_slot",
+    "aligns_with",
+    "inherits_token",
+    "binds_to",
+    "transitions_to",
+    "validates",
+    "derived_from_reference",
+    "governed_by",
+    "includes_context",
+    "excludes_context",
+    "violates_scope_of",
+    "aliases",
+    "candidate_for",
+    "resolved_as",
+    "equivalent_to",
+    "supersedes_entity",
+    "derived_from_canonical",
+    "shaped_by_view",
+    "allowed_for_role",
+    "versioned_as",
+    "compatible_with",
+    "migrated_by",
+    "deprecated_by",
+    "approved_by_governance",
 ];
 const ACTION_TYPES: &[&str] = &[
-    "refactor_module", "modify_schema", "add_route", "add_test", "verify_invariant", "promote_decision", "mark_blocked", "resolve_risk", "complete_task", "rollback_change",
+    "refactor_module",
+    "modify_schema",
+    "add_route",
+    "add_test",
+    "verify_invariant",
+    "promote_decision",
+    "mark_blocked",
+    "resolve_risk",
+    "complete_task",
+    "rollback_change",
+    "detect_affordances",
+    "verify_permissions",
+    "verify_preconditions",
+    "evaluate_dependencies",
+    "estimate_cost",
+    "estimate_latency",
+    "estimate_reliability",
+    "estimate_reversibility",
+    "choose_execution_path",
+    "escalate_authority",
+    "mark_unavailable",
+    "derive_structure",
+    "extract_components",
+    "derive_slots",
+    "infer_tokens",
+    "infer_spacing",
+    "infer_interaction_and_state",
+    "derive_implementation_semantics",
+    "derive_component_tree",
+    "derive_plumbing_requirements",
+    "map_tokens_to_surfaces",
+    "map_states_to_views",
+    "map_bindings_and_validation",
+    "synthesize_completion_checklist",
+    "determine_current_ask",
+    "build_query_scope",
+    "select_relevant_context",
+    "exclude_irrelevant_context",
+    "verify_answer_scope",
+    "record_scope_failure",
+    "detect_aliases",
+    "build_resolution_candidates",
+    "resolve_identity",
+    "verify_resolution",
+    "record_supersession",
+    "build_projection",
+    "compress_projection",
+    "verify_projection_fidelity",
+    "switch_view_profile",
+    "create_version",
+    "declare_compatibility",
+    "build_migration_plan",
+    "execute_migration",
+    "deprecate_schema_element",
+    "review_governance_change",
+    "verify_post_migration_conformance",
 ];
 const SLICE_TYPES: &[&str] = &[
-    "active_mission", "debugging", "refactor", "regression", "architecture",
+    "active_mission",
+    "debugging",
+    "refactor",
+    "regression",
+    "architecture",
 ];
 const MAX_DISCOVERED_PATHS: usize = 96;
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
@@ -58,6 +268,34 @@ struct SliceQuery {
 
 fn default_slice_type() -> String {
     "active_mission".to_string()
+}
+
+fn normalize_slice_type(slice_type: &str) -> &str {
+    if SLICE_TYPES.iter().any(|kind| *kind == slice_type) {
+        slice_type
+    } else {
+        "active_mission"
+    }
+}
+
+fn slice_view_profile(slice_type: &str) -> &'static str {
+    match normalize_slice_type(slice_type) {
+        "debugging" => "pi_debugging_view",
+        "refactor" => "pi_refactor_view",
+        "regression" => "pi_regression_view",
+        "architecture" => "pi_architecture_view",
+        _ => "pi_operator_view",
+    }
+}
+
+fn slice_projection_kind(slice_type: &str) -> &'static str {
+    match normalize_slice_type(slice_type) {
+        "debugging" => "debugging_projection",
+        "refactor" => "refactor_projection",
+        "regression" => "regression_projection",
+        "architecture" => "architecture_projection",
+        _ => "active_mission_projection",
+    }
 }
 
 fn slug(input: &str) -> String {
@@ -89,12 +327,42 @@ fn object_required_properties(object_type: &str) -> &'static [&'static str] {
         "file" => &["id", "path", "file_type", "language"],
         "symbol" => &["id", "file_id", "symbol_name", "symbol_kind"],
         "route" => &["id", "path", "route_kind", "package_id"],
-        "endpoint" => &["id", "path_or_signature", "method_or_transport", "package_id"],
+        "endpoint" => &[
+            "id",
+            "path_or_signature",
+            "method_or_transport",
+            "package_id",
+        ],
         "schema" => &["id", "schema_name", "storage_kind"],
         "migration" => &["id", "path", "schema_targets"],
         "dependency" => &["id", "name", "version", "dependency_kind"],
         "test" => &["id", "path", "test_kind"],
         "environment" => &["id", "name", "environment_kind"],
+        "capability" => &["id", "capability_kind", "status"],
+        "tool_surface" => &["id", "surface_kind", "status"],
+        "permission" => &["id", "permission_kind", "status"],
+        "authority_boundary" => &["id", "boundary_kind", "status"],
+        "precondition" => &["id", "precondition_kind", "status"],
+        "resource" => &["id", "resource_kind", "status"],
+        "cost_model" => &["id", "cost_kind", "status"],
+        "latency_profile" => &["id", "latency_kind", "status"],
+        "reliability_profile" => &["id", "reliability_kind", "status"],
+        "reversibility_profile" => &["id", "reversibility_kind", "status"],
+        "ownership" => &["id", "owner_kind", "status"],
+        "execution_context" => &["id", "context_kind", "status"],
+        "affordance" => &["id", "affordance_kind", "status"],
+        "page" => &["id", "name", "page_kind", "primary_goal", "status"],
+        "region" => &["id", "name", "region_kind", "status"],
+        "component" => &["id", "name", "component_kind", "status"],
+        "variant" => &["id", "name", "variant_kind", "status"],
+        "content_slot" => &["id", "slot_kind", "status"],
+        "token" => &["id", "token_kind", "value", "status"],
+        "layout_rule" => &["id", "rule_kind", "status"],
+        "interaction" => &["id", "interaction_kind", "status"],
+        "ui_state" => &["id", "state_kind", "status"],
+        "binding" => &["id", "binding_kind", "status"],
+        "validation_rule" => &["id", "rule_kind", "status"],
+        "visual_artifact" => &["id", "artifact_kind", "status"],
         "task" => &["id", "title", "status", "priority"],
         "bug" => &["id", "title", "severity", "status"],
         "feature" => &["id", "title", "status"],
@@ -113,6 +381,29 @@ fn object_required_properties(object_type: &str) -> &'static [&'static str] {
         "failure" => &["id", "failure_kind", "timestamp", "status"],
         "verification" => &["id", "method", "result", "timestamp"],
         "artifact" => &["id", "handle", "artifact_kind", "status"],
+        "current_ask" => &["id", "ask_text", "ask_kind", "status"],
+        "query_scope" => &["id", "scope_kind", "status"],
+        "relevant_context_set" => &["id", "selection_kind", "status"],
+        "excluded_context_set" => &["id", "exclusion_kind", "status"],
+        "scope_failure" => &["id", "failure_kind", "severity", "status"],
+        "canonical_entity" => &["id", "entity_kind", "status"],
+        "reference_alias" => &["id", "alias_kind", "status"],
+        "resolution_candidate" => &["id", "candidate_kind", "status"],
+        "resolution_decision" => &["id", "decision_kind", "status"],
+        "supersession_record" => &["id", "record_kind", "status"],
+        "projection" => &["id", "projection_kind", "status"],
+        "view_profile" => &["id", "view_kind", "status"],
+        "projection_rule" => &["id", "rule_kind", "status"],
+        "projection_boundary" => &["id", "boundary_kind", "status"],
+        "ontology_version" => &["id", "version_kind", "status"],
+        "compatibility_profile" => &["id", "profile_kind", "status"],
+        "migration_plan" => &["id", "plan_kind", "status"],
+        "deprecation_record" => &["id", "record_kind", "status"],
+        "governance_decision" => &["id", "decision_kind", "status"],
+        "actor" => &["id", "actor_kind", "status"],
+        "role_profile" => &["id", "role_kind", "status"],
+        "ontology_domain" => &["id", "domain_kind", "status"],
+        "shared_layer" => &["id", "layer_kind", "status"],
         _ => &["id", "status"],
     }
 }
@@ -129,6 +420,120 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
         "resolve_risk" => &["risk", "verification", "task"],
         "complete_task" => &["task", "goal", "milestone"],
         "rollback_change" => &["patch", "diff", "artifact"],
+        "detect_affordances" => &[
+            "affordance",
+            "execution_context",
+            "tool_surface",
+            "capability",
+        ],
+        "verify_permissions" => &[
+            "permission",
+            "authority_boundary",
+            "affordance",
+            "capability",
+        ],
+        "verify_preconditions" => &["precondition", "dependency", "resource", "affordance"],
+        "evaluate_dependencies" => &["dependency", "precondition", "affordance", "capability"],
+        "estimate_cost" => &["cost_model", "resource", "affordance"],
+        "estimate_latency" => &["latency_profile", "execution_context", "affordance"],
+        "estimate_reliability" => &["reliability_profile", "affordance", "tool_surface"],
+        "estimate_reversibility" => &["reversibility_profile", "affordance", "tool_surface"],
+        "choose_execution_path" => &["affordance", "task", "execution_context", "risk"],
+        "escalate_authority" => &[
+            "authority_boundary",
+            "permission",
+            "ownership",
+            "affordance",
+        ],
+        "mark_unavailable" => &["affordance", "precondition", "dependency", "resource"],
+        "derive_structure" => &["visual_artifact", "page", "region", "layout_rule"],
+        "extract_components" => &["visual_artifact", "component", "variant", "region"],
+        "derive_slots" => &["content_slot", "component", "region", "visual_artifact"],
+        "infer_tokens" => &["token", "component", "region", "visual_artifact"],
+        "infer_spacing" => &["layout_rule", "token", "region", "component"],
+        "infer_interaction_and_state" => &["interaction", "ui_state", "binding", "validation_rule"],
+        "derive_implementation_semantics" => &["component", "binding", "validation_rule", "page"],
+        "derive_component_tree" => &["page", "region", "component", "content_slot"],
+        "derive_plumbing_requirements" => {
+            &["interaction", "ui_state", "binding", "validation_rule"]
+        }
+        "map_tokens_to_surfaces" => &["token", "layout_rule", "component", "region"],
+        "map_states_to_views" => &["ui_state", "interaction", "component", "page"],
+        "map_bindings_and_validation" => &["binding", "validation_rule", "component", "ui_state"],
+        "synthesize_completion_checklist" => {
+            &["verification", "acceptance_criterion", "task", "artifact"]
+        }
+        "determine_current_ask" => &["current_ask", "query_scope"],
+        "build_query_scope" => &["query_scope", "current_ask"],
+        "select_relevant_context" => &[
+            "relevant_context_set",
+            "current_ask",
+            "decision",
+            "constraint",
+            "artifact",
+            "visual_artifact",
+        ],
+        "exclude_irrelevant_context" => &[
+            "excluded_context_set",
+            "current_ask",
+            "decision",
+            "constraint",
+            "artifact",
+            "visual_artifact",
+        ],
+        "verify_answer_scope" => &[
+            "query_scope",
+            "current_ask",
+            "verification",
+            "scope_failure",
+        ],
+        "record_scope_failure" => &["scope_failure", "current_ask", "query_scope"],
+        "detect_aliases" => &["reference_alias", "canonical_entity", "artifact"],
+        "build_resolution_candidates" => &[
+            "resolution_candidate",
+            "canonical_entity",
+            "reference_alias",
+        ],
+        "resolve_identity" => &[
+            "resolution_decision",
+            "canonical_entity",
+            "resolution_candidate",
+        ],
+        "verify_resolution" => &["verification", "resolution_decision", "canonical_entity"],
+        "record_supersession" => &["supersession_record", "canonical_entity"],
+        "build_projection" => &[
+            "projection",
+            "view_profile",
+            "projection_rule",
+            "projection_boundary",
+        ],
+        "compress_projection" => &["projection", "projection_boundary"],
+        "verify_projection_fidelity" => {
+            &["projection", "verification", "query_scope", "current_ask"]
+        }
+        "switch_view_profile" => &["view_profile", "projection", "actor", "role_profile"],
+        "create_version" => &["ontology_version", "ontology_domain", "shared_layer"],
+        "declare_compatibility" => &["ontology_version", "compatibility_profile"],
+        "build_migration_plan" => &["migration_plan", "ontology_version", "ontology_domain"],
+        "execute_migration" => &["migration_plan", "ontology_version"],
+        "deprecate_schema_element" => &[
+            "deprecation_record",
+            "ontology_domain",
+            "shared_layer",
+            "ontology_version",
+        ],
+        "review_governance_change" => &[
+            "governance_decision",
+            "migration_plan",
+            "deprecation_record",
+            "ontology_version",
+        ],
+        "verify_post_migration_conformance" => &[
+            "verification",
+            "ontology_domain",
+            "shared_layer",
+            "ontology_version",
+        ],
         _ => OBJECT_TYPES,
     }
 }
@@ -151,12 +556,30 @@ fn action_contract(action_type: &str) -> Value {
         "refactor_module" => (
             json!({"type":"object","required":["module_id"],"properties":{"module_id":{"type":"string"},"scope":{"type":"string"},"reason":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","side_effect_summary","verification_result_or_next_step"]}),
-            json!(["focus_frame_update", "command dispatch", "reducer-visible events"]),
-            json!(["validation_failure", "dependency_failure", "execution_failure", "verification_failure", "timeout", "partial_success"]),
+            json!([
+                "focus_frame_update",
+                "command dispatch",
+                "reducer-visible events"
+            ]),
+            json!([
+                "validation_failure",
+                "dependency_failure",
+                "execution_failure",
+                "verification_failure",
+                "timeout",
+                "partial_success"
+            ]),
             json!("best_effort, repeatable with same target module"),
             json!({"available":true,"mechanism":"rollback_change / VCS revert"}),
-            json!(["tests/tool_contract_test.sh", "tests/command_write_contract_test.sh"]),
-            json!(["module updated", "verification queued", "artifact refs produced"]),
+            json!([
+                "tests/tool_contract_test.sh",
+                "tests/command_write_contract_test.sh"
+            ]),
+            json!([
+                "module updated",
+                "verification queued",
+                "artifact refs produced"
+            ]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"manual retry after verification or dependency remediation","max_attempts":2}),
             json!({"behavior":"emit blocker/failure + preserve checkpoint-visible state"}),
@@ -168,12 +591,27 @@ fn action_contract(action_type: &str) -> Value {
         "modify_schema" => (
             json!({"type":"object","required":["schema_id"],"properties":{"schema_id":{"type":"string"},"migration_path":{"type":"string"},"reason":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","evidence_refs","verification_result_or_next_step"]}),
-            json!(["migration proposal", "schema evidence", "verification hooks"]),
-            json!(["validation_failure", "dependency_failure", "permission_failure", "execution_failure", "verification_failure", "rollback_failure"]),
+            json!([
+                "migration proposal",
+                "schema evidence",
+                "verification hooks"
+            ]),
+            json!([
+                "validation_failure",
+                "dependency_failure",
+                "permission_failure",
+                "execution_failure",
+                "verification_failure",
+                "rollback_failure"
+            ]),
             json!("non-idempotent without migration identity; requires explicit target"),
             json!({"available":true,"mechanism":"rollback_change / compensating migration"}),
             json!(["tests/tool_contract_test.sh", "tests/golden_tasks_eval.sh"]),
-            json!(["schema target updated", "migration linked", "verification pending"]),
+            json!([
+                "schema target updated",
+                "migration linked",
+                "verification pending"
+            ]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"no automatic retry on schema mutation without operator approval","max_attempts":1}),
             json!({"behavior":"emit blocker on missing dependency/permission"}),
@@ -185,11 +623,23 @@ fn action_contract(action_type: &str) -> Value {
         "add_route" => (
             json!({"type":"object","required":["path_or_signature"],"properties":{"path_or_signature":{"type":"string"},"method_or_transport":{"type":"string"},"package_id":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","side_effect_summary","ontology_delta_candidates"]}),
-            json!(["route/endpoint projection", "verification hooks", "artifact refs"]),
-            json!(["validation_failure", "execution_failure", "verification_failure", "timeout"]),
+            json!([
+                "route/endpoint projection",
+                "verification hooks",
+                "artifact refs"
+            ]),
+            json!([
+                "validation_failure",
+                "execution_failure",
+                "verification_failure",
+                "timeout"
+            ]),
             json!("idempotent only when path+method pair already canonicalized"),
             json!({"available":true,"mechanism":"rollback_change / route removal"}),
-            json!(["tests/ontology_world_contract_test.sh", "tests/tool_contract_test.sh"]),
+            json!([
+                "tests/ontology_world_contract_test.sh",
+                "tests/tool_contract_test.sh"
+            ]),
             json!(["route added", "endpoint added", "test target expected"]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry once after validation correction","max_attempts":2}),
@@ -203,11 +653,23 @@ fn action_contract(action_type: &str) -> Value {
             json!({"type":"object","required":["target_path"],"properties":{"target_path":{"type":"string"},"test_kind":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","verification_result_or_next_step"]}),
             json!(["test artifact creation", "verification linkage"]),
-            json!(["validation_failure", "execution_failure", "partial_success", "timeout"]),
+            json!([
+                "validation_failure",
+                "execution_failure",
+                "partial_success",
+                "timeout"
+            ]),
             json!("idempotent when target_path already contains canonical test"),
             json!({"available":true,"mechanism":"rollback_change / file revert"}),
-            json!(["tests/ontology_world_contract_test.sh", "tests/golden_tasks_eval.sh"]),
-            json!(["test object added", "tested_by link added", "verification target queued"]),
+            json!([
+                "tests/ontology_world_contract_test.sh",
+                "tests/golden_tasks_eval.sh"
+            ]),
+            json!([
+                "test object added",
+                "tested_by link added",
+                "verification target queued"
+            ]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry once after dependency repair","max_attempts":2}),
             json!({"behavior":"mark as open loop if generation blocked"}),
@@ -219,10 +681,18 @@ fn action_contract(action_type: &str) -> Value {
             json!({"type":"object","required":["verification_target"],"properties":{"verification_target":{"type":"string"},"method":{"type":"string"}}}),
             json!({"required":["result_status","verification_result_or_next_step","evidence_refs"]}),
             json!(["verification record emission", "telemetry trace"]),
-            json!(["validation_failure", "execution_failure", "verification_failure", "timeout"]),
+            json!([
+                "validation_failure",
+                "execution_failure",
+                "verification_failure",
+                "timeout"
+            ]),
             json!("repeatable and expected to be idempotent over same target"),
             json!({"available":false,"mechanism":"n/a"}),
-            json!(["tests/trace_dimensions_test.sh", "tests/golden_tasks_eval.sh"]),
+            json!([
+                "tests/trace_dimensions_test.sh",
+                "tests/golden_tasks_eval.sh"
+            ]),
             json!(["verification object updated", "verifies link added"]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry after target stabilization","max_attempts":3}),
@@ -235,11 +705,22 @@ fn action_contract(action_type: &str) -> Value {
         "promote_decision" => (
             json!({"type":"object","required":["statement"],"properties":{"statement":{"type":"string"},"reason":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","ontology_delta_candidates"]}),
-            json!(["decision distillation", "proposal scoring", "canonical mutation"]),
-            json!(["validation_failure", "execution_failure", "verification_failure"]),
+            json!([
+                "decision distillation",
+                "proposal scoring",
+                "canonical mutation"
+            ]),
+            json!([
+                "validation_failure",
+                "execution_failure",
+                "verification_failure"
+            ]),
             json!("idempotent when same decision already canonical"),
             json!({"available":true,"mechanism":"superseding decision"}),
-            json!(["tests/behavioral_alignment_test.sh", "tests/proposal_kind_enforcement_test.sh"]),
+            json!([
+                "tests/behavioral_alignment_test.sh",
+                "tests/proposal_kind_enforcement_test.sh"
+            ]),
             json!(["decision object added", "belongs_to_goal link added"]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry after improved evidence only","max_attempts":2}),
@@ -253,11 +734,22 @@ fn action_contract(action_type: &str) -> Value {
             json!({"type":"object","required":["summary"],"properties":{"summary":{"type":"string"},"frame_context":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","side_effect_summary"]}),
             json!(["failure/blocker emission", "gate surfacing"]),
-            json!(["validation_failure", "dependency_failure", "execution_failure"]),
+            json!([
+                "validation_failure",
+                "dependency_failure",
+                "execution_failure"
+            ]),
             json!("repeatable; duplicates should converge on surfaced candidate state"),
             json!({"available":true,"mechanism":"resolve_risk / suppress candidate"}),
-            json!(["tests/checkpoint_trigger_test.sh", "tests/behavioral_alignment_test.sh"]),
-            json!(["failure object added", "blocks link added", "gate candidate surfaced"]),
+            json!([
+                "tests/checkpoint_trigger_test.sh",
+                "tests/behavioral_alignment_test.sh"
+            ]),
+            json!([
+                "failure object added",
+                "blocks link added",
+                "gate candidate surfaced"
+            ]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry after context change only","max_attempts":2}),
             json!({"behavior":"persist blocker + checkpoint before risky continuation"}),
@@ -270,10 +762,18 @@ fn action_contract(action_type: &str) -> Value {
             json!({"type":"object","required":["risk_id"],"properties":{"risk_id":{"type":"string"},"verification_target":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","verification_result_or_next_step"]}),
             json!(["risk status update", "verification record"]),
-            json!(["validation_failure", "execution_failure", "verification_failure", "timeout"]),
+            json!([
+                "validation_failure",
+                "execution_failure",
+                "verification_failure",
+                "timeout"
+            ]),
             json!("repeatable while risk remains active"),
             json!({"available":true,"mechanism":"mark_blocked or supersede risk"}),
-            json!(["tests/golden_tasks_eval.sh", "tests/trace_dimensions_test.sh"]),
+            json!([
+                "tests/golden_tasks_eval.sh",
+                "tests/trace_dimensions_test.sh"
+            ]),
             json!(["risk status changed", "verification added"]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry after evidence refresh","max_attempts":2}),
@@ -285,11 +785,18 @@ fn action_contract(action_type: &str) -> Value {
         "complete_task" => (
             json!({"type":"object","required":["task_id"],"properties":{"task_id":{"type":"string"},"completion_reason":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","side_effect_summary"]}),
-            json!(["frame completion", "checkpoint persistence", "lineage update"]),
+            json!([
+                "frame completion",
+                "checkpoint persistence",
+                "lineage update"
+            ]),
             json!(["validation_failure", "execution_failure", "partial_success"]),
             json!("idempotent when task already completed"),
             json!({"available":true,"mechanism":"supersede / reopen task"}),
-            json!(["tests/fork_compact_recovery_test.sh", "tests/checkpoint_trigger_test.sh"]),
+            json!([
+                "tests/fork_compact_recovery_test.sh",
+                "tests/checkpoint_trigger_test.sh"
+            ]),
             json!(["task status changed", "goal/open-loop state updated"]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"no blind retry after completion","max_attempts":1}),
@@ -303,10 +810,19 @@ fn action_contract(action_type: &str) -> Value {
             json!({"type":"object","required":["artifact_ref"],"properties":{"artifact_ref":{"type":"string"},"reason":{"type":"string"}}}),
             json!({"required":["result_status","affected_object_refs","side_effect_summary","verification_result_or_next_step"]}),
             json!(["artifact rollback", "checkpoint refresh", "summary node"]),
-            json!(["validation_failure", "permission_failure", "execution_failure", "rollback_failure", "timeout"]),
+            json!([
+                "validation_failure",
+                "permission_failure",
+                "execution_failure",
+                "rollback_failure",
+                "timeout"
+            ]),
             json!("idempotent once rollback reaches canonical target state"),
             json!({"available":true,"mechanism":"VCS revert / compensating change"}),
-            json!(["tests/fork_compact_recovery_test.sh", "tests/command_write_contract_test.sh"]),
+            json!([
+                "tests/fork_compact_recovery_test.sh",
+                "tests/command_write_contract_test.sh"
+            ]),
             json!(["patch/diff status changed", "verification pending"]),
             json!({"source":"/v1/status","job_timeout_ms_field":"worker_status.job_timeout_ms"}),
             json!({"policy":"retry only after permission/dependency remediation","max_attempts":2}),
@@ -316,10 +832,267 @@ fn action_contract(action_type: &str) -> Value {
                 {"surface":"http","method":"POST","path":"/v1/commands/submit","command":"compact"}
             ]),
         ),
+        "derive_structure"
+        | "extract_components"
+        | "derive_slots"
+        | "infer_tokens"
+        | "infer_spacing"
+        | "infer_interaction_and_state"
+        | "derive_implementation_semantics" => (
+            json!({"type":"object","required":["artifact_refs"],"properties":{"artifact_refs":{"type":"array","items":{"type":"string"}},"frame_id":{"type":"string"},"stage":{"type":"string"},"confidence_floor":{"type":"number"}}}),
+            json!({"required":["result_status","affected_object_refs","ontology_delta_candidates","evidence_refs","stage_confidence"]}),
+            json!([
+                "typed ontology proposals",
+                "evidence linkage",
+                "blueprint stage snapshot"
+            ]),
+            json!([
+                "validation_failure",
+                "insufficient_evidence",
+                "ambiguous_extraction",
+                "partial_success"
+            ]),
+            json!("deterministic within fixed artifacts and extraction policy version"),
+            json!({"available":true,"mechanism":"supersede proposal with refined extraction pass"}),
+            json!(["tests/ontology_visual_reverse_extraction_pipeline_contract_test.sh"]),
+            json!([
+                "visual object proposals emitted",
+                "stage confidence recorded",
+                "comparison baseline prepared"
+            ]),
+            json!({"source":"/v1/ontology/contracts","job_timeout_ms_field":null}),
+            json!({"policy":"rerun after adding artifacts or narrowing ambiguity","max_attempts":3}),
+            json!({"behavior":"preserve proposal-level outputs and emit missing-evidence markers"}),
+            json!([
+                {"surface":"http","method":"GET","path":"/v1/ontology/contracts","command":"ontology.contracts"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"}
+            ]),
+        ),
+        "derive_component_tree"
+        | "derive_plumbing_requirements"
+        | "map_tokens_to_surfaces"
+        | "map_states_to_views"
+        | "map_bindings_and_validation"
+        | "synthesize_completion_checklist" => (
+            json!({"type":"object","required":["blueprint_ref"],"properties":{"blueprint_ref":{"type":"string"},"frame_id":{"type":"string"},"implementation_target":{"type":"string"},"strictness":{"type":"string"}}}),
+            json!({"required":["result_status","affected_object_refs","handoff_outputs","plumbing_requirements","completion_checks","conformance_report","diff_validation_report","intent_preservation_result"]}),
+            json!([
+                "implementation handoff projection",
+                "typed plumbing map",
+                "completion readiness checklist",
+                "handoff conformance report",
+                "implementation diff validation report"
+            ]),
+            json!([
+                "validation_failure",
+                "insufficient_handoff_detail",
+                "missing_state_coverage",
+                "conformance_failure",
+                "diff_validation_failure",
+                "intent_drift_detected",
+                "partial_success"
+            ]),
+            json!("deterministic for fixed blueprint and implementation policy version"),
+            json!({"available":true,"mechanism":"supersede handoff outputs with refined blueprint mapping"}),
+            json!([
+                "tests/ontology_visual_implementation_handoff_contract_test.sh",
+                "tests/ontology_visual_implementation_handoff_conformance_diff_contract_test.sh"
+            ]),
+            json!([
+                "component-tree mapping emitted",
+                "plumbing coverage surfaced",
+                "completion checks synthesized",
+                "conformance report emitted",
+                "implementation diff validation recorded"
+            ]),
+            json!({"source":"/v1/ontology/contracts","job_timeout_ms_field":null}),
+            json!({"policy":"rerun after blueprint refinement or missing-plumbing remediation","max_attempts":3}),
+            json!({"behavior":"emit proposal-level handoff outputs with explicit uncovered plumbing gaps and explicit intent-preservation status"}),
+            json!([
+                {"surface":"http","method":"GET","path":"/v1/ontology/contracts","command":"ontology.contracts"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"}
+            ]),
+        ),
+        "determine_current_ask"
+        | "build_query_scope"
+        | "select_relevant_context"
+        | "exclude_irrelevant_context"
+        | "verify_answer_scope"
+        | "record_scope_failure" => (
+            json!({"type":"object","required":["current_ask"],"properties":{"current_ask":{"type":"string"},"ask_kind":{"type":"string"},"scope_kind":{"type":"string"},"carryover_policy":{"type":"string"},"excluded_context_reason":{"type":"string"},"excluded_context_labels":{"type":"array","items":{"type":"string"}},"source_turn_id":{"type":"string"}}}),
+            json!({"required":["result_status","scope_state","affected_object_refs","verification_result_or_next_step"]}),
+            json!([
+                "work-loop decision context update",
+                "scope-control object projection",
+                "scope governance linkage"
+            ]),
+            json!([
+                "validation_failure",
+                "scope_mismatch",
+                "context_write_rejected",
+                "verification_failure"
+            ]),
+            json!("idempotent for same current_ask/scope payload"),
+            json!({"available":true,"mechanism":"overwrite decision context with corrected scope payload"}),
+            json!([
+                "tests/work_loop_query_scope_boundary_contract_test.sh",
+                "tests/doc61_first_consumer_path_test.sh",
+                "tests/ontology_world_contract_test.sh"
+            ]),
+            json!([
+                "decision_context updated",
+                "query scope projected",
+                "scope violations surfaced when present"
+            ]),
+            json!({"source":"/v1/work-loop/status","job_timeout_ms_field":null}),
+            json!({"policy":"retry after writer-claim or payload correction","max_attempts":2}),
+            json!({"behavior":"emit context unchanged + scope failure evidence when write cannot be applied"}),
+            json!([
+                {"surface":"http","method":"POST","path":"/v1/work-loop/context","command":"work-loop.context"},
+                {"surface":"http","method":"GET","path":"/v1/work-loop/status","command":"work-loop.status"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"},
+                {"surface":"http","method":"GET","path":"/v1/events/recent","command":"events.recent"}
+            ]),
+        ),
+        "detect_aliases"
+        | "build_resolution_candidates"
+        | "resolve_identity"
+        | "verify_resolution"
+        | "record_supersession" => (
+            json!({"type":"object","required":["reference"],"properties":{"reference":{"type":"string"},"canonical_hint":{"type":"string"},"resolution_policy":{"type":"string"},"confidence_floor":{"type":"number"}}}),
+            json!({"required":["result_status","resolution_state","affected_object_refs","verification_result_or_next_step"]}),
+            json!([
+                "reference index lookup",
+                "identity resolution candidate ranking",
+                "canonical/supersession projection"
+            ]),
+            json!([
+                "validation_failure",
+                "reference_not_found",
+                "ambiguous_resolution",
+                "verification_failure"
+            ]),
+            json!("idempotent for same reference and resolution policy"),
+            json!({"available":true,"mechanism":"supersede resolution decision with higher-confidence canonical target"}),
+            json!([
+                "tests/doc74_reference_resolution_consumer_path_test.sh",
+                "tests/ontology_world_contract_test.sh"
+            ]),
+            json!([
+                "reference aliases surfaced",
+                "resolution candidates linked",
+                "resolution decisions/verifications projected"
+            ]),
+            json!({"source":"/v1/references/search","job_timeout_ms_field":null}),
+            json!({"policy":"retry after expanding evidence or reducing ambiguity","max_attempts":2}),
+            json!({"behavior":"emit candidate set only and mark unresolved when confidence floor not met"}),
+            json!([
+                {"surface":"http","method":"GET","path":"/v1/references/search","command":"references.search"},
+                {"surface":"http","method":"GET","path":"/v1/references","command":"references.list"},
+                {"surface":"http","method":"GET","path":"/v1/references/{ref_id}","command":"references.get"},
+                {"surface":"http","method":"GET","path":"/v1/references/{ref_id}/meta","command":"references.meta"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"}
+            ]),
+        ),
+        "build_projection"
+        | "compress_projection"
+        | "verify_projection_fidelity"
+        | "switch_view_profile" => (
+            json!({"type":"object","required":["projection_kind"],"properties":{"projection_kind":{"type":"string"},"view_profile":{"type":"string"},"scope_kind":{"type":"string"},"fidelity_target":{"type":"string"}}}),
+            json!({"required":["result_status","projection_state","affected_object_refs","verification_result_or_next_step"]}),
+            json!([
+                "projection view shaping",
+                "working-set boundary enforcement",
+                "fidelity verification"
+            ]),
+            json!([
+                "validation_failure",
+                "scope_overflow",
+                "projection_fidelity_failure",
+                "verification_failure"
+            ]),
+            json!("idempotent for stable source world + view profile"),
+            json!({"available":true,"mechanism":"switch view profile or tighten projection boundary"}),
+            json!([
+                "tests/ontology_world_contract_test.sh",
+                "tests/work_loop_query_scope_boundary_contract_test.sh"
+            ]),
+            json!([
+                "projection/view objects surfaced",
+                "projection boundaries represented",
+                "projection fidelity verifications emitted"
+            ]),
+            json!({"source":"/v1/ontology/world","job_timeout_ms_field":null}),
+            json!({"policy":"retry after boundary/profile adjustment","max_attempts":2}),
+            json!({"behavior":"return bounded projection with explicit omissions when fidelity cannot be satisfied"}),
+            json!([
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/slices","command":"ontology.slices"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/contracts","command":"ontology.contracts"}
+            ]),
+        ),
+        "create_version"
+        | "declare_compatibility"
+        | "build_migration_plan"
+        | "execute_migration"
+        | "deprecate_schema_element"
+        | "review_governance_change"
+        | "verify_post_migration_conformance" => (
+            json!({"type":"object","required":["version_ref"],"properties":{"version_ref":{"type":"string"},"domain":{"type":"string"},"compatibility_target":{"type":"string"},"migration_plan_ref":{"type":"string"},"governance_change_ref":{"type":"string"}}}),
+            json!({"required":["result_status","governance_state","affected_object_refs","verification_result_or_next_step"]}),
+            json!([
+                "ontology version/governance projection",
+                "migration conformance tracking",
+                "post-migration verification"
+            ]),
+            json!([
+                "validation_failure",
+                "governance_conflict",
+                "migration_conformance_failure",
+                "verification_failure"
+            ]),
+            json!("idempotent per version_ref + migration_plan_ref tuple"),
+            json!({"available":true,"mechanism":"supersede migration plan/version compatibility profile"}),
+            json!([
+                "tests/work_loop_migration_conformance_checks_test.sh",
+                "tests/doc78_remaining_frontier_contract_test.sh",
+                "tests/ontology_world_contract_test.sh"
+            ]),
+            json!([
+                "version and compatibility objects projected",
+                "migration/governance records represented",
+                "post-migration verifications surfaced"
+            ]),
+            json!({"source":"/v1/events/recent","job_timeout_ms_field":null}),
+            json!({"policy":"retry after governance approval or migration-plan correction","max_attempts":2}),
+            json!({"behavior":"emit governance decision plus pending conformance verification when migration cannot execute"}),
+            json!([
+                {"surface":"http","method":"GET","path":"/v1/ontology/contracts","command":"ontology.contracts"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"},
+                {"surface":"http","method":"GET","path":"/v1/events/recent","command":"events.recent"},
+                {"surface":"http","method":"GET","path":"/v1/work-loop/status","command":"work-loop.status"}
+            ]),
+        ),
         _ => (
-            json!({"type":"object"}), json!({}), json!([]), json!([]), json!("unknown"), json!({}), json!([]), json!([]), json!({}), json!({}), json!({}), json!([]),
+            json!({"type":"object"}),
+            json!({}),
+            json!([]),
+            json!([]),
+            json!("unknown"),
+            json!({}),
+            json!([]),
+            json!([]),
+            json!({}),
+            json!({}),
+            json!({}),
+            json!([]),
         ),
     };
+
+    let runtime_execution_supported = tool_mappings
+        .as_array()
+        .map(|mappings| !mappings.is_empty())
+        .unwrap_or(false);
 
     json!({
         "name": action_type,
@@ -336,6 +1109,30 @@ fn action_contract(action_type: &str) -> Value {
         "retry_policy": retry_policy,
         "degraded_fallback_behavior": degraded_fallback,
         "tool_mappings": tool_mappings,
+        "tool_action_metadata": {
+            "runtime_execution_supported": runtime_execution_supported,
+            "contract_role": "declarative_projection_only",
+            "route_surfaces": ["GET /v1/ontology/contracts", "GET /v1/ontology/world"]
+        },
+        "trace_metadata": {
+            "trace_surface": "projection_snapshot",
+            "emits_reducer_event_on_read": false,
+            "source_inputs": ["focus_state", "workspace_scan"]
+        },
+        "eval_metadata": {
+            "validation_mode": "route-contract-regression",
+            "backing_tests": ["tests/ontology_world_contract_test.sh", "tests/tool_contract_test.sh"]
+        },
+        "projection_metadata": {
+            "projection_kind": "read_only_runtime_projection",
+            "mutates_canonical_state": false,
+            "snapshot_consistency": "best_effort"
+        },
+        "governance_metadata": {
+            "api_permission_scope": null,
+            "writes_allowed": false,
+            "authority_note": "ontology routes project reducer/workspace state only"
+        }
     })
 }
 
@@ -369,7 +1166,10 @@ fn primitive_contracts() -> Json<Value> {
         })
         .collect();
 
-    let action_types: Vec<Value> = ACTION_TYPES.iter().map(|name| action_contract(name)).collect();
+    let action_types: Vec<Value> = ACTION_TYPES
+        .iter()
+        .map(|name| action_contract(name))
+        .collect();
 
     Json(json!({
         "object_types": object_types,
@@ -415,7 +1215,10 @@ fn walk_workspace(root: &Path) -> Vec<PathBuf> {
                 continue;
             }
             if path.is_dir() {
-                if matches!(name, "target" | "node_modules" | "dist" | "build" | ".beads") {
+                if matches!(
+                    name,
+                    "target" | "node_modules" | "dist" | "build" | ".beads"
+                ) {
                     continue;
                 }
                 stack.push(path);
@@ -581,9 +1384,10 @@ fn parse_symbols(content: &str, language: &str) -> Vec<(String, String)> {
             _ => None,
         };
         if let Some((name, kind)) = parsed
-            && !name.is_empty() {
-                out.push((name.to_string(), kind.to_string()));
-            }
+            && !name.is_empty()
+        {
+            out.push((name.to_string(), kind.to_string()));
+        }
         if out.len() >= MAX_DISCOVERED_SYMBOLS {
             break;
         }
@@ -735,43 +1539,44 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
 
     let package_json = root.join("package.json");
     if let Some(content) = read_text(&package_json)
-        && let Some((pkg_name, deps)) = parse_package_json(&content) {
-            let package_id = stable_id("package", &format!("npm:{}", pkg_name));
-            package_ids.push(package_id.clone());
+        && let Some((pkg_name, deps)) = parse_package_json(&content)
+    {
+        let package_id = stable_id("package", &format!("npm:{}", pkg_name));
+        package_ids.push(package_id.clone());
+        objects.push(json!({
+            "id": package_id,
+            "object_type": "package",
+            "repo_id": repo_id,
+            "name": pkg_name,
+            "package_type": "npm",
+            "path": "package.json",
+            "status": "canonical",
+            "membership_class": "deterministic",
+            "provenance_class": "parser_derived",
+            "fresh": true,
+        }));
+        for (dep, version) in deps.into_iter().take(16) {
+            let dep_id = stable_id("dependency", &format!("npm:{}", dep));
             objects.push(json!({
-                "id": package_id,
-                "object_type": "package",
-                "repo_id": repo_id,
-                "name": pkg_name,
-                "package_type": "npm",
-                "path": "package.json",
-                "status": "canonical",
+                "id": dep_id,
+                "object_type": "dependency",
+                "name": dep,
+                "version": version,
+                "dependency_kind": "npm",
+                "status": "verified",
                 "membership_class": "deterministic",
                 "provenance_class": "parser_derived",
                 "fresh": true,
             }));
-            for (dep, version) in deps.into_iter().take(16) {
-                let dep_id = stable_id("dependency", &format!("npm:{}", dep));
-                objects.push(json!({
-                    "id": dep_id,
-                    "object_type": "dependency",
-                    "name": dep,
-                    "version": version,
-                    "dependency_kind": "npm",
-                    "status": "verified",
-                    "membership_class": "deterministic",
-                    "provenance_class": "parser_derived",
-                    "fresh": true,
-                }));
-                links.push(json!({
-                    "type": "depends_on",
-                    "source_id": package_id,
-                    "target_id": dep_id,
-                    "evidence": "package.json dependencies",
-                    "status": "verified",
-                }));
-            }
+            links.push(json!({
+                "type": "depends_on",
+                "source_id": package_id,
+                "target_id": dep_id,
+                "evidence": "package.json dependencies",
+                "status": "verified",
+            }));
         }
+    }
 
     let package_id = package_ids
         .first()
@@ -813,10 +1618,11 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
         files_scanned += 1;
 
         if let Some(parent) = rel_path.parent().and_then(|p| p.to_str())
-            && !parent.is_empty() {
-                let module_id = stable_id("module", parent);
-                if module_ids.insert(module_id.clone()) {
-                    objects.push(json!({
+            && !parent.is_empty()
+        {
+            let module_id = stable_id("module", parent);
+            if module_ids.insert(module_id.clone()) {
+                objects.push(json!({
                         "id": module_id,
                         "object_type": "module",
                         "package_id": package_id,
@@ -828,15 +1634,15 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                         "provenance_class": "parser_derived",
                         "fresh": true,
                     }));
-                }
-                links.push(json!({
-                    "type": "contains",
-                    "source_id": module_id,
-                    "target_id": file_id,
-                    "evidence": "filesystem parent path",
-                    "status": "verified",
-                }));
             }
+            links.push(json!({
+                "type": "contains",
+                "source_id": module_id,
+                "target_id": file_id,
+                "evidence": "filesystem parent path",
+                "status": "verified",
+            }));
+        }
 
         if file_type == "test" {
             let test_id = stable_id("test", &rel);
@@ -940,10 +1746,8 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                     "status": "verified",
                 }));
                 for (method, endpoint_path) in parse_endpoints(&content) {
-                    let endpoint_id = stable_id(
-                        "endpoint",
-                        &format!("{}:{}", method, endpoint_path),
-                    );
+                    let endpoint_id =
+                        stable_id("endpoint", &format!("{}:{}", method, endpoint_path));
                     objects.push(json!({
                         "id": endpoint_id,
                         "object_type": "endpoint",
@@ -971,8 +1775,13 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
 }
 
 fn selected_frame<'a>(focusa: &'a FocusaState, frame_id: Option<&str>) -> Option<&'a FrameRecord> {
-    let selected = frame_id
-        .and_then(|id| focusa.focus_stack.frames.iter().find(|f| f.id.to_string() == id));
+    let selected = frame_id.and_then(|id| {
+        focusa
+            .focus_stack
+            .frames
+            .iter()
+            .find(|f| f.id.to_string() == id)
+    });
     selected.or_else(|| {
         focusa
             .focus_stack
@@ -1164,6 +1973,174 @@ fn mission_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Work
         }
     }
 
+    let mut current_ask_id: Option<String> = None;
+    let mut query_scope_id: Option<String> = None;
+    if let Some(current_ask) = focusa.work_loop.decision_context.current_ask.clone() {
+        let ask_id = stable_id("current_ask", &current_ask);
+        current_ask_id = Some(ask_id.clone());
+        objects.push(json!({
+            "id": ask_id.clone(),
+            "object_type": "current_ask",
+            "ask_text": current_ask,
+            "ask_kind": focusa.work_loop.decision_context.ask_kind.clone().unwrap_or_else(|| "question".to_string()),
+            "status": "active",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+
+        let scope_kind = focusa
+            .work_loop
+            .decision_context
+            .scope_kind
+            .clone()
+            .unwrap_or_else(|| "fresh_question".to_string());
+        let carryover_policy = focusa.work_loop.decision_context.carryover_policy.clone();
+        let excluded_labels = focusa
+            .work_loop
+            .decision_context
+            .excluded_context_labels
+            .clone();
+        let excluded_reason = focusa
+            .work_loop
+            .decision_context
+            .excluded_context_reason
+            .clone();
+        let scope_id = stable_id(
+            "query_scope",
+            &format!(
+                "{}:{}",
+                scope_kind,
+                carryover_policy.clone().unwrap_or_default()
+            ),
+        );
+        query_scope_id = Some(scope_id.clone());
+        objects.push(json!({
+            "id": scope_id.clone(),
+            "object_type": "query_scope",
+            "scope_kind": scope_kind,
+            "status": "active",
+            "carryover_policy": carryover_policy,
+            "excluded_topics": excluded_labels,
+            "status_reason": excluded_reason,
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        links.push(json!({
+            "type": "governed_by",
+            "source_id": scope_id,
+            "target_id": ask_id,
+            "evidence": "work_loop.decision_context",
+            "status": "verified",
+        }));
+
+        let relevant_id = stable_id("relevant_context_set", "active-answer-context");
+        objects.push(json!({
+            "id": relevant_id,
+            "object_type": "relevant_context_set",
+            "selection_kind": "policy_filtered",
+            "status": "active",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        links.push(json!({
+            "type": "includes_context",
+            "source_id": relevant_id,
+            "target_id": ask_id.clone(),
+            "evidence": "work_loop.current_task + bounded slice",
+            "status": "verified",
+        }));
+
+        if !focusa
+            .work_loop
+            .decision_context
+            .excluded_context_labels
+            .is_empty()
+            || focusa
+                .work_loop
+                .decision_context
+                .excluded_context_reason
+                .is_some()
+        {
+            let excluded_id = stable_id("excluded_context_set", "policy-excluded-context");
+            objects.push(json!({
+                "id": excluded_id,
+                "object_type": "excluded_context_set",
+                "exclusion_kind": "policy_exclusion",
+                "status": "active",
+                "membership_class": "deterministic",
+                "provenance_class": "runtime_observed",
+                "fresh": true,
+            }));
+            links.push(json!({
+                "type": "excludes_context",
+                "source_id": excluded_id,
+                "target_id": ask_id.clone(),
+                "evidence": focusa.work_loop.decision_context.excluded_context_reason.clone(),
+                "status": "verified",
+            }));
+        }
+    }
+
+    for (idx, event) in focusa
+        .telemetry
+        .trace_events
+        .iter()
+        .rev()
+        .take(40)
+        .enumerate()
+    {
+        let event_type = event
+            .get("event_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        if !matches!(
+            event_type,
+            "scope_failure_recorded"
+                | "scope_contamination_detected"
+                | "wrong_question_detected"
+                | "answer_broadening_detected"
+        ) {
+            continue;
+        }
+        let scope_failure_id = stable_id("scope_failure", &format!("{}:{}", event_type, idx));
+        let severity = if event_type == "wrong_question_detected" {
+            "high"
+        } else {
+            "medium"
+        };
+        objects.push(json!({
+            "id": scope_failure_id,
+            "object_type": "scope_failure",
+            "failure_kind": event_type,
+            "severity": severity,
+            "status": "failed",
+            "membership_class": "verified",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        if let Some(ask_id) = current_ask_id.clone() {
+            links.push(json!({
+                "type": "violates_scope_of",
+                "source_id": scope_failure_id,
+                "target_id": ask_id,
+                "evidence": "telemetry.trace_events",
+                "status": "verified",
+            }));
+        }
+        if let Some(scope_id) = query_scope_id.clone() {
+            links.push(json!({
+                "type": "violates_scope_of",
+                "source_id": scope_failure_id,
+                "target_id": scope_id,
+                "evidence": "telemetry.trace_events",
+                "status": "verified",
+            }));
+        }
+    }
+
     for rule in focusa.memory.procedural.iter().take(4) {
         let id = stable_id("convention", &rule.id);
         objects.push(json!({
@@ -1183,7 +2160,7 @@ fn mission_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Work
         .reference_index
         .handles
         .iter()
-        .filter(|h| h.session_id == session_id || h.pinned)
+        .filter(|h| h.session_id == session_id || h.pinned || h.session_id.is_none())
         .take(5)
     {
         let id = format!("artifact:{}", handle.id);
@@ -1210,13 +2187,89 @@ fn mission_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Work
     WorkspaceProjection { objects, links }
 }
 
+fn canonical_ontology_projection(focusa: &FocusaState) -> WorkspaceProjection {
+    let mut objects = focusa.ontology.objects.clone();
+    let mut links = focusa.ontology.links.clone();
+
+    for proposal in focusa.ontology.proposals.iter().take(128) {
+        objects.push(json!({
+            "id": format!("ontology_proposal:{}", proposal.proposal_id),
+            "object_type": "ontology_domain",
+            "domain_kind": proposal.target_class.clone(),
+            "status": proposal.status.clone(),
+            "proposal_kind": proposal.proposal_kind.clone(),
+            "proposal_id": proposal.proposal_id,
+            "membership_class": "provisional",
+            "provenance_class": "reducer_promoted",
+            "fresh": true,
+        }));
+    }
+
+    for verification in focusa.ontology.verifications.iter().take(128) {
+        let verification_id = stable_id(
+            "verification",
+            &format!(
+                "ontology:{}:{}",
+                verification.verification.clone(),
+                verification
+                    .proposal_id
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|| "none".to_string())
+            ),
+        );
+        objects.push(json!({
+            "id": verification_id,
+            "object_type": "verification",
+            "method": verification.verification.clone(),
+            "result": verification.outcome.clone(),
+            "timestamp": verification.timestamp,
+            "status": "verified",
+            "membership_class": "verified",
+            "provenance_class": "verification_confirmed",
+            "fresh": true,
+        }));
+    }
+
+    for refresh in focusa.ontology.working_set_refreshes.iter().take(64) {
+        let refresh_id = stable_id(
+            "relevant_context_set",
+            &format!("{}:{}", refresh.scope.clone(), refresh.reason.clone()),
+        );
+        objects.push(json!({
+            "id": refresh_id,
+            "object_type": "relevant_context_set",
+            "selection_kind": refresh.scope.clone(),
+            "status": "active",
+            "reason": refresh.reason.clone(),
+            "timestamp": refresh.timestamp,
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+    }
+
+    for delta in focusa.ontology.delta_log.iter().take(256) {
+        links.push(json!({
+            "type": "derived_from",
+            "source_id": stable_id("ontology_delta", &delta.delta_kind),
+            "target_id": "ontology:canonical",
+            "evidence": delta.delta_kind.clone(),
+            "status": "verified",
+            "timestamp": delta.timestamp,
+        }));
+    }
+
+    WorkspaceProjection { objects, links }
+}
+
 fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> WorkspaceProjection {
     let frame = selected_frame(focusa, frame_id);
     let mission = mission_projection(focusa, frame);
     let workspace = workspace_projection(focusa);
+    let canonical = canonical_ontology_projection(focusa);
     WorkspaceProjection {
-        objects: [mission.objects, workspace.objects].concat(),
-        links: [mission.links, workspace.links].concat(),
+        objects: [mission.objects, workspace.objects, canonical.objects].concat(),
+        links: [mission.links, workspace.links, canonical.links].concat(),
     }
 }
 
@@ -1230,18 +2283,28 @@ fn member(id: &str, object_type: &str, membership_class: &str, reason: &str) -> 
 }
 
 fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
+    let resolved_slice_type = normalize_slice_type(slice_type);
     let mut grouped: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
     for object in objects {
         if let Some(object_type) = object.get("object_type").and_then(|v| v.as_str()) {
-            grouped.entry(object_type.to_string()).or_default().push(object);
+            grouped
+                .entry(object_type.to_string())
+                .or_default()
+                .push(object);
         }
     }
 
     let take = |kind: &str, max: usize| -> Vec<Value> {
-        grouped
-            .get(kind)
+        let mut bucket: Vec<&Value> = grouped.get(kind).into_iter().flatten().copied().collect();
+        bucket.sort_by_key(|v| {
+            v.get("id")
+                .and_then(|x| x.as_str())
+                .unwrap_or("unknown")
+                .to_string()
+        });
+
+        bucket
             .into_iter()
-            .flatten()
             .take(max)
             .map(|v| {
                 member(
@@ -1250,7 +2313,7 @@ fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
                     v.get("membership_class")
                         .and_then(|x| x.as_str())
                         .unwrap_or("deterministic"),
-                    match slice_type {
+                    match resolved_slice_type {
                         "debugging" => "debugging set relevance",
                         "refactor" => "refactor set relevance",
                         "regression" => "regression set relevance",
@@ -1262,7 +2325,7 @@ fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
             .collect()
     };
 
-    let mut members = match slice_type {
+    let mut members = match resolved_slice_type {
         "debugging" => [
             take("failure", 3),
             take("verification", 2),
@@ -1317,6 +2380,17 @@ fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
         ]
         .concat(),
     };
+
+    let mut seen = BTreeSet::new();
+    members.retain(|entry| {
+        let id = entry
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        seen.insert(id)
+    });
+
     if members.len() > 12 {
         members.truncate(12);
     }
@@ -1324,11 +2398,23 @@ fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
 }
 
 fn slice_payload(focusa: &FocusaState, frame_id: Option<&str>, slice_type: &str) -> Value {
+    let resolved_slice_type = normalize_slice_type(slice_type);
     let projection = combined_projection(focusa, frame_id);
-    let members = slice_members(&projection.objects, slice_type);
+    let members = slice_members(&projection.objects, resolved_slice_type);
     json!({
-        "slice_type": slice_type,
+        "requested_slice_type": slice_type,
+        "slice_type": resolved_slice_type,
         "source": "ontology_world_projection",
+        "projection_profile": {
+            "projection_kind": slice_projection_kind(resolved_slice_type),
+            "view_profile": slice_view_profile(resolved_slice_type),
+            "canonical_truth_mutation": false,
+            "invariants": [
+                "canonical_and_projection_are_distinct",
+                "unknown_slice_types_fallback_to_active_mission",
+                "membership_is_capped_and_deduplicated"
+            ]
+        },
         "count": members.len(),
         "bounds": {
             "max_object_count": 12,
@@ -1366,7 +2452,10 @@ pub fn active_mission_slice_summary(
             .get("object_type")
             .and_then(|v| v.as_str())
             .unwrap_or("object");
-        let id = member.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
+        let id = member
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
         let reason = member
             .get("reason")
             .and_then(|v| v.as_str())
@@ -1383,8 +2472,106 @@ async fn primitives() -> Json<Value> {
     primitive_contracts()
 }
 
+fn visual_reverse_engineering_pipeline_contract() -> Value {
+    json!({
+        "pipeline_id": "visual_reverse_engineering_extraction_v1",
+        "source_doc": "docs/59-visual-ui-reverse-engineering.md",
+        "determinism_posture": "policy_bounded_deterministic_projection",
+        "stage_order": [
+            "derive_structure",
+            "extract_components",
+            "derive_slots",
+            "infer_tokens",
+            "infer_spacing",
+            "infer_interaction_and_state",
+            "derive_implementation_semantics"
+        ],
+        "inputs_required": ["artifact_id", "artifact_kind", "source_ref", "capture_context", "provenance"],
+        "typed_outputs": {
+            "objects": ["page", "region", "component", "variant", "content_slot", "token", "layout_rule", "interaction", "ui_state", "binding", "validation_rule", "visual_artifact"],
+            "links": ["contains", "composed_of", "variants_of", "fills_slot", "inherits_token", "binds_to", "transitions_to", "validates", "derived_from_reference"],
+            "blueprint_payload_required": ["structure", "components", "slots", "tokens", "spacing_layout", "interaction_state", "implementation_semantics", "evidence_refs", "stage_confidence"]
+        },
+        "promotion_policy": {
+            "default_state": "proposal_level",
+            "promotion_requires": ["multi_artifact_confirmation_or_operator_review", "verification_backing_for_ambiguous_inference"]
+        },
+        "failure_modes": [
+            "ambiguous_component_boundaries",
+            "ambiguous_slot_assignments",
+            "uncertain_token_inference",
+            "insufficient_evidence_for_responsive_behavior",
+            "insufficient_evidence_for_binding_or_validation"
+        ]
+    })
+}
+
+fn visual_to_implementation_handoff_contract() -> Value {
+    json!({
+        "pipeline_id": "visual_to_implementation_handoff_v1",
+        "source_doc": "docs/64-visual-ui-to-implementation.md",
+        "determinism_posture": "policy_bounded_deterministic_projection",
+        "stage_order": [
+            "derive_component_tree",
+            "derive_plumbing_requirements",
+            "map_tokens_to_surfaces",
+            "map_states_to_views",
+            "map_bindings_and_validation",
+            "synthesize_completion_checklist"
+        ],
+        "inputs_required": ["visual_blueprint_ref", "component_inventory_ref", "interaction_state_ref", "binding_validation_ref", "responsive_constraints_ref"],
+        "typed_outputs": {
+            "objects": ["page", "region", "component", "content_slot", "token", "layout_rule", "interaction", "ui_state", "binding", "validation_rule", "verification", "acceptance_criterion"],
+            "links": ["contains", "composed_of", "fills_slot", "inherits_token", "binds_to", "transitions_to", "validates", "aligns_with", "verifies"],
+            "handoff_payload_required": ["component_tree", "region_component_mapping", "slot_component_mapping", "token_application_map", "layout_rule_map", "interaction_state_map", "binding_plan", "validation_plan", "responsive_requirements", "plumbing_requirements", "completion_checklist"]
+        },
+        "handoff_conformance": {
+            "required_inputs": ["visual_blueprint_ref", "handoff_payload_ref", "completion_checklist_ref"],
+            "required_checks": ["component_tree_alignment", "state_interaction_alignment", "binding_validation_alignment", "responsive_requirement_alignment", "plumbing_class_coverage"],
+            "pass_condition": "all required handoff surfaces map to implementation-ready outputs with no uncovered required plumbing classes"
+        },
+        "diff_validation": {
+            "required_inputs": ["declared_intent_ref", "handoff_payload_ref", "implementation_diff_ref"],
+            "required_checks": ["intent_preservation", "declared_vs_actual_component_delta", "declared_vs_actual_state_delta", "declared_vs_actual_binding_delta", "unexpected_surface_change_detection"],
+            "fail_on": ["intent_drift", "missing_declared_change", "undeclared_high_impact_change"]
+        },
+        "validation_outputs": ["conformance_report", "diff_validation_report", "intent_preservation_result"],
+        "required_plumbing_classes": [
+            "data_loading",
+            "mutation_actions",
+            "optimistic_or_async_transitions",
+            "loading_state",
+            "empty_state",
+            "error_state",
+            "success_state",
+            "disabled_state",
+            "validation_messaging",
+            "responsive_behavior",
+            "accessibility_sensitive_interactions"
+        ],
+        "completion_rules": [
+            "structural_fidelity",
+            "state_coverage",
+            "interaction_coverage",
+            "binding_coverage",
+            "validation_coverage",
+            "responsive_coverage",
+            "verification_evidence"
+        ]
+    })
+}
+
 async fn contracts() -> Json<Value> {
     Json(json!({
+        "route_behavior": {
+            "surface": "GET /v1/ontology/contracts",
+            "read_only": true,
+            "mutates_canonical_state": false,
+            "api_permission_scope": null,
+            "contract_source": "crates/focusa-api/src/routes/ontology.rs"
+        },
+        "reverse_engineering_pipeline": visual_reverse_engineering_pipeline_contract(),
+        "visual_to_implementation_handoff": visual_to_implementation_handoff_contract(),
         "contracts": ACTION_TYPES.iter().map(|name| action_contract(name)).collect::<Vec<_>>()
     }))
 }
@@ -1398,11 +2585,29 @@ async fn world(
     let action_catalog: Vec<Value> = ACTION_TYPES
         .iter()
         .map(|name| {
+            let contract = action_contract(name);
+            let verification_hooks = contract
+                .get("verification_hooks")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let runtime_execution_supported = contract
+                .get("tool_mappings")
+                .and_then(Value::as_array)
+                .map(|mappings| !mappings.is_empty())
+                .unwrap_or(false);
+            let reducer_visible = contract
+                .get("expected_ontology_deltas")
+                .and_then(Value::as_array)
+                .map(|deltas| !deltas.is_empty())
+                .unwrap_or(false);
             json!({
                 "name": name,
                 "constraint_checked": true,
-                "reducer_visible": true,
-                "verification_hooks": ["runtime_gate"],
+                "reducer_visible": reducer_visible,
+                "verification_hooks": verification_hooks,
+                "runtime_execution_supported": runtime_execution_supported,
+                "catalog_role": "contract_projection_reference"
             })
         })
         .collect();
@@ -1412,6 +2617,12 @@ async fn world(
         "link_count": projection.links.len(),
         "objects": projection.objects,
         "links": projection.links,
+        "canonical_ontology": {
+            "proposal_count": focusa.ontology.proposals.len(),
+            "verification_count": focusa.ontology.verifications.len(),
+            "working_set_refresh_count": focusa.ontology.working_set_refreshes.len(),
+            "delta_count": focusa.ontology.delta_log.len()
+        },
         "action_catalog": action_catalog,
         "working_sets": {
             "active_mission_set": slice_payload(&focusa, query.frame_id.as_deref(), "active_mission"),
@@ -1441,4 +2652,97 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/ontology/contracts", get(contracts))
         .route("/v1/ontology/world", get(world))
         .route("/v1/ontology/slices", get(slices))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use focusa_core::types::FocusaState;
+    use serde_json::json;
+
+    #[test]
+    fn unknown_slice_types_fallback_to_active_mission_profile() {
+        let focusa = FocusaState::default();
+        let payload = slice_payload(&focusa, None, "not_a_real_slice");
+
+        assert_eq!(
+            payload.get("requested_slice_type").and_then(|v| v.as_str()),
+            Some("not_a_real_slice")
+        );
+        assert_eq!(
+            payload.get("slice_type").and_then(|v| v.as_str()),
+            Some("active_mission")
+        );
+        assert_eq!(
+            payload
+                .get("projection_profile")
+                .and_then(|v| v.get("view_profile"))
+                .and_then(|v| v.as_str()),
+            Some("pi_operator_view")
+        );
+    }
+
+    #[test]
+    fn debugging_slice_members_enforce_boundary_and_relevance() {
+        let objects = vec![
+            json!({"id": "failure:z", "object_type": "failure", "membership_class": "deterministic"}),
+            json!({"id": "module:a", "object_type": "module", "membership_class": "deterministic"}),
+            json!({"id": "failure:a", "object_type": "failure", "membership_class": "deterministic"}),
+            json!({"id": "failure:a", "object_type": "failure", "membership_class": "deterministic"}),
+            json!({"id": "test:a", "object_type": "test", "membership_class": "deterministic"}),
+        ];
+
+        let members = slice_members(&objects, "debugging");
+        let allowed_types = BTreeSet::from(["failure", "verification", "file", "test", "risk"]);
+        assert!(members.iter().all(|entry| {
+            entry
+                .get("object_type")
+                .and_then(|v| v.as_str())
+                .map(|kind| allowed_types.contains(kind))
+                .unwrap_or(false)
+        }));
+        assert_eq!(
+            members
+                .first()
+                .and_then(|v| v.get("id"))
+                .and_then(|v| v.as_str()),
+            Some("failure:a")
+        );
+        assert_eq!(
+            members
+                .iter()
+                .filter(|entry| entry.get("id").and_then(|v| v.as_str()) == Some("failure:a"))
+                .count(),
+            1
+        );
+        assert!(members.iter().all(|entry| {
+            entry.get("reason").and_then(|v| v.as_str()) == Some("debugging set relevance")
+        }));
+    }
+
+    #[test]
+    fn projection_profile_is_stable_for_same_slice_type() {
+        let focusa = FocusaState::default();
+        let payload_a = slice_payload(&focusa, None, "regression");
+        let payload_b = slice_payload(&focusa, None, "regression");
+
+        assert_eq!(
+            payload_a.get("projection_profile"),
+            payload_b.get("projection_profile")
+        );
+        assert_eq!(
+            payload_a
+                .get("projection_profile")
+                .and_then(|v| v.get("projection_kind"))
+                .and_then(|v| v.as_str()),
+            Some("regression_projection")
+        );
+        assert_eq!(
+            payload_a
+                .get("projection_profile")
+                .and_then(|v| v.get("view_profile"))
+                .and_then(|v| v.as_str()),
+            Some("pi_regression_view")
+        );
+    }
 }

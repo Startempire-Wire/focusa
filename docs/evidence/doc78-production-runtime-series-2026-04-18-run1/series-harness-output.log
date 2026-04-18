@@ -1,0 +1,12 @@
+[1;33mINFO[0m: series artifact capture enabled: docs/evidence/doc78-production-runtime-series-2026-04-18-run1
+[1;33mINFO[0m: base URL: http://127.0.0.1:18799
+[1;33mINFO[0m: runs requested: 2
+=== DOC78 PRODUCTION RUNTIME SERIES SMOKE ===
+
+[0;32m✓ PASS[0m: run-01 passed (tests_passed=16, non_closure_objective_events=3, governance_marker_events=2)
+[0;32m✓ PASS[0m: run-02 passed (tests_passed=16, non_closure_objective_events=3, governance_marker_events=4)
+
+=== DOC78 PRODUCTION RUNTIME SERIES RESULTS ===
+Runs passed: 2
+Runs failed: 0
+Series summary: docs/evidence/doc78-production-runtime-series-2026-04-18-run1/series-summary.json

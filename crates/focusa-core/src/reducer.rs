@@ -31,34 +31,23 @@ fn recommended_worker_for_task(
     repeated_failures: u32,
 ) -> WorkerCapabilityProfile {
     let fallback = repeated_failures >= 2;
-    let (worker_id, edit_reliable, structured_output_reliable, code_generation_strong) = match (task_class, fallback) {
-        (TaskClass::DocSpec | TaskClass::Architecture, false) => (
-            "fidelity-spec-worker",
-            true,
-            true,
-            false,
-        ),
-        (TaskClass::DocSpec | TaskClass::Architecture, true) => (
-            "fidelity-spec-fallback-worker",
-            true,
-            true,
-            false,
-        ),
-        (TaskClass::Code | TaskClass::Integration | TaskClass::Refactor, false) => (
-            "fidelity-code-worker",
-            true,
-            true,
-            true,
-        ),
-        (TaskClass::Code | TaskClass::Integration | TaskClass::Refactor, true) => (
-            "fidelity-code-fallback-worker",
-            true,
-            true,
-            true,
-        ),
-        (TaskClass::Unknown, false) => ("balanced-worker", true, true, true),
-        (TaskClass::Unknown, true) => ("balanced-fallback-worker", true, true, true),
-    };
+    let (worker_id, edit_reliable, structured_output_reliable, code_generation_strong) =
+        match (task_class, fallback) {
+            (TaskClass::DocSpec | TaskClass::Architecture, false) => {
+                ("fidelity-spec-worker", true, true, false)
+            }
+            (TaskClass::DocSpec | TaskClass::Architecture, true) => {
+                ("fidelity-spec-fallback-worker", true, true, false)
+            }
+            (TaskClass::Code | TaskClass::Integration | TaskClass::Refactor, false) => {
+                ("fidelity-code-worker", true, true, true)
+            }
+            (TaskClass::Code | TaskClass::Integration | TaskClass::Refactor, true) => {
+                ("fidelity-code-fallback-worker", true, true, true)
+            }
+            (TaskClass::Unknown, false) => ("balanced-worker", true, true, true),
+            (TaskClass::Unknown, true) => ("balanced-fallback-worker", true, true, true),
+        };
 
     WorkerCapabilityProfile {
         worker_id: worker_id.to_string(),
@@ -66,8 +55,22 @@ fn recommended_worker_for_task(
         edit_reliable,
         structured_output_reliable,
         code_generation_strong,
-        context_window_class: Some(if degraded { "degraded-bounded" } else { "standard" }.to_string()),
-        latency_class: Some(if degraded || fallback { "slower-safer" } else { "balanced" }.to_string()),
+        context_window_class: Some(
+            if degraded {
+                "degraded-bounded"
+            } else {
+                "standard"
+            }
+            .to_string(),
+        ),
+        latency_class: Some(
+            if degraded || fallback {
+                "slower-safer"
+            } else {
+                "balanced"
+            }
+            .to_string(),
+        ),
         cost_tier: Some("standard".to_string()),
         fallback_available: !fallback,
     }
@@ -317,11 +320,16 @@ pub fn reduce_with_meta(
 
             // Update FrameStats on active frame (G1-detail-05 §FrameStats).
             if let Some(active_id) = state.focus_stack.active_id
-                && let Some(frame) = state.focus_stack.frames.iter_mut().find(|f| f.id == active_id) {
-                    frame.stats.turn_count += 1;
-                    frame.stats.last_turn_id = Some(turn_id.clone());
-                    frame.stats.last_token_estimate = prompt_tokens;
-                }
+                && let Some(frame) = state
+                    .focus_stack
+                    .frames
+                    .iter_mut()
+                    .find(|f| f.id == active_id)
+            {
+                frame.stats.turn_count += 1;
+                frame.stats.last_turn_id = Some(turn_id.clone());
+                frame.stats.last_token_estimate = prompt_tokens;
+            }
 
             // Emit errors as intuition signals.
             for err in errors {
@@ -352,9 +360,8 @@ pub fn reduce_with_meta(
             state.work_loop.last_blocker_reason = None;
             state.work_loop.last_continue_reason = None;
             state.work_loop.last_observed_summary = None;
-            state.work_loop.last_safe_reentry_prompt_basis = Some(
-                "resume from enabled continuous work".to_string(),
-            );
+            state.work_loop.last_safe_reentry_prompt_basis =
+                Some("resume from enabled continuous work".to_string());
             state.work_loop.restored_context_summary = Some(
                 "project mission active; constraints and verification posture inherited from current state"
                     .to_string(),
@@ -430,9 +437,12 @@ pub fn reduce_with_meta(
                 state.work_loop.decision_context.operator_steering_detected = steering;
             }
             if operator_steering_detected == Some(true) {
-                state.work_loop.last_continue_reason = Some("operator steering detected".to_string());
+                state.work_loop.last_continue_reason =
+                    Some("operator steering detected".to_string());
                 // Steering redirects active work; it must not imply stop/pause.
-                if state.work_loop.pause_flags.reason.as_deref() == Some("operator steering detected") {
+                if state.work_loop.pause_flags.reason.as_deref()
+                    == Some("operator steering detected")
+                {
                     state.work_loop.pause_flags = WorkLoopPauseFlags::default();
                     if state.work_loop.enabled && state.work_loop.status == WorkLoopStatus::Paused {
                         state.work_loop.status = WorkLoopStatus::Idle;
@@ -440,7 +450,10 @@ pub fn reduce_with_meta(
                 }
             }
         }
-        FocusaEvent::ContinuousTransportSessionAttached { adapter, session_id } => {
+        FocusaEvent::ContinuousTransportSessionAttached {
+            adapter,
+            session_id,
+        } => {
             state.work_loop.transport_adapter = Some(adapter);
             state.work_loop.run.worker_session_id = Some(session_id.clone());
             state.work_loop.transport_session_state = Some("attached".to_string());
@@ -462,23 +475,29 @@ pub fn reduce_with_meta(
         } => {
             state.work_loop.last_transport_event_sequence = sequence;
             state.work_loop.last_transport_event_kind = Some(kind.clone());
-            state.work_loop.last_transport_event_summary = Some(match (session_id, turn_id, summary) {
-                (Some(session_id), Some(turn_id), Some(summary)) => {
-                    format!("session={session_id} turn={turn_id} {summary}")
-                }
-                (Some(session_id), _, Some(summary)) => format!("session={session_id} {summary}"),
-                (_, Some(turn_id), Some(summary)) => format!("turn={turn_id} {summary}"),
-                (_, _, Some(summary)) => summary,
-                (_, Some(turn_id), None) => format!("turn={turn_id}"),
-                (Some(session_id), _, None) => format!("session={session_id}"),
-                _ => kind.clone(),
-            });
+            state.work_loop.last_transport_event_summary =
+                Some(match (session_id, turn_id, summary) {
+                    (Some(session_id), Some(turn_id), Some(summary)) => {
+                        format!("session={session_id} turn={turn_id} {summary}")
+                    }
+                    (Some(session_id), _, Some(summary)) => {
+                        format!("session={session_id} {summary}")
+                    }
+                    (_, Some(turn_id), Some(summary)) => format!("turn={turn_id} {summary}"),
+                    (_, _, Some(summary)) => summary,
+                    (_, Some(turn_id), None) => format!("turn={turn_id}"),
+                    (Some(session_id), _, None) => format!("session={session_id}"),
+                    _ => kind.clone(),
+                });
             state.work_loop.transport_session_state = Some(match kind.as_str() {
                 "agent_start" => "running".to_string(),
                 "turn_start" => "turn_active".to_string(),
                 "message_update" => "streaming".to_string(),
                 "turn_end" => "turn_completed".to_string(),
                 "agent_end" => "agent_completed".to_string(),
+                "response" | "extension_ui_request" => "attached".to_string(),
+                "stream_closed" => "detached".to_string(),
+                "stderr_line" => "degraded".to_string(),
                 _ => "observed".to_string(),
             });
         }
@@ -585,6 +604,11 @@ pub fn reduce_with_meta(
             state.work_loop.last_observed_work_item_id = work_item_id.clone();
             state.work_loop.run.worker_session_id = None;
             state.work_loop.current_task = None;
+        }
+        FocusaEvent::ContinuousSecondaryLoopOutcomeRecorded { .. } => {
+            // Runtime updates secondary-loop telemetry eagerly in daemon state.
+            // Keep reducer no-op for this observability event so replay remains
+            // backward-compatible while still retaining auditable event-log data.
         }
         FocusaEvent::ContinuousTurnPaused { reason } => {
             state.work_loop.status = WorkLoopStatus::Paused;
@@ -990,7 +1014,10 @@ pub fn reduce_with_meta(
         }
 
         // ─── Reference Store ─────────────────────────────────────────────
-        FocusaEvent::ArtifactRegistered { handle, storage_uri: _ } => {
+        FocusaEvent::ArtifactRegistered {
+            handle,
+            storage_uri: _,
+        } => {
             // Check immutability: if this artifact_id already exists, reject.
             if state
                 .reference_index
@@ -1074,8 +1101,7 @@ pub fn reduce_with_meta(
             };
             let _ = crate::memory::semantic::upsert(&mut state.memory, key, value, memory_source);
         }
-        FocusaEvent::RuleReinforced { .. }
-        | FocusaEvent::MemoryDecayTick { .. } => {
+        FocusaEvent::RuleReinforced { .. } | FocusaEvent::MemoryDecayTick { .. } => {
             // Memory maintenance events remain advisory here.
         }
 
@@ -1086,15 +1112,309 @@ pub fn reduce_with_meta(
         }
 
         // ─── Ontology Classification / Reducer ──────────────────────────
-        FocusaEvent::OntologyObjectUpsertProposed { .. }
-        | FocusaEvent::OntologyLinkUpsertProposed { .. }
-        | FocusaEvent::OntologyStatusChangeProposed { .. }
-        | FocusaEvent::OntologyWorkingSetMembershipProposed { .. }
-        | FocusaEvent::OntologyProposalPromoted { .. }
-        | FocusaEvent::OntologyProposalRejected { .. }
-        | FocusaEvent::OntologyVerificationApplied { .. }
-        | FocusaEvent::OntologyWorkingSetRefreshed { .. } => {
-            // Replayable ontology audit events. Canonical mutation already happened elsewhere.
+        FocusaEvent::OntologyObjectUpsertProposed {
+            proposal_id,
+            object_type,
+            object_id,
+            source,
+        } => {
+            let now = Utc::now();
+            let record = OntologyProposalRecord {
+                proposal_id,
+                proposal_kind: "object_upsert".to_string(),
+                target_class: object_type.clone(),
+                status: "proposed".to_string(),
+                source: Some(source.clone()),
+                object_type: Some(object_type.clone()),
+                object_id: object_id.clone(),
+                link_type: None,
+                source_id: None,
+                target_id: None,
+                notes: None,
+                updated_at: Some(now),
+            };
+            if let Some(existing) = state
+                .ontology
+                .proposals
+                .iter_mut()
+                .find(|p| p.proposal_id == proposal_id)
+            {
+                *existing = record;
+            } else {
+                state.ontology.proposals.push(record);
+            }
+            if let Some(id) = object_id.clone() {
+                let exists = state
+                    .ontology
+                    .objects
+                    .iter()
+                    .any(|o| o.get("id").and_then(|v| v.as_str()) == Some(id.as_str()));
+                if !exists {
+                    state.ontology.objects.push(serde_json::json!({
+                        "id": id,
+                        "object_type": object_type,
+                        "status": "proposed",
+                        "provenance_class": "model_inferred",
+                        "source": source,
+                    }));
+                }
+            }
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_object_upsert_proposed".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "object_type": object_type,
+                    "object_id": object_id,
+                    "source": source,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyLinkUpsertProposed {
+            proposal_id,
+            link_type,
+            source_id,
+            target_id,
+            source,
+        } => {
+            let now = Utc::now();
+            let record = OntologyProposalRecord {
+                proposal_id,
+                proposal_kind: "link_upsert".to_string(),
+                target_class: link_type.clone(),
+                status: "proposed".to_string(),
+                source: Some(source.clone()),
+                object_type: None,
+                object_id: None,
+                link_type: Some(link_type.clone()),
+                source_id: Some(source_id.clone()),
+                target_id: Some(target_id.clone()),
+                notes: None,
+                updated_at: Some(now),
+            };
+            if let Some(existing) = state
+                .ontology
+                .proposals
+                .iter_mut()
+                .find(|p| p.proposal_id == proposal_id)
+            {
+                *existing = record;
+            } else {
+                state.ontology.proposals.push(record);
+            }
+            state.ontology.links.push(serde_json::json!({
+                "type": link_type,
+                "source_id": source_id,
+                "target_id": target_id,
+                "status": "proposed",
+                "evidence": "proposal_submitted",
+                "proposal_id": proposal_id,
+                "source": source,
+            }));
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_link_upsert_proposed".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "link_type": link_type,
+                    "source_id": source_id,
+                    "target_id": target_id,
+                    "source": source,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyStatusChangeProposed {
+            proposal_id,
+            subject,
+            from_status,
+            to_status,
+            source,
+        } => {
+            let now = Utc::now();
+            let record = OntologyProposalRecord {
+                proposal_id,
+                proposal_kind: "status_change".to_string(),
+                target_class: "status".to_string(),
+                status: "proposed".to_string(),
+                source: Some(source.clone()),
+                object_type: None,
+                object_id: Some(subject.clone()),
+                link_type: None,
+                source_id: None,
+                target_id: None,
+                notes: Some(format!(
+                    "{} -> {}",
+                    from_status.clone().unwrap_or_else(|| "unknown".to_string()),
+                    to_status
+                )),
+                updated_at: Some(now),
+            };
+            if let Some(existing) = state
+                .ontology
+                .proposals
+                .iter_mut()
+                .find(|p| p.proposal_id == proposal_id)
+            {
+                *existing = record;
+            } else {
+                state.ontology.proposals.push(record);
+            }
+            if let Some(object) = state
+                .ontology
+                .objects
+                .iter_mut()
+                .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(subject.as_str()))
+            {
+                object["status"] = serde_json::Value::String(to_status.clone());
+            }
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_status_change_proposed".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "subject": subject,
+                    "from_status": from_status,
+                    "to_status": to_status,
+                    "source": source,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyWorkingSetMembershipProposed {
+            proposal_id,
+            subject,
+            operation,
+            source,
+        } => {
+            let now = Utc::now();
+            let record = OntologyProposalRecord {
+                proposal_id,
+                proposal_kind: "working_set_membership".to_string(),
+                target_class: "working_set".to_string(),
+                status: "proposed".to_string(),
+                source: Some(source.clone()),
+                object_type: Some("object_set".to_string()),
+                object_id: Some(subject.clone()),
+                link_type: None,
+                source_id: None,
+                target_id: None,
+                notes: Some(operation.clone()),
+                updated_at: Some(now),
+            };
+            if let Some(existing) = state
+                .ontology
+                .proposals
+                .iter_mut()
+                .find(|p| p.proposal_id == proposal_id)
+            {
+                *existing = record;
+            } else {
+                state.ontology.proposals.push(record);
+            }
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_working_set_membership_proposed".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "subject": subject,
+                    "operation": operation,
+                    "source": source,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyProposalPromoted {
+            proposal_id,
+            target_class,
+            applied_kind,
+        } => {
+            let now = Utc::now();
+            if let Some(proposal) = state
+                .ontology
+                .proposals
+                .iter_mut()
+                .find(|p| p.proposal_id == proposal_id)
+            {
+                proposal.status = "promoted".to_string();
+                proposal.updated_at = Some(now);
+            }
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_proposal_promoted".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "target_class": target_class,
+                    "applied_kind": applied_kind,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyProposalRejected {
+            proposal_id,
+            target_class,
+            reason,
+        } => {
+            let now = Utc::now();
+            if let Some(proposal) = state
+                .ontology
+                .proposals
+                .iter_mut()
+                .find(|p| p.proposal_id == proposal_id)
+            {
+                proposal.status = "rejected".to_string();
+                proposal.notes = Some(reason.clone());
+                proposal.updated_at = Some(now);
+            }
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_proposal_rejected".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "target_class": target_class,
+                    "reason": reason,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyVerificationApplied {
+            proposal_id,
+            verification,
+            outcome,
+        } => {
+            let now = Utc::now();
+            state
+                .ontology
+                .verifications
+                .push(OntologyVerificationRecord {
+                    proposal_id,
+                    verification: verification.clone(),
+                    outcome: outcome.clone(),
+                    timestamp: Some(now),
+                });
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_verification_applied".to_string(),
+                payload: serde_json::json!({
+                    "proposal_id": proposal_id,
+                    "verification": verification,
+                    "outcome": outcome,
+                }),
+                timestamp: Some(now),
+            });
+        }
+        FocusaEvent::OntologyWorkingSetRefreshed { scope, reason } => {
+            let now = Utc::now();
+            state
+                .ontology
+                .working_set_refreshes
+                .push(OntologyWorkingSetRefreshRecord {
+                    scope: scope.clone(),
+                    reason: reason.clone(),
+                    timestamp: Some(now),
+                });
+            state.ontology.delta_log.push(OntologyDeltaRecord {
+                delta_kind: "ontology_working_set_refreshed".to_string(),
+                payload: serde_json::json!({
+                    "scope": scope,
+                    "reason": reason,
+                }),
+                timestamp: Some(now),
+            });
         }
 
         // ─── Errors ──────────────────────────────────────────────────────
@@ -1205,11 +1525,14 @@ pub fn reduce_with_meta(
                 .iter()
                 .find(|t| t.id == source_thread_id)
                 .cloned()
-                .ok_or_else(|| ReducerError::InvalidEvent(format!(
-                    "Source thread {} not found for fork",
-                    source_thread_id
-                )))?;
-            let mut forked = crate::threads::fork_thread(&source, &name, owner_machine_id.as_deref());
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(format!(
+                        "Source thread {} not found for fork",
+                        source_thread_id
+                    ))
+                })?;
+            let mut forked =
+                crate::threads::fork_thread(&source, &name, owner_machine_id.as_deref());
             forked.id = thread_id;
             let branch_marker = crate::clt::insert_branch_marker(
                 &mut state.clt,
@@ -1225,10 +1548,12 @@ pub fn reduce_with_meta(
                 .threads
                 .iter_mut()
                 .find(|t| t.id == thread_id)
-                .ok_or_else(|| ReducerError::InvalidEvent(format!(
-                    "Thread {} not found for thesis update",
-                    thread_id
-                )))?;
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(format!(
+                        "Thread {} not found for thesis update",
+                        thread_id
+                    ))
+                })?;
             thread.thesis = thesis;
             thread.updated_at = Utc::now();
         }
@@ -1255,16 +1580,21 @@ pub fn reduce_with_meta(
             });
         }
 
-        FocusaEvent::ProposalStatusChanged { proposal_id, status } => {
+        FocusaEvent::ProposalStatusChanged {
+            proposal_id,
+            status,
+        } => {
             let proposal = state
                 .pre
                 .proposals
                 .iter_mut()
                 .find(|p| p.id == proposal_id)
-                .ok_or_else(|| ReducerError::InvalidEvent(format!(
-                    "Proposal {} not found for status update",
-                    proposal_id
-                )))?;
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(format!(
+                        "Proposal {} not found for status update",
+                        proposal_id
+                    ))
+                })?;
             proposal.status = status;
         }
 

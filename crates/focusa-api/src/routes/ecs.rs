@@ -65,7 +65,12 @@ async fn store_artifact(
     let handle_id = loop {
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         let focusa = state.focusa.read().await;
-        if let Some(h) = focusa.reference_index.handles.iter().find(|h| h.label == body.label) {
+        if let Some(h) = focusa
+            .reference_index
+            .handles
+            .iter()
+            .find(|h| h.label == body.label)
+        {
             break h.id;
         }
     };

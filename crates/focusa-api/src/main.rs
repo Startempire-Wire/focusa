@@ -9,6 +9,8 @@
 //! Default bind: 127.0.0.1:8787
 //! No auth in MVP (localhost only).
 
+#![recursion_limit = "256"]
+
 mod middleware;
 mod routes;
 mod server;
@@ -47,7 +49,11 @@ async fn main() -> anyhow::Result<()> {
     let write_serial_lock = Arc::new(Mutex::new(()));
 
     // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
-    let mut daemon = Daemon::new(config.clone(), shared_state.clone(), write_serial_lock.clone())?;
+    let mut daemon = Daemon::new(
+        config.clone(),
+        shared_state.clone(),
+        write_serial_lock.clone(),
+    )?;
     daemon.attach_event_bus(focusa_core::runtime::event_bus::EventBus::new(
         events_tx.clone(),
     ));

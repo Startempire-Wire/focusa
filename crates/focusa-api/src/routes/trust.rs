@@ -7,7 +7,7 @@
 use crate::routes::permissions::permission_context;
 use crate::routes::proxy::create_signal;
 use crate::server::AppState;
-use axum::extract::{State};
+use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::{Json, Router, routing::patch};
 use serde::Deserialize;
@@ -49,12 +49,16 @@ async fn record_metric(
         .command_tx
         .send(focusa_core::types::Action::IngestSignal { signal })
         .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "daemon unavailable"}))))?;
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "daemon unavailable"})),
+            )
+        })?;
 
     Ok(Json(json!({"status": "recorded", "event": body.event})))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/v1/trust/metrics", patch(record_metric))
+    Router::new().route("/v1/trust/metrics", patch(record_metric))
 }

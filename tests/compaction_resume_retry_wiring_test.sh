@@ -30,7 +30,7 @@ else
   log_fail "compaction retries missing pending gate"
 fi
 
-if rg -n 'scheduleCompactionResumeRetry\(ctx, steerMessage, nextAttempt\);' "$COMPACTION_FILE" >/dev/null 2>&1; then
+if rg -n 'scheduleCompactionResumeRetry\(ctx, steerMessage, (nextAttempt|retryAttempt \+ 1)\);' "$COMPACTION_FILE" >/dev/null 2>&1; then
   log_pass "compaction retries recursively continue while pending"
 else
   log_fail "compaction retry recursion missing"

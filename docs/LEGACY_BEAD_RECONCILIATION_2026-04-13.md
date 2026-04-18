@@ -32,13 +32,24 @@ Role now:
 - historical umbrella only
 
 ### `focusa-hd8j`
-Superseded by:
-- first-frontier branch `focusa-7u1f`
-- Pi contract/action/eval branch `focusa-e3id`
-- doc-specific beads for 54, 55 impl, 57
+Superseded by the authoritative docs 51-57 replacement hierarchy:
+- `focusa-7u1f` — doc 51 substrate and first-frontier routing base used by downstream Pi-contract work
+- `focusa-e3id` — docs 52-57 parent implementation track
+- `focusa-jtrl` — doc 54 visible-output boundary frontier
+- `focusa-93sn` — doc 55 implementation-priority frontier
+- `focusa-n4fo` — doc 57 golden-task/eval governance frontier
+
+Doc-to-bead mapping (replacement hierarchy):
+- doc 51 → `focusa-7u1f`
+- doc 52 → `focusa-e3id`
+- doc 53 → `focusa-e3id` (via behavioral-alignment child/dependents)
+- doc 54 → `focusa-jtrl` (under `focusa-e3id`)
+- docs 55 / 55-impl → `focusa-93sn` (under `focusa-e3id` via `focusa-vhbq`)
+- doc 56 → `focusa-e3id` (via trace/checkpoint child `focusa-qs4c`)
+- doc 57 → `focusa-n4fo` (under `focusa-e3id` via `focusa-qs4c`)
 
 Role now:
-- coarse predecessor to the real docs 51-57 hierarchy
+- coarse predecessor to the real docs 51-57 hierarchy; never sole completion evidence
 
 ### `focusa-w784`
 Superseded by:
@@ -59,17 +70,27 @@ Role now:
 - mixed-scope predecessor that should not hide doc-66 vs docs-67-69 differences
 
 ### `focusa-q1wh`
-Superseded by:
-- `focusa-jz89`
-- `focusa-3zav`
-- `focusa-2m6e`
-- `focusa-eczn`
-- `focusa-v2n5`
-- `focusa-ru3s`
-- doc-specific 71-77 branches
+Superseded by the authoritative docs 70-77 replacement hierarchy:
+- `focusa-jz89` — parent shared-ontology substrate branch for docs 70-77
+- `focusa-3zav` — doc 70 verifiable/actionable/scoped field discipline
+- `focusa-ru3s` — grouped branch for docs 71-74 decomposition
+- `focusa-2m6e` — doc 75 projection/view-profile surfaces
+- `focusa-eczn` — doc 76 retention/decay semantics
+- `focusa-v2n5` — doc 77 governance/versioning/migration checks
+- doc-specific 71-74 branches under `focusa-ru3s`: `focusa-suwi` (71), `focusa-e8wn` (72), `focusa-16us` (73), `focusa-eg8i` (74)
+
+Doc-to-bead mapping (replacement hierarchy):
+- doc 70 → `focusa-3zav` (under `focusa-jz89`)
+- doc 71 → `focusa-suwi` (under `focusa-ru3s`)
+- doc 72 → `focusa-e8wn` (under `focusa-ru3s`)
+- doc 73 → `focusa-16us` (under `focusa-ru3s`)
+- doc 74 → `focusa-eg8i` (under `focusa-ru3s`)
+- doc 75 → `focusa-2m6e` (under `focusa-jz89`)
+- doc 76 → `focusa-eczn` (under `focusa-jz89`)
+- doc 77 → `focusa-v2n5` (under `focusa-jz89`)
 
 Role now:
-- coarse predecessor to the shared-substrate hierarchy
+- coarse predecessor to the shared-substrate hierarchy; never sole completion evidence
 
 ### `focusa-l8e4`
 Still useful as:

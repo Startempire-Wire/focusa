@@ -512,7 +512,9 @@ async fn state_explain(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "state:read")?;
     let s = state.focusa.read().await;
-    let active = s.focus_stack.active_id
+    let active = s
+        .focus_stack
+        .active_id
         .and_then(|aid| s.focus_stack.frames.iter().find(|f| f.id == aid));
     Ok(Json(json!({
         "active_frame": active.map(|f| json!({
@@ -537,7 +539,10 @@ async fn references_salient(
     require_scope(&headers, &state, "references:read")?;
     let s = state.focusa.read().await;
     let session_id = s.session.as_ref().map(|sess| sess.session_id);
-    let salient: Vec<&focusa_core::types::HandleRef> = s.reference_index.handles.iter()
+    let salient: Vec<&focusa_core::types::HandleRef> = s
+        .reference_index
+        .handles
+        .iter()
         .filter(|h| h.pinned || h.session_id == session_id)
         .collect();
     Ok(Json(json!({ "references": salient })))
@@ -558,7 +563,10 @@ async fn references_trace(
     let s = state.focusa.read().await;
     // Find CLT nodes that reference this artifact.
     let ref_id = &q.ref_id;
-    let used_in: Vec<&str> = s.clt.nodes.iter()
+    let used_in: Vec<&str> = s
+        .clt
+        .nodes
+        .iter()
         .filter(|n| {
             if let focusa_core::types::CltPayload::Interaction { content_ref, .. } = &n.payload {
                 content_ref.as_deref() == Some(ref_id)
@@ -579,10 +587,18 @@ async fn telemetry_process(
     require_scope(&headers, &state, "metrics:read")?;
     let s = state.focusa.read().await;
     let stack_depth = s.focus_stack.stack_path_cache.len();
-    let completed = s.focus_stack.frames.iter()
-        .filter(|f| f.status == focusa_core::types::FrameStatus::Completed).count();
-    let abandoned = s.focus_stack.frames.iter()
-        .filter(|f| f.completion_reason == Some(focusa_core::types::CompletionReason::Abandoned)).count();
+    let completed = s
+        .focus_stack
+        .frames
+        .iter()
+        .filter(|f| f.status == focusa_core::types::FrameStatus::Completed)
+        .count();
+    let abandoned = s
+        .focus_stack
+        .frames
+        .iter()
+        .filter(|f| f.completion_reason == Some(focusa_core::types::CompletionReason::Abandoned))
+        .count();
     let total_frames = s.focus_stack.frames.len().max(1);
     Ok(Json(json!({
         "avg_focus_depth": stack_depth,
@@ -628,19 +644,25 @@ async fn constitution_propose(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "constitution:propose")?;
     // Submit as a proposal via PRE (docs/41).
-    state.command_tx.send(focusa_core::types::Action::SubmitProposal {
-        kind: focusa_core::types::ProposalKind::ConstitutionRevision,
-        source: "agent".into(),
-        payload: serde_json::json!({
-            "draft": body.draft,
-            "justification": body.justification,
-        }),
-        deadline_ms: 3_600_000, // 1 hour.
-        score: None,
-    }).await.map_err(|_| (
-        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({"error": "failed to submit proposal"})),
-    ))?;
+    state
+        .command_tx
+        .send(focusa_core::types::Action::SubmitProposal {
+            kind: focusa_core::types::ProposalKind::ConstitutionRevision,
+            source: "agent".into(),
+            payload: serde_json::json!({
+                "draft": body.draft,
+                "justification": body.justification,
+            }),
+            deadline_ms: 3_600_000, // 1 hour.
+            score: None,
+        })
+        .await
+        .map_err(|_| {
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "failed to submit proposal"})),
+            )
+        })?;
     Ok(Json(json!({ "status": "proposed" })))
 }
 

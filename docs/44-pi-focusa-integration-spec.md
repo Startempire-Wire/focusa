@@ -3,6 +3,7 @@
 Status: Draft for implementation
 Owner: Focusa + Pi integration
 Goal: Better long-session compaction + optional smarter model routing without cognitive drift
+MVP contract decision: Focus Gate is read-only in Pi surfaces (`policy`, `scores`, `explain`); mutable gate controls (`pin`, `suppress`) are deferred until Capabilities API/CLI specs are revised.
 
 ---
 
@@ -68,13 +69,13 @@ Result:
 
 ### Pi extension owns
 - Display Focusa status in Pi UI
-- Manual commands: pin/suppress/checkpoint/rehydrate (submitted via Focusa Commands API)
+- Manual commands: status/settings/checkpoint/rehydrate/stack/gate-explain (read-centric in MVP)
 - Early warning notifications in session
 - Local fallback helpers when proxy unavailable
 
 ### Write-path rule (authoritative)
 - Preferred mutation path: `POST /v1/commands/submit` (auditable command envelope)
-- Compatibility path (where exposed): direct helper endpoints (e.g. focus-gate pin/suppress aliases)
+- Focus Gate is read-only in MVP; no `pin`/`suppress` helper endpoints or aliases.
 - No hidden writes from extension code
 
 ---
@@ -222,12 +223,12 @@ Beginner UX requirement (preset-first):
 - `/focusa-status`
 - `/focusa-settings` (quick beginner setup)
 - `/focusa-settings advanced` (full expert controls)
-- `/focusa-pin <candidate_id>`
-- `/focusa-suppress <candidate_id> [duration]`
 - `/focusa-checkpoint`
 - `/focusa-rehydrate <handle_id> [max_tokens]`
 - `/focusa-gate-explain <candidate_id>`
 - `/focusa-stack`
+
+MVP note: `/focusa-pin` and `/focusa-suppress` are intentionally excluded while Focus Gate remains read-only.
 
 Command mapping should prefer Capabilities API semantics and IDs; CLI fallback may map to:
 - `focusa gate ...`
@@ -546,23 +547,7 @@ Design intent:
 ### 22.2 Write calls (preferred envelope)
 - `POST /commands/submit`
 
-Example (pin candidate):
-```json
-{
-  "command": "gate.pin",
-  "args": { "candidate_id": "cand_123" },
-  "idempotency_key": "pin-cand_123-20260317T1300Z"
-}
-```
-
-Example (suppress candidate):
-```json
-{
-  "command": "gate.suppress",
-  "args": { "candidate_id": "cand_123", "duration": "10m" },
-  "idempotency_key": "suppress-cand_123-20260317T1301Z"
-}
-```
+MVP note: Focus Gate commands are read-only in this phase. Do not submit `gate.pin`/`gate.suppress` until the Capabilities API/CLI contract explicitly enables gate mutations.
 
 ### 22.3 CLI fallback examples
 - `focusa gate explain <candidate_id>`

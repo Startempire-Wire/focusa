@@ -263,6 +263,15 @@ Examples:
 - visual/UI critique
 - scope verification
 
+#### 5.1a Adversarial closure-veracity verification
+For work-item closure authority, secondary verification should support an adversarial verifier mode that attempts to falsify closure claims.
+
+Contract expectations:
+- closure verdict is `Verifiable` and evidence-linked
+- verifier emits explicit objections and sufficiency status
+- verifier output is advisory to reducer authority, but may veto close transitions via verification-blocked outcome
+- verifier-unavailable states are fail-closed for closure authority unless operator/governance override is explicit
+
 This aligns with:
 - `docs/61-domain-general-cognition-core.md`
 - `docs/60-visual-ui-verification-and-critique.md`
@@ -451,6 +460,8 @@ Every secondary-cognition output must end in one of:
 - **archived_failed_attempt** — historically preserved, behaviorally inactive
 - **deferred_for_review** — ambiguous, requires human or stronger policy path
 
+Current continuous-outcome mapping emits `promoted`, `rejected`, `archived_failed_attempt`, and `deferred_for_review`; `retained_as_projection` remains a valid target class for secondary outputs that are useful but intentionally non-canonical.
+
 ### 9.2 Do not erase failure history
 
 Unlike a pure branch reset, Focusa should preserve failed attempts in historical trace while reducing their active influence.
@@ -469,6 +480,7 @@ Focusa should maintain a durable result log for secondary cognition analogous to
 ### 10.1 Purpose
 
 This ledger makes the improvement loop auditable and comparable over time.
+Current runtime wiring records secondary-loop outcome entries in durable telemetry (`secondary_loop_ledger`), tracks active-window archival roll-off (`secondary_loop_archived_events`), and exposes recent rows through work-loop status eval artifacts.
 
 ### 10.2 Minimum fields
 
@@ -528,6 +540,10 @@ Minimum trace should include:
 - promotion/rejection outcome
 - stop_reason if applicable
 
+For closure-veracity workflows, this includes verifier-specific traces for focus-slice size/relevance, steering detection, prior-mission reuse, and close-committed vs close-blocked transitions.
+Continuous-loop continuation boundaries (request-next, select-next, and auto-advance) should emit `scope_verified` / `scope_failure_recorded` path markers when operator/governance boundaries block continuation.
+API-side auto-dispatch/autoselection helpers should short-circuit prompt dispatch while these boundaries are active.
+
 Authority:
 - `docs/56-trace-checkpoints-recovery.md:12-35`
 - `docs/69-scope-failure-and-relevance-tracing.md:47-58`
@@ -536,7 +552,7 @@ Authority:
 ### 11.1 Current implementation-gap note
 
 Some required trace dimensions appear to be specified more clearly in docs than in current runtime observability surfaces.
-At minimum, the following must be treated as explicit implementation targets until proven live in code and traces:
+Current closure-veracity and continuous-outcome quality traces emit:
 - `active_subject_after_routing`
 - `steering_detected`
 - `prior_mission_reused`
@@ -544,6 +560,8 @@ At minimum, the following must be treated as explicit implementation targets unt
 - `focus_slice_relevance_score`
 - `subject_hijack_prevented`
 - `subject_hijack_occurred`
+
+Remaining gap: prove these dimensions are emitted consistently across all secondary-cognition loop kinds, not only closure paths.
 
 Related reconciliation bead:
 - `focusa-fs2m`
@@ -583,6 +601,7 @@ This is especially important for:
 - thesis refinement
 - visual critique
 - scope failure diagnosis
+- closure authority decisions (emit closure certificate artifacts before durable close transitions)
 
 Authority:
 - `docs/62-visual-ui-evidence-and-workflow.md`
@@ -632,17 +651,18 @@ Current implementation notes:
 - implemented in `crates/focusa-core/src/rfm/mod.rs` via `validate_llm()`
 - prompt checks internal consistency, grounding, and constraint compliance
 - returns booleans + issues/details, not freeform semantic state
-- fallback currently defaults to optimistic pass when API key is absent, response is unparseable, or timeout occurs
+- fallback is fail-closed by default when API key is absent, response is unparseable, or timeout occurs
+- optional permissive mode exists via `FOCUSA_RFM_LLM_FAIL_OPEN=1` for controlled diagnostics
 
 Fit:
 - strong on role
-- medium on trust semantics because failure fallback is permissive
+- stronger trust semantics with strict-default fallback
 
 Required constraints:
 - fixed eval semantics
 - explicit verification record
-- non-optimistic fallback policy should be reviewed
 - verification outcome should remain distinct from canonical truth mutation
+- permissive fallback usage should remain explicit and observable
 
 ### 14.2 Post-turn quality evaluation
 
@@ -654,7 +674,7 @@ Current implementation notes:
 - implemented in `crates/focusa-core/src/runtime/daemon.rs`
 - prompt scores whether the assistant answered the question, remained consistent, and violated active constraints
 - parsed output is logged and written to semantic memory as `eval.last_turn`
-- also logs confidence telemetry
+- logs confidence telemetry and emits `verification_result` traces for `post_turn_eval` / `thesis_refinement`
 - does **not** directly rewrite canonical Focus State fields
 
 Fit:
@@ -666,6 +686,7 @@ Required constraints:
 - current-ask / scope association
 - evidence refs where possible
 - promotion boundary should remain observational unless separately verified
+- suppress this loop when operator steering or governance-decision-pending boundaries are active
 
 ### 14.3 LLM-backed worker jobs
 
@@ -724,6 +745,7 @@ Required constraints:
 - tie to current ask/scope
 - trace changed fields and evidence basis
 - support no-change as a first-class valid outcome
+- suppress refinement when operator steering or governance-decision-pending boundaries are active
 
 ### 14.5 Anticipatory query generation
 
@@ -746,6 +768,7 @@ Required constraints:
 - blocked from polluting prompt assembly unless relevance gate passes
 - aggressive decay
 - explicit scope association and exclusion handling
+- suppress prediction while operator steering or governance-decision-pending boundaries are active
 
 ### 14.6 CLT summarization
 
@@ -796,6 +819,9 @@ A secondary-cognition implementation should not be called compliant with this sp
 - at least one task where verification rejects a proposal that looked locally plausible
 - at least one task where predictive or reflective output decays or is archived instead of remaining behaviorally dominant
 
+Current coverage includes (a) controlled runtime tests driving `ObserveContinuousTurnOutcome` through useful vs low-quality outcomes, subject-hijack suppression, deferred/archived outcomes, and same-task comparative baseline-vs-bounded outcomes, and (b) replay-log comparative tests over persisted `ContinuousSecondaryLoopOutcomeRecorded` events; status-level `secondary_loop_eval_bundle` and `secondary_loop_acceptance_hooks` surfaces include `comparative_improvement_pairs`.
+Controlled proof bundle: `tests/doc78_secondary_loop_comparative_eval.sh`; replay proof bundle: `tests/doc78_secondary_loop_replay_comparative_eval.sh`.
+
 ### 15.2 Minimum eval artifact set
 
 Each eval run should preserve or emit enough data to audit:
@@ -807,17 +833,17 @@ Each eval run should preserve or emit enough data to audit:
 - latency and token-cost impact where applicable
 - final task outcome
 
-### 15.3 Current implementation-gap note
+Current runtime status now emits `secondary_loop_eval_bundle` containing these dimensions from ledger + telemetry surfaces, and ledger impact metrics include per-outcome latency (`latency_ms_since_turn_request`) plus token totals.
 
-The eval dimensions named in this spec are partly ahead of current instrumentation.
-Until wired end-to-end, metrics such as:
-- decision-consult rate
-- scope contamination rate
-- verification coverage
-must be treated as required implementation targets rather than assumed available dashboards.
+### 15.3 Implementation status update (2026-04-18)
 
-Related reconciliation bead:
-- `focusa-fs2m`
+The previously noted instrumentation gap for doc78 closure surfaces is now satisfied for the implemented runtime path set.
+`verification_result` traces, replay-log comparative summaries, per-task `secondary_loop_closure_replay_evidence`, `secondary_loop_objective_profile`, and fail-closed replay consumer projections are all live in status/consumer/dashboard surfaces and validated by executable harnesses.
+
+Production closure evidence is archived in:
+- `docs/evidence/DOC78_PRODUCTION_RUNTIME_EVIDENCE_2026-04-17.md`
+- `docs/evidence/DOC78_PRODUCTION_RUNTIME_SERIES_EVIDENCE_2026-04-18.md`
+- `docs/evidence/DOC78_COMPLETION_CERTIFICATE_2026-04-18.md`
 
 ### 15.4 Bead/test surfaces
 
@@ -840,14 +866,11 @@ Required:
 Authority:
 - `docs/77-ontology-governance-versioning-and-migration.md`
 
-### 16.1 Outstanding reconciliations
+### 16.1 Reconciliation status
 
-At the time of this pass, the following conflicts/gaps remain explicitly open and should not be hand-waved as already resolved:
-- older worker MVP spec vs current LLM-backed worker runtime (`focusa-jbp2`)
-- required secondary-cognition trace/eval surfaces vs current observable instrumentation (`focusa-fs2m`)
-- newer operator-priority/minimal-slice requirements remain partially DOCS-ONLY in audited Pi hot paths (`docs/TRUST_RESTORATION_AUDIT_2026-04-12.md`)
+For doc78 closure scope, required reconciliations are now backed by live code paths and executable proof surfaces.
 
-These open items do not invalidate the spec's direction, but they do block any claim of full implementation conformance.
+Remaining broader ontology/runtime reconciliation items outside doc78 closure scope may still exist, but they no longer block doc78 implementation conformance claims.
 
 ---
 

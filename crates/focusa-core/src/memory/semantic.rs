@@ -4,7 +4,7 @@
 //! Only whitelisted keys injected into prompt.
 //! Serialized as: `PREFS: user.response_style=concise_steps`
 
-use crate::types::{ExplicitMemory, MemorySource, SemanticRecord, FocusaEvent};
+use crate::types::{ExplicitMemory, FocusaEvent, MemorySource, SemanticRecord};
 use chrono::Utc;
 
 /// Upsert a semantic record.
@@ -59,13 +59,14 @@ pub fn enforce_ttls(memory: &mut ExplicitMemory) {
             return true;
         }
         if let Some(ttl) = record.ttl
-            && now > record.created_at + ttl {
-                tracing::info!(
-                    key = %record.key,
-                    "Semantic memory expired (TTL)"
-                );
-                return false;
-            }
+            && now > record.created_at + ttl
+        {
+            tracing::info!(
+                key = %record.key,
+                "Semantic memory expired (TTL)"
+            );
+            return false;
+        }
         true
     });
     let removed = before - memory.semantic.len();
@@ -100,8 +101,13 @@ pub fn resolve_contradictions(memory: &mut ExplicitMemory) {
             }
 
             // Skip transient keys (preturn, anticipated, startup — ephemeral, not contradictable)
-            if a.key.contains("preturn") || a.key.contains("anticipated") || a.key.contains("startup")
-                || b.key.contains("preturn") || b.key.contains("anticipated") || b.key.contains("startup") {
+            if a.key.contains("preturn")
+                || a.key.contains("anticipated")
+                || a.key.contains("startup")
+                || b.key.contains("preturn")
+                || b.key.contains("anticipated")
+                || b.key.contains("startup")
+            {
                 continue;
             }
 
@@ -115,16 +121,12 @@ pub fn resolve_contradictions(memory: &mut ExplicitMemory) {
             // Check for semantic contradiction via negation patterns
             let a_lower = a.value.to_lowercase();
             let b_lower = b.value.to_lowercase();
-            let contradicts = (
-                a_lower.contains("not ") && !b_lower.contains("not ") ||
-                !a_lower.contains("not ") && b_lower.contains("not ")
-            ) || (
-                a_lower.contains("never") && b_lower.contains("always") ||
-                a_lower.contains("always") && b_lower.contains("never")
-            ) || (
-                a_lower.contains("disable") && b_lower.contains("enable") ||
-                a_lower.contains("enable") && b_lower.contains("disable")
-            );
+            let contradicts = (a_lower.contains("not ") && !b_lower.contains("not ")
+                || !a_lower.contains("not ") && b_lower.contains("not "))
+                || (a_lower.contains("never") && b_lower.contains("always")
+                    || a_lower.contains("always") && b_lower.contains("never"))
+                || (a_lower.contains("disable") && b_lower.contains("enable")
+                    || a_lower.contains("enable") && b_lower.contains("disable"));
 
             if !contradicts {
                 continue;
@@ -184,7 +186,10 @@ pub fn resolve_contradictions(memory: &mut ExplicitMemory) {
     memory.semantic.retain(|r| r.confidence > 0.05 || r.pinned);
     let removed = before - memory.semantic.len();
     if removed > 0 {
-        tracing::info!(removed, "Semantic memories removed by contradiction-driven forgetting");
+        tracing::info!(
+            removed,
+            "Semantic memories removed by contradiction-driven forgetting"
+        );
     }
 }
 
@@ -224,44 +229,83 @@ mod tests {
     fn test_contradiction_precedence_higher_wins() {
         let mut memory = ExplicitMemory::default();
         // Mem0 says "enable caching"
-        memory.semantic.push(make_record("config.cache", "enable caching always", MemorySource::Mem0));
+        memory.semantic.push(make_record(
+            "config.cache",
+            "enable caching always",
+            MemorySource::Mem0,
+        ));
         // Operator says "not enable caching" (higher precedence)
-        memory.semantic.push(make_record("config.nocache", "not enable caching", MemorySource::Operator));
+        memory.semantic.push(make_record(
+            "config.nocache",
+            "not enable caching",
+            MemorySource::Operator,
+        ));
 
         resolve_contradictions(&mut memory);
 
         // Mem0 entry should be demoted (lower precedence)
-        let mem0 = memory.semantic.iter().find(|r| r.key == "config.cache").unwrap();
-        assert!(mem0.confidence < 1.0, "Mem0 entry should have reduced confidence");
+        let mem0 = memory
+            .semantic
+            .iter()
+            .find(|r| r.key == "config.cache")
+            .unwrap();
+        assert!(
+            mem0.confidence < 1.0,
+            "Mem0 entry should have reduced confidence"
+        );
         assert!(mem0.tags.contains(&"superseded".to_string()));
 
         // Operator entry should be untouched
-        let op = memory.semantic.iter().find(|r| r.key == "config.nocache").unwrap();
+        let op = memory
+            .semantic
+            .iter()
+            .find(|r| r.key == "config.nocache")
+            .unwrap();
         assert_eq!(op.confidence, 1.0);
     }
 
     #[test]
     fn test_contradiction_same_precedence_newer_wins() {
         let mut memory = ExplicitMemory::default();
-        let mut old = make_record("pref.style", "always use verbose style", MemorySource::Worker);
+        let mut old = make_record(
+            "pref.style",
+            "always use verbose style",
+            MemorySource::Worker,
+        );
         old.updated_at = Utc::now() - chrono::Duration::hours(1);
         memory.semantic.push(old);
 
-        let new = make_record("pref.concise", "never use verbose style", MemorySource::Worker);
+        let new = make_record(
+            "pref.concise",
+            "never use verbose style",
+            MemorySource::Worker,
+        );
         memory.semantic.push(new);
 
         resolve_contradictions(&mut memory);
 
         // Older entry should be demoted
-        let old_rec = memory.semantic.iter().find(|r| r.key == "pref.style").unwrap();
+        let old_rec = memory
+            .semantic
+            .iter()
+            .find(|r| r.key == "pref.style")
+            .unwrap();
         assert!(old_rec.confidence < 1.0);
     }
 
     #[test]
     fn test_no_contradiction_different_prefix() {
         let mut memory = ExplicitMemory::default();
-        memory.semantic.push(make_record("project.name", "enable feature X", MemorySource::Worker));
-        memory.semantic.push(make_record("user.pref", "not enable feature Y", MemorySource::Worker));
+        memory.semantic.push(make_record(
+            "project.name",
+            "enable feature X",
+            MemorySource::Worker,
+        ));
+        memory.semantic.push(make_record(
+            "user.pref",
+            "not enable feature Y",
+            MemorySource::Worker,
+        ));
 
         resolve_contradictions(&mut memory);
 
@@ -277,7 +321,11 @@ mod tests {
         old.updated_at = Utc::now() - chrono::Duration::hours(2);
         old.confidence = 0.08; // Already low
         memory.semantic.push(old);
-        memory.semantic.push(make_record("test.b", "never enable feature", MemorySource::Worker));
+        memory.semantic.push(make_record(
+            "test.b",
+            "never enable feature",
+            MemorySource::Worker,
+        ));
 
         resolve_contradictions(&mut memory);
 

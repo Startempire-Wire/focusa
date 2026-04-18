@@ -1,8 +1,8 @@
 pub mod autonomy;
 pub mod cache;
 pub mod clt;
-pub mod contribute;
 pub mod constitution;
+pub mod contribute;
 pub mod daemon;
 pub mod debug;
 pub mod ecs;
@@ -16,7 +16,7 @@ pub mod reflection;
 pub mod rfm;
 pub mod skills;
 pub mod telemetry;
-pub mod tokens;
 pub mod threads;
+pub mod tokens;
 pub mod turns;
 pub mod wrap;

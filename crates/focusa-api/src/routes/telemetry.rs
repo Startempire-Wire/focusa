@@ -2,12 +2,15 @@
 
 use crate::server::AppState;
 use axum::extract::State;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
+use chrono::Utc;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::Utc;
 
 /// GET /v1/telemetry/tokens — token usage metrics.
 async fn tokens(State(state): State<Arc<AppState>>) -> Json<Value> {
@@ -41,14 +44,14 @@ struct ToolUsageBody {
 /// GET /v1/telemetry/tools — get tool usage summary.
 async fn tool_usage(State(state): State<Arc<AppState>>) -> Json<Value> {
     let s = state.focusa.read().await;
-    let summary: std::collections::HashMap<String, u32> = s
-        .telemetry
-        .tool_calls
-        .iter()
-        .fold(std::collections::HashMap::new(), |mut acc, name| {
-            *acc.entry(name.clone()).or_insert(0) += 1;
-            acc
-        });
+    let summary: std::collections::HashMap<String, u32> =
+        s.telemetry
+            .tool_calls
+            .iter()
+            .fold(std::collections::HashMap::new(), |mut acc, name| {
+                *acc.entry(name.clone()).or_insert(0) += 1;
+                acc
+            });
     Json(json!({
         "total_calls": s.telemetry.tool_calls.len(),
         "tool_summary": summary,
@@ -79,7 +82,9 @@ async fn record_tool_usage(
             "tools": body.tools,
         },
     }));
-    Ok(Json(json!({"status": "accepted", "recorded": recorded, "turn_id": turn_id, "tools": tools})))
+    Ok(Json(
+        json!({"status": "accepted", "recorded": recorded, "turn_id": turn_id, "tools": tools}),
+    ))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -106,7 +111,8 @@ async fn record_activity_event(
     State(state): State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
 ) -> Json<serde_json::Value> {
-    let event_name = body.get("event")
+    let event_name = body
+        .get("event")
         .and_then(|v| v.as_str())
         .unwrap_or("activity_event");
 
@@ -133,7 +139,8 @@ async fn record_operational_event(
     State(state): State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
 ) -> Json<serde_json::Value> {
-    let event_name = body.get("event")
+    let event_name = body
+        .get("event")
         .and_then(|v| v.as_str())
         .unwrap_or("operational_event");
 
@@ -165,7 +172,8 @@ async fn record_trace_event(
 ) -> Json<serde_json::Value> {
     use focusa_core::types::TelemetryEventType;
 
-    let event_type_str = body.get("event_type")
+    let event_type_str = body
+        .get("event_type")
         .and_then(|v| v.as_str())
         .unwrap_or("ModelTokens");
     let _event_type = match event_type_str {
@@ -187,6 +195,15 @@ async fn record_trace_event(
         "prior_mission_reused" => TelemetryEventType::PriorMissionReused,
         "focus_slice_size" => TelemetryEventType::FocusSliceSize,
         "focus_slice_relevance_score" => TelemetryEventType::FocusSliceRelevanceScore,
+        "current_ask_determined" => TelemetryEventType::CurrentAskDetermined,
+        "query_scope_built" => TelemetryEventType::QueryScopeBuilt,
+        "relevant_context_selected" => TelemetryEventType::RelevantContextSelected,
+        "irrelevant_context_excluded" => TelemetryEventType::IrrelevantContextExcluded,
+        "scope_verified" => TelemetryEventType::ScopeVerified,
+        "scope_contamination_detected" => TelemetryEventType::ScopeContaminationDetected,
+        "wrong_question_detected" => TelemetryEventType::WrongQuestionDetected,
+        "answer_broadening_detected" => TelemetryEventType::AnswerBroadeningDetected,
+        "scope_failure_recorded" => TelemetryEventType::ScopeFailureRecorded,
         _ => TelemetryEventType::ModelTokens,
     };
 
@@ -215,7 +232,8 @@ async fn get_trace_events(
     let focusa = state.focusa.read().await;
     let events = &focusa.telemetry.trace_events;
 
-    let limit = params.get("limit")
+    let limit = params
+        .get("limit")
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(100)
         .min(1000);
@@ -234,7 +252,10 @@ async fn get_trace_events(
         .filter(|e| {
             turn_id_filter
                 .map(|wanted| {
-                    let nested = e.get("payload").and_then(|p| p.get("turn_id")).and_then(|v| v.as_str());
+                    let nested = e
+                        .get("payload")
+                        .and_then(|p| p.get("turn_id"))
+                        .and_then(|v| v.as_str());
                     let top = e.get("turn_id").and_then(|v| v.as_str());
                     nested == Some(wanted) || top == Some(wanted)
                 })
@@ -243,7 +264,10 @@ async fn get_trace_events(
         .filter(|e| {
             turn_id_prefix_filter
                 .map(|wanted| {
-                    let nested = e.get("payload").and_then(|p| p.get("turn_id")).and_then(|v| v.as_str());
+                    let nested = e
+                        .get("payload")
+                        .and_then(|p| p.get("turn_id"))
+                        .and_then(|v| v.as_str());
                     let top = e.get("turn_id").and_then(|v| v.as_str());
                     nested
                         .or(top)
@@ -265,9 +289,7 @@ async fn get_trace_events(
 }
 
 /// GET /v1/telemetry/trace/stats — Get trace stats (SPEC 56)
-async fn get_trace_stats(
-    State(state): State<Arc<AppState>>,
-) -> Json<serde_json::Value> {
+async fn get_trace_stats(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
     let events = &focusa.telemetry.trace_events;
 

@@ -55,6 +55,7 @@ async fn main() -> Result<()> {
                 KeyCode::Char('4') => app.tab = app::Tab::Events,
                 KeyCode::Char('5') => app.tab = app::Tab::Metrics,
                 KeyCode::Char('6') => app.tab = app::Tab::Lineage,
+                KeyCode::Char('w') => app.tab = app::Tab::WorkLoop,
                 KeyCode::Char('7') => app.tab = app::Tab::Autonomy,
                 KeyCode::Char('8') => app.tab = app::Tab::Constitution,
                 KeyCode::Char('9') => app.tab = app::Tab::Telemetry,

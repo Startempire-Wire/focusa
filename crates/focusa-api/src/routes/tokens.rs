@@ -8,7 +8,10 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::*;
 use serde::Deserialize;
 use serde_json::{Value, json};

@@ -53,11 +53,8 @@ impl VectorClock {
         let mut has_greater = false;
 
         // Check all keys from both clocks.
-        let all_keys: std::collections::HashSet<_> = self
-            .clocks
-            .keys()
-            .chain(other.clocks.keys())
-            .collect();
+        let all_keys: std::collections::HashSet<_> =
+            self.clocks.keys().chain(other.clocks.keys()).collect();
 
         for key in all_keys {
             let self_val = self.get(key);
@@ -71,10 +68,10 @@ impl VectorClock {
         }
 
         match (has_less, has_greater) {
-            (true, true) => None,                    // Concurrent.
-            (true, false) => Some(std::cmp::Ordering::Less),   // self < other.
+            (true, true) => None,                               // Concurrent.
+            (true, false) => Some(std::cmp::Ordering::Less),    // self < other.
             (false, true) => Some(std::cmp::Ordering::Greater), // self > other.
-            (false, false) => Some(std::cmp::Ordering::Equal), // Equal.
+            (false, false) => Some(std::cmp::Ordering::Equal),  // Equal.
         }
     }
 
@@ -117,11 +114,7 @@ impl CrdtLog {
     }
 
     /// Add a local event.
-    pub fn add_local_event(
-        &mut self,
-        entry: EventLogEntry,
-        machine_id: &str,
-    ) -> CrdtEvent {
+    pub fn add_local_event(&mut self, entry: EventLogEntry, machine_id: &str) -> CrdtEvent {
         self.local_clock.increment(machine_id);
         self.lamport_counter += 1;
 

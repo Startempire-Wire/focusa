@@ -1,0 +1,24 @@
+[1;33mINFO[0m: artifact capture enabled: docs/evidence/doc78-production-runtime-2026-04-17-run2
+=== DOC78 PRODUCTION RUNTIME GOVERNANCE + REPLAY SMOKE ===
+Base URL: http://127.0.0.1:18799
+
+[0;32m✓ PASS[0m: daemon health route is ready
+[0;32m✓ PASS[0m: status exposes governance owner + continuity gate + objective profile
+[0;32m✓ PASS[0m: session start accepted
+[0;32m✓ PASS[0m: governance pause set for production pressure round
+[0;32m✓ PASS[0m: select-next accepted under governance boundary
+[0;32m✓ PASS[0m: heartbeat dispatch suppressed while governance boundary active
+[0;32m✓ PASS[0m: second select-next accepted for sustained governance pressure
+[0;32m✓ PASS[0m: second heartbeat remains suppressed during sustained governance pressure
+[0;32m✓ PASS[0m: status reflects governance blocker semantics during production pressure
+[0;32m✓ PASS[0m: scope_failure_recorded trace stream carries governance continuation-boundary evidence
+[0;32m✓ PASS[0m: verification traces include non-closure loop objectives in production runtime
+[0;32m✓ PASS[0m: status objective profile reports live non-closure evidence
+[0;32m✓ PASS[0m: closure-bundle carries production replay gate + non-closure objective evidence
+[0;32m✓ PASS[0m: closure-evidence fallback route remains available during production pressure
+[0;32m✓ PASS[0m: checkpoints route exposes escalation/reentry artifact fields
+[0;32m✓ PASS[0m: pause flags restored to pre-smoke state
+
+=== DOC78 PRODUCTION RUNTIME RESULTS ===
+Tests passed: 16
+Tests failed: 0

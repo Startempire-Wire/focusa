@@ -94,7 +94,13 @@ fn signal_fingerprint(signal: &Signal) -> u64 {
     // kind
     std::mem::discriminant(&signal.kind).hash(&mut hasher);
     // normalized summary: lowercase, trim, first 100 chars
-    let norm: String = signal.summary.to_lowercase().trim().chars().take(100).collect();
+    let norm: String = signal
+        .summary
+        .to_lowercase()
+        .trim()
+        .chars()
+        .take(100)
+        .collect();
     norm.hash(&mut hasher);
     // frame_context
     signal.frame_context.hash(&mut hasher);
@@ -164,7 +170,11 @@ pub fn run_gate_pipeline(
         // Step 3: Compute pressure increment with modifiers.
         let base = base_pressure(kind);
         let alignment = goal_alignment_modifier(related_frame, active_id, stack_path);
-        let recency_bonus = if (now - signal_ts).num_seconds() < 300 { 0.3 } else { 0.0 };
+        let recency_bonus = if (now - signal_ts).num_seconds() < 300 {
+            0.3
+        } else {
+            0.0
+        };
         let risk_bonus = match kind {
             SignalKind::Error | SignalKind::Warning => 0.4,
             _ => 0.0,
@@ -276,9 +286,11 @@ pub fn cap_candidates(gate: &mut FocusGateState) {
                 CandidateState::Surfaced => 3,
             }
         };
-        state_ord(&a.state)
-            .cmp(&state_ord(&b.state))
-            .then(a.pressure.partial_cmp(&b.pressure).unwrap_or(std::cmp::Ordering::Equal))
+        state_ord(&a.state).cmp(&state_ord(&b.state)).then(
+            a.pressure
+                .partial_cmp(&b.pressure)
+                .unwrap_or(std::cmp::Ordering::Equal),
+        )
     });
     gate.candidates.truncate(MAX_CANDIDATES);
 }
@@ -416,7 +428,10 @@ mod tests {
                 .push(make_signal(SignalKind::Error, "build failed", None));
         }
         let surfaced = run_gate_pipeline(&mut gate, None, &[], 2.2);
-        assert!(!gate.candidates.is_empty(), "Should have created candidates");
+        assert!(
+            !gate.candidates.is_empty(),
+            "Should have created candidates"
+        );
         assert!(surfaced > 0, "Error signals should surface");
         assert_eq!(gate.candidates[0].kind, CandidateKind::SuggestFixError);
         assert!(gate.candidates[0].pressure > 0.0);

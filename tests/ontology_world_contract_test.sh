@@ -66,6 +66,7 @@ create table widgets(id integer primary key);
 EOF
 FRAME_TITLE="ontology-world-$(date +%s%N)"
 FRAME_GOAL="verify broader ontology projection"
+ASK_TEXT="verify ontology world scope boundaries"
 curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" -d '{"reason":"ontology-world-reset"}' >/dev/null || true
 curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\"}" >/dev/null
 workspace_ready=0
@@ -94,6 +95,11 @@ curl -sS -X POST "${BASE_URL}/v1/ascc/update-delta" -H "Content-Type: applicatio
   -d "{\"frame_id\":\"${frame_id}\",\"delta\":{\"decisions\":[\"Use bounded ontology world projection\"],\"constraints\":[\"No unbounded ontology blob\"],\"failures\":[\"Software world gap under test\"],\"recent_results\":[\"Projection route added\"]}}" >/dev/null
 curl -sS -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
   -d '{"kind":"text","label":"ontology-artifact","content":"artifact for ontology world contract","surface":"test"}' >/dev/null
+ACTIVE_WRITER=$(curl -sS "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "ontology-world-contract"')
+curl -sS -X POST "${BASE_URL}/v1/work-loop/checkpoint" -H "Content-Type: application/json" -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  -d '{"summary":"ontology world contract seed"}' >/dev/null
+curl -sS -X POST "${BASE_URL}/v1/work-loop/context" -H "Content-Type: application/json" -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"verification\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"strict\",\"excluded_context_reason\":\"exclude unrelated history\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"test-turn-ontology-world\"}" >/dev/null
 seeded=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60; do
   if curl -sS "${BASE_URL}/v1/ascc/frame/${frame_id}" | jq -e '.focus_state.decisions | index("Use bounded ontology world projection")' >/dev/null 2>&1; then
@@ -106,6 +112,26 @@ if [ "$seeded" = "1" ]; then
   log_pass "Ontology seed state materialized"
 else
   log_fail "Ontology seed state did not materialize"
+  echo ""
+  echo "=== ONTOLOGY WORLD CONTRACT RESULTS ==="
+  echo "Tests passed: ${PASSED}"
+  echo "Tests failed: ${FAILED}"
+  echo ""
+  exit 1
+fi
+
+context_ready=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  if curl -sS "${BASE_URL}/v1/work-loop/status" | jq -e --arg ask "$ASK_TEXT" '.decision_context.current_ask == $ask and .decision_context.scope_kind == "fresh_question"' >/dev/null 2>&1; then
+    context_ready=1
+    break
+  fi
+  sleep 0.2
+done
+if [ "$context_ready" = "1" ]; then
+  log_pass "Work-loop context materialized"
+else
+  log_fail "Work-loop context did not materialize"
   echo ""
   echo "=== ONTOLOGY WORLD CONTRACT RESULTS ==="
   echo "Tests passed: ${PASSED}"
@@ -154,9 +180,10 @@ if [ "$code" = "200" ]; then
   json_assert '.objects | any(.object_type == "failure" and .summary == "Software world gap under test")' "Failure object projected canonically"
   json_assert '.objects | any(.object_type == "verification" and .result == "Projection route added")' "Verification object projected canonically"
   json_assert '.objects | any(.object_type == "artifact")' "Artifact object projected canonically"
+  json_assert '.objects | any(.object_type == "current_ask" and .ask_text == "verify ontology world scope boundaries") and any(.object_type == "query_scope" and .scope_kind == "fresh_question" and .carryover_policy == "strict") and any(.object_type == "relevant_context_set") and any(.object_type == "excluded_context_set")' "Scope-control ontology objects projected"
   json_assert '.objects | any(.object_type == "repo") and any(.object_type == "package") and any(.object_type == "module") and any(.object_type == "file") and any(.object_type == "symbol") and any(.object_type == "route") and any(.object_type == "endpoint") and any(.object_type == "schema") and any(.object_type == "migration") and any(.object_type == "dependency") and any(.object_type == "test") and any(.object_type == "environment")' "Code-world object families projected from workspace"
-  json_assert '.links | any(.type == "belongs_to_goal") and any(.type == "blocks") and any(.type == "verifies") and any(.type == "depends_on") and any(.type == "tested_by") and any(.type == "implements") and any(.type == "persists_to") and any(.type == "configured_by") and any(.type == "declared_in")' "Typed ontology links projected"
-  json_assert '.action_catalog | any(.name == "refactor_module" and .reducer_visible == true)' "Action catalog projected"
+  json_assert '.links | any(.type == "belongs_to_goal") and any(.type == "blocks") and any(.type == "verifies") and any(.type == "depends_on") and any(.type == "tested_by") and any(.type == "implements") and any(.type == "persists_to") and any(.type == "configured_by") and any(.type == "declared_in") and any(.type == "governed_by") and any(.type == "includes_context") and any(.type == "excludes_context")' "Typed ontology links projected"
+  json_assert '.action_catalog | any(.name == "refactor_module" and .constraint_checked == true and .reducer_visible == true and .runtime_execution_supported == true) and any(.name == "determine_current_ask" and .reducer_visible == true and .runtime_execution_supported == true) and any(.name == "resolve_identity" and .reducer_visible == true and .runtime_execution_supported == true) and any(.name == "build_projection" and .reducer_visible == true and .runtime_execution_supported == true) and any(.name == "execute_migration" and .reducer_visible == true and .runtime_execution_supported == true)' "Action catalog reflects executable reducer-backed behavior"
 else
   log_fail "Ontology world endpoint failed with HTTP ${code}"
 fi

@@ -399,7 +399,8 @@ mod tests {
             temperature: None,
             extra: Value::Null,
         };
-        let result = process_request(request, &test_state(), &FocusaConfig::default()).expect("slice injected");
+        let result = process_request(request, &test_state(), &FocusaConfig::default())
+            .expect("slice injected");
         let system = result.request.system.expect("system prompt kept");
         assert!(system.contains("[Focusa Minimal Applicable Slice]"));
         assert!(system.contains("RELEVANT_DECISIONS:"));

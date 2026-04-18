@@ -263,20 +263,48 @@ impl WorkLoopPolicy {
 
     pub fn with_overrides(preset: WorkLoopPreset, overrides: WorkLoopPolicyOverrides) -> Self {
         let mut policy = Self::for_preset(preset);
-        if let Some(v) = overrides.max_turns { policy.max_turns = Some(v); }
-        if let Some(v) = overrides.max_wall_clock_ms { policy.max_wall_clock_ms = Some(v); }
-        if let Some(v) = overrides.max_retries { policy.max_retries = v; }
-        if let Some(v) = overrides.cooldown_ms { policy.cooldown_ms = v; }
-        if let Some(v) = overrides.allow_destructive_actions { policy.allow_destructive_actions = v; }
-        if let Some(v) = overrides.require_operator_for_governance { policy.require_operator_for_governance = v; }
-        if let Some(v) = overrides.require_operator_for_scope_change { policy.require_operator_for_scope_change = v; }
-        if let Some(v) = overrides.require_verification_before_persist { policy.require_verification_before_persist = v; }
-        if let Some(v) = overrides.max_consecutive_low_productivity_turns { policy.max_consecutive_low_productivity_turns = v; }
-        if let Some(v) = overrides.max_consecutive_failures { policy.max_consecutive_failures = v; }
-        if let Some(v) = overrides.auto_pause_on_operator_message { policy.auto_pause_on_operator_message = v; }
-        if let Some(v) = overrides.require_explainable_continue_reason { policy.require_explainable_continue_reason = v; }
-        if let Some(v) = overrides.max_same_subproblem_retries { policy.max_same_subproblem_retries = v; }
-        if let Some(v) = overrides.status_heartbeat_ms { policy.status_heartbeat_ms = v; }
+        if let Some(v) = overrides.max_turns {
+            policy.max_turns = Some(v);
+        }
+        if let Some(v) = overrides.max_wall_clock_ms {
+            policy.max_wall_clock_ms = Some(v);
+        }
+        if let Some(v) = overrides.max_retries {
+            policy.max_retries = v;
+        }
+        if let Some(v) = overrides.cooldown_ms {
+            policy.cooldown_ms = v;
+        }
+        if let Some(v) = overrides.allow_destructive_actions {
+            policy.allow_destructive_actions = v;
+        }
+        if let Some(v) = overrides.require_operator_for_governance {
+            policy.require_operator_for_governance = v;
+        }
+        if let Some(v) = overrides.require_operator_for_scope_change {
+            policy.require_operator_for_scope_change = v;
+        }
+        if let Some(v) = overrides.require_verification_before_persist {
+            policy.require_verification_before_persist = v;
+        }
+        if let Some(v) = overrides.max_consecutive_low_productivity_turns {
+            policy.max_consecutive_low_productivity_turns = v;
+        }
+        if let Some(v) = overrides.max_consecutive_failures {
+            policy.max_consecutive_failures = v;
+        }
+        if let Some(v) = overrides.auto_pause_on_operator_message {
+            policy.auto_pause_on_operator_message = v;
+        }
+        if let Some(v) = overrides.require_explainable_continue_reason {
+            policy.require_explainable_continue_reason = v;
+        }
+        if let Some(v) = overrides.max_same_subproblem_retries {
+            policy.max_same_subproblem_retries = v;
+        }
+        if let Some(v) = overrides.status_heartbeat_ms {
+            policy.status_heartbeat_ms = v;
+        }
         policy
     }
 }
@@ -383,6 +411,60 @@ pub struct WorkLoopState {
 
 // ─── Canonical State (from core-reducer.md) ─────────────────────────────────
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OntologyProposalRecord {
+    pub proposal_id: Uuid,
+    pub proposal_kind: String,
+    pub target_class: String,
+    pub status: String,
+    pub source: Option<String>,
+    pub object_type: Option<String>,
+    pub object_id: Option<String>,
+    pub link_type: Option<String>,
+    pub source_id: Option<String>,
+    pub target_id: Option<String>,
+    pub notes: Option<String>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OntologyVerificationRecord {
+    pub proposal_id: Option<Uuid>,
+    pub verification: String,
+    pub outcome: String,
+    pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OntologyWorkingSetRefreshRecord {
+    pub scope: String,
+    pub reason: String,
+    pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OntologyDeltaRecord {
+    pub delta_kind: String,
+    pub payload: serde_json::Value,
+    pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OntologyState {
+    #[serde(default)]
+    pub objects: Vec<serde_json::Value>,
+    #[serde(default)]
+    pub links: Vec<serde_json::Value>,
+    #[serde(default)]
+    pub proposals: Vec<OntologyProposalRecord>,
+    #[serde(default)]
+    pub verifications: Vec<OntologyVerificationRecord>,
+    #[serde(default)]
+    pub working_set_refreshes: Vec<OntologyWorkingSetRefreshRecord>,
+    #[serde(default)]
+    pub delta_log: Vec<OntologyDeltaRecord>,
+}
+
 /// The complete cognitive state of a Focusa instance.
 ///
 /// INVARIANT: Conversation history is NEVER part of FocusaState.
@@ -401,6 +483,8 @@ pub struct FocusaState {
     pub telemetry: TelemetryState,
     pub rfm: RfmState,
     pub pre: PreState,
+    #[serde(default)]
+    pub ontology: OntologyState,
     pub contribution: ContributionState,
     /// Canonical continuous work loop state (spec 79).
     #[serde(default)]
@@ -442,6 +526,7 @@ impl FocusaState {
             telemetry: TelemetryState::default(),
             rfm: RfmState::default(),
             pre: PreState::default(),
+            ontology: OntologyState::default(),
             contribution: ContributionState::default(),
             work_loop: WorkLoopState::default(),
             instances: vec![],
@@ -993,6 +1078,15 @@ pub enum FocusaEvent {
         continue_reason: Option<String>,
         verification_satisfied: bool,
         spec_conformant: bool,
+    },
+    /// Replay/audit event for doc78 secondary-loop comparative evidence.
+    ContinuousSecondaryLoopOutcomeRecorded {
+        task_run_id: Option<TaskRunId>,
+        work_item_id: Option<String>,
+        promotion_status: String,
+        verification_satisfied: bool,
+        spec_conformant: bool,
+        trace_id: String,
     },
     ContinuousTurnPaused {
         reason: String,
@@ -2134,6 +2228,38 @@ pub enum TelemetryEventType {
     PriorMissionReused,
     FocusSliceSize,
     FocusSliceRelevanceScore,
+    // Docs 67/69 scope-routing + scope-failure trace surfaces.
+    CurrentAskDetermined,
+    QueryScopeBuilt,
+    RelevantContextSelected,
+    IrrelevantContextExcluded,
+    ScopeVerified,
+    ScopeContaminationDetected,
+    WrongQuestionDetected,
+    AnswerBroadeningDetected,
+    ScopeFailureRecorded,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecondaryLoopLedgerEntry {
+    pub proposal_id: String,
+    pub source_function: String,
+    pub actor_instance_id: Option<String>,
+    pub role_profile_id: String,
+    pub current_ask_id: Option<String>,
+    pub query_scope_id: Option<String>,
+    pub input_window_ref: Option<String>,
+    pub evidence_refs: Vec<String>,
+    pub proposed_delta: String,
+    pub verification_status: String,
+    pub promotion_status: String,
+    pub confidence: f64,
+    pub impact_metrics: serde_json::Value,
+    pub failure_class: Option<String>,
+    pub description: String,
+    pub trace_id: String,
+    pub correlation_id: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 /// Telemetry aggregate state.
@@ -2149,6 +2275,33 @@ pub struct TelemetryState {
     /// Trace dimension events for SPEC 56 (18 dimensions).
     #[serde(default)]
     pub trace_events: Vec<serde_json::Value>,
+    /// Count of verification_result trace events for eval coverage tracking (doc 78 §15.3).
+    #[serde(default)]
+    pub verification_result_events: u64,
+    /// Count of verification_result events that consulted decisions.
+    #[serde(default)]
+    pub decision_consult_events: u64,
+    /// Count of scope_contamination_detected trace events.
+    #[serde(default)]
+    pub scope_contamination_events: u64,
+    /// Count of subject_hijack_prevented trace events.
+    #[serde(default)]
+    pub subject_hijack_prevented_events: u64,
+    /// Count of subject_hijack_occurred trace events.
+    #[serde(default)]
+    pub subject_hijack_occurred_events: u64,
+    /// Count of secondary-loop quality traces graded as useful.
+    #[serde(default)]
+    pub secondary_loop_useful_events: u64,
+    /// Count of secondary-loop quality traces graded as low_quality.
+    #[serde(default)]
+    pub secondary_loop_low_quality_events: u64,
+    /// Durable secondary-cognition proposal advancement ledger (doc 78 §10).
+    #[serde(default)]
+    pub secondary_loop_ledger: Vec<SecondaryLoopLedgerEntry>,
+    /// Count of ledger entries archived out of the active window.
+    #[serde(default)]
+    pub secondary_loop_archived_events: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

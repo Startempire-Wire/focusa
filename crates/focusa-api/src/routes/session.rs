@@ -161,8 +161,8 @@ async fn resume_session(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ResumeSessionBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let session_id = uuid::Uuid::parse_str(&body.session_id)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let session_id =
+        uuid::Uuid::parse_str(&body.session_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     state
         .command_tx
@@ -170,7 +170,9 @@ async fn resume_session(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(json!({"status": "accepted", "session_id": body.session_id})))
+    Ok(Json(
+        json!({"status": "accepted", "session_id": body.session_id}),
+    ))
 }
 
 #[derive(Deserialize)]

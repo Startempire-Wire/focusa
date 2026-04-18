@@ -183,7 +183,7 @@ mod tests {
 }
 
 /// Compact the CLT when interaction nodes exceed threshold.
-/// 
+///
 /// Per docs/17 rule 5: "Compaction inserts — never deletes."
 /// Groups the oldest N interaction nodes, asks LLM for a summary,
 /// inserts a Summary node covering that range.
@@ -200,9 +200,14 @@ pub async fn compact_if_needed(
     }
 
     // Collect oldest interaction nodes not already covered by a summary
-    let summary_covered: std::collections::HashSet<String> = clt.nodes.iter()
+    let summary_covered: std::collections::HashSet<String> = clt
+        .nodes
+        .iter()
         .filter_map(|n| {
-            if let CltPayload::Summary { ref covered_range, .. } = n.payload {
+            if let CltPayload::Summary {
+                ref covered_range, ..
+            } = n.payload
+            {
                 Some(covered_range.clone())
             } else {
                 None
@@ -211,8 +216,12 @@ pub async fn compact_if_needed(
         .flatten()
         .collect();
 
-    let uncovered_interactions: Vec<&CltNode> = clt.nodes.iter()
-        .filter(|n| n.node_type == CltNodeType::Interaction && !summary_covered.contains(&n.node_id))
+    let uncovered_interactions: Vec<&CltNode> = clt
+        .nodes
+        .iter()
+        .filter(|n| {
+            n.node_type == CltNodeType::Interaction && !summary_covered.contains(&n.node_id)
+        })
         .take(batch_size)
         .collect();
 
@@ -221,16 +230,25 @@ pub async fn compact_if_needed(
     }
 
     // Build content for summarization
-    let content: Vec<String> = uncovered_interactions.iter().map(|n| {
-        match &n.payload {
+    let content: Vec<String> = uncovered_interactions
+        .iter()
+        .map(|n| match &n.payload {
             CltPayload::Interaction { role, content_ref } => {
-                format!("[{}] {}: {}", n.node_id, role, content_ref.as_deref().unwrap_or("(no content)"))
+                format!(
+                    "[{}] {}: {}",
+                    n.node_id,
+                    role,
+                    content_ref.as_deref().unwrap_or("(no content)")
+                )
             }
             _ => format!("[{}] (non-interaction)", n.node_id),
-        }
-    }).collect();
+        })
+        .collect();
 
-    let covered_ids: Vec<String> = uncovered_interactions.iter().map(|n| n.node_id.clone()).collect();
+    let covered_ids: Vec<String> = uncovered_interactions
+        .iter()
+        .map(|n| n.node_id.clone())
+        .collect();
     let count = covered_ids.len();
 
     // Try LLM summarization
@@ -244,7 +262,8 @@ pub async fn compact_if_needed(
         let client = reqwest::Client::new();
         match tokio::time::timeout(
             std::time::Duration::from_secs(10),
-            client.post("https://api.minimax.io/v1/chat/completions")
+            client
+                .post("https://api.minimax.io/v1/chat/completions")
                 .header("Authorization", format!("Bearer {}", api_key))
                 .json(&serde_json::json!({
                     "model": "MiniMax-M2.7",
@@ -253,12 +272,19 @@ pub async fn compact_if_needed(
                     "temperature": 0.3,
                 }))
                 .send(),
-        ).await {
-            Ok(Ok(resp)) => {
-                resp.json::<serde_json::Value>().await.ok()
-                    .and_then(|d| d.pointer("/choices/0/message/content").and_then(|v| v.as_str()).map(String::from))
-                    .unwrap_or_else(|| format!("Summary of {} interactions", count))
-            }
+        )
+        .await
+        {
+            Ok(Ok(resp)) => resp
+                .json::<serde_json::Value>()
+                .await
+                .ok()
+                .and_then(|d| {
+                    d.pointer("/choices/0/message/content")
+                        .and_then(|v| v.as_str())
+                        .map(String::from)
+                })
+                .unwrap_or_else(|| format!("Summary of {} interactions", count)),
             _ => format!("Summary of {} interactions (LLM timeout)", count),
         }
     } else {
@@ -267,6 +293,10 @@ pub async fn compact_if_needed(
 
     let compression = count as f64 / 1.0; // original count compressed to 1 summary
     insert_summary(clt, session_id, &summary_text, covered_ids, compression);
-    tracing::info!(summarized = count, "CLT compaction: {} nodes summarized", count);
+    tracing::info!(
+        summarized = count,
+        "CLT compaction: {} nodes summarized",
+        count
+    );
     count
 }

@@ -12,7 +12,8 @@ use axum::{Json, Router, routing::get, routing::post};
 use chrono::Utc;
 use focusa_core::types::{
     Action, CacheBustCategory, CandidateId, CompletionReason, FocusStackState, FrameStatus,
-    InstanceKind, MemorySource, SessionState, SessionStatus, Signal, SignalKind, SignalOrigin,
+    HandleKind, InstanceKind, MemorySource, SessionState, SessionStatus, Signal, SignalKind,
+    SignalOrigin,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -162,6 +163,42 @@ struct DisconnectInstancePayload {
     reason: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct VisualEvidencePayload {
+    run_id: String,
+    phase: String,
+    evidence_kind: String,
+    label: String,
+    kind: HandleKind,
+    /// Base64-encoded content.
+    content_b64: Option<String>,
+    /// Plain text content (alternative to base64).
+    #[serde(default)]
+    content: Option<String>,
+}
+
+impl VisualEvidencePayload {
+    fn resolve_content(&self) -> Result<Vec<u8>, Value> {
+        if let Some(ref b64) = self.content_b64 {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD
+                .decode(b64)
+                .map_err(|_| json!({"status":"rejected","reason":"invalid_content_b64"}))
+        } else if let Some(ref txt) = self.content {
+            Ok(txt.as_bytes().to_vec())
+        } else {
+            Err(json!({"status":"rejected","reason":"missing_content"}))
+        }
+    }
+
+    fn to_artifact_label(&self) -> String {
+        format!(
+            "visual:{}:{}:{}:{}",
+            self.run_id, self.phase, self.evidence_kind, self.label
+        )
+    }
+}
+
 fn default_disconnect_reason() -> String {
     "command_submit".to_string()
 }
@@ -211,9 +248,9 @@ fn validate_can_pop(stack: &FocusStackState) -> Result<(), Value> {
         .find(|f| f.id == active_id)
         .ok_or_else(|| json!({"status": "rejected", "reason": "active_frame_missing"}))?;
 
-    let parent_id = active.parent_id.ok_or_else(|| {
-        json!({"status": "rejected", "reason": "cannot_complete_root_frame"})
-    })?;
+    let parent_id = active
+        .parent_id
+        .ok_or_else(|| json!({"status": "rejected", "reason": "cannot_complete_root_frame"}))?;
 
     let parent = stack
         .frames
@@ -266,7 +303,11 @@ fn validate_set_active(stack: &FocusStackState, frame_id: Uuid) -> Result<(), Va
     Ok(())
 }
 
-fn validate_action(action: &Action, session: Option<&SessionState>, stack: &FocusStackState) -> Result<(), Value> {
+fn validate_action(
+    action: &Action,
+    session: Option<&SessionState>,
+    stack: &FocusStackState,
+) -> Result<(), Value> {
     match action {
         Action::PushFrame { beads_issue_id, .. } => {
             ensure_active_session(session)?;
@@ -308,7 +349,7 @@ fn map_command_to_action(
     payload: Value,
 ) -> Result<Action, (StatusCode, Json<Value>)> {
     match command {
-        "focus.push_frame" => {
+        "focus.push_frame" | "visual.start_run" | "start_visual_run" => {
             let p: PushFramePayload = decode(payload, command)?;
             Ok(Action::PushFrame {
                 title: p.title,
@@ -318,7 +359,7 @@ fn map_command_to_action(
                 tags: p.tags,
             })
         }
-        "focus.pop_frame" => {
+        "focus.pop_frame" | "visual.close_run" | "close_visual_run" => {
             let p: PopFramePayload = decode(payload, command)?;
             Ok(Action::PopFrame {
                 completion_reason: p.completion_reason,
@@ -399,7 +440,7 @@ fn map_command_to_action(
                 instance_id: p.instance_id,
             })
         }
-        "ascc.checkpoint" => {
+        "ascc.checkpoint" | "visual.start_iteration" | "start_iteration" => {
             let p: CheckpointPayload = decode(payload, command)?;
             Ok(Action::CheckpointFrame {
                 frame_id: p.frame_id,
@@ -416,6 +457,33 @@ fn map_command_to_action(
                 tier: p.tier,
                 turn_count: p.turn_count,
                 surface: p.surface,
+            })
+        }
+        "visual.register_reference_artifacts"
+        | "register_reference_artifacts"
+        | "visual.create_blueprint"
+        | "create_blueprint"
+        | "visual.record_build_output"
+        | "record_build_output"
+        | "visual.record_comparison"
+        | "record_comparison"
+        | "visual.record_critique"
+        | "record_critique"
+        | "visual.synthesize_fixes"
+        | "synthesize_fixes"
+        | "visual.apply_fix_set"
+        | "apply_fix_set" => {
+            let p: VisualEvidencePayload = decode(payload, command)?;
+            let content = p.resolve_content().map_err(|e| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"error":"invalid_visual_evidence_payload","details": e})),
+                )
+            })?;
+            Ok(Action::StoreArtifact {
+                kind: p.kind,
+                label: p.to_artifact_label(),
+                content,
             })
         }
         "instances.connect" => {

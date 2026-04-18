@@ -144,9 +144,13 @@ fn validate_grounding(content: &str) -> bool {
     // Look for hallucination signals.
     let lower = content.to_lowercase();
     let hallucination_signals = [
-        "as an ai", "i cannot verify", "i don't have access",
-        "i'm not sure but", "i think it might be",
-        "according to my training", "as of my knowledge cutoff",
+        "as an ai",
+        "i cannot verify",
+        "i don't have access",
+        "i'm not sure but",
+        "i think it might be",
+        "according to my training",
+        "as of my knowledge cutoff",
     ];
     // If any hallucination signal is found, grounding fails
     !hallucination_signals.iter().any(|s| lower.contains(s))
@@ -205,6 +209,54 @@ mod tests {
             &["max_length:5".into()]
         ));
     }
+
+    #[test]
+    fn test_rfm_fallback_default_is_fail_closed() {
+        let (consistency, grounding, detail) =
+            rfm_fallback_result_for_mode("LLM unavailable", false);
+        assert!(!consistency);
+        assert!(!grounding);
+        assert!(detail.contains("fail_closed"));
+    }
+
+    #[test]
+    fn test_rfm_fallback_fail_open_mode_is_permissive() {
+        let (consistency, grounding, detail) =
+            rfm_fallback_result_for_mode("LLM unavailable", true);
+        assert!(consistency);
+        assert!(grounding);
+        assert!(detail.contains("fail_open"));
+    }
+}
+
+fn rfm_fail_open_enabled() -> bool {
+    matches!(
+        std::env::var("FOCUSA_RFM_LLM_FAIL_OPEN")
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
+fn rfm_fallback_result_for_mode(reason: &str, fail_open: bool) -> (bool, bool, String) {
+    if fail_open {
+        (
+            true,
+            true,
+            format!("{reason}; fallback=fail_open(permissive)"),
+        )
+    } else {
+        (
+            false,
+            false,
+            format!("{reason}; fallback=fail_closed(strict)"),
+        )
+    }
+}
+
+fn rfm_fallback_result(reason: &str) -> (bool, bool, String) {
+    rfm_fallback_result_for_mode(reason, rfm_fail_open_enabled())
 }
 
 /// LLM-backed deep validation for R1+ levels.
@@ -213,15 +265,15 @@ mod tests {
 pub async fn validate_llm(content: &str, constraints: &[String]) -> (bool, bool, String) {
     let api_key = std::env::var("MINIMAX_API_KEY").unwrap_or_default();
     if api_key.is_empty() {
-        return (true, true, "LLM unavailable, skipped".into());
+        return rfm_fallback_result("LLM unavailable");
     }
-    
+
     let constraint_text = if constraints.is_empty() {
         "None specified".to_string()
     } else {
         constraints.join("; ")
     };
-    
+
     let prompt = format!(
         r#"Analyze this AI-generated content for quality issues.
 
@@ -246,11 +298,12 @@ Return ONLY valid JSON:
         &content[..content.len().min(2000)],
         constraint_text,
     );
-    
+
     let client = reqwest::Client::new();
     match tokio::time::timeout(
         std::time::Duration::from_secs(8),
-        client.post("https://api.minimax.io/v1/chat/completions")
+        client
+            .post("https://api.minimax.io/v1/chat/completions")
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&serde_json::json!({
                 "model": "MiniMax-M2.7",
@@ -259,25 +312,45 @@ Return ONLY valid JSON:
                 "temperature": 0.1,
             }))
             .send(),
-    ).await {
+    )
+    .await
+    {
         Ok(Ok(resp)) => {
             if let Ok(data) = resp.json::<serde_json::Value>().await
-                && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
-                    let start = text.find('{').unwrap_or(0);
-                    let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
-                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
-                        let c_ok = parsed.get("consistency_passed").and_then(|v| v.as_bool()).unwrap_or(true);
-                        let g_ok = parsed.get("grounding_passed").and_then(|v| v.as_bool()).unwrap_or(true);
-                        let issues: Vec<String> = parsed.get("issues")
-                            .and_then(|v| v.as_array())
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-                            .unwrap_or_default();
-                        let detail = if issues.is_empty() { "No issues found".into() } else { issues.join("; ") };
-                        return (c_ok, g_ok, detail);
-                    }
+                && let Some(text) = data
+                    .pointer("/choices/0/message/content")
+                    .and_then(|v| v.as_str())
+            {
+                let start = text.find('{').unwrap_or(0);
+                let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text[start..end]) {
+                    let c_ok = parsed
+                        .get("consistency_passed")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    let g_ok = parsed
+                        .get("grounding_passed")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    let issues: Vec<String> = parsed
+                        .get("issues")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let detail = if issues.is_empty() {
+                        "No issues found".into()
+                    } else {
+                        issues.join("; ")
+                    };
+                    return (c_ok, g_ok, detail);
                 }
-            (true, true, "LLM response unparseable".into())
+            }
+            rfm_fallback_result("LLM response unparseable")
         }
-        _ => (true, true, "LLM timeout".into()),
+        _ => rfm_fallback_result("LLM timeout"),
     }
 }

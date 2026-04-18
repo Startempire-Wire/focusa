@@ -5,7 +5,10 @@ use crate::server::AppState;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::{Action, FocusaEvent};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -82,20 +85,32 @@ async fn load_constitution(
             current_section = "principles";
             continue;
         }
-        if lower.contains("safety") || lower.contains("banned") || (lower.contains("never") && lower.contains("rule")) {
+        if lower.contains("safety")
+            || lower.contains("banned")
+            || (lower.contains("never") && lower.contains("rule"))
+        {
             current_section = "safety";
             continue;
         }
-        if lower.contains("expression") || (lower.contains("constraint") && lower.contains("rule")) {
+        if lower.contains("expression") || (lower.contains("constraint") && lower.contains("rule"))
+        {
             current_section = "expression";
             continue;
         }
 
         // Extract items from bullet points or numbered lists
-        if (trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))
+        if (trimmed.starts_with("- ")
+            || trimmed.starts_with("* ")
+            || trimmed
+                .chars()
+                .next()
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false))
             && trimmed.len() > 5
         {
-            let text = trimmed.trim_start_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit() || c == '.' || c == ' ');
+            let text = trimmed.trim_start_matches(|c: char| {
+                c == '-' || c == '*' || c.is_ascii_digit() || c == '.' || c == ' '
+            });
             match current_section {
                 "principles" => {
                     principles.push(focusa_core::types::ConstitutionPrinciple {
@@ -132,12 +147,16 @@ async fn load_constitution(
         expression_rules: expression_rules.clone(),
     };
 
-    state.command_tx.send(Action::EmitEvent { event }).await.map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": "failed to dispatch constitution load"})),
-        )
-    })?;
+    state
+        .command_tx
+        .send(Action::EmitEvent { event })
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "failed to dispatch constitution load"})),
+            )
+        })?;
 
     let mut visible = false;
     for _ in 0..80 {
@@ -156,7 +175,9 @@ async fn load_constitution(
     if !visible {
         return Err((
             StatusCode::ACCEPTED,
-            Json(json!({"status": "accepted", "warning": "constitution load dispatched but not yet visible", "version": version})),
+            Json(
+                json!({"status": "accepted", "warning": "constitution load dispatched but not yet visible", "version": version}),
+            ),
         ));
     }
 

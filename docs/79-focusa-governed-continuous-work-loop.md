@@ -648,6 +648,42 @@ Examples:
 The linked spec or project policy may strengthen these requirements, but the executor must not weaken them by convenience.  
 **Sources:** project Docs-first workflow requirement; `docs/57-golden-tasks-and-evals.md`; `docs/61-domain-general-cognition-core.md`.
 
+### 13.2b Adversarial Secondary Verifier Before `bd close`
+When closure is proposed for a spec-linked work item, the executor SHOULD run a secondary LLM verifier in adversarial mode (trying to disprove completeness/spec conformance rather than rubber-stamp completion).
+
+Minimum verifier output contract:
+- `closure_supported` (bool)
+- `evidence_sufficiency` (`sufficient|insufficient|unknown`)
+- `critical_objections[]`
+- `verification_refs` / evidence basis
+
+Close transition rule:
+- if any critical objection exists, or evidence is insufficient/unknown, closure MUST be rejected and the work item remains open/blocked with explicit reason.
+
+### 13.2c Fail-Closed Verifier Availability
+Verifier unavailability (missing credentials, timeout, transport failure, non-parseable verdict) MUST NOT silently pass closure.
+
+For closure authority, verifier unavailability is treated as verification-blocked until either:
+- verifier succeeds with sufficient evidence, or
+- operator explicitly overrides under governance path.
+
+### 13.2d Closure Certificate Evidence
+On approved closure, the executor SHOULD persist a closure certificate note linked to the work item before issuing `bd close`.
+
+Minimum certificate fields:
+- certificate id
+- linked spec refs
+- acceptance anchors
+- verifier mode and verdict
+- evidence hash / evidence summary
+- policy refs used for closure authority
+
+The closure decision path SHOULD also emit trace-dimension telemetry for:
+- operator subject / active subject after routing
+- steering-detected and prior-mission-reused
+- focus-slice size and relevance score
+- verification result and final close transition vs blocked transition
+
 ### 13.3 Replan Trigger
 If docs/specs change such that current or queued work is no longer valid, the executor SHOULD replan the remaining `bd` graph rather than blindly continue stale assumptions.
 
@@ -1074,6 +1110,8 @@ In plain language:
 - `POST /v1/work-loop/resume`
 - `POST /v1/work-loop/stop`
 - `GET /v1/work-loop/status`
+- `GET /v1/work-loop/replay/closure-evidence`
+- `GET /v1/work-loop/replay/closure-bundle`
 - `GET /v1/work-loop/checkpoints`
 
 ### 23.2 Internal Supervisor Actions
@@ -1101,6 +1139,8 @@ Suggested status fields:
 - last checkpoint id
 - current ask summary
 - scope kind / carryover policy
+- replay closure-evidence consumer health (`/v1/work-loop/replay/closure-evidence`) and continuity gate state (`open` vs `fail-closed`)
+- closure-bundle packaging (`/v1/work-loop/replay/closure-bundle`) combining eval hooks, replay consumer payload, continuity gate semantics, and `secondary_loop_objective_profile` (non-closure objective evidence)
 
 **Sources:** `docs/G1-detail-03-runtime-daemon.md`; `docs/56-trace-checkpoints-recovery.md`; `apps/pi-extension/src/state.ts`.
 

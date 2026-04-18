@@ -3,9 +3,14 @@
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::reducer;
-use focusa_core::types::{Action, EventLogEntry, FocusaEvent, ProposalKind, ProposalStatus, SignalOrigin};
+use focusa_core::types::{
+    Action, EventLogEntry, FocusaEvent, ProposalKind, ProposalStatus, SignalOrigin,
+};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -61,7 +66,7 @@ async fn submit_proposal(
     let _ = state.command_tx.send(Action::EmitEvent { event }).await;
 
     let mut visible = false;
-    for _ in 0..40 {
+    for _ in 0..240 {
         {
             let s = state.focusa.read().await;
             visible = s.pre.proposals.iter().any(|p| p.id == proposal_id);
@@ -72,9 +77,7 @@ async fn submit_proposal(
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 
-    if visible
-        && let Ok(machine_id) = state.persistence.machine_id()
-    {
+    if let Ok(machine_id) = state.persistence.machine_id() {
         let entry = EventLogEntry {
             id: Uuid::now_v7(),
             timestamp: chrono::Utc::now(),
@@ -125,13 +128,21 @@ fn apply_focus_change_proposal(
         .payload
         .get("constraints")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
     let tags = winner
         .payload
         .get("tags")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
 
     reducer::reduce_with_meta(
@@ -151,9 +162,7 @@ fn apply_focus_change_proposal(
     .map_err(|e| e.to_string())
 }
 
-fn thesis_update_event(
-    winner: &focusa_core::types::Proposal,
-) -> Result<FocusaEvent, String> {
+fn thesis_update_event(winner: &focusa_core::types::Proposal) -> Result<FocusaEvent, String> {
     let primary_intent = winner
         .payload
         .get("primary_intent")
@@ -165,25 +174,41 @@ fn thesis_update_event(
         .payload
         .get("secondary_goals")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
     let open_questions = winner
         .payload
         .get("open_questions")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
     let assumptions = winner
         .payload
         .get("assumptions")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
     let sources = winner
         .payload
         .get("sources")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
 
     let confidence_score = winner
@@ -226,9 +251,7 @@ fn thesis_update_event(
     })
 }
 
-fn memory_write_event(
-    winner: &focusa_core::types::Proposal,
-) -> Result<FocusaEvent, String> {
+fn memory_write_event(winner: &focusa_core::types::Proposal) -> Result<FocusaEvent, String> {
     let key = winner
         .payload
         .get("key")
@@ -254,9 +277,7 @@ fn memory_write_event(
     })
 }
 
-fn autonomy_adjustment_event(
-    winner: &focusa_core::types::Proposal,
-) -> Result<FocusaEvent, String> {
+fn autonomy_adjustment_event(winner: &focusa_core::types::Proposal) -> Result<FocusaEvent, String> {
     let level = winner
         .payload
         .get("level")
@@ -268,10 +289,7 @@ fn autonomy_adjustment_event(
         .get("scope")
         .and_then(|v| v.as_str())
         .map(str::to_string);
-    let ttl_seconds = winner
-        .payload
-        .get("ttl_seconds")
-        .and_then(|v| v.as_i64());
+    let ttl_seconds = winner.payload.get("ttl_seconds").and_then(|v| v.as_i64());
     let ttl = ttl_seconds.map(|secs| chrono::Utc::now() + chrono::Duration::seconds(secs));
     let reason = winner
         .payload
@@ -309,12 +327,13 @@ fn constitution_revision_event(
             arr.iter()
                 .enumerate()
                 .filter_map(|(i, v)| {
-                    v.as_str().map(|text| focusa_core::types::ConstitutionPrinciple {
-                        id: format!("p{}", i + 1),
-                        text: text.to_string(),
-                        priority: (i + 1) as u32,
-                        rationale: String::new(),
-                    })
+                    v.as_str()
+                        .map(|text| focusa_core::types::ConstitutionPrinciple {
+                            id: format!("p{}", i + 1),
+                            text: text.to_string(),
+                            priority: (i + 1) as u32,
+                            rationale: String::new(),
+                        })
                 })
                 .collect::<Vec<_>>()
         })
@@ -323,17 +342,28 @@ fn constitution_revision_event(
         .payload
         .get("safety_rules")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
     let expression_rules: Vec<String> = winner
         .payload
         .get("expression_rules")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
 
     if principles.is_empty() && safety_rules.is_empty() && expression_rules.is_empty() {
-        return Err("constitution_revision requires at least one principle/safety/expression rule".to_string());
+        return Err(
+            "constitution_revision requires at least one principle/safety/expression rule"
+                .to_string(),
+        );
     }
 
     Ok(FocusaEvent::ConstitutionLoaded {
@@ -423,19 +453,28 @@ fn submission_audit_event(
         ProposalKind::ThesisUpdate => FocusaEvent::OntologyObjectUpsertProposed {
             proposal_id,
             object_type: "thread_thesis".to_string(),
-            object_id: payload.get("thread_id").and_then(|v| v.as_str()).map(str::to_string),
+            object_id: payload
+                .get("thread_id")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
             source: source.to_string(),
         },
         ProposalKind::ConstitutionRevision => FocusaEvent::OntologyObjectUpsertProposed {
             proposal_id,
             object_type: "constitution".to_string(),
-            object_id: payload.get("version").and_then(|v| v.as_str()).map(str::to_string),
+            object_id: payload
+                .get("version")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
             source: source.to_string(),
         },
         ProposalKind::MemoryWrite => FocusaEvent::OntologyObjectUpsertProposed {
             proposal_id,
             object_type: "semantic_memory_entry".to_string(),
-            object_id: payload.get("key").and_then(|v| v.as_str()).map(str::to_string),
+            object_id: payload
+                .get("key")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
             source: source.to_string(),
         },
     }
@@ -463,7 +502,12 @@ async fn resolve_proposals(
         .iter()
         .filter(|p| matches!(p.status, ProposalStatus::Pending))
         .filter(|p| kind_filter.map(|k| p.kind == k).unwrap_or(true))
-        .filter(|p| source_filter.as_ref().map(|s| &p.source == s).unwrap_or(true))
+        .filter(|p| {
+            source_filter
+                .as_ref()
+                .map(|s| &p.source == s)
+                .unwrap_or(true)
+        })
         .cloned()
         .collect();
 
@@ -476,41 +520,53 @@ async fn resolve_proposals(
 
     let config = focusa_core::pre::resolution::ResolutionConfig::default();
     let window_start = chrono::Utc::now();
-    let outcome = focusa_core::pre::resolution::resolve_proposals(&pending, &snapshot, &config, window_start);
+    let outcome =
+        focusa_core::pre::resolution::resolve_proposals(&pending, &snapshot, &config, window_start);
 
     let mut events_to_emit: Vec<FocusaEvent> = Vec::new();
     let mut visibility_target: Option<(ProposalKind, Value)> = None;
 
     let result = match outcome {
-        focusa_core::pre::resolution::ResolutionOutcome::Accepted { winner, score, reason } => {
+        focusa_core::pre::resolution::ResolutionOutcome::Accepted {
+            winner,
+            score,
+            reason,
+        } => {
             visibility_target = Some((winner.kind, winner.payload.clone()));
-            let (applied_kind, mut domain_events) = match winner.kind {
-                ProposalKind::FocusChange => {
-                    let reduction = apply_focus_change_proposal(snapshot.clone(), &winner, "api")
-                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?;
-                    ("focus_frame_pushed", reduction.emitted_events)
-                }
-                ProposalKind::ThesisUpdate => (
-                    "thread_thesis_updated",
-                    vec![thesis_update_event(&winner)
-                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
-                ),
-                ProposalKind::AutonomyAdjustment => (
-                    "autonomy_adjusted",
-                    vec![autonomy_adjustment_event(&winner)
-                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
-                ),
-                ProposalKind::ConstitutionRevision => (
-                    "constitution_loaded",
-                    vec![constitution_revision_event(&winner)
-                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
-                ),
-                ProposalKind::MemoryWrite => (
-                    "semantic_memory_upserted",
-                    vec![memory_write_event(&winner)
-                        .map_err(|err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))))?],
-                ),
-            };
+            let (applied_kind, mut domain_events) =
+                match winner.kind {
+                    ProposalKind::FocusChange => {
+                        let reduction =
+                            apply_focus_change_proposal(snapshot.clone(), &winner, "api").map_err(
+                                |err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))),
+                            )?;
+                        ("focus_frame_pushed", reduction.emitted_events)
+                    }
+                    ProposalKind::ThesisUpdate => (
+                        "thread_thesis_updated",
+                        vec![thesis_update_event(&winner).map_err(|err| {
+                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
+                        })?],
+                    ),
+                    ProposalKind::AutonomyAdjustment => (
+                        "autonomy_adjusted",
+                        vec![autonomy_adjustment_event(&winner).map_err(|err| {
+                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
+                        })?],
+                    ),
+                    ProposalKind::ConstitutionRevision => (
+                        "constitution_loaded",
+                        vec![constitution_revision_event(&winner).map_err(|err| {
+                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
+                        })?],
+                    ),
+                    ProposalKind::MemoryWrite => (
+                        "semantic_memory_upserted",
+                        vec![memory_write_event(&winner).map_err(|err| {
+                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
+                        })?],
+                    ),
+                };
 
             events_to_emit.append(&mut domain_events);
             for proposal in &pending {
@@ -577,7 +633,10 @@ async fn resolve_proposals(
                 "reason": reason,
             })
         }
-        focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired { proposals, reason } => {
+        focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired {
+            proposals,
+            reason,
+        } => {
             events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
                 proposal_id: None,
                 verification: "pre_resolution".to_string(),
@@ -592,12 +651,16 @@ async fn resolve_proposals(
     };
 
     for event in events_to_emit {
-        state.command_tx.send(Action::EmitEvent { event }).await.map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to dispatch proposal resolution event"})),
-            )
-        })?;
+        state
+            .command_tx
+            .send(Action::EmitEvent { event })
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "failed to dispatch proposal resolution event"})),
+                )
+            })?;
     }
 
     if let Some((kind, payload)) = visibility_target {
@@ -637,7 +700,12 @@ async fn resolve_proposals(
                         .get("key")
                         .and_then(|v| v.as_str())
                         .zip(payload.get("value").and_then(|v| v.as_str()))
-                        .map(|(key, value)| s.memory.semantic.iter().any(|m| m.key == key && m.value == value))
+                        .map(|(key, value)| {
+                            s.memory
+                                .semantic
+                                .iter()
+                                .any(|m| m.key == key && m.value == value)
+                        })
                         .unwrap_or(false),
                 }
             };

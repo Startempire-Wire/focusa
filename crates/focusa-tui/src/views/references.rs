@@ -24,10 +24,22 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .map(|arr| {
             arr.iter()
                 .map(|h| HandleRow {
-                    id: h.get("id").and_then(|v| v.as_str()).unwrap_or("?").to_string(),
-                    kind: h.get("kind").and_then(|v| v.as_str()).unwrap_or("?").to_string(),
+                    id: h
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("?")
+                        .to_string(),
+                    kind: h
+                        .get("kind")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("?")
+                        .to_string(),
                     size: h.get("size").and_then(|v| v.as_u64()).unwrap_or(0),
-                    label: h.get("label").and_then(|v| v.as_str()).unwrap_or("?").to_string(),
+                    label: h
+                        .get("label")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("?")
+                        .to_string(),
                     pinned: h.get("pinned").and_then(|v| v.as_bool()).unwrap_or(false),
                 })
                 .collect()
@@ -40,9 +52,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         } else {
             "No handles in reference index.\n\nArtifacts are stored externally (ECS) and referenced via handles."
         };
-        let para = Paragraph::new(msg)
-            .style(theme::label())
-            .block(block);
+        let para = Paragraph::new(msg).style(theme::label()).block(block);
         frame.render_widget(para, area);
         return;
     }

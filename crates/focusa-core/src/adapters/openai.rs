@@ -112,16 +112,38 @@ fn classify_operator_intent(text: &str) -> OperatorIntent {
     let t = text.trim().to_lowercase();
     OperatorIntent {
         direct_question: t.ends_with('?')
-            || ["what", "why", "how", "when", "where", "who", "can", "could", "should", "is", "are", "do", "does", "did"]
-                .iter()
-                .any(|p| t.starts_with(&format!("{} ", p))),
+            || [
+                "what", "why", "how", "when", "where", "who", "can", "could", "should", "is",
+                "are", "do", "does", "did",
+            ]
+            .iter()
+            .any(|p| t.starts_with(&format!("{} ", p))),
         steering_change: [
-            "no ", "stop", "instead", "actually", "wait", "wrong", "not what i asked", "new task", "switch to", "different",
+            "no ",
+            "stop",
+            "instead",
+            "actually",
+            "wait",
+            "wrong",
+            "not what i asked",
+            "new task",
+            "switch to",
+            "different",
         ]
         .iter()
         .any(|needle| t.contains(needle)),
         focus_relevant: [
-            "focusa", "focus state", "stack", "constraint", "decision", "thread", "ontology", "mission", "frame", "checkpoint", "context",
+            "focusa",
+            "focus state",
+            "stack",
+            "constraint",
+            "decision",
+            "thread",
+            "ontology",
+            "mission",
+            "frame",
+            "checkpoint",
+            "context",
         ]
         .iter()
         .any(|needle| t.contains(needle)),
@@ -162,9 +184,18 @@ pub(crate) fn build_operator_first_slice(
         fs.intent.trim().to_string()
     };
     let active_focus = fs.current_state.trim().to_string();
-    let constraints = unique_items(&fs.constraints).into_iter().take(4).collect::<Vec<_>>();
-    let decisions = unique_items(&fs.decisions).into_iter().take(4).collect::<Vec<_>>();
-    let next_steps = unique_items(&fs.next_steps).into_iter().take(3).collect::<Vec<_>>();
+    let constraints = unique_items(&fs.constraints)
+        .into_iter()
+        .take(4)
+        .collect::<Vec<_>>();
+    let decisions = unique_items(&fs.decisions)
+        .into_iter()
+        .take(4)
+        .collect::<Vec<_>>();
+    let next_steps = unique_items(&fs.next_steps)
+        .into_iter()
+        .take(3)
+        .collect::<Vec<_>>();
     let blockers = fs
         .failures
         .iter()
@@ -180,7 +211,10 @@ pub(crate) fn build_operator_first_slice(
         .into_iter()
         .take(3)
         .collect::<Vec<_>>();
-    let recent = unique_items(&fs.recent_results).into_iter().take(2).collect::<Vec<_>>();
+    let recent = unique_items(&fs.recent_results)
+        .into_iter()
+        .take(2)
+        .collect::<Vec<_>>();
 
     let session_id = state.session.as_ref().map(|s| s.session_id);
     let artifact_handles = state
@@ -203,37 +237,80 @@ pub(crate) fn build_operator_first_slice(
     if !constraints.is_empty() {
         sections.push(format!(
             "APPLICABLE_CONSTRAINTS:\n{}",
-            constraints.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+            constraints
+                .iter()
+                .map(|x| format!("  - {}", x))
+                .collect::<Vec<_>>()
+                .join("\n")
         ));
     }
-    if !decisions.is_empty() && (intent.focus_relevant || lower.contains("why") || lower.contains("decision") || lower.contains("already") || lower.contains("earlier") || lower.contains("reuse")) {
+    if !decisions.is_empty()
+        && (intent.focus_relevant
+            || lower.contains("why")
+            || lower.contains("decision")
+            || lower.contains("already")
+            || lower.contains("earlier")
+            || lower.contains("reuse"))
+    {
         sections.push(format!(
             "RELEVANT_DECISIONS:\n{}",
-            decisions.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+            decisions
+                .iter()
+                .map(|x| format!("  - {}", x))
+                .collect::<Vec<_>>()
+                .join("\n")
         ));
     }
     if !next_steps.is_empty() && !intent.direct_question {
         sections.push(format!(
             "OPEN_LOOPS:\n{}",
-            next_steps.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+            next_steps
+                .iter()
+                .map(|x| format!("  - {}", x))
+                .collect::<Vec<_>>()
+                .join("\n")
         ));
     }
-    if !blockers.is_empty() && ["blocked", "failing", "error", "issue", "problem", "why"].iter().any(|needle| lower.contains(needle)) {
+    if !blockers.is_empty()
+        && ["blocked", "failing", "error", "issue", "problem", "why"]
+            .iter()
+            .any(|needle| lower.contains(needle))
+    {
         sections.push(format!(
             "BLOCKERS:\n{}",
-            blockers.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+            blockers
+                .iter()
+                .map(|x| format!("  - {}", x))
+                .collect::<Vec<_>>()
+                .join("\n")
         ));
     }
-    if !recent.is_empty() && ["latest", "recent", "changed", "what happened", "status"].iter().any(|needle| lower.contains(needle)) {
+    if !recent.is_empty()
+        && ["latest", "recent", "changed", "what happened", "status"]
+            .iter()
+            .any(|needle| lower.contains(needle))
+    {
         sections.push(format!(
             "RECENT_VERIFIED_DELTAS:\n{}",
-            recent.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+            recent
+                .iter()
+                .map(|x| format!("  - {}", x))
+                .collect::<Vec<_>>()
+                .join("\n")
         ));
     }
-    if !artifact_handles.is_empty() && ["file", "artifact", "handle", "output", "evidence"].iter().any(|needle| lower.contains(needle)) {
+    if !artifact_handles.is_empty()
+        && ["file", "artifact", "handle", "output", "evidence"]
+            .iter()
+            .any(|needle| lower.contains(needle))
+    {
         sections.push(format!(
             "ARTIFACT_HANDLES:\n{}",
-            artifact_handles.iter().map(|x| format!("  - {}", x)).collect::<Vec<_>>().join("\n")
+            artifact_handles
+                .iter()
+                .map(|x| format!("  - {}", x))
+                .collect::<Vec<_>>()
+                .join("\n")
         ));
     }
 
@@ -248,7 +325,10 @@ pub(crate) fn build_operator_first_slice(
     if estimate_tokens(&content) > max_tokens {
         let mut trimmed = Vec::new();
         for section in &sections {
-            let candidate = format!("[Focusa Minimal Applicable Slice]\n{}", [trimmed.clone(), vec![section.clone()]].concat().join("\n"));
+            let candidate = format!(
+                "[Focusa Minimal Applicable Slice]\n{}",
+                [trimmed.clone(), vec![section.clone()]].concat().join("\n")
+            );
             if estimate_tokens(&candidate) > max_tokens {
                 break;
             }
@@ -258,7 +338,9 @@ pub(crate) fn build_operator_first_slice(
             return None;
         }
         content = format!("[Focusa Minimal Applicable Slice]\n{}", trimmed.join("\n"));
-        warnings.push("Degradation step 1: trimmed minimal applicable slice to fit proxy budget".to_string());
+        warnings.push(
+            "Degradation step 1: trimmed minimal applicable slice to fit proxy budget".to_string(),
+        );
     }
     let token_estimate = estimate_tokens(&content);
     Some(AssembledPrompt {
@@ -410,7 +492,10 @@ mod tests {
     fn direct_question_passthroughs_when_focus_irrelevant() {
         let request = ChatCompletionRequest {
             model: "gpt-test".into(),
-            messages: vec![ChatMessage { role: "user".into(), content: "What is Rust?".into() }],
+            messages: vec![ChatMessage {
+                role: "user".into(),
+                content: "What is Rust?".into(),
+            }],
             temperature: None,
             max_tokens: None,
             extra: Value::Null,
@@ -423,12 +508,16 @@ mod tests {
     fn focus_relevant_request_gets_minimal_slice_not_full_focus_dump() {
         let request = ChatCompletionRequest {
             model: "gpt-test".into(),
-            messages: vec![ChatMessage { role: "user".into(), content: "Why did we already choose this decision for the proxy context?".into() }],
+            messages: vec![ChatMessage {
+                role: "user".into(),
+                content: "Why did we already choose this decision for the proxy context?".into(),
+            }],
             temperature: None,
             max_tokens: None,
             extra: Value::Null,
         };
-        let result = process_request(request, &test_state(), &FocusaConfig::default()).expect("slice injected");
+        let result = process_request(request, &test_state(), &FocusaConfig::default())
+            .expect("slice injected");
         let system = &result.request.messages[0];
         assert_eq!(system.role, "system");
         assert!(system.content.contains("[Focusa Minimal Applicable Slice]"));

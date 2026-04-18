@@ -53,9 +53,7 @@ pub enum ResolutionOutcome {
         reason: String,
     },
     /// All proposals rejected (insufficient evidence/conflict).
-    RejectedAll {
-        reason: String,
-    },
+    RejectedAll { reason: String },
     /// Clarification required (too divergent).
     ClarificationRequired {
         proposals: Vec<Proposal>,
@@ -77,23 +75,23 @@ pub fn resolve_proposals(
             reason: "No proposals in window".into(),
         };
     }
-    
+
     // Score all proposals.
     let mut scored: Vec<ScoredProposal> = proposals
         .iter()
         .map(|p| score_proposal(p, state, config, window_start))
         .collect();
-    
+
     // Sort by final score descending.
     scored.sort_by(|a, b| {
         b.final_score
             .partial_cmp(&a.final_score)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-    
+
     // Check for winner.
     let winner = &scored[0];
-    
+
     // Check if winner meets thresholds.
     if winner.final_score < config.confidence_threshold {
         return ResolutionOutcome::RejectedAll {
@@ -103,7 +101,7 @@ pub fn resolve_proposals(
             ),
         };
     }
-    
+
     // Check if second place is too close (divergence).
     if scored.len() > 1 {
         let second = &scored[1];
@@ -118,16 +116,14 @@ pub fn resolve_proposals(
             };
         }
     }
-    
+
     // Accept winner.
     ResolutionOutcome::Accepted {
         winner: winner.proposal.clone(),
         score: winner.final_score,
         reason: format!(
             "Score {:.2}: base {:.2}, risk-adjusted {:.2}",
-            winner.final_score,
-            winner.base_score,
-            winner.risk_adjusted_score
+            winner.final_score, winner.base_score, winner.risk_adjusted_score
         ),
     }
 }
@@ -141,16 +137,14 @@ fn score_proposal(
 ) -> ScoredProposal {
     // Base score from existing score field.
     let base_score = proposal.score;
-    
+
     // Recency bonus.
     let recency_score = compute_recency_score(proposal, config, window_start);
-    
+
     // Risk adjustment (RFM).
-    let risk_adjusted_score = apply_rfm_adjustment(
-        base_score + recency_score * config.recency_bias,
-        state,
-    );
-    
+    let risk_adjusted_score =
+        apply_rfm_adjustment(base_score + recency_score * config.recency_bias, state);
+
     ScoredProposal {
         proposal: proposal.clone(),
         base_score,
@@ -168,13 +162,11 @@ fn compute_recency_score(
     let window_duration = chrono::Duration::milliseconds(config.window_duration_ms as i64);
     let total_ms = window_duration.num_milliseconds() as f64;
     let elapsed_ms = (proposal.created_at - window_start).num_milliseconds() as f64;
-    
+
     if total_ms <= 0.0 {
         return 0.5;
     }
-    
-    
-    
+
     // Later proposals get higher score.
     (elapsed_ms / total_ms).clamp(0.0, 1.0)
 }
@@ -182,10 +174,10 @@ fn compute_recency_score(
 /// Apply RFM-based risk adjustment.
 fn apply_rfm_adjustment(base_score: f64, state: &FocusaState) -> f64 {
     match state.rfm.level {
-        RfmLevel::R0 => base_score,                         // Normal.
-        RfmLevel::R1 => base_score * 0.9,                  // Slight penalty.
-        RfmLevel::R2 => base_score * 0.7,                  // Significant penalty.
-        RfmLevel::R3 => base_score * 0.5,                  // Heavy penalty.
+        RfmLevel::R0 => base_score,       // Normal.
+        RfmLevel::R1 => base_score * 0.9, // Slight penalty.
+        RfmLevel::R2 => base_score * 0.7, // Significant penalty.
+        RfmLevel::R3 => base_score * 0.5, // Heavy penalty.
     }
 }
 
@@ -195,11 +187,11 @@ mod tests {
     use crate::pre::{Proposal, submit};
     use crate::types::{PreState, ProposalKind, ProposalStatus};
     use uuid::Uuid;
-    
+
     fn test_state() -> FocusaState {
         FocusaState::default()
     }
-    
+
     fn test_config() -> ResolutionConfig {
         ResolutionConfig {
             window_duration_ms: 2000,
@@ -208,15 +200,15 @@ mod tests {
             confidence_threshold: 0.7,
         }
     }
-    
+
     // SMOKE TEST: Empty proposals
     #[test]
     fn test_resolve_empty() {
         let state = test_state();
         let config = test_config();
-        
+
         let outcome = resolve_proposals(&[], &state, &config, Utc::now());
-        
+
         match outcome {
             ResolutionOutcome::RejectedAll { reason } => {
                 assert!(reason.contains("No proposals"));
@@ -224,18 +216,18 @@ mod tests {
             _ => panic!("Expected RejectedAll for empty proposals"),
         }
     }
-    
+
     // SMOKE TEST: Single proposal accepted
     #[test]
     fn test_resolve_single_accepted() {
         let state = test_state();
         let config = test_config();
-        
+
         let mut pre_state = PreState {
             proposals: vec![],
             resolution_window_ms: 5000,
         };
-        
+
         let id = submit(
             &mut pre_state,
             ProposalKind::FocusChange,
@@ -243,19 +235,24 @@ mod tests {
             serde_json::json!({}),
             60000,
         );
-        
+
         // Score the proposal high.
-        pre_state.proposals.iter_mut().find(|p| p.id == id).unwrap().score = 0.9;
-        
+        pre_state
+            .proposals
+            .iter_mut()
+            .find(|p| p.id == id)
+            .unwrap()
+            .score = 0.9;
+
         let proposal = pre_state.proposals.into_iter().next().unwrap();
-        
+
         let outcome = resolve_proposals(
             &[proposal.clone()],
             &state,
             &config,
             Utc::now() - chrono::Duration::seconds(1),
         );
-        
+
         match outcome {
             ResolutionOutcome::Accepted { winner, score, .. } => {
                 assert_eq!(winner.id, proposal.id);
@@ -264,18 +261,18 @@ mod tests {
             _ => panic!("Expected Accepted for high-score proposal"),
         }
     }
-    
+
     // SMOKE TEST: Low score rejected
     #[test]
     fn test_resolve_low_score_rejected() {
         let state = test_state();
         let config = test_config();
-        
+
         let mut pre_state = PreState {
             proposals: vec![],
             resolution_window_ms: 5000,
         };
-        
+
         let id = submit(
             &mut pre_state,
             ProposalKind::FocusChange,
@@ -283,19 +280,19 @@ mod tests {
             serde_json::json!({}),
             60000,
         );
-        
+
         // Score the proposal low.
-        pre_state.proposals.iter_mut().find(|p| p.id == id).unwrap().score = 0.3;
-        
+        pre_state
+            .proposals
+            .iter_mut()
+            .find(|p| p.id == id)
+            .unwrap()
+            .score = 0.3;
+
         let proposal = pre_state.proposals.into_iter().next().unwrap();
-        
-        let outcome = resolve_proposals(
-            &[proposal],
-            &state,
-            &config,
-            Utc::now(),
-        );
-        
+
+        let outcome = resolve_proposals(&[proposal], &state, &config, Utc::now());
+
         match outcome {
             ResolutionOutcome::RejectedAll { reason } => {
                 assert!(reason.contains("below threshold"));
@@ -303,18 +300,18 @@ mod tests {
             _ => panic!("Expected RejectedAll for low score"),
         }
     }
-    
+
     // SMOKE TEST: Clarification required (close scores)
     #[test]
     fn test_resolve_clarification_required() {
         let state = test_state();
         let config = test_config();
-        
+
         let mut pre_state = PreState {
             proposals: vec![],
             resolution_window_ms: 5000,
         };
-        
+
         // Two very similar proposals.
         let id1 = submit(
             &mut pre_state,
@@ -323,8 +320,13 @@ mod tests {
             serde_json::json!({"id": 1}),
             60000,
         );
-        pre_state.proposals.iter_mut().find(|p| p.id == id1).unwrap().score = 0.85;
-        
+        pre_state
+            .proposals
+            .iter_mut()
+            .find(|p| p.id == id1)
+            .unwrap()
+            .score = 0.85;
+
         let id2 = submit(
             &mut pre_state,
             ProposalKind::FocusChange,
@@ -332,17 +334,22 @@ mod tests {
             serde_json::json!({"id": 2}),
             60000,
         );
-        pre_state.proposals.iter_mut().find(|p| p.id == id2).unwrap().score = 0.84;
-        
+        pre_state
+            .proposals
+            .iter_mut()
+            .find(|p| p.id == id2)
+            .unwrap()
+            .score = 0.84;
+
         let proposals: Vec<Proposal> = pre_state.proposals.into_iter().collect();
-        
+
         let outcome = resolve_proposals(
             &proposals,
             &state,
             &config,
             Utc::now() - chrono::Duration::seconds(1),
         );
-        
+
         // Should require clarification because scores are too close.
         match outcome {
             ResolutionOutcome::ClarificationRequired { proposals, .. } => {
@@ -354,19 +361,19 @@ mod tests {
             _ => panic!("Unexpected outcome"),
         }
     }
-    
+
     // STRESS TEST: Many proposals
     #[test]
     fn test_resolve_many_proposals() {
         let state = test_state();
         let config = ResolutionConfig {
             confidence_threshold: 0.6, // Lower threshold for test.
-            recency_bias: 0.0, // Disable recency bias to avoid close scores.
+            recency_bias: 0.0,         // Disable recency bias to avoid close scores.
             ..test_config()
         };
-        
+
         let window_start = Utc::now() - chrono::Duration::seconds(1);
-        
+
         // Create proposals with clear score gaps.
         let mut proposals: Vec<Proposal> = (0..50)
             .map(|i| Proposal {
@@ -380,7 +387,7 @@ mod tests {
                 status: ProposalStatus::Pending,
             })
             .collect();
-        
+
         // Add a clear winner with much higher score.
         proposals.push(Proposal {
             id: Uuid::now_v7(),
@@ -392,19 +399,14 @@ mod tests {
             score: 0.99, // Clear winner.
             status: ProposalStatus::Pending,
         });
-        
+
         let start = std::time::Instant::now();
-        let outcome = resolve_proposals(
-            &proposals,
-            &state,
-            &config,
-            window_start,
-        );
+        let outcome = resolve_proposals(&proposals, &state, &config, window_start);
         let elapsed = start.elapsed();
-        
+
         println!("Resolved {} proposals in {:?}", proposals.len(), elapsed);
         assert!(elapsed.as_millis() < 100, "Resolution too slow");
-        
+
         // Should have a winner (highest score will win).
         match outcome {
             ResolutionOutcome::Accepted { score, .. } => {
@@ -419,13 +421,13 @@ mod tests {
             }
         }
     }
-    
+
     // STRESS TEST: RFM risk adjustment
     #[test]
     fn test_rfm_risk_adjustment() {
         let mut state = test_state();
         let config = test_config();
-        
+
         let proposal = Proposal {
             id: Uuid::now_v7(),
             kind: ProposalKind::FocusChange,
@@ -436,20 +438,15 @@ mod tests {
             score: 0.9,
             status: ProposalStatus::Pending,
         };
-        
+
         // Test each RFM level.
         for level in [RfmLevel::R0, RfmLevel::R1, RfmLevel::R2, RfmLevel::R3] {
             state.rfm.level = level;
-            
-            let scored = score_proposal(
-                &proposal,
-                &state,
-                &config,
-                Utc::now(),
-            );
-            
+
+            let scored = score_proposal(&proposal, &state, &config, Utc::now());
+
             println!("RFM {:?}: score = {:.2}", level, scored.final_score);
-            
+
             // Higher RFM should lower score.
             match level {
                 RfmLevel::R0 => assert!(scored.final_score > 0.8),
@@ -460,7 +457,7 @@ mod tests {
             }
         }
     }
-    
+
     // STRESS TEST: Recency bias
     #[test]
     fn test_recency_bias() {
@@ -469,9 +466,9 @@ mod tests {
             recency_bias: 0.2,
             ..Default::default()
         };
-        
+
         let window_start = Utc::now() - chrono::Duration::seconds(10);
-        
+
         // Early proposal.
         let early = Proposal {
             id: Uuid::now_v7(),
@@ -483,7 +480,7 @@ mod tests {
             score: 0.8,
             status: ProposalStatus::Pending,
         };
-        
+
         // Late proposal.
         let late = Proposal {
             id: Uuid::now_v7(),
@@ -495,12 +492,15 @@ mod tests {
             score: 0.8,
             status: ProposalStatus::Pending,
         };
-        
+
         let early_scored = score_proposal(&early, &state, &config, window_start);
         let late_scored = score_proposal(&late, &state, &config, window_start);
-        
-        println!("Early: {:.2}, Late: {:.2}", early_scored.final_score, late_scored.final_score);
-        
+
+        println!(
+            "Early: {:.2}, Late: {:.2}",
+            early_scored.final_score, late_scored.final_score
+        );
+
         // Late proposal should score higher due to recency.
         assert!(late_scored.final_score > early_scored.final_score);
     }

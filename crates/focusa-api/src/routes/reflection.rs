@@ -406,7 +406,7 @@ async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
         let focusa = state.focusa.read().await;
         let stack_depth = focusa.focus_stack.frames.len();
         let active = focusa.focus_stack.active_id.is_some();
-        
+
         // Build focus state summary
         let mut focus_parts = Vec::new();
         for frame in &focusa.focus_stack.frames {
@@ -422,24 +422,37 @@ async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
             ));
         }
         let focus_summary = focus_parts.join("\n");
-        
+
         // Semantic memory keys
-        let sem_keys: Vec<String> = focusa.memory.semantic.iter()
+        let sem_keys: Vec<String> = focusa
+            .memory
+            .semantic
+            .iter()
             .map(|r| format!("{}={}", r.key, &r.value[..r.value.floor_char_boundary(100)]))
             .collect();
-        
+
         // Procedural rules
-        let proc_rules: Vec<String> = focusa.memory.procedural.iter()
+        let proc_rules: Vec<String> = focusa
+            .memory
+            .procedural
+            .iter()
             .take(20)
-            .map(|r| format!("[w={:.2}] {}", r.weight, &r.rule[..r.rule.floor_char_boundary(80)]))
+            .map(|r| {
+                format!(
+                    "[w={:.2}] {}",
+                    r.weight,
+                    &r.rule[..r.rule.floor_char_boundary(80)]
+                )
+            })
             .collect();
-        
+
         (stack_depth, active, focus_summary, sem_keys, proc_rules)
     };
-    
+
     // Get recent events
     let recent_events = state.persistence.recent_events(20).unwrap_or_default();
-    let events_summary: String = recent_events.iter()
+    let events_summary: String = recent_events
+        .iter()
         .map(|e| {
             let etype = e.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
             let ts = e.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
@@ -447,14 +460,18 @@ async fn collect_reflection_inputs(state: &Arc<AppState>) -> ReflectionInputs {
         })
         .collect::<Vec<_>>()
         .join("\n");
-    
+
     let event_count = state.persistence.event_count().unwrap_or(0);
     let latest_ts = state.persistence.latest_event_timestamp().ok().flatten();
-    
+
     // Call LLM for analysis
     let (llm_obs, llm_risks, llm_recs, llm_conf, llm_ok) = call_reflection_llm(
-        &events_summary, &focus_state_summary, &semantic_keys, &procedural_rules,
-    ).await;
+        &events_summary,
+        &focus_state_summary,
+        &semantic_keys,
+        &procedural_rules,
+    )
+    .await;
 
     ReflectionInputs {
         stack_depth,
@@ -482,13 +499,15 @@ async fn call_reflection_llm(
 ) -> (Vec<Value>, Vec<Value>, Vec<Value>, Option<f64>, bool) {
     // Bypass LLM for CI test determinism (FOCUSA_TEST_MODE=1) or no API key
     if std::env::var("FOCUSA_TEST_MODE").is_ok()
-        || std::env::var("MINIMAX_API_KEY").unwrap_or_default().is_empty()
+        || std::env::var("MINIMAX_API_KEY")
+            .unwrap_or_default()
+            .is_empty()
     {
         tracing::debug!("Reflection LLM: bypass (test mode or no key)");
         return (vec![], vec![], vec![], None, false);
     }
     let api_key = std::env::var("MINIMAX_API_KEY").unwrap();
-    
+
     let prompt = format!(
         r#"You are Focusa's reflection engine. Analyze the current cognitive state and recent activity.
 
@@ -519,17 +538,22 @@ Focus on:
 - Contradictions between decisions and constraints
 - Opportunities for proactive action"#,
         events_summary,
-        if focus_state.is_empty() { "(no frames)" } else { focus_state },
+        if focus_state.is_empty() {
+            "(no frames)"
+        } else {
+            focus_state
+        },
         semantic_keys.len(),
         semantic_keys.join("\n"),
         procedural_rules.len(),
         procedural_rules.join("\n"),
     );
-    
+
     let client = reqwest::Client::new();
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(15),
-        client.post("https://api.minimax.io/v1/chat/completions")
+        client
+            .post("https://api.minimax.io/v1/chat/completions")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&json!({
@@ -539,29 +563,45 @@ Focus on:
                 "temperature": 0.3,
             }))
             .send(),
-    ).await;
-    
+    )
+    .await;
+
     match result {
         Ok(Ok(resp)) => {
             if let Ok(data) = resp.json::<Value>().await
-                && let Some(text) = data.pointer("/choices/0/message/content").and_then(|v| v.as_str()) {
-                    // Extract JSON from response
-                    let start = text.find('{').unwrap_or(0);
-                    let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
-                    if let Ok(parsed) = serde_json::from_str::<Value>(&text[start..end]) {
-                        let obs = parsed.get("observations").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-                        let risks = parsed.get("risks").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-                        let recs = parsed.get("recommendations").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-                        let conf = parsed.get("confidence").and_then(|v| v.as_f64());
-                        tracing::info!(
-                            observations = obs.len(),
-                            risks = risks.len(),
-                            recommendations = recs.len(),
-                            "Reflection LLM analysis complete"
-                        );
-                        return (obs, risks, recs, conf, true);
-                    }
+                && let Some(text) = data
+                    .pointer("/choices/0/message/content")
+                    .and_then(|v| v.as_str())
+            {
+                // Extract JSON from response
+                let start = text.find('{').unwrap_or(0);
+                let end = text.rfind('}').map(|i| i + 1).unwrap_or(text.len());
+                if let Ok(parsed) = serde_json::from_str::<Value>(&text[start..end]) {
+                    let obs = parsed
+                        .get("observations")
+                        .and_then(|v| v.as_array())
+                        .cloned()
+                        .unwrap_or_default();
+                    let risks = parsed
+                        .get("risks")
+                        .and_then(|v| v.as_array())
+                        .cloned()
+                        .unwrap_or_default();
+                    let recs = parsed
+                        .get("recommendations")
+                        .and_then(|v| v.as_array())
+                        .cloned()
+                        .unwrap_or_default();
+                    let conf = parsed.get("confidence").and_then(|v| v.as_f64());
+                    tracing::info!(
+                        observations = obs.len(),
+                        risks = risks.len(),
+                        recommendations = recs.len(),
+                        "Reflection LLM analysis complete"
+                    );
+                    return (obs, risks, recs, conf, true);
                 }
+            }
             tracing::warn!("Reflection LLM: response unparseable");
             (vec![], vec![], vec![], None, false)
         }
@@ -898,22 +938,26 @@ async fn reflect_history(
         })?;
 
         if let Some(since) = since_ts.as_ref()
-            && created_at < *since {
-                continue;
-            }
+            && created_at < *since
+        {
+            continue;
+        }
         if let Some(until) = until_ts.as_ref()
-            && created_at > *until {
-                continue;
-            }
+            && created_at > *until
+        {
+            continue;
+        }
         if let Some(cursor_before) = cursor_before_ts.as_ref()
-            && created_at >= *cursor_before {
-                continue;
-            }
+            && created_at >= *cursor_before
+        {
+            continue;
+        }
 
         if let Some(want_mode) = wanted_mode.as_ref()
-            && row.1 != *want_mode {
-                continue;
-            }
+            && row.1 != *want_mode
+        {
+            continue;
+        }
 
         let parsed: Value = serde_json::from_str(&row.5).unwrap_or(json!({"raw": row.5}));
         if let Some(want) = wanted_reason.as_ref() {
@@ -1318,7 +1362,8 @@ mod tests {
         let b2 = to_bytes(resp2.into_body(), usize::MAX).await.expect("b2");
         let j2: Value = serde_json::from_slice(&b2).expect("j2");
         // Valid stop_reason values per SPEC: no_evidence_delta | repeated_recommendation_set | low_confidence
-        let stop_reason = j2.get("result")
+        let stop_reason = j2
+            .get("result")
             .and_then(|v| v.get("stop_reason"))
             .and_then(|v| v.as_str());
         assert!(
@@ -1640,7 +1685,8 @@ mod tests {
         let j: Value = serde_json::from_slice(&b).expect("j");
         // Empty test DB: event_count=0 → no_evidence_delta
         // Even with low threshold, no evidence takes precedence
-        let stop_reason = j.get("result")
+        let stop_reason = j
+            .get("result")
             .and_then(|v| v.get("stop_reason"))
             .and_then(|v| v.as_str());
         assert!(

@@ -6,7 +6,7 @@
 //!
 //! ECS objects remain filesystem-backed (see reference::store).
 
-use crate::types::{EventLogEntry, FocusaConfig, FocusaState};
+use crate::types::{EventLogEntry, FocusaConfig, FocusaState, SessionId};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use std::path::{Path, PathBuf};
@@ -24,6 +24,14 @@ const SCHEMA_VERSION: i64 = 1;
 pub struct SqlitePersistence {
     pub data_dir: PathBuf,
     conn: Arc<Mutex<Connection>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RawEventLogRow {
+    pub event_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub session_id: Option<SessionId>,
+    pub payload_json: String,
 }
 
 impl SqlitePersistence {
@@ -370,6 +378,45 @@ impl SqlitePersistence {
         Ok(out)
     }
 
+    pub fn events_since_raw(
+        &self,
+        since_ts: Option<&str>,
+        since_id: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<RawEventLogRow>> {
+        let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT event_id, ts, session_id, payload_json
+            FROM events
+            WHERE (?1 IS NULL OR ts > ?1 OR (ts = ?1 AND event_id > ?2))
+            ORDER BY ts, event_id
+            LIMIT ?3
+            "#,
+        )?;
+        let rows = stmt.query_map(params![since_ts, since_id, limit as i64], |r| {
+            let event_id: String = r.get(0)?;
+            let timestamp = DateTime::parse_from_rfc3339(&r.get::<_, String>(1)?)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(1, "ts".into(), rusqlite::types::Type::Text)
+                })?
+                .with_timezone(&Utc);
+            let session_id = r.get::<_, Option<String>>(2)?.and_then(|sid| sid.parse().ok());
+            let payload_json: String = r.get(3)?;
+            Ok(RawEventLogRow {
+                event_id,
+                timestamp,
+                session_id,
+                payload_json,
+            })
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        Ok(out)
+    }
+
     pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
         let ts = Utc::now();
@@ -437,9 +484,8 @@ impl SqlitePersistence {
     /// Get the N most recent events as JSON values.
     pub fn recent_events(&self, limit: usize) -> anyhow::Result<Vec<serde_json::Value>> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
-        let mut stmt = conn.prepare(
-            "SELECT payload FROM events ORDER BY ts DESC, rowid DESC LIMIT ?1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT payload FROM events ORDER BY ts DESC, rowid DESC LIMIT ?1")?;
         let rows = stmt.query_map([limit as i64], |row| {
             let raw: String = row.get(0)?;
             Ok(raw)
@@ -523,7 +569,12 @@ impl SqlitePersistence {
     }
 
     /// Log a confidence prediction for later calibration.
-    pub fn log_confidence(&self, prediction_type: &str, confidence: f64, context: &str) -> anyhow::Result<i64> {
+    pub fn log_confidence(
+        &self,
+        prediction_type: &str,
+        confidence: f64,
+        context: &str,
+    ) -> anyhow::Result<i64> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
         conn.execute(
             "INSERT INTO confidence_calibration (prediction_type, predicted_confidence, context, created_at) VALUES (?1, ?2, ?3, ?4)",
@@ -573,7 +624,6 @@ impl SqlitePersistence {
         }
         Ok(stats)
     }
-
 }
 
 #[derive(Debug, Clone)]

@@ -59,7 +59,11 @@ impl AsccSections {
         if !self.artifacts.is_empty() {
             out.push_str("ARTIFACTS:\n");
             for a in &self.artifacts {
-                out.push_str(&format!("  - [{}] {}\n", artifact_kind_str(a.kind), a.label));
+                out.push_str(&format!(
+                    "  - [{}] {}\n",
+                    artifact_kind_str(a.kind),
+                    a.label
+                ));
             }
         }
         append_list(&mut out, "NOTES", &self.notes);
@@ -88,7 +92,11 @@ impl AsccSections {
             slots.push(("system".into(), format!("DECISIONS:\n{}", items.join("\n"))));
         }
         if !self.constraints.is_empty() {
-            let items: Vec<String> = self.constraints.iter().map(|c| format!("- {}", c)).collect();
+            let items: Vec<String> = self
+                .constraints
+                .iter()
+                .map(|c| format!("- {}", c))
+                .collect();
             slots.push((
                 "system".into(),
                 format!("CONSTRAINTS:\n{}", items.join("\n")),
@@ -189,13 +197,15 @@ pub fn save_checkpoint(data_dir: &str, checkpoint: &CheckpointRecord) -> std::io
     let dir = std::path::PathBuf::from(&expanded).join("ascc");
     std::fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", checkpoint.frame_id));
-    let json = serde_json::to_string_pretty(checkpoint)
-        .map_err(std::io::Error::other)?;
+    let json = serde_json::to_string_pretty(checkpoint).map_err(std::io::Error::other)?;
     std::fs::write(path, json)
 }
 
 /// Load a checkpoint from ~/.focusa/ascc/<frame_id>.json
-pub fn load_checkpoint(data_dir: &str, frame_id: uuid::Uuid) -> std::io::Result<Option<CheckpointRecord>> {
+pub fn load_checkpoint(
+    data_dir: &str,
+    frame_id: uuid::Uuid,
+) -> std::io::Result<Option<CheckpointRecord>> {
     let expanded = if data_dir.starts_with('~') {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
         data_dir.replacen('~', &home, 1)

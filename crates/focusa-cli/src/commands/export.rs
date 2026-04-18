@@ -207,7 +207,10 @@ fn emit_not_implemented(
 
     println!("Export request not implemented:");
     println!("  Dataset: {}", dataset_type);
-    println!("  Mode: {}", if options.dry_run { "dry-run" } else { "write" });
+    println!(
+        "  Mode: {}",
+        if options.dry_run { "dry-run" } else { "write" }
+    );
     println!("  Output: {}", options.output);
     println!("  Format: {}", options.format.as_str());
     println!("  Reason: docs/21 export execution phases are not implemented yet");
@@ -228,10 +231,7 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("Export Pipeline Status:");
-                println!(
-                    "  Status: {}",
-                    resp["status"].as_str().unwrap_or("unknown")
-                );
+                println!("  Status: {}", resp["status"].as_str().unwrap_or("unknown"));
                 println!(
                     "  Implemented: {}",
                     if resp["implemented"].as_bool().unwrap_or(false) {
@@ -244,14 +244,22 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                     "  Dataset types: {}",
                     resp["dataset_types"]
                         .as_array()
-                        .map(|items| items.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
+                        .map(|items| items
+                            .iter()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", "))
                         .unwrap_or_default()
                 );
                 println!(
                     "  Supported formats: {}",
                     resp["supported_formats"]
                         .as_array()
-                        .map(|items| items.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
+                        .map(|items| items
+                            .iter()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", "))
                         .unwrap_or_default()
                 );
                 if let Some(reason) = resp["reason"].as_str() {

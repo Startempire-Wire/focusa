@@ -18,6 +18,7 @@ mod skills;
 mod telemetry;
 mod training;
 mod uxp;
+mod work_loop;
 
 use crate::app::{App, Tab};
 use crate::theme;
@@ -96,6 +97,7 @@ fn render_body(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         Tab::Events => events::render(app, frame, area),
         Tab::Metrics => metrics::render(app, frame, area),
         Tab::Lineage => lineage::render(app, frame, area),
+        Tab::WorkLoop => work_loop::render(app, frame, area),
         Tab::Autonomy => autonomy::render(app, frame, area),
         Tab::Constitution => constitution::render(app, frame, area),
         Tab::Telemetry => telemetry::render(app, frame, area),

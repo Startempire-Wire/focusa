@@ -12,6 +12,42 @@ function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
 }
 
+function replayConsumerSurface(payload: any): {
+  replayStatus: string;
+  pairLabel: "observed" | "missing" | "unknown";
+  continuityGate: "open" | "fail-closed";
+  continuityFailClosed: boolean;
+  nonClosureObjectiveEvents: number | null;
+  nonClosureObjectiveRate: number | null;
+} {
+  const replayPayload = payload?.secondary_loop_replay_consumer || payload;
+  const continuityPayload = payload?.secondary_loop_continuity_gate || null;
+  const objectiveProfile = payload?.secondary_loop_eval_bundle?.secondary_loop_objective_profile || null;
+
+  const replayStatus = String(replayPayload?.status || (payload ? "ok" : "error"));
+  const healthy = !!payload && replayStatus === "ok";
+  const pairObserved = healthy && !!replayPayload?.secondary_loop_closure_replay_evidence?.evidence?.current_task_pair_observed;
+  const pairLabel = healthy ? (pairObserved ? "observed" : "missing") : "unknown";
+  const continuityGateRaw = String(continuityPayload?.state || (healthy ? "open" : "fail-closed"));
+  const continuityGate: "open" | "fail-closed" = continuityGateRaw === "open" ? "open" : "fail-closed";
+  const continuityFailClosed = continuityGate !== "open";
+  const nonClosureObjectiveEvents = objectiveProfile?.non_closure_objective_events != null
+    ? Number(objectiveProfile.non_closure_objective_events)
+    : null;
+  const nonClosureObjectiveRate = objectiveProfile?.non_closure_objective_rate != null
+    ? Number(objectiveProfile.non_closure_objective_rate)
+    : null;
+
+  return {
+    replayStatus,
+    pairLabel,
+    continuityGate,
+    continuityFailClosed,
+    nonClosureObjectiveEvents,
+    nonClosureObjectiveRate,
+  };
+}
+
 const WARN_OPTIONS = ["40", "50", "60", "70"];
 const COMPACT_OPTIONS = ["60", "70", "80", "85", "90"];
 const HARD_OPTIONS = ["75", "85", "92", "95", "97"];
@@ -345,16 +381,23 @@ export function registerCommands(pi: ExtensionAPI) {
       const titleLine = S.activeFrameTitle ? `\nTitle: ${S.activeFrameTitle}` : "";
       const goalLine = S.activeFrameGoal ? `\nGoal: ${S.activeFrameGoal}` : "";
       const loop = await focusaFetch("/work-loop");
+      const replayPayload = await focusaFetch("/work-loop/replay/closure-bundle")
+        || await focusaFetch("/work-loop/replay/closure-evidence");
+      const replayConsumer = replayConsumerSurface(replayPayload);
       const loopLine = loop ? `\nLoop: ${loop.enabled ? "on" : "off"} | Status: ${loop.status} | Project: ${loop.project_status} | Tranche: ${loop.tranche_status}` : "";
       const whyLine = loop?.last_continue_reason || loop?.last_blocker_reason ? `\nWhy: ${loop.last_continue_reason || loop.last_blocker_reason}` : "";
       const budgetLine = loop?.budget_remaining ? `\nBudget: retries=${loop.budget_remaining.max_retries} remaining_failure_budget=${loop.budget_remaining.remaining_failure_budget}` : "";
       const checkpointLine = loop?.last_checkpoint_id ? `\nCheckpoint: ${loop.last_checkpoint_id}` : "";
       const supervisionLine = loop?.transport?.daemon_supervised_session ? `\nSupervision: daemon-owned ${loop.transport.daemon_supervised_session.session_id}` : "\nSupervision: none";
+      const replayLine = `\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}`;
+      const objectiveLine = replayConsumer.nonClosureObjectiveEvents == null
+        ? ""
+        : `\nObjectives: non_closure=${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
       const snapshot = getEffectiveFocusSnapshot(focusState?.fs);
       const missionLine = snapshot.intent ? `\nMission: ${snapshot.intent}` : "";
       const focusLine = snapshot.currentFocus ? `\nFocus: ${snapshot.currentFocus}` : "";
       ctx.ui.notify(
-        `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${S.turnCount}${tier}${compactions}` + loopLine + whyLine + budgetLine + checkpointLine + supervisionLine + missionLine + focusLine + `\n` +
+        `Focusa: ${up}\nFrame: ${frame}${titleLine}${goalLine}\nWBM: ${wbm}\nTurns: ${S.turnCount}${tier}${compactions}` + loopLine + whyLine + budgetLine + checkpointLine + supervisionLine + replayLine + objectiveLine + missionLine + focusLine + `\n` +
         `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +
         (S.cfg ? `\nConfig: warn=${S.cfg.warnPct}% compact=${S.cfg.compactPct}% hard=${S.cfg.hardPct}% | work-loop=${S.cfg.workLoopPreset}` : ""),
         "info",
@@ -428,10 +471,16 @@ export function registerCommands(pi: ExtensionAPI) {
       }
       const fs = await getFocusState();
       const loop = await focusaFetch("/work-loop");
+      const replayPayload = await focusaFetch("/work-loop/replay/closure-bundle")
+        || await focusaFetch("/work-loop/replay/closure-evidence");
+      const replayConsumer = replayConsumerSurface(replayPayload);
       const snapshot = getEffectiveFocusSnapshot(fs?.fs);
       const mission = snapshot.intent || "(none)";
       const focus = snapshot.currentFocus || "(none)";
-      ctx.ui.notify(loop ? `Loop: ${loop.enabled ? "on" : "off"}\nStatus: ${loop.status}\nProject: ${loop.project_status}\nTranche: ${loop.tranche_status}\nMission: ${mission}\nFocus: ${focus}\nReason: ${loop.last_continue_reason || loop.last_blocker_reason || "(none)"}\nCheckpoint: ${loop.last_checkpoint_id || "(none)"}\nSupervision: ${loop.transport?.daemon_supervised_session?.session_id || "(none)"}\nPreset: ${loop.policy?.preset || S.cfg?.workLoopPreset || "balanced"}` : "Loop status unavailable", "info");
+      const objectiveSummary = replayConsumer.nonClosureObjectiveEvents == null
+        ? "(n/a)"
+        : `${replayConsumer.nonClosureObjectiveEvents}${replayConsumer.nonClosureObjectiveRate == null ? "" : ` (${(replayConsumer.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
+      ctx.ui.notify(loop ? `Loop: ${loop.enabled ? "on" : "off"}\nStatus: ${loop.status}\nProject: ${loop.project_status}\nTranche: ${loop.tranche_status}\nReplay: ${replayConsumer.replayStatus} | pair=${replayConsumer.pairLabel} | continuity_gate=${replayConsumer.continuityGate}\nObjectives: non_closure=${objectiveSummary}\nMission: ${mission}\nFocus: ${focus}\nReason: ${loop.last_continue_reason || loop.last_blocker_reason || "(none)"}\nCheckpoint: ${loop.last_checkpoint_id || "(none)"}\nSupervision: ${loop.transport?.daemon_supervised_session?.session_id || "(none)"}\nPreset: ${loop.policy?.preset || S.cfg?.workLoopPreset || "balanced"}` : "Loop status unavailable", "info");
     },
   });
 

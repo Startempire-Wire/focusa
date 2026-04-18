@@ -608,6 +608,46 @@ export function registerTools(pi: ExtensionAPI) {
     return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
   }
 
+  function replayConsumerSurface(result: { ok: boolean; status: number; body: any | null }): {
+    replayStatus: string;
+    pairObserved: boolean;
+    pairLabel: "observed" | "missing" | "unknown";
+    continuityGate: "open" | "fail-closed";
+    continuityFailClosed: boolean;
+    nonClosureObjectiveEvents: number | null;
+    nonClosureObjectiveRate: number | null;
+  } {
+    const payload = result.body || {};
+    const replayPayload = payload?.secondary_loop_replay_consumer || payload;
+    const continuityPayload = payload?.secondary_loop_continuity_gate || null;
+    const objectiveProfile = payload?.secondary_loop_eval_bundle?.secondary_loop_objective_profile || null;
+
+    const replayStatus = String(replayPayload?.status || (result.ok ? "ok" : "error"));
+    const healthy = result.ok && replayStatus === "ok";
+    const pairObserved = healthy && !!replayPayload?.secondary_loop_closure_replay_evidence?.evidence?.current_task_pair_observed;
+    const pairLabel = healthy ? (pairObserved ? "observed" : "missing") : "unknown";
+    const continuityGateRaw = String(continuityPayload?.state || (healthy ? "open" : "fail-closed"));
+    const continuityGate: "open" | "fail-closed" = continuityGateRaw === "open" ? "open" : "fail-closed";
+    const continuityFailClosed = continuityGate !== "open";
+
+    const nonClosureObjectiveEvents = objectiveProfile?.non_closure_objective_events != null
+      ? Number(objectiveProfile.non_closure_objective_events)
+      : null;
+    const nonClosureObjectiveRate = objectiveProfile?.non_closure_objective_rate != null
+      ? Number(objectiveProfile.non_closure_objective_rate)
+      : null;
+
+    return {
+      replayStatus,
+      pairObserved,
+      pairLabel,
+      continuityGate,
+      continuityFailClosed,
+      nonClosureObjectiveEvents,
+      nonClosureObjectiveRate,
+    };
+  }
+
   async function preferredWriterId(): Promise<string> {
     const status = await focusaFetchDetailed("/work-loop/status");
     const claimed = String(status.body?.active_writer || "").trim();
@@ -644,20 +684,58 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({}),
     async execute() {
       const result = await focusaFetchDetailed("/work-loop/status");
+      let replayResult = await focusaFetchDetailed("/work-loop/replay/closure-bundle");
+      if (!replayResult.ok || !replayResult.body) {
+        replayResult = await focusaFetchDetailed("/work-loop/replay/closure-evidence");
+      }
+      const replay = replayConsumerSurface(replayResult);
+      const objectiveSegment = replay.nonClosureObjectiveEvents == null
+        ? ""
+        : ` | non_closure_objectives=${replay.nonClosureObjectiveEvents}${replay.nonClosureObjectiveRate == null ? "" : ` (${(replay.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
+
       if (!result.ok || !result.body) {
         return {
-          content: [{ type: "text", text: `Work-loop status ${explainWorkLoopResult(result, "ok")}` }],
-          details: { ok: false, status: result.status, response: result.body ?? null },
+          content: [{ type: "text", text: `Work-loop status ${explainWorkLoopResult(result, "ok")} | Replay consumer: ${replay.replayStatus} | pair=${replay.pairLabel} | continuity_gate=${replay.continuityGate}${objectiveSegment}` }],
+          details: {
+            ok: false,
+            status: result.status,
+            response: result.body ?? null,
+            closure_replay_consumer: {
+              status: replay.replayStatus,
+              pair_observed: replay.pairObserved,
+              pair_label: replay.pairLabel,
+              continuity_gate: replay.continuityGate,
+              continuity_fail_closed: replay.continuityFailClosed,
+              non_closure_objective_events: replay.nonClosureObjectiveEvents,
+              non_closure_objective_rate: replay.nonClosureObjectiveRate,
+            },
+            closure_replay_response: replayResult.body ?? null,
+          },
         };
       }
+
       const loopStatus = result.body;
       const statusText = String(loopStatus?.status || loopStatus?.work_loop?.status || "unknown");
       const enabled = typeof loopStatus?.enabled === "boolean"
         ? loopStatus.enabled
         : !!loopStatus?.work_loop?.enabled;
       return {
-        content: [{ type: "text", text: `Work-loop: ${statusText} (enabled=${enabled ? "yes" : "no"})` }],
-        details: { ok: true, status: result.status, response: result.body },
+        content: [{ type: "text", text: `Work-loop: ${statusText} (enabled=${enabled ? "yes" : "no"}) | Replay consumer: ${replay.replayStatus} | pair=${replay.pairLabel} | continuity_gate=${replay.continuityGate}${objectiveSegment}` }],
+        details: {
+          ok: true,
+          status: result.status,
+          response: result.body,
+          closure_replay_consumer: {
+            status: replay.replayStatus,
+            pair_observed: replay.pairObserved,
+            pair_label: replay.pairLabel,
+            continuity_gate: replay.continuityGate,
+            continuity_fail_closed: replay.continuityFailClosed,
+            non_closure_objective_events: replay.nonClosureObjectiveEvents,
+            non_closure_objective_rate: replay.nonClosureObjectiveRate,
+          },
+          closure_replay_response: replayResult.body ?? null,
+        },
       };
     },
   });

@@ -117,7 +117,15 @@ pub fn observe_turn(
     // Recovery: if errors occurred and we're still running, partial recovery.
     let recovery = if had_errors { 0.6 } else { 0.9 };
 
-    record_observation(state, correctness, stability, efficiency, trust, grounding, recovery);
+    record_observation(
+        state,
+        correctness,
+        stability,
+        efficiency,
+        trust,
+        grounding,
+        recovery,
+    );
 }
 
 /// Record an observation for autonomy scoring.

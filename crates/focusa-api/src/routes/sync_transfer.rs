@@ -129,7 +129,13 @@ pub async fn transfer_impl(
             continue;
         }
 
-        if let Err(e) = state.command_tx.send(Action::EmitEvent { event: entry.event.clone() }).await {
+        if let Err(e) = state
+            .command_tx
+            .send(Action::EmitEvent {
+                event: entry.event.clone(),
+            })
+            .await
+        {
             tracing::warn!(event_id = %event_id, error = %e, "Failed to dispatch transfer event");
             rejected += 1;
             continue;

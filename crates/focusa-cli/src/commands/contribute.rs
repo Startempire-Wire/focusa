@@ -50,9 +50,7 @@ pub async fn run(cmd: ContributeCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         ContributeCmd::Enable => {
-            let resp = api
-                .post("/v1/contribute/enable", &json!({}))
-                .await?;
+            let resp = api.post("/v1/contribute/enable", &json!({})).await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
@@ -60,9 +58,7 @@ pub async fn run(cmd: ContributeCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         ContributeCmd::Pause => {
-            let resp = api
-                .post("/v1/contribute/pause", &json!({}))
-                .await?;
+            let resp = api.post("/v1/contribute/pause", &json!({})).await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
@@ -100,9 +96,7 @@ pub async fn run(cmd: ContributeCmd, json_mode: bool) -> anyhow::Result<()> {
             }
         }
         ContributeCmd::Submit => {
-            let resp = api
-                .post("/v1/contribute/submit", &json!({}))
-                .await?;
+            let resp = api.post("/v1/contribute/submit", &json!({})).await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {

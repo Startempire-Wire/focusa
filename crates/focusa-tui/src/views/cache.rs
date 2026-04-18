@@ -26,11 +26,18 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     }
 
     let data = cache_data.unwrap();
-    
+
     // Build stats text
-    let entry_count = data.get("entry_count").and_then(|v| v.as_u64()).unwrap_or(0);
+    let entry_count = data
+        .get("entry_count")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let hit_rate = data.get("hit_rate").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let bust_events = data.get("bust_events").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let bust_events = data
+        .get("bust_events")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
 
     let stats_text = format!(
         "Entries: {}  │  Hit Rate: {:.1}%  │  Recent Busts: {}\n\n",

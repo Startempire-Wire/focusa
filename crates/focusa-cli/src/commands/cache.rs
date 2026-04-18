@@ -30,10 +30,7 @@ pub async fn run(cmd: CacheCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("Cache Status:");
-                println!(
-                    "  Entries: {}",
-                    resp["entry_count"].as_u64().unwrap_or(0)
-                );
+                println!("  Entries: {}", resp["entry_count"].as_u64().unwrap_or(0));
                 println!(
                     "  Hit rate: {:.1}%",
                     resp["hit_rate"].as_f64().unwrap_or(0.0) * 100.0
@@ -64,7 +61,10 @@ pub async fn run(cmd: CacheCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("✓ Cache busted (category: {}, reason: {})", category, reason);
+                println!(
+                    "✓ Cache busted (category: {}, reason: {})",
+                    category, reason
+                );
             }
         }
         CacheCmd::Policy => {

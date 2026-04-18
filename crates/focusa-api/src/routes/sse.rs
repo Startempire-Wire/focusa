@@ -4,12 +4,12 @@
 //! Replaces polling with push-based updates.
 
 use crate::server::AppState;
+use axum::Router;
+use axum::routing::get;
 use axum::{
     extract::State,
-    response::{sse::Event, Sse},
+    response::{Sse, sse::Event},
 };
-use axum::routing::get;
-use axum::Router;
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
@@ -56,7 +56,7 @@ async fn sse_handler(
     State(state): State<Arc<AppState>>,
 ) -> Sse<impl futures_core::Stream<Item = Result<Event, Infallible>>> {
     let mut receiver = state.events_tx.subscribe();
-    
+
     let stream = async_stream::stream! {
         loop {
             match receiver.recv().await {

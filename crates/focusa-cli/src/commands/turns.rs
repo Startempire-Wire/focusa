@@ -69,9 +69,8 @@ fn collect_turns(events: &[Value]) -> Vec<TurnInfo> {
     let mut map: HashMap<String, TurnInfo> = HashMap::new();
 
     for event in events {
-        let event_type = normalize_event_type(
-            event.get("type").and_then(|v| v.as_str()).unwrap_or(""),
-        );
+        let event_type =
+            normalize_event_type(event.get("type").and_then(|v| v.as_str()).unwrap_or(""));
         let turn_id = event.get("turn_id").and_then(|v| v.as_str()).unwrap_or("");
         if turn_id.is_empty() {
             continue;

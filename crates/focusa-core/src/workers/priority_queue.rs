@@ -67,7 +67,7 @@ impl PriorityQueue {
     /// Returns true if job was queued, false if queue is full.
     pub async fn try_send(&self, job: WorkerJob) -> bool {
         let mut heap = self.heap.lock().await;
-        
+
         if heap.len() >= self.capacity {
             return false;
         }
@@ -103,7 +103,7 @@ impl PriorityQueue {
     pub async fn recv(&self) -> Option<WorkerJob> {
         loop {
             let mut heap = self.heap.lock().await;
-            
+
             if let Some(Reverse(pjob)) = heap.pop() {
                 return Some(pjob.job);
             }
@@ -260,9 +260,7 @@ mod tests {
         let (tx, rx) = priority_channel(10);
 
         // Start recv in background.
-        let recv_handle = tokio::spawn(async move {
-            rx.recv().await
-        });
+        let recv_handle = tokio::spawn(async move { rx.recv().await });
 
         // Small delay to ensure recv is waiting.
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;

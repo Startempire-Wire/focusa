@@ -26,7 +26,11 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     }
 
     let data = signals.unwrap();
-    let signal_list = data.get("signals").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let signal_list = data
+        .get("signals")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
 
     if signal_list.is_empty() {
         let para = Paragraph::new("\nNo intuition signals observed yet.\n\nSignals are generated from user input patterns, tool outputs, and behavioral observations.")
@@ -45,7 +49,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             let origin = s.get("origin").and_then(|v| v.as_str()).unwrap_or("?");
             let summary = s.get("summary").and_then(|v| v.as_str()).unwrap_or("?");
             let summary_short: String = summary.chars().take(40).collect();
-            
+
             Row::new(vec![
                 Cell::from(kind.to_string()),
                 Cell::from(origin.to_string()),

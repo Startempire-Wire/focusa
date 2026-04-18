@@ -1,0 +1,65 @@
+{
+  "run_index": 1,
+  "run_name": "run-01",
+  "run_dir": "/tmp/doc78-series-postfix2-1776475595/run-01",
+  "run_started_at": "2026-04-18T01:26:47Z",
+  "run_finished_at": "2026-04-18T01:33:30Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 34,
+  "ok": true
+}
+{
+  "run_index": 2,
+  "run_name": "run-02",
+  "run_dir": "/tmp/doc78-series-postfix2-1776475595/run-02",
+  "run_started_at": "2026-04-18T01:33:30Z",
+  "run_finished_at": "2026-04-18T01:35:37Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 36,
+  "ok": true
+}
+{
+  "run_index": 3,
+  "run_name": "run-03",
+  "run_dir": "/tmp/doc78-series-postfix2-1776475595/run-03",
+  "run_started_at": "2026-04-18T01:36:03Z",
+  "run_finished_at": "2026-04-18T01:42:53Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 38,
+  "ok": true
+}
+{
+  "run_index": 4,
+  "run_name": "run-04",
+  "run_dir": "/tmp/doc78-series-postfix2-1776475595/run-04",
+  "run_started_at": "2026-04-18T01:42:53Z",
+  "run_finished_at": "2026-04-18T01:43:47Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 39,
+  "ok": true
+}
+{
+  "run_index": 5,
+  "run_name": "run-05",
+  "run_dir": "/tmp/doc78-series-postfix2-1776475595/run-05",
+  "run_started_at": "2026-04-18T01:43:47Z",
+  "run_finished_at": "2026-04-18T01:43:56Z",
+  "exit_code": 0,
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "non_closure_objective_events": 12,
+  "governance_marker_events": 39,
+  "ok": true
+}

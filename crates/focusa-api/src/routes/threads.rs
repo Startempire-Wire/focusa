@@ -200,12 +200,16 @@ async fn fork_thread(
         owner_machine_id: body.owner_machine_id.clone(),
     };
 
-    state.command_tx.send(Action::EmitEvent { event }).await.map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": "failed to dispatch thread fork"})),
-        )
-    })?;
+    state
+        .command_tx
+        .send(Action::EmitEvent { event })
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "failed to dispatch thread fork"})),
+            )
+        })?;
 
     let mut forked = None;
     for _ in 0..80 {

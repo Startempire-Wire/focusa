@@ -26,10 +26,16 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     }
 
     let data = contrib_data.unwrap();
-    
-    let enabled = data.get("contribution_enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+
+    let enabled = data
+        .get("contribution_enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let queue_size = data.get("queue_size").and_then(|v| v.as_u64()).unwrap_or(0);
-    let total = data.get("total_contributed").and_then(|v| v.as_u64()).unwrap_or(0);
+    let total = data
+        .get("total_contributed")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
 
     let status_indicator = if enabled {
         Span::styled("● ENABLED ", theme::status_ok())
@@ -42,7 +48,10 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
             Span::raw("Status: "),
             status_indicator,
             Span::styled(
-                format!("│ Queue: {} items │ Total contributed: {}", queue_size, total),
+                format!(
+                    "│ Queue: {} items │ Total contributed: {}",
+                    queue_size, total
+                ),
                 theme::label(),
             ),
         ]),
@@ -66,9 +75,7 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         ));
     }
 
-    let para = Paragraph::new(text)
-        .block(block)
-        .wrap(Wrap { trim: true });
+    let para = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
 
     frame.render_widget(para, area);
 }
