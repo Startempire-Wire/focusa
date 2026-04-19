@@ -1468,14 +1468,32 @@ fn parse_endpoints(content: &str) -> Vec<(String, String)> {
 }
 
 fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
-    let Some(workspace_id) = focusa.session.as_ref().and_then(|s| s.workspace_id.clone()) else {
-        return WorkspaceProjection::default();
-    };
-    let root = PathBuf::from(&workspace_id);
-    if !root.exists() || !root.is_dir() {
+    let session_workspace = focusa
+        .session
+        .as_ref()
+        .and_then(|s| s.workspace_id.clone())
+        .filter(|path| {
+            let candidate = PathBuf::from(path);
+            candidate.exists() && candidate.is_dir()
+        });
+
+    let root = session_workspace
+        .map(PathBuf::from)
+        .or_else(|| {
+            let fallback = PathBuf::from(PROJECT_ROOT);
+            if fallback.exists() && fallback.is_dir() {
+                Some(fallback)
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
+
+    if root.as_os_str().is_empty() {
         return WorkspaceProjection::default();
     }
 
+    let workspace_id = root.to_string_lossy().to_string();
     let repo_id = stable_id("repo", &workspace_id);
     let mut objects = vec![json!({
         "id": repo_id,
