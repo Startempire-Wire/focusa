@@ -279,7 +279,7 @@ const SLICE_TYPES: &[&str] = &[
     "regression",
     "architecture",
 ];
-const MAX_DISCOVERED_PATHS: usize = 96;
+const MAX_DISCOVERED_PATHS: usize = 512;
 const MAX_DISCOVERY_SCAN_PATHS: usize = 4096;
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
 const MAX_DISCOVERED_ENDPOINTS: usize = 16;
@@ -1762,6 +1762,7 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
         .unwrap_or_else(|| stable_id("package", "workspace"));
     let mut module_ids = BTreeSet::new();
     let mut schema_ids = BTreeSet::new();
+    let mut dependency_ids = BTreeSet::new();
     let mut files_scanned = 0usize;
 
     let mut discovered_paths = walk_workspace(&root);
@@ -1823,6 +1824,128 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                 "evidence": "filesystem parent path",
                 "status": "verified",
             }));
+        }
+
+        if file_type == "manifest" {
+            if let Some(content) = read_text(&path) {
+                let manifest_package_id = if rel.ends_with("Cargo.toml") {
+                    let cargo_name = parse_cargo_name(&content).unwrap_or_else(|| {
+                        Path::new(&rel)
+                            .parent()
+                            .and_then(|p| p.file_name())
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("workspace")
+                            .to_string()
+                    });
+                    let pkg_id = stable_id("package", &format!("cargo:{}:{}", rel, cargo_name));
+                    if !package_ids.contains(&pkg_id) {
+                        package_ids.push(pkg_id.clone());
+                        objects.push(json!({
+                            "id": pkg_id,
+                            "object_type": "package",
+                            "name": cargo_name,
+                            "package_type": "cargo",
+                            "path": rel,
+                            "status": "verified",
+                            "membership_class": "deterministic",
+                            "provenance_class": "parser_derived",
+                            "fresh": true,
+                        }));
+                    }
+                    for (dep, version) in parse_cargo_dependencies(&content).into_iter().take(32) {
+                        let dep_id = stable_id("dependency", &format!("cargo:{}", dep));
+                        if dependency_ids.insert(dep_id.clone()) {
+                            objects.push(json!({
+                                "id": dep_id,
+                                "object_type": "dependency",
+                                "name": dep,
+                                "version": version,
+                                "dependency_kind": "cargo",
+                                "status": "verified",
+                                "membership_class": "deterministic",
+                                "provenance_class": "parser_derived",
+                                "fresh": true,
+                            }));
+                        }
+                        links.push(json!({
+                            "type": "depends_on",
+                            "source_id": pkg_id,
+                            "target_id": dep_id,
+                            "evidence": "Cargo.toml [dependencies]",
+                            "status": "verified",
+                        }));
+                        links.push(json!({
+                            "type": "declared_in",
+                            "source_id": dep_id,
+                            "target_id": file_id,
+                            "evidence": "Cargo.toml [dependencies]",
+                            "status": "verified",
+                        }));
+                    }
+                    pkg_id
+                } else if rel.ends_with("package.json") {
+                    if let Some((pkg_name, deps)) = parse_package_json(&content) {
+                        let pkg_id = stable_id("package", &format!("npm:{}:{}", rel, pkg_name));
+                        if !package_ids.contains(&pkg_id) {
+                            package_ids.push(pkg_id.clone());
+                            objects.push(json!({
+                                "id": pkg_id,
+                                "object_type": "package",
+                                "name": pkg_name,
+                                "package_type": "npm",
+                                "path": rel,
+                                "status": "verified",
+                                "membership_class": "deterministic",
+                                "provenance_class": "parser_derived",
+                                "fresh": true,
+                            }));
+                        }
+                        for (dep, version) in deps.into_iter().take(32) {
+                            let dep_id = stable_id("dependency", &format!("npm:{}", dep));
+                            if dependency_ids.insert(dep_id.clone()) {
+                                objects.push(json!({
+                                    "id": dep_id,
+                                    "object_type": "dependency",
+                                    "name": dep,
+                                    "version": version,
+                                    "dependency_kind": "npm",
+                                    "status": "verified",
+                                    "membership_class": "deterministic",
+                                    "provenance_class": "parser_derived",
+                                    "fresh": true,
+                                }));
+                            }
+                            links.push(json!({
+                                "type": "depends_on",
+                                "source_id": pkg_id,
+                                "target_id": dep_id,
+                                "evidence": "package.json dependencies",
+                                "status": "verified",
+                            }));
+                            links.push(json!({
+                                "type": "declared_in",
+                                "source_id": dep_id,
+                                "target_id": file_id,
+                                "evidence": "package.json dependencies",
+                                "status": "verified",
+                            }));
+                        }
+                        pkg_id
+                    } else {
+                        package_id.clone()
+                    }
+                } else {
+                    package_id.clone()
+                };
+
+                links.push(json!({
+                    "type": "contains",
+                    "source_id": repo_id,
+                    "target_id": manifest_package_id,
+                    "evidence": "manifest discovery",
+                    "status": "verified",
+                }));
+            }
         }
 
         if file_type == "test" {
@@ -2337,6 +2460,7 @@ fn mission_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Work
     }
 
     let session_id = focusa.session.as_ref().map(|s| s.session_id);
+    let mut artifact_count = 0usize;
     for handle in focusa
         .reference_index
         .handles
@@ -2361,6 +2485,25 @@ fn mission_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Work
             "status": if handle.pinned { "canonical" } else { "verified" },
             "membership_class": if handle.pinned { "pinned" } else { "verified" },
             "provenance_class": "tool_derived",
+            "fresh": true,
+        }));
+        artifact_count += 1;
+    }
+
+    if artifact_count == 0 {
+        let workspace_ref = focusa
+            .session
+            .as_ref()
+            .and_then(|s| s.workspace_id.clone())
+            .unwrap_or_else(|| WORKSPACE_FALLBACK_ROOT.to_string());
+        objects.push(json!({
+            "id": stable_id("artifact", &workspace_ref),
+            "object_type": "artifact",
+            "artifact_kind": "workspace_snapshot",
+            "source_ref": workspace_ref,
+            "status": "verified",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
             "fresh": true,
         }));
     }
