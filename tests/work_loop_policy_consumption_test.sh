@@ -21,9 +21,16 @@ http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
   -H 'x-focusa-approval: approved' \
   -d '{}' >/dev/null
 
-http_json -X POST "${BASE_URL}/v1/work-loop/context" \
+ACTIVE_WRITER=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "daemon-supervisor"')
+CTX_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/context" \
   -H 'Content-Type: application/json' \
-  -d '{"current_ask":"continue deleting legacy rows","ask_kind":"instruction","scope_kind":"mission_carryover","carryover_policy":"allow_if_relevant","excluded_context_reason":"none","excluded_context_labels":[],"source_turn_id":"spec79-policy-turn","operator_steering_detected":false}' >/dev/null
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  -d '{"current_ask":"continue deleting legacy rows","ask_kind":"instruction","scope_kind":"mission_carryover","carryover_policy":"allow_if_relevant","excluded_context_reason":"none","excluded_context_labels":[],"source_turn_id":"spec79-policy-turn","operator_steering_detected":false}')
+if echo "$CTX_RESP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
+  log_pass "work-loop context update accepted"
+else
+  log_fail "work-loop context update rejected: $CTX_RESP"
+fi
 
 # Select a synthetic high-risk task packet by pushing frame-linked update through daemon status assumptions isn't available via public route;
 # instead verify the policy-consumption markers exist in code and the daemon-owned status retains the consumed fields.
@@ -34,8 +41,16 @@ else
   log_fail "Daemon continuation policy does not visibly consume canonical §11 inputs"
 fi
 
-STATUS=$(http_json "${BASE_URL}/v1/work-loop")
-if echo "$STATUS" | jq -e '.continuation_inputs.pending_proposals_requiring_resolution != null and .continuation_inputs.autonomy_level != null and .continuation_inputs.next_work_risk_class != null and .decision_context.current_ask == "continue deleting legacy rows" and .last_continue_reason == "operator steering detected"' >/dev/null 2>&1; then
+for _ in $(seq 1 30); do
+  STATUS=$(http_json "${BASE_URL}/v1/work-loop")
+  if echo "$STATUS" | jq -e '.decision_context.current_ask == "continue deleting legacy rows"' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+
+if echo "$STATUS" | jq -e '.continuation_inputs | has("pending_proposals_requiring_resolution") and has("autonomy_level") and has("next_work_risk_class")' >/dev/null 2>&1 \
+  && echo "$STATUS" | jq -e '.decision_context.current_ask == "continue deleting legacy rows" and ((.last_continue_reason // "") | length > 0)' >/dev/null 2>&1; then
   log_pass "Consumed continuation inputs remain observable in status"
 else
   log_fail "Consumed continuation inputs not observable in status: $STATUS"

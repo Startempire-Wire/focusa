@@ -65,6 +65,14 @@ else
 fi
 
 log_info "Input schema validation"
+code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
+  -d '{"adapter_id":"pi","workspace_id":"tool-contract-test"}')
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Session start accepted before focus push"
+else
+  log_fail "Session start returned HTTP ${code}"
+fi
+
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
   -d '{"title":"tool-contract-test","goal":"verify contract","beads_issue_id":"tc-001"}')
 if [ "$code" = "200" ]; then

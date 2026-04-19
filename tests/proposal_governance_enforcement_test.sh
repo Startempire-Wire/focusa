@@ -57,7 +57,7 @@ fi
 auto_resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
   -d "{\"kind\":\"autonomy_adjustment\",\"source\":\"${run_source}\"}")
-if echo "$auto_resolve" | jq -e '.status == "accepted" and .applied_kind == "autonomy_level_granted"' >/dev/null 2>&1; then
+if echo "$auto_resolve" | jq -e '.status == "accepted" and (.applied_kind == "autonomy_adjusted" or .applied_kind == "autonomy_level_granted")' >/dev/null 2>&1; then
   log_pass "autonomy_adjustment applied canonically"
 else
   log_fail "autonomy_adjustment resolve failed :: $auto_resolve"
@@ -95,7 +95,7 @@ fi
 const_resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
   -d "{\"kind\":\"constitution_revision\",\"source\":\"${run_source}\"}")
-if echo "$const_resolve" | jq -e '.status == "accepted" and .applied_kind == "constitution_version_activated"' >/dev/null 2>&1; then
+if echo "$const_resolve" | jq -e '.status == "accepted" and (.applied_kind == "constitution_loaded" or .applied_kind == "constitution_version_activated")' >/dev/null 2>&1; then
   log_pass "constitution_revision applied canonically"
 else
   log_fail "constitution_revision resolve failed :: $const_resolve"

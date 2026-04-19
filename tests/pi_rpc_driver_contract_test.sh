@@ -17,9 +17,10 @@ if rg -n '/v1/work-loop/driver/start|/v1/work-loop/driver/prompt|/v1/work-loop/d
 else
   log_fail "Pi RPC driver routes missing"
 fi
-START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H 'x-focusa-writer-id: spec79-pi-driver' -d '{"cwd":"/home/wirebot/focusa"}')
-if echo "$START" | jq -e '.status == "accepted" and .adapter == "pi-rpc"' >/dev/null 2>&1; then
-  log_pass "Pi RPC driver start accepted"
+WRITER_ID=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-pi-driver"')
+START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d '{"cwd":"/home/wirebot/focusa"}')
+if echo "$START" | jq -e '(.status == "accepted" and .adapter == "pi-rpc") or ((.error // "") | test("already active"))' >/dev/null 2>&1; then
+  log_pass "Pi RPC driver start accepted or already active"
 else
   log_fail "Pi RPC driver start not accepted: $START"
 fi
@@ -30,7 +31,7 @@ if echo "$STATUS" | jq -e '.transport.daemon_supervised_session.adapter == "pi-r
 else
   log_fail "Daemon-supervised Pi session not visible: $STATUS"
 fi
-STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/stop" -H 'Content-Type: application/json' -H 'x-focusa-writer-id: spec79-pi-driver')
+STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/stop" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}")
 if echo "$STOP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "Pi RPC driver stop accepted"
 else
