@@ -1608,6 +1608,112 @@ fn parse_endpoints(content: &str) -> Vec<(String, String)> {
     out
 }
 
+fn parse_import_targets(content: &str, language: &str) -> Vec<String> {
+    let mut out = BTreeSet::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        match language {
+            "rust" => {
+                if let Some(rest) = trimmed.strip_prefix("use ") {
+                    let target = rest
+                        .split(';')
+                        .next()
+                        .unwrap_or("")
+                        .trim()
+                        .trim_start_matches("crate::")
+                        .trim_start_matches("super::")
+                        .to_string();
+                    if !target.is_empty() {
+                        out.insert(target);
+                    }
+                }
+            }
+            "typescript" | "javascript" => {
+                if let Some(idx) = trimmed.find(" from ") {
+                    let after = &trimmed[idx + 6..];
+                    if let Some(start) = after.find('"').or_else(|| after.find('\'')) {
+                        let quote = after.as_bytes()[start] as char;
+                        let inner = &after[start + 1..];
+                        if let Some(end) = inner.find(quote) {
+                            let target = inner[..end].trim();
+                            if !target.is_empty() {
+                                out.insert(target.to_string());
+                            }
+                        }
+                    }
+                } else if trimmed.starts_with("import ") {
+                    if let Some(start) = trimmed.find('"').or_else(|| trimmed.find('\'')) {
+                        let quote = trimmed.as_bytes()[start] as char;
+                        let inner = &trimmed[start + 1..];
+                        if let Some(end) = inner.find(quote) {
+                            let target = inner[..end].trim();
+                            if !target.is_empty() {
+                                out.insert(target.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            "python" => {
+                if let Some(rest) = trimmed.strip_prefix("import ") {
+                    let target = rest.split_whitespace().next().unwrap_or("");
+                    if !target.is_empty() {
+                        out.insert(target.to_string());
+                    }
+                } else if let Some(rest) = trimmed.strip_prefix("from ") {
+                    let target = rest.split_whitespace().next().unwrap_or("");
+                    if !target.is_empty() {
+                        out.insert(target.to_string());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    out.into_iter().take(MAX_DISCOVERED_SYMBOLS).collect()
+}
+
+fn parse_call_targets(content: &str, language: &str) -> Vec<String> {
+    let mut out = BTreeSet::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("//") || trimmed.starts_with('#') {
+            continue;
+        }
+        for token in trimmed.split(|c: char| !c.is_alphanumeric() && c != '_' && c != '.') {
+            if token.is_empty() || !token.contains('(') {
+                continue;
+            }
+        }
+        let mut cursor = trimmed;
+        while let Some(idx) = cursor.find('(') {
+            let prefix = cursor[..idx].trim_end();
+            let candidate = prefix
+                .rsplit(|c: char| !c.is_alphanumeric() && c != '_' && c != '.')
+                .next()
+                .unwrap_or("")
+                .trim_matches('.');
+            if !candidate.is_empty()
+                && candidate
+                    .chars()
+                    .next()
+                    .map(|c| c.is_alphabetic() || c == '_')
+                    .unwrap_or(false)
+                && !matches!(candidate, "if" | "for" | "while" | "match" | "loop" | "return")
+            {
+                let normalized = if language == "python" {
+                    candidate.to_string()
+                } else {
+                    candidate.replace("::", ".")
+                };
+                out.insert(normalized);
+            }
+            cursor = &cursor[idx + 1..];
+        }
+    }
+    out.into_iter().take(MAX_DISCOVERED_SYMBOLS).collect()
+}
+
 fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let session_workspace = focusa
         .session
@@ -1763,6 +1869,8 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let mut module_ids = BTreeSet::new();
     let mut schema_ids = BTreeSet::new();
     let mut dependency_ids = BTreeSet::new();
+    let mut import_dependency_ids = BTreeSet::new();
+    let mut call_symbol_ids = BTreeSet::new();
     let mut files_scanned = 0usize;
 
     let mut discovered_paths = walk_workspace(&root);
@@ -2004,6 +2112,52 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
         }
 
         if let Some(content) = read_text(&path) {
+            for import_target in parse_import_targets(&content, language) {
+                let dep_id = stable_id("dependency", &format!("import:{}", import_target));
+                if import_dependency_ids.insert(dep_id.clone()) {
+                    objects.push(json!({
+                        "id": dep_id,
+                        "object_type": "dependency",
+                        "name": import_target,
+                        "dependency_kind": "import",
+                        "status": "candidate",
+                        "membership_class": "inferred",
+                        "provenance_class": "parser_derived",
+                        "fresh": true,
+                    }));
+                }
+                links.push(json!({
+                    "type": "imports",
+                    "source_id": file_id,
+                    "target_id": dep_id,
+                    "evidence": "source import scan",
+                    "status": "verified",
+                }));
+            }
+
+            for call_target in parse_call_targets(&content, language) {
+                let call_symbol_id = stable_id("symbol", &format!("call:{}", call_target));
+                if call_symbol_ids.insert(call_symbol_id.clone()) {
+                    objects.push(json!({
+                        "id": call_symbol_id,
+                        "object_type": "symbol",
+                        "symbol_name": call_target,
+                        "symbol_kind": "call_target",
+                        "status": "candidate",
+                        "membership_class": "inferred",
+                        "provenance_class": "parser_derived",
+                        "fresh": true,
+                    }));
+                }
+                links.push(json!({
+                    "type": "calls",
+                    "source_id": file_id,
+                    "target_id": call_symbol_id,
+                    "evidence": "source call scan",
+                    "status": "verified",
+                }));
+            }
+
             for (name, kind) in parse_symbols(&content, language) {
                 let symbol_id = stable_id("symbol", &format!("{}:{}", rel, name));
                 objects.push(json!({
@@ -3092,6 +3246,35 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
         "fresh": true,
     }));
 
+    if let Some(current_ask) = focusa.work_loop.decision_context.current_ask.as_ref() {
+        let current_ask_id = stable_id("current_ask", current_ask);
+        links.push(json!({
+            "type": "governed_by_identity",
+            "source_id": agent_identity_id,
+            "target_id": current_ask_id,
+            "evidence": "work_loop.decision_context.current_ask",
+            "status": "verified",
+        }));
+        links.push(json!({
+            "type": "governed_by_identity",
+            "source_id": role_profile_id,
+            "target_id": current_ask_id,
+            "evidence": "work_loop.authorship_mode + decision_context.current_ask",
+            "status": "verified",
+        }));
+    }
+
+    if let Some(scope_kind) = focusa.work_loop.decision_context.scope_kind.as_ref() {
+        let query_scope_id = stable_id("query_scope", scope_kind);
+        links.push(json!({
+            "type": "governed_by_identity",
+            "source_id": agent_identity_id,
+            "target_id": query_scope_id,
+            "evidence": "work_loop.decision_context.scope_kind",
+            "status": "verified",
+        }));
+    }
+
     WorkspaceProjection { objects, links }
 }
 
@@ -3232,6 +3415,221 @@ fn governance_projection(focusa: &FocusaState) -> WorkspaceProjection {
     WorkspaceProjection { objects, links }
 }
 
+fn reference_resolution_projection(focusa: &FocusaState) -> WorkspaceProjection {
+    let mut objects = Vec::new();
+    let mut links = Vec::new();
+    let mut object_ids = BTreeSet::new();
+    let mut canonical_by_label = BTreeMap::new();
+
+    for handle in focusa.reference_index.handles.iter().take(128) {
+        let normalized = handle.label.to_ascii_lowercase().trim().to_string();
+        if normalized.is_empty() {
+            continue;
+        }
+
+        let canonical_id = canonical_by_label
+            .entry(normalized.clone())
+            .or_insert_with(|| stable_id("canonical_entity", &normalized))
+            .clone();
+
+        if object_ids.insert(canonical_id.clone()) {
+            objects.push(json!({
+                "id": canonical_id,
+                "object_type": "canonical_entity",
+                "entity_kind": match handle.kind {
+                    HandleKind::Url => "url_entity",
+                    HandleKind::Json => "json_entity",
+                    HandleKind::Text => "text_entity",
+                    HandleKind::Diff => "diff_entity",
+                    HandleKind::Log => "log_entity",
+                    HandleKind::FileSnapshot => "file_entity",
+                    HandleKind::Other => "generic_entity",
+                },
+                "status": "verified",
+                "membership_class": "verified",
+                "provenance_class": "runtime_observed",
+                "fresh": true,
+            }));
+        }
+
+        let alias_id = stable_id("reference_alias", &handle.id.to_string());
+        if object_ids.insert(alias_id.clone()) {
+            objects.push(json!({
+            "id": alias_id,
+            "object_type": "reference_alias",
+            "alias_kind": "handle_label_alias",
+            "alias_text": handle.label,
+            "status": "verified",
+            "membership_class": "verified",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        }
+        links.push(json!({
+            "type": "derived_from",
+            "source_id": alias_id,
+            "target_id": canonical_id,
+            "evidence": "reference_index.handles",
+            "status": "verified",
+        }));
+
+        let candidate_id = stable_id("resolution_candidate", &handle.id.to_string());
+        if object_ids.insert(candidate_id.clone()) {
+            objects.push(json!({
+            "id": candidate_id,
+            "object_type": "resolution_candidate",
+            "candidate_kind": "handle_to_entity_candidate",
+            "status": "verified",
+            "membership_class": "verified",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        }
+        links.push(json!({
+            "type": "derived_from",
+            "source_id": candidate_id,
+            "target_id": alias_id,
+            "evidence": "reference_index.handles",
+            "status": "verified",
+        }));
+
+        let decision_id = stable_id("resolution_decision", &handle.id.to_string());
+        if object_ids.insert(decision_id.clone()) {
+            objects.push(json!({
+            "id": decision_id,
+            "object_type": "resolution_decision",
+            "decision_kind": "deterministic_handle_resolution",
+            "status": "verified",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        }
+        links.push(json!({
+            "type": "verifies",
+            "source_id": decision_id,
+            "target_id": candidate_id,
+            "evidence": "reference_index.handle_id_uniqueness",
+            "status": "verified",
+        }));
+    }
+
+    for proposal in focusa.ontology.proposals.iter().take(64) {
+        if proposal.proposal_kind.to_ascii_lowercase().contains("supersed")
+            || proposal.target_class.to_ascii_lowercase().contains("supersed")
+        {
+            let record_id = stable_id("supersession_record", &proposal.proposal_id.to_string());
+            if object_ids.insert(record_id.clone()) {
+                objects.push(json!({
+                    "id": record_id,
+                    "object_type": "supersession_record",
+                    "record_kind": "proposal_supersession",
+                    "status": proposal.status,
+                    "membership_class": "provisional",
+                    "provenance_class": "reducer_promoted",
+                    "fresh": true,
+                }));
+            }
+        }
+    }
+
+    WorkspaceProjection { objects, links }
+}
+
+fn projection_view_semantics_projection(focusa: &FocusaState) -> WorkspaceProjection {
+    let mut objects = Vec::new();
+    let mut links = Vec::new();
+
+    let current_ask = focusa
+        .work_loop
+        .decision_context
+        .current_ask
+        .clone()
+        .unwrap_or_else(|| "active_mission".to_string());
+    let scope_kind = focusa
+        .work_loop
+        .decision_context
+        .scope_kind
+        .clone()
+        .unwrap_or_else(|| "mission_carryover".to_string());
+    let carryover_policy = focusa
+        .work_loop
+        .decision_context
+        .carryover_policy
+        .clone()
+        .unwrap_or_else(|| "allow_if_relevant".to_string());
+
+    let projection_id = stable_id("projection", &format!("{}:{}", current_ask, scope_kind));
+    let view_profile_id = stable_id(
+        "view_profile",
+        focusa
+            .work_loop
+            .decision_context
+            .ask_kind
+            .as_deref()
+            .unwrap_or("pi_operator_view"),
+    );
+    let projection_rule_id = stable_id("projection_rule", &carryover_policy);
+    let projection_boundary_id = stable_id(
+        "projection_boundary",
+        &format!(
+            "{}:{}",
+            scope_kind,
+            focusa
+                .work_loop
+                .decision_context
+                .excluded_context_reason
+                .clone()
+                .unwrap_or_default()
+        ),
+    );
+
+    objects.push(json!({
+        "id": projection_id,
+        "object_type": "projection",
+        "projection_kind": "operator_ask_scoped",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+    objects.push(json!({
+        "id": view_profile_id,
+        "object_type": "view_profile",
+        "view_kind": focusa.work_loop.decision_context.ask_kind.clone().unwrap_or_else(|| "pi_operator_view".to_string()),
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+    objects.push(json!({
+        "id": projection_rule_id,
+        "object_type": "projection_rule",
+        "rule_kind": carryover_policy,
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+    objects.push(json!({
+        "id": projection_boundary_id,
+        "object_type": "projection_boundary",
+        "boundary_kind": scope_kind,
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+        "excluded_context_reason": focusa.work_loop.decision_context.excluded_context_reason,
+        "excluded_context_labels": focusa.work_loop.decision_context.excluded_context_labels,
+    }));
+
+    links.push(json!({"type":"configured_by","source_id":projection_id,"target_id":view_profile_id,"evidence":"work_loop.decision_context.ask_kind","status":"verified"}));
+    links.push(json!({"type":"configured_by","source_id":projection_id,"target_id":projection_rule_id,"evidence":"work_loop.decision_context.carryover_policy","status":"verified"}));
+    links.push(json!({"type":"bounded_by_authority","source_id":projection_id,"target_id":projection_boundary_id,"evidence":"work_loop.decision_context.scope_kind","status":"verified"}));
+
+    WorkspaceProjection { objects, links }
+}
+
 fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> WorkspaceProjection {
     let frame = selected_frame(focusa, frame_id);
     let mission = mission_projection(focusa, frame);
@@ -3240,6 +3638,8 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
     let visual = visual_projection(focusa, frame);
     let identity = identity_projection(focusa);
     let governance = governance_projection(focusa);
+    let reference_resolution = reference_resolution_projection(focusa);
+    let projection_view = projection_view_semantics_projection(focusa);
     WorkspaceProjection {
         objects: [
             mission.objects,
@@ -3248,6 +3648,8 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
             visual.objects,
             identity.objects,
             governance.objects,
+            reference_resolution.objects,
+            projection_view.objects,
         ]
         .concat(),
         links: [
@@ -3257,6 +3659,8 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
             visual.links,
             identity.links,
             governance.links,
+            reference_resolution.links,
+            projection_view.links,
         ]
         .concat(),
     }
