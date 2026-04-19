@@ -280,6 +280,7 @@ const SLICE_TYPES: &[&str] = &[
     "architecture",
 ];
 const MAX_DISCOVERED_PATHS: usize = 96;
+const MAX_DISCOVERY_SCAN_PATHS: usize = 4096;
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
 const MAX_DISCOVERED_ENDPOINTS: usize = 16;
 const WORKSPACE_FALLBACK_ROOT: &str = "/home/wirebot/focusa";
@@ -1337,7 +1338,7 @@ fn walk_workspace(root: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        if out.len() >= MAX_DISCOVERED_PATHS {
+        if out.len() >= MAX_DISCOVERY_SCAN_PATHS {
             break;
         }
         let Ok(entries) = fs::read_dir(&dir) else {
@@ -1359,7 +1360,7 @@ fn walk_workspace(root: &Path) -> Vec<PathBuf> {
                 stack.push(path);
             } else if path.is_file() {
                 out.push(path);
-                if out.len() >= MAX_DISCOVERED_PATHS {
+                if out.len() >= MAX_DISCOVERY_SCAN_PATHS {
                     break;
                 }
             }
@@ -1459,6 +1460,30 @@ fn classify_file_type(path: &Path) -> &'static str {
     } else {
         "source"
     }
+}
+
+fn file_projection_priority(root: &Path, path: &Path) -> (u8, String) {
+    let rel = path
+        .strip_prefix(root)
+        .ok()
+        .map(|p| p.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_else(|| path.to_string_lossy().to_ascii_lowercase());
+
+    let rank = if rel.contains("/src/") || rel.starts_with("src/") {
+        0
+    } else if rel.contains("/routes/") || rel.contains("endpoint") || rel.contains("api") {
+        1
+    } else if rel.contains("/tests/") || rel.starts_with("tests/") {
+        2
+    } else if rel.contains("migrations") || rel.ends_with(".sql") {
+        3
+    } else if rel.ends_with("cargo.toml") || rel.ends_with("package.json") {
+        4
+    } else {
+        5
+    };
+
+    (rank, rel)
 }
 
 fn parse_symbols(content: &str, language: &str) -> Vec<(String, String)> {
@@ -1739,7 +1764,10 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let mut schema_ids = BTreeSet::new();
     let mut files_scanned = 0usize;
 
-    for path in walk_workspace(&root) {
+    let mut discovered_paths = walk_workspace(&root);
+    discovered_paths.sort_by_key(|path| file_projection_priority(&root, path));
+
+    for path in discovered_paths {
         if files_scanned >= MAX_DISCOVERED_PATHS {
             break;
         }
@@ -2418,80 +2446,332 @@ fn canonical_ontology_projection(focusa: &FocusaState) -> WorkspaceProjection {
 fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> WorkspaceProjection {
     let mut objects = Vec::new();
     let mut links = Vec::new();
+    let mut object_ids = BTreeSet::new();
 
-    let has_visual_seed = focusa.reference_index.handles.iter().any(|h| {
-        let label = h.label.to_ascii_lowercase();
-        label.contains("screenshot")
-            || label.contains("mockup")
-            || label.contains("wireframe")
-            || label.contains("visual")
-            || matches!(h.kind, focusa_core::types::HandleKind::FileSnapshot)
-    });
+    let visual_handles: Vec<_> = focusa
+        .reference_index
+        .handles
+        .iter()
+        .filter(|h| {
+            let label = h.label.to_ascii_lowercase();
+            label.contains("screenshot")
+                || label.contains("mockup")
+                || label.contains("wireframe")
+                || label.contains("visual")
+                || label.contains("blueprint")
+                || label.contains("token_map")
+                || label.contains("spacing_map")
+                || label.contains("component_inventory")
+                || matches!(h.kind, HandleKind::FileSnapshot)
+        })
+        .take(64)
+        .collect();
 
-    if !has_visual_seed {
+    if visual_handles.is_empty() {
         return WorkspaceProjection { objects, links };
     }
 
-    let page_seed = frame
-        .map(|f| format!("{}:{}", f.id, f.title))
-        .unwrap_or_else(|| "visual:session".to_string());
-    let page_id = stable_id("page", &page_seed);
-    let region_id = stable_id("region", &format!("{page_seed}:primary"));
-    let component_id = stable_id("component", &format!("{page_seed}:root_component"));
-    let variant_id = stable_id("variant", &format!("{page_seed}:default_variant"));
-    let slot_id = stable_id("content_slot", &format!("{page_seed}:primary_content"));
-    let token_id = stable_id("token", &format!("{page_seed}:color_primary"));
-    let layout_id = stable_id("layout_rule", &format!("{page_seed}:default_layout"));
-    let interaction_id = stable_id("interaction", &format!("{page_seed}:primary_interaction"));
-    let ui_state_id = stable_id("ui_state", &format!("{page_seed}:default_state"));
-    let binding_id = stable_id("binding", &format!("{page_seed}:primary_binding"));
-    let validation_id = stable_id("validation_rule", &format!("{page_seed}:primary_validation"));
-
-    objects.push(json!({"id": page_id, "object_type": "page", "name": frame.map(|f| f.title.clone()).unwrap_or_else(|| "visual-page".to_string()), "page_kind": "workspace_projection", "primary_goal": frame.map(|f| f.goal.clone()).unwrap_or_else(|| "visual reasoning".to_string()), "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": region_id, "object_type": "region", "name": "primary-region", "region_kind": "primary", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": component_id, "object_type": "component", "name": "root-component", "component_kind": "container", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": variant_id, "object_type": "variant", "name": "default", "variant_kind": "default", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": slot_id, "object_type": "content_slot", "slot_kind": "primary_content", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": token_id, "object_type": "token", "token_kind": "color", "value": "primary", "status": "verified", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": layout_id, "object_type": "layout_rule", "rule_kind": "stack", "status": "verified", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": interaction_id, "object_type": "interaction", "interaction_kind": "primary_action", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": ui_state_id, "object_type": "ui_state", "state_kind": "default", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": binding_id, "object_type": "binding", "binding_kind": "state_binding", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": validation_id, "object_type": "validation_rule", "rule_kind": "required", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-
-    links.push(json!({"type":"contains","source_id":page_id,"target_id":region_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"contains","source_id":region_id,"target_id":component_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"variants_of","source_id":variant_id,"target_id":component_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"fills_slot","source_id":component_id,"target_id":slot_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"inherits_token","source_id":component_id,"target_id":token_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"aligns_with","source_id":region_id,"target_id":layout_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"binds_to","source_id":component_id,"target_id":binding_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"transitions_to","source_id":interaction_id,"target_id":ui_state_id,"evidence":"visual projection seed","status":"verified"}));
-    links.push(json!({"type":"validates","source_id":validation_id,"target_id":binding_id,"evidence":"visual projection seed","status":"verified"}));
-
-    for handle in focusa.reference_index.handles.iter().take(24) {
-        let label = handle.label.to_ascii_lowercase();
-        if !(label.contains("screenshot")
-            || label.contains("mockup")
-            || label.contains("wireframe")
-            || label.contains("visual")
-            || matches!(handle.kind, focusa_core::types::HandleKind::FileSnapshot))
-        {
-            continue;
+    let page_id = frame.map(|f| stable_id("page", &f.id.to_string()));
+    if let Some(frame_ref) = frame {
+        if let Some(ref id) = page_id {
+            object_ids.insert(id.clone());
+            objects.push(json!({
+                "id": id,
+                "object_type": "page",
+                "name": frame_ref.title,
+                "page_kind": "focus_frame",
+                "primary_goal": frame_ref.goal,
+                "status": "active",
+                "membership_class": "deterministic",
+                "provenance_class": "runtime_observed",
+                "fresh": true,
+            }));
         }
+    }
+
+    for handle in visual_handles {
+        let label = handle.label.to_ascii_lowercase();
+        let (artifact_kind, provenance_class) = if label.contains("screenshot") {
+            ("screenshot", "screenshot_derived")
+        } else if label.contains("mockup") {
+            ("mockup", "artifact_derived")
+        } else if label.contains("wireframe") {
+            ("wireframe", "artifact_derived")
+        } else if label.contains("blueprint") {
+            ("blueprint", "artifact_derived")
+        } else if label.contains("token_map") {
+            ("token_map", "artifact_derived")
+        } else if label.contains("spacing_map") {
+            ("spacing_map", "artifact_derived")
+        } else if label.contains("component_inventory") {
+            ("component_inventory", "artifact_derived")
+        } else {
+            ("implementation_artifact", "artifact_derived")
+        };
+
         let visual_artifact_id = stable_id("visual_artifact", &handle.id.to_string());
-        objects.push(json!({
-            "id": visual_artifact_id,
-            "object_type": "visual_artifact",
-            "artifact_kind": "visual_reference",
-            "status": "verified",
-            "handle": handle.id,
-            "membership_class": "verified",
-            "provenance_class": "tool_derived",
-            "fresh": true,
-        }));
-        links.push(json!({"type":"derived_from_reference","source_id":page_id,"target_id":visual_artifact_id,"evidence":"reference_index.handles","status":"verified"}));
-        links.push(json!({"type":"contains","source_id":region_id,"target_id":visual_artifact_id,"evidence":"reference_index.handles","status":"verified"}));
+        if object_ids.insert(visual_artifact_id.clone()) {
+            objects.push(json!({
+                "id": visual_artifact_id,
+                "object_type": "visual_artifact",
+                "artifact_kind": artifact_kind,
+                "status": if handle.pinned { "canonical" } else { "verified" },
+                "handle": handle.id,
+                "label": handle.label,
+                "membership_class": if handle.pinned { "pinned" } else { "verified" },
+                "provenance_class": provenance_class,
+                "fresh": true,
+            }));
+        }
+
+        if let Some(ref pid) = page_id {
+            links.push(json!({
+                "type": "derived_from_reference",
+                "source_id": pid,
+                "target_id": visual_artifact_id,
+                "evidence": "reference_index.handles",
+                "status": "verified"
+            }));
+        }
+
+        if label.contains("header")
+            || label.contains("hero")
+            || label.contains("sidebar")
+            || label.contains("footer")
+            || label.contains("modal")
+            || label.contains("section")
+        {
+            let region_kind = if label.contains("header") {
+                "header"
+            } else if label.contains("hero") {
+                "hero"
+            } else if label.contains("sidebar") {
+                "sidebar"
+            } else if label.contains("footer") {
+                "footer"
+            } else if label.contains("modal") {
+                "modal_body"
+            } else {
+                "form_section"
+            };
+            let region_id = stable_id("region", &format!("{}:{}", handle.id, region_kind));
+            if object_ids.insert(region_id.clone()) {
+                objects.push(json!({
+                    "id": region_id,
+                    "object_type": "region",
+                    "name": region_kind,
+                    "region_kind": region_kind,
+                    "status": "verified",
+                    "membership_class": "verified",
+                    "provenance_class": provenance_class,
+                    "fresh": true,
+                }));
+            }
+            links.push(json!({"type":"contains","source_id":visual_artifact_id,"target_id":region_id,"evidence":"reference_index.handles.label","status":"verified"}));
+            if let Some(ref pid) = page_id {
+                links.push(json!({"type":"contains","source_id":pid,"target_id":region_id,"evidence":"focus_stack.active_frame + visual handle","status":"verified"}));
+            }
+        }
+
+        if label.contains("component")
+            || label.contains("button")
+            || label.contains("card")
+            || label.contains("navbar")
+            || label.contains("form")
+            || label.contains("input")
+            || label.contains("table")
+            || label.contains("dialog")
+            || label.contains("accordion")
+        {
+            let component_kind = if label.contains("button") {
+                "button"
+            } else if label.contains("card") {
+                "card"
+            } else if label.contains("navbar") {
+                "navbar"
+            } else if label.contains("form") {
+                "form"
+            } else if label.contains("input") {
+                "input"
+            } else if label.contains("table") {
+                "table"
+            } else if label.contains("dialog") {
+                "dialog"
+            } else if label.contains("accordion") {
+                "accordion"
+            } else {
+                "component"
+            };
+            let component_id = stable_id("component", &format!("{}:{}", handle.id, component_kind));
+            if object_ids.insert(component_id.clone()) {
+                objects.push(json!({
+                    "id": component_id,
+                    "object_type": "component",
+                    "name": component_kind,
+                    "component_kind": component_kind,
+                    "status": "verified",
+                    "membership_class": "verified",
+                    "provenance_class": provenance_class,
+                    "fresh": true,
+                }));
+            }
+            links.push(json!({"type":"derived_from_reference","source_id":component_id,"target_id":visual_artifact_id,"evidence":"reference_index.handles.label","status":"verified"}));
+
+            if label.contains("variant")
+                || label.contains("primary")
+                || label.contains("secondary")
+                || label.contains("compact")
+                || label.contains("destructive")
+                || label.contains("mobile")
+            {
+                let variant_kind = if label.contains("primary") {
+                    "primary"
+                } else if label.contains("secondary") {
+                    "secondary"
+                } else if label.contains("compact") {
+                    "compact"
+                } else if label.contains("destructive") {
+                    "destructive"
+                } else if label.contains("mobile") {
+                    "mobile"
+                } else {
+                    "default"
+                };
+                let variant_id = stable_id("variant", &format!("{}:{}", component_id, variant_kind));
+                if object_ids.insert(variant_id.clone()) {
+                    objects.push(json!({
+                        "id": variant_id,
+                        "object_type": "variant",
+                        "name": format!("{} {}", variant_kind, component_kind),
+                        "variant_kind": variant_kind,
+                        "status": "verified",
+                        "membership_class": "verified",
+                        "provenance_class": provenance_class,
+                        "fresh": true,
+                    }));
+                }
+                links.push(json!({"type":"variants_of","source_id":variant_id,"target_id":component_id,"evidence":"reference_index.handles.label","status":"verified"}));
+            }
+
+            if label.contains("token") || label.contains("color") || label.contains("spacing") {
+                let token_kind = if label.contains("color") {
+                    "color"
+                } else if label.contains("spacing") {
+                    "spacing"
+                } else {
+                    "design_token"
+                };
+                let token_id = stable_id("token", &format!("{}:{}", handle.id, token_kind));
+                if object_ids.insert(token_id.clone()) {
+                    objects.push(json!({
+                        "id": token_id,
+                        "object_type": "token",
+                        "token_kind": token_kind,
+                        "value": label,
+                        "status": "verified",
+                        "membership_class": "verified",
+                        "provenance_class": provenance_class,
+                        "fresh": true,
+                    }));
+                }
+                links.push(json!({"type":"inherits_token","source_id":component_id,"target_id":token_id,"evidence":"reference_index.handles.label","status":"verified"}));
+            }
+
+            if label.contains("grid") || label.contains("layout") || label.contains("container") || label.contains("alignment") {
+                let layout_id = stable_id("layout_rule", &handle.id.to_string());
+                if object_ids.insert(layout_id.clone()) {
+                    objects.push(json!({
+                        "id": layout_id,
+                        "object_type": "layout_rule",
+                        "rule_kind": "layout_from_artifact",
+                        "status": "verified",
+                        "membership_class": "verified",
+                        "provenance_class": provenance_class,
+                        "fresh": true,
+                    }));
+                }
+                links.push(json!({"type":"aligns_with","source_id":component_id,"target_id":layout_id,"evidence":"reference_index.handles.label","status":"verified"}));
+                links.push(json!({"type":"derived_from_reference","source_id":layout_id,"target_id":visual_artifact_id,"evidence":"reference_index.handles.label","status":"verified"}));
+            }
+        }
+
+        if label.contains("binding") || label.contains("bound") {
+            let binding_id = stable_id("binding", &handle.id.to_string());
+            if object_ids.insert(binding_id.clone()) {
+                objects.push(json!({
+                    "id": binding_id,
+                    "object_type": "binding",
+                    "binding_kind": "artifact_binding",
+                    "status": "verified",
+                    "membership_class": "verified",
+                    "provenance_class": provenance_class,
+                    "fresh": true,
+                }));
+            }
+            links.push(json!({"type":"derived_from_reference","source_id":binding_id,"target_id":visual_artifact_id,"evidence":"reference_index.handles.label","status":"verified"}));
+
+            if label.contains("validation") || label.contains("required") || label.contains("min") {
+                let validation_id = stable_id("validation_rule", &handle.id.to_string());
+                if object_ids.insert(validation_id.clone()) {
+                    objects.push(json!({
+                        "id": validation_id,
+                        "object_type": "validation_rule",
+                        "rule_kind": "artifact_validation",
+                        "status": "verified",
+                        "membership_class": "verified",
+                        "provenance_class": provenance_class,
+                        "fresh": true,
+                    }));
+                }
+                links.push(json!({"type":"validates","source_id":validation_id,"target_id":binding_id,"evidence":"reference_index.handles.label","status":"verified"}));
+            }
+        }
+
+        if label.contains("interaction")
+            || label.contains("click")
+            || label.contains("submit")
+            || label.contains("open")
+            || label.contains("navigate")
+        {
+            let interaction_id = stable_id("interaction", &handle.id.to_string());
+            if object_ids.insert(interaction_id.clone()) {
+                objects.push(json!({
+                    "id": interaction_id,
+                    "object_type": "interaction",
+                    "interaction_kind": "artifact_interaction",
+                    "status": "verified",
+                    "membership_class": "verified",
+                    "provenance_class": provenance_class,
+                    "fresh": true,
+                }));
+            }
+            links.push(json!({"type":"derived_from_reference","source_id":interaction_id,"target_id":visual_artifact_id,"evidence":"reference_index.handles.label","status":"verified"}));
+
+            let state_kind = if label.contains("loading") {
+                "loading"
+            } else if label.contains("success") {
+                "success"
+            } else if label.contains("error") {
+                "error"
+            } else if label.contains("disabled") {
+                "disabled"
+            } else {
+                "default"
+            };
+            let state_id = stable_id("ui_state", &format!("{}:{}", handle.id, state_kind));
+            if object_ids.insert(state_id.clone()) {
+                objects.push(json!({
+                    "id": state_id,
+                    "object_type": "ui_state",
+                    "state_kind": state_kind,
+                    "status": "verified",
+                    "membership_class": "verified",
+                    "provenance_class": provenance_class,
+                    "fresh": true,
+                }));
+            }
+            links.push(json!({"type":"transitions_to","source_id":interaction_id,"target_id":state_id,"evidence":"reference_index.handles.label","status":"verified"}));
+        }
     }
 
     WorkspaceProjection { objects, links }
@@ -2501,11 +2781,16 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let mut objects = Vec::new();
     let mut links = Vec::new();
 
-    let agent_identity_id = stable_id("agent_identity", "focusa_daemon_agent");
+    let identity_name = focusa
+        .session
+        .as_ref()
+        .and_then(|s| s.adapter_id.clone())
+        .unwrap_or_else(|| "focusa-daemon".to_string());
+    let agent_identity_id = stable_id("agent_identity", &identity_name);
     objects.push(json!({
         "id": agent_identity_id,
         "object_type": "agent_identity",
-        "identity_name": "focusa-daemon",
+        "identity_name": identity_name,
         "identity_kind": "runtime_agent",
         "status": "active",
         "membership_class": "deterministic",
@@ -2519,51 +2804,150 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
         .worker_session_id
         .clone()
         .or_else(|| focusa.session.as_ref().map(|s| s.session_id.to_string()))
-        .unwrap_or_else(|| "session:unbound".to_string());
+        .unwrap_or_else(|| focusa.work_loop.run.project_run_id.to_string());
     let actor_instance_id = stable_id("actor_instance", &actor_seed);
     objects.push(json!({
         "id": actor_instance_id,
         "object_type": "actor_instance",
-        "instance_kind": "daemon_runtime_instance",
+        "instance_kind": if focusa.work_loop.enabled { "work_loop_runtime" } else { "session_runtime" },
+        "status": if focusa.work_loop.enabled { "active" } else { "stale" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+    links.push(json!({"type":"instantiates","source_id":actor_instance_id,"target_id":agent_identity_id,"evidence":"work_loop.run.worker_session_id|session.session_id","status":"verified"}));
+
+    let role_kind = match focusa.work_loop.authorship_mode {
+        focusa_core::types::AuthorshipMode::Delegated => "executor",
+        focusa_core::types::AuthorshipMode::OperatorOnly => "operator_assistant",
+    };
+    let role_profile_id = stable_id("role_profile", role_kind);
+    objects.push(json!({
+        "id": role_profile_id,
+        "object_type": "role_profile",
+        "role_kind": role_kind,
         "status": "active",
         "membership_class": "deterministic",
         "provenance_class": "runtime_observed",
         "fresh": true,
     }));
+    links.push(json!({"type":"serves_role","source_id":actor_instance_id,"target_id":role_profile_id,"evidence":"work_loop.authorship_mode","status":"verified"}));
 
-    let role_profile_id = stable_id("role_profile", "daemon.work_loop.secondary_cognition");
-    let capability_profile_id = stable_id("capability_profile", "daemon_capabilities");
-    let permission_profile_id = stable_id("permission_profile", "daemon_permissions");
-    let continuity_id = stable_id("session_continuity", &actor_seed);
-    let boundary_id = stable_id("handoff_boundary", "operator_override_boundary");
-    let identity_state_id = stable_id(
-        "identity_state",
-        if focusa.work_loop.pause_flags.operator_override_active {
-            "awaiting_operator"
-        } else {
-            "trusted_for_scope"
-        },
-    );
+    if let Some(worker) = focusa.work_loop.active_worker.as_ref() {
+        let capability_profile_id = stable_id("capability_profile", &worker.worker_id);
+        objects.push(json!({
+            "id": capability_profile_id,
+            "object_type": "capability_profile",
+            "profile_kind": worker.context_window_class.clone().unwrap_or_else(|| "runtime_capabilities".to_string()),
+            "status": "active",
+            "membership_class": "verified",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+            "tool_use_supported": worker.tool_use_supported,
+            "edit_reliable": worker.edit_reliable,
+            "structured_output_reliable": worker.structured_output_reliable,
+            "code_generation_strong": worker.code_generation_strong,
+            "fallback_available": worker.fallback_available,
+        }));
+        links.push(json!({"type":"has_capability_profile","source_id":actor_instance_id,"target_id":capability_profile_id,"evidence":"work_loop.active_worker","status":"verified"}));
+    }
 
-    objects.push(json!({"id": role_profile_id, "object_type": "role_profile", "role_kind": "daemon_supervisor", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": capability_profile_id, "object_type": "capability_profile", "profile_kind": "runtime_capabilities", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": permission_profile_id, "object_type": "permission_profile", "profile_kind": "runtime_permissions", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": continuity_id, "object_type": "session_continuity", "continuity_kind": "session_bound", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": boundary_id, "object_type": "handoff_boundary", "boundary_kind": "operator_approval_boundary", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
-    objects.push(json!({"id": identity_state_id, "object_type": "identity_state", "state_kind": if focusa.work_loop.pause_flags.operator_override_active {"awaiting_operator"} else {"trusted_for_scope"}, "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
+    let permission_profile_id = stable_id("permission_profile", &format!(
+        "{}:{}:{}",
+        focusa.work_loop.policy.allow_destructive_actions,
+        focusa.work_loop.policy.require_operator_for_governance,
+        focusa.work_loop.policy.require_operator_for_scope_change
+    ));
+    objects.push(json!({
+        "id": permission_profile_id,
+        "object_type": "permission_profile",
+        "profile_kind": "work_loop_policy_permissions",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+        "allow_destructive_actions": focusa.work_loop.policy.allow_destructive_actions,
+        "require_operator_for_governance": focusa.work_loop.policy.require_operator_for_governance,
+        "require_operator_for_scope_change": focusa.work_loop.policy.require_operator_for_scope_change,
+        "require_verification_before_persist": focusa.work_loop.policy.require_verification_before_persist,
+    }));
+    links.push(json!({"type":"has_permission_profile","source_id":actor_instance_id,"target_id":permission_profile_id,"evidence":"work_loop.policy","status":"verified"}));
 
     if let Some(task) = focusa.work_loop.current_task.as_ref() {
         let responsibility_id = stable_id("responsibility", &task.work_item_id);
-        objects.push(json!({"id": responsibility_id, "object_type": "responsibility", "responsibility_kind": "active_work_item", "status": "active", "membership_class": "deterministic", "provenance_class": "runtime_observed", "fresh": true}));
+        objects.push(json!({
+            "id": responsibility_id,
+            "object_type": "responsibility",
+            "responsibility_kind": format!("{:?}", task.task_class).to_ascii_lowercase(),
+            "status": "active",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+            "title": task.title,
+        }));
         links.push(json!({"type":"owns_responsibility","source_id":actor_instance_id,"target_id":responsibility_id,"evidence":"work_loop.current_task","status":"verified"}));
     }
 
-    links.push(json!({"type":"instantiates","source_id":actor_instance_id,"target_id":agent_identity_id,"evidence":"runtime session binding","status":"verified"}));
-    links.push(json!({"type":"serves_role","source_id":actor_instance_id,"target_id":role_profile_id,"evidence":"daemon role policy","status":"verified"}));
-    links.push(json!({"type":"has_capability_profile","source_id":actor_instance_id,"target_id":capability_profile_id,"evidence":"worker capability profile","status":"verified"}));
-    links.push(json!({"type":"has_permission_profile","source_id":actor_instance_id,"target_id":permission_profile_id,"evidence":"permission context","status":"verified"}));
-    links.push(json!({"type":"bounded_by_handoff","source_id":actor_instance_id,"target_id":boundary_id,"evidence":"pause flags and operator override policy","status":"verified"}));
-    links.push(json!({"type":"persists_via","source_id":actor_instance_id,"target_id":continuity_id,"evidence":"work_loop.run.worker_session_id","status":"verified"}));
+    if focusa.work_loop.pause_flags.operator_override_active
+        || focusa.work_loop.pause_flags.governance_decision_pending
+        || focusa.work_loop.pause_flags.destructive_confirmation_required
+        || focusa.work_loop.policy.require_operator_for_scope_change
+        || focusa.work_loop.policy.require_operator_for_governance
+    {
+        let boundary_id = stable_id("handoff_boundary", &format!(
+            "{}:{}:{}",
+            focusa.work_loop.pause_flags.operator_override_active,
+            focusa.work_loop.pause_flags.governance_decision_pending,
+            focusa.work_loop.pause_flags.destructive_confirmation_required
+        ));
+        objects.push(json!({
+            "id": boundary_id,
+            "object_type": "handoff_boundary",
+            "boundary_kind": if focusa.work_loop.pause_flags.operator_override_active {"operator_override_boundary"} else if focusa.work_loop.pause_flags.governance_decision_pending {"governance_boundary"} else if focusa.work_loop.pause_flags.destructive_confirmation_required {"destructive_confirmation_boundary"} else {"operator_policy_boundary"},
+            "status": "active",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+        links.push(json!({"type":"bounded_by_handoff","source_id":actor_instance_id,"target_id":boundary_id,"evidence":"work_loop.pause_flags|work_loop.policy","status":"verified"}));
+    }
+
+    if focusa.work_loop.run.worker_session_id.is_some() || focusa.session.is_some() {
+        let continuity_id = stable_id("session_continuity", &actor_seed);
+        objects.push(json!({
+            "id": continuity_id,
+            "object_type": "session_continuity",
+            "continuity_kind": "session_bound",
+            "status": "active",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+            "last_checkpoint_id": focusa.work_loop.run.last_checkpoint_id,
+        }));
+        links.push(json!({"type":"persists_via","source_id":actor_instance_id,"target_id":continuity_id,"evidence":"work_loop.run|session","status":"verified"}));
+    }
+
+    let identity_state_kind = if focusa.work_loop.pause_flags.operator_override_active {
+        "awaiting_operator"
+    } else if focusa.work_loop.pause_flags.governance_decision_pending
+        || focusa.work_loop.pause_flags.destructive_confirmation_required
+    {
+        "handoff_required"
+    } else if focusa.work_loop.enabled {
+        "trusted_for_scope"
+    } else {
+        "constrained_by_runtime"
+    };
+    let identity_state_id = stable_id("identity_state", identity_state_kind);
+    objects.push(json!({
+        "id": identity_state_id,
+        "object_type": "identity_state",
+        "state_kind": identity_state_kind,
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
 
     WorkspaceProjection { objects, links }
 }
@@ -2571,6 +2955,37 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
 fn governance_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let mut objects = Vec::new();
     let mut links = Vec::new();
+    let mut governance_by_proposal = BTreeMap::new();
+
+    for verification in focusa.ontology.verifications.iter().take(128) {
+        let Some(proposal_id) = verification.proposal_id else {
+            continue;
+        };
+        let outcome = verification.outcome.to_ascii_lowercase();
+        if !(outcome.contains("approved")
+            || outcome.contains("accept")
+            || outcome.contains("verified")
+            || outcome.contains("pass")
+            || outcome.contains("success"))
+        {
+            continue;
+        }
+
+        let decision_id = stable_id("governance_decision", &proposal_id.to_string());
+        governance_by_proposal.insert(proposal_id.to_string(), decision_id.clone());
+        objects.push(json!({
+            "id": decision_id,
+            "object_type": "governance_decision",
+            "decision_kind": verification.verification,
+            "status": "verified",
+            "membership_class": "verified",
+            "provenance_class": "verification_confirmed",
+            "fresh": true,
+            "proposal_id": proposal_id,
+            "outcome": verification.outcome,
+            "timestamp": verification.timestamp,
+        }));
+    }
 
     for proposal in focusa.ontology.proposals.iter().take(128) {
         let target = proposal.target_class.to_ascii_lowercase();
@@ -2584,6 +2999,21 @@ fn governance_projection(focusa: &FocusaState) -> WorkspaceProjection {
         .contains(&target.as_str())
         {
             target
+        } else if let Some(object_type) = proposal.object_type.as_ref() {
+            let lowered = object_type.to_ascii_lowercase();
+            if [
+                "ontology_version",
+                "compatibility_profile",
+                "migration_plan",
+                "deprecation_record",
+                "governance_decision",
+            ]
+            .contains(&lowered.as_str())
+            {
+                lowered
+            } else {
+                continue;
+            }
         } else {
             continue;
         };
@@ -2592,7 +3022,6 @@ fn governance_projection(focusa: &FocusaState) -> WorkspaceProjection {
             .object_id
             .clone()
             .unwrap_or_else(|| stable_id(&object_type, &proposal.proposal_id.to_string()));
-
         let mut obj = json!({
             "id": object_id,
             "object_type": object_type,
@@ -2600,61 +3029,61 @@ fn governance_projection(focusa: &FocusaState) -> WorkspaceProjection {
             "membership_class": "provisional",
             "provenance_class": "reducer_promoted",
             "fresh": true,
+            "proposal_id": proposal.proposal_id,
+            "proposal_kind": proposal.proposal_kind,
+            "source": proposal.source,
+            "updated_at": proposal.updated_at,
         });
 
         if let Some(map) = obj.as_object_mut() {
-            map.insert(
-                "proposal_id".to_string(),
-                serde_json::Value::String(proposal.proposal_id.to_string()),
-            );
             match object_type.as_str() {
                 "ontology_version" => {
-                    map.insert(
-                        "version_kind".to_string(),
-                        serde_json::Value::String("proposed_version".to_string()),
-                    );
+                    map.insert("version_kind".to_string(), json!("proposal_version"));
                 }
                 "compatibility_profile" => {
-                    map.insert(
-                        "profile_kind".to_string(),
-                        serde_json::Value::String("proposal_profile".to_string()),
-                    );
+                    map.insert("profile_kind".to_string(), json!("proposal_compatibility"));
                 }
                 "migration_plan" => {
-                    map.insert(
-                        "plan_kind".to_string(),
-                        serde_json::Value::String("proposal_plan".to_string()),
-                    );
+                    map.insert("plan_kind".to_string(), json!("proposal_migration"));
                 }
                 "deprecation_record" => {
-                    map.insert(
-                        "record_kind".to_string(),
-                        serde_json::Value::String("proposal_record".to_string()),
-                    );
+                    map.insert("record_kind".to_string(), json!("proposal_deprecation"));
                 }
                 "governance_decision" => {
-                    map.insert(
-                        "decision_kind".to_string(),
-                        serde_json::Value::String("proposal_decision".to_string()),
-                    );
+                    map.insert("decision_kind".to_string(), json!("proposal_decision"));
                 }
                 _ => {}
             }
         }
 
-        objects.push(obj);
-    }
-
-    for object in &objects {
-        if object.get("object_type").and_then(Value::as_str) == Some("migration_plan") {
+        if let (Some(source_id), Some(target_id)) = (proposal.source_id.as_ref(), proposal.target_id.as_ref()) {
+            let link_type = match object_type.as_str() {
+                "compatibility_profile" => "compatible_with",
+                "migration_plan" => "migrated_by",
+                "deprecation_record" => "deprecated_by",
+                "ontology_version" => "versioned_as",
+                _ => "derived_from",
+            };
             links.push(json!({
-                "type": "approved_by_governance",
-                "source_id": object.get("id").cloned().unwrap_or_else(|| json!("unknown")),
-                "target_id": stable_id("governance_decision", "default_governance_gate"),
-                "evidence": "ontology proposal governance projection",
-                "status": "verified",
+                "type": link_type,
+                "source_id": source_id,
+                "target_id": target_id,
+                "evidence": "ontology.proposals.source_id/target_id",
+                "status": "verified"
             }));
         }
+
+        if let Some(decision_id) = governance_by_proposal.get(&proposal.proposal_id.to_string()) {
+            links.push(json!({
+                "type": "approved_by_governance",
+                "source_id": object_id,
+                "target_id": decision_id,
+                "evidence": "ontology.verifications + ontology.proposals",
+                "status": "verified"
+            }));
+        }
+
+        objects.push(obj);
     }
 
     WorkspaceProjection { objects, links }
