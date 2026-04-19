@@ -228,6 +228,12 @@ const ACTION_TYPES: &[&str] = &[
     "derive_slots",
     "infer_tokens",
     "infer_spacing",
+    "map_component_tree",
+    "attach_bindings",
+    "attach_validation",
+    "wire_interaction",
+    "compare_to_reference",
+    "critique_ui",
     "infer_interaction_and_state",
     "derive_implementation_semantics",
     "derive_component_tree",
@@ -359,7 +365,7 @@ fn object_required_properties(object_type: &str) -> &'static [&'static str] {
         ],
         "schema" => &["id", "schema_name", "storage_kind"],
         "migration" => &["id", "path", "schema_targets"],
-        "dependency" => &["id", "name", "version", "dependency_kind"],
+        "dependency" => &["id", "name", "version", "dependency_kind", "status"],
         "test" => &["id", "path", "test_kind"],
         "environment" => &["id", "name", "environment_kind"],
         "capability" => &["id", "capability_kind", "status"],
@@ -424,8 +430,16 @@ fn object_required_properties(object_type: &str) -> &'static [&'static str] {
         "migration_plan" => &["id", "plan_kind", "status"],
         "deprecation_record" => &["id", "record_kind", "status"],
         "governance_decision" => &["id", "decision_kind", "status"],
+        "agent_identity" => &["id", "identity_name", "identity_kind", "status"],
+        "actor_instance" => &["id", "instance_kind", "status"],
         "actor" => &["id", "actor_kind", "status"],
         "role_profile" => &["id", "role_kind", "status"],
+        "capability_profile" => &["id", "profile_kind", "status"],
+        "permission_profile" => &["id", "profile_kind", "status"],
+        "responsibility" => &["id", "responsibility_kind", "status"],
+        "handoff_boundary" => &["id", "boundary_kind", "status"],
+        "session_continuity" => &["id", "continuity_kind", "status"],
+        "identity_state" => &["id", "state_kind", "status"],
         "ontology_domain" => &["id", "domain_kind", "status"],
         "shared_layer" => &["id", "layer_kind", "status"],
         _ => &["id", "status"],
@@ -475,6 +489,12 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
         "derive_slots" => &["content_slot", "component", "region", "visual_artifact"],
         "infer_tokens" => &["token", "component", "region", "visual_artifact"],
         "infer_spacing" => &["layout_rule", "token", "region", "component"],
+        "map_component_tree" => &["page", "region", "component", "variant"],
+        "attach_bindings" => &["binding", "component", "ui_state", "validation_rule"],
+        "attach_validation" => &["validation_rule", "binding", "component", "ui_state"],
+        "wire_interaction" => &["interaction", "ui_state", "component", "page"],
+        "compare_to_reference" => &["visual_artifact", "verification", "component", "page"],
+        "critique_ui" => &["verification", "component", "layout_rule", "ui_state"],
         "infer_interaction_and_state" => &["interaction", "ui_state", "binding", "validation_rule"],
         "derive_implementation_semantics" => &["component", "binding", "validation_rule", "page"],
         "derive_component_tree" => &["page", "region", "component", "content_slot"],
@@ -553,6 +573,33 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
             "ontology_domain",
             "shared_layer",
             "ontology_version",
+        ],
+        "establish_identity" => &["agent_identity", "actor_instance", "identity_state"],
+        "load_role_profile" => &["role_profile", "agent_identity", "actor_instance"],
+        "verify_capability_profile" => &[
+            "capability_profile",
+            "actor_instance",
+            "capability",
+            "tool_surface",
+        ],
+        "verify_permission_profile" => &[
+            "permission_profile",
+            "actor_instance",
+            "permission",
+            "authority_boundary",
+        ],
+        "assign_responsibility" => &["responsibility", "task", "goal", "agent_identity"],
+        "determine_handoff_boundary" => &[
+            "handoff_boundary",
+            "agent_identity",
+            "actor_instance",
+            "responsibility",
+        ],
+        "restore_identity_continuity" => &[
+            "session_continuity",
+            "identity_state",
+            "agent_identity",
+            "actor_instance",
         ],
         _ => OBJECT_TYPES,
     }
@@ -1091,6 +1138,74 @@ fn action_contract(action_type: &str) -> Value {
                 {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"},
                 {"surface":"http","method":"GET","path":"/v1/events/recent","command":"events.recent"},
                 {"surface":"http","method":"GET","path":"/v1/work-loop/status","command":"work-loop.status"}
+            ]),
+        ),
+        "map_component_tree"
+        | "attach_bindings"
+        | "attach_validation"
+        | "wire_interaction"
+        | "compare_to_reference"
+        | "critique_ui"
+        | "detect_affordances"
+        | "verify_permissions"
+        | "verify_preconditions"
+        | "evaluate_dependencies"
+        | "estimate_cost"
+        | "estimate_latency"
+        | "estimate_reliability"
+        | "estimate_reversibility"
+        | "choose_execution_path"
+        | "escalate_authority"
+        | "mark_unavailable"
+        | "establish_identity"
+        | "load_role_profile"
+        | "verify_capability_profile"
+        | "verify_permission_profile"
+        | "assign_responsibility"
+        | "determine_handoff_boundary"
+        | "restore_identity_continuity" => (
+            json!({
+                "type":"object",
+                "required":["action_ref"],
+                "properties":{
+                    "action_ref":{"type":"string"},
+                    "target_ref":{"type":"string"},
+                    "scope":{"type":"string"},
+                    "reason":{"type":"string"}
+                }
+            }),
+            json!({
+                "required":["result_status","affected_object_refs","verification_result_or_next_step"]
+            }),
+            json!([
+                "typed ontology action intent projection",
+                "bounded target set evaluation",
+                "trace-visible action intent surface"
+            ]),
+            json!([
+                "validation_failure",
+                "missing_target",
+                "insufficient_context",
+                "verification_failure"
+            ]),
+            json!("idempotent per action_ref + target_ref tuple"),
+            json!({"available":true,"mechanism":"supersede via newer reducer-visible proposal"}),
+            json!([
+                "tests/ontology_world_contract_test.sh",
+                "tests/ontology_event_contract_test.sh"
+            ]),
+            json!([
+                "ontology_object_upsert_proposed",
+                "ontology_link_upsert_proposed",
+                "ontology_status_change_proposed"
+            ]),
+            json!({"source":"/v1/ontology/contracts","job_timeout_ms_field":null}),
+            json!({"policy":"retry when verification evidence is insufficient","max_attempts":2}),
+            json!({"behavior":"emit proposal-only action metadata; canonical mutation remains reducer-gated"}),
+            json!([
+                {"surface":"http","method":"GET","path":"/v1/ontology/contracts","command":"ontology.contracts"},
+                {"surface":"http","method":"GET","path":"/v1/ontology/world","command":"ontology.world"},
+                {"surface":"http","method":"GET","path":"/v1/events/recent","command":"events.recent"}
             ]),
         ),
         _ => (
