@@ -276,6 +276,7 @@ const SLICE_TYPES: &[&str] = &[
 const MAX_DISCOVERED_PATHS: usize = 96;
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
 const MAX_DISCOVERED_ENDPOINTS: usize = 16;
+const WORKSPACE_FALLBACK_ROOT: &str = "/home/wirebot/focusa";
 
 #[derive(Deserialize)]
 struct OntologyWorldQuery {
@@ -1480,7 +1481,7 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let root = session_workspace
         .map(PathBuf::from)
         .or_else(|| {
-            let fallback = PathBuf::from(PROJECT_ROOT);
+            let fallback = PathBuf::from(WORKSPACE_FALLBACK_ROOT);
             if fallback.exists() && fallback.is_dir() {
                 Some(fallback)
             } else {
