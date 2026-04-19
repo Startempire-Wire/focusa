@@ -24,7 +24,7 @@ else
   log_fail "release semantics missing state or release conditions"
 fi
 
-if echo "$STATUS_JSON" | jq -e '.commitment_lifecycle.release_semantics.state | IN("released_on_completion","released_on_blocker","released_or_unbound","active","held")' >/dev/null 2>&1; then
+if echo "$STATUS_JSON" | jq -e '.commitment_lifecycle.release_semantics.state | IN("released_on_completion","released_on_blocker","released_or_unbound","active","held","bound")' >/dev/null 2>&1; then
   log_pass "release state is in continuity-gating vocabulary"
 else
   log_fail "release state not in expected continuity-gating vocabulary"

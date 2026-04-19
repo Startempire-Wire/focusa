@@ -18,6 +18,7 @@ TESTS=(
   tests/ontology_visual_implementation_handoff_contract_test.sh
   tests/ontology_route_metadata_contract_test.sh
   tests/ontology_affordance_schema_contract_test.sh
+  tests/work_loop_affordance_consumer_path_test.sh
   tests/work_loop_query_scope_boundary_contract_test.sh
   tests/scope_failure_taxonomy_events_contract_test.sh
   tests/work_loop_governing_priors_consumer_path_test.sh
