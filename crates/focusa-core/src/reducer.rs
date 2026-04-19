@@ -1319,6 +1319,35 @@ pub fn reduce_with_meta(
             } else {
                 state.ontology.proposals.push(record);
             }
+            if let Some(object) = state
+                .ontology
+                .objects
+                .iter_mut()
+                .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(subject.as_str()))
+            {
+                let mut memberships = object
+                    .get("working_set_memberships")
+                    .and_then(|v| v.as_array())
+                    .cloned()
+                    .unwrap_or_default();
+                if operation.eq_ignore_ascii_case("add") {
+                    if !memberships
+                        .iter()
+                        .any(|v| v.as_str() == Some(source.as_str()))
+                    {
+                        memberships.push(serde_json::Value::String(source.clone()));
+                    }
+                } else {
+                    memberships.retain(|v| v.as_str() != Some(source.as_str()));
+                }
+                object["working_set_memberships"] = serde_json::Value::Array(memberships);
+                object["membership_class"] = if operation.eq_ignore_ascii_case("add") {
+                    serde_json::Value::String("deterministic".to_string())
+                } else {
+                    serde_json::Value::String("provisional".to_string())
+                };
+                object["status"] = serde_json::Value::String("candidate".to_string());
+            }
             state.ontology.delta_log.push(OntologyDeltaRecord {
                 delta_kind: "ontology_working_set_membership_proposed".to_string(),
                 payload: serde_json::json!({
@@ -1405,6 +1434,38 @@ pub fn reduce_with_meta(
                             }
                         }
                     }
+                    "status_change" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("active".to_string());
+                            object["provenance_class"] =
+                                serde_json::Value::String("reducer_promoted".to_string());
+                        }
+                    }
+                    "working_set_membership" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("active".to_string());
+                            object["membership_class"] =
+                                serde_json::Value::String("deterministic".to_string());
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -1465,6 +1526,36 @@ pub fn reduce_with_meta(
                         }) {
                             link["status"] = serde_json::Value::String("rejected".to_string());
                             link["rejection_reason"] = serde_json::Value::String(reason.clone());
+                        }
+                    }
+                    "status_change" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("rejected".to_string());
+                            object["rejection_reason"] = serde_json::Value::String(reason.clone());
+                        }
+                    }
+                    "working_set_membership" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("rejected".to_string());
+                            object["rejection_reason"] = serde_json::Value::String(reason.clone());
                         }
                     }
                     _ => {}
@@ -1542,6 +1633,21 @@ pub fn reduce_with_meta(
                             link["verification"] = serde_json::Value::String(verification.clone());
                         }
                     }
+                    "working_set_membership" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String(verified_status.to_string());
+                            object["verification"] = serde_json::Value::String(verification.clone());
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -1566,6 +1672,29 @@ pub fn reduce_with_meta(
                     reason: reason.clone(),
                     timestamp: Some(now),
                 });
+            let context_set_id = format!("relevant_context_set:{}:{}", scope, reason);
+            if let Some(existing) = state
+                .ontology
+                .objects
+                .iter_mut()
+                .find(|o| o.get("id").and_then(|v| v.as_str()) == Some(context_set_id.as_str()))
+            {
+                existing["status"] = serde_json::Value::String("active".to_string());
+                existing["scope_kind"] = serde_json::Value::String(scope.clone());
+                existing["reason"] = serde_json::Value::String(reason.clone());
+                existing["provenance_class"] =
+                    serde_json::Value::String("reducer_promoted".to_string());
+            } else {
+                state.ontology.objects.push(serde_json::json!({
+                    "id": context_set_id,
+                    "object_type": "relevant_context_set",
+                    "selection_kind": scope.clone(),
+                    "reason": reason.clone(),
+                    "status": "active",
+                    "membership_class": "deterministic",
+                    "provenance_class": "reducer_promoted",
+                }));
+            }
             state.ontology.delta_log.push(OntologyDeltaRecord {
                 delta_kind: "ontology_working_set_refreshed".to_string(),
                 payload: serde_json::json!({

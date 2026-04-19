@@ -309,6 +309,47 @@ fn normalize_slice_type(slice_type: &str) -> &str {
     }
 }
 
+fn infer_slice_type_from_operator_context<'a>(focusa: &'a FocusaState, requested: &'a str) -> &'a str {
+    let normalized = normalize_slice_type(requested);
+    if normalized != "active_mission" {
+        return normalized;
+    }
+
+    let ask_kind = focusa
+        .work_loop
+        .decision_context
+        .ask_kind
+        .as_deref()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let current_ask = focusa
+        .work_loop
+        .decision_context
+        .current_ask
+        .as_deref()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    if ask_kind.contains("debug")
+        || current_ask.contains("debug")
+        || current_ask.contains("error")
+        || current_ask.contains("fail")
+    {
+        "debugging"
+    } else if ask_kind.contains("refactor") || current_ask.contains("refactor") {
+        "refactor"
+    } else if ask_kind.contains("regression")
+        || current_ask.contains("regression")
+        || current_ask.contains("verify")
+    {
+        "regression"
+    } else if ask_kind.contains("architect") || current_ask.contains("architecture") {
+        "architecture"
+    } else {
+        "active_mission"
+    }
+}
+
 fn slice_view_profile(slice_type: &str) -> &'static str {
     match normalize_slice_type(slice_type) {
         "debugging" => "pi_debugging_view",
@@ -3530,6 +3571,24 @@ fn reference_resolution_projection(focusa: &FocusaState) -> WorkspaceProjection 
                     "fresh": true,
                 }));
             }
+            if let (Some(source_id), Some(target_id)) =
+                (proposal.source_id.as_ref(), proposal.target_id.as_ref())
+            {
+                links.push(json!({
+                    "type": "supersedes",
+                    "source_id": source_id,
+                    "target_id": target_id,
+                    "evidence": "ontology.proposals supersession",
+                    "status": "verified",
+                }));
+                links.push(json!({
+                    "type": "derived_from",
+                    "source_id": record_id,
+                    "target_id": source_id,
+                    "evidence": "ontology.proposals.source_id",
+                    "status": "verified",
+                }));
+            }
         }
     }
 
@@ -3791,7 +3850,7 @@ fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
 }
 
 fn slice_payload(focusa: &FocusaState, frame_id: Option<&str>, slice_type: &str) -> Value {
-    let resolved_slice_type = normalize_slice_type(slice_type);
+    let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
     let projection = combined_projection(focusa, frame_id);
     let members = slice_members(&projection.objects, resolved_slice_type);
     json!({
@@ -3805,6 +3864,7 @@ fn slice_payload(focusa: &FocusaState, frame_id: Option<&str>, slice_type: &str)
             "invariants": [
                 "canonical_and_projection_are_distinct",
                 "unknown_slice_types_fallback_to_active_mission",
+                "operator_context_can_refine_active_mission_slice",
                 "membership_is_capped_and_deduplicated"
             ]
         },
