@@ -3689,6 +3689,55 @@ fn projection_view_semantics_projection(focusa: &FocusaState) -> WorkspaceProjec
     WorkspaceProjection { objects, links }
 }
 
+fn dedupe_objects(objects: Vec<Value>) -> Vec<Value> {
+    let mut by_id: BTreeMap<String, Value> = BTreeMap::new();
+    for object in objects {
+        let Some(id) = object
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+        else {
+            continue;
+        };
+
+        match by_id.get_mut(&id) {
+            Some(existing) => {
+                let existing_status = existing
+                    .get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let incoming_status = object.get("status").and_then(|v| v.as_str()).unwrap_or("");
+                let incoming_preferred = matches!(incoming_status, "canonical" | "verified" | "active")
+                    && !matches!(existing_status, "canonical" | "verified" | "active");
+                if incoming_preferred {
+                    *existing = object;
+                }
+            }
+            None => {
+                by_id.insert(id, object);
+            }
+        }
+    }
+    by_id.into_values().collect()
+}
+
+fn dedupe_links(links: Vec<Value>) -> Vec<Value> {
+    let mut seen = BTreeSet::new();
+    let mut out = Vec::new();
+    for link in links {
+        let key = format!(
+            "{}|{}|{}",
+            link.get("type").and_then(|v| v.as_str()).unwrap_or(""),
+            link.get("source_id").and_then(|v| v.as_str()).unwrap_or(""),
+            link.get("target_id").and_then(|v| v.as_str()).unwrap_or("")
+        );
+        if seen.insert(key) {
+            out.push(link);
+        }
+    }
+    out
+}
+
 fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> WorkspaceProjection {
     let frame = selected_frame(focusa, frame_id);
     let mission = mission_projection(focusa, frame);
@@ -3699,8 +3748,9 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
     let governance = governance_projection(focusa);
     let reference_resolution = reference_resolution_projection(focusa);
     let projection_view = projection_view_semantics_projection(focusa);
-    WorkspaceProjection {
-        objects: [
+
+    let objects = dedupe_objects(
+        [
             mission.objects,
             workspace.objects,
             canonical.objects,
@@ -3711,7 +3761,9 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
             projection_view.objects,
         ]
         .concat(),
-        links: [
+    );
+    let links = dedupe_links(
+        [
             mission.links,
             workspace.links,
             canonical.links,
@@ -3722,7 +3774,9 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
             projection_view.links,
         ]
         .concat(),
-    }
+    );
+
+    WorkspaceProjection { objects, links }
 }
 
 fn member(id: &str, object_type: &str, membership_class: &str, reason: &str) -> Value {
