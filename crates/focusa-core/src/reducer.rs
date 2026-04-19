@@ -25,6 +25,15 @@ use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::types::*;
 
+fn outcome_is_positive(outcome: &str) -> bool {
+    let lowered = outcome.to_ascii_lowercase();
+    lowered.contains("pass")
+        || lowered.contains("success")
+        || lowered.contains("verified")
+        || lowered.contains("approve")
+        || lowered.contains("accept")
+}
+
 fn recommended_worker_for_task(
     task_class: TaskClass,
     degraded: bool,
@@ -1327,14 +1336,77 @@ pub fn reduce_with_meta(
             applied_kind,
         } => {
             let now = Utc::now();
-            if let Some(proposal) = state
+            if let Some(proposal_idx) = state
                 .ontology
                 .proposals
-                .iter_mut()
-                .find(|p| p.proposal_id == proposal_id)
+                .iter()
+                .position(|p| p.proposal_id == proposal_id)
             {
-                proposal.status = "promoted".to_string();
-                proposal.updated_at = Some(now);
+                let proposal = state.ontology.proposals[proposal_idx].clone();
+                state.ontology.proposals[proposal_idx].status = "promoted".to_string();
+                state.ontology.proposals[proposal_idx].updated_at = Some(now);
+
+                match proposal.proposal_kind.as_str() {
+                    "object_upsert" => {
+                        if let Some(object_id) = proposal.object_id.as_ref() {
+                            if let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                            {
+                                object["status"] = serde_json::Value::String("promoted".to_string());
+                                object["provenance_class"] =
+                                    serde_json::Value::String("reducer_promoted".to_string());
+                                object["promoted_by"] =
+                                    serde_json::Value::String(proposal_id.to_string());
+                            } else {
+                                state.ontology.objects.push(serde_json::json!({
+                                    "id": object_id,
+                                    "object_type": proposal
+                                        .object_type
+                                        .clone()
+                                        .unwrap_or_else(|| target_class.clone()),
+                                    "status": "promoted",
+                                    "provenance_class": "reducer_promoted",
+                                    "promoted_by": proposal_id,
+                                }));
+                            }
+                        }
+                    }
+                    "link_upsert" => {
+                        if let (Some(link_type), Some(source_id), Some(target_id)) = (
+                            proposal.link_type.as_ref(),
+                            proposal.source_id.as_ref(),
+                            proposal.target_id.as_ref(),
+                        ) {
+                            if let Some(link) = state.ontology.links.iter_mut().find(|l| {
+                                l.get("type").and_then(|v| v.as_str()) == Some(link_type.as_str())
+                                    && l.get("source_id").and_then(|v| v.as_str())
+                                        == Some(source_id.as_str())
+                                    && l.get("target_id").and_then(|v| v.as_str())
+                                        == Some(target_id.as_str())
+                            }) {
+                                link["status"] = serde_json::Value::String("promoted".to_string());
+                                link["proposal_id"] =
+                                    serde_json::Value::String(proposal_id.to_string());
+                            } else {
+                                state.ontology.links.push(serde_json::json!({
+                                    "type": link_type,
+                                    "source_id": source_id,
+                                    "target_id": target_id,
+                                    "status": "promoted",
+                                    "proposal_id": proposal_id,
+                                    "evidence": "proposal_promoted",
+                                }));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
                 delta_kind: "ontology_proposal_promoted".to_string(),
@@ -1352,15 +1424,51 @@ pub fn reduce_with_meta(
             reason,
         } => {
             let now = Utc::now();
-            if let Some(proposal) = state
+            if let Some(proposal_idx) = state
                 .ontology
                 .proposals
-                .iter_mut()
-                .find(|p| p.proposal_id == proposal_id)
+                .iter()
+                .position(|p| p.proposal_id == proposal_id)
             {
-                proposal.status = "rejected".to_string();
-                proposal.notes = Some(reason.clone());
-                proposal.updated_at = Some(now);
+                let proposal = state.ontology.proposals[proposal_idx].clone();
+                state.ontology.proposals[proposal_idx].status = "rejected".to_string();
+                state.ontology.proposals[proposal_idx].notes = Some(reason.clone());
+                state.ontology.proposals[proposal_idx].updated_at = Some(now);
+
+                match proposal.proposal_kind.as_str() {
+                    "object_upsert" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("rejected".to_string());
+                            object["rejection_reason"] = serde_json::Value::String(reason.clone());
+                        }
+                    }
+                    "link_upsert" => {
+                        if let (Some(link_type), Some(source_id), Some(target_id)) = (
+                            proposal.link_type.as_ref(),
+                            proposal.source_id.as_ref(),
+                            proposal.target_id.as_ref(),
+                        ) && let Some(link) = state.ontology.links.iter_mut().find(|l| {
+                            l.get("type").and_then(|v| v.as_str()) == Some(link_type.as_str())
+                                && l.get("source_id").and_then(|v| v.as_str())
+                                    == Some(source_id.as_str())
+                                && l.get("target_id").and_then(|v| v.as_str())
+                                    == Some(target_id.as_str())
+                        }) {
+                            link["status"] = serde_json::Value::String("rejected".to_string());
+                            link["rejection_reason"] = serde_json::Value::String(reason.clone());
+                        }
+                    }
+                    _ => {}
+                }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
                 delta_kind: "ontology_proposal_rejected".to_string(),
@@ -1387,6 +1495,57 @@ pub fn reduce_with_meta(
                     outcome: outcome.clone(),
                     timestamp: Some(now),
                 });
+
+            if let Some(pid) = proposal_id
+                && let Some(proposal) = state
+                    .ontology
+                    .proposals
+                    .iter()
+                    .find(|p| p.proposal_id == pid)
+                    .cloned()
+            {
+                let verified_status = if outcome_is_positive(&outcome) {
+                    "verified"
+                } else {
+                    "failed"
+                };
+
+                match proposal.proposal_kind.as_str() {
+                    "object_upsert" | "status_change" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String(verified_status.to_string());
+                            object["verification"] = serde_json::Value::String(verification.clone());
+                        }
+                    }
+                    "link_upsert" => {
+                        if let (Some(link_type), Some(source_id), Some(target_id)) = (
+                            proposal.link_type.as_ref(),
+                            proposal.source_id.as_ref(),
+                            proposal.target_id.as_ref(),
+                        ) && let Some(link) = state.ontology.links.iter_mut().find(|l| {
+                            l.get("type").and_then(|v| v.as_str()) == Some(link_type.as_str())
+                                && l.get("source_id").and_then(|v| v.as_str())
+                                    == Some(source_id.as_str())
+                                && l.get("target_id").and_then(|v| v.as_str())
+                                    == Some(target_id.as_str())
+                        }) {
+                            link["status"] = serde_json::Value::String(verified_status.to_string());
+                            link["verification"] = serde_json::Value::String(verification.clone());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
             state.ontology.delta_log.push(OntologyDeltaRecord {
                 delta_kind: "ontology_verification_applied".to_string(),
                 payload: serde_json::json!({
