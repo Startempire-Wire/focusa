@@ -169,9 +169,13 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Start => {
-            commands::daemon::start().await?;
+            let started = commands::daemon::start().await?;
             if !cli.json {
-                println!("Focusa daemon started");
+                if started {
+                    println!("Focusa daemon started");
+                } else {
+                    println!("Focusa daemon already running (no-op)");
+                }
             }
         }
         Commands::Stop => {

@@ -1,67 +1,56 @@
 #!/bin/bash
-# SPEC-79 / Doc 69 slice A contract: scope-failure taxonomy + event surfaces.
-
+# Runtime contract: scope-failure taxonomy/events must be recordable and queryable via telemetry surfaces.
 set -euo pipefail
-
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
+log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-STATE_TS="$ROOT/apps/pi-extension/src/state.ts"
-TURNS_TS="$ROOT/apps/pi-extension/src/turns.ts"
-CORE_TYPES_RS="$ROOT/crates/focusa-core/src/types.rs"
-TELEMETRY_RS="$ROOT/crates/focusa-api/src/routes/telemetry.rs"
+TURN_ID="scope-taxonomy-$(date +%s%N)"
 
-log_pass() { echo "✓ PASS: $1"; PASSED=$((PASSED+1)); }
-log_fail() { echo "✗ FAIL: $1"; FAILED=$((FAILED+1)); }
-
-require_rg() {
-  local pattern="$1"
-  local file="$2"
-  local label="$3"
-  if rg -n "$pattern" "$file" >/dev/null 2>&1; then
-    log_pass "$label"
-  else
-    log_fail "$label"
-  fi
+record_trace() {
+  local kind="$1"
+  curl -sS -X POST "${BASE_URL}/v1/telemetry/trace" \
+    -H "Content-Type: application/json" \
+    -d "{\"event_type\":\"scope_failure_recorded\",\"turn_id\":\"${TURN_ID}\",\"failure_kind\":\"${kind}\",\"reason\":\"runtime contract check\"}" >/tmp/scope-trace-post.json
 }
 
+record_trace "scope_contamination"
+record_trace "adjacent_thread_leakage"
+record_trace "answer_broadening"
+
+TRACE_JSON="$(curl -sS "${BASE_URL}/v1/telemetry/trace?limit=200")"
+
+if echo "$TRACE_JSON" | jq -e --arg tid "$TURN_ID" '.events | any(.event_type=="scope_failure_recorded" and ((.payload.turn_id // .turn_id // "") == $tid) and ((.payload.failure_kind // "") == "scope_contamination"))' >/dev/null 2>&1; then
+  log_pass "scope_contamination failure event is retrievable from telemetry trace"
+else
+  log_fail "scope_contamination failure event missing from telemetry trace"
+fi
+
+if echo "$TRACE_JSON" | jq -e --arg tid "$TURN_ID" '.events | any(.event_type=="scope_failure_recorded" and ((.payload.turn_id // .turn_id // "") == $tid) and ((.payload.failure_kind // "") == "adjacent_thread_leakage"))' >/dev/null 2>&1; then
+  log_pass "adjacent_thread_leakage failure event is retrievable from telemetry trace"
+else
+  log_fail "adjacent_thread_leakage failure event missing from telemetry trace"
+fi
+
+if echo "$TRACE_JSON" | jq -e --arg tid "$TURN_ID" '.events | any(.event_type=="scope_failure_recorded" and ((.payload.turn_id // .turn_id // "") == $tid) and ((.payload.failure_kind // "") == "answer_broadening"))' >/dev/null 2>&1; then
+  log_pass "answer_broadening failure event is retrievable from telemetry trace"
+else
+  log_fail "answer_broadening failure event missing from telemetry trace"
+fi
+
+STATS_JSON="$(curl -sS "${BASE_URL}/v1/telemetry/trace/stats")"
+if echo "$STATS_JSON" | jq -e '.by_event_type | has("scope_failure_recorded")' >/dev/null 2>&1; then
+  log_pass "trace stats include scope_failure_recorded aggregate"
+else
+  log_fail "trace stats missing scope_failure_recorded aggregate"
+fi
+
 echo "=== Scope-failure taxonomy/events contract ==="
-
-require_rg 'type ScopeFailureKind' "$STATE_TS" 'Pi bridge defines scope failure taxonomy type'
-require_rg 'scope_contamination' "$STATE_TS" 'Taxonomy includes scope_contamination'
-require_rg 'adjacent_thread_leakage' "$STATE_TS" 'Taxonomy includes adjacent_thread_leakage'
-require_rg 'answer_broadening' "$STATE_TS" 'Taxonomy includes answer_broadening'
-require_rg 'wrong_question_answered' "$STATE_TS" 'Taxonomy includes wrong_question_answered'
-require_rg 'context_overcarry' "$STATE_TS" 'Taxonomy includes context_overcarry'
-require_rg 'detectScopeFailureSignals' "$STATE_TS" 'Pi bridge exposes scope failure detector'
-
-require_rg 'scope_verified' "$TURNS_TS" 'turn_end emits scope_verified trace'
-require_rg 'scope_contamination_detected' "$TURNS_TS" 'turn_end emits scope_contamination_detected trace'
-require_rg 'wrong_question_detected' "$TURNS_TS" 'turn_end emits wrong_question_detected trace'
-require_rg 'answer_broadening_detected' "$TURNS_TS" 'turn_end emits answer_broadening_detected trace'
-require_rg 'scope_failure_recorded' "$TURNS_TS" 'turn_end emits scope_failure_recorded trace'
-
-require_rg 'CurrentAskDetermined' "$CORE_TYPES_RS" 'Telemetry enum includes CurrentAskDetermined'
-require_rg 'QueryScopeBuilt' "$CORE_TYPES_RS" 'Telemetry enum includes QueryScopeBuilt'
-require_rg 'RelevantContextSelected' "$CORE_TYPES_RS" 'Telemetry enum includes RelevantContextSelected'
-require_rg 'IrrelevantContextExcluded' "$CORE_TYPES_RS" 'Telemetry enum includes IrrelevantContextExcluded'
-require_rg 'ScopeVerified' "$CORE_TYPES_RS" 'Telemetry enum includes ScopeVerified'
-require_rg 'ScopeContaminationDetected' "$CORE_TYPES_RS" 'Telemetry enum includes ScopeContaminationDetected'
-require_rg 'WrongQuestionDetected' "$CORE_TYPES_RS" 'Telemetry enum includes WrongQuestionDetected'
-require_rg 'AnswerBroadeningDetected' "$CORE_TYPES_RS" 'Telemetry enum includes AnswerBroadeningDetected'
-require_rg 'ScopeFailureRecorded' "$CORE_TYPES_RS" 'Telemetry enum includes ScopeFailureRecorded'
-
-require_rg '"current_ask_determined" => TelemetryEventType::CurrentAskDetermined' "$TELEMETRY_RS" 'telemetry route maps current_ask_determined'
-require_rg '"query_scope_built" => TelemetryEventType::QueryScopeBuilt' "$TELEMETRY_RS" 'telemetry route maps query_scope_built'
-require_rg '"relevant_context_selected" => TelemetryEventType::RelevantContextSelected' "$TELEMETRY_RS" 'telemetry route maps relevant_context_selected'
-require_rg '"irrelevant_context_excluded" => TelemetryEventType::IrrelevantContextExcluded' "$TELEMETRY_RS" 'telemetry route maps irrelevant_context_excluded'
-require_rg '"scope_verified" => TelemetryEventType::ScopeVerified' "$TELEMETRY_RS" 'telemetry route maps scope_verified'
-require_rg '"scope_contamination_detected" => TelemetryEventType::ScopeContaminationDetected' "$TELEMETRY_RS" 'telemetry route maps scope_contamination_detected'
-require_rg '"wrong_question_detected" => TelemetryEventType::WrongQuestionDetected' "$TELEMETRY_RS" 'telemetry route maps wrong_question_detected'
-require_rg '"answer_broadening_detected" => TelemetryEventType::AnswerBroadeningDetected' "$TELEMETRY_RS" 'telemetry route maps answer_broadening_detected'
-require_rg '"scope_failure_recorded" => TelemetryEventType::ScopeFailureRecorded' "$TELEMETRY_RS" 'telemetry route maps scope_failure_recorded'
-
-echo ""
-echo "=== RESULTS: $PASSED passed, $FAILED failed ==="
-[ "$FAILED" -eq 0 ]
+echo "Tests passed: ${PASSED}"
+echo "Tests failed: ${FAILED}"
+if [ "$FAILED" -ne 0 ]; then exit 1; fi

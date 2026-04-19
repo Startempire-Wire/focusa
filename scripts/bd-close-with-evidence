@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Close-time enforcement wrapper: refuse closure unless evidence citations are supplied.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/bd-close-with-evidence <issue-id> [<issue-id> ...] --reason "..." --evidence "ref1; ref2; ..."
+
+Rules:
+  - --evidence is mandatory
+  - evidence must include at least one concrete reference (tests/, docs/, crates/, /v1/, or http)
+  - wrapper appends "Evidence citations: ..." to issue notes before closing
+EOF
+}
+
+if [ "$#" -lt 1 ]; then
+  usage
+  exit 2
+fi
+
+issue_ids=()
+reason=""
+evidence=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --reason|-r)
+      shift
+      reason="${1:-}"
+      ;;
+    --evidence|-e)
+      shift
+      evidence="${1:-}"
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --*)
+      echo "Unknown flag: $1" >&2
+      usage
+      exit 2
+      ;;
+    *)
+      issue_ids+=("$1")
+      ;;
+  esac
+  shift || true
+done
+
+if [ "${#issue_ids[@]}" -eq 0 ]; then
+  echo "At least one issue id required" >&2
+  exit 2
+fi
+
+if [ -z "$reason" ]; then
+  echo "--reason is required" >&2
+  exit 2
+fi
+
+if [ -z "$evidence" ]; then
+  echo "--evidence is required (close-time requirement)" >&2
+  exit 1
+fi
+
+if ! printf '%s' "$evidence" | grep -Eiq 'tests/|docs/|crates/|/v1/|http'; then
+  echo "--evidence must include concrete refs (tests/, docs/, crates/, /v1/, or http)" >&2
+  exit 1
+fi
+
+for id in "${issue_ids[@]}"; do
+  bd update "$id" --append-notes "Evidence citations: $evidence"
+  bd close "$id" --reason "$reason"
+done

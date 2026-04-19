@@ -454,10 +454,16 @@ export function registerTurns(pi: ExtensionAPI) {
     const lower = String(text).toLowerCase();
     const corrections = ["no that is wrong", "revert", "undo", "that's incorrect", "wrong approach", "go back", "not what i asked"];
     if (corrections.some(c => lower.includes(c))) {
-      const correction = `Operator correction: ${String(text).slice(0, 100)}`;
-      S.localFailures.push(correction);
-      if (S.focusaAvailable && S.activeFrameId) {
-        await pushDelta({ failures: [correction] }).catch(() => null);
+      // Correction is steering signal, not canonical failure.
+      // Keep as telemetry/trust update to avoid stale Known Failures contamination.
+      if (S.focusaAvailable) {
+        focusaPost("/telemetry/trace", {
+          event_type: "operator_correction_detected",
+          turn_id: `pi-turn-${S.turnCount}`,
+          frame_id: S.activeFrameId,
+          surface: "pi",
+          correction_preview: String(text).slice(0, 160),
+        });
       }
       // §35.7/§29: WBM trust metric update on correction
       if (S.wbmEnabled) {

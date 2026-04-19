@@ -404,51 +404,49 @@ async fn turn_complete(
         tracing::error!("Failed to emit TurnCompleted event: {}", e);
     }
 
-    if work_loop_enabled {
-        if let Some(task) = current_task {
-            let assistant_output = req.assistant_output.trim();
-            let assistant_excerpt = assistant_output.chars().take(220).collect::<String>();
-            let summary = if assistant_output.is_empty() {
-                "continuous turn completed with empty assistant output".to_string()
-            } else {
-                format!(
-                    "continuous turn completed for {}: {assistant_excerpt}",
-                    task.work_item_id
-                )
-            };
-            let verification_satisfied = req.errors.is_empty() && !assistant_output.is_empty();
-            let spec_conformant = req.errors.is_empty()
-                && !assistant_output.contains("BLOCKER:")
-                && !assistant_output.contains("ESCALATE:");
-            let continue_reason = if spec_conformant {
-                Some(format!(
-                    "turn completed without recorded errors; evidence: {assistant_excerpt}"
-                ))
-            } else {
-                Some(format!(
-                    "turn completed with recorded errors or blocker markers; evidence: {assistant_excerpt}"
-                ))
-            };
-            if let Err(e) = state
-                .command_tx
-                .send(Action::ObserveContinuousTurnOutcome {
-                    task_run_id: None,
-                    work_item_id: Some(task.work_item_id.clone()),
-                    summary,
-                    continue_reason,
-                    verification_satisfied,
-                    spec_conformant,
-                })
-                .await
-            {
-                tracing::error!("Failed to observe continuous turn outcome: {}", e);
-            } else {
-                let _ = maybe_dispatch_continuous_turn_prompt(
-                    &state,
-                    "continuous turn outcome evaluated and ready work remains",
-                )
-                .await;
-            }
+    if work_loop_enabled && let Some(task) = current_task {
+        let assistant_output = req.assistant_output.trim();
+        let assistant_excerpt = assistant_output.chars().take(220).collect::<String>();
+        let summary = if assistant_output.is_empty() {
+            "continuous turn completed with empty assistant output".to_string()
+        } else {
+            format!(
+                "continuous turn completed for {}: {assistant_excerpt}",
+                task.work_item_id
+            )
+        };
+        let verification_satisfied = req.errors.is_empty() && !assistant_output.is_empty();
+        let spec_conformant = req.errors.is_empty()
+            && !assistant_output.contains("BLOCKER:")
+            && !assistant_output.contains("ESCALATE:");
+        let continue_reason = if spec_conformant {
+            Some(format!(
+                "turn completed without recorded errors; evidence: {assistant_excerpt}"
+            ))
+        } else {
+            Some(format!(
+                "turn completed with recorded errors or blocker markers; evidence: {assistant_excerpt}"
+            ))
+        };
+        if let Err(e) = state
+            .command_tx
+            .send(Action::ObserveContinuousTurnOutcome {
+                task_run_id: None,
+                work_item_id: Some(task.work_item_id.clone()),
+                summary,
+                continue_reason,
+                verification_satisfied,
+                spec_conformant,
+            })
+            .await
+        {
+            tracing::error!("Failed to observe continuous turn outcome: {}", e);
+        } else {
+            let _ = maybe_dispatch_continuous_turn_prompt(
+                &state,
+                "continuous turn outcome evaluated and ready work remains",
+            )
+            .await;
         }
     }
 

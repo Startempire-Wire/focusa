@@ -90,8 +90,16 @@ const OBJECT_TYPES: &[&str] = &[
     "migration_plan",
     "deprecation_record",
     "governance_decision",
+    "agent_identity",
+    "actor_instance",
     "actor",
     "role_profile",
+    "capability_profile",
+    "permission_profile",
+    "responsibility",
+    "handoff_boundary",
+    "session_continuity",
+    "identity_state",
     "ontology_domain",
     "shared_layer",
 ];
@@ -184,6 +192,14 @@ const LINK_TYPES: &[&str] = &[
     "migrated_by",
     "deprecated_by",
     "approved_by_governance",
+    "instantiates",
+    "serves_role",
+    "has_capability_profile",
+    "has_permission_profile",
+    "owns_responsibility",
+    "bounded_by_handoff",
+    "persists_via",
+    "governed_by_identity",
 ];
 const ACTION_TYPES: &[&str] = &[
     "refactor_module",
@@ -242,6 +258,13 @@ const ACTION_TYPES: &[&str] = &[
     "deprecate_schema_element",
     "review_governance_change",
     "verify_post_migration_conformance",
+    "establish_identity",
+    "load_role_profile",
+    "verify_capability_profile",
+    "verify_permission_profile",
+    "assign_responsibility",
+    "determine_handoff_boundary",
+    "restore_identity_continuity",
 ];
 const SLICE_TYPES: &[&str] = &[
     "active_mission",
@@ -271,7 +294,7 @@ fn default_slice_type() -> String {
 }
 
 fn normalize_slice_type(slice_type: &str) -> &str {
-    if SLICE_TYPES.iter().any(|kind| *kind == slice_type) {
+    if SLICE_TYPES.contains(&slice_type) {
         slice_type
     } else {
         "active_mission"
@@ -454,15 +477,11 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
         "infer_interaction_and_state" => &["interaction", "ui_state", "binding", "validation_rule"],
         "derive_implementation_semantics" => &["component", "binding", "validation_rule", "page"],
         "derive_component_tree" => &["page", "region", "component", "content_slot"],
-        "derive_plumbing_requirements" => {
-            &["interaction", "ui_state", "binding", "validation_rule"]
-        }
+        "derive_plumbing_requirements" => &["interaction", "ui_state", "binding", "validation_rule"],
         "map_tokens_to_surfaces" => &["token", "layout_rule", "component", "region"],
         "map_states_to_views" => &["ui_state", "interaction", "component", "page"],
         "map_bindings_and_validation" => &["binding", "validation_rule", "component", "ui_state"],
-        "synthesize_completion_checklist" => {
-            &["verification", "acceptance_criterion", "task", "artifact"]
-        }
+        "synthesize_completion_checklist" => &["verification", "acceptance_criterion", "task", "artifact"],
         "determine_current_ask" => &["current_ask", "query_scope"],
         "build_query_scope" => &["query_scope", "current_ask"],
         "select_relevant_context" => &[

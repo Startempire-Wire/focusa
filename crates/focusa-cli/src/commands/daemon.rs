@@ -4,12 +4,13 @@ use crate::api_client::ApiClient;
 use std::process::Stdio;
 
 /// Start the Focusa daemon.
-pub async fn start() -> anyhow::Result<()> {
+/// Returns true when daemon was started in this call, false when already running.
+pub async fn start() -> anyhow::Result<bool> {
     let client = ApiClient::new();
 
-    // Check if already running.
+    // Check if already running (idempotent start).
     if client.get("/v1/health").await.is_ok() {
-        anyhow::bail!("Focusa daemon is already running");
+        return Ok(false);
     }
 
     // Find and start daemon.
@@ -46,7 +47,7 @@ pub async fn start() -> anyhow::Result<()> {
     for _ in 0..50 {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         if client.get("/v1/health").await.is_ok() {
-            return Ok(());
+            return Ok(true);
         }
     }
 

@@ -1,8 +1,7 @@
 #!/bin/bash
-# SPEC-79 / contract hardening: ontology route metadata must match executable contract semantics.
+# Runtime contract test: ontology route metadata must expose executable contract semantics.
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/ontology.rs"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -11,34 +10,31 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-if rg -n '"tool_action_metadata"|"trace_metadata"|"eval_metadata"|"projection_metadata"|"governance_metadata"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "action contract exposes tool/trace/eval/projection/governance metadata surfaces"
+CONTRACTS_JSON="$(curl -sS "${BASE_URL}/v1/ontology/contracts")"
+WORLD_JSON="$(curl -sS "${BASE_URL}/v1/ontology/world")"
+
+if echo "$CONTRACTS_JSON" | jq -e '.route_behavior.surface == "GET /v1/ontology/contracts" and .route_behavior.read_only == true and .route_behavior.mutates_canonical_state == false' >/dev/null 2>&1; then
+  log_pass "contracts route publishes read-only behavior metadata"
 else
-  log_fail "contract metadata surfaces missing from action contract payload"
+  log_fail "contracts route behavior metadata missing or wrong"
 fi
 
-if rg -n '"runtime_execution_supported": runtime_execution_supported' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "runtime executability flag derives from contract tool mappings"
+if echo "$CONTRACTS_JSON" | jq -e '.contracts | all(has("tool_action_metadata") and has("trace_metadata") and has("eval_metadata") and has("projection_metadata") and has("governance_metadata"))' >/dev/null 2>&1; then
+  log_pass "all action contracts expose tool/trace/eval/projection/governance metadata"
 else
-  log_fail "runtime executability flag is not derived from contract mappings"
+  log_fail "one or more contracts missing required metadata surfaces"
 fi
 
-if rg -n '"constraint_checked": true|"reducer_visible": reducer_visible|"runtime_execution_supported": runtime_execution_supported' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "world action catalog computes reducer/runtime flags from action contract"
+if echo "$CONTRACTS_JSON" | jq -e '.contracts | any(.name=="build_query_scope" and (.tool_mappings | any(.path=="/v1/work-loop/context"))) and any(.name=="resolve_identity" and (.tool_mappings | any(.path=="/v1/references/search"))) and any(.name=="execute_migration" and (.tool_mappings | any(.path=="/v1/events/recent")))' >/dev/null 2>&1; then
+  log_pass "post-doc67/74/77 action families expose concrete runtime route mappings"
 else
-  log_fail "world action catalog still uses fixed projection-only booleans"
+  log_fail "expected runtime route mappings for new action families missing"
 fi
 
-if rg -n '"determine_current_ask" \| "build_query_scope"|"/v1/work-loop/context"|"resolve_identity"|"/v1/references/search"|"execute_migration"|"/v1/events/recent"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "post-doc67/70/74/75/77 action families expose concrete route mappings"
+if echo "$WORLD_JSON" | jq -e '.action_catalog | all(has("constraint_checked") and has("reducer_visible") and has("runtime_execution_supported")) and any(.name=="build_query_scope" and .runtime_execution_supported == true)' >/dev/null 2>&1; then
+  log_pass "world action catalog surfaces computed reducer/runtime metadata flags"
 else
-  log_fail "new ontology action families missing concrete route mappings"
-fi
-
-if rg -n '"surface": "GET /v1/ontology/contracts"|"read_only": true|"mutates_canonical_state": false' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "contracts endpoint still publishes read-only route behavior metadata"
-else
-  log_fail "contracts endpoint route behavior metadata missing"
+  log_fail "world action catalog metadata flags missing or inconsistent"
 fi
 
 echo "=== ONTOLOGY ROUTE METADATA CONTRACT RESULTS ==="

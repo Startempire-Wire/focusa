@@ -1,8 +1,7 @@
 #!/bin/bash
-# SPEC-79 / Doc-66 slice A: ontology contracts must include affordance object/link/action schemas.
+# Runtime contract test: affordance ontology schemas must be projected through public endpoints.
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/ontology.rs"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -11,29 +10,31 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-if rg -n '"capability"|"tool_surface"|"permission"|"authority_boundary"|"execution_context"|"affordance"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "object schema includes core affordance ontology object types"
+PRIMES_JSON="$(curl -sS "${BASE_URL}/v1/ontology/primitives")"
+CONTRACTS_JSON="$(curl -sS "${BASE_URL}/v1/ontology/contracts")"
+
+if echo "$PRIMES_JSON" | jq -e '.object_types | any((.type_name // .) == "capability") and any((.type_name // .) == "tool_surface") and any((.type_name // .) == "permission") and any((.type_name // .) == "authority_boundary") and any((.type_name // .) == "execution_context") and any((.type_name // .) == "affordance")' >/dev/null 2>&1; then
+  log_pass "affordance object families projected"
 else
-  log_fail "object schema missing one or more core affordance ontology object types"
+  log_fail "affordance object families missing from primitives projection"
 fi
 
-if rg -n '"enabled_by"|"requires_permission"|"bounded_by_authority"|"consumes_resource"|"available_in_context"|"supports_execution_of"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "link schema includes affordance execution relation types"
+if echo "$PRIMES_JSON" | jq -e '.link_types | any((.name // .) == "enabled_by") and any((.name // .) == "requires_permission") and any((.name // .) == "bounded_by_authority") and any((.name // .) == "consumes_resource") and any((.name // .) == "available_in_context") and any((.name // .) == "supports_execution_of")' >/dev/null 2>&1; then
+  log_pass "affordance execution relation types projected"
 else
-  log_fail "link schema missing affordance execution relation types"
+  log_fail "affordance execution relation types missing"
 fi
 
-if rg -n '"detect_affordances"|"verify_permissions"|"verify_preconditions"|"estimate_reliability"|"choose_execution_path"|"mark_unavailable"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "action schema includes affordance execution action types"
+if echo "$PRIMES_JSON" | jq -e '.action_types | any((.name // .) == "detect_affordances") and any((.name // .) == "verify_permissions") and any((.name // .) == "verify_preconditions") and any((.name // .) == "estimate_reliability") and any((.name // .) == "choose_execution_path") and any((.name // .) == "mark_unavailable")' >/dev/null 2>&1; then
+  log_pass "affordance execution action types projected"
 else
-  log_fail "action schema missing affordance execution action types"
+  log_fail "affordance execution action types missing"
 fi
 
-if rg -n '"capability" => &\["id", "capability_kind", "status"\]' "$ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n '"affordance" => &\["id", "affordance_kind", "status"\]' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "new affordance object types define required property schema"
+if echo "$CONTRACTS_JSON" | jq -e '.contracts | any(.name=="detect_affordances" and (.target_types | index("affordance") and index("execution_context"))) and any(.name=="verify_permissions" and (.target_types | index("permission") and index("authority_boundary"))) and any(.name=="choose_execution_path" and (.target_types | index("affordance") and index("task")))' >/dev/null 2>&1; then
+  log_pass "affordance action contracts preserve typed target semantics"
 else
-  log_fail "required property schema missing for new affordance object types"
+  log_fail "affordance action contract target semantics missing"
 fi
 
 echo "=== ONTOLOGY AFFORDANCE SCHEMA CONTRACT RESULTS ==="

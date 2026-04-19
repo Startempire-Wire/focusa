@@ -1,10 +1,7 @@
 #!/bin/bash
-# Consumer-path contract: doc 73 commitment lifecycle must drive at least one continuity behavior.
+# Runtime contract: doc73 commitment lifecycle release semantics drive continuity-visible status.
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DOC_FILE="${ROOT_DIR}/docs/FIRST_CONSUMER_CANDIDATES_2026-04-13.md"
-WATCHDOG_FILE="${ROOT_DIR}/scripts/work_loop_watchdog.sh"
-ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/work_loop.rs"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -13,34 +10,24 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-if rg -n '### Doc 73 — commitment lifecycle' "$DOC_FILE" >/dev/null 2>&1 && rg -n 'Selected first real consumer' "$DOC_FILE" >/dev/null 2>&1; then
-  log_pass "doc 73 section names a selected first consumer"
+STATUS_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/status")"
+
+if echo "$STATUS_JSON" | jq -e 'has("commitment_lifecycle") and (.commitment_lifecycle | has("release_semantics"))' >/dev/null 2>&1; then
+  log_pass "work-loop status exposes commitment release semantics surface"
 else
-  log_fail "doc 73 section missing selected first consumer"
+  log_fail "commitment release semantics surface missing from status"
 fi
 
-if rg -n 'scripts/work_loop_watchdog\.sh|commitment_lifecycle\.release_semantics\.state' "$DOC_FILE" >/dev/null 2>&1; then
-  log_pass "doc 73 section anchors consumer to watchdog and commitment release state"
+if echo "$STATUS_JSON" | jq -e '.commitment_lifecycle.release_semantics | has("state") and has("release_conditions") and ((.release_conditions|length) > 0)' >/dev/null 2>&1; then
+  log_pass "release semantics include state + explicit release conditions"
 else
-  log_fail "doc 73 section missing watchdog/release-state anchors"
+  log_fail "release semantics missing state or release conditions"
 fi
 
-if rg -n 'commitment_lifecycle\.release_semantics\.state' "$WATCHDOG_FILE" >/dev/null 2>&1; then
-  log_pass "watchdog consumes commitment release state"
+if echo "$STATUS_JSON" | jq -e '.commitment_lifecycle.release_semantics.state | IN("released_on_completion","released_on_blocker","released_or_unbound","active","held")' >/dev/null 2>&1; then
+  log_pass "release state is in continuity-gating vocabulary"
 else
-  log_fail "watchdog does not read commitment release state"
-fi
-
-if rg -n 'released_on_completion|released_on_blocker|released_or_unbound' "$WATCHDOG_FILE" >/dev/null 2>&1; then
-  log_pass "watchdog continuity handoff is gated by commitment release states"
-else
-  log_fail "watchdog continuity handoff missing commitment release-state gating"
-fi
-
-if rg -n 'fn commitment_lifecycle_for_status\(' "$ROUTE_FILE" >/dev/null 2>&1 && rg -n '"release_semantics"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "release-state source exists in work-loop status route"
-else
-  log_fail "release-state source missing in work-loop status route"
+  log_fail "release state not in expected continuity-gating vocabulary"
 fi
 
 echo "=== DOC 73 FIRST CONSUMER PATH RESULTS ==="

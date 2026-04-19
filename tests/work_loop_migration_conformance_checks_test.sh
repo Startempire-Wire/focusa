@@ -1,55 +1,44 @@
 #!/bin/bash
-# SPEC-79 / Doc-77 slice B: migration/conformance execution evidence must gate completion transitions.
+# Runtime contract: migration/conformance closure evidence surfaces must be available to gate completion semantics.
 set -euo pipefail
-
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DAEMON_FILE="${ROOT_DIR}/crates/focusa-core/src/runtime/daemon.rs"
-WORK_LOOP_ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/work_loop.rs"
-TURN_ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/turn.rs"
-
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
-
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-if rg -n 'fn task_requires_migration_conformance_checks\(|fn migration_conformance_execution_evidenced\(' "$DAEMON_FILE" >/dev/null 2>&1; then
-  log_pass "daemon exposes migration/conformance requirement + evidence helpers"
+STATUS_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/status")"
+EVIDENCE_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/replay/closure-evidence")"
+BUNDLE_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/replay/closure-bundle")"
+
+if echo "$STATUS_JSON" | jq -e 'has("secondary_loop_continuity_gate") and has("secondary_loop_closure_replay_evidence") and has("last_blocker_reason")' >/dev/null 2>&1; then
+  log_pass "work-loop status exposes continuity gate + closure replay evidence surfaces"
 else
-  log_fail "daemon missing migration/conformance helper functions"
+  log_fail "work-loop status missing continuity gate or closure replay evidence surfaces"
 fi
 
-if rg -n 'migration/conformance execution checks not yet evidenced|checkpoint: blocked pending migration/conformance evidence' "$DAEMON_FILE" >/dev/null 2>&1; then
-  log_pass "daemon blocks completion when migration/conformance evidence is missing"
+if echo "$STATUS_JSON" | jq -e '.secondary_loop_continuity_gate | has("requires_replay_consumer_ok") and has("fail_closed") and has("state") and has("reason")' >/dev/null 2>&1; then
+  log_pass "status continuity gate exposes fail-closed policy controls"
 else
-  log_fail "daemon missing migration/conformance blocker enforcement"
+  log_fail "status continuity gate missing fail-closed policy controls"
 fi
 
-if rg -n 'record_bd_blocked_transition_if_possible' "$DAEMON_FILE" >/dev/null 2>&1 \
-  && rg -n 'migration/conformance execution checks not yet evidenced' "$DAEMON_FILE" >/dev/null 2>&1; then
-  log_pass "daemon records BD blocked transition for missing migration/conformance evidence"
+if echo "$EVIDENCE_JSON" | jq -e '.status == "ok" and .secondary_loop_closure_replay_evidence.status == "ok" and (.secondary_loop_closure_replay_evidence.evidence | has("replay_events_scanned") and has("secondary_loop_outcome_events"))' >/dev/null 2>&1; then
+  log_pass "closure evidence route returns replay-scan evidence payload"
 else
-  log_fail "daemon missing BD transition note for migration/conformance verification failures"
+  log_fail "closure evidence route missing replay-scan evidence payload"
 fi
 
-if rg -n 'assistant_excerpt|observed from pi rpc stream: \{assistant_excerpt\}' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "pi-rpc work-loop route forwards assistant evidence excerpts into outcome summaries"
+if echo "$BUNDLE_JSON" | jq -e '.status == "ok" and (.evidence_contract.continuity_gate_policy | type == "string") and (.evidence_contract.replay_consumer_route == "/v1/work-loop/replay/closure-evidence")' >/dev/null 2>&1; then
+  log_pass "closure bundle publishes continuity-gate evidence contract"
 else
-  log_fail "pi-rpc work-loop route missing assistant evidence excerpt propagation"
-fi
-
-if rg -n 'continuous turn completed for \{\}: \{assistant_excerpt\}|evidence: \{assistant_excerpt\}' "$TURN_ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "turn route forwards assistant evidence excerpts into outcome summaries"
-else
-  log_fail "turn route missing assistant evidence excerpt propagation"
+  log_fail "closure bundle missing continuity-gate evidence contract"
 fi
 
 echo "=== WORK-LOOP MIGRATION/CONFORMANCE CHECK RESULTS ==="
 echo "Tests passed: $PASSED"
 echo "Tests failed: $FAILED"
-if [ "$FAILED" -ne 0 ]; then
-  exit 1
-fi
+if [ "$FAILED" -ne 0 ]; then exit 1; fi

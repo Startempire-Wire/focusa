@@ -1,9 +1,7 @@
 #!/bin/bash
-# SPEC-79 / Doc-71 slice B: governing priors must influence at least one live ranking consumer path.
+# Runtime contract: governing priors must appear in telemetry with ranking-consumer impact.
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-STATE_FILE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
-TURNS_FILE="${ROOT_DIR}/apps/pi-extension/src/turns.ts"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -12,34 +10,31 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-if rg -n 'type PiGoverningPriorKind' "$STATE_FILE" >/dev/null 2>&1; then
-  log_pass "governing-prior categories are explicitly modeled"
+STATS_JSON="$(curl -sS "${BASE_URL}/v1/telemetry/trace/stats")"
+if echo "$STATS_JSON" | jq -e '.by_event_type | has("governing_priors_applied")' >/dev/null 2>&1; then
+  log_pass "trace stats include governing_priors_applied event family"
 else
-  log_fail "governing-prior categories missing"
+  log_fail "trace stats missing governing_priors_applied event family"
 fi
 
-if rg -n 'governingPriors\?: PiGoverningPriorKind\[\]' "$STATE_FILE" >/dev/null 2>&1; then
-  log_pass "ranked selection API accepts governing priors"
+TRACE_JSON="$(curl -sS "${BASE_URL}/v1/telemetry/trace?limit=5000")"
+
+if echo "$TRACE_JSON" | jq -e '.events | any(.event_type=="governing_priors_applied" and ((.payload.governing_priors // []) | length > 0))' >/dev/null 2>&1; then
+  log_pass "governing priors are emitted as explicit runtime payload"
 else
-  log_fail "ranked selection API does not accept governing priors"
+  log_fail "governing priors payload missing from runtime trace"
 fi
 
-if rg -n 'priorBoost|governingPriorContribution|GOVERNING_PRIOR_BAND_BOOST' "$STATE_FILE" >/dev/null 2>&1; then
-  log_pass "governing priors contribute to ranking score"
+if echo "$TRACE_JSON" | jq -e '.events | any(.event_type=="governing_priors_applied" and ((.payload.ranking_consumers // []) | length > 0))' >/dev/null 2>&1; then
+  log_pass "governing-prior application reports ranking consumer surfaces"
 else
-  log_fail "no score contribution from governing priors"
+  log_fail "ranking consumer surfaces missing from governing prior telemetry"
 fi
 
-if rg -n 'governingPriors: activeGoverningPriors' "$TURNS_FILE" >/dev/null 2>&1; then
-  log_pass "context builder wires governing priors into live ranking consumers"
+if echo "$TRACE_JSON" | jq -e '.events | any(.event_type=="governing_priors_applied" and (((.payload.prior_hits // {}) | keys | length) > 0))' >/dev/null 2>&1; then
+  log_pass "governing-prior telemetry includes per-consumer prior hit evidence"
 else
-  log_fail "turn context ranking consumer is not wired to governing priors"
-fi
-
-if rg -n 'event_type: "governing_priors_applied"' "$TURNS_FILE" >/dev/null 2>&1; then
-  log_pass "trace output records governing-prior application"
-else
-  log_fail "missing governing-prior trace output"
+  log_fail "governing prior hit evidence missing in telemetry payload"
 fi
 
 echo "=== WORK-LOOP GOVERNING PRIORS CONSUMER PATH RESULTS ==="

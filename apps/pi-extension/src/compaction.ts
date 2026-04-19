@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -83,7 +83,7 @@ export function registerCompaction(pi: ExtensionAPI) {
       await pushDelta({
         decisions: S.localDecisions.slice(-10),
         constraints: S.localConstraints.slice(-10),
-        failures: S.localFailures.slice(-5),
+        failures: sanitizeFocusFailures(S.localFailures).slice(-5),
       });
     }
     // Always persist to Pi session entries as backup
@@ -101,7 +101,7 @@ export function registerCompaction(pi: ExtensionAPI) {
             `## Current Focus\n${fs.current_focus || fs.current_state || "none"}`,
             `## Decisions Made\n${(fs.decisions || []).map((d: string) => `- ${d}`).join("\n") || "none"}`,
             `## Active Constraints\n${(fs.constraints || []).map((c: string) => `- ${c}`).join("\n") || "none"}`,
-            `## Failures Encountered\n${(fs.failures || []).map((f: string) => `- ${f}`).join("\n") || "none"}`,
+            `## Failures Encountered\n${sanitizeFocusFailures(fs.failures || []).map((f: string) => `- ${f}`).join("\n") || "none"}`,
             `## Next Steps\n${(fs.next_steps || []).map((n: string) => `- ${n}`).join("\n") || "none"}`,
             `## Open Questions\n${(fs.open_questions || []).map((q: string) => `- ${q}`).join("\n") || "none"}`,
             `## Recent Results\n${(fs.recent_results || []).map((r: string) => `- ${r}`).join("\n") || "none"}`,

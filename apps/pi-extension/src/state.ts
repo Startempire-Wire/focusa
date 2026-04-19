@@ -205,6 +205,13 @@ function isFocusaPayloadWrapperText(text: string): boolean {
   return false;
 }
 
+export function sanitizeFocusFailures(items: string[]): string[] {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item) => !/^operator correction:/i.test(item));
+}
+
 export function stripQuotedFocusaContext(text: string): string {
   const raw = String(text || "");
   if (!raw) return "";
@@ -800,7 +807,7 @@ export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any
   S.lastFocusSnapshot = {
     decisions: Array.isArray(fs?.decisions) ? fs.decisions : [],
     constraints: Array.isArray(fs?.constraints) ? fs.constraints : [],
-    failures: Array.isArray(fs?.failures) ? fs.failures : [],
+    failures: sanitizeFocusFailures(Array.isArray(fs?.failures) ? fs.failures : []),
     intent: fs?.intent || "",
     currentFocus: fs?.current_focus || fs?.current_state || "",
   };
@@ -1003,7 +1010,7 @@ export function getEffectiveFocusSnapshot(fs?: any): {
   return {
     decisions: fs?.decisions || S.lastFocusSnapshot.decisions || S.localDecisions,
     constraints: fs?.constraints || S.lastFocusSnapshot.constraints || S.localConstraints,
-    failures: fs?.failures || S.lastFocusSnapshot.failures || S.localFailures,
+    failures: sanitizeFocusFailures(fs?.failures || S.lastFocusSnapshot.failures || S.localFailures),
     intent: fs?.intent || S.lastFocusSnapshot.intent || "",
     currentFocus: fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || "",
   };
@@ -1026,10 +1033,10 @@ export function persistState(): void {
     queryScope: S.queryScope,
     decisions: S.localDecisions,
     constraints: S.localConstraints,
-    failures: S.localFailures,
+    failures: sanitizeFocusFailures(S.localFailures),
     authoritativeDecisions: S.lastFocusSnapshot.decisions,
     authoritativeConstraints: S.lastFocusSnapshot.constraints,
-    authoritativeFailures: S.lastFocusSnapshot.failures,
+    authoritativeFailures: sanitizeFocusFailures(S.lastFocusSnapshot.failures),
     intent: S.lastFocusSnapshot.intent,
     currentFocus: S.lastFocusSnapshot.currentFocus,
     turnCount: S.turnCount,

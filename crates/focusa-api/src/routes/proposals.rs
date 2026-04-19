@@ -50,28 +50,33 @@ async fn submit_proposal(
         _ => ProposalKind::FocusChange,
     };
 
-    let proposal_id = Uuid::now_v7();
     let payload_for_audit = payload.clone();
     let submit_source = source.to_string();
 
-    let event = FocusaEvent::ProposalSubmitted {
-        proposal_id,
-        kind,
-        source: submit_source.clone(),
-        payload,
-        deadline_ms,
-        score,
-    };
+    let _ = state
+        .command_tx
+        .send(Action::SubmitProposal {
+            kind,
+            source: submit_source.clone(),
+            payload,
+            deadline_ms,
+            score,
+        })
+        .await;
 
-    let _ = state.command_tx.send(Action::EmitEvent { event }).await;
-
-    let mut visible = false;
+    let mut proposal_id: Option<Uuid> = None;
     for _ in 0..240 {
         {
             let s = state.focusa.read().await;
-            visible = s.pre.proposals.iter().any(|p| p.id == proposal_id);
+            proposal_id = s
+                .pre
+                .proposals
+                .iter()
+                .rev()
+                .find(|p| p.kind == kind && p.source == submit_source)
+                .map(|p| p.id);
         }
-        if visible {
+        if proposal_id.is_some() {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -81,7 +86,12 @@ async fn submit_proposal(
         let entry = EventLogEntry {
             id: Uuid::now_v7(),
             timestamp: chrono::Utc::now(),
-            event: submission_audit_event(proposal_id, kind, source, &payload_for_audit),
+            event: submission_audit_event(
+                proposal_id.unwrap_or_else(Uuid::now_v7),
+                kind,
+                source,
+                &payload_for_audit,
+            ),
             correlation_id: Some("api:submit_proposal".to_string()),
             origin: SignalOrigin::Cli,
             machine_id: Some(machine_id),
@@ -95,7 +105,7 @@ async fn submit_proposal(
 
     Json(json!({
         "status": "accepted",
-        "proposal_id": if visible { Some(proposal_id.to_string()) } else { None },
+        "proposal_id": proposal_id.map(|id| id.to_string()),
         "kind": kind_str,
         "target_class": proposal_target_class(kind),
     }))
@@ -386,6 +396,18 @@ fn parse_proposal_kind(kind_str: &str) -> ProposalKind {
     }
 }
 
+fn deterministic_tiebreak_winner(
+    proposals: &[focusa_core::types::Proposal],
+) -> Option<focusa_core::types::Proposal> {
+    proposals.iter().cloned().max_by(|a, b| {
+        a.score
+            .partial_cmp(&b.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.created_at.cmp(&b.created_at))
+            .then_with(|| a.id.cmp(&b.id))
+    })
+}
+
 fn parse_autonomy_level(level: &str) -> Option<focusa_core::types::AutonomyLevel> {
     match level {
         "AL0" | "al0" => Some(focusa_core::types::AutonomyLevel::AL0),
@@ -519,9 +541,29 @@ async fn resolve_proposals(
     }
 
     let config = focusa_core::pre::resolution::ResolutionConfig::default();
-    let window_start = chrono::Utc::now();
+    let window_start = pending
+        .iter()
+        .map(|p| p.created_at)
+        .min()
+        .unwrap_or_else(chrono::Utc::now);
     let outcome =
         focusa_core::pre::resolution::resolve_proposals(&pending, &snapshot, &config, window_start);
+    let outcome = match outcome {
+        focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired { proposals, reason } => {
+            if let Some(winner) = deterministic_tiebreak_winner(&proposals) {
+                focusa_core::pre::resolution::ResolutionOutcome::Accepted {
+                    score: winner.score,
+                    winner,
+                    reason: format!("{}; resolved via deterministic tie-break", reason),
+                }
+            } else {
+                focusa_core::pre::resolution::ResolutionOutcome::RejectedAll {
+                    reason: "Clarification required but no proposals available".to_string(),
+                }
+            }
+        }
+        other => other,
+    };
 
     let mut events_to_emit: Vec<FocusaEvent> = Vec::new();
     let mut visibility_target: Option<(ProposalKind, Value)> = None;

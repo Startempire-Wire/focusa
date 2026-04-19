@@ -2259,14 +2259,13 @@ async fn start_pi_driver(
             if kind == "turn_start" || kind == "agent_start" {
                 last_assistant_output.clear();
             }
-            if kind == "message_update" {
-                if let Some(delta) = parsed
+            if kind == "message_update"
+                && let Some(delta) = parsed
                     .get("assistantMessageEvent")
                     .and_then(|v| v.get("delta"))
                     .and_then(Value::as_str)
-                {
-                    last_assistant_output.push_str(delta);
-                }
+            {
+                last_assistant_output.push_str(delta);
             }
             if (kind == "turn_end" || kind == "agent_end") && last_assistant_output.is_empty() {
                 if let Some(text) = parsed.get("message").and_then(extract_assistant_text) {

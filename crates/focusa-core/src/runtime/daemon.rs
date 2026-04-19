@@ -1938,6 +1938,7 @@ Return ONLY valid JSON:
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn secondary_loop_ledger_entry_for_outcome(
         &self,
         task_run_id: Option<TaskRunId>,
@@ -2398,11 +2399,9 @@ Return:
                 .any(|token| active_tokens.iter().any(|candidate| candidate == token))
         } else {
             normalized_operator
-                .trim()
                 .split_whitespace()
                 .all(|token| normalized_active.contains(token))
                 || normalized_active
-                    .trim()
                     .split_whitespace()
                     .all(|token| normalized_operator.contains(token))
         };
@@ -2416,6 +2415,7 @@ Return:
         (subject_hijack_prevented, subject_hijack_occurred)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn secondary_closure_trace_payloads(
         task: &SpecLinkedTaskPacket,
         decision_context: &WorkLoopDecisionContext,
@@ -2900,10 +2900,8 @@ Return:
             if id.is_empty() {
                 return false;
             }
-            if let Some(skip) = skip_work_item_id {
-                if id == skip {
-                    return false;
-                }
+            if let Some(skip) = skip_work_item_id && id == skip {
+                return false;
             }
             true
         });
@@ -3802,7 +3800,7 @@ Return:
                     spec_conformant,
                 );
                 let ledger_entry = self.secondary_loop_ledger_entry_for_outcome(
-                    task_run_id.clone(),
+                    task_run_id,
                     work_item_id.as_deref(),
                     &summary,
                     continue_reason.as_deref(),
@@ -3816,7 +3814,7 @@ Return:
                         .to_string();
                 self.persist_observability_event(
                     FocusaEvent::ContinuousSecondaryLoopOutcomeRecorded {
-                        task_run_id: task_run_id.clone(),
+                        task_run_id,
                         work_item_id: work_item_id.clone(),
                         promotion_status,
                         verification_satisfied,
@@ -4283,17 +4281,16 @@ Return:
                             });
                         }
                     }
-                    if let Some(tranche_id) = task.tranche_id.as_deref() {
-                        if !self
+                    if let Some(tranche_id) = task.tranche_id.as_deref()
+                        && !self
                             .tranche_has_remaining_ready_work(tranche_id, work_item_id.as_deref())
                             .await?
-                        {
-                            events.push(FocusaEvent::ContinuousTrancheCompleted {
-                                tranche_id: Some(tranche_id.to_string()),
-                                reason: "verified completion exhausted ready work in tranche"
-                                    .to_string(),
-                            });
-                        }
+                    {
+                        events.push(FocusaEvent::ContinuousTrancheCompleted {
+                            tranche_id: Some(tranche_id.to_string()),
+                            reason: "verified completion exhausted ready work in tranche"
+                                .to_string(),
+                        });
                     }
                 }
                 Ok(events)

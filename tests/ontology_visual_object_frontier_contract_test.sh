@@ -1,8 +1,7 @@
 #!/bin/bash
-# SPEC-79 / Doc-58 slice A: ontology primitives must define core visual/UI object frontier.
+# Runtime contract test: visual/UI object frontier must be projected with typed schemas.
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/ontology.rs"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -11,17 +10,16 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-if rg -n '"page"|"region"|"component"|"variant"|"content_slot"|"token"|"layout_rule"|"interaction"|"ui_state"|"binding"|"validation_rule"|"visual_artifact"' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "visual/UI core object frontier types are declared"
+PRIMES_JSON="$(curl -sS "${BASE_URL}/v1/ontology/primitives")"
+
+if echo "$PRIMES_JSON" | jq -e '.object_types | any(.type_name=="page") and any(.type_name=="region") and any(.type_name=="component") and any(.type_name=="variant") and any(.type_name=="content_slot") and any(.type_name=="token") and any(.type_name=="layout_rule") and any(.type_name=="interaction") and any(.type_name=="ui_state") and any(.type_name=="binding") and any(.type_name=="validation_rule") and any(.type_name=="visual_artifact")' >/dev/null 2>&1; then
+  log_pass "visual/UI core object frontier types are projected"
 else
   log_fail "visual/UI core object frontier types are missing"
 fi
 
-if rg -n '"page" => &\["id", "name", "page_kind", "primary_goal", "status"\]' "$ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n '"component" => &\["id", "name", "component_kind", "status"\]' "$ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n '"token" => &\["id", "token_kind", "value", "status"\]' "$ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n '"visual_artifact" => &\["id", "artifact_kind", "status"\]' "$ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "visual/UI frontier objects define required property schemas"
+if echo "$PRIMES_JSON" | jq -e '.object_types | any(.type_name=="page" and (.required_properties == ["id","name","page_kind","primary_goal","status"])) and any(.type_name=="component" and (.required_properties == ["id","name","component_kind","status"])) and any(.type_name=="token" and (.required_properties == ["id","token_kind","value","status"])) and any(.type_name=="visual_artifact" and (.required_properties == ["id","artifact_kind","status"]))' >/dev/null 2>&1; then
+  log_pass "visual/UI frontier objects expose required property schemas"
 else
   log_fail "required property schemas missing for one or more visual/UI frontier objects"
 fi
