@@ -1,19 +1,21 @@
 //! Ontology inspection routes.
 //!
-//! Read-only projection of the typed software/work/mission/execution world.
-//! This keeps ontology additive in implementation while making the bounded
-//! working world inspectable at runtime.
+//! Runtime projection and action entrypoints for the typed software/work/mission/execution world.
+//! This keeps ontology bounded and inspectable while routing canonical ontology
+//! mutations through governance-aware reducer events.
 
 use crate::server::AppState;
 use axum::extract::{Query, State};
-use axum::{Json, Router, routing::get};
-use focusa_core::types::{FocusaState, FrameRecord, HandleKind};
+use axum::http::StatusCode;
+use axum::{Json, Router, routing::{get, post}};
+use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use uuid::Uuid;
 
 const OBJECT_TYPES: &[&str] = &[
     "repo",
@@ -295,6 +297,17 @@ struct SliceQuery {
     frame_id: Option<String>,
     #[serde(default = "default_slice_type")]
     slice_type: String,
+}
+
+#[derive(Deserialize)]
+struct OntologyActionRequest {
+    action_type: String,
+    #[serde(default)]
+    payload: Value,
+    source: Option<String>,
+    proposal_id: Option<String>,
+    auto_verify: Option<bool>,
+    auto_promote: Option<bool>,
 }
 
 fn default_slice_type() -> String {
@@ -1288,27 +1301,28 @@ fn action_contract(action_type: &str) -> Value {
         "tool_mappings": tool_mappings,
         "tool_action_metadata": {
             "runtime_execution_supported": runtime_execution_supported,
-            "contract_role": "declarative_projection_only",
-            "route_surfaces": ["GET /v1/ontology/contracts", "GET /v1/ontology/world"]
+            "contract_role": "executable_via_ontology_action_route",
+            "route_surfaces": ["POST /v1/ontology/actions", "GET /v1/ontology/contracts", "GET /v1/ontology/world"]
         },
         "trace_metadata": {
-            "trace_surface": "projection_snapshot",
+            "trace_surface": "projection_snapshot_and_action_events",
             "emits_reducer_event_on_read": false,
-            "source_inputs": ["focus_state", "workspace_scan"]
+            "emits_reducer_event_on_action": true,
+            "source_inputs": ["focus_state", "workspace_scan", "action_payload"]
         },
         "eval_metadata": {
             "validation_mode": "route-contract-regression",
             "backing_tests": ["tests/ontology_world_contract_test.sh", "tests/tool_contract_test.sh"]
         },
         "projection_metadata": {
-            "projection_kind": "read_only_runtime_projection",
-            "mutates_canonical_state": false,
+            "projection_kind": "runtime_projection_with_action_entrypoint",
+            "mutates_canonical_state": true,
             "snapshot_consistency": "best_effort"
         },
         "governance_metadata": {
             "api_permission_scope": null,
-            "writes_allowed": false,
-            "authority_note": "ontology routes project reducer/workspace state only"
+            "writes_allowed": true,
+            "authority_note": "canonical writes are routed through ontology action events and reducer governance"
         }
     })
 }
@@ -3975,6 +3989,166 @@ pub fn active_mission_slice_summary(
     ))
 }
 
+fn parse_or_new_proposal_id(raw: Option<&str>) -> Uuid {
+    raw.and_then(|v| Uuid::parse_str(v).ok())
+        .unwrap_or_else(Uuid::now_v7)
+}
+
+fn proposed_event_from_action(
+    proposal_id: Uuid,
+    action_type: &str,
+    payload: &Value,
+    source: &str,
+) -> FocusaEvent {
+    if let (Some(link_type), Some(source_id), Some(target_id)) = (
+        payload.get("link_type").and_then(|v| v.as_str()),
+        payload.get("source_id").and_then(|v| v.as_str()),
+        payload.get("target_id").and_then(|v| v.as_str()),
+    ) {
+        return FocusaEvent::OntologyLinkUpsertProposed {
+            proposal_id,
+            link_type: link_type.to_string(),
+            source_id: source_id.to_string(),
+            target_id: target_id.to_string(),
+            source: source.to_string(),
+        };
+    }
+
+    if let (Some(subject), Some(to_status)) = (
+        payload.get("subject").and_then(|v| v.as_str()),
+        payload.get("to_status").and_then(|v| v.as_str()),
+    ) {
+        return FocusaEvent::OntologyStatusChangeProposed {
+            proposal_id,
+            subject: subject.to_string(),
+            from_status: payload
+                .get("from_status")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            to_status: to_status.to_string(),
+            source: source.to_string(),
+        };
+    }
+
+    if let (Some(subject), Some(operation)) = (
+        payload.get("subject").and_then(|v| v.as_str()),
+        payload.get("operation").and_then(|v| v.as_str()),
+    ) {
+        return FocusaEvent::OntologyWorkingSetMembershipProposed {
+            proposal_id,
+            subject: subject.to_string(),
+            operation: operation.to_string(),
+            source: source.to_string(),
+        };
+    }
+
+    let object_type = payload
+        .get("object_type")
+        .and_then(|v| v.as_str())
+        .or_else(|| action_target_types(action_type).first().copied())
+        .unwrap_or("ontology_domain")
+        .to_string();
+    let object_id = payload
+        .get("object_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| payload.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()));
+
+    FocusaEvent::OntologyObjectUpsertProposed {
+        proposal_id,
+        object_type,
+        object_id,
+        source: source.to_string(),
+    }
+}
+
+async fn execute_ontology_action(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<OntologyActionRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if !ACTION_TYPES.contains(&body.action_type.as_str()) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "unknown ontology action_type"})),
+        ));
+    }
+
+    let source = body
+        .source
+        .as_deref()
+        .unwrap_or("ontology_action_route")
+        .to_string();
+    let proposal_id = parse_or_new_proposal_id(body.proposal_id.as_deref());
+    let payload = body.payload;
+
+    let mut events = Vec::new();
+    events.push(proposed_event_from_action(
+        proposal_id,
+        &body.action_type,
+        &payload,
+        &source,
+    ));
+
+    let auto_verify = body.auto_verify.unwrap_or(true);
+    let auto_promote = body.auto_promote.unwrap_or(true);
+
+    if auto_verify {
+        events.push(FocusaEvent::OntologyVerificationApplied {
+            proposal_id: Some(proposal_id),
+            verification: format!("action:{}", body.action_type),
+            outcome: "accepted".to_string(),
+        });
+    }
+
+    if auto_promote {
+        events.push(FocusaEvent::OntologyProposalPromoted {
+            proposal_id,
+            target_class: action_target_types(&body.action_type)
+                .first()
+                .copied()
+                .unwrap_or("ontology_domain")
+                .to_string(),
+            applied_kind: body.action_type.clone(),
+        });
+    }
+
+    if body.action_type == "select_relevant_context" {
+        events.push(FocusaEvent::OntologyWorkingSetRefreshed {
+            scope: payload
+                .get("scope_kind")
+                .and_then(|v| v.as_str())
+                .unwrap_or("active_mission")
+                .to_string(),
+            reason: payload
+                .get("reason")
+                .and_then(|v| v.as_str())
+                .unwrap_or("ontology action select_relevant_context")
+                .to_string(),
+        });
+    }
+
+    for event in events {
+        state
+            .command_tx
+            .send(Action::EmitEvent { event })
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "failed to dispatch ontology action event"})),
+                )
+            })?;
+    }
+
+    Ok(Json(json!({
+        "status": "accepted",
+        "action_type": body.action_type,
+        "proposal_id": proposal_id,
+        "auto_verify": auto_verify,
+        "auto_promote": auto_promote,
+    })))
+}
+
 async fn primitives() -> Json<Value> {
     primitive_contracts()
 }
@@ -4159,6 +4333,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/ontology/contracts", get(contracts))
         .route("/v1/ontology/world", get(world))
         .route("/v1/ontology/slices", get(slices))
+        .route("/v1/ontology/actions", post(execute_ontology_action))
 }
 
 #[cfg(test)]
