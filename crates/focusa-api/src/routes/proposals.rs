@@ -385,36 +385,47 @@ fn parse_proposal_kind(kind_str: &str) -> ProposalKind {
         "autonomy_adjustment" => ProposalKind::AutonomyAdjustment,
         "constitution_revision" => ProposalKind::ConstitutionRevision,
         "memory_write" => ProposalKind::MemoryWrite,
-        "ontology_mutation"
-        | "create_version"
+        "determine_current_ask"
+        | "build_query_scope"
+        | "select_relevant_context"
+        | "exclude_irrelevant_context"
+        | "verify_answer_scope"
+        | "record_scope_failure" => ProposalKind::QueryScopeMutation,
+        "detect_aliases"
+        | "build_resolution_candidates"
+        | "resolve_identity"
+        | "verify_resolution"
+        | "record_supersession" => ProposalKind::ReferenceResolutionMutation,
+        "build_projection"
+        | "compress_projection"
+        | "verify_projection_fidelity"
+        | "switch_view_profile" => ProposalKind::ProjectionViewMutation,
+        "create_version"
         | "declare_compatibility"
         | "build_migration_plan"
         | "execute_migration"
         | "deprecate_schema_element"
         | "review_governance_change"
-        | "verify_post_migration_conformance"
-        | "detect_aliases"
-        | "build_resolution_candidates"
-        | "resolve_identity"
-        | "verify_resolution"
-        | "record_supersession"
-        | "build_projection"
-        | "compress_projection"
-        | "verify_projection_fidelity"
-        | "switch_view_profile"
-        | "determine_current_ask"
-        | "build_query_scope"
-        | "select_relevant_context"
-        | "exclude_irrelevant_context"
-        | "verify_answer_scope"
-        | "record_scope_failure"
-        | "establish_identity"
+        | "verify_post_migration_conformance" => ProposalKind::OntologyGovernanceMutation,
+        "establish_identity"
         | "load_role_profile"
         | "verify_capability_profile"
         | "verify_permission_profile"
         | "assign_responsibility"
         | "determine_handoff_boundary"
-        | "restore_identity_continuity" => ProposalKind::OntologyMutation,
+        | "restore_identity_continuity" => ProposalKind::IdentityModelMutation,
+        "derive_structure"
+        | "extract_components"
+        | "derive_slots"
+        | "infer_tokens"
+        | "infer_spacing"
+        | "map_component_tree"
+        | "attach_bindings"
+        | "attach_validation"
+        | "wire_interaction"
+        | "compare_to_reference"
+        | "critique_ui" => ProposalKind::VisualModelMutation,
+        "ontology_mutation" => ProposalKind::OntologyMutation,
         _ => ProposalKind::FocusChange,
     }
 }
@@ -451,6 +462,12 @@ fn proposal_target_class(kind: ProposalKind) -> &'static str {
         ProposalKind::ConstitutionRevision => "constitution",
         ProposalKind::MemoryWrite => "memory",
         ProposalKind::OntologyMutation => "ontology",
+        ProposalKind::QueryScopeMutation => "query_scope",
+        ProposalKind::ReferenceResolutionMutation => "reference_resolution",
+        ProposalKind::ProjectionViewMutation => "projection_view",
+        ProposalKind::OntologyGovernanceMutation => "ontology_governance",
+        ProposalKind::IdentityModelMutation => "identity_model",
+        ProposalKind::VisualModelMutation => "visual_model",
     }
 }
 
@@ -523,13 +540,27 @@ fn submission_audit_event(
                 .map(str::to_string),
             source: source.to_string(),
         },
-        ProposalKind::OntologyMutation => FocusaEvent::OntologyObjectUpsertProposed {
+        ProposalKind::OntologyMutation
+        | ProposalKind::QueryScopeMutation
+        | ProposalKind::ReferenceResolutionMutation
+        | ProposalKind::ProjectionViewMutation
+        | ProposalKind::OntologyGovernanceMutation
+        | ProposalKind::IdentityModelMutation
+        | ProposalKind::VisualModelMutation => FocusaEvent::OntologyObjectUpsertProposed {
             proposal_id,
             object_type: payload
                 .get("object_type")
                 .and_then(|v| v.as_str())
                 .or_else(|| payload.get("target_class").and_then(|v| v.as_str()))
-                .unwrap_or("ontology_domain")
+                .unwrap_or(match kind {
+                    ProposalKind::QueryScopeMutation => "query_scope",
+                    ProposalKind::ReferenceResolutionMutation => "canonical_entity",
+                    ProposalKind::ProjectionViewMutation => "projection",
+                    ProposalKind::OntologyGovernanceMutation => "governance_decision",
+                    ProposalKind::IdentityModelMutation => "agent_identity",
+                    ProposalKind::VisualModelMutation => "visual_artifact",
+                    _ => "ontology_domain",
+                })
                 .to_string(),
             object_id: payload
                 .get("object_id")
@@ -646,7 +677,13 @@ async fn resolve_proposals(
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
-                    ProposalKind::OntologyMutation => {
+                    ProposalKind::OntologyMutation
+                    | ProposalKind::QueryScopeMutation
+                    | ProposalKind::ReferenceResolutionMutation
+                    | ProposalKind::ProjectionViewMutation
+                    | ProposalKind::OntologyGovernanceMutation
+                    | ProposalKind::IdentityModelMutation
+                    | ProposalKind::VisualModelMutation => {
                         ("ontology_mutation", Vec::new())
                     }
                 };
@@ -790,7 +827,13 @@ async fn resolve_proposals(
                                 .any(|m| m.key == key && m.value == value)
                         })
                         .unwrap_or(false),
-                    ProposalKind::OntologyMutation => {
+                    ProposalKind::OntologyMutation
+                    | ProposalKind::QueryScopeMutation
+                    | ProposalKind::ReferenceResolutionMutation
+                    | ProposalKind::ProjectionViewMutation
+                    | ProposalKind::OntologyGovernanceMutation
+                    | ProposalKind::IdentityModelMutation
+                    | ProposalKind::VisualModelMutation => {
                         let object_id = payload.get("object_id").and_then(|v| v.as_str());
                         let source_id = payload.get("source_id").and_then(|v| v.as_str());
                         let target_id = payload.get("target_id").and_then(|v| v.as_str());

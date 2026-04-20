@@ -2161,6 +2161,12 @@ pub enum ProposalKind {
     ConstitutionRevision,
     MemoryWrite,
     OntologyMutation,
+    QueryScopeMutation,
+    ReferenceResolutionMutation,
+    ProjectionViewMutation,
+    OntologyGovernanceMutation,
+    IdentityModelMutation,
+    VisualModelMutation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
