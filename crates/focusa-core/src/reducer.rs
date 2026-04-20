@@ -1782,6 +1782,78 @@ pub fn reduce_with_meta(
                                 serde_json::Value::String("unavailable".to_string());
                         }
                     }
+                    "determine_current_ask" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["ask_state"] =
+                                serde_json::Value::String("determined".to_string());
+                        }
+                    }
+                    "build_query_scope" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["scope_state"] =
+                                serde_json::Value::String("built".to_string());
+                        }
+                    }
+                    "select_relevant_context" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["selection_state"] =
+                                serde_json::Value::String("selected".to_string());
+                        }
+                    }
+                    "exclude_irrelevant_context" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["selection_state"] =
+                                serde_json::Value::String("pruned".to_string());
+                        }
+                    }
+                    "verify_answer_scope" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("verified".to_string());
+                            object["scope_state"] =
+                                serde_json::Value::String("verified".to_string());
+                        }
+                    }
+                    "record_scope_failure" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("failed".to_string());
+                            object["scope_state"] =
+                                serde_json::Value::String("failed".to_string());
+                        }
+                    }
                     "create_version" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
                             && let Some(object) = state

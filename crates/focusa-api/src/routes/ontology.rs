@@ -4835,6 +4835,30 @@ mod tests {
     }
 
     #[test]
+    fn determine_current_ask_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"determine_current_ask"),
+            "determine_current_ask must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn select_relevant_context_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"select_relevant_context"),
+            "select_relevant_context must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn exclude_irrelevant_context_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"exclude_irrelevant_context"),
+            "exclude_irrelevant_context must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
     fn unknown_slice_types_fallback_to_active_mission_profile() {
         let focusa = FocusaState::default();
         let payload = slice_payload(&focusa, None, "not_a_real_slice");
