@@ -1468,6 +1468,67 @@ pub fn reduce_with_meta(
                     }
                     _ => {}
                 }
+
+                match applied_kind.as_str() {
+                    "execute_migration" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("migrated".to_string());
+                            object["migration_state"] =
+                                serde_json::Value::String("applied".to_string());
+                            object["applied_at"] = serde_json::Value::String(now.to_rfc3339());
+                        }
+                    }
+                    "resolve_identity" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("canonical".to_string());
+                            object["entity_class"] =
+                                serde_json::Value::String("canonical".to_string());
+                        }
+                        let proposal_id_str = proposal_id.to_string();
+                        for link in state.ontology.links.iter_mut().filter(|l| {
+                            l.get("proposal_id").and_then(|v| v.as_str())
+                                == Some(proposal_id_str.as_str())
+                                && l.get("type").and_then(|v| v.as_str()) == Some("canonicalizes")
+                        }) {
+                            link["status"] = serde_json::Value::String("promoted".to_string());
+                            link["evidence"] =
+                                serde_json::Value::String("identity_resolved".to_string());
+                        }
+                    }
+                    "switch_view_profile" => {
+                        if let Some(active_id) = proposal.object_id.as_ref() {
+                            for object in state.ontology.objects.iter_mut().filter(|o| {
+                                o.get("object_type").and_then(|v| v.as_str())
+                                    == Some("view_profile")
+                            }) {
+                                let is_active = object.get("id").and_then(|v| v.as_str())
+                                    == Some(active_id.as_str());
+                                object["status"] = serde_json::Value::String(
+                                    if is_active { "active" } else { "inactive" }.to_string(),
+                                );
+                            }
+                        }
+                    }
+                    _ => {}
+                }
             }
             state.ontology.delta_log.push(OntologyDeltaRecord {
                 delta_kind: "ontology_proposal_promoted".to_string(),

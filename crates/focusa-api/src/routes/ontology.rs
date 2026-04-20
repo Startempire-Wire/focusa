@@ -4060,6 +4060,42 @@ fn proposed_events_from_action(
         }
         "detect_aliases" | "build_resolution_candidates" | "resolve_identity"
         | "verify_resolution" | "record_supersession" => {
+            let canonical_object_id = if action_type == "resolve_identity" {
+                payload
+                    .get("canonical_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("entity_id").and_then(|v| v.as_str()))
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str()))
+            } else {
+                payload.get("object_id").and_then(|v| v.as_str())
+            }
+            .map(|s| s.to_string());
+
+            if action_type == "resolve_identity" {
+                if let (Some(alias_id), Some(canonical_id)) = (
+                    payload.get("alias_id").and_then(|v| v.as_str()),
+                    payload.get("canonical_id").and_then(|v| v.as_str()),
+                ) {
+                    events.push(FocusaEvent::OntologyLinkUpsertProposed {
+                        proposal_id,
+                        link_type: "canonicalizes".to_string(),
+                        source_id: alias_id.to_string(),
+                        target_id: canonical_id.to_string(),
+                        source: source.to_string(),
+                    });
+                }
+
+                if let Some(canonical_id) = canonical_object_id.clone() {
+                    events.push(FocusaEvent::OntologyStatusChangeProposed {
+                        proposal_id,
+                        subject: canonical_id,
+                        from_status: Some("candidate".to_string()),
+                        to_status: "canonical".to_string(),
+                        source: source.to_string(),
+                    });
+                }
+            }
+
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
                 proposal_id,
                 object_type: payload
@@ -4068,20 +4104,40 @@ fn proposed_events_from_action(
                     .unwrap_or(match action_type {
                         "detect_aliases" => "reference_alias",
                         "build_resolution_candidates" => "resolution_candidate",
-                        "resolve_identity" => "resolution_decision",
+                        "resolve_identity" => "canonical_entity",
                         "record_supersession" => "supersession_record",
                         _ => "canonical_entity",
                     })
                     .to_string(),
-                object_id: payload
-                    .get("object_id")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string()),
+                object_id: canonical_object_id,
                 source: source.to_string(),
             });
         }
         "build_projection" | "compress_projection" | "verify_projection_fidelity"
         | "switch_view_profile" => {
+            let view_object_id = if action_type == "switch_view_profile" {
+                payload
+                    .get("profile_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str()))
+                    .or_else(|| payload.get("actor_id").and_then(|v| v.as_str()))
+            } else {
+                payload.get("object_id").and_then(|v| v.as_str())
+            }
+            .map(|s| s.to_string());
+
+            if action_type == "switch_view_profile"
+                && let Some(view_id) = view_object_id.clone()
+            {
+                events.push(FocusaEvent::OntologyStatusChangeProposed {
+                    proposal_id,
+                    subject: view_id,
+                    from_status: Some("candidate".to_string()),
+                    to_status: "active".to_string(),
+                    source: source.to_string(),
+                });
+            }
+
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
                 proposal_id,
                 object_type: payload
@@ -4093,16 +4149,36 @@ fn proposed_events_from_action(
                         _ => "projection",
                     })
                     .to_string(),
-                object_id: payload
-                    .get("object_id")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string()),
+                object_id: view_object_id,
                 source: source.to_string(),
             });
         }
         "create_version" | "declare_compatibility" | "build_migration_plan"
         | "execute_migration" | "deprecate_schema_element" | "review_governance_change"
         | "verify_post_migration_conformance" => {
+            let migration_object_id = if action_type == "execute_migration" {
+                payload
+                    .get("migration_plan_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str()))
+                    .or_else(|| payload.get("version_id").and_then(|v| v.as_str()))
+            } else {
+                payload.get("object_id").and_then(|v| v.as_str())
+            }
+            .map(|s| s.to_string());
+
+            if action_type == "execute_migration"
+                && let Some(plan_id) = migration_object_id.clone()
+            {
+                events.push(FocusaEvent::OntologyStatusChangeProposed {
+                    proposal_id,
+                    subject: plan_id,
+                    from_status: Some("planned".to_string()),
+                    to_status: "migrated".to_string(),
+                    source: source.to_string(),
+                });
+            }
+
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
                 proposal_id,
                 object_type: payload
@@ -4116,10 +4192,7 @@ fn proposed_events_from_action(
                         _ => "governance_decision",
                     })
                     .to_string(),
-                object_id: payload
-                    .get("object_id")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string()),
+                object_id: migration_object_id,
                 source: source.to_string(),
             });
         }
