@@ -3994,72 +3994,183 @@ fn parse_or_new_proposal_id(raw: Option<&str>) -> Uuid {
         .unwrap_or_else(Uuid::now_v7)
 }
 
-fn proposed_event_from_action(
+fn proposed_events_from_action(
     proposal_id: Uuid,
     action_type: &str,
     payload: &Value,
     source: &str,
-) -> FocusaEvent {
+) -> Vec<FocusaEvent> {
+    let mut events = Vec::new();
+
     if let (Some(link_type), Some(source_id), Some(target_id)) = (
         payload.get("link_type").and_then(|v| v.as_str()),
         payload.get("source_id").and_then(|v| v.as_str()),
         payload.get("target_id").and_then(|v| v.as_str()),
     ) {
-        return FocusaEvent::OntologyLinkUpsertProposed {
+        events.push(FocusaEvent::OntologyLinkUpsertProposed {
             proposal_id,
             link_type: link_type.to_string(),
             source_id: source_id.to_string(),
             target_id: target_id.to_string(),
             source: source.to_string(),
-        };
+        });
+        return events;
     }
 
-    if let (Some(subject), Some(to_status)) = (
-        payload.get("subject").and_then(|v| v.as_str()),
-        payload.get("to_status").and_then(|v| v.as_str()),
-    ) {
-        return FocusaEvent::OntologyStatusChangeProposed {
-            proposal_id,
-            subject: subject.to_string(),
-            from_status: payload
-                .get("from_status")
+    match action_type {
+        "determine_current_ask" | "build_query_scope" | "verify_answer_scope"
+        | "record_scope_failure" => {
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: payload
+                    .get("object_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(if action_type == "determine_current_ask" {
+                        "current_ask"
+                    } else if action_type == "build_query_scope" {
+                        "query_scope"
+                    } else if action_type == "record_scope_failure" {
+                        "scope_failure"
+                    } else {
+                        "verification"
+                    })
+                    .to_string(),
+                object_id: payload
+                    .get("object_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                source: source.to_string(),
+            });
+        }
+        "select_relevant_context" | "exclude_irrelevant_context" => {
+            events.push(FocusaEvent::OntologyWorkingSetMembershipProposed {
+                proposal_id,
+                subject: payload
+                    .get("subject")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("context_membership")
+                    .to_string(),
+                operation: if action_type == "select_relevant_context" {
+                    "add".to_string()
+                } else {
+                    "remove".to_string()
+                },
+                source: source.to_string(),
+            });
+        }
+        "detect_aliases" | "build_resolution_candidates" | "resolve_identity"
+        | "verify_resolution" | "record_supersession" => {
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: payload
+                    .get("object_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(match action_type {
+                        "detect_aliases" => "reference_alias",
+                        "build_resolution_candidates" => "resolution_candidate",
+                        "resolve_identity" => "resolution_decision",
+                        "record_supersession" => "supersession_record",
+                        _ => "canonical_entity",
+                    })
+                    .to_string(),
+                object_id: payload
+                    .get("object_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                source: source.to_string(),
+            });
+        }
+        "build_projection" | "compress_projection" | "verify_projection_fidelity"
+        | "switch_view_profile" => {
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: payload
+                    .get("object_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(match action_type {
+                        "switch_view_profile" => "view_profile",
+                        "verify_projection_fidelity" => "verification",
+                        _ => "projection",
+                    })
+                    .to_string(),
+                object_id: payload
+                    .get("object_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                source: source.to_string(),
+            });
+        }
+        "create_version" | "declare_compatibility" | "build_migration_plan"
+        | "execute_migration" | "deprecate_schema_element" | "review_governance_change"
+        | "verify_post_migration_conformance" => {
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: payload
+                    .get("object_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(match action_type {
+                        "create_version" => "ontology_version",
+                        "declare_compatibility" => "compatibility_profile",
+                        "build_migration_plan" | "execute_migration" => "migration_plan",
+                        "deprecate_schema_element" => "deprecation_record",
+                        _ => "governance_decision",
+                    })
+                    .to_string(),
+                object_id: payload
+                    .get("object_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                source: source.to_string(),
+            });
+        }
+        "establish_identity" | "load_role_profile" | "verify_capability_profile"
+        | "verify_permission_profile" | "assign_responsibility"
+        | "determine_handoff_boundary" | "restore_identity_continuity" => {
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: payload
+                    .get("object_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(match action_type {
+                        "load_role_profile" => "role_profile",
+                        "verify_capability_profile" => "capability_profile",
+                        "verify_permission_profile" => "permission_profile",
+                        "assign_responsibility" => "responsibility",
+                        "determine_handoff_boundary" => "handoff_boundary",
+                        "restore_identity_continuity" => "session_continuity",
+                        _ => "agent_identity",
+                    })
+                    .to_string(),
+                object_id: payload
+                    .get("object_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                source: source.to_string(),
+            });
+        }
+        _ => {
+            let object_type = payload
+                .get("object_type")
                 .and_then(|v| v.as_str())
-                .map(|s| s.to_string()),
-            to_status: to_status.to_string(),
-            source: source.to_string(),
-        };
+                .or_else(|| action_target_types(action_type).first().copied())
+                .unwrap_or("ontology_domain")
+                .to_string();
+            let object_id = payload
+                .get("object_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .or_else(|| payload.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()));
+
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type,
+                object_id,
+                source: source.to_string(),
+            });
+        }
     }
 
-    if let (Some(subject), Some(operation)) = (
-        payload.get("subject").and_then(|v| v.as_str()),
-        payload.get("operation").and_then(|v| v.as_str()),
-    ) {
-        return FocusaEvent::OntologyWorkingSetMembershipProposed {
-            proposal_id,
-            subject: subject.to_string(),
-            operation: operation.to_string(),
-            source: source.to_string(),
-        };
-    }
-
-    let object_type = payload
-        .get("object_type")
-        .and_then(|v| v.as_str())
-        .or_else(|| action_target_types(action_type).first().copied())
-        .unwrap_or("ontology_domain")
-        .to_string();
-    let object_id = payload
-        .get("object_id")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .or_else(|| payload.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()));
-
-    FocusaEvent::OntologyObjectUpsertProposed {
-        proposal_id,
-        object_type,
-        object_id,
-        source: source.to_string(),
-    }
+    events
 }
 
 async fn execute_ontology_action(
@@ -4081,22 +4192,30 @@ async fn execute_ontology_action(
     let proposal_id = parse_or_new_proposal_id(body.proposal_id.as_deref());
     let payload = body.payload;
 
-    let mut events = Vec::new();
-    events.push(proposed_event_from_action(
-        proposal_id,
-        &body.action_type,
-        &payload,
-        &source,
-    ));
-
     let auto_verify = body.auto_verify.unwrap_or(true);
-    let auto_promote = body.auto_promote.unwrap_or(true);
+    let auto_promote = body.auto_promote.unwrap_or(false);
+
+    if auto_promote && body.action_type != "review_governance_change" {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "auto_promote requires review_governance_change action",
+                "action_type": body.action_type,
+            })),
+        ));
+    }
+
+    let mut events = proposed_events_from_action(proposal_id, &body.action_type, &payload, &source);
 
     if auto_verify {
         events.push(FocusaEvent::OntologyVerificationApplied {
             proposal_id: Some(proposal_id),
             verification: format!("action:{}", body.action_type),
-            outcome: "accepted".to_string(),
+            outcome: payload
+                .get("verification_outcome")
+                .and_then(|v| v.as_str())
+                .unwrap_or("accepted")
+                .to_string(),
         });
     }
 
@@ -4112,7 +4231,10 @@ async fn execute_ontology_action(
         });
     }
 
-    if body.action_type == "select_relevant_context" {
+    if matches!(
+        body.action_type.as_str(),
+        "select_relevant_context" | "execute_migration" | "verify_post_migration_conformance"
+    ) {
         events.push(FocusaEvent::OntologyWorkingSetRefreshed {
             scope: payload
                 .get("scope_kind")
@@ -4122,7 +4244,7 @@ async fn execute_ontology_action(
             reason: payload
                 .get("reason")
                 .and_then(|v| v.as_str())
-                .unwrap_or("ontology action select_relevant_context")
+                .unwrap_or("ontology action working-set refresh")
                 .to_string(),
         });
     }
