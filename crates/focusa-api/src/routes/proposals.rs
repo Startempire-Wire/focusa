@@ -677,14 +677,24 @@ async fn resolve_proposals(
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
-                    ProposalKind::OntologyMutation
-                    | ProposalKind::QueryScopeMutation
-                    | ProposalKind::ReferenceResolutionMutation
-                    | ProposalKind::ProjectionViewMutation
-                    | ProposalKind::OntologyGovernanceMutation
-                    | ProposalKind::IdentityModelMutation
-                    | ProposalKind::VisualModelMutation => {
-                        ("ontology_mutation", Vec::new())
+                    ProposalKind::OntologyMutation => ("ontology_mutation", Vec::new()),
+                    ProposalKind::QueryScopeMutation => {
+                        ("query_scope_mutation", Vec::new())
+                    }
+                    ProposalKind::ReferenceResolutionMutation => {
+                        ("reference_resolution_mutation", Vec::new())
+                    }
+                    ProposalKind::ProjectionViewMutation => {
+                        ("projection_view_mutation", Vec::new())
+                    }
+                    ProposalKind::OntologyGovernanceMutation => {
+                        ("ontology_governance_mutation", Vec::new())
+                    }
+                    ProposalKind::IdentityModelMutation => {
+                        ("identity_model_mutation", Vec::new())
+                    }
+                    ProposalKind::VisualModelMutation => {
+                        ("visual_model_mutation", Vec::new())
                     }
                 };
 

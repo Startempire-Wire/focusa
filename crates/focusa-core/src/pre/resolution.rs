@@ -7,7 +7,7 @@
 //! 4. Emit resolution events
 
 use crate::pre::Proposal;
-use crate::types::{FocusaState, RfmLevel};
+use crate::types::{FocusaState, ProposalKind, RfmLevel};
 use chrono::{DateTime, Utc};
 
 /// Resolution window configuration.
@@ -93,11 +93,12 @@ pub fn resolve_proposals(
     let winner = &scored[0];
 
     // Check if winner meets thresholds.
-    if winner.final_score < config.confidence_threshold {
+    let required_threshold = proposal_confidence_threshold(winner.proposal.kind, config);
+    if winner.final_score < required_threshold {
         return ResolutionOutcome::RejectedAll {
             reason: format!(
                 "Highest score {:.2} below threshold {:.2}",
-                winner.final_score, config.confidence_threshold
+                winner.final_score, required_threshold
             ),
         };
     }
@@ -106,12 +107,14 @@ pub fn resolve_proposals(
     if scored.len() > 1 {
         let second = &scored[1];
         let gap = winner.final_score - second.final_score;
-        if gap < 0.1 {
+        let required_gap = proposal_clarification_gap(winner.proposal.kind)
+            .max(proposal_clarification_gap(second.proposal.kind));
+        if gap < required_gap {
             return ResolutionOutcome::ClarificationRequired {
                 proposals: proposals.to_vec(),
                 reason: format!(
-                    "Top proposals too close: {:.2} vs {:.2}",
-                    winner.final_score, second.final_score
+                    "Top proposals too close: {:.2} vs {:.2} (required gap {:.2})",
+                    winner.final_score, second.final_score, required_gap
                 ),
             };
         }
@@ -135,8 +138,8 @@ fn score_proposal(
     config: &ResolutionConfig,
     window_start: DateTime<Utc>,
 ) -> ScoredProposal {
-    // Base score from existing score field.
-    let base_score = proposal.score;
+    // Base score from existing score field and kind-specific policy weight.
+    let base_score = proposal.score * proposal_kind_weight(proposal.kind);
 
     // Recency bonus.
     let recency_score = compute_recency_score(proposal, config, window_start);
@@ -169,6 +172,42 @@ fn compute_recency_score(
 
     // Later proposals get higher score.
     (elapsed_ms / total_ms).clamp(0.0, 1.0)
+}
+
+fn proposal_kind_weight(kind: ProposalKind) -> f64 {
+    match kind {
+        ProposalKind::OntologyGovernanceMutation => 0.95,
+        ProposalKind::ReferenceResolutionMutation => 0.97,
+        ProposalKind::IdentityModelMutation => 0.97,
+        ProposalKind::QueryScopeMutation => 0.98,
+        ProposalKind::ProjectionViewMutation => 0.98,
+        ProposalKind::VisualModelMutation => 0.99,
+        _ => 1.0,
+    }
+}
+
+fn proposal_confidence_threshold(kind: ProposalKind, config: &ResolutionConfig) -> f64 {
+    match kind {
+        ProposalKind::OntologyGovernanceMutation => config.confidence_threshold.max(0.82),
+        ProposalKind::ReferenceResolutionMutation => config.confidence_threshold.max(0.78),
+        ProposalKind::IdentityModelMutation => config.confidence_threshold.max(0.76),
+        ProposalKind::QueryScopeMutation => config.confidence_threshold.max(0.74),
+        ProposalKind::ProjectionViewMutation => config.confidence_threshold.max(0.74),
+        ProposalKind::VisualModelMutation => config.confidence_threshold.max(0.72),
+        _ => config.confidence_threshold,
+    }
+}
+
+fn proposal_clarification_gap(kind: ProposalKind) -> f64 {
+    match kind {
+        ProposalKind::OntologyGovernanceMutation => 0.2,
+        ProposalKind::ReferenceResolutionMutation => 0.15,
+        ProposalKind::IdentityModelMutation => 0.14,
+        ProposalKind::QueryScopeMutation => 0.12,
+        ProposalKind::ProjectionViewMutation => 0.12,
+        ProposalKind::VisualModelMutation => 0.11,
+        _ => 0.1,
+    }
 }
 
 /// Apply RFM-based risk adjustment.
