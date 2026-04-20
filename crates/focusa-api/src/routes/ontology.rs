@@ -4156,25 +4156,68 @@ fn proposed_events_from_action(
         "create_version" | "declare_compatibility" | "build_migration_plan"
         | "execute_migration" | "deprecate_schema_element" | "review_governance_change"
         | "verify_post_migration_conformance" => {
-            let migration_object_id = if action_type == "execute_migration" {
-                payload
+            let governance_object_id = match action_type {
+                "create_version" => payload
+                    .get("version_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str())),
+                "declare_compatibility" => payload
+                    .get("compatibility_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str())),
+                "build_migration_plan" | "execute_migration" => payload
                     .get("migration_plan_id")
                     .and_then(|v| v.as_str())
                     .or_else(|| payload.get("object_id").and_then(|v| v.as_str()))
-                    .or_else(|| payload.get("version_id").and_then(|v| v.as_str()))
-            } else {
-                payload.get("object_id").and_then(|v| v.as_str())
+                    .or_else(|| payload.get("version_id").and_then(|v| v.as_str())),
+                "deprecate_schema_element" => payload
+                    .get("schema_element_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str())),
+                "review_governance_change" => payload
+                    .get("decision_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str())),
+                "verify_post_migration_conformance" => payload
+                    .get("conformance_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("object_id").and_then(|v| v.as_str())),
+                _ => payload.get("object_id").and_then(|v| v.as_str()),
             }
             .map(|s| s.to_string());
 
-            if action_type == "execute_migration"
-                && let Some(plan_id) = migration_object_id.clone()
-            {
+            if let Some(subject) = governance_object_id.clone() {
+                let (from_status, to_status) = match action_type {
+                    "create_version" => (Some("draft".to_string()), "active".to_string()),
+                    "declare_compatibility" => {
+                        (Some("candidate".to_string()), "declared".to_string())
+                    }
+                    "build_migration_plan" => {
+                        (Some("candidate".to_string()), "planned".to_string())
+                    }
+                    "execute_migration" => (Some("planned".to_string()), "migrated".to_string()),
+                    "deprecate_schema_element" => {
+                        (Some("active".to_string()), "deprecated".to_string())
+                    }
+                    "review_governance_change" => (
+                        Some("proposed".to_string()),
+                        payload
+                            .get("decision")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("approved")
+                            .to_string(),
+                    ),
+                    "verify_post_migration_conformance" => {
+                        (Some("pending".to_string()), "verified".to_string())
+                    }
+                    _ => (Some("candidate".to_string()), "active".to_string()),
+                };
+
                 events.push(FocusaEvent::OntologyStatusChangeProposed {
                     proposal_id,
-                    subject: plan_id,
-                    from_status: Some("planned".to_string()),
-                    to_status: "migrated".to_string(),
+                    subject,
+                    from_status,
+                    to_status,
                     source: source.to_string(),
                 });
             }
@@ -4189,10 +4232,11 @@ fn proposed_events_from_action(
                         "declare_compatibility" => "compatibility_profile",
                         "build_migration_plan" | "execute_migration" => "migration_plan",
                         "deprecate_schema_element" => "deprecation_record",
+                        "verify_post_migration_conformance" => "conformance_report",
                         _ => "governance_decision",
                     })
                     .to_string(),
-                object_id: migration_object_id,
+                object_id: governance_object_id,
                 source: source.to_string(),
             });
         }

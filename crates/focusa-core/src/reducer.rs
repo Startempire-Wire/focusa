@@ -1527,6 +1527,102 @@ pub fn reduce_with_meta(
                             }
                         }
                     }
+                    "create_version" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("active".to_string());
+                            object["version_state"] =
+                                serde_json::Value::String("created".to_string());
+                        }
+                    }
+                    "declare_compatibility" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("declared".to_string());
+                            object["compatibility_state"] =
+                                serde_json::Value::String("declared".to_string());
+                        }
+                    }
+                    "build_migration_plan" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("planned".to_string());
+                            object["migration_state"] =
+                                serde_json::Value::String("planned".to_string());
+                        }
+                    }
+                    "deprecate_schema_element" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("deprecated".to_string());
+                            object["lifecycle"] =
+                                serde_json::Value::String("deprecated".to_string());
+                        }
+                    }
+                    "review_governance_change" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("approved".to_string());
+                            object["governance_state"] =
+                                serde_json::Value::String("reviewed".to_string());
+                        }
+                    }
+                    "verify_post_migration_conformance" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] = serde_json::Value::String("verified".to_string());
+                            object["conformance_state"] =
+                                serde_json::Value::String("verified".to_string());
+                        }
+                    }
                     _ => {}
                 }
             }

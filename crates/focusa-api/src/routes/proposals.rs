@@ -471,6 +471,42 @@ fn proposal_target_class(kind: ProposalKind) -> &'static str {
     }
 }
 
+fn derived_ontology_applied_kind(kind: ProposalKind, payload: &Value) -> String {
+    if let Some(action_type) = payload.get("action_type").and_then(|v| v.as_str()) {
+        let parsed = parse_proposal_kind(action_type);
+        let parsed_is_ontology_family = matches!(
+            parsed,
+            ProposalKind::OntologyMutation
+                | ProposalKind::QueryScopeMutation
+                | ProposalKind::ReferenceResolutionMutation
+                | ProposalKind::ProjectionViewMutation
+                | ProposalKind::OntologyGovernanceMutation
+                | ProposalKind::IdentityModelMutation
+                | ProposalKind::VisualModelMutation
+        );
+
+        if parsed == kind || (kind == ProposalKind::OntologyMutation && parsed_is_ontology_family) {
+            return action_type.to_string();
+        }
+    }
+
+    match kind {
+        ProposalKind::OntologyMutation => "ontology_mutation",
+        ProposalKind::QueryScopeMutation => "query_scope_mutation",
+        ProposalKind::ReferenceResolutionMutation => "reference_resolution_mutation",
+        ProposalKind::ProjectionViewMutation => "projection_view_mutation",
+        ProposalKind::OntologyGovernanceMutation => "ontology_governance_mutation",
+        ProposalKind::IdentityModelMutation => "identity_model_mutation",
+        ProposalKind::VisualModelMutation => "visual_model_mutation",
+        ProposalKind::FocusChange => "focus_frame_pushed",
+        ProposalKind::ThesisUpdate => "thread_thesis_updated",
+        ProposalKind::AutonomyAdjustment => "autonomy_adjusted",
+        ProposalKind::ConstitutionRevision => "constitution_loaded",
+        ProposalKind::MemoryWrite => "semantic_memory_upserted",
+    }
+    .to_string()
+}
+
 fn submission_audit_event(
     proposal_id: Uuid,
     kind: ProposalKind,
@@ -644,57 +680,47 @@ async fn resolve_proposals(
             reason,
         } => {
             visibility_target = Some((winner.kind, winner.payload.clone()));
-            let (applied_kind, mut domain_events) =
+            let (applied_kind, mut domain_events): (String, Vec<FocusaEvent>) =
                 match winner.kind {
                     ProposalKind::FocusChange => {
                         let reduction =
                             apply_focus_change_proposal(snapshot.clone(), &winner, "api").map_err(
                                 |err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))),
                             )?;
-                        ("focus_frame_pushed", reduction.emitted_events)
+                        ("focus_frame_pushed".to_string(), reduction.emitted_events)
                     }
                     ProposalKind::ThesisUpdate => (
-                        "thread_thesis_updated",
+                        "thread_thesis_updated".to_string(),
                         vec![thesis_update_event(&winner).map_err(|err| {
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
                     ProposalKind::AutonomyAdjustment => (
-                        "autonomy_adjusted",
+                        "autonomy_adjusted".to_string(),
                         vec![autonomy_adjustment_event(&winner).map_err(|err| {
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
                     ProposalKind::ConstitutionRevision => (
-                        "constitution_loaded",
+                        "constitution_loaded".to_string(),
                         vec![constitution_revision_event(&winner).map_err(|err| {
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
                     ProposalKind::MemoryWrite => (
-                        "semantic_memory_upserted",
+                        "semantic_memory_upserted".to_string(),
                         vec![memory_write_event(&winner).map_err(|err| {
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
-                    ProposalKind::OntologyMutation => ("ontology_mutation", Vec::new()),
-                    ProposalKind::QueryScopeMutation => {
-                        ("query_scope_mutation", Vec::new())
-                    }
-                    ProposalKind::ReferenceResolutionMutation => {
-                        ("reference_resolution_mutation", Vec::new())
-                    }
-                    ProposalKind::ProjectionViewMutation => {
-                        ("projection_view_mutation", Vec::new())
-                    }
-                    ProposalKind::OntologyGovernanceMutation => {
-                        ("ontology_governance_mutation", Vec::new())
-                    }
-                    ProposalKind::IdentityModelMutation => {
-                        ("identity_model_mutation", Vec::new())
-                    }
-                    ProposalKind::VisualModelMutation => {
-                        ("visual_model_mutation", Vec::new())
+                    ProposalKind::OntologyMutation
+                    | ProposalKind::QueryScopeMutation
+                    | ProposalKind::ReferenceResolutionMutation
+                    | ProposalKind::ProjectionViewMutation
+                    | ProposalKind::OntologyGovernanceMutation
+                    | ProposalKind::IdentityModelMutation
+                    | ProposalKind::VisualModelMutation => {
+                        (derived_ontology_applied_kind(winner.kind, &winner.payload), Vec::new())
                     }
                 };
 
@@ -725,7 +751,7 @@ async fn resolve_proposals(
             events_to_emit.push(FocusaEvent::OntologyProposalPromoted {
                 proposal_id: winner.id,
                 target_class: proposal_target_class(winner.kind).to_string(),
-                applied_kind: applied_kind.to_string(),
+                applied_kind: applied_kind.clone(),
             });
             if winner.kind == ProposalKind::FocusChange {
                 events_to_emit.push(FocusaEvent::OntologyWorkingSetRefreshed {
