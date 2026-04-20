@@ -153,6 +153,9 @@ const LINK_TYPES: &[&str] = &[
     "blocks",
     "supersedes",
     "belongs_to_goal",
+    "belongs_to_working_set",
+    "constrains",
+    "supports",
     "verifies",
     "derived_from",
     "contains",
@@ -202,6 +205,16 @@ const LINK_TYPES: &[&str] = &[
     "bounded_by_handoff",
     "persists_via",
     "governed_by_identity",
+    "commits_to",
+    "inhibits",
+    "persists_on",
+    "abandons_under",
+    "drives_completion_of",
+    "conflicts_with",
+    "retained_under",
+    "decays_via",
+    "archived_as",
+    "pruned_by",
 ];
 const ACTION_TYPES: &[&str] = &[
     "refactor_module",
@@ -210,8 +223,17 @@ const ACTION_TYPES: &[&str] = &[
     "add_test",
     "verify_invariant",
     "promote_decision",
+    "decompose_goal",
+    "prioritize_work",
+    "record_decision",
+    "register_constraint",
+    "identify_risk",
     "mark_blocked",
     "resolve_risk",
+    "restore_progress",
+    "verify_progress",
+    "refresh_working_set",
+    "close_loop",
     "complete_task",
     "rollback_change",
     "detect_affordances",
@@ -509,8 +531,17 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
         "add_test" => &["test", "module", "file"],
         "verify_invariant" => &["verification", "test", "constraint"],
         "promote_decision" => &["decision"],
+        "decompose_goal" => &["goal", "subgoal", "task", "active_focus"],
+        "prioritize_work" => &["task", "goal", "subgoal", "milestone"],
+        "record_decision" => &["decision", "goal", "constraint", "risk"],
+        "register_constraint" => &["constraint", "goal", "task", "risk"],
+        "identify_risk" => &["risk", "task", "goal", "verification"],
         "mark_blocked" => &["task", "goal", "risk", "failure"],
         "resolve_risk" => &["risk", "verification", "task"],
+        "restore_progress" => &["task", "goal", "milestone", "active_focus"],
+        "verify_progress" => &["verification", "task", "goal", "milestone"],
+        "refresh_working_set" => &["active_focus", "task", "goal", "subgoal"],
+        "close_loop" => &["task", "goal", "verification", "decision"],
         "complete_task" => &["task", "goal", "milestone"],
         "rollback_change" => &["patch", "diff", "artifact"],
         "detect_affordances" => &[
@@ -4018,6 +4049,81 @@ fn proposed_events_from_action(
     }
 
     match action_type {
+        "decompose_goal"
+        | "prioritize_work"
+        | "record_decision"
+        | "register_constraint"
+        | "identify_risk"
+        | "mark_blocked"
+        | "restore_progress"
+        | "verify_progress"
+        | "refresh_working_set"
+        | "close_loop"
+        | "complete_task" => {
+            let subject_id = payload
+                .get("object_id")
+                .or_else(|| payload.get("task_id"))
+                .or_else(|| payload.get("goal_id"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            if matches!(
+                action_type,
+                "mark_blocked" | "restore_progress" | "verify_progress" | "complete_task"
+            ) {
+                if let Some(subject) = subject_id.clone() {
+                    let to_status = match action_type {
+                        "mark_blocked" => "blocked",
+                        "restore_progress" => "active",
+                        "verify_progress" => "verified",
+                        "complete_task" => "completed",
+                        _ => "active",
+                    };
+                    events.push(FocusaEvent::OntologyStatusChangeProposed {
+                        proposal_id,
+                        subject,
+                        from_status: payload
+                            .get("from_status")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                        to_status: to_status.to_string(),
+                        source: source.to_string(),
+                    });
+                }
+            }
+
+            if action_type == "refresh_working_set" {
+                events.push(FocusaEvent::OntologyWorkingSetMembershipProposed {
+                    proposal_id,
+                    subject: payload
+                        .get("subject")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("working_set")
+                        .to_string(),
+                    operation: "add".to_string(),
+                    source: source.to_string(),
+                });
+            }
+
+            events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: payload
+                    .get("object_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(match action_type {
+                        "decompose_goal" => "subgoal",
+                        "prioritize_work" => "task",
+                        "record_decision" => "decision",
+                        "register_constraint" => "constraint",
+                        "identify_risk" => "risk",
+                        "close_loop" => "verification",
+                        _ => "task",
+                    })
+                    .to_string(),
+                object_id: subject_id,
+                source: source.to_string(),
+            });
+        }
         "determine_current_ask" | "build_query_scope" | "verify_answer_scope"
         | "record_scope_failure" => {
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
@@ -4350,7 +4456,10 @@ async fn execute_ontology_action(
 
     if matches!(
         body.action_type.as_str(),
-        "select_relevant_context" | "execute_migration" | "verify_post_migration_conformance"
+        "select_relevant_context"
+            | "refresh_working_set"
+            | "execute_migration"
+            | "verify_post_migration_conformance"
     ) {
         events.push(FocusaEvent::OntologyWorkingSetRefreshed {
             scope: payload
@@ -4580,6 +4689,150 @@ mod tests {
     use super::*;
     use focusa_core::types::FocusaState;
     use serde_json::json;
+
+    #[test]
+    fn retained_under_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"retained_under"),
+            "retained_under must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn decays_via_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"decays_via"),
+            "decays_via must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn archived_as_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"archived_as"),
+            "archived_as must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn pruned_by_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"pruned_by"),
+            "pruned_by must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn constrains_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"constrains"),
+            "constrains must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn supports_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"supports"),
+            "supports must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn belongs_to_working_set_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"belongs_to_working_set"),
+            "belongs_to_working_set must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn commits_to_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"commits_to"),
+            "commits_to must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn inhibits_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"inhibits"),
+            "inhibits must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn abandons_under_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"abandons_under"),
+            "abandons_under must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn drives_completion_of_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"drives_completion_of"),
+            "drives_completion_of must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn persists_on_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"persists_on"),
+            "persists_on must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn conflicts_with_link_type_is_registered() {
+        assert!(
+            LINK_TYPES.contains(&"conflicts_with"),
+            "conflicts_with must be available in ontology link catalog"
+        );
+    }
+
+    #[test]
+    fn decompose_goal_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"decompose_goal"),
+            "decompose_goal must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn record_decision_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"record_decision"),
+            "record_decision must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn prioritize_work_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"prioritize_work"),
+            "prioritize_work must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn detect_affordances_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"detect_affordances"),
+            "detect_affordances must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn verify_permissions_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"verify_permissions"),
+            "verify_permissions must be available in ontology action catalog"
+        );
+    }
 
     #[test]
     fn unknown_slice_types_fallback_to_active_mission_profile() {
