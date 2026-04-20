@@ -41,14 +41,7 @@ async fn submit_proposal(
         .unwrap_or(5000);
     let score = body.get("score").and_then(|v| v.as_f64());
 
-    let kind = match kind_str {
-        "focus_change" => ProposalKind::FocusChange,
-        "thesis_update" => ProposalKind::ThesisUpdate,
-        "autonomy_adjustment" => ProposalKind::AutonomyAdjustment,
-        "constitution_revision" => ProposalKind::ConstitutionRevision,
-        "memory_write" => ProposalKind::MemoryWrite,
-        _ => ProposalKind::FocusChange,
-    };
+    let kind = parse_proposal_kind(kind_str);
 
     let payload_for_audit = payload.clone();
     let submit_source = source.to_string();
@@ -392,6 +385,36 @@ fn parse_proposal_kind(kind_str: &str) -> ProposalKind {
         "autonomy_adjustment" => ProposalKind::AutonomyAdjustment,
         "constitution_revision" => ProposalKind::ConstitutionRevision,
         "memory_write" => ProposalKind::MemoryWrite,
+        "ontology_mutation"
+        | "create_version"
+        | "declare_compatibility"
+        | "build_migration_plan"
+        | "execute_migration"
+        | "deprecate_schema_element"
+        | "review_governance_change"
+        | "verify_post_migration_conformance"
+        | "detect_aliases"
+        | "build_resolution_candidates"
+        | "resolve_identity"
+        | "verify_resolution"
+        | "record_supersession"
+        | "build_projection"
+        | "compress_projection"
+        | "verify_projection_fidelity"
+        | "switch_view_profile"
+        | "determine_current_ask"
+        | "build_query_scope"
+        | "select_relevant_context"
+        | "exclude_irrelevant_context"
+        | "verify_answer_scope"
+        | "record_scope_failure"
+        | "establish_identity"
+        | "load_role_profile"
+        | "verify_capability_profile"
+        | "verify_permission_profile"
+        | "assign_responsibility"
+        | "determine_handoff_boundary"
+        | "restore_identity_continuity" => ProposalKind::OntologyMutation,
         _ => ProposalKind::FocusChange,
     }
 }
@@ -427,6 +450,7 @@ fn proposal_target_class(kind: ProposalKind) -> &'static str {
         ProposalKind::AutonomyAdjustment => "autonomy",
         ProposalKind::ConstitutionRevision => "constitution",
         ProposalKind::MemoryWrite => "memory",
+        ProposalKind::OntologyMutation => "ontology",
     }
 }
 
@@ -495,6 +519,20 @@ fn submission_audit_event(
             object_type: "semantic_memory_entry".to_string(),
             object_id: payload
                 .get("key")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            source: source.to_string(),
+        },
+        ProposalKind::OntologyMutation => FocusaEvent::OntologyObjectUpsertProposed {
+            proposal_id,
+            object_type: payload
+                .get("object_type")
+                .and_then(|v| v.as_str())
+                .or_else(|| payload.get("target_class").and_then(|v| v.as_str()))
+                .unwrap_or("ontology_domain")
+                .to_string(),
+            object_id: payload
+                .get("object_id")
                 .and_then(|v| v.as_str())
                 .map(str::to_string),
             source: source.to_string(),
@@ -608,6 +646,9 @@ async fn resolve_proposals(
                             (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
                         })?],
                     ),
+                    ProposalKind::OntologyMutation => {
+                        ("ontology_mutation", Vec::new())
+                    }
                 };
 
             events_to_emit.append(&mut domain_events);
@@ -749,6 +790,29 @@ async fn resolve_proposals(
                                 .any(|m| m.key == key && m.value == value)
                         })
                         .unwrap_or(false),
+                    ProposalKind::OntologyMutation => {
+                        let object_id = payload.get("object_id").and_then(|v| v.as_str());
+                        let source_id = payload.get("source_id").and_then(|v| v.as_str());
+                        let target_id = payload.get("target_id").and_then(|v| v.as_str());
+                        match (object_id, source_id, target_id) {
+                            (Some(object_id), _, _) => s
+                                .ontology
+                                .objects
+                                .iter()
+                                .any(|o| o.get("id").and_then(|v| v.as_str()) == Some(object_id)),
+                            (None, Some(source_id), Some(target_id)) => s
+                                .ontology
+                                .links
+                                .iter()
+                                .any(|l| {
+                                    l.get("source_id").and_then(|v| v.as_str())
+                                        == Some(source_id)
+                                        && l.get("target_id").and_then(|v| v.as_str())
+                                            == Some(target_id)
+                                }),
+                            _ => true,
+                        }
+                    }
                 }
             };
             if visible {

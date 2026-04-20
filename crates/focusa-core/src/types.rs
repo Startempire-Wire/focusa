@@ -2160,6 +2160,7 @@ pub enum ProposalKind {
     AutonomyAdjustment,
     ConstitutionRevision,
     MemoryWrite,
+    OntologyMutation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
