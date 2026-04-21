@@ -1854,6 +1854,90 @@ pub fn reduce_with_meta(
                                 serde_json::Value::String("failed".to_string());
                         }
                     }
+                    "establish_identity" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["identity_state"] =
+                                serde_json::Value::String("established".to_string());
+                        }
+                    }
+                    "load_role_profile" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["role_state"] =
+                                serde_json::Value::String("loaded".to_string());
+                        }
+                    }
+                    "verify_capability_profile" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("verified".to_string());
+                            object["capability_state"] =
+                                serde_json::Value::String("verified".to_string());
+                        }
+                    }
+                    "verify_permission_profile" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("verified".to_string());
+                            object["permission_state"] =
+                                serde_json::Value::String("verified".to_string());
+                        }
+                    }
+                    "assign_responsibility" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["responsibility_state"] =
+                                serde_json::Value::String("assigned".to_string());
+                        }
+                    }
+                    "determine_handoff_boundary" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["handoff_state"] =
+                                serde_json::Value::String("bounded".to_string());
+                        }
+                    }
+                    "restore_identity_continuity" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["continuity_state"] =
+                                serde_json::Value::String("restored".to_string());
+                        }
+                    }
                     "create_version" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
                             && let Some(object) = state

@@ -223,6 +223,15 @@ const ACTION_TYPES: &[&str] = &[
     "add_test",
     "verify_invariant",
     "promote_decision",
+    "apply_inhibition",
+    "evaluate_switch",
+    "maintain_commitment",
+    "authorize_abandonment",
+    "push_to_completion",
+    "evaluate_retention",
+    "archive_object",
+    "restore_from_archive",
+    "prune_active_context",
     "decompose_goal",
     "prioritize_work",
     "record_decision",
@@ -531,6 +540,15 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
         "add_test" => &["test", "module", "file"],
         "verify_invariant" => &["verification", "test", "constraint"],
         "promote_decision" => &["decision"],
+        "apply_inhibition" => &["active_focus", "open_loop", "goal", "risk"],
+        "evaluate_switch" => &["active_focus", "goal", "risk", "verification"],
+        "maintain_commitment" => &["active_focus", "goal", "task", "open_loop"],
+        "authorize_abandonment" => &["active_focus", "goal", "task", "risk"],
+        "push_to_completion" => &["task", "goal", "milestone", "active_focus"],
+        "evaluate_retention" => &["artifact", "verification", "active_focus", "goal"],
+        "archive_object" => &["artifact", "archive_record", "retention_policy"],
+        "restore_from_archive" => &["archive_record", "artifact", "canonical_entity"],
+        "prune_active_context" => &["active_focus", "working_set", "retention_policy"],
         "decompose_goal" => &["goal", "subgoal", "task", "active_focus"],
         "prioritize_work" => &["task", "goal", "subgoal", "milestone"],
         "record_decision" => &["decision", "goal", "constraint", "risk"],
@@ -4855,6 +4873,174 @@ mod tests {
         assert!(
             ACTION_TYPES.contains(&"exclude_irrelevant_context"),
             "exclude_irrelevant_context must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn establish_identity_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"establish_identity"),
+            "establish_identity must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn load_role_profile_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"load_role_profile"),
+            "load_role_profile must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn verify_capability_profile_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"verify_capability_profile"),
+            "verify_capability_profile must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn determine_handoff_boundary_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"determine_handoff_boundary"),
+            "determine_handoff_boundary must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn restore_identity_continuity_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"restore_identity_continuity"),
+            "restore_identity_continuity must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn apply_inhibition_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"apply_inhibition"),
+            "apply_inhibition must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn evaluate_switch_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"evaluate_switch"),
+            "evaluate_switch must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn maintain_commitment_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"maintain_commitment"),
+            "maintain_commitment must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn push_to_completion_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"push_to_completion"),
+            "push_to_completion must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn authorize_abandonment_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"authorize_abandonment"),
+            "authorize_abandonment must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn detect_aliases_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"detect_aliases"),
+            "detect_aliases must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn build_resolution_candidates_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"build_resolution_candidates"),
+            "build_resolution_candidates must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn verify_resolution_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"verify_resolution"),
+            "verify_resolution must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn record_supersession_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"record_supersession"),
+            "record_supersession must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn build_projection_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"build_projection"),
+            "build_projection must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn evaluate_retention_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"evaluate_retention"),
+            "evaluate_retention must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn archive_object_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"archive_object"),
+            "archive_object must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn restore_from_archive_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"restore_from_archive"),
+            "restore_from_archive must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn prune_active_context_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"prune_active_context"),
+            "prune_active_context must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn compress_projection_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"compress_projection"),
+            "compress_projection must be available in ontology action catalog"
+        );
+    }
+
+    #[test]
+    fn verify_projection_fidelity_action_type_is_registered() {
+        assert!(
+            ACTION_TYPES.contains(&"verify_projection_fidelity"),
+            "verify_projection_fidelity must be available in ontology action catalog"
         );
     }
 
