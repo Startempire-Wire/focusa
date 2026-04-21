@@ -145,7 +145,7 @@ code=$(http_code "${BASE_URL}/v1/ontology/primitives")
 if [ "$code" = "200" ]; then
   json_assert '.object_types | length > 10' "ObjectType catalog exposed"
   json_assert '.object_types | any(.type_name == "decision") and any(.type_name == "artifact") and any(.type_name == "goal")' "Core object families present"
-  json_assert '.link_types | any(.name == "depends_on") and any(.name == "verifies") and any(.name == "blocks")' "Required link types present"
+  json_assert '.link_types | any(.name == "depends_on") and any(.name == "verifies") and any(.name == "blocks") and any(.name == "constrains") and any(.name == "supports") and any(.name == "belongs_to_working_set") and any(.name == "commits_to") and any(.name == "conflicts_with") and any(.name == "retained_under")' "Required link types present"
   json_assert '.action_types | any(.name == "refactor_module") and any(.name == "add_test") and any(.name == "rollback_change")' "Required action types present"
   json_assert '.status_vocabulary | index("canonical") and index("verified") and index("blocked")' "Status vocabulary present"
   json_assert '.provenance_classes | index("tool_derived") and index("reducer_promoted") and index("verification_confirmed")' "Provenance classes present"
@@ -191,7 +191,7 @@ fi
 log_info "Slice endpoint surfaces"
 code=$(http_code "${BASE_URL}/v1/ontology/slices?frame_id=${frame_id}&slice_type=active_mission")
 if [ "$code" = "200" ]; then
-  json_assert '.slice_type == "active_mission" and .count >= 1 and (.members | length >= 1)' "Active-mission slice endpoint bounded members"
+  json_assert '.requested_slice_type == "active_mission" and (.slice_type == "active_mission" or .slice_type == "regression") and .count >= 1 and (.members | length >= 1)' "Active-mission slice endpoint bounded members"
 else
   log_fail "Ontology slices endpoint failed with HTTP ${code}"
 fi
