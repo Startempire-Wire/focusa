@@ -2,6 +2,7 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
+use serde_json::json;
 
 #[derive(Subcommand)]
 pub enum EventsCmd {
@@ -18,9 +19,37 @@ pub enum EventsCmd {
 }
 
 #[derive(Subcommand)]
+pub enum SnapshotCmd {
+    /// Create snapshot bound to CLT node.
+    Create {
+        #[arg(long)]
+        clt_node_id: Option<String>,
+        #[arg(long)]
+        snapshot_reason: Option<String>,
+    },
+    /// Restore snapshot by id.
+    Restore {
+        #[arg(long)]
+        snapshot_id: String,
+        #[arg(long, default_value = "exact")]
+        restore_mode: String,
+    },
+    /// Diff two snapshots.
+    Diff {
+        #[arg(long = "from")]
+        from_snapshot_id: String,
+        #[arg(long = "to")]
+        to_snapshot_id: String,
+    },
+}
+
+#[derive(Subcommand)]
 pub enum StateCmd {
     /// Dump full cognitive state.
     Dump,
+    /// Snapshot operations.
+    #[command(subcommand)]
+    Snapshot(SnapshotCmd),
 }
 
 pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
@@ -67,13 +96,61 @@ pub async fn run_events(cmd: EventsCmd, json_mode: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn run_state(cmd: StateCmd) -> anyhow::Result<()> {
+pub async fn run_state(cmd: StateCmd, json_mode: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
 
     match cmd {
         StateCmd::Dump => {
             let resp = api.get("/v1/state/dump").await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
+        }
+        StateCmd::Snapshot(SnapshotCmd::Create {
+            clt_node_id,
+            snapshot_reason,
+        }) => {
+            let body = json!({
+                "clt_node_id": clt_node_id,
+                "snapshot_reason": snapshot_reason,
+            });
+            let resp = api.post("/v1/focus/snapshots", &body).await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("snapshot create: {}", resp["snapshot_id"].as_str().unwrap_or("unknown"));
+            }
+        }
+        StateCmd::Snapshot(SnapshotCmd::Restore {
+            snapshot_id,
+            restore_mode,
+        }) => {
+            let body = json!({
+                "snapshot_id": snapshot_id,
+                "restore_mode": restore_mode,
+            });
+            let resp = api.post("/v1/focus/snapshots/restore", &body).await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!("snapshot restore: {}", resp["snapshot_id"].as_str().unwrap_or("unknown"));
+            }
+        }
+        StateCmd::Snapshot(SnapshotCmd::Diff {
+            from_snapshot_id,
+            to_snapshot_id,
+        }) => {
+            let body = json!({
+                "from_snapshot_id": from_snapshot_id,
+                "to_snapshot_id": to_snapshot_id,
+            });
+            let resp = api.post("/v1/focus/snapshots/diff", &body).await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!(
+                    "snapshot diff: changed={}",
+                    resp["checksum_changed"].as_bool().unwrap_or(false)
+                );
+            }
         }
     }
     Ok(())

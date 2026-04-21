@@ -112,7 +112,13 @@ No files written.
 
 ---
 
-## 6. Manifest File
+## 6. Current Implementation Notes
+
+- `jsonl` output writes one JSON object per line.
+- `parquet` output is implemented and writes records into a UTF8 column named `record_json`.
+- API route `/v1/export/run` drives record selection; CLI handles file encoding/write.
+
+## 7. Manifest File
 
 Each export produces a manifest:
 
@@ -130,7 +136,7 @@ Each export produces a manifest:
 
 ---
 
-## 7. Safety & Privacy Guarantees
+## 8. Safety & Privacy Guarantees
 
 - No network calls
 - No mutation of Focusa state
@@ -140,7 +146,7 @@ Each export produces a manifest:
 
 ---
 
-## 8. Integration Targets
+## 9. Integration Targets
 
 Verified compatibility with:
 - Unsloth
@@ -150,7 +156,7 @@ Verified compatibility with:
 
 ---
 
-## 9. Canonical Rule
+## 10. Canonical Rule
 
 > **Exporting data is an act of training — not logging.  
 > Treat it with the same rigor as model evaluation.**

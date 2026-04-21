@@ -3,9 +3,15 @@
 //! focusa export <dataset_type> --output <path> [options]
 
 use crate::api_client::ApiClient;
-use anyhow::bail;
+use anyhow::Context;
 use clap::{Subcommand, ValueEnum};
-use serde_json::json;
+use parquet::data_type::{ByteArray, ByteArrayType};
+use parquet::file::properties::WriterProperties;
+use parquet::file::writer::SerializedFileWriter;
+use parquet::schema::parser::parse_message_type;
+use serde_json::{Value, json};
+use std::fs;
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum ExportFormat {
@@ -173,39 +179,115 @@ pub enum ExportCmd {
     Status,
 }
 
-fn print_not_implemented_json(value: serde_json::Value) -> anyhow::Result<()> {
-    println!("{}", serde_json::to_string_pretty(&value)?);
+fn write_jsonl(path: &str, records: &[Value]) -> anyhow::Result<()> {
+    let mut out = String::new();
+    for record in records {
+        out.push_str(&serde_json::to_string(record)?);
+        out.push('\n');
+    }
+    fs::write(path, out).with_context(|| format!("failed to write dataset: {path}"))?;
     Ok(())
 }
 
-fn emit_not_implemented(
+fn write_parquet(path: &str, records: &[Value]) -> anyhow::Result<()> {
+    let file = fs::File::create(path)
+        .with_context(|| format!("failed to create parquet dataset: {path}"))?;
+
+    let schema = Arc::new(parse_message_type(
+        "message focusa_export { REQUIRED BINARY record_json (UTF8); }",
+    )?);
+    let props = Arc::new(WriterProperties::builder().build());
+    let mut writer = SerializedFileWriter::new(file, schema, props)?;
+
+    let mut row_group = writer.next_row_group()?;
+    if let Some(mut col_writer) = row_group.next_column()? {
+        let typed = col_writer.typed::<ByteArrayType>();
+        let json_rows = records
+            .iter()
+            .map(|r| serde_json::to_string(r).map(|s| ByteArray::from(s.as_str())))
+            .collect::<Result<Vec<_>, _>>()?;
+        typed.write_batch(&json_rows, None, None)?;
+        col_writer.close()?;
+    }
+
+    row_group.close()?;
+    writer.close()?;
+    Ok(())
+}
+
+fn write_manifest(path: &str, manifest: &Value) -> anyhow::Result<String> {
+    let manifest_path = format!("{}.manifest.json", path);
+    fs::write(&manifest_path, serde_json::to_string_pretty(manifest)?)
+        .with_context(|| format!("failed to write manifest: {manifest_path}"))?;
+    Ok(manifest_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_parquet_emits_valid_magic_header() {
+        let out_path = std::env::temp_dir().join(format!(
+            "focusa-export-{}.parquet",
+            uuid::Uuid::now_v7()
+        ));
+        let records = vec![json!({"dataset_type": "sft", "turn_id": "t1"})];
+
+        write_parquet(out_path.to_str().expect("utf8 path"), &records).expect("parquet write");
+
+        let bytes = fs::read(&out_path).expect("read parquet");
+        assert!(bytes.len() >= 4);
+        assert_eq!(&bytes[..4], b"PAR1");
+
+        let _ = fs::remove_file(out_path);
+    }
+}
+
+async fn run_export(
+    api: &ApiClient,
     json_mode: bool,
     dataset_type: &str,
     options: &CommonExportOptions,
-    dataset_flags: serde_json::Value,
+    dataset_flags: Value,
 ) -> anyhow::Result<()> {
-    let payload = json!({
-        "status": "not_implemented",
+    let body = json!({
         "dataset_type": dataset_type,
-        "dry_run": options.dry_run,
-        "explain": options.explain,
         "output": options.output,
         "format": options.format.as_str(),
         "filters": options.filters_json(),
         "dataset_flags": dataset_flags,
-        "eligible_records": 0,
-        "estimated_dataset_size_bytes": 0,
-        "sample_schema_preview": serde_json::Value::Null,
-        "exclusion_reasons": ["session replay export pipeline not implemented yet"],
-        "manifest": serde_json::Value::Null,
-        "reason": "docs/21 export execution phases are not implemented yet",
+        "dry_run": options.dry_run,
+        "explain": options.explain,
     });
 
-    if json_mode {
-        return print_not_implemented_json(payload);
+    let resp = api.post("/v1/export/run", &body).await?;
+
+    if !options.dry_run {
+        let records = resp
+            .get("records")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        match options.format {
+            ExportFormat::Jsonl => write_jsonl(&options.output, &records)?,
+            ExportFormat::Parquet => write_parquet(&options.output, &records)?,
+        }
+
+        if let Some(manifest) = resp.get("manifest") {
+            let manifest_path = write_manifest(&options.output, manifest)?;
+            if !json_mode {
+                println!("Manifest: {manifest_path}");
+            }
+        }
     }
 
-    println!("Export request not implemented:");
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&resp)?);
+        return Ok(());
+    }
+
+    println!("Export completed:");
     println!("  Dataset: {}", dataset_type);
     println!(
         "  Mode: {}",
@@ -213,11 +295,19 @@ fn emit_not_implemented(
     );
     println!("  Output: {}", options.output);
     println!("  Format: {}", options.format.as_str());
-    println!("  Reason: docs/21 export execution phases are not implemented yet");
-    if options.explain {
-        println!("  Eligible records: 0");
-        println!("  Exclusion reasons: session replay export pipeline not implemented yet");
-    }
+    println!(
+        "  Eligible records: {}",
+        resp.get("eligible_records")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0)
+    );
+    println!(
+        "  Excluded records: {}",
+        resp.get("excluded_records")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0)
+    );
+
     Ok(())
 }
 
@@ -295,7 +385,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                 dry_run,
                 explain,
             };
-            emit_not_implemented(
+            run_export(
+                &api,
                 json_mode,
                 "sft",
                 &options,
@@ -303,10 +394,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                     "require_success": require_success,
                     "min_turns": min_turns,
                 }),
-            )?;
-            if !options.dry_run {
-                bail!("export pipeline not implemented yet");
-            }
+            )
+            .await?;
         }
         ExportCmd::Preference {
             output,
@@ -336,7 +425,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                 dry_run,
                 explain,
             };
-            emit_not_implemented(
+            run_export(
+                &api,
                 json_mode,
                 "preference",
                 &options,
@@ -344,10 +434,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                     "min_delta": min_delta,
                     "require_user_correction": require_user_correction,
                 }),
-            )?;
-            if !options.dry_run {
-                bail!("export pipeline not implemented yet");
-            }
+            )
+            .await?;
         }
         ExportCmd::Contrastive {
             output,
@@ -377,7 +465,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                 dry_run,
                 explain,
             };
-            emit_not_implemented(
+            run_export(
+                &api,
                 json_mode,
                 "contrastive",
                 &options,
@@ -385,10 +474,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                     "require_abandoned_branch": require_abandoned_branch,
                     "max_path_length": max_path_length,
                 }),
-            )?;
-            if !options.dry_run {
-                bail!("export pipeline not implemented yet");
-            }
+            )
+            .await?;
         }
         ExportCmd::LongHorizon {
             output,
@@ -418,7 +505,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                 dry_run,
                 explain,
             };
-            emit_not_implemented(
+            run_export(
+                &api,
                 json_mode,
                 "long-horizon",
                 &options,
@@ -426,10 +514,8 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                     "min_session_length": min_session_length,
                     "min_state_transitions": min_state_transitions,
                 }),
-            )?;
-            if !options.dry_run {
-                bail!("export pipeline not implemented yet");
-            }
+            )
+            .await?;
         }
     }
     Ok(())

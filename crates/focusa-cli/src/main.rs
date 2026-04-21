@@ -86,6 +86,10 @@ enum Commands {
     #[command(subcommand)]
     Clt(commands::clt::CltCmd),
 
+    /// Lineage API parity domain.
+    #[command(subcommand)]
+    Lineage(commands::lineage::LineageCmd),
+
     /// Autonomy calibration.
     #[command(subcommand)]
     Autonomy(commands::autonomy::AutonomyCmd),
@@ -109,6 +113,10 @@ enum Commands {
     /// Reflection loop overlay.
     #[command(subcommand)]
     Reflect(commands::reflection::ReflectionCmd),
+
+    /// Metacognition command domain.
+    #[command(subcommand)]
+    Metacognition(commands::metacognition::MetacognitionCmd),
 
     /// Agent skills.
     #[command(subcommand)]
@@ -242,14 +250,16 @@ async fn main() -> anyhow::Result<()> {
         Commands::Env(cmd) => commands::env::run(cmd, cli.json).await?,
         Commands::Events(cmd) => commands::debug::run_events(cmd, cli.json).await?,
         Commands::Turns(cmd) => commands::turns::run(cmd, cli.json).await?,
-        Commands::State { cmd } => commands::debug::run_state(cmd).await?,
+        Commands::State { cmd } => commands::debug::run_state(cmd, cli.json).await?,
         Commands::Clt(cmd) => commands::clt::run(cmd, cli.json).await?,
+        Commands::Lineage(cmd) => commands::lineage::run(cmd, cli.json).await?,
         Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await?,
         Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await?,
         Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await?,
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await?,
         Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await?,
         Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await?,
+        Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await?,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await?,
         Commands::Thread(cmd) => {
             commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await?
