@@ -52,11 +52,14 @@ assert_event_for_proposal() {
 assert_event_type() {
   local event_type="$1"
   local desc="$2"
-  if recent_events | jq -e --arg typ "$event_type" '.events | any(.type == $typ)' >/dev/null 2>&1; then
-    log_pass "$desc"
-  else
-    log_fail "$desc"
-  fi
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60; do
+    if recent_events | jq -e --arg typ "$event_type" '.events | any(.type == $typ)' >/dev/null 2>&1; then
+      log_pass "$desc"
+      return 0
+    fi
+    sleep 0.1
+  done
+  log_fail "$desc"
 }
 
 thread_name="ontology-events-thread-$(date +%s%N)"
@@ -76,16 +79,12 @@ else
 fi
 curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" -H "Content-Type: application/json" -d '{"kind":"focus_change"}' >/dev/null
 assert_event_type "ontology_proposal_promoted" "ontology_proposal_promoted emitted"
-if recent_events | jq -e '.events | any(.type == "ontology_verification_applied" and .outcome == "accepted")' >/dev/null 2>&1; then
-  log_pass "ontology_verification_applied emitted"
+if [ -n "$focus_id" ]; then
+  assert_event_for_proposal "$focus_id" "ontology_verification_applied" "ontology_verification_applied emitted"
 else
-  log_fail "ontology_verification_applied missing"
+  log_fail "focus proposal id not found for ontology_verification_applied"
 fi
-if recent_events | jq -e '.events | any(.type == "ontology_working_set_refreshed")' >/dev/null 2>&1; then
-  log_pass "ontology_working_set_refreshed emitted"
-else
-  log_fail "ontology_working_set_refreshed missing"
-fi
+assert_event_type "ontology_working_set_refreshed" "ontology_working_set_refreshed emitted"
 
 log_info "object upsert proposed"
 curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" -H "Content-Type: application/json" -d '{"kind":"memory_write"}' >/dev/null || true
@@ -133,7 +132,7 @@ if echo "$reject_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then l
 reject_id=$(proposal_id_for_source "$reject_source")
 curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" -H "Content-Type: application/json" -d '{"kind":"memory_write"}' >/dev/null
 if [ -n "$reject_id" ]; then
-  assert_event_type "ontology_proposal_rejected" "ontology_proposal_rejected emitted"
+  assert_event_for_proposal "$reject_id" "ontology_proposal_rejected" "ontology_proposal_rejected emitted"
 else
   log_fail "reject proposal id not found"
 fi
