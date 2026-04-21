@@ -313,14 +313,14 @@ Primary path is `/v1/*`; CLI is operator fallback only.
 |---|---|---|---|---|---|
 | `focusa_tree_head` | `GET /v1/lineage/head` | ✅ exists | `focusa lineage head --json` | ✅ exists | `lineage:read` |
 | `focusa_tree_path` | `GET /v1/lineage/path/{clt_node_id}` | ✅ exists | `focusa lineage path <id> --json` | ✅ exists | `lineage:read` |
-| `focusa_tree_snapshot_state` | `POST /v1/focus/snapshots` | ❌ planned | `focusa state snapshot create --json` | ❌ planned | `state:write` |
-| `focusa_tree_restore_state` | `POST /v1/focus/snapshots/restore` | ❌ planned | `focusa state snapshot restore --json` | ❌ planned | `state:write` |
-| `focusa_tree_diff_context` | `POST /v1/focus/snapshots/diff` | ❌ planned | `focusa state snapshot diff --json` | ❌ planned | `lineage:read` |
-| `focusa_metacog_capture` | `POST /v1/metacognition/capture` | ❌ planned | `focusa metacognition capture --json` | ⚠️ stub exists (not endpoint-backed) | `metacognition:write` |
-| `focusa_metacog_retrieve` | `POST /v1/metacognition/retrieve` | ❌ planned | `focusa metacognition retrieve --json` | ⚠️ stub exists (not endpoint-backed) | `metacognition:read` |
-| `focusa_metacog_reflect` | `POST /v1/metacognition/reflect` | ❌ planned (`/v1/reflect/*` exists) | `focusa metacognition reflect --json` | ⚠️ stub exists (`focusa reflect ...` endpoint-backed) | `metacognition:write` |
-| `focusa_metacog_plan_adjust` | `POST /v1/metacognition/adjust` | ❌ planned | `focusa metacognition adjust --json` | ⚠️ stub exists (not endpoint-backed) | `metacognition:write` |
-| `focusa_metacog_evaluate_outcome` | `POST /v1/metacognition/evaluate` | ❌ planned | `focusa metacognition evaluate --json` | ⚠️ stub exists (not endpoint-backed) | `metacognition:write` |
+| `focusa_tree_snapshot_state` | `POST /v1/focus/snapshots` | ✅ exists | `focusa state snapshot create --json` | ✅ exists | `state:write` |
+| `focusa_tree_restore_state` | `POST /v1/focus/snapshots/restore` | ✅ exists | `focusa state snapshot restore --json` | ✅ exists | `state:write` |
+| `focusa_tree_diff_context` | `POST /v1/focus/snapshots/diff` | ✅ exists | `focusa state snapshot diff --json` | ✅ exists | `lineage:read` |
+| `focusa_metacog_capture` | `POST /v1/metacognition/capture` | ✅ exists | `focusa metacognition capture --json` | ✅ endpoint-backed | `metacognition:write` |
+| `focusa_metacog_retrieve` | `POST /v1/metacognition/retrieve` | ✅ exists | `focusa metacognition retrieve --json` | ✅ endpoint-backed | `metacognition:read` |
+| `focusa_metacog_reflect` | `POST /v1/metacognition/reflect` | ✅ exists | `focusa metacognition reflect --json` | ✅ endpoint-backed | `metacognition:write` |
+| `focusa_metacog_plan_adjust` | `POST /v1/metacognition/adjust` | ✅ exists | `focusa metacognition adjust --json` | ✅ endpoint-backed | `metacognition:write` |
+| `focusa_metacog_evaluate_outcome` | `POST /v1/metacognition/evaluate` | ✅ exists | `focusa metacognition evaluate --json` | ✅ endpoint-backed | `metacognition:write` |
 
 Code-reality rule:
 - This matrix is authoritative for decomposition. Any row marked ❌ must become explicit implementation beads before dependent tool rollout.
@@ -566,10 +566,10 @@ This section is the canonical decomposition source for the question:
 
 | Path | Current risk | Label | Required gate |
 |---|---|---|---|
-| Reflection + metacog loop | latency inflation if retrieval/analysis unbounded | `planned-extension` | p95 added latency <= 12% vs baseline at equal workload |
-| Snapshot/restore on `/tree` | branch switch stalls if state payload unbounded | `planned-extension` | restore p95 <= 400ms on standard workload |
-| CLI tool wrappers | slow failover if API/CLI fallback behavior ambiguous | `documented-authority` | deterministic timeout + typed error envelope |
-| Compaction with branch artifacts | excessive serialization cost under long sessions | `documented-authority` | compaction p95 <= 1.5x pre-branch baseline |
+| Reflection + metacog loop | latency inflation if retrieval/analysis unbounded | `implemented-now` | executable D3.1 harness enforces p95 added latency <= 12% |
+| Snapshot/restore on `/tree` | branch switch stalls if state payload unbounded | `implemented-now` | executable D3.2 harness enforces restore p95 <= 400ms |
+| CLI tool wrappers | slow failover if API/CLI fallback behavior ambiguous | `implemented-now` | typed timeout/connect/http JSON error envelope + runtime test |
+| Compaction with branch artifacts | excessive serialization cost under long sessions | `implemented-now` | executable D3.2 harness enforces compaction p95 <= 1.5x baseline |
 
 ### 20.3 Full Focusa utilization criteria
 
