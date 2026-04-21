@@ -1825,7 +1825,7 @@ pub fn reduce_with_meta(
                             })
                         {
                             object["status"] =
-                                serde_json::Value::String("active".to_string());
+                                serde_json::Value::String("stale".to_string());
                             object["selection_state"] =
                                 serde_json::Value::String("pruned".to_string());
                         }
@@ -1938,6 +1938,23 @@ pub fn reduce_with_meta(
                                 serde_json::Value::String("restored".to_string());
                         }
                     }
+                    "record_supersession" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state
+                                .ontology
+                                .objects
+                                .iter_mut()
+                                .find(|o| {
+                                    o.get("id").and_then(|v| v.as_str())
+                                        == Some(object_id.as_str())
+                                })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("superseded".to_string());
+                            object["supersession_state"] =
+                                serde_json::Value::String("recorded".to_string());
+                        }
+                    }
                     "create_version" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
                             && let Some(object) = state
@@ -1949,7 +1966,8 @@ pub fn reduce_with_meta(
                                         == Some(object_id.as_str())
                                 })
                         {
-                            object["status"] = serde_json::Value::String("active".to_string());
+                            object["status"] =
+                                serde_json::Value::String("experimental".to_string());
                             object["version_state"] =
                                 serde_json::Value::String("created".to_string());
                         }
@@ -1997,7 +2015,7 @@ pub fn reduce_with_meta(
                                         == Some(object_id.as_str())
                                 })
                         {
-                            object["status"] = serde_json::Value::String("deprecated".to_string());
+                            object["status"] = serde_json::Value::String("retired".to_string());
                             object["lifecycle"] =
                                 serde_json::Value::String("deprecated".to_string());
                         }
@@ -3364,5 +3382,72 @@ mod tests {
             false,
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn ontology_object_upsert_proposal_sets_proposed_status() {
+        let proposal_id = Uuid::now_v7();
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: "decision".into(),
+                object_id: Some("decision:proposed-1".into()),
+                source: "ontology_test".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let proposal = state
+            .ontology
+            .proposals
+            .iter()
+            .find(|p| p.proposal_id == proposal_id)
+            .expect("proposal should be recorded");
+        assert_eq!(proposal.status, "proposed");
+
+        let object = state
+            .ontology
+            .objects
+            .iter()
+            .find(|o| o.get("id").and_then(|v| v.as_str()) == Some("decision:proposed-1"))
+            .expect("proposed object should be present");
+        assert_eq!(object.get("status").and_then(|v| v.as_str()), Some("proposed"));
+    }
+
+    #[test]
+    fn ontology_verification_negative_outcome_sets_failed_status() {
+        let proposal_id = Uuid::now_v7();
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::OntologyObjectUpsertProposed {
+                proposal_id,
+                object_type: "decision".into(),
+                object_id: Some("decision:failed-1".into()),
+                source: "ontology_test".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let state = reduce(
+            state,
+            FocusaEvent::OntologyVerificationApplied {
+                proposal_id: Some(proposal_id),
+                verification: "verification:failed-path".into(),
+                outcome: "rejected".into(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let object = state
+            .ontology
+            .objects
+            .iter()
+            .find(|o| o.get("id").and_then(|v| v.as_str()) == Some("decision:failed-1"))
+            .expect("verified object should remain present");
+        assert_eq!(object.get("status").and_then(|v| v.as_str()), Some("failed"));
     }
 }
