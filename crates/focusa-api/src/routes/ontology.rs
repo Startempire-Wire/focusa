@@ -304,6 +304,11 @@ const ACTION_TYPES: &[&str] = &[
     "assign_responsibility",
     "determine_handoff_boundary",
     "restore_identity_continuity",
+    "form_intention",
+    "promote_commitment",
+    "record_goal_conflict",
+    "evaluate_retention",
+    "apply_decay",
 ];
 const SLICE_TYPES: &[&str] = &[
     "active_mission",
@@ -705,6 +710,10 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
             "agent_identity",
             "actor_instance",
         ],
+        "form_intention" => &["task", "goal", "subgoal", "active_focus"],
+        "promote_commitment" => &["task", "goal", "subgoal", "decision"],
+        "record_goal_conflict" => &["goal", "subgoal", "risk", "constraint"],
+        "apply_decay" => &["object_set", "semantic_memory_entry", "failure"],
         _ => OBJECT_TYPES,
     }
 }

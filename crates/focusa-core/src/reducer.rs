@@ -1938,6 +1938,234 @@ pub fn reduce_with_meta(
                                 serde_json::Value::String("restored".to_string());
                         }
                     }
+                    "form_intention" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["intention_state"] =
+                                serde_json::Value::String("formed".to_string());
+                        }
+                    }
+                    "promote_commitment" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["commitment_state"] =
+                                serde_json::Value::String("promoted".to_string());
+                        }
+                    }
+                    "apply_inhibition" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("blocked".to_string());
+                            object["inhibition_state"] =
+                                serde_json::Value::String("applied".to_string());
+                        }
+                    }
+                    "evaluate_switch" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["switch_state"] =
+                                serde_json::Value::String("evaluated".to_string());
+                        }
+                    }
+                    "maintain_commitment" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["commitment_state"] =
+                                serde_json::Value::String("maintained".to_string());
+                        }
+                    }
+                    "authorize_abandonment" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("retired".to_string());
+                            object["abandonment_state"] =
+                                serde_json::Value::String("authorized".to_string());
+                        }
+                    }
+                    "push_to_completion" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("completed".to_string());
+                            object["completion_state"] =
+                                serde_json::Value::String("pushed".to_string());
+                        }
+                    }
+                    "record_goal_conflict" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("blocked".to_string());
+                            object["conflict_state"] =
+                                serde_json::Value::String("recorded".to_string());
+                        }
+                    }
+                    "detect_aliases" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("candidate".to_string());
+                            object["alias_state"] =
+                                serde_json::Value::String("detected".to_string());
+                        }
+                    }
+                    "build_resolution_candidates" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("candidate".to_string());
+                            object["resolution_state"] =
+                                serde_json::Value::String("candidates_built".to_string());
+                        }
+                    }
+                    "verify_resolution" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("verified".to_string());
+                            object["resolution_state"] =
+                                serde_json::Value::String("verified".to_string());
+                        }
+                    }
+                    "build_projection" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["projection_state"] =
+                                serde_json::Value::String("built".to_string());
+                        }
+                    }
+                    "compress_projection" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["projection_state"] =
+                                serde_json::Value::String("compressed".to_string());
+                        }
+                    }
+                    "verify_projection_fidelity" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("verified".to_string());
+                            object["projection_state"] =
+                                serde_json::Value::String("fidelity_verified".to_string());
+                        }
+                    }
+                    "evaluate_retention" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["retention_state"] =
+                                serde_json::Value::String("evaluated".to_string());
+                        }
+                    }
+                    "apply_decay" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("stale".to_string());
+                            object["retention_state"] =
+                                serde_json::Value::String("decayed".to_string());
+                        }
+                    }
+                    "archive_object" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("retired".to_string());
+                            object["archive_state"] =
+                                serde_json::Value::String("archived".to_string());
+                        }
+                    }
+                    "prune_active_context" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("stale".to_string());
+                            object["context_state"] =
+                                serde_json::Value::String("pruned".to_string());
+                        }
+                    }
+                    "restore_from_archive" => {
+                        if let Some(object_id) = proposal.object_id.as_ref()
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
+                        {
+                            object["status"] =
+                                serde_json::Value::String("active".to_string());
+                            object["archive_state"] =
+                                serde_json::Value::String("restored".to_string());
+                        }
+                    }
                     "record_supersession" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
                             && let Some(object) = state
