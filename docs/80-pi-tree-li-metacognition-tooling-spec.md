@@ -529,10 +529,10 @@ Reviewed ontology suite and integration docs:
   - `crates/focusa-api/src/routes/capabilities.rs` routes for `/v1/lineage/head|tree|node|path|children|summaries`.
 - Reflection routes present in code:
   - `crates/focusa-api/src/routes/reflection.rs` routes for `/v1/reflect/run|history|status`.
-- Not present in code (planned):
-  - `/v1/focus/snapshots*`
-  - `/v1/metacognition/*`
-- CLI has first-class `lineage` command domain and a first-class `metacognition` command domain in stub mode; metacognition commands are not endpoint-backed yet.
+- Implemented in code:
+  - `/v1/focus/snapshots*` via `crates/focusa-api/src/routes/snapshots.rs`
+  - `/v1/metacognition/*` via `crates/focusa-api/src/routes/metacognition.rs`
+- CLI has first-class `lineage` and `metacognition` domains, both endpoint-backed.
 
 ### 19.3 Anti-false-weaving rule
 
@@ -556,11 +556,11 @@ This section is the canonical decomposition source for the question:
 
 | Area | Current state | Label | Closure target |
 |---|---|---|---|
-| Branch snapshot/restore API | `/v1/focus/snapshots*` missing in code | `planned-extension` | Implement snapshot create/restore/diff APIs + tests |
-| Metacognition API domain | `/v1/metacognition/*` missing in code | `planned-extension` | Implement capture/retrieve/reflect/adjust/evaluate APIs + tests |
-| CLI lineage parity | No first-class `focusa lineage ...` domain in current CLI | `documented-authority` | Add lineage command domain with schema-stable JSON output |
-| CLI metacognition parity | No first-class `focusa metacognition ...` domain in current CLI | `planned-extension` | Add metacognition command domain mirroring API |
-| Export execution pipeline | non-dry-run dataset export paths are not implemented | `implemented-now` (gap observed in code behavior) | Implement SFT/preference/contrastive/long-horizon execution paths |
+| Branch snapshot/restore API | `/v1/focus/snapshots*` implemented | `implemented-now` | Keep create/restore/diff tests green |
+| Metacognition API domain | `/v1/metacognition/*` implemented | `implemented-now` | Keep capture/retrieve/reflect/adjust/evaluate tests green |
+| CLI lineage parity | First-class `focusa lineage ...` domain implemented | `implemented-now` | Maintain schema-stable JSON output |
+| CLI metacognition parity | First-class `focusa metacognition ...` domain implemented and endpoint-backed | `implemented-now` | Maintain API parity + typed JSON behavior |
+| Export execution pipeline | SFT/preference/contrastive/long-horizon execution implemented for jsonl/parquet outputs | `implemented-now` | Maintain route/CLI parity and output tests |
 
 ### 20.2 Performance tuning matrix
 

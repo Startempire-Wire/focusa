@@ -11,6 +11,18 @@ use std::time::Duration;
 const DEFAULT_BASE: &str = "http://127.0.0.1:8787";
 const DEFAULT_TIMEOUT_SECS: u64 = 2;
 
+fn classify_reqwest_error(err: reqwest::Error, url: &str) -> anyhow::Error {
+    if err.is_timeout() {
+        anyhow::anyhow!("[API_TIMEOUT] url={} reason={}", url, err)
+    } else if err.is_connect() {
+        anyhow::anyhow!("[API_CONNECT_ERROR] url={} reason={}", url, err)
+    } else if err.is_decode() {
+        anyhow::anyhow!("[API_DECODE_ERROR] url={} reason={}", url, err)
+    } else {
+        anyhow::anyhow!("[API_REQUEST_ERROR] url={} reason={}", url, err)
+    }
+}
+
 pub struct ApiClient {
     client: Client,
     base: String,
@@ -49,24 +61,39 @@ impl ApiClient {
 
     pub async fn get(&self, path: &str) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
-        let resp = self.client.get(&url).send().await?;
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))?;
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("HTTP {} from {}: {}", status, url, body);
+            anyhow::bail!("[API_HTTP_ERROR] status={} url={} body={}", status, url, body);
         }
-        Ok(resp.json().await?)
+        resp.json()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))
     }
 
     pub async fn post(&self, path: &str, body: &Value) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
-        let resp = self.client.post(&url).json(body).send().await?;
+        let resp = self
+            .client
+            .post(&url)
+            .json(body)
+            .send()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))?;
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("HTTP {} from {}: {}", status, url, body);
+            anyhow::bail!("[API_HTTP_ERROR] status={} url={} body={}", status, url, body);
         }
-        Ok(resp.json().await?)
+        resp.json()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))
     }
 
     /// Blocking POST using curl - for use before process exit.

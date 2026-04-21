@@ -154,6 +154,22 @@ enum Commands {
     },
 }
 
+fn classify_cli_error(message: &str) -> (&'static str, &str) {
+    if message.contains("[API_TIMEOUT]") {
+        ("API_TIMEOUT", message)
+    } else if message.contains("[API_CONNECT_ERROR]") {
+        ("API_CONNECT_ERROR", message)
+    } else if message.contains("[API_HTTP_ERROR]") {
+        ("API_HTTP_ERROR", message)
+    } else if message.contains("[API_DECODE_ERROR]") {
+        ("API_DECODE_ERROR", message)
+    } else if message.contains("[API_REQUEST_ERROR]") {
+        ("API_REQUEST_ERROR", message)
+    } else {
+        ("COMMAND_ERROR", message)
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -175,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");
 
-    match cli.command {
+    let result: anyhow::Result<()> = match cli.command {
         Commands::Start => {
             let started = commands::daemon::start().await?;
             if !cli.json {
@@ -185,12 +201,14 @@ async fn main() -> anyhow::Result<()> {
                     println!("Focusa daemon already running (no-op)");
                 }
             }
+            Ok(())
         }
         Commands::Stop => {
             commands::daemon::stop().await?;
             if !cli.json {
                 println!("Focusa daemon stopped");
             }
+            Ok(())
         }
         Commands::Status => {
             let api = api_client::ApiClient::new();
@@ -213,6 +231,7 @@ async fn main() -> anyhow::Result<()> {
                 println!("  stack depth: {}", depth);
                 println!("  version:     {}", version);
             }
+            Ok(())
         }
         Commands::Stack => {
             let api = api_client::ApiClient::new();
@@ -242,33 +261,51 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             }
+            Ok(())
         }
-        Commands::Focus(cmd) => commands::focus::run(cmd, cli.json).await?,
-        Commands::Gate(cmd) => commands::gate::run(cmd, cli.json).await?,
-        Commands::Memory(cmd) => commands::memory::run(cmd, cli.json).await?,
-        Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await?,
-        Commands::Env(cmd) => commands::env::run(cmd, cli.json).await?,
-        Commands::Events(cmd) => commands::debug::run_events(cmd, cli.json).await?,
-        Commands::Turns(cmd) => commands::turns::run(cmd, cli.json).await?,
-        Commands::State { cmd } => commands::debug::run_state(cmd, cli.json).await?,
-        Commands::Clt(cmd) => commands::clt::run(cmd, cli.json).await?,
-        Commands::Lineage(cmd) => commands::lineage::run(cmd, cli.json).await?,
-        Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await?,
-        Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await?,
-        Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await?,
-        Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await?,
-        Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await?,
-        Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await?,
-        Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await?,
-        Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await?,
+        Commands::Focus(cmd) => commands::focus::run(cmd, cli.json).await,
+        Commands::Gate(cmd) => commands::gate::run(cmd, cli.json).await,
+        Commands::Memory(cmd) => commands::memory::run(cmd, cli.json).await,
+        Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await,
+        Commands::Env(cmd) => commands::env::run(cmd, cli.json).await,
+        Commands::Events(cmd) => commands::debug::run_events(cmd, cli.json).await,
+        Commands::Turns(cmd) => commands::turns::run(cmd, cli.json).await,
+        Commands::State { cmd } => commands::debug::run_state(cmd, cli.json).await,
+        Commands::Clt(cmd) => commands::clt::run(cmd, cli.json).await,
+        Commands::Lineage(cmd) => commands::lineage::run(cmd, cli.json).await,
+        Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await,
+        Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await,
+        Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await,
+        Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await,
+        Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await,
+        Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await,
+        Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,
+        Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await,
         Commands::Thread(cmd) => {
-            commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await?
+            commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await
         }
-        Commands::Export(cmd) => commands::export::run(cmd, cli.json).await?,
-        Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await?,
-        Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await?,
-        Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await?,
-        Commands::Wrap { command } => commands::wrap::run(command).await?,
+        Commands::Export(cmd) => commands::export::run(cmd, cli.json).await,
+        Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await,
+        Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await,
+        Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,
+        Commands::Wrap { command } => commands::wrap::run(command).await,
+    };
+
+    if let Err(err) = result {
+        if cli.json {
+            let error_message = err.to_string();
+            let (code, reason) = classify_cli_error(&error_message);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "status": "error",
+                    "code": code,
+                    "reason": reason,
+                }))?
+            );
+            return Ok(());
+        }
+        return Err(err);
     }
 
     Ok(())

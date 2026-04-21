@@ -19,7 +19,7 @@ else
   log_fail "commands module missing lineage command domain export"
 fi
 
-if rg -n 'Lineage\(commands::lineage::LineageCmd\)' "$MAIN_FILE" >/dev/null 2>&1 && rg -n 'Commands::Lineage\(cmd\) => commands::lineage::run\(cmd, cli\.json\)\.await\?' "$MAIN_FILE" >/dev/null 2>&1; then
+if rg -n 'Lineage\(commands::lineage::LineageCmd\)' "$MAIN_FILE" >/dev/null 2>&1 && rg -n 'Commands::Lineage\(cmd\) => commands::lineage::run\(cmd, cli\.json\)\.await' "$MAIN_FILE" >/dev/null 2>&1; then
   log_pass "CLI root wires lineage subcommand enum + dispatch"
 else
   log_fail "CLI root missing lineage subcommand wiring"

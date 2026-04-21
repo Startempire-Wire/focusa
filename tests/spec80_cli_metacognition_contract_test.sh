@@ -19,7 +19,7 @@ else
   log_fail "commands module missing metacognition export"
 fi
 
-if rg -n 'Metacognition\(commands::metacognition::MetacognitionCmd\)' "$MAIN_FILE" >/dev/null 2>&1 && rg -n 'Commands::Metacognition\(cmd\) => commands::metacognition::run\(cmd, cli\.json\)\.await\?' "$MAIN_FILE" >/dev/null 2>&1; then
+if rg -n 'Metacognition\(commands::metacognition::MetacognitionCmd\)' "$MAIN_FILE" >/dev/null 2>&1 && rg -n 'Commands::Metacognition\(cmd\) => commands::metacognition::run\(cmd, cli\.json\)\.await' "$MAIN_FILE" >/dev/null 2>&1; then
   log_pass "CLI root wires metacognition enum + dispatch"
 else
   log_fail "CLI root missing metacognition wiring"
