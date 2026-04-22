@@ -118,6 +118,10 @@ enum Commands {
     #[command(subcommand)]
     Metacognition(commands::metacognition::MetacognitionCmd),
 
+    /// Ontology projections and vocab surfaces.
+    #[command(subcommand)]
+    Ontology(commands::ontology::OntologyCmd),
+
     /// Agent skills.
     #[command(subcommand)]
     Skills(commands::skills::SkillsCmd),
@@ -226,10 +230,21 @@ async fn main() -> anyhow::Result<()> {
                         .unwrap_or("unknown")
                         .to_string()
                 };
+                let daemon_count = resp["runtime_process"]["daemon_count"].as_u64().unwrap_or(0);
+                let duplicate_count = resp["runtime_process"]["duplicate_daemon_count"]
+                    .as_u64()
+                    .unwrap_or(0);
+                let current_pid = resp["runtime_process"]["current_pid"].as_u64().unwrap_or(0);
+
                 println!("Focusa daemon: running");
                 println!("  session:     {}", session);
                 println!("  stack depth: {}", depth);
                 println!("  version:     {}", version);
+                println!("  pid:         {}", current_pid);
+                println!("  daemons:     {}", daemon_count);
+                if duplicate_count > 0 {
+                    println!("  warning:     duplicate daemons detected ({})", duplicate_count);
+                }
             }
             Ok(())
         }
@@ -280,6 +295,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await,
         Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await,
         Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,
+        Commands::Ontology(cmd) => commands::ontology::run(cmd, cli.json).await,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await,
         Commands::Thread(cmd) => {
             commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await
