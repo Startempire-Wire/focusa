@@ -43,6 +43,9 @@ export interface FocusaConfig {
   workLoopRequireExplainableContinueReason: boolean;
   workLoopMaxSameSubproblemRetries: number;
   workLoopStatusHeartbeatMs: number;
+  // Bridge sync/perf mode
+  bridgeSyncMode: "event-driven" | "polling";
+  bridgePollMs: number;
   // Service URLs (§38.2 multi-machine)
   scoreboardUrl: string;
   scoreboardToken: string;
@@ -93,6 +96,8 @@ const DEFAULTS: FocusaConfig = {
   workLoopRequireExplainableContinueReason: true,
   workLoopMaxSameSubproblemRetries: 2,
   workLoopStatusHeartbeatMs: 5_000,
+  bridgeSyncMode: "event-driven",
+  bridgePollMs: 15_000,
   scoreboardUrl: "http://127.0.0.1:8100",
   scoreboardToken: "",
   contextCoreUrl: "http://127.0.0.1:7400",
@@ -135,6 +140,8 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_WORK_LOOP_REQUIRE_EXPLAINABLE_CONTINUE_REASON: "workLoopRequireExplainableContinueReason",
   FOCUSA_PI_WORK_LOOP_MAX_SAME_SUBPROBLEM_RETRIES: "workLoopMaxSameSubproblemRetries",
   FOCUSA_PI_WORK_LOOP_STATUS_HEARTBEAT_MS: "workLoopStatusHeartbeatMs",
+  FOCUSA_PI_BRIDGE_SYNC_MODE: "bridgeSyncMode",
+  FOCUSA_PI_BRIDGE_POLL_MS: "bridgePollMs",
   FOCUSA_PI_MICRO_COMPACT_TURNS: "microCompactEveryNTurns",
   SCOREBOARD_URL: "scoreboardUrl",
   SCOREBOARD_TOKEN: "scoreboardToken",
@@ -164,6 +171,9 @@ function validate(cfg: FocusaConfig): string[] {
   if (cfg.workLoopMaxConsecutiveFailures < 1) errs.push(`workLoopMaxConsecutiveFailures must be >= 1`);
   if (cfg.workLoopMaxSameSubproblemRetries < 0) errs.push(`workLoopMaxSameSubproblemRetries must be >= 0`);
   if (cfg.workLoopStatusHeartbeatMs < 1_000) errs.push(`workLoopStatusHeartbeatMs must be >= 1000`);
+  if (!["event-driven", "polling"].includes(cfg.bridgeSyncMode))
+    errs.push(`bridgeSyncMode(${cfg.bridgeSyncMode}) must be one of: event-driven, polling`);
+  if (cfg.bridgePollMs < 5_000) errs.push(`bridgePollMs(${cfg.bridgePollMs}) must be >= 5000`);
   return errs;
 }
 

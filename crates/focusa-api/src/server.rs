@@ -19,8 +19,8 @@ use focusa_core::types::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::process::{Child, ChildStdin};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};use tokio::process::{Child, ChildStdin};
 use tokio::sync::RwLock as TokioRwLock;
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 use uuid::Uuid;
@@ -62,6 +62,16 @@ pub struct PiRpcSession {
     pub started_at: Instant,
 }
 
+#[derive(Default)]
+pub struct SupervisorPerfCounters {
+    pub ticks_total: AtomicU64,
+    pub driver_start_attempts: AtomicU64,
+    pub driver_stop_attempts: AtomicU64,
+    pub dispatch_attempts: AtomicU64,
+    pub dispatch_skipped_disallowed: AtomicU64,
+    pub dispatch_recovery_restarts: AtomicU64,
+}
+
 /// Shared state between API server and daemon.
 pub struct AppState {
     /// Read-only snapshot of cognitive state (daemon writes, API reads).
@@ -88,6 +98,8 @@ pub struct AppState {
     pub started_at: Instant,
     /// Optional daemon-owned Pi RPC transport session for continuous work.
     pub pi_rpc_session: Arc<Mutex<Option<PiRpcSession>>>,
+    /// Lightweight performance/backpressure counters for supervisor loop.
+    pub supervisor_perf: Arc<SupervisorPerfCounters>,
 }
 
 /// Build the axum Router with all routes.
@@ -171,6 +183,19 @@ fn dispatch_error_suggests_transport_recovery(error: &str) -> bool {
         || normalized.contains("stream closed")
 }
 
+fn supervisor_allows_pi_driver(enabled: bool, status: WorkLoopStatus) -> bool {
+    enabled
+        && matches!(
+            status,
+            WorkLoopStatus::SelectingReadyWork
+                | WorkLoopStatus::PreparingTurn
+                | WorkLoopStatus::AwaitingHarnessTurn
+                | WorkLoopStatus::EvaluatingOutcome
+                | WorkLoopStatus::AdvancingTask
+                | WorkLoopStatus::Idle
+        )
+}
+
 async fn reflection_scheduler_loop(base_url: String) {
     let client = reqwest::Client::new();
 
@@ -221,6 +246,11 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
     let mut last_transport_event_seq: Option<u64> = None;
 
     loop {
+        state
+            .supervisor_perf
+            .ticks_total
+            .fetch_add(1, Ordering::Relaxed);
+
         let (
             enabled,
             status,
@@ -315,6 +345,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .unwrap_or_else(|| "daemon-supervisor".to_string())
             };
 
+            let allows_driver = supervisor_allows_pi_driver(enabled, status);
+
             let mut has_session = {
                 let mut guard = state.pi_rpc_session.lock().await;
                 if let Some(session) = guard.as_mut() {
@@ -351,6 +383,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             last_transport_event_seq = last_event_seq;
 
             if attached_stuck_ticks >= 3 {
+                state
+                    .supervisor_perf
+                    .driver_stop_attempts
+                    .fetch_add(1, Ordering::Relaxed);
                 let stop_url = format!("{}/v1/work-loop/driver/stop", base_url);
                 let _ = client
                     .post(&stop_url)
@@ -362,7 +398,26 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 attached_stuck_ticks = 0;
             }
 
-            if !has_session {
+            if !allows_driver && has_session {
+                state
+                    .supervisor_perf
+                    .driver_stop_attempts
+                    .fetch_add(1, Ordering::Relaxed);
+                let stop_url = format!("{}/v1/work-loop/driver/stop", base_url);
+                let _ = client
+                    .post(&stop_url)
+                    .header("x-focusa-writer-id", &writer)
+                    .json(&serde_json::json!({}))
+                    .send()
+                    .await;
+                has_session = false;
+            }
+
+            if allows_driver && !has_session {
+                state
+                    .supervisor_perf
+                    .driver_start_attempts
+                    .fetch_add(1, Ordering::Relaxed);
                 let driver_url = format!("{}/v1/work-loop/driver/start", base_url);
                 let _ = client
                     .post(&driver_url)
@@ -372,6 +427,19 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .await;
             }
 
+            if !allows_driver {
+                state
+                    .supervisor_perf
+                    .dispatch_skipped_disallowed
+                    .fetch_add(1, Ordering::Relaxed);
+                tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                continue;
+            }
+
+            state
+                .supervisor_perf
+                .dispatch_attempts
+                .fetch_add(1, Ordering::Relaxed);
             let dispatch_result = crate::routes::work_loop::maybe_dispatch_continuous_turn_prompt(
                 &state,
                 "daemon heartbeat supervisor tick",
@@ -385,7 +453,16 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string();
-                if dispatch_error_suggests_transport_recovery(&error_message) {
+                if dispatch_error_suggests_transport_recovery(&error_message) && allows_driver {
+                    state
+                        .supervisor_perf
+                        .dispatch_recovery_restarts
+                        .fetch_add(1, Ordering::Relaxed);
+
+                    state
+                        .supervisor_perf
+                        .driver_stop_attempts
+                        .fetch_add(1, Ordering::Relaxed);
                     let stop_url = format!("{}/v1/work-loop/driver/stop", base_url);
                     let _ = client
                         .post(&stop_url)
@@ -394,6 +471,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .send()
                         .await;
 
+                    state
+                        .supervisor_perf
+                        .driver_start_attempts
+                        .fetch_add(1, Ordering::Relaxed);
                     let driver_url = format!("{}/v1/work-loop/driver/start", base_url);
                     let _ = client
                         .post(&driver_url)
@@ -402,6 +483,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .send()
                         .await;
 
+                    state
+                        .supervisor_perf
+                        .dispatch_attempts
+                        .fetch_add(1, Ordering::Relaxed);
                     let _ = crate::routes::work_loop::maybe_dispatch_continuous_turn_prompt(
                         &state,
                         "daemon heartbeat supervisor tick (transport recovery retry)",
@@ -443,6 +528,7 @@ pub async fn run(
         active_writer: Arc::new(TokioRwLock::new(None)),
         started_at: Instant::now(),
         pi_rpc_session: Arc::new(Mutex::new(None)),
+        supervisor_perf: Arc::new(SupervisorPerfCounters::default()),
     });
 
     let app = build_router(state.clone());
@@ -470,7 +556,8 @@ pub async fn run(
 mod tests {
     use super::{
         dispatch_error_suggests_transport_recovery, scheduler_base_url,
-        should_auto_reenable_continuous, was_explicit_operator_stop,
+        should_auto_reenable_continuous, supervisor_allows_pi_driver,
+        was_explicit_operator_stop,
     };
     use focusa_core::types::WorkLoopStatus;
 
@@ -516,6 +603,25 @@ mod tests {
             true,
             WorkLoopStatus::Idle,
             Some("operator steering detected"),
+        ));
+    }
+
+    #[test]
+    fn supervisor_driver_gate_respects_loop_status() {
+        assert!(supervisor_allows_pi_driver(true, WorkLoopStatus::Idle));
+        assert!(supervisor_allows_pi_driver(
+            true,
+            WorkLoopStatus::AwaitingHarnessTurn
+        ));
+        assert!(!supervisor_allows_pi_driver(
+            false,
+            WorkLoopStatus::AwaitingHarnessTurn
+        ));
+        assert!(!supervisor_allows_pi_driver(true, WorkLoopStatus::Paused));
+        assert!(!supervisor_allows_pi_driver(true, WorkLoopStatus::Blocked));
+        assert!(!supervisor_allows_pi_driver(
+            true,
+            WorkLoopStatus::TransportDegraded
         ));
     }
 

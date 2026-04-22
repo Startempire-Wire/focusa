@@ -16,6 +16,7 @@ use axum::{
 use focusa_core::types::{Action, SessionStatus};
 use serde::Deserialize;
 use serde_json::json;
+use std::fs;
 use std::sync::Arc;
 
 async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -100,6 +101,20 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let last_event_ts = state.persistence.latest_event_timestamp().ok().flatten();
     let persisted_event_count = state.persistence.event_count().ok();
 
+    let daemon_pids = focusa_daemon_pids();
+    let current_pid = std::process::id();
+    let duplicate_daemon_count = daemon_pids.iter().filter(|&&p| p != current_pid).count() as u64;
+    let supervisor_perf = &state.supervisor_perf;
+    let memory_budget_mb = std::env::var("FOCUSA_MEMORY_BUDGET_MB")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(2200);
+    let rss_kb = current_rss_kb();
+    let host_mem_available_kb = host_mem_available_kb();
+    let degraded = rss_kb
+        .map(|kb| kb > memory_budget_mb.saturating_mul(1024))
+        .unwrap_or(false);
+
     Json(json!({
         "session": session,
         "session_allows_focus_mutation": session.as_ref().map(|s| s.status == SessionStatus::Active).unwrap_or(false),
@@ -112,7 +127,77 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         "telemetry": telemetry,
         "persisted_event_count": persisted_event_count,
         "version": version,
+        "runtime_process": {
+            "current_pid": current_pid,
+            "daemon_pids": daemon_pids,
+            "daemon_count": daemon_pids.len(),
+            "duplicate_daemon_count": duplicate_daemon_count,
+            "single_daemon_ok": duplicate_daemon_count == 0,
+        },
+        "runtime_memory": {
+            "rss_kb": rss_kb,
+            "memory_budget_mb": memory_budget_mb,
+            "host_mem_available_kb": host_mem_available_kb,
+            "degraded": degraded,
+        },
+        "runtime_perf": {
+            "supervisor_ticks_total": supervisor_perf.ticks_total.load(std::sync::atomic::Ordering::Relaxed),
+            "driver_start_attempts": supervisor_perf.driver_start_attempts.load(std::sync::atomic::Ordering::Relaxed),
+            "driver_stop_attempts": supervisor_perf.driver_stop_attempts.load(std::sync::atomic::Ordering::Relaxed),
+            "dispatch_attempts": supervisor_perf.dispatch_attempts.load(std::sync::atomic::Ordering::Relaxed),
+            "dispatch_skipped_disallowed": supervisor_perf.dispatch_skipped_disallowed.load(std::sync::atomic::Ordering::Relaxed),
+            "dispatch_recovery_restarts": supervisor_perf.dispatch_recovery_restarts.load(std::sync::atomic::Ordering::Relaxed),
+        }
     }))
+}
+
+fn current_rss_kb() -> Option<u64> {
+    let status = fs::read_to_string("/proc/self/status").ok()?;
+    for line in status.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            let kb = rest.split_whitespace().next()?.parse::<u64>().ok()?;
+            return Some(kb);
+        }
+    }
+    None
+}
+
+fn host_mem_available_kb() -> Option<u64> {
+    let meminfo = fs::read_to_string("/proc/meminfo").ok()?;
+    for line in meminfo.lines() {
+        if let Some(rest) = line.strip_prefix("MemAvailable:") {
+            let kb = rest.split_whitespace().next()?.parse::<u64>().ok()?;
+            return Some(kb);
+        }
+    }
+    None
+}
+
+fn focusa_daemon_pids() -> Vec<u32> {
+    let mut out = Vec::new();
+    let Ok(entries) = fs::read_dir("/proc") else {
+        return out;
+    };
+
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(pid_str) = name.to_str() else {
+            continue;
+        };
+        let Ok(pid) = pid_str.parse::<u32>() else {
+            continue;
+        };
+        let comm_path = format!("/proc/{pid}/comm");
+        let Ok(comm) = fs::read_to_string(comm_path) else {
+            continue;
+        };
+        if comm.trim() == "focusa-daemon" {
+            out.push(pid);
+        }
+    }
+
+    out.sort_unstable();
+    out
 }
 
 /// Full cognitive state dump (debug).

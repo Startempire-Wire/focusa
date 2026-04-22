@@ -219,14 +219,24 @@ export function registerSession(pi: ExtensionAPI) {
     connectSSE();
 
     // Keep Pi footer task label fresh between explicit commands.
-    // Lightweight sync: refresh scoped frame title and propagate to session label.
-    const footerRefreshMs = 3_000;
+    // Default is event-driven (no periodic polling); polling can be enabled explicitly.
     if (S.footerSyncInterval) clearInterval(S.footerSyncInterval);
-    S.footerSyncInterval = setInterval(async () => {
-      if (!S.focusaAvailable) return;
-      await getFocusState().catch(() => null);
-      if (S.activeFrameTitle) pi.setSessionName(S.activeFrameTitle);
-    }, footerRefreshMs);
+    S.footerSyncInterval = null;
+    const bridgeSyncMode = S.cfg?.bridgeSyncMode || "event-driven";
+    if (bridgeSyncMode === "polling") {
+      const footerRefreshMs = Math.max(5_000, S.cfg?.bridgePollMs || 15_000);
+      let footerSyncInFlight = false;
+      S.footerSyncInterval = setInterval(async () => {
+        if (!S.focusaAvailable || footerSyncInFlight) return;
+        footerSyncInFlight = true;
+        try {
+          await getFocusState().catch(() => null);
+          if (S.activeFrameTitle) pi.setSessionName(S.activeFrameTitle);
+        } finally {
+          footerSyncInFlight = false;
+        }
+      }, footerRefreshMs);
+    }
 
     // Debounce transient health blips to reduce false "offline" warnings.
     // Require consecutive failures before disabling tools.

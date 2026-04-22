@@ -530,6 +530,7 @@ mod tests {
             active_writer: Arc::new(tokio::sync::RwLock::new(None)),
             started_at: Instant::now(),
             pi_rpc_session: Arc::new(Mutex::new(None)),
+            supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),
         });
 
         (build_router(state), persistence)
