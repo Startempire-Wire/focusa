@@ -780,27 +780,40 @@ export function extractText(content: any): string {
 }
 
 async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
-  const [stack, asccState] = await Promise.all([
-    focusaFetch("/focus/stack"),
+  const scopedQs = new URLSearchParams();
+  if (S.activeFrameId) scopedQs.set("frame_id", S.activeFrameId);
+  if (S.sessionFrameKey) scopedQs.set("session_key", S.sessionFrameKey);
+  const scopedPath = scopedQs.size > 0 ? `/focus/frame/current?${scopedQs.toString()}` : null;
+
+  const [scoped, asccState] = await Promise.all([
+    scopedPath ? focusaFetch(scopedPath).catch(() => null) : Promise.resolve(null),
     focusaFetch("/ascc/state").catch(() => null),
   ]);
-  if (!stack?.stack?.frames?.length) return null;
 
-  const frames = stack.stack.frames;
-  let frame = S.activeFrameId ? frames.find((f: any) => f.id === S.activeFrameId) || null : null;
+  let frame = scoped?.frame || null;
+  let stack = frame
+    ? { stack: { active_id: scoped?.active_frame_id || null, frames: [frame] }, active_frame_id: scoped?.active_frame_id || null }
+    : null;
 
-  if ((!frame || frame.status !== "active" || isContaminatedFrameIdentity(frame)) && S.sessionFrameKey) {
-    const scopedActive = [...frames].reverse().find((f: any) =>
-      f.status === "active" && Array.isArray(f.tags) && f.tags.includes(S.sessionFrameKey || "") && !isContaminatedFrameIdentity(f)
-    ) || null;
-    if (scopedActive) {
-      frame = scopedActive;
-      S.activeFrameId = scopedActive.id;
-    } else if (frame && isContaminatedFrameIdentity(frame)) {
-      S.activeFrameId = null;
-      S.activeFrameTitle = "";
-      S.activeFrameGoal = "";
-      return null;
+  if (!frame) {
+    stack = await focusaFetch("/focus/stack");
+    if (!stack?.stack?.frames?.length) return null;
+    const frames = stack.stack.frames;
+    frame = S.activeFrameId ? frames.find((f: any) => f.id === S.activeFrameId) || null : null;
+
+    if ((!frame || frame.status !== "active" || isContaminatedFrameIdentity(frame)) && S.sessionFrameKey) {
+      const scopedActive = [...frames].reverse().find((f: any) =>
+        f.status === "active" && Array.isArray(f.tags) && f.tags.includes(S.sessionFrameKey || "") && !isContaminatedFrameIdentity(f)
+      ) || null;
+      if (scopedActive) {
+        frame = scopedActive;
+        S.activeFrameId = scopedActive.id;
+      } else if (frame && isContaminatedFrameIdentity(frame)) {
+        S.activeFrameId = null;
+        S.activeFrameTitle = "";
+        S.activeFrameGoal = "";
+        return null;
+      }
     }
   }
 
@@ -820,6 +833,7 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
     current_state: liveAscc?.current_state || frameState.current_state || frameState.current_focus || "",
   };
 
+  S.activeFrameId = frame.id || S.activeFrameId;
   S.activeFrameTitle = frame.title || S.activeFrameTitle || "";
   S.activeFrameGoal = frame.goal || S.activeFrameGoal || "";
   if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);

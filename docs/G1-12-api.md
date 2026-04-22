@@ -113,6 +113,13 @@ Exact request schemas:
 GET `/v1/ascc/frame/:frame_id`
 POST `/v1/ascc/update-delta`
 
+### Focus
+GET `/v1/focus/stack`
+GET `/v1/focus/frame/current`
+- Query `frame_id: uuid` (optional)
+- Query `session_key: string` (optional)
+- Returns one scoped frame plus `matched_by` and `active_frame_id`; keeps full stack endpoint available for deep/debug reads.
+
 ### ECS
 GET  `/v1/ecs/handles`
 POST `/v1/ecs/store`

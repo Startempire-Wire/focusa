@@ -9,25 +9,69 @@
 //! PATCH /v1/focusa/enabled — set focusa toggle state
 
 use crate::server::AppState;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::{
     Json, Router,
     routing::{get, patch, post},
 };
 use focusa_core::types::{
-    Action, CompletionReason, FocusStackState, FocusStateDelta, FrameStatus, SessionState,
-    SessionStatus,
+    Action, CompletionReason, FocusStackState, FocusStateDelta, FrameRecord, FrameStatus,
+    SessionState, SessionStatus,
 };
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Deserialize, Default)]
+struct ScopedFrameQuery {
+    frame_id: Option<Uuid>,
+    session_key: Option<String>,
+}
+
+fn resolve_scoped_frame<'a>(
+    stack: &'a FocusStackState,
+    frame_id: Option<Uuid>,
+    session_key: Option<&str>,
+) -> Option<(&'a FrameRecord, &'static str)> {
+    if let Some(frame) = frame_id.and_then(|id| stack.frames.iter().find(|f| f.id == id)) {
+        return Some((frame, "frame_id"));
+    }
+
+    let key = session_key?.trim();
+    if key.is_empty() {
+        return None;
+    }
+
+    stack.frames.iter().rev().find_map(|frame| {
+        (frame.status == FrameStatus::Active
+            && frame.tags.iter().any(|tag| tag == key))
+            .then_some((frame, "session_key"))
+    })
+}
+
 async fn get_stack(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
     Json(json!({
         "stack": focusa.focus_stack,
+        "active_frame_id": focusa.focus_stack.active_id,
+    }))
+}
+
+async fn get_scoped_frame(
+    Query(query): Query<ScopedFrameQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
+    let focusa = state.focusa.read().await;
+    let resolved = resolve_scoped_frame(
+        &focusa.focus_stack,
+        query.frame_id,
+        query.session_key.as_deref(),
+    );
+    Json(json!({
+        "frame": resolved.map(|(frame, _)| frame),
+        "matched_by": resolved.map(|(_, matched_by)| matched_by).unwrap_or("none"),
         "active_frame_id": focusa.focus_stack.active_id,
     }))
 }
@@ -521,10 +565,84 @@ async fn set_enabled(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/focus/stack", get(get_stack))
+        .route("/v1/focus/frame/current", get(get_scoped_frame))
         .route("/v1/focus/push", post(push_frame))
         .route("/v1/focus/pop", post(pop_frame))
         .route("/v1/focus/set-active", post(set_active))
         .route("/v1/focus/update", post(update_delta))
         .route("/v1/focusa/enabled", get(get_enabled))
         .route("/v1/focusa/enabled", patch(set_enabled))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_scoped_frame;
+    use chrono::Utc;
+    use focusa_core::types::{
+        CompletionReason, FocusStackState, FocusState, FrameRecord, FrameStats, FrameStatus,
+    };
+    use uuid::Uuid;
+
+    fn frame(id: Uuid, status: FrameStatus, title: &str, tags: &[&str]) -> FrameRecord {
+        FrameRecord {
+            id,
+            parent_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            status,
+            title: title.to_string(),
+            goal: title.to_string(),
+            beads_issue_id: format!("issue-{title}"),
+            tags: tags.iter().map(|x| x.to_string()).collect(),
+            priority_hint: None,
+            ascc_checkpoint_id: None,
+            stats: FrameStats::default(),
+            constraints: vec![],
+            focus_state: FocusState::default(),
+            completed_at: None,
+            completion_reason: None::<CompletionReason>,
+        }
+    }
+
+    #[test]
+    fn resolve_scoped_frame_prefers_explicit_frame_id() {
+        let a = Uuid::now_v7();
+        let b = Uuid::now_v7();
+        let stack = FocusStackState {
+            root_id: Some(a),
+            active_id: Some(b),
+            frames: vec![
+                frame(a, FrameStatus::Paused, "paused", &["pi-1"]),
+                frame(b, FrameStatus::Active, "active", &["pi-1"]),
+            ],
+            stack_path_cache: vec![a, b],
+            version: 2,
+        };
+
+        let (resolved, matched_by) = resolve_scoped_frame(&stack, Some(a), Some("pi-1")).expect("frame");
+        assert_eq!(resolved.id, a);
+        assert_eq!(matched_by, "frame_id");
+    }
+
+    #[test]
+    fn resolve_scoped_frame_falls_back_to_latest_active_session_key() {
+        let a = Uuid::now_v7();
+        let b = Uuid::now_v7();
+        let c = Uuid::now_v7();
+        let stack = FocusStackState {
+            root_id: Some(a),
+            active_id: Some(c),
+            frames: vec![
+                frame(a, FrameStatus::Paused, "old", &["pi-1"]),
+                frame(b, FrameStatus::Active, "other", &["pi-2"]),
+                frame(c, FrameStatus::Active, "current", &["pi-1"]),
+            ],
+            stack_path_cache: vec![a, c],
+            version: 3,
+        };
+
+        let (resolved, matched_by) = resolve_scoped_frame(&stack, None, Some("pi-1")).expect("frame");
+        assert_eq!(resolved.id, c);
+        assert_eq!(matched_by, "session_key");
+    }
 }

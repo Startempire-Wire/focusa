@@ -199,14 +199,11 @@ export function registerSession(pi: ExtensionAPI) {
     await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
 
     // §35.8: Session name sync from Pi's scoped focus frame, never global active frame
-    const data = await focusaFetch("/focus/stack");
-    if (data?.stack?.frames?.length && S.activeFrameId) {
-      const active = data.stack.frames.find((f: any) => f.id === S.activeFrameId);
-      if (active?.title) {
-        S.activeFrameTitle = active.title;
-        S.activeFrameGoal = active.goal || S.activeFrameGoal;
-        pi.setSessionName(active.title);
-      }
+    const data = await getFocusState().catch(() => null);
+    if (data?.frame?.title) {
+      S.activeFrameTitle = data.frame.title;
+      S.activeFrameGoal = data.frame.goal || S.activeFrameGoal;
+      pi.setSessionName(data.frame.title);
     } else if (S.activeFrameTitle) {
       pi.setSessionName(S.activeFrameTitle);
     }
