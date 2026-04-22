@@ -1,7 +1,7 @@
 #!/bin/bash
 # Third-pass live HTTP smoke for spec79 on an isolated daemon.
 set -euo pipefail
-BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18799}"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'

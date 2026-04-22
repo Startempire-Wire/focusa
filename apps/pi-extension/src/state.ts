@@ -157,7 +157,32 @@ export const S = {
   totalCompactions: 0,
   // Fork suggestion dedup (§18 autoSuggestForkPct)
   forkSuggested: false,
+  // Persistence dedup/throttle for appendEntry pressure
+  lastPersistAt: 0,
+  lastPersistHash: "",
+  // Hot-path caches for context injection latency control
+  focusStateCache: {
+    key: "",
+    at: 0,
+    data: null as { frame: any; fs: any; stack: any } | null,
+    inflight: null as Promise<{ frame: any; fs: any; stack: any } | null> | null,
+  },
+  semanticMemoryCache: {
+    at: 0,
+    data: null as any,
+    inflight: null as Promise<any> | null,
+  },
+  ecsHandlesCache: {
+    at: 0,
+    data: null as any,
+    inflight: null as Promise<any> | null,
+  },
 };
+
+const FOCUS_STATE_CACHE_TTL_MS = 1_200;
+const AUX_CONTEXT_CACHE_TTL_MS = 3_000;
+const CONTEXT_SEMANTIC_LIMIT = 64;
+const CONTEXT_ECS_HANDLES_LIMIT = 128;
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
@@ -754,13 +779,7 @@ export function extractText(content: any): string {
   return String(content || "");
 }
 
-// ── Get Focus State from Focusa scoped to Pi's own frame (§33.5 isolation) ──
-// CRITICAL: Never use Focusa's global active_frame_id — that belongs to Wirebot.
-// Pi sessions must only read their own frame. If Pi has no frame, return empty.
-export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
-  // §33.5 + §34.2H: Pi context reads its own scoped frame from /focus/stack and hydrates live ASCC state from /ascc/state.
-  if (!S.activeFrameId && !S.sessionFrameKey) return null;
-
+async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
   const [stack, asccState] = await Promise.all([
     focusaFetch("/focus/stack"),
     focusaFetch("/ascc/state").catch(() => null),
@@ -812,8 +831,79 @@ export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any
     currentFocus: fs?.current_focus || fs?.current_state || "",
   };
 
-  // Never sync Pi's scoped frame from Focusa global active_frame_id.
   return { frame, fs, stack };
+}
+
+// ── Get Focus State from Focusa scoped to Pi's own frame (§33.5 isolation) ──
+// CRITICAL: Never use Focusa's global active_frame_id — that belongs to Wirebot.
+// Pi sessions must only read their own frame. If Pi has no frame, return empty.
+export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
+  if (!S.activeFrameId && !S.sessionFrameKey) return null;
+
+  const cacheKey = `${S.activeFrameId || ""}|${S.sessionFrameKey || ""}`;
+  const now = Date.now();
+  if (S.focusStateCache.data && S.focusStateCache.key === cacheKey && now - S.focusStateCache.at < FOCUS_STATE_CACHE_TTL_MS) {
+    return S.focusStateCache.data;
+  }
+  if (S.focusStateCache.inflight && S.focusStateCache.key === cacheKey) {
+    return await S.focusStateCache.inflight;
+  }
+
+  const inflight = loadFocusState();
+  S.focusStateCache.key = cacheKey;
+  S.focusStateCache.inflight = inflight;
+  try {
+    const data = await inflight;
+    if (data) {
+      S.focusStateCache.data = data;
+      S.focusStateCache.at = Date.now();
+    }
+    return data;
+  } finally {
+    if (S.focusStateCache.inflight === inflight) S.focusStateCache.inflight = null;
+  }
+}
+
+export async function getSemanticMemorySummary(): Promise<any> {
+  const now = Date.now();
+  if (S.semanticMemoryCache.data && now - S.semanticMemoryCache.at < AUX_CONTEXT_CACHE_TTL_MS) {
+    return S.semanticMemoryCache.data;
+  }
+  if (S.semanticMemoryCache.inflight) return await S.semanticMemoryCache.inflight;
+
+  const inflight = focusaFetch(`/memory/semantic?limit=${CONTEXT_SEMANTIC_LIMIT}&summary_only=true`);
+  S.semanticMemoryCache.inflight = inflight;
+  try {
+    const data = await inflight;
+    if (data) {
+      S.semanticMemoryCache.data = data;
+      S.semanticMemoryCache.at = Date.now();
+    }
+    return data;
+  } finally {
+    if (S.semanticMemoryCache.inflight === inflight) S.semanticMemoryCache.inflight = null;
+  }
+}
+
+export async function getEcsHandlesSummary(): Promise<any> {
+  const now = Date.now();
+  if (S.ecsHandlesCache.data && now - S.ecsHandlesCache.at < AUX_CONTEXT_CACHE_TTL_MS) {
+    return S.ecsHandlesCache.data;
+  }
+  if (S.ecsHandlesCache.inflight) return await S.ecsHandlesCache.inflight;
+
+  const inflight = focusaFetch(`/ecs/handles?limit=${CONTEXT_ECS_HANDLES_LIMIT}&summary_only=true`);
+  S.ecsHandlesCache.inflight = inflight;
+  try {
+    const data = await inflight;
+    if (data) {
+      S.ecsHandlesCache.data = data;
+      S.ecsHandlesCache.at = Date.now();
+    }
+    return data;
+  } finally {
+    if (S.ecsHandlesCache.inflight === inflight) S.ecsHandlesCache.inflight = null;
+  }
 }
 
 export function trimFrameText(text: string, max = 80): string {
@@ -1016,6 +1106,60 @@ export function getEffectiveFocusSnapshot(fs?: any): {
   };
 }
 
+const MAX_PERSIST_LIST_ITEMS = 40;
+const MAX_PERSIST_TEXT_CHARS = 320;
+const PERSIST_MIN_INTERVAL_MS = 3_000;
+const MAX_ECS_ITEMS = 180;
+const MAX_ECS_TOTAL_BYTES = 64 * 1024 * 1024;
+const MAX_ECS_ITEM_BYTES = 1024 * 1024;
+const ECS_TTL_MS = 6 * 60 * 60 * 1000;
+
+function trimPersistText(input: string): string {
+  const normalized = String(input || "").replace(/\s+/g, " ").trim();
+  if (normalized.length <= MAX_PERSIST_TEXT_CHARS) return normalized;
+  return `${normalized.slice(0, MAX_PERSIST_TEXT_CHARS - 1)}…`;
+}
+
+function tailBounded(items: string[], maxItems = MAX_PERSIST_LIST_ITEMS): string[] {
+  return (items || [])
+    .map((item) => trimPersistText(String(item || "")))
+    .filter(Boolean)
+    .slice(-maxItems);
+}
+
+function pruneEcsRegistry(now = Date.now()): void {
+  type Flat = { kind: string; id: string; storedAt: number; bytes: number };
+  const flat: Flat[] = [];
+
+  for (const [kind, bucket] of Object.entries(S.ecsRegistry || {})) {
+    for (const [id, record] of Object.entries(bucket || {})) {
+      const age = now - (record?.storedAt || 0);
+      if (!record || typeof record.content !== "string" || age > ECS_TTL_MS) {
+        delete bucket[id];
+        continue;
+      }
+      const bytes = Buffer.byteLength(record.content, "utf8");
+      flat.push({ kind, id, storedAt: record.storedAt || 0, bytes });
+    }
+    if (!Object.keys(bucket || {}).length) delete S.ecsRegistry[kind];
+  }
+
+  flat.sort((a, b) => a.storedAt - b.storedAt);
+  let totalBytes = flat.reduce((sum, item) => sum + item.bytes, 0);
+  let totalItems = flat.length;
+
+  while (flat.length && (totalItems > MAX_ECS_ITEMS || totalBytes > MAX_ECS_TOTAL_BYTES)) {
+    const victim = flat.shift();
+    if (!victim) break;
+    if (S.ecsRegistry[victim.kind]?.[victim.id]) {
+      delete S.ecsRegistry[victim.kind][victim.id];
+      if (!Object.keys(S.ecsRegistry[victim.kind]).length) delete S.ecsRegistry[victim.kind];
+      totalItems -= 1;
+      totalBytes = Math.max(0, totalBytes - victim.bytes);
+    }
+  }
+}
+
 export async function persistAuthoritativeState(): Promise<void> {
   if (S.focusaAvailable && S.activeFrameId) {
     await getFocusState().catch(() => null);
@@ -1027,28 +1171,40 @@ export function persistState(): void {
   const payload = {
     sessionId: S.sessionFrameKey,
     frameId: S.activeFrameId,
-    frameTitle: S.activeFrameTitle,
-    frameGoal: S.activeFrameGoal,
-    currentAsk: S.currentAsk,
+    frameTitle: trimPersistText(S.activeFrameTitle),
+    frameGoal: trimPersistText(S.activeFrameGoal),
+    currentAsk: S.currentAsk
+      ? { ...S.currentAsk, text: trimPersistText(S.currentAsk.text) }
+      : null,
     queryScope: S.queryScope,
-    decisions: S.localDecisions,
-    constraints: S.localConstraints,
-    failures: sanitizeFocusFailures(S.localFailures),
-    authoritativeDecisions: S.lastFocusSnapshot.decisions,
-    authoritativeConstraints: S.lastFocusSnapshot.constraints,
-    authoritativeFailures: sanitizeFocusFailures(S.lastFocusSnapshot.failures),
-    intent: S.lastFocusSnapshot.intent,
-    currentFocus: S.lastFocusSnapshot.currentFocus,
+    decisions: tailBounded(S.localDecisions),
+    constraints: tailBounded(S.localConstraints),
+    failures: tailBounded(sanitizeFocusFailures(S.localFailures), 20),
+    authoritativeDecisions: tailBounded(S.lastFocusSnapshot.decisions),
+    authoritativeConstraints: tailBounded(S.lastFocusSnapshot.constraints),
+    authoritativeFailures: tailBounded(sanitizeFocusFailures(S.lastFocusSnapshot.failures), 20),
+    intent: trimPersistText(S.lastFocusSnapshot.intent),
+    currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
     turnCount: S.turnCount,
     wbmEnabled: S.wbmEnabled,
     wbmNoCatalogue: S.wbmNoCatalogue,
-    cataloguedDecisions: S.cataloguedDecisions,
-    cataloguedFacts: S.cataloguedFacts,
+    cataloguedDecisions: tailBounded(S.cataloguedDecisions),
+    cataloguedFacts: tailBounded(S.cataloguedFacts),
     totalCompactions: S.totalCompactions,
     timestamp: Date.now(),
   };
+
+  const now = Date.now();
+  const payloadHash = JSON.stringify(payload);
+  if (S.lastPersistHash === payloadHash && now - S.lastPersistAt < PERSIST_MIN_INTERVAL_MS) {
+    return;
+  }
+
+  S.lastPersistHash = payloadHash;
+  S.lastPersistAt = now;
+
   S.pi?.appendEntry("focusa-state", payload);
-  S.pi?.appendEntry("focusa-wbm-state", payload);
+  if (S.wbmEnabled) S.pi?.appendEntry("focusa-wbm-state", payload);
 }
 
 // ── Estimate tokens from bytes (§7.4) ────────────────────────────────────────
@@ -1066,11 +1222,17 @@ let _handleCounter = 0;
 export function storeEcsArtifact(kind: string, content: string): string {
   const id = `local-${Date.now()}-${++_handleCounter}`;
   if (!S.ecsRegistry[kind]) S.ecsRegistry[kind] = {};
-  S.ecsRegistry[kind][id] = { content, storedAt: Date.now() };
+  const raw = String(content || "");
+  const clipped = Buffer.byteLength(raw, "utf8") > MAX_ECS_ITEM_BYTES
+    ? `${raw.slice(0, MAX_ECS_ITEM_BYTES)}\n...[local ECS clipped due to memory cap]`
+    : raw;
+  S.ecsRegistry[kind][id] = { content: clipped, storedAt: Date.now() };
+  pruneEcsRegistry();
   return id;
 }
 
 export function getEcsArtifact(kind: string, id: string): string | null {
+  pruneEcsRegistry();
   return S.ecsRegistry[kind]?.[id]?.content ?? null;
 }
 

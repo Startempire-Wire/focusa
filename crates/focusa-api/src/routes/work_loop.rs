@@ -913,7 +913,6 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                 | WorkLoopStatus::AwaitingHarnessTurn
                 | WorkLoopStatus::AdvancingTask
                 | WorkLoopStatus::EvaluatingOutcome
-                | WorkLoopStatus::Blocked
         )
     {
         return Ok(false);
@@ -1254,6 +1253,46 @@ fn secondary_loop_quality_metrics_for_status(
     })
 }
 
+fn metacognitive_outcome_contracts() -> Value {
+    json!([
+        {
+            "contract_id": "self_monitoring_signal",
+            "category": "self_regulation",
+            "machine_check_fields": ["quality_trace_events", "objective_counts", "continuation_decision_counts"]
+        },
+        {
+            "contract_id": "strategy_selection_signal",
+            "category": "cognitive_strategy",
+            "machine_check_fields": ["objective_counts", "dominant_objective", "continuation_decision_counts"]
+        },
+        {
+            "contract_id": "progress_regulation_signal",
+            "category": "progress_control",
+            "machine_check_fields": ["continuation_decision_counts", "non_closure_objective_events", "non_closure_objective_rate"]
+        },
+        {
+            "contract_id": "transfer_to_new_context_signal",
+            "category": "transfer_learning",
+            "machine_check_fields": ["objective_counts", "non_closure_objective_events"]
+        },
+        {
+            "contract_id": "motivation_ownership_signal",
+            "category": "motivation",
+            "machine_check_fields": ["objective_counts", "continuation_decision_counts"]
+        },
+        {
+            "contract_id": "social_emotional_perspective_signal",
+            "category": "social_emotional",
+            "machine_check_fields": ["objective_counts", "non_closure_objective_events"]
+        },
+        {
+            "contract_id": "teaching_regulation_signal",
+            "category": "instructor_regulation",
+            "machine_check_fields": ["objective_counts", "non_closure_objective_rate"]
+        }
+    ])
+}
+
 fn secondary_loop_objective_profile_for_status(s: &focusa_core::types::FocusaState) -> Value {
     let mut objective_counts = std::collections::BTreeMap::<String, u64>::new();
     let mut continuation_decision_counts = std::collections::BTreeMap::<String, u64>::new();
@@ -1311,6 +1350,7 @@ fn secondary_loop_objective_profile_for_status(s: &focusa_core::types::FocusaSta
         "non_closure_objective_events": non_closure_objective_events,
         "non_closure_objective_rate": safe_rate(non_closure_objective_events, quality_trace_events),
         "dominant_objective": dominant_objective,
+        "metacognitive_outcome_contracts": metacognitive_outcome_contracts(),
     })
 }
 

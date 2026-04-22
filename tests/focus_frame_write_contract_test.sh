@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18787}"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0

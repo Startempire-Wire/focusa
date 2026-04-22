@@ -114,12 +114,17 @@ GET `/v1/ascc/frame/:frame_id`
 POST `/v1/ascc/update-delta`
 
 ### ECS
+GET  `/v1/ecs/handles`
 POST `/v1/ecs/store`
 GET  `/v1/ecs/resolve/:handle_id`
 GET  `/v1/ecs/content/:handle_id`
 POST `/v1/ecs/rehydrate/:handle_id`
 
 Exact request schemas:
+- `GET /v1/ecs/handles`
+  - Query `limit: integer` (optional, capped server-side to `512`; returns most recent handles)
+  - Query `summary_only: boolean` (optional; when `true`, omits blob-heavy metadata like `sha256`, `size`, `session_id`)
+  - Response includes `count` = total handle count before limiting
 - `POST /v1/ecs/store`
   - `kind: "log"|"diff"|"text"|"json"|"url"|"file_snapshot"|"other"`
   - `label: string`
@@ -134,6 +139,10 @@ GET `/v1/memory/procedural`
 POST `/v1/memory/procedural/reinforce`
 
 Exact request schemas:
+- `GET /v1/memory/semantic`
+  - Query `limit: integer` (optional, capped server-side to `512`; returns most recent records)
+  - Query `summary_only: boolean` (optional; when `true`, omits heavier metadata like `source`, `confidence`, `tags`, `ttl`)
+  - Response includes `count` = total semantic record count before limiting
 - `POST /v1/memory/semantic/upsert`
   - `key: string`
   - `value: string`

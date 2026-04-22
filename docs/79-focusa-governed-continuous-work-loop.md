@@ -1483,6 +1483,20 @@ Suggested loop-specific metrics:
 - recovery success after pause/crash
 - token/latency cost of loop supervision
 
+### 31.1 Metacognitive Outcome Contracts (Machine-Checkable)
+The loop MUST expose a stable metacognitive outcome contract set through `secondary_loop_objective_profile.metacognitive_outcome_contracts` so evaluation and gating can assert outcome coverage without prompt heuristics.
+
+Required contract ids:
+- `self_monitoring_signal`
+- `strategy_selection_signal`
+- `progress_regulation_signal`
+- `transfer_to_new_context_signal`
+- `motivation_ownership_signal`
+- `social_emotional_perspective_signal`
+- `teaching_regulation_signal`
+
+Each contract MUST declare machine-check fields mapped to surfaced counters (`quality_trace_events`, `objective_counts`, `continuation_decision_counts`, `non_closure_objective_events`, `non_closure_objective_rate`, `dominant_objective`).
+
 **Sources:** `docs/56-trace-checkpoints-recovery.md`; `docs/57-golden-tasks-and-evals.md`; `docs/67-query-scope-and-relevance-control.md`.
 
 ---

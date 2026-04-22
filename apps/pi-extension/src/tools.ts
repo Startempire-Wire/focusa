@@ -910,4 +910,1039 @@ export function registerTools(pi: ExtensionAPI) {
       };
     },
   });
+
+  // ── Spec80 LLM-native tree/metacog tools ─────────────────────────────────
+
+  function spec80ErrorCode(result: { ok: boolean; status: number; body: any | null }): string {
+    if (result.ok) return "OK";
+    const bodyCode = String(result.body?.code || result.body?.error || "").trim();
+    if (bodyCode) return bodyCode;
+    if (result.status === 0) return "DAEMON_UNAVAILABLE";
+    if (result.status === 400) return "INVALID_REQUEST";
+    if (result.status === 401) return "AUTH_REQUIRED";
+    if (result.status === 403) return "AUTHORITY_DENIED";
+    if (result.status === 404) return "NOT_FOUND";
+    if (result.status === 409) return "CONFLICT";
+    if (result.status === 422) return "SCHEMA_INVALID";
+    if (result.status >= 500) return "SERVER_ERROR";
+    return "REQUEST_FAILED";
+  }
+
+  function spec80Result(
+    tool: string,
+    endpoint: string,
+    request: Record<string, any>,
+    result: { ok: boolean; status: number; body: any | null },
+    successText: string,
+    fallbackText: string,
+  ) {
+    const text = result.ok && result.body ? successText : `${fallbackText} → ${explainWorkLoopResult(result, "ok")}`;
+    return {
+      content: [{ type: "text", text }],
+      details: {
+        ok: result.ok,
+        status: result.status,
+        code: spec80ErrorCode(result),
+        tool,
+        endpoint,
+        request,
+        response: result.body ?? null,
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
+  }
+
+  function spec80CompositeResult(
+    tool: string,
+    endpoint: string,
+    request: Record<string, any>,
+    ok: boolean,
+    status: number,
+    response: any,
+    successText: string,
+    fallbackText: string,
+  ) {
+    const result = { ok, status, body: response ?? null };
+    return spec80Result(tool, endpoint, request, result, successText, fallbackText);
+  }
+
+  async function callSpec80Tool(
+    tool: string,
+    endpoint: string,
+    request: Record<string, any>,
+    opts: { method?: "GET" | "POST"; writer?: boolean } = {},
+  ): Promise<{ ok: boolean; status: number; body: any | null; writerId?: string }> {
+    const method = opts.method || "POST";
+    const writerId = opts.writer ? await preferredWriterId() : undefined;
+    const req: RequestInit = {
+      method,
+      headers: writerId ? { "x-focusa-writer-id": writerId } : undefined,
+      body: method === "POST" ? JSON.stringify(request) : undefined,
+    };
+    const first = await focusaFetchDetailed(endpoint, req);
+    const transient = new Set([0, 429, 502, 503, 504]);
+    if (!first.ok && transient.has(first.status)) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const second = await focusaFetchDetailed(endpoint, req);
+      return { ...second, writerId };
+    }
+    return { ...first, writerId };
+  }
+
+  const SPEC81_ID_PATTERN = "^[A-Za-z0-9._:-]+$";
+  const SPEC81_TURN_RANGE_PATTERN = "^[A-Za-z0-9_.,:+\\-\\s]+$";
+  const SPEC81_ID_RE = /^[A-Za-z0-9._:-]+$/;
+  const SPEC81_TURN_RANGE_RE = /^[A-Za-z0-9_.,:+\-\s]+$/;
+  const SPEC81_LIMITS = {
+    sessionId: 160,
+    id: 160,
+    snapshotReason: 160,
+    kind: 80,
+    strategyClass: 80,
+    shortText: 240,
+    currentAsk: 500,
+    rationale: 500,
+    longText: 2000,
+    turnRange: 120,
+    scopeTags: 16,
+    failureClasses: 16,
+    selectedUpdates: 20,
+    observedMetrics: 32,
+    tagText: 80,
+    updateText: 240,
+    metricText: 120,
+  };
+
+  function spec80ValidationResult(
+    tool: string,
+    endpoint: string,
+    request: Record<string, any>,
+    fallbackText: string,
+    error: string,
+    code = "SCHEMA_INVALID",
+  ) {
+    return spec80Result(
+      tool,
+      endpoint,
+      request,
+      { ok: false, status: 422, body: { code, error } },
+      `${fallbackText}: ok`,
+      fallbackText,
+    );
+  }
+
+  function validateRequiredString(
+    name: string,
+    value: unknown,
+    maxLength: number,
+    opts: { pattern?: RegExp } = {},
+  ): { ok: true; value: string } | { ok: false; error: string } {
+    const text = String(value ?? "").trim();
+    if (!text) return { ok: false, error: `${name} required` };
+    if (text.length > maxLength) return { ok: false, error: `${name} too long (max ${maxLength})` };
+    if (opts.pattern && !opts.pattern.test(text)) return { ok: false, error: `${name} has invalid format` };
+    return { ok: true, value: text };
+  }
+
+  function validateOptionalString(
+    name: string,
+    value: unknown,
+    maxLength: number,
+    opts: { pattern?: RegExp } = {},
+  ): { ok: true; value: string | undefined } | { ok: false; error: string } {
+    if (value === undefined || value === null) return { ok: true, value: undefined };
+    const text = String(value).trim();
+    if (!text) return { ok: true, value: undefined };
+    if (text.length > maxLength) return { ok: false, error: `${name} too long (max ${maxLength})` };
+    if (opts.pattern && !opts.pattern.test(text)) return { ok: false, error: `${name} has invalid format` };
+    return { ok: true, value: text };
+  }
+
+  function validateStringArray(
+    name: string,
+    value: unknown,
+    opts: { maxItems: number; itemMaxLength: number; pattern?: RegExp },
+  ): { ok: true; value: string[] } | { ok: false; error: string } {
+    if (value === undefined || value === null) return { ok: true, value: [] };
+    if (!Array.isArray(value)) return { ok: false, error: `${name} must be an array` };
+    if (value.length > opts.maxItems) return { ok: false, error: `${name} has too many items (max ${opts.maxItems})` };
+    const normalized: string[] = [];
+    for (const raw of value) {
+      if (typeof raw !== "string") return { ok: false, error: `${name} items must be strings` };
+      const item = raw.trim();
+      if (!item) return { ok: false, error: `${name} items must not be blank` };
+      if (item.length > opts.itemMaxLength) return { ok: false, error: `${name} item too long (max ${opts.itemMaxLength})` };
+      if (opts.pattern && !opts.pattern.test(item)) return { ok: false, error: `${name} item has invalid format` };
+      normalized.push(item);
+    }
+    return { ok: true, value: normalized };
+  }
+
+  function validateNoExtraKeys(
+    tool: string,
+    params: unknown,
+    allowedKeys: string[],
+  ): { ok: true; value: Record<string, any> } | { ok: false; error: string } {
+    if (!params || typeof params !== "object" || Array.isArray(params)) {
+      return { ok: false, error: `${tool} params must be an object` };
+    }
+    const record = params as Record<string, any>;
+    const extras = Object.keys(record).filter((key) => !allowedKeys.includes(key));
+    if (extras.length > 0) {
+      return { ok: false, error: `unexpected parameter(s): ${extras.join(", ")}` };
+    }
+    return { ok: true, value: record };
+  }
+
+  function strictObject(properties: Record<string, any>) {
+    return Type.Object(properties, { additionalProperties: false });
+  }
+
+  function summarizeArray(values: unknown[], limit = 3): string {
+    if (!Array.isArray(values) || values.length === 0) return "none";
+    return values.slice(0, limit).map((value) => String(value)).join(", ");
+  }
+
+  function boolLabel(value: unknown): string {
+    return value ? "yes" : "no";
+  }
+
+  pi.registerTool({
+    name: "focusa_tree_head",
+    label: "Tree Head",
+    description: "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
+    parameters: strictObject({
+      session_id: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.sessionId, pattern: SPEC81_ID_PATTERN, description: "Optional session id scoping hint." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_head", params, ["session_id"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_head", "/v1/lineage/head", params as Record<string, any>, "tree head", keyCheck.error);
+      }
+      const sessionIdCheck = validateOptionalString(
+        "session_id",
+        keyCheck.value.session_id,
+        SPEC81_LIMITS.sessionId,
+        { pattern: SPEC81_ID_RE },
+      );
+      if (!sessionIdCheck.ok) {
+        return spec80ValidationResult("focusa_tree_head", "/v1/lineage/head", params as Record<string, any>, "tree head", sessionIdCheck.error);
+      }
+      const session_id = sessionIdCheck.value;
+      const query = session_id ? `?session_id=${encodeURIComponent(session_id)}` : "";
+      const req = { session_id: session_id || null };
+      const res = await callSpec80Tool("focusa_tree_head", `/lineage/head${query}`, req, { method: "GET" });
+      const head = String(res.body?.head || "unknown");
+      const branch = String(res.body?.branch_id || "unknown");
+      const session = String(res.body?.session_id || session_id || "global");
+      return spec80Result(
+        "focusa_tree_head",
+        "/v1/lineage/head",
+        req,
+        res,
+        `tree head: ${head}\nbranch=${branch} session=${session}\nnext_tools=focusa_tree_path,focusa_tree_snapshot_state`,
+        "tree head",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tree_path",
+    label: "Tree Path",
+    description: "Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns.",
+    parameters: strictObject({
+      clt_node_id: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "CLT node id." }),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_path", params, ["clt_node_id"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_path", "/v1/lineage/path/{clt_node_id}", params as Record<string, any>, "tree path", keyCheck.error);
+      }
+      const nodeIdCheck = validateRequiredString(
+        "clt_node_id",
+        keyCheck.value.clt_node_id,
+        SPEC81_LIMITS.id,
+        { pattern: SPEC81_ID_RE },
+      );
+      if (!nodeIdCheck.ok) {
+        return spec80ValidationResult("focusa_tree_path", "/v1/lineage/path/{clt_node_id}", params as Record<string, any>, "tree path", nodeIdCheck.error);
+      }
+      const nodeId = nodeIdCheck.value;
+      const res = await callSpec80Tool("focusa_tree_path", `/lineage/path/${encodeURIComponent(nodeId)}`, { clt_node_id: nodeId }, { method: "GET" });
+      const depth = Number(res.body?.depth || 0);
+      const pathItems = Array.isArray(res.body?.path) ? res.body.path : [];
+      return spec80Result(
+        "focusa_tree_path",
+        "/v1/lineage/path/{clt_node_id}",
+        { clt_node_id: nodeId },
+        res,
+        `tree path: depth=${depth} nodes=${pathItems.length}\npath=${summarizeArray(pathItems, 5)}\nnext_tools=focusa_tree_snapshot_state,focusa_tree_diff_context`,
+        "tree path",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tree_snapshot_state",
+    label: "Tree Snapshot State",
+    description: "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.",
+    parameters: strictObject({
+      clt_node_id: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Optional CLT node id. Defaults to current head." })),
+      snapshot_reason: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.snapshotReason, description: "Reason label for snapshot." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_snapshot_state", params, ["clt_node_id", "snapshot_reason"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_snapshot_state", "/v1/focus/snapshots", params as Record<string, any>, "tree snapshot", keyCheck.error);
+      }
+      const raw = keyCheck.value as { clt_node_id?: string; snapshot_reason?: string };
+      const nodeCheck = validateOptionalString("clt_node_id", raw.clt_node_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!nodeCheck.ok) {
+        return spec80ValidationResult("focusa_tree_snapshot_state", "/v1/focus/snapshots", raw as Record<string, any>, "tree snapshot", nodeCheck.error);
+      }
+      const reasonCheck = validateOptionalString("snapshot_reason", raw.snapshot_reason, SPEC81_LIMITS.snapshotReason);
+      if (!reasonCheck.ok) {
+        return spec80ValidationResult("focusa_tree_snapshot_state", "/v1/focus/snapshots", raw as Record<string, any>, "tree snapshot", reasonCheck.error);
+      }
+      const req = { clt_node_id: nodeCheck.value || null, snapshot_reason: reasonCheck.value || null };
+      const res = await callSpec80Tool("focusa_tree_snapshot_state", "/focus/snapshots", req, { method: "POST", writer: true });
+      return spec80Result(
+        "focusa_tree_snapshot_state",
+        "/v1/focus/snapshots",
+        { ...req, writer_id: res.writerId || null },
+        res,
+        `tree snapshot: ${String(res.body?.snapshot_id || "created")}\nclt_node=${String(res.body?.clt_node_id || req.clt_node_id || "current")} created_at=${String(res.body?.created_at || "unknown")}\nnext_tools=focusa_tree_diff_context,focusa_tree_restore_state`,
+        "tree snapshot",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tree_restore_state",
+    label: "Tree Restore State",
+    description: "Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool.",
+    parameters: strictObject({
+      snapshot_id: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Snapshot id to restore." }),
+      restore_mode: Type.Optional(Type.Union([Type.Literal("exact"), Type.Literal("merge")], { description: "Restore mode: exact|merge" })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_restore_state", params, ["snapshot_id", "restore_mode"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_restore_state", "/v1/focus/snapshots/restore", params as Record<string, any>, "tree restore", keyCheck.error);
+      }
+      const raw = keyCheck.value as { snapshot_id: string; restore_mode?: string };
+      const sidCheck = validateRequiredString("snapshot_id", raw.snapshot_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!sidCheck.ok) {
+        return spec80ValidationResult("focusa_tree_restore_state", "/v1/focus/snapshots/restore", raw as Record<string, any>, "tree restore", sidCheck.error);
+      }
+      const mode = String(raw.restore_mode || "exact").trim().toLowerCase();
+      if (mode !== "exact" && mode !== "merge") {
+        return spec80ValidationResult(
+          "focusa_tree_restore_state",
+          "/v1/focus/snapshots/restore",
+          { snapshot_id: sidCheck.value, restore_mode: mode },
+          "tree restore",
+          "restore_mode must be exact|merge",
+          "INVALID_REQUEST",
+        );
+      }
+      const req = { snapshot_id: sidCheck.value, restore_mode: mode };
+      const res = await callSpec80Tool("focusa_tree_restore_state", "/focus/snapshots/restore", req, { method: "POST", writer: true });
+      const conflicts = Array.isArray(res.body?.conflicts) ? res.body.conflicts.length : 0;
+      return spec80Result(
+        "focusa_tree_restore_state",
+        "/v1/focus/snapshots/restore",
+        { ...req, writer_id: res.writerId || null },
+        res,
+        `tree restore: status=${String(res.body?.status || "ok")} snapshot=${String(res.body?.snapshot_id || req.snapshot_id)}\nmode=${mode} conflicts=${conflicts}\nnext_tools=focusa_tree_head,focusa_tree_path`,
+        "tree restore",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tree_diff_context",
+    label: "Tree Diff Context",
+    description: "Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints.",
+    parameters: strictObject({
+      from_snapshot_id: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Source snapshot id." }),
+      to_snapshot_id: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Target snapshot id." }),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_diff_context", params, ["from_snapshot_id", "to_snapshot_id"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_diff_context", "/v1/focus/snapshots/diff", params as Record<string, any>, "tree diff", keyCheck.error);
+      }
+      const raw = keyCheck.value as { from_snapshot_id: string; to_snapshot_id: string };
+      const fromCheck = validateRequiredString("from_snapshot_id", raw.from_snapshot_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!fromCheck.ok) {
+        return spec80ValidationResult("focusa_tree_diff_context", "/v1/focus/snapshots/diff", raw as Record<string, any>, "tree diff", fromCheck.error);
+      }
+      const toCheck = validateRequiredString("to_snapshot_id", raw.to_snapshot_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!toCheck.ok) {
+        return spec80ValidationResult("focusa_tree_diff_context", "/v1/focus/snapshots/diff", raw as Record<string, any>, "tree diff", toCheck.error);
+      }
+      const req = { from_snapshot_id: fromCheck.value, to_snapshot_id: toCheck.value };
+      const res = await callSpec80Tool("focusa_tree_diff_context", "/focus/snapshots/diff", req, { method: "POST" });
+      return spec80Result(
+        "focusa_tree_diff_context",
+        "/v1/focus/snapshots/diff",
+        req,
+        res,
+        `tree diff: changed=${boolLabel(res.body?.checksum_changed)} version_delta=${String(res.body?.version_delta ?? "unknown")}\nclt_changed=${boolLabel(res.body?.clt_node_changed)} decisions_changed=${boolLabel(res.body?.decisions_delta?.changed)}\nnext_tools=focusa_tree_restore_state,focusa_tree_path`,
+        "tree diff",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_capture",
+    label: "Metacog Capture",
+    description: "Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.",
+    parameters: strictObject({
+      kind: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.kind, description: "Signal kind." }),
+      content: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.longText, description: "Signal content." }),
+      rationale: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.rationale, description: "Optional rationale." })),
+      confidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "Optional confidence 0..1" })),
+      strategy_class: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.strategyClass, description: "Optional strategy class." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_capture", params, ["kind", "content", "rationale", "confidence", "strategy_class"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", params as Record<string, any>, "metacog capture", keyCheck.error);
+      }
+      const raw = keyCheck.value as { kind: string; content: string; rationale?: string; confidence?: number; strategy_class?: string };
+      const kindCheck = validateRequiredString("kind", raw.kind, SPEC81_LIMITS.kind);
+      if (!kindCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", raw as Record<string, any>, "metacog capture", kindCheck.error);
+      }
+      const contentCheck = validateRequiredString("content", raw.content, SPEC81_LIMITS.longText);
+      if (!contentCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", raw as Record<string, any>, "metacog capture", contentCheck.error);
+      }
+      const rationaleCheck = validateOptionalString("rationale", raw.rationale, SPEC81_LIMITS.rationale);
+      if (!rationaleCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", raw as Record<string, any>, "metacog capture", rationaleCheck.error);
+      }
+      const strategyCheck = validateOptionalString("strategy_class", raw.strategy_class, SPEC81_LIMITS.strategyClass);
+      if (!strategyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", raw as Record<string, any>, "metacog capture", strategyCheck.error);
+      }
+      if (raw.confidence !== undefined && (!Number.isFinite(raw.confidence) || raw.confidence < 0 || raw.confidence > 1)) {
+        return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", raw as Record<string, any>, "metacog capture", "confidence must be between 0 and 1");
+      }
+      const req = {
+        kind: kindCheck.value,
+        content: contentCheck.value,
+        rationale: rationaleCheck.value,
+        confidence: raw.confidence,
+        strategy_class: strategyCheck.value,
+      };
+      const res = await callSpec80Tool("focusa_metacog_capture", "/metacognition/capture", req, { method: "POST", writer: true });
+      return spec80Result(
+        "focusa_metacog_capture",
+        "/v1/metacognition/capture",
+        { ...req, writer_id: res.writerId || null },
+        res,
+        `metacog capture: ${String(res.body?.capture_id || "stored")}\nkind=${req.kind} confidence=${req.confidence ?? "n/a"} strategy_class=${req.strategy_class || "none"}\nnext_tools=focusa_metacog_retrieve,focusa_metacog_reflect`,
+        "metacog capture",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_retrieve",
+    label: "Metacog Retrieve",
+    description: "Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection.",
+    parameters: strictObject({
+      current_ask: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.currentAsk, description: "Current ask." }),
+      scope_tags: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.tagText, description: "Optional scope tag." }), { maxItems: SPEC81_LIMITS.scopeTags, description: "Optional scope tags." })),
+      k: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, description: "Top-k candidates (default 5)." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_retrieve", params, ["current_ask", "scope_tags", "k"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_retrieve", "/v1/metacognition/retrieve", params as Record<string, any>, "metacog retrieve", keyCheck.error);
+      }
+      const raw = keyCheck.value as { current_ask: string; scope_tags?: string[]; k?: number };
+      const askCheck = validateRequiredString("current_ask", raw.current_ask, SPEC81_LIMITS.currentAsk);
+      if (!askCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_retrieve", "/v1/metacognition/retrieve", raw as Record<string, any>, "metacog retrieve", askCheck.error);
+      }
+      const tagsCheck = validateStringArray("scope_tags", raw.scope_tags, { maxItems: SPEC81_LIMITS.scopeTags, itemMaxLength: SPEC81_LIMITS.tagText });
+      if (!tagsCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_retrieve", "/v1/metacognition/retrieve", raw as Record<string, any>, "metacog retrieve", tagsCheck.error);
+      }
+      let normalizedK = Math.trunc(Number(raw.k ?? 5));
+      if (!Number.isFinite(normalizedK)) normalizedK = 5;
+      normalizedK = Math.max(1, Math.min(50, normalizedK));
+      const req = { current_ask: askCheck.value, scope_tags: tagsCheck.value, k: normalizedK };
+      const res = await callSpec80Tool("focusa_metacog_retrieve", "/metacognition/retrieve", req, { method: "POST" });
+      const candidates = Array.isArray(res.body?.candidates) ? res.body.candidates : [];
+      const total = candidates.length;
+      const top = candidates[0];
+      return spec80Result(
+        "focusa_metacog_retrieve",
+        "/v1/metacognition/retrieve",
+        req,
+        res,
+        total > 0
+          ? `metacog retrieve: candidates=${total} top_capture=${String(top?.capture_id || "none")}\ntop_kind=${String(top?.kind || "unknown")} top_score=${String(top?.score ?? "n/a")}\nnext_tools=focusa_metacog_reflect,focusa_metacog_plan_adjust`
+          : `metacog retrieve: candidates=0\nno prior signals matched\nnext_tools=focusa_metacog_capture,focusa_metacog_reflect`,
+        "metacog retrieve",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_reflect",
+    label: "Metacog Reflect",
+    description: "Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes.",
+    parameters: strictObject({
+      turn_range: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.turnRange, pattern: SPEC81_TURN_RANGE_PATTERN, description: "Turn range expression." }),
+      failure_classes: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.tagText, description: "Failure class tag." }), { maxItems: SPEC81_LIMITS.failureClasses, description: "Failure class tags." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_reflect", params, ["turn_range", "failure_classes"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_reflect", "/v1/metacognition/reflect", params as Record<string, any>, "metacog reflect", keyCheck.error);
+      }
+      const raw = keyCheck.value as { turn_range: string; failure_classes?: string[] };
+      const turnRangeCheck = validateRequiredString("turn_range", raw.turn_range, SPEC81_LIMITS.turnRange, { pattern: SPEC81_TURN_RANGE_RE });
+      if (!turnRangeCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_reflect", "/v1/metacognition/reflect", raw as Record<string, any>, "metacog reflect", turnRangeCheck.error);
+      }
+      const failureCheck = validateStringArray("failure_classes", raw.failure_classes, { maxItems: SPEC81_LIMITS.failureClasses, itemMaxLength: SPEC81_LIMITS.tagText });
+      if (!failureCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_reflect", "/v1/metacognition/reflect", raw as Record<string, any>, "metacog reflect", failureCheck.error);
+      }
+      const req = { turn_range: turnRangeCheck.value, failure_classes: failureCheck.value };
+      const res = await callSpec80Tool("focusa_metacog_reflect", "/metacognition/reflect", req, { method: "POST", writer: true });
+      const updates = Array.isArray(res.body?.strategy_updates) ? res.body.strategy_updates : [];
+      return spec80Result(
+        "focusa_metacog_reflect",
+        "/v1/metacognition/reflect",
+        { ...req, writer_id: res.writerId || null },
+        res,
+        `metacog reflect: ${String(res.body?.reflection_id || "ok")} hypotheses=${Array.isArray(res.body?.hypotheses) ? res.body.hypotheses.length : 0}\nstrategy_updates=${summarizeArray(updates, 4)}\nnext_tools=focusa_metacog_plan_adjust,focusa_metacog_doctor`,
+        "metacog reflect",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_plan_adjust",
+    label: "Metacog Plan Adjust",
+    description: "Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement.",
+    parameters: strictObject({
+      reflection_id: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Reflection id." }),
+      selected_updates: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.updateText, description: "Selected update." }), { maxItems: SPEC81_LIMITS.selectedUpdates, description: "Selected updates." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_plan_adjust", params, ["reflection_id", "selected_updates"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_plan_adjust", "/v1/metacognition/adjust", params as Record<string, any>, "metacog adjust", keyCheck.error);
+      }
+      const raw = keyCheck.value as { reflection_id: string; selected_updates?: string[] };
+      const reflectionCheck = validateRequiredString("reflection_id", raw.reflection_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!reflectionCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_plan_adjust", "/v1/metacognition/adjust", raw as Record<string, any>, "metacog adjust", reflectionCheck.error);
+      }
+      const updatesCheck = validateStringArray("selected_updates", raw.selected_updates, { maxItems: SPEC81_LIMITS.selectedUpdates, itemMaxLength: SPEC81_LIMITS.updateText });
+      if (!updatesCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_plan_adjust", "/v1/metacognition/adjust", raw as Record<string, any>, "metacog adjust", updatesCheck.error);
+      }
+      const req = { reflection_id: reflectionCheck.value, selected_updates: updatesCheck.value };
+      const res = await callSpec80Tool("focusa_metacog_plan_adjust", "/metacognition/adjust", req, { method: "POST", writer: true });
+      return spec80Result(
+        "focusa_metacog_plan_adjust",
+        "/v1/metacognition/adjust",
+        { ...req, writer_id: res.writerId || null },
+        res,
+        `metacog adjust: ${String(res.body?.adjustment_id || "ok")} updates=${updatesCheck.value.length}\nnext_step_policy=${summarizeArray(res.body?.next_step_policy || updatesCheck.value, 4)}\nnext_tools=focusa_metacog_evaluate_outcome,focusa_metacog_doctor`,
+        "metacog adjust",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_evaluate_outcome",
+    label: "Metacog Evaluate Outcome",
+    description: "Judge whether an adjustment improved results and whether the learning should be promoted.",
+    parameters: strictObject({
+      adjustment_id: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Adjustment id." }),
+      observed_metrics: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.metricText, description: "Observed metric id." }), { maxItems: SPEC81_LIMITS.observedMetrics, description: "Observed metric ids." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_evaluate_outcome", params, ["adjustment_id", "observed_metrics"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_evaluate_outcome", "/v1/metacognition/evaluate", params as Record<string, any>, "metacog evaluate", keyCheck.error);
+      }
+      const raw = keyCheck.value as { adjustment_id: string; observed_metrics?: string[] };
+      const adjustmentCheck = validateRequiredString("adjustment_id", raw.adjustment_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!adjustmentCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_evaluate_outcome", "/v1/metacognition/evaluate", raw as Record<string, any>, "metacog evaluate", adjustmentCheck.error);
+      }
+      const metricsCheck = validateStringArray("observed_metrics", raw.observed_metrics, { maxItems: SPEC81_LIMITS.observedMetrics, itemMaxLength: SPEC81_LIMITS.metricText });
+      if (!metricsCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_evaluate_outcome", "/v1/metacognition/evaluate", raw as Record<string, any>, "metacog evaluate", metricsCheck.error);
+      }
+      const req = { adjustment_id: adjustmentCheck.value, observed_metrics: metricsCheck.value };
+      const res = await callSpec80Tool("focusa_metacog_evaluate_outcome", "/metacognition/evaluate", req, { method: "POST", writer: true });
+      const observed = Array.isArray(res.body?.delta_scorecard?.metrics_observed)
+        ? res.body.delta_scorecard.metrics_observed
+        : metricsCheck.value;
+      return spec80Result(
+        "focusa_metacog_evaluate_outcome",
+        "/v1/metacognition/evaluate",
+        { ...req, writer_id: res.writerId || null },
+        res,
+        `metacog evaluate: decision=${String(res.body?.result || "unknown")} promote=${boolLabel(res.body?.promote_learning)}\nobserved_metrics=${summarizeArray(observed, 4)}\nnext_tools=focusa_metacog_doctor,focusa_metacog_recent_adjustments`,
+        "metacog evaluate",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tree_recent_snapshots",
+    label: "Tree Recent Snapshots",
+    description: "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",
+    parameters: strictObject({
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "How many recent snapshots to return (default 5)." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_recent_snapshots", params, ["limit"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_recent_snapshots", "/v1/focus/snapshots/recent", params as Record<string, any>, "tree recent snapshots", keyCheck.error);
+      }
+      let limit = Math.trunc(Number((keyCheck.value as { limit?: number }).limit ?? 5));
+      if (!Number.isFinite(limit)) limit = 5;
+      limit = Math.max(1, Math.min(20, limit));
+      const endpoint = `/focus/snapshots/recent?limit=${limit}`;
+      const res = await callSpec80Tool("focusa_tree_recent_snapshots", endpoint, { limit }, { method: "GET" });
+      const items = Array.isArray(res.body?.snapshots) ? res.body.snapshots : [];
+      const ids = items.map((item: any) => item?.snapshot_id).filter(Boolean);
+      return spec80Result(
+        "focusa_tree_recent_snapshots",
+        "/v1/focus/snapshots/recent",
+        { limit },
+        res,
+        items.length > 0
+          ? `tree recent snapshots: total=${items.length} ids=${summarizeArray(ids, 4)}\nnext_tools=focusa_tree_diff_context,focusa_tree_snapshot_compare_latest`
+          : `tree recent snapshots: total=0\nno prior snapshots available\nnext_tools=focusa_tree_snapshot_state`,
+        "tree recent snapshots",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_tree_snapshot_compare_latest",
+    label: "Tree Snapshot Compare Latest",
+    description: "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting.",
+    parameters: strictObject({
+      snapshot_reason: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.snapshotReason, description: "Reason label for the new snapshot." })),
+      baseline_snapshot_id: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.id, pattern: SPEC81_ID_PATTERN, description: "Optional explicit baseline snapshot id." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_tree_snapshot_compare_latest", params, ["snapshot_reason", "baseline_snapshot_id"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_tree_snapshot_compare_latest", "/v1/focus/snapshots/recent+create+diff", params as Record<string, any>, "tree snapshot compare latest", keyCheck.error);
+      }
+      const raw = keyCheck.value as { snapshot_reason?: string; baseline_snapshot_id?: string };
+      const reasonCheck = validateOptionalString("snapshot_reason", raw.snapshot_reason, SPEC81_LIMITS.snapshotReason);
+      if (!reasonCheck.ok) {
+        return spec80ValidationResult("focusa_tree_snapshot_compare_latest", "/v1/focus/snapshots/recent+create+diff", raw as Record<string, any>, "tree snapshot compare latest", reasonCheck.error);
+      }
+      const baselineCheck = validateOptionalString("baseline_snapshot_id", raw.baseline_snapshot_id, SPEC81_LIMITS.id, { pattern: SPEC81_ID_RE });
+      if (!baselineCheck.ok) {
+        return spec80ValidationResult("focusa_tree_snapshot_compare_latest", "/v1/focus/snapshots/recent+create+diff", raw as Record<string, any>, "tree snapshot compare latest", baselineCheck.error);
+      }
+
+      let baselineSnapshotId = baselineCheck.value;
+      if (!baselineSnapshotId) {
+        const recentRes = await callSpec80Tool("focusa_tree_snapshot_compare_latest", "/focus/snapshots/recent?limit=1", { limit: 1 }, { method: "GET" });
+        if (recentRes.ok) {
+          baselineSnapshotId = recentRes.body?.snapshots?.[0]?.snapshot_id;
+        }
+      }
+
+      const createReq = { snapshot_reason: reasonCheck.value || null };
+      const createRes = await callSpec80Tool("focusa_tree_snapshot_compare_latest", "/focus/snapshots", createReq, { method: "POST", writer: true });
+      if (!createRes.ok || !createRes.body?.snapshot_id) {
+        return spec80CompositeResult(
+          "focusa_tree_snapshot_compare_latest",
+          "/v1/focus/snapshots/recent+create+diff",
+          { ...createReq, baseline_snapshot_id: baselineSnapshotId || null },
+          false,
+          createRes.status,
+          createRes.body,
+          "tree snapshot compare latest: ok",
+          "tree snapshot compare latest",
+        );
+      }
+
+      const newSnapshotId = String(createRes.body.snapshot_id);
+      if (!baselineSnapshotId) {
+        return spec80CompositeResult(
+          "focusa_tree_snapshot_compare_latest",
+          "/v1/focus/snapshots/recent+create+diff",
+          { ...createReq, baseline_snapshot_id: null, writer_id: createRes.writerId || null },
+          true,
+          createRes.status,
+          { snapshot_id: newSnapshotId, baseline_snapshot_id: null, diff: null },
+          `tree snapshot compare latest: created=${newSnapshotId}\nno prior snapshot to compare\nnext_tools=focusa_tree_recent_snapshots,focusa_tree_snapshot_state`,
+          "tree snapshot compare latest",
+        );
+      }
+
+      const diffReq = { from_snapshot_id: baselineSnapshotId, to_snapshot_id: newSnapshotId };
+      const diffRes = await callSpec80Tool("focusa_tree_snapshot_compare_latest", "/focus/snapshots/diff", diffReq, { method: "POST" });
+      return spec80CompositeResult(
+        "focusa_tree_snapshot_compare_latest",
+        "/v1/focus/snapshots/recent+create+diff",
+        { ...createReq, baseline_snapshot_id: baselineSnapshotId, writer_id: createRes.writerId || null },
+        diffRes.ok,
+        diffRes.status,
+        {
+          snapshot_id: newSnapshotId,
+          baseline_snapshot_id: baselineSnapshotId,
+          diff: diffRes.body,
+        },
+        `tree snapshot compare latest: new=${newSnapshotId} baseline=${baselineSnapshotId}\nchanged=${boolLabel(diffRes.body?.checksum_changed)} version_delta=${String(diffRes.body?.version_delta ?? "unknown")}\nnext_tools=focusa_tree_restore_state,focusa_tree_path`,
+        "tree snapshot compare latest",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_recent_reflections",
+    label: "Metacog Recent Reflections",
+    description: "Best safe helper for finding recent reflection ids and update sets before adjust or promote work.",
+    parameters: strictObject({
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "How many recent reflections to return (default 5)." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_recent_reflections", params, ["limit"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_recent_reflections", "/v1/metacognition/reflections/recent", params as Record<string, any>, "metacog recent reflections", keyCheck.error);
+      }
+      let limit = Math.trunc(Number((keyCheck.value as { limit?: number }).limit ?? 5));
+      if (!Number.isFinite(limit)) limit = 5;
+      limit = Math.max(1, Math.min(20, limit));
+      const endpoint = `/metacognition/reflections/recent?limit=${limit}`;
+      const res = await callSpec80Tool("focusa_metacog_recent_reflections", endpoint, { limit }, { method: "GET" });
+      const items = Array.isArray(res.body?.reflections) ? res.body.reflections : [];
+      const ids = items.map((item: any) => item?.reflection_id).filter(Boolean);
+      return spec80Result(
+        "focusa_metacog_recent_reflections",
+        "/v1/metacognition/reflections/recent",
+        { limit },
+        res,
+        items.length > 0
+          ? `metacog recent reflections: total=${items.length} ids=${summarizeArray(ids, 4)}\nnext_tools=focusa_metacog_plan_adjust,focusa_metacog_loop_run`
+          : `metacog recent reflections: total=0\nno prior reflections available\nnext_tools=focusa_metacog_reflect`,
+        "metacog recent reflections",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_recent_adjustments",
+    label: "Metacog Recent Adjustments",
+    description: "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions.",
+    parameters: strictObject({
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "How many recent adjustments to return (default 5)." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_recent_adjustments", params, ["limit"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_recent_adjustments", "/v1/metacognition/adjustments/recent", params as Record<string, any>, "metacog recent adjustments", keyCheck.error);
+      }
+      let limit = Math.trunc(Number((keyCheck.value as { limit?: number }).limit ?? 5));
+      if (!Number.isFinite(limit)) limit = 5;
+      limit = Math.max(1, Math.min(20, limit));
+      const endpoint = `/metacognition/adjustments/recent?limit=${limit}`;
+      const res = await callSpec80Tool("focusa_metacog_recent_adjustments", endpoint, { limit }, { method: "GET" });
+      const items = Array.isArray(res.body?.adjustments) ? res.body.adjustments : [];
+      const ids = items.map((item: any) => item?.adjustment_id).filter(Boolean);
+      return spec80Result(
+        "focusa_metacog_recent_adjustments",
+        "/v1/metacognition/adjustments/recent",
+        { limit },
+        res,
+        items.length > 0
+          ? `metacog recent adjustments: total=${items.length} ids=${summarizeArray(ids, 4)}\nnext_tools=focusa_metacog_evaluate_outcome,focusa_metacog_doctor`
+          : `metacog recent adjustments: total=0\nno prior adjustments available\nnext_tools=focusa_metacog_plan_adjust`,
+        "metacog recent adjustments",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_loop_run",
+    label: "Metacog Loop Run",
+    description: "Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining.",
+    parameters: strictObject({
+      current_ask: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.currentAsk, description: "Current ask driving retrieval and reuse." }),
+      turn_range: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.turnRange, pattern: SPEC81_TURN_RANGE_PATTERN, description: "Turn range expression for reflection." }),
+      kind: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.kind, description: "Optional capture kind (default workflow_signal)." })),
+      content: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.longText, description: "Optional capture content; defaults to current_ask." })),
+      rationale: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.rationale, description: "Optional capture rationale." })),
+      confidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "Optional confidence 0..1." })),
+      strategy_class: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.strategyClass, description: "Optional strategy class." })),
+      scope_tags: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.tagText }), { maxItems: SPEC81_LIMITS.scopeTags })),
+      k: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, description: "Top-k retrieval size." })),
+      failure_classes: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.tagText }), { maxItems: SPEC81_LIMITS.failureClasses })),
+      selected_updates: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.updateText }), { maxItems: SPEC81_LIMITS.selectedUpdates })),
+      observed_metrics: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.metricText }), { maxItems: SPEC81_LIMITS.observedMetrics })),
+    }),
+    async execute(_id, params) {
+      const allowed = ["current_ask", "turn_range", "kind", "content", "rationale", "confidence", "strategy_class", "scope_tags", "k", "failure_classes", "selected_updates", "observed_metrics"];
+      const keyCheck = validateNoExtraKeys("focusa_metacog_loop_run", params, allowed);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", params as Record<string, any>, "metacog loop run", keyCheck.error);
+      }
+      const raw = keyCheck.value as Record<string, any>;
+      const askCheck = validateRequiredString("current_ask", raw.current_ask, SPEC81_LIMITS.currentAsk);
+      if (!askCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", askCheck.error);
+      const turnCheck = validateRequiredString("turn_range", raw.turn_range, SPEC81_LIMITS.turnRange, { pattern: SPEC81_TURN_RANGE_RE });
+      if (!turnCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", turnCheck.error);
+      const kindCheck = validateOptionalString("kind", raw.kind, SPEC81_LIMITS.kind);
+      if (!kindCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", kindCheck.error);
+      const contentCheck = validateOptionalString("content", raw.content, SPEC81_LIMITS.longText);
+      if (!contentCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", contentCheck.error);
+      const rationaleCheck = validateOptionalString("rationale", raw.rationale, SPEC81_LIMITS.rationale);
+      if (!rationaleCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", rationaleCheck.error);
+      const strategyCheck = validateOptionalString("strategy_class", raw.strategy_class, SPEC81_LIMITS.strategyClass);
+      if (!strategyCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", strategyCheck.error);
+      if (raw.confidence !== undefined && (!Number.isFinite(raw.confidence) || raw.confidence < 0 || raw.confidence > 1)) {
+        return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", "confidence must be between 0 and 1");
+      }
+      const tagsCheck = validateStringArray("scope_tags", raw.scope_tags, { maxItems: SPEC81_LIMITS.scopeTags, itemMaxLength: SPEC81_LIMITS.tagText });
+      if (!tagsCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", tagsCheck.error);
+      const failuresCheck = validateStringArray("failure_classes", raw.failure_classes, { maxItems: SPEC81_LIMITS.failureClasses, itemMaxLength: SPEC81_LIMITS.tagText });
+      if (!failuresCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", failuresCheck.error);
+      const selectedCheck = validateStringArray("selected_updates", raw.selected_updates, { maxItems: SPEC81_LIMITS.selectedUpdates, itemMaxLength: SPEC81_LIMITS.updateText });
+      if (!selectedCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", selectedCheck.error);
+      const metricsCheck = validateStringArray("observed_metrics", raw.observed_metrics, { maxItems: SPEC81_LIMITS.observedMetrics, itemMaxLength: SPEC81_LIMITS.metricText });
+      if (!metricsCheck.ok) return spec80ValidationResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, "metacog loop run", metricsCheck.error);
+      let normalizedK = Math.trunc(Number(raw.k ?? 5));
+      if (!Number.isFinite(normalizedK)) normalizedK = 5;
+      normalizedK = Math.max(1, Math.min(50, normalizedK));
+
+      const captureReq = {
+        kind: kindCheck.value || "workflow_signal",
+        content: contentCheck.value || askCheck.value,
+        rationale: rationaleCheck.value,
+        confidence: raw.confidence,
+        strategy_class: strategyCheck.value,
+      };
+      const captureRes = await callSpec80Tool("focusa_metacog_loop_run", "/metacognition/capture", captureReq, { method: "POST", writer: true });
+      if (!captureRes.ok) {
+        return spec80CompositeResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, false, captureRes.status, captureRes.body, "metacog loop run: ok", "metacog loop run");
+      }
+      const retrieveReq = { current_ask: askCheck.value, scope_tags: tagsCheck.value, k: normalizedK };
+      const retrieveRes = await callSpec80Tool("focusa_metacog_loop_run", "/metacognition/retrieve", retrieveReq, { method: "POST" });
+      if (!retrieveRes.ok) {
+        return spec80CompositeResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, false, retrieveRes.status, retrieveRes.body, "metacog loop run: ok", "metacog loop run");
+      }
+      const reflectReq = { turn_range: turnCheck.value, failure_classes: failuresCheck.value };
+      const reflectRes = await callSpec80Tool("focusa_metacog_loop_run", "/metacognition/reflect", reflectReq, { method: "POST", writer: true });
+      if (!reflectRes.ok || !reflectRes.body?.reflection_id) {
+        return spec80CompositeResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, false, reflectRes.status, reflectRes.body, "metacog loop run: ok", "metacog loop run");
+      }
+      const updates = selectedCheck.value.length > 0
+        ? selectedCheck.value
+        : (Array.isArray(reflectRes.body?.strategy_updates) ? reflectRes.body.strategy_updates.map((x: any) => String(x)) : []);
+      const adjustReq = { reflection_id: String(reflectRes.body.reflection_id), selected_updates: updates };
+      const adjustRes = await callSpec80Tool("focusa_metacog_loop_run", "/metacognition/adjust", adjustReq, { method: "POST", writer: true });
+      if (!adjustRes.ok || !adjustRes.body?.adjustment_id) {
+        return spec80CompositeResult("focusa_metacog_loop_run", "/v1/metacognition/loop-run", raw, false, adjustRes.status, adjustRes.body, "metacog loop run: ok", "metacog loop run");
+      }
+      const evaluateReq = { adjustment_id: String(adjustRes.body.adjustment_id), observed_metrics: metricsCheck.value };
+      const evaluateRes = await callSpec80Tool("focusa_metacog_loop_run", "/metacognition/evaluate", evaluateReq, { method: "POST", writer: true });
+      return spec80CompositeResult(
+        "focusa_metacog_loop_run",
+        "/v1/metacognition/loop-run",
+        raw,
+        evaluateRes.ok,
+        evaluateRes.status,
+        {
+          capture: captureRes.body,
+          retrieve: retrieveRes.body,
+          reflect: reflectRes.body,
+          adjust: adjustRes.body,
+          evaluate: evaluateRes.body,
+        },
+        `metacog loop run: result=${String(evaluateRes.body?.result || "unknown")} promote=${boolLabel(evaluateRes.body?.promote_learning)}\nreflection=${String(reflectRes.body?.reflection_id || "unknown")} adjustment=${String(adjustRes.body?.adjustment_id || "unknown")}\nnext_tools=focusa_metacog_doctor,focusa_metacog_evaluate_outcome`,
+        "metacog loop run",
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_metacog_doctor",
+    label: "Metacog Doctor",
+    description: "Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed.",
+    parameters: strictObject({
+      current_ask: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.currentAsk, description: "Current ask to diagnose against." }),
+      scope_tags: Type.Optional(Type.Array(Type.String({ maxLength: SPEC81_LIMITS.tagText }), { maxItems: SPEC81_LIMITS.scopeTags })),
+      k: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, description: "Top-k retrieval size." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_metacog_doctor", params, ["current_ask", "scope_tags", "k"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_metacog_doctor", "/v1/metacognition/doctor", params as Record<string, any>, "metacog doctor", keyCheck.error);
+      }
+      const raw = keyCheck.value as { current_ask: string; scope_tags?: string[]; k?: number };
+      const askCheck = validateRequiredString("current_ask", raw.current_ask, SPEC81_LIMITS.currentAsk);
+      if (!askCheck.ok) return spec80ValidationResult("focusa_metacog_doctor", "/v1/metacognition/doctor", raw as Record<string, any>, "metacog doctor", askCheck.error);
+      const tagsCheck = validateStringArray("scope_tags", raw.scope_tags, { maxItems: SPEC81_LIMITS.scopeTags, itemMaxLength: SPEC81_LIMITS.tagText });
+      if (!tagsCheck.ok) return spec80ValidationResult("focusa_metacog_doctor", "/v1/metacognition/doctor", raw as Record<string, any>, "metacog doctor", tagsCheck.error);
+      let normalizedK = Math.trunc(Number(raw.k ?? 5));
+      if (!Number.isFinite(normalizedK)) normalizedK = 5;
+      normalizedK = Math.max(1, Math.min(50, normalizedK));
+      const req = { current_ask: askCheck.value, scope_tags: tagsCheck.value, k: normalizedK, summary_only: true };
+      const res = await callSpec80Tool("focusa_metacog_doctor", "/metacognition/retrieve", req, { method: "POST" });
+      const candidates = Array.isArray(res.body?.candidates) ? res.body.candidates : [];
+      const withConfidence = candidates.filter((item: any) => item?.confidence !== null && item?.confidence !== undefined).length;
+      const top = candidates[0];
+      return spec80Result(
+        "focusa_metacog_doctor",
+        "/v1/metacognition/doctor",
+        { current_ask: askCheck.value, scope_tags: tagsCheck.value, k: normalizedK },
+        { ok: res.ok, status: res.status, body: { ...(res.body || {}), diagnostics: { candidate_count: candidates.length, with_confidence: withConfidence, top_kind: top?.kind || null, top_capture_id: top?.capture_id || null } } },
+        candidates.length > 0
+          ? `metacog doctor: candidates=${candidates.length} with_confidence=${withConfidence}\ntop_kind=${String(top?.kind || "unknown")} top_capture=${String(top?.capture_id || "none")}\nnext_tools=focusa_metacog_reflect,focusa_metacog_loop_run`
+          : `metacog doctor: candidates=0\nno usable prior signals found\nnext_tools=focusa_metacog_capture,focusa_metacog_reflect`,
+        "metacog doctor",
+      );
+    },
+  });
+
+  // ── Lineage Intelligence (LI) /tree first-class tools ────────────────────
+
+  pi.registerTool({
+    name: "focusa_lineage_tree",
+    label: "Lineage Tree",
+    description: "Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.",
+    parameters: Type.Object({
+      session_id: Type.Optional(Type.String({ description: "Optional session id scoping hint." })),
+      max_nodes: Type.Optional(Type.Number({ description: "Optional node cap (default 200)." })),
+    }),
+    async execute(_id, params) {
+      const { session_id, max_nodes } = params as { session_id?: string; max_nodes?: number };
+      const query = session_id ? `?session_id=${encodeURIComponent(session_id)}` : "";
+      const res = await focusaFetchDetailed(`/lineage/tree${query}`);
+      if (!res.ok || !res.body) {
+        return {
+          content: [{ type: "text", text: `lineage tree → ${explainWorkLoopResult(res, "ok")}` }],
+          details: { ok: false, status: res.status, response: res.body ?? null },
+        } as any;
+      }
+
+      const cap = Math.max(1, Math.min(2000, Number(max_nodes || 200)));
+      const nodes = Array.isArray(res.body?.nodes) ? res.body.nodes.slice(0, cap) : [];
+      const head = String(res.body?.head || "");
+      const root = String(res.body?.root || "");
+      return {
+        content: [{ type: "text", text: `lineage tree: nodes=${nodes.length} head=${head || "unknown"} root=${root || "unknown"}` }],
+        details: {
+          ok: true,
+          status: res.status,
+          root,
+          head,
+          total: Number(res.body?.total || nodes.length),
+          nodes,
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_li_tree_extract",
+    label: "LI Tree Extract",
+    description: "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding.",
+    parameters: Type.Object({
+      max_candidates: Type.Optional(Type.Number({ description: "Max extracted signals per category (default 12)." })),
+      session_id: Type.Optional(Type.String({ description: "Optional session id scoping hint." })),
+    }),
+    async execute(_id, params) {
+      const { max_candidates, session_id } = params as { max_candidates?: number; session_id?: string };
+      const query = session_id ? `?session_id=${encodeURIComponent(session_id)}` : "";
+      const res = await focusaFetchDetailed(`/lineage/tree${query}`);
+      if (!res.ok || !res.body) {
+        return {
+          content: [{ type: "text", text: `li extract → ${explainWorkLoopResult(res, "ok")}` }],
+          details: { ok: false, status: res.status, response: res.body ?? null },
+        } as any;
+      }
+
+      const cap = Math.max(1, Math.min(50, Number(max_candidates || 12)));
+      const nodes = Array.isArray(res.body?.nodes) ? res.body.nodes : [];
+      const byId = new Map<string, any>();
+      nodes.forEach((n: any) => {
+        const id = String(n?.node_id || "").trim();
+        if (id) byId.set(id, n);
+      });
+
+      const extractSignals = (keys: string[]): string[] => {
+        const out: string[] = [];
+        for (const node of nodes) {
+          const payload = node?.payload;
+          if (!payload || typeof payload !== "object") continue;
+          for (const key of keys) {
+            const v = (payload as any)[key];
+            if (Array.isArray(v)) {
+              for (const item of v) {
+                const s = String(item || "").trim();
+                if (s) out.push(s);
+              }
+            } else {
+              const s = String(v || "").trim();
+              if (s) out.push(s);
+            }
+          }
+        }
+        return Array.from(new Set(out)).slice(0, cap);
+      };
+
+      const decisions = extractSignals(["decisions", "decision", "decision_text"]);
+      const constraints = extractSignals(["constraints", "constraint", "constraint_text"]);
+      const risks = extractSignals(["risks", "risk", "blockers", "blocker"]);
+
+      const headId = String(res.body?.head || "").trim();
+      let depth = 0;
+      let cur = headId;
+      const seen = new Set<string>();
+      while (cur && !seen.has(cur)) {
+        seen.add(cur);
+        depth += 1;
+        const node = byId.get(cur);
+        cur = String(node?.parent_id || "").trim();
+      }
+
+      const summaryNodes = nodes.filter((n: any) => String(n?.node_type || "").toLowerCase() === "summary").length;
+      const summaryRatio = nodes.length > 0 ? summaryNodes / nodes.length : 0;
+      const reflectionTrigger = depth >= 24 || summaryRatio >= 0.35 || risks.length >= Math.max(3, Math.floor(cap / 3));
+
+      return {
+        content: [{ type: "text", text: `li extract: decisions=${decisions.length} constraints=${constraints.length} risks=${risks.length} depth=${depth} trigger=${reflectionTrigger ? "yes" : "no"}` }],
+        details: {
+          ok: true,
+          status: res.status,
+          lineage: {
+            root: String(res.body?.root || ""),
+            head: headId,
+            nodes: nodes.length,
+            depth,
+            summary_nodes: summaryNodes,
+            summary_ratio: summaryRatio,
+          },
+          signals: { decisions, constraints, risks },
+          reflection_trigger: reflectionTrigger,
+        },
+      } as any;
+    },
+  });
 }

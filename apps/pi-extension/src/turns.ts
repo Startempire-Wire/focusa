@@ -7,7 +7,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals } from "./state.js";import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary } from "./state.js";import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 
@@ -109,7 +109,10 @@ export function registerTurns(pi: ExtensionAPI) {
     const failures = selectRelevantItems(fs.failures, askText, { maxItems: 2, fallbackItems: scopeKind === "correction" ? 1 : 0, minScore: 2 });
     const artifactLabels = fs.artifacts?.map((a: any) => `${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`) || [];
     const relevantArtifacts = selectRelevantItems(artifactLabels, askText, { maxItems: 2, fallbackItems: scopeKind === "mission_carryover" ? 1 : 0, minScore: 2 });
-    const semanticMemory = await focusaFetch("/memory/semantic");
+    const includeAuxContext = maxTokens >= 350;
+    const [semanticMemory, ecsHandles] = includeAuxContext
+      ? await Promise.all([getSemanticMemorySummary(), getEcsHandlesSummary()])
+      : [null, null];
     const workingSetItems = formatWorkingSetItems(semanticMemory?.semantic);
     const relevantWorkingSet = selectRelevantRankedItems(workingSetItems, askText, {
       maxItems: 3,
@@ -118,7 +121,6 @@ export function registerTurns(pi: ExtensionAPI) {
       allowStaleFallback: scopeKind === "mission_carryover",
       governingPriors: activeGoverningPriors,
     });
-    const ecsHandles = await focusaFetch("/ecs/handles");
     const verifiedDeltaItems = formatVerifiedDeltaItems(ecsHandles?.handles);
     const relevantVerifiedDeltas = selectRelevantRankedItems(verifiedDeltaItems, askText, {
       maxItems: 2,

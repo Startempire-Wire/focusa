@@ -5,7 +5,7 @@
 # - captures replay/closure/objective evidence routes used for closure signoff
 set -euo pipefail
 
-BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18799}"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 WRITER_ID="${FOCUSA_DOC78_PROD_WRITER:-doc78-production-runtime-smoke}"
 PARENT_WORK_ITEM_ID="${FOCUSA_DOC78_PROD_PARENT_WORK_ITEM_ID:-focusa-o8vn}"
 ARTIFACT_DIR="${FOCUSA_DOC78_PROD_ARTIFACT_DIR:-}"

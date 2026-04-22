@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18799}"
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 RUNS_RAW="${FOCUSA_DOC78_PROD_SERIES_RUNS:-3}"
 SERIES_DIR="${FOCUSA_DOC78_PROD_SERIES_DIR:-${ROOT_DIR}/docs/evidence/doc78-production-runtime-series-latest}"
 PARENT_WORK_ITEM_ID="${FOCUSA_DOC78_PROD_PARENT_WORK_ITEM_ID:-focusa-o8vn}"

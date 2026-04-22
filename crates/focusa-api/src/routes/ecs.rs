@@ -13,10 +13,12 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::{Action, HandleKind};
+use focusa_core::types::{Action, HandleKind, HandleRef};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+
+const MAX_HANDLES_LIMIT: usize = 512;
 
 #[derive(Debug, Clone, Deserialize)]
 struct StoreBody {
@@ -78,12 +80,55 @@ async fn store_artifact(
     Ok(Json(json!({"id": handle_id, "status": "accepted"})))
 }
 
-/// GET /v1/ecs/handles — list all handles.
-async fn list_handles(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+#[derive(Debug, Clone, Deserialize, Default)]
+struct ListHandlesQuery {
+    limit: Option<usize>,
+    #[serde(default)]
+    summary_only: bool,
+}
+
+fn limit_handles(handles: &[HandleRef], limit: Option<usize>) -> Vec<HandleRef> {
+    match limit.map(|value| value.min(MAX_HANDLES_LIMIT)) {
+        Some(0) => Vec::new(),
+        Some(n) => handles
+            .iter()
+            .rev()
+            .take(n)
+            .cloned()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect(),
+        None => handles.to_vec(),
+    }
+}
+
+fn handle_summaries(handles: &[HandleRef]) -> Vec<serde_json::Value> {
+    handles
+        .iter()
+        .map(|handle| {
+            json!({
+                "id": handle.id,
+                "kind": handle.kind,
+                "label": handle.label,
+                "created_at": handle.created_at,
+                "pinned": handle.pinned,
+            })
+        })
+        .collect()
+}
+
+/// GET /v1/ecs/handles — list handles with optional summary/limit shaping.
+async fn list_handles(
+    Query(query): Query<ListHandlesQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
+    let total = focusa.reference_index.handles.len();
+    let handles = limit_handles(&focusa.reference_index.handles, query.limit);
     Json(json!({
-        "handles": focusa.reference_index.handles,
-        "count": focusa.reference_index.handles.len(),
+        "handles": if query.summary_only { json!(handle_summaries(&handles)) } else { json!(handles) },
+        "count": total,
     }))
 }
 
@@ -209,4 +254,50 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/ecs/resolve/{handle_id}", get(resolve_handle))
         .route("/v1/ecs/content/{handle_id}", get(get_content))
         .route("/v1/ecs/rehydrate/{handle_id}", post(rehydrate))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{handle_summaries, limit_handles};
+    use chrono::Utc;
+    use focusa_core::types::{HandleKind, HandleRef};
+    use uuid::Uuid;
+
+    fn handle(label: &str, kind: HandleKind, pinned: bool) -> HandleRef {
+        HandleRef {
+            id: Uuid::now_v7(),
+            kind,
+            label: label.to_string(),
+            size: 123,
+            sha256: "deadbeef".to_string(),
+            created_at: Utc::now(),
+            session_id: None,
+            pinned,
+        }
+    }
+
+    #[test]
+    fn limit_handles_keeps_most_recent_entries() {
+        let items = vec![
+            handle("old", HandleKind::Log, false),
+            handle("mid", HandleKind::Diff, true),
+            handle("new", HandleKind::Text, false),
+        ];
+        let limited = limit_handles(&items, Some(2));
+        assert_eq!(limited.len(), 2);
+        assert_eq!(limited[0].label, "mid");
+        assert_eq!(limited[1].label, "new");
+    }
+
+    #[test]
+    fn handle_summaries_strip_blob_metadata() {
+        let items = vec![handle("artifact", HandleKind::Text, true)];
+        let summary = handle_summaries(&items);
+        assert_eq!(summary.len(), 1);
+        assert_eq!(summary[0]["label"], "artifact");
+        assert_eq!(summary[0]["kind"], "text");
+        assert_eq!(summary[0]["pinned"], true);
+        assert!(summary[0].get("sha256").is_none());
+        assert!(summary[0].get("size").is_none());
+    }
 }

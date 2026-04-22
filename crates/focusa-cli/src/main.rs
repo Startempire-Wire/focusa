@@ -169,6 +169,8 @@ fn classify_cli_error(message: &str) -> (&'static str, &str) {
         ("API_DECODE_ERROR", message)
     } else if message.contains("[API_REQUEST_ERROR]") {
         ("API_REQUEST_ERROR", message)
+    } else if message.contains("[CLI_INPUT_ERROR]") {
+        ("CLI_INPUT_ERROR", message)
     } else {
         ("COMMAND_ERROR", message)
     }

@@ -10,6 +10,7 @@
 //! - /v1/state/stack
 //! - /v1/state/diff
 //! - /v1/lineage/head
+//! - /v1/lineage/tree
 //! - /v1/lineage/node/{clt_node_id}
 //! - /v1/lineage/path/{clt_node_id}
 //! - /v1/lineage/children/{clt_node_id}
@@ -266,6 +267,30 @@ async fn lineage_head(
     })))
 }
 
+async fn lineage_tree(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(q): Query<SessionScopedQuery>,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "lineage:read")?;
+    let s = state.focusa.read().await;
+    let nodes: Vec<_> = s.clt.nodes.iter().cloned().collect();
+    let head = s.clt.head_id.clone();
+    let root = nodes
+        .iter()
+        .find(|node| node.parent_id.is_none())
+        .map(|node| node.node_id.clone())
+        .or_else(|| head.clone());
+
+    Ok(Json(json!({
+        "session_id": q.session_id,
+        "root": root,
+        "head": head,
+        "nodes": nodes,
+        "total": s.clt.nodes.len(),
+    })))
+}
+
 async fn lineage_node(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -477,6 +502,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/state/stack", get(state_stack))
         .route("/v1/state/diff", get(state_diff))
         .route("/v1/lineage/head", get(lineage_head))
+        .route("/v1/lineage/tree", get(lineage_tree))
         .route("/v1/lineage/node/{clt_node_id}", get(lineage_node))
         .route("/v1/lineage/path/{clt_node_id}", get(lineage_path))
         .route("/v1/lineage/children/{clt_node_id}", get(lineage_children))
