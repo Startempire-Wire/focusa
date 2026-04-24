@@ -33,3 +33,4 @@ Thumbs.db
 
 # Focusa local state (runtime)
 .focusa/
+.tmp/

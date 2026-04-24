@@ -12,6 +12,7 @@ use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKi
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -1447,6 +1448,36 @@ fn read_text(path: &Path) -> Option<String> {
     fs::read_to_string(path).ok()
 }
 
+fn selected_workspace_root(focusa: &FocusaState) -> Option<PathBuf> {
+    if let Some(workspace_id) = focusa
+        .session
+        .as_ref()
+        .and_then(|s| s.workspace_id.as_deref())
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+    {
+        return Some(PathBuf::from(workspace_id));
+    }
+
+    let fallback = PathBuf::from(WORKSPACE_FALLBACK_ROOT);
+    if fallback.exists() && fallback.is_dir() {
+        Some(fallback)
+    } else {
+        None
+    }
+}
+
+fn binary_available(binary: &str) -> bool {
+    env::var_os("PATH")
+        .map(|paths| {
+            env::split_paths(&paths).any(|dir| {
+                let candidate = dir.join(binary);
+                candidate.exists() && candidate.is_file()
+            })
+        })
+        .unwrap_or(false)
+}
+
 fn walk_workspace(root: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
     let mut stack = vec![root.to_path_buf()];
@@ -1828,30 +1859,9 @@ fn parse_call_targets(content: &str, language: &str) -> Vec<String> {
 }
 
 fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
-    let session_workspace = focusa
-        .session
-        .as_ref()
-        .and_then(|s| s.workspace_id.clone())
-        .filter(|path| {
-            let candidate = PathBuf::from(path);
-            candidate.exists() && candidate.is_dir()
-        });
-
-    let root = session_workspace
-        .map(PathBuf::from)
-        .or_else(|| {
-            let fallback = PathBuf::from(WORKSPACE_FALLBACK_ROOT);
-            if fallback.exists() && fallback.is_dir() {
-                Some(fallback)
-            } else {
-                None
-            }
-        })
-        .unwrap_or_default();
-
-    if root.as_os_str().is_empty() {
+    let Some(root) = selected_workspace_root(focusa) else {
         return WorkspaceProjection::default();
-    }
+    };
 
     let workspace_id = root.to_string_lossy().to_string();
     let repo_id = stable_id("repo", &workspace_id);
@@ -3187,6 +3197,595 @@ fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Works
     WorkspaceProjection { objects, links }
 }
 
+fn affordance_execution_projection(
+    focusa: &FocusaState,
+    frame: Option<&FrameRecord>,
+) -> WorkspaceProjection {
+    let Some(root) = selected_workspace_root(focusa) else {
+        return WorkspaceProjection::default();
+    };
+
+    let workspace_id = root.to_string_lossy().to_string();
+    let repo_name = root
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("workspace")
+        .to_string();
+    let workspace_writable = fs::metadata(&root)
+        .map(|meta| !meta.permissions().readonly())
+        .unwrap_or(false);
+    let has_git_dir = root.join(".git").exists();
+    let cargo_manifest_present = root.join("Cargo.toml").exists();
+    let git_available = binary_available("git");
+    let cargo_available = binary_available("cargo");
+    let query_task_target = frame.map(|active| format!("task:{}", active.id));
+
+    let mut objects = Vec::new();
+    let mut links = Vec::new();
+    let mut push_link = |link_type: &str, source_id: &str, target_id: &str, evidence: &str, status: &str| {
+        links.push(json!({
+            "type": link_type,
+            "source_id": source_id,
+            "target_id": target_id,
+            "evidence": evidence,
+            "status": status,
+        }));
+    };
+
+    let execution_context_id = stable_id("execution_context", &format!("workspace:{}", workspace_id));
+    objects.push(json!({
+        "id": execution_context_id.clone(),
+        "object_type": "execution_context",
+        "context_kind": "local_workspace_runtime",
+        "workspace_id": workspace_id,
+        "repo_name": repo_name,
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let workspace_boundary_id = stable_id("authority_boundary", &format!("workspace:{}", root.display()));
+    objects.push(json!({
+        "id": workspace_boundary_id.clone(),
+        "object_type": "authority_boundary",
+        "boundary_kind": "workspace_boundary",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let workspace_read_permission_id = stable_id("permission", &format!("workspace-read:{}", root.display()));
+    objects.push(json!({
+        "id": workspace_read_permission_id.clone(),
+        "object_type": "permission",
+        "permission_kind": "workspace_read",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let workspace_write_permission_id = stable_id("permission", &format!("workspace-write:{}", root.display()));
+    objects.push(json!({
+        "id": workspace_write_permission_id.clone(),
+        "object_type": "permission",
+        "permission_kind": "workspace_write",
+        "status": if workspace_writable { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let workspace_resource_id = stable_id("resource", &format!("workspace:{}", root.display()));
+    objects.push(json!({
+        "id": workspace_resource_id.clone(),
+        "object_type": "resource",
+        "resource_kind": "workspace_filesystem",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let local_exec_resource_id = stable_id("resource", &format!("local-execution:{}", root.display()));
+    objects.push(json!({
+        "id": local_exec_resource_id.clone(),
+        "object_type": "resource",
+        "resource_kind": "local_process_execution",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let interactive_cost_id = stable_id("cost_model", "interactive_local_cost");
+    objects.push(json!({
+        "id": interactive_cost_id.clone(),
+        "object_type": "cost_model",
+        "cost_kind": "interactive_local_cost",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let build_cost_id = stable_id("cost_model", "local_build_cost");
+    objects.push(json!({
+        "id": build_cost_id.clone(),
+        "object_type": "cost_model",
+        "cost_kind": "local_build_cost",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let interactive_latency_id = stable_id("latency_profile", "interactive_local_latency");
+    objects.push(json!({
+        "id": interactive_latency_id.clone(),
+        "object_type": "latency_profile",
+        "latency_kind": "interactive_local_latency",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let build_latency_id = stable_id("latency_profile", "local_build_latency");
+    objects.push(json!({
+        "id": build_latency_id.clone(),
+        "object_type": "latency_profile",
+        "latency_kind": "local_build_latency",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let local_reliability_id = stable_id("reliability_profile", "local_runtime_reliability");
+    objects.push(json!({
+        "id": local_reliability_id.clone(),
+        "object_type": "reliability_profile",
+        "reliability_kind": "local_runtime_reliability",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let read_only_reversibility_id = stable_id("reversibility_profile", "read_only_reversible");
+    objects.push(json!({
+        "id": read_only_reversibility_id.clone(),
+        "object_type": "reversibility_profile",
+        "reversibility_kind": "read_only_reversible",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let workspace_mutation_reversibility_id = stable_id(
+        "reversibility_profile",
+        if has_git_dir { "workspace_mutation_vcs_backed" } else { "workspace_mutation_manual_recovery" },
+    );
+    objects.push(json!({
+        "id": workspace_mutation_reversibility_id.clone(),
+        "object_type": "reversibility_profile",
+        "reversibility_kind": if has_git_dir {
+            "workspace_mutation_vcs_backed"
+        } else {
+            "workspace_mutation_manual_recovery"
+        },
+        "status": if has_git_dir { "active" } else { "warning" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let focusa_api_surface_id = stable_id("tool_surface", "focusa_http_api");
+    objects.push(json!({
+        "id": focusa_api_surface_id.clone(),
+        "object_type": "tool_surface",
+        "surface_kind": "focusa_http_api",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let workspace_fs_surface_id = stable_id("tool_surface", "workspace_filesystem");
+    objects.push(json!({
+        "id": workspace_fs_surface_id.clone(),
+        "object_type": "tool_surface",
+        "surface_kind": "workspace_filesystem",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let git_cli_surface_id = stable_id("tool_surface", "git_cli");
+    objects.push(json!({
+        "id": git_cli_surface_id.clone(),
+        "object_type": "tool_surface",
+        "surface_kind": "git_cli",
+        "status": if git_available { "active" } else { "inactive" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let cargo_cli_surface_id = stable_id("tool_surface", "cargo_cli");
+    objects.push(json!({
+        "id": cargo_cli_surface_id.clone(),
+        "object_type": "tool_surface",
+        "surface_kind": "cargo_cli",
+        "status": if cargo_available { "active" } else { "inactive" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let git_repo_precondition_id = stable_id("precondition", &format!("git-repo:{}", root.display()));
+    objects.push(json!({
+        "id": git_repo_precondition_id.clone(),
+        "object_type": "precondition",
+        "precondition_kind": "git_repository_present",
+        "status": if has_git_dir { "satisfied" } else { "missing" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let cargo_manifest_precondition_id = stable_id("precondition", &format!("cargo-manifest:{}", root.display()));
+    objects.push(json!({
+        "id": cargo_manifest_precondition_id.clone(),
+        "object_type": "precondition",
+        "precondition_kind": "cargo_manifest_present",
+        "status": if cargo_manifest_present { "satisfied" } else { "missing" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let git_binary_dependency_id = stable_id("dependency", "git-cli-binary");
+    objects.push(json!({
+        "id": git_binary_dependency_id.clone(),
+        "object_type": "dependency",
+        "name": "git",
+        "version": "runtime",
+        "dependency_kind": "git_cli_binary",
+        "status": if git_available { "satisfied" } else { "missing" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let cargo_binary_dependency_id = stable_id("dependency", "cargo-cli-binary");
+    objects.push(json!({
+        "id": cargo_binary_dependency_id.clone(),
+        "object_type": "dependency",
+        "name": "cargo",
+        "version": "runtime",
+        "dependency_kind": "cargo_cli_binary",
+        "status": if cargo_available { "satisfied" } else { "missing" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let query_focusa_capability_id = stable_id("capability", "query_focusa_runtime");
+    objects.push(json!({
+        "id": query_focusa_capability_id.clone(),
+        "object_type": "capability",
+        "capability_kind": "query_focusa_runtime",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let inspect_workspace_capability_id = stable_id("capability", &format!("inspect-workspace:{}", root.display()));
+    objects.push(json!({
+        "id": inspect_workspace_capability_id.clone(),
+        "object_type": "capability",
+        "capability_kind": "inspect_workspace_files",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let modify_workspace_capability_id = stable_id("capability", &format!("modify-workspace:{}", root.display()));
+    objects.push(json!({
+        "id": modify_workspace_capability_id.clone(),
+        "object_type": "capability",
+        "capability_kind": "modify_workspace_files",
+        "status": if workspace_writable { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let inspect_git_capability_id = stable_id("capability", &format!("inspect-git:{}", root.display()));
+    objects.push(json!({
+        "id": inspect_git_capability_id.clone(),
+        "object_type": "capability",
+        "capability_kind": "inspect_versioned_changes",
+        "status": if has_git_dir && git_available { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let build_rust_capability_id = stable_id("capability", &format!("build-rust:{}", root.display()));
+    objects.push(json!({
+        "id": build_rust_capability_id.clone(),
+        "object_type": "capability",
+        "capability_kind": "build_rust_workspace",
+        "status": if cargo_manifest_present && cargo_available { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let inspect_focusa_affordance_id = stable_id("affordance", "inspect_focusa_runtime");
+    objects.push(json!({
+        "id": inspect_focusa_affordance_id.clone(),
+        "object_type": "affordance",
+        "affordance_kind": "inspect_focusa_runtime",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let inspect_workspace_affordance_id = stable_id("affordance", &format!("inspect-workspace:{}", root.display()));
+    objects.push(json!({
+        "id": inspect_workspace_affordance_id.clone(),
+        "object_type": "affordance",
+        "affordance_kind": "inspect_workspace",
+        "status": "active",
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let edit_workspace_affordance_id = stable_id("affordance", &format!("edit-workspace:{}", root.display()));
+    objects.push(json!({
+        "id": edit_workspace_affordance_id.clone(),
+        "object_type": "affordance",
+        "affordance_kind": "edit_workspace_files",
+        "status": if workspace_writable { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let inspect_git_affordance_id = stable_id("affordance", &format!("inspect-git:{}", root.display()));
+    objects.push(json!({
+        "id": inspect_git_affordance_id.clone(),
+        "object_type": "affordance",
+        "affordance_kind": "inspect_versioned_workspace",
+        "status": if has_git_dir && git_available { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let build_rust_affordance_id = stable_id("affordance", &format!("build-rust:{}", root.display()));
+    objects.push(json!({
+        "id": build_rust_affordance_id.clone(),
+        "object_type": "affordance",
+        "affordance_kind": "build_rust_workspace",
+        "status": if cargo_manifest_present && cargo_available { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    for source_id in [
+        focusa_api_surface_id.as_str(),
+        workspace_fs_surface_id.as_str(),
+        git_cli_surface_id.as_str(),
+        cargo_cli_surface_id.as_str(),
+    ] {
+        push_link(
+            "available_in_context",
+            source_id,
+            &execution_context_id,
+            "runtime workspace context",
+            "verified",
+        );
+    }
+
+    push_link("enabled_by", &query_focusa_capability_id, &focusa_api_surface_id, "local daemon API", "verified");
+    push_link("available_in_context", &query_focusa_capability_id, &execution_context_id, "local daemon runtime", "verified");
+    push_link("consumes_resource", &query_focusa_capability_id, &local_exec_resource_id, "runtime query budget", "verified");
+    push_link("consumes_resource", &inspect_focusa_affordance_id, &interactive_cost_id, "interactive query cost", "verified");
+    push_link("consumes_resource", &inspect_focusa_affordance_id, &interactive_latency_id, "interactive query latency", "verified");
+    push_link("has_reliability", &focusa_api_surface_id, &local_reliability_id, "local daemon surface", "verified");
+    push_link("has_reliability", &inspect_focusa_affordance_id, &local_reliability_id, "local daemon surface", "verified");
+    push_link("has_reversibility", &query_focusa_capability_id, &read_only_reversibility_id, "read-only runtime query", "verified");
+    push_link("has_reversibility", &inspect_focusa_affordance_id, &read_only_reversibility_id, "read-only runtime query", "verified");
+
+    push_link("enabled_by", &inspect_workspace_capability_id, &workspace_fs_surface_id, "workspace filesystem surface", "verified");
+    push_link("requires_permission", &inspect_workspace_capability_id, &workspace_read_permission_id, "workspace read required", "verified");
+    push_link("bounded_by_authority", &inspect_workspace_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
+    push_link("available_in_context", &inspect_workspace_capability_id, &execution_context_id, "workspace runtime", "verified");
+    push_link("consumes_resource", &inspect_workspace_affordance_id, &workspace_resource_id, "workspace inspection", "verified");
+    push_link("consumes_resource", &inspect_workspace_affordance_id, &interactive_cost_id, "interactive inspection cost", "verified");
+    push_link("consumes_resource", &inspect_workspace_affordance_id, &interactive_latency_id, "interactive inspection latency", "verified");
+    push_link("has_reliability", &workspace_fs_surface_id, &local_reliability_id, "local filesystem surface", "verified");
+    push_link("has_reliability", &inspect_workspace_affordance_id, &local_reliability_id, "local filesystem surface", "verified");
+    push_link("has_reversibility", &inspect_workspace_capability_id, &read_only_reversibility_id, "read-only workspace inspection", "verified");
+    push_link("has_reversibility", &inspect_workspace_affordance_id, &read_only_reversibility_id, "read-only workspace inspection", "verified");
+
+    push_link("enabled_by", &modify_workspace_capability_id, &workspace_fs_surface_id, "workspace filesystem surface", "verified");
+    push_link("requires_permission", &modify_workspace_capability_id, &workspace_write_permission_id, "workspace write required", "verified");
+    push_link("bounded_by_authority", &modify_workspace_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
+    push_link("available_in_context", &modify_workspace_capability_id, &execution_context_id, "workspace runtime", "verified");
+    push_link("consumes_resource", &edit_workspace_affordance_id, &workspace_resource_id, "workspace mutation", "verified");
+    push_link("consumes_resource", &edit_workspace_affordance_id, &interactive_cost_id, "interactive edit cost", "verified");
+    push_link("consumes_resource", &edit_workspace_affordance_id, &interactive_latency_id, "interactive edit latency", "verified");
+    push_link("has_reliability", &edit_workspace_affordance_id, &local_reliability_id, "local filesystem surface", "verified");
+    push_link("has_reversibility", &modify_workspace_capability_id, &workspace_mutation_reversibility_id, "workspace mutation reversibility", "verified");
+    push_link("has_reversibility", &edit_workspace_affordance_id, &workspace_mutation_reversibility_id, "workspace mutation reversibility", "verified");
+
+    push_link("enabled_by", &inspect_git_capability_id, &git_cli_surface_id, "git CLI surface", "verified");
+    push_link("depends_on", &inspect_git_capability_id, &git_repo_precondition_id, "git repo required", "verified");
+    push_link("depends_on", &inspect_git_capability_id, &git_binary_dependency_id, "git CLI binary required", "verified");
+    push_link("requires_permission", &inspect_git_capability_id, &workspace_read_permission_id, "workspace read required", "verified");
+    push_link("bounded_by_authority", &inspect_git_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
+    push_link("available_in_context", &inspect_git_capability_id, &execution_context_id, "workspace runtime", "verified");
+    push_link("consumes_resource", &inspect_git_affordance_id, &workspace_resource_id, "git inspection", "verified");
+    push_link("consumes_resource", &inspect_git_affordance_id, &interactive_cost_id, "interactive git cost", "verified");
+    push_link("consumes_resource", &inspect_git_affordance_id, &interactive_latency_id, "interactive git latency", "verified");
+    push_link("has_reliability", &git_cli_surface_id, &local_reliability_id, "local CLI surface", "verified");
+    push_link("has_reliability", &inspect_git_affordance_id, &local_reliability_id, "local CLI surface", "verified");
+    push_link("has_reversibility", &inspect_git_capability_id, &read_only_reversibility_id, "read-only git inspection", "verified");
+    push_link("has_reversibility", &inspect_git_affordance_id, &read_only_reversibility_id, "read-only git inspection", "verified");
+
+    push_link("enabled_by", &build_rust_capability_id, &cargo_cli_surface_id, "cargo CLI surface", "verified");
+    push_link("depends_on", &build_rust_capability_id, &cargo_manifest_precondition_id, "Cargo manifest required", "verified");
+    push_link("depends_on", &build_rust_capability_id, &cargo_binary_dependency_id, "cargo CLI binary required", "verified");
+    push_link("requires_permission", &build_rust_capability_id, &workspace_read_permission_id, "workspace read required", "verified");
+    push_link("bounded_by_authority", &build_rust_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
+    push_link("available_in_context", &build_rust_capability_id, &execution_context_id, "workspace runtime", "verified");
+    push_link("consumes_resource", &build_rust_affordance_id, &local_exec_resource_id, "local build execution", "verified");
+    push_link("consumes_resource", &build_rust_affordance_id, &build_cost_id, "local build cost", "verified");
+    push_link("consumes_resource", &build_rust_affordance_id, &build_latency_id, "local build latency", "verified");
+    push_link("has_reliability", &cargo_cli_surface_id, &local_reliability_id, "local CLI surface", "verified");
+    push_link("has_reliability", &build_rust_affordance_id, &local_reliability_id, "local CLI surface", "verified");
+    push_link("has_reversibility", &build_rust_capability_id, &workspace_mutation_reversibility_id, "local build may write workspace artifacts", "verified");
+    push_link("has_reversibility", &build_rust_affordance_id, &workspace_mutation_reversibility_id, "local build may write workspace artifacts", "verified");
+
+    for (affordance_id, capability_id, tool_surface_id) in [
+        (&inspect_focusa_affordance_id, &query_focusa_capability_id, &focusa_api_surface_id),
+        (&inspect_workspace_affordance_id, &inspect_workspace_capability_id, &workspace_fs_surface_id),
+        (&edit_workspace_affordance_id, &modify_workspace_capability_id, &workspace_fs_surface_id),
+        (&inspect_git_affordance_id, &inspect_git_capability_id, &git_cli_surface_id),
+        (&build_rust_affordance_id, &build_rust_capability_id, &cargo_cli_surface_id),
+    ] {
+        push_link("enabled_by", affordance_id, capability_id, "capability enables affordance", "verified");
+        push_link("enabled_by", affordance_id, tool_surface_id, "tool surface enables affordance", "verified");
+        push_link("available_in_context", affordance_id, &execution_context_id, "workspace runtime", "verified");
+        push_link("bounded_by_authority", affordance_id, &workspace_boundary_id, "workspace authority boundary", "verified");
+    }
+
+    push_link("requires_permission", &inspect_workspace_affordance_id, &workspace_read_permission_id, "workspace read required", "verified");
+    push_link("requires_permission", &edit_workspace_affordance_id, &workspace_write_permission_id, "workspace write required", "verified");
+    push_link("requires_permission", &inspect_git_affordance_id, &workspace_read_permission_id, "workspace read required", "verified");
+    push_link("requires_permission", &build_rust_affordance_id, &workspace_read_permission_id, "workspace read required", "verified");
+    push_link("depends_on", &inspect_git_affordance_id, &git_repo_precondition_id, "git repo required", "verified");
+    push_link("depends_on", &inspect_git_affordance_id, &git_binary_dependency_id, "git CLI binary required", "verified");
+    push_link("depends_on", &build_rust_affordance_id, &cargo_manifest_precondition_id, "Cargo manifest required", "verified");
+    push_link("depends_on", &build_rust_affordance_id, &cargo_binary_dependency_id, "cargo CLI binary required", "verified");
+
+    if let Some(task_target) = query_task_target.as_ref() {
+        for source_id in [
+            inspect_focusa_affordance_id.as_str(),
+            inspect_workspace_affordance_id.as_str(),
+            edit_workspace_affordance_id.as_str(),
+            inspect_git_affordance_id.as_str(),
+            build_rust_affordance_id.as_str(),
+        ] {
+            push_link(
+                "supports_execution_of",
+                source_id,
+                task_target,
+                "active focus frame",
+                "verified",
+            );
+        }
+    }
+
+    if !workspace_writable {
+        push_link(
+            "blocks_execution_of",
+            &workspace_write_permission_id,
+            &modify_workspace_capability_id,
+            "workspace is not writable",
+            "verified",
+        );
+        push_link(
+            "blocks_execution_of",
+            &workspace_write_permission_id,
+            &edit_workspace_affordance_id,
+            "workspace is not writable",
+            "verified",
+        );
+    }
+    if !has_git_dir {
+        push_link(
+            "blocks_execution_of",
+            &git_repo_precondition_id,
+            &inspect_git_capability_id,
+            "git repository missing",
+            "verified",
+        );
+        push_link(
+            "blocks_execution_of",
+            &git_repo_precondition_id,
+            &inspect_git_affordance_id,
+            "git repository missing",
+            "verified",
+        );
+    }
+    if !git_available {
+        push_link(
+            "blocks_execution_of",
+            &git_binary_dependency_id,
+            &inspect_git_capability_id,
+            "git CLI binary missing",
+            "verified",
+        );
+        push_link(
+            "blocks_execution_of",
+            &git_binary_dependency_id,
+            &inspect_git_affordance_id,
+            "git CLI binary missing",
+            "verified",
+        );
+    }
+    if !cargo_manifest_present {
+        push_link(
+            "blocks_execution_of",
+            &cargo_manifest_precondition_id,
+            &build_rust_capability_id,
+            "Cargo manifest missing",
+            "verified",
+        );
+        push_link(
+            "blocks_execution_of",
+            &cargo_manifest_precondition_id,
+            &build_rust_affordance_id,
+            "Cargo manifest missing",
+            "verified",
+        );
+    }
+    if !cargo_available {
+        push_link(
+            "blocks_execution_of",
+            &cargo_binary_dependency_id,
+            &build_rust_capability_id,
+            "cargo CLI binary missing",
+            "verified",
+        );
+        push_link(
+            "blocks_execution_of",
+            &cargo_binary_dependency_id,
+            &build_rust_affordance_id,
+            "cargo CLI binary missing",
+            "verified",
+        );
+    }
+
+    WorkspaceProjection { objects, links }
+}
+
 fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let mut objects = Vec::new();
     let mut links = Vec::new();
@@ -3816,6 +4415,7 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
     let workspace = workspace_projection(focusa);
     let canonical = canonical_ontology_projection(focusa);
     let visual = visual_projection(focusa, frame);
+    let affordance_execution = affordance_execution_projection(focusa, frame);
     let identity = identity_projection(focusa);
     let governance = governance_projection(focusa);
     let reference_resolution = reference_resolution_projection(focusa);
@@ -3827,6 +4427,7 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
             workspace.objects,
             canonical.objects,
             visual.objects,
+            affordance_execution.objects,
             identity.objects,
             governance.objects,
             reference_resolution.objects,
@@ -3840,6 +4441,7 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
             workspace.links,
             canonical.links,
             visual.links,
+            affordance_execution.links,
             identity.links,
             governance.links,
             reference_resolution.links,
@@ -4714,8 +5316,81 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use focusa_core::types::FocusaState;
+    use chrono::Utc;
+    use focusa_core::types::{FocusaState, SessionState, SessionStatus};
     use serde_json::json;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    fn fixture_workspace(test_name: &str, with_git: bool, with_cargo: bool) -> PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-ontology-{}-{}",
+            test_name,
+            Uuid::now_v7()
+        ));
+        fs::create_dir_all(root.join("src")).expect("create fixture workspace");
+        fs::write(root.join("src/lib.rs"), "pub fn fixture() {}\n")
+            .expect("write fixture source");
+        if with_git {
+            fs::create_dir_all(root.join(".git")).expect("create .git dir");
+        }
+        if with_cargo {
+            fs::write(
+                root.join("Cargo.toml"),
+                "[package]\nname = \"ontology-fixture\"\nversion = \"0.1.0\"\n",
+            )
+            .expect("write Cargo.toml");
+        }
+        root
+    }
+
+    fn focusa_with_workspace(root: &Path) -> FocusaState {
+        let mut focusa = FocusaState::default();
+        focusa.session = Some(SessionState {
+            session_id: Uuid::now_v7(),
+            created_at: Utc::now(),
+            adapter_id: Some("test".to_string()),
+            workspace_id: Some(root.to_string_lossy().to_string()),
+            status: SessionStatus::Active,
+        });
+        focusa
+    }
+
+    fn projection_has_object(
+        projection: &WorkspaceProjection,
+        object_type: &str,
+        id: &str,
+        status: Option<&str>,
+    ) -> bool {
+        projection.objects.iter().any(|object| {
+            object.get("object_type").and_then(|v| v.as_str()) == Some(object_type)
+                && object.get("id").and_then(|v| v.as_str()) == Some(id)
+                && status.is_none_or(|expected| {
+                    object.get("status").and_then(|v| v.as_str()) == Some(expected)
+                })
+        })
+    }
+
+    fn projection_has_link(
+        projection: &WorkspaceProjection,
+        link_type: &str,
+        source_id: &str,
+        target_id: &str,
+    ) -> bool {
+        projection.links.iter().any(|link| {
+            link.get("type").and_then(|v| v.as_str()) == Some(link_type)
+                && link.get("source_id").and_then(|v| v.as_str()) == Some(source_id)
+                && link.get("target_id").and_then(|v| v.as_str()) == Some(target_id)
+        })
+    }
+
+    fn projection_count(projection: &WorkspaceProjection, object_type: &str) -> usize {
+        projection
+            .objects
+            .iter()
+            .filter(|object| object.get("object_type").and_then(|v| v.as_str()) == Some(object_type))
+            .count()
+    }
 
     #[test]
     fn retained_under_link_type_is_registered() {
@@ -5137,5 +5812,142 @@ mod tests {
                 .and_then(|v| v.as_str()),
             Some("pi_regression_view")
         );
+    }
+
+    #[test]
+    fn workspace_projection_discovers_fixture_code_world() {
+        let root = fixture_workspace("workspace-world", true, true);
+        fs::create_dir_all(root.join("src/routes")).expect("create routes dir");
+        fs::create_dir_all(root.join("tests")).expect("create tests dir");
+        fs::create_dir_all(root.join("migrations")).expect("create migrations dir");
+        fs::write(
+            root.join("src/routes/api.rs"),
+            "use axum::{routing::get, Router};\npub fn router() -> Router { Router::new().route(\"/fixture\", get(handler)) }\nasync fn handler() {}\n",
+        )
+        .expect("write route fixture");
+        fs::write(root.join("tests/fixture_test.rs"), "#[test]\nfn fixture_works() { assert!(true); }\n")
+            .expect("write test fixture");
+        fs::write(
+            root.join("migrations/001_init.sql"),
+            "create table widgets(id integer primary key);\n",
+        )
+        .expect("write migration fixture");
+
+        let focusa = focusa_with_workspace(&root);
+        let projection = workspace_projection(&focusa);
+
+        assert_eq!(projection_count(&projection, "repo"), 1);
+        assert!(projection_count(&projection, "package") >= 1);
+        assert!(projection_count(&projection, "file") >= 4);
+        assert!(projection_count(&projection, "module") >= 3);
+        assert!(projection_count(&projection, "route") >= 1);
+        assert!(projection_count(&projection, "endpoint") >= 1);
+        assert!(projection_count(&projection, "migration") >= 1);
+        assert!(projection_count(&projection, "test") >= 1);
+    }
+
+    #[test]
+    fn affordance_execution_projection_emits_runtime_affordances_and_permissions() {
+        let root = fixture_workspace("affordance-runtime", true, true);
+        let focusa = focusa_with_workspace(&root);
+        let projection = affordance_execution_projection(&focusa, None);
+
+        let execution_context_id =
+            stable_id("execution_context", &format!("workspace:{}", root.display()));
+        let inspect_workspace_affordance_id =
+            stable_id("affordance", &format!("inspect-workspace:{}", root.display()));
+        let edit_workspace_affordance_id =
+            stable_id("affordance", &format!("edit-workspace:{}", root.display()));
+        let workspace_fs_surface_id = stable_id("tool_surface", "workspace_filesystem");
+        let workspace_read_permission_id =
+            stable_id("permission", &format!("workspace-read:{}", root.display()));
+        let workspace_write_permission_id =
+            stable_id("permission", &format!("workspace-write:{}", root.display()));
+
+        assert!(projection_has_object(
+            &projection,
+            "execution_context",
+            &execution_context_id,
+            Some("active")
+        ));
+        assert!(projection_has_object(
+            &projection,
+            "affordance",
+            &inspect_workspace_affordance_id,
+            Some("active")
+        ));
+        assert!(projection_has_object(
+            &projection,
+            "affordance",
+            &edit_workspace_affordance_id,
+            Some("active")
+        ));
+        assert!(projection_has_object(
+            &projection,
+            "permission",
+            &workspace_read_permission_id,
+            Some("active")
+        ));
+        assert!(projection_has_object(
+            &projection,
+            "permission",
+            &workspace_write_permission_id,
+            Some("active")
+        ));
+        assert!(projection_has_link(
+            &projection,
+            "enabled_by",
+            &inspect_workspace_affordance_id,
+            &workspace_fs_surface_id
+        ));
+        assert!(projection_has_link(
+            &projection,
+            "requires_permission",
+            &inspect_workspace_affordance_id,
+            &workspace_read_permission_id
+        ));
+        assert!(projection_has_link(
+            &projection,
+            "requires_permission",
+            &edit_workspace_affordance_id,
+            &workspace_write_permission_id
+        ));
+        assert!(projection_has_link(
+            &projection,
+            "available_in_context",
+            &edit_workspace_affordance_id,
+            &execution_context_id
+        ));
+    }
+
+    #[test]
+    fn affordance_execution_projection_blocks_build_without_cargo_manifest() {
+        let root = fixture_workspace("blocked-build", true, false);
+        let focusa = focusa_with_workspace(&root);
+        let projection = affordance_execution_projection(&focusa, None);
+
+        let build_rust_affordance_id =
+            stable_id("affordance", &format!("build-rust:{}", root.display()));
+        let cargo_manifest_precondition_id =
+            stable_id("precondition", &format!("cargo-manifest:{}", root.display()));
+
+        assert!(projection_has_object(
+            &projection,
+            "affordance",
+            &build_rust_affordance_id,
+            Some("blocked")
+        ));
+        assert!(projection_has_link(
+            &projection,
+            "depends_on",
+            &build_rust_affordance_id,
+            &cargo_manifest_precondition_id
+        ));
+        assert!(projection_has_link(
+            &projection,
+            "blocks_execution_of",
+            &cargo_manifest_precondition_id,
+            &build_rust_affordance_id
+        ));
     }
 }
