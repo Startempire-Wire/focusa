@@ -24,6 +24,24 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
+fn expand_home_dir(path: &str, home: Option<&Path>) -> PathBuf {
+    match path {
+        "~" => home
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from(path)),
+        _ => path
+            .strip_prefix("~/")
+            .and_then(|rest| home.map(|home| home.join(rest)))
+            .unwrap_or_else(|| PathBuf::from(path)),
+    }
+}
+
+fn resolved_data_dir(config: &FocusaConfig) -> PathBuf {
+    let home_var = std::env::var_os("HOME");
+    let home = home_var.as_deref().map(Path::new);
+    expand_home_dir(&config.data_dir, home)
+}
+
 struct DaemonInstanceLock {
     path: PathBuf,
     pid: u32,
@@ -32,7 +50,7 @@ struct DaemonInstanceLock {
 impl DaemonInstanceLock {
     fn acquire(config: &FocusaConfig) -> anyhow::Result<Self> {
         let pid = std::process::id();
-        let data_dir = PathBuf::from(&config.data_dir);
+        let data_dir = resolved_data_dir(config);
         fs::create_dir_all(&data_dir)?;
         let path = data_dir.join("focusa-daemon.lock");
 
@@ -117,6 +135,7 @@ async fn main() -> anyhow::Result<()> {
     if let Ok(data_dir) = std::env::var("FOCUSA_DATA_DIR") {
         config.data_dir = data_dir;
     }
+    config.data_dir = resolved_data_dir(&config).to_string_lossy().into_owned();
 
     let _instance_lock = DaemonInstanceLock::acquire(&config)?;
 
@@ -172,4 +191,29 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expand_home_dir_expands_tilde_prefix() {
+        let home = Path::new("/home/wirebot");
+        assert_eq!(expand_home_dir("~", Some(home)), PathBuf::from("/home/wirebot"));
+        assert_eq!(
+            expand_home_dir("~/.focusa", Some(home)),
+            PathBuf::from("/home/wirebot/.focusa")
+        );
+    }
+
+    #[test]
+    fn expand_home_dir_preserves_literal_path_without_home() {
+        assert_eq!(expand_home_dir("~/.focusa", None), PathBuf::from("~/.focusa"));
+        assert_eq!(
+            expand_home_dir("/tmp/focusa", Some(Path::new("/home/wirebot"))),
+            PathBuf::from("/tmp/focusa")
+        );
+    }
 }
