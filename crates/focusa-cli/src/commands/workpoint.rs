@@ -20,7 +20,7 @@ pub enum WorkpointCmd {
         /// Pi/session id.
         #[arg(long)]
         session: Option<String>,
-        /// Checkpoint reason, e.g. manual,before_compact,context_overflow.
+        /// Checkpoint reason, e.g. manual,operator_checkpoint,before_compact,context_overflow.
         #[arg(long, default_value = "manual")]
         reason: String,
         /// Action type, e.g. checkpoint_workpoint, patch_component_binding.
@@ -70,8 +70,10 @@ fn reason_to_api(reason: &str) -> String {
         "context-overflow" | "context_overflow" => "context_overflow",
         "model-switch" | "model_switch" => "model_switch",
         "fork" => "fork",
+        "operator-checkpoint" | "operator_checkpoint" => "operator_checkpoint",
         "manual" => "manual",
-        _ => "unknown",
+        "unknown" => "unknown",
+        _ => reason,
     }
     .to_string()
 }
@@ -181,7 +183,8 @@ mod tests {
     fn reason_aliases_match_api_snake_case() {
         assert_eq!(reason_to_api("before-compact"), "before_compact");
         assert_eq!(reason_to_api("context_overflow"), "context_overflow");
-        assert_eq!(reason_to_api("nonsense"), "unknown");
+        assert_eq!(reason_to_api("operator-checkpoint"), "operator_checkpoint");
+        assert_eq!(reason_to_api("nonsense"), "nonsense");
     }
 
     #[test]

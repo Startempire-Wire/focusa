@@ -501,6 +501,7 @@ pub enum WorkpointCheckpointReason {
     ContextOverflow,
     ModelSwitch,
     Fork,
+    OperatorCheckpoint,
     Manual,
     #[default]
     Unknown,

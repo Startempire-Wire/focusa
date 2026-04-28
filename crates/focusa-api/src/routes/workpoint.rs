@@ -25,7 +25,7 @@ pub struct WorkpointCheckpointRequest {
     pub work_item_id: Option<String>,
     pub session_id: Option<String>,
     pub frame_id: Option<Uuid>,
-    pub checkpoint_reason: Option<WorkpointCheckpointReason>,
+    pub checkpoint_reason: Option<String>,
     pub confidence: Option<WorkpointConfidence>,
     pub canonical: Option<bool>,
     pub mission: Option<String>,
@@ -83,6 +83,13 @@ fn object_tokens(value: &str) -> Vec<String> {
         .collect()
 }
 
+fn latest_tokens(value: &str) -> Vec<String> {
+    normalize_for_match(value)
+        .split_whitespace()
+        .map(ToString::to_string)
+        .collect()
+}
+
 fn latest_mentions_object(latest: &str, object_ref: &str) -> bool {
     let latest_norm = normalize_for_match(latest);
     if latest_norm.is_empty() {
@@ -92,9 +99,10 @@ fn latest_mentions_object(latest: &str, object_ref: &str) -> bool {
     if !object_norm.is_empty() && latest_norm.contains(&object_norm) {
         return true;
     }
+    let latest_tokens = latest_tokens(latest);
     object_tokens(object_ref)
         .iter()
-        .any(|token| latest_norm.contains(token))
+        .any(|token| latest_tokens.iter().any(|latest_token| latest_token == token))
 }
 
 fn classify_drift(
@@ -195,6 +203,47 @@ fn active_workpoint<'a>(state: &'a focusa_core::types::FocusaState) -> Option<&'
         .workpoint
         .active_workpoint_id
         .and_then(|id| state.workpoint.records.iter().find(|record| record.workpoint_id == id))
+}
+
+fn parse_checkpoint_reason(reason: Option<&str>) -> Result<WorkpointCheckpointReason, (StatusCode, Json<Value>)> {
+    let Some(reason) = reason.map(str::trim).filter(|reason| !reason.is_empty()) else {
+        return Ok(WorkpointCheckpointReason::Manual);
+    };
+    match reason {
+        "session-start" | "session_start" => Ok(WorkpointCheckpointReason::SessionStart),
+        "session-resume" | "session_resume" => Ok(WorkpointCheckpointReason::SessionResume),
+        "before-compact" | "before_compact" => Ok(WorkpointCheckpointReason::BeforeCompact),
+        "after-compact" | "after_compact" => Ok(WorkpointCheckpointReason::AfterCompact),
+        "context-overflow" | "context_overflow" => Ok(WorkpointCheckpointReason::ContextOverflow),
+        "model-switch" | "model_switch" => Ok(WorkpointCheckpointReason::ModelSwitch),
+        "fork" => Ok(WorkpointCheckpointReason::Fork),
+        "operator-checkpoint" | "operator_checkpoint" => Ok(WorkpointCheckpointReason::OperatorCheckpoint),
+        "manual" => Ok(WorkpointCheckpointReason::Manual),
+        "unknown" => Ok(WorkpointCheckpointReason::Unknown),
+        other => Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "checkpoint_reason",
+                "rejected_value": other,
+                "allowed_values": [
+                    "manual",
+                    "operator_checkpoint",
+                    "session_start",
+                    "session_resume",
+                    "before_compact",
+                    "after_compact",
+                    "context_overflow",
+                    "model_switch",
+                    "fork",
+                    "unknown"
+                ],
+                "retry_posture": "do_not_retry_unchanged",
+                "next_step_hint": "choose a supported checkpoint_reason or omit it to use manual"
+            })),
+        )),
+    }
 }
 
 fn workpoint_packet(record: &WorkpointRecord) -> Value {
@@ -322,7 +371,7 @@ async fn checkpoint(
         session_id: req.session_id,
         frame_id: req.frame_id,
         status: WorkpointStatus::Proposed,
-        checkpoint_reason: req.checkpoint_reason.unwrap_or(WorkpointCheckpointReason::Manual),
+        checkpoint_reason: parse_checkpoint_reason(req.checkpoint_reason.as_deref())?,
         confidence: req.confidence.unwrap_or(WorkpointConfidence::High),
         canonical: req.canonical.unwrap_or(true),
         mission: req.mission,
@@ -615,6 +664,43 @@ mod tests {
             &record,
             "Patch homepage audio widget component binding and verify play pause state",
             None,
+            &[],
+            &[],
+        );
+        assert!(!decision.drift_detected, "{}", decision.reason);
+    }
+
+    #[test]
+    fn checkpoint_reason_accepts_operator_checkpoint_and_rejects_unknown_field_value() {
+        assert_eq!(
+            parse_checkpoint_reason(Some("operator_checkpoint")).unwrap(),
+            WorkpointCheckpointReason::OperatorCheckpoint
+        );
+        let err = parse_checkpoint_reason(Some("not_a_reason")).unwrap_err();
+        assert_eq!(err.0, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(err.1.0.get("status").and_then(Value::as_str), Some("validation_rejected"));
+        assert_eq!(err.1.0.get("field").and_then(Value::as_str), Some("checkpoint_reason"));
+    }
+
+    #[test]
+    fn drift_classifier_does_not_match_boundary_tokens_inside_compound_words() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            canonical: true,
+            active_object_refs: vec!["FocusaToolSuite".to_string()],
+            action_intent: Some(WorkpointActionIntentRecord {
+                action_type: "stress_verify".to_string(),
+                target_ref: Some("FocusaToolSuite".to_string()),
+                verification_hooks: vec!["api".to_string(), "cli".to_string(), "pi".to_string()],
+                status: Some("ready".to_string()),
+            }),
+            next_slice: Some("Complete stress suite\nDO_NOT_DRIFT: Do not demote existing tools.".to_string()),
+            ..WorkpointRecord::default()
+        };
+        let decision = classify_drift(
+            &record,
+            "stress verify FocusaToolSuite api cli pi",
+            Some("stress_verify"),
             &[],
             &[],
         );

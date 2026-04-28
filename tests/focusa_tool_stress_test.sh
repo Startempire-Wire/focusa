@@ -35,6 +35,7 @@ assert_req health GET /health '' '.ok == true'
 assert_req status GET /status '' '.session != null'
 assert_req focus_stack GET /focus/stack '' '.stack.frames != null'
 assert_req focus_update POST /focus/update "{\"turn_id\":\"stress-$KEY\",\"delta\":{\"recent_results\":[\"Stress focus write passed.\"],\"notes\":[\"Stress note.\"]}}" '.status == "accepted"'
+assert_req focus_update_constraint POST /focus/update "{\"turn_id\":\"stress-constraint-$KEY\",\"delta\":{\"constraints\":[\"Operator directive must not demote existing Focusa tools.\"]}}" '.status == "accepted"'
 
 # Workpoint API and idempotency
 WP1="$TMP_DIR/workpoint1.json"; WP2="$TMP_DIR/workpoint2.json"

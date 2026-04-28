@@ -108,16 +108,18 @@ function validateDecision(decision: string): { valid: boolean; reason?: string }
   return { valid: true };
 }
 
-function validateConstraint(constraint: string): { valid: boolean; reason?: string } {
+function validateConstraint(constraint: string, source?: string): { valid: boolean; reason?: string } {
   // §AsccSections: constraints = DISCOVERED REQUIREMENTS (not self-imposed tasks)
-  // Constraint is a hard boundary from environment/architecture, not "I should do X"
+  // Constraint is a hard boundary from environment/architecture, not "I should do X".
+  // Operator directives are discovered requirements even when phrased with "must/must not".
+  const operatorDirective = /operator directive/i.test(source || "") || /^operator directive\b/i.test(constraint);
   if (constraint.length > 200) {
     return { valid: false, reason: "Too verbose — distill to one sentence (max 200 chars)." };
   }
   if (TASK_PATTERNS.test(constraint)) {
     return { valid: false, reason: "Sounds like a self-imposed task — constraints are DISCOVERED REQUIREMENTS from environment/architecture. Not 'I will do X'." };
   }
-  if (/\b(will|should|must|need to|going to)\b/i.test(constraint)) {
+  if (!operatorDirective && /\b(will|should|must|need to|going to)\b/i.test(constraint)) {
     return { valid: false, reason: "Sounds like self-imposed obligation — constraints are discovered requirements from environment, not agent commitments. Use scratchpad." };
   }
   return { valid: true };
@@ -385,7 +387,7 @@ export function registerTools(pi: ExtensionAPI) {
     ],
     async execute(_id, params) {
       const { constraint, source } = params as { constraint: string; source?: string };
-      const v = validateConstraint(constraint);
+      const v = validateConstraint(constraint, source);
       if (!v.valid) {
         return {
           content: [{ type: "text" as const, text: `❌ Constraint rejected: ${v.reason}\n\nDiscovered requirements from environment → focusa_constraint. Self-imposed tasks → focusa_scratch.` }],
@@ -934,7 +936,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       current_ask: Type.Optional(Type.String({ description: "Current operator ask or mission framing." })),
       work_item_id: Type.Optional(Type.String({ description: "Beads/work item id, e.g. focusa-a2w2.6." })),
-      checkpoint_reason: Type.Optional(Type.String({ description: "manual|before_compact|after_compact|context_overflow|session_resume|model_switch|fork" })),
+      checkpoint_reason: Type.Optional(Type.String({ description: "manual|operator_checkpoint|before_compact|after_compact|context_overflow|session_resume|model_switch|fork" })),
       mission: Type.String({ description: "Current mission/objective to preserve across compaction." }),
       target_objects: Type.Optional(Type.Array(Type.String(), { description: "Ontology/file/component/endpoint refs currently targeted." })),
       current_action: Type.Optional(Type.String({ description: "Typed action, e.g. patch_component_binding or resume_workpoint." })),
@@ -988,7 +990,9 @@ export function registerTools(pi: ExtensionAPI) {
       });
       const text = res.ok
         ? `workpoint checkpoint → ${summarizeWorkpointResponse(res.body)}`
-        : `workpoint checkpoint unavailable → ${explainWorkLoopResult(res, "checkpoint failed")}`;
+        : res.body?.status === "validation_rejected"
+          ? `workpoint checkpoint validation_rejected → field=${String(res.body?.field || "unknown")} allowed=${Array.isArray(res.body?.allowed_values) ? res.body.allowed_values.join(",") : "unknown"} retry=${String(res.body?.retry_posture || "do_not_retry_unchanged")}`
+          : `workpoint checkpoint blocked → ${explainWorkLoopResult(res, "checkpoint failed")}`;
       return {
         content: [{ type: "text", text }],
         details: { ok: res.ok, status: res.status, endpoint: "/workpoint/checkpoint", request: payload, response: res.body },
