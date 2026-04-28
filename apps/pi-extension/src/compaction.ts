@@ -20,6 +20,66 @@ function normalizeCompactionArtifacts(files: any[]): Array<{ kind: "file"; label
 }
 
 let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let lastCompactResumeKey = "";
+
+async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
+  if (!S.focusaAvailable) return null;
+  try {
+    const packet = await focusaFetch("/workpoint/resume", {
+      method: "POST",
+      body: JSON.stringify({ mode }),
+    });
+    if (packet && packet.status === "completed") {
+      S.activeWorkpointPacket = packet.resume_packet || packet;
+      S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+      return packet;
+    }
+  } catch { /* best effort */ }
+  return null;
+}
+
+
+function recordLocalWorkpointFallback(reason: string): void {
+  const fallback = {
+    status: "partial",
+    canonical: false,
+    reason,
+    mission: S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || "unknown mission",
+    next_slice: S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || "resume from local degraded fallback",
+    source_turn_id: `pi-turn-${S.turnCount}`,
+    recorded_at: new Date().toISOString(),
+  };
+  S.activeWorkpointPacket = fallback;
+  S.activeWorkpointSummary = `NON-CANONICAL WORKPOINT FALLBACK: ${fallback.next_slice}`;
+  try { S.pi?.appendEntry("focusa-workpoint-fallback", fallback); } catch { /* best effort */ }
+  persistState();
+}
+
+async function checkpointBeforeCompaction(): Promise<any | null> {
+  if (!S.focusaAvailable) return null;
+  const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || "Pi work before compaction";
+  const nextSlice = S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || "Resume current task from typed Workpoint packet after compaction.";
+  try {
+    return await focusaFetch("/workpoint/checkpoint", {
+      method: "POST",
+      body: JSON.stringify({
+        mission,
+        next_slice: nextSlice,
+        work_item_id: S.currentAsk?.sourceTurnId,
+        checkpoint_reason: "before_compact",
+        canonical: true,
+        promote: true,
+        source_turn_id: `pi-turn-${S.turnCount}`,
+        action_intent: {
+          action_type: "resume_workpoint",
+          target_ref: S.currentAsk?.sourceTurnId || S.activeFrameId || "pi-session",
+          verification_hooks: ["resume packet appears in compaction instructions", "post-compact steer uses WorkpointResumePacket"],
+          status: "ready",
+        },
+      }),
+    });
+  } catch { return null; }
+}
 
 function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number) {
   S.currentContextPct = typeof pct === "number" ? pct : null;
@@ -44,32 +104,14 @@ function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: n
   ctx.ui.setStatus("focusa-ctx", "");
 }
 
-function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, attempt: number) {
+function scheduleCompactionResumeWatchdog(ctx: any) {
   if (!S.compactResumePending) return;
-  // No artificial exhaustion or attempt cap: keep retrying while pending.
-  // Cadence remains bounded by delay ceiling to avoid tight retry loops.
-  const retryAttempt = Math.max(attempt, 1);
-  const delayMs = Math.min(4000, 700 * retryAttempt);
   compactResumeRetryTimer = setTimeout(() => {
     compactResumeRetryTimer = null;
     if (!S.compactResumePending) return;
-    const agent = (ctx as any).sessionManager?.getAgent?.();
-    if (agent) {
-      agent.continue().catch(() => {});
-    }
-    // If continuation queue was dropped, resend hidden steer on later attempts.
-    if (retryAttempt >= 2 && S.pi) {
-      try {
-        S.pi.sendMessage(
-          { customType: "focusa-compact-resume", content: steerMessage, display: false },
-          { deliverAs: "steer" },
-        );
-      } catch {
-        // no-op
-      }
-    }
-    scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
-  }, delayMs);
+    S.compactResumePending = false;
+    ctx.ui.notify("⚠️ Compaction completed but auto-resume did not start; press Enter/continue once.", "warning");
+  }, 8000);
 }
 
 export function registerCompaction(pi: ExtensionAPI) {
@@ -86,6 +128,9 @@ export function registerCompaction(pi: ExtensionAPI) {
         failures: sanitizeFocusFailures(S.localFailures).slice(-5),
       });
     }
+    await checkpointBeforeCompaction();
+    const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
+
     // Always persist to Pi session entries as backup
     await persistAuthoritativeState();
 
@@ -95,7 +140,13 @@ export function registerCompaction(pi: ExtensionAPI) {
         const ascc = await focusaFetch("/ascc/state");
         if (ascc?.focus_state) {
           const fs = ascc.focus_state;
+          const workpointSection = workpointPacket ? [
+            "# Workpoint Resume Packet",
+            workpointPacket.rendered_summary || S.activeWorkpointSummary || "active workpoint packet available",
+            JSON.stringify(workpointPacket.resume_packet || S.activeWorkpointPacket || {}, null, 2).slice(0, 4000),
+          ].join("\n\n") : "";
           const summary = [
+            workpointSection,
             "# Focusa Cognitive Summary",
             `## Intent\n${fs.intent || "none"}`,
             `## Current Focus\n${fs.current_focus || fs.current_state || "none"}`,
@@ -173,7 +224,9 @@ export function registerCompaction(pi: ExtensionAPI) {
     // then hasQueuedMessages() -> agent.continue()). Without deferral,
     // sendMessage is still async when hasQueuedMessages() fires -> miss.
     // Also dedup: only resume once per compaction cycle.
-    if (!S.compactResumePending) {
+    const compactResumeKey = String((event as any).compactionEntry?.id || (event as any).compactionEntry?.uuid || (event as any).compactionEntry?.timestamp || S.totalCompactions || Date.now());
+    if (!S.compactResumePending && compactResumeKey !== lastCompactResumeKey) {
+      lastCompactResumeKey = compactResumeKey;
       if (compactResumeRetryTimer) {
         clearTimeout(compactResumeRetryTimer);
         compactResumeRetryTimer = null;
@@ -183,13 +236,19 @@ export function registerCompaction(pi: ExtensionAPI) {
       if (pi2) {
         queueMicrotask(() => {
           // lastDecision saved above, before localDecisions was cleared
-          const directive = S.localDecisions.length > 0 || S.lastCompactDecision
-            ? `Review the above decisions and constraints. Continue with the next logical step.`
-            : `Continue executing. Context was compacted — preserve all progress.`;
+          const workpoint = S.activeWorkpointSummary || S.activeWorkpointPacket?.next_slice || "";
+          const directive = workpoint
+            ? `Resume from the WorkpointResumePacket below. Treat it as the canonical continuation contract unless the operator steers otherwise.`
+            : (S.localDecisions.length > 0 || S.lastCompactDecision
+              ? `Review the above decisions and constraints. Continue with the next logical step.`
+              : `Continue executing. Context was compacted — preserve all progress.`);
           const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
           const steerMessage = `# Compaction Complete${note}
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
+## WorkpointResumePacket
+${S.activeWorkpointSummary || "none"}
+${S.activeWorkpointPacket ? JSON.stringify(S.activeWorkpointPacket, null, 2).slice(0, 4000) : ""}
 ## Directive
 ${directive}
 
@@ -209,13 +268,9 @@ See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
               customType: "focusa-compact-resume",
               content: steerMessage,
               display: false,
-            }, { deliverAs: "steer" });
-            const agent = (ctx as any).sessionManager?.getAgent?.();
-            if (agent) {
-              agent.continue().catch(() => {});
-            }
-            scheduleCompactionResumeRetry(ctx, steerMessage, 1);
-            ctx.ui.notify(`✅ Compaction done — resuming work`, "info");
+            }, { triggerTurn: true });
+            scheduleCompactionResumeWatchdog(ctx);
+            ctx.ui.notify(`✅ Compaction done — auto-resume turn submitted`, "info");
           } catch (e) {
             console.warn("[focusa] auto-resume failed:", e);
             S.compactResumePending = false;
@@ -277,6 +332,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
         })
       : null;
     if (r?.accepted) { onDone(); return; }
+    recordLocalWorkpointFallback("hard context fallback before local compact");
     // §25.7: Fallback marked non-canonical — guard ctx.compact existence
     if ((cfg.fallbackMode === "passthrough" || cfg.fallbackMode === "local-compact") && typeof ctx.compact === "function") {
       ctx.compact({
@@ -298,6 +354,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
         })
       : null;
     if (r?.accepted) { onDone(); return; }
+    recordLocalWorkpointFallback("auto context fallback before local compact");
     if ((cfg.fallbackMode === "passthrough" || cfg.fallbackMode === "local-compact") && typeof ctx.compact === "function") {
       ctx.compact({
         customInstructions: buildCompactInstructions(

@@ -60,6 +60,89 @@ pub struct SecondaryLoopComparativeReplaySummary {
     pub task_pairs: Vec<SecondaryLoopComparativePair>,
 }
 
+/// Replay-driven Workpoint event summary for Spec88 status/evidence gates.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkpointReplaySummary {
+    pub replay_events_scanned: u64,
+    pub workpoint_events: u64,
+    pub checkpoint_proposed_events: u64,
+    pub checkpoint_promoted_events: u64,
+    pub checkpoint_rejected_events: u64,
+    pub superseded_events: u64,
+    pub resume_rendered_events: u64,
+    pub drift_detected_events: u64,
+    pub degraded_fallback_events: u64,
+}
+
+/// Summarize persisted Workpoint events without loading raw transcript context.
+pub fn workpoint_summary_from_replay(
+    persistence: &SqlitePersistence,
+    config: &ReplayConfig,
+) -> anyhow::Result<WorkpointReplaySummary> {
+    let since_ts = config.from.map(|dt| dt.to_rfc3339());
+    let since_id: Option<String> = None;
+    let rows = persistence.events_since_raw(since_ts.as_deref(), since_id.as_deref(), 10000)?;
+
+    let mut summary = WorkpointReplaySummary::default();
+    for row in rows {
+        if let Some(target_sid) = config.session_id
+            && row.session_id != Some(target_sid)
+        {
+            continue;
+        }
+        if let Some(until) = config.until
+            && row.timestamp > until
+        {
+            break;
+        }
+        summary.replay_events_scanned += 1;
+        let payload: serde_json::Value = match serde_json::from_str(&row.payload_json) {
+            Ok(value) => value,
+            Err(error) => {
+                tracing::warn!(
+                    event_id = %row.event_id,
+                    error = %error,
+                    "Skipping malformed replay payload while computing workpoint summary"
+                );
+                continue;
+            }
+        };
+        match payload.get("type").and_then(serde_json::Value::as_str) {
+            Some("workpoint_checkpoint_proposed") | Some("WorkpointCheckpointProposed") => {
+                summary.workpoint_events += 1;
+                summary.checkpoint_proposed_events += 1;
+            }
+            Some("workpoint_checkpoint_promoted") | Some("WorkpointCheckpointPromoted") => {
+                summary.workpoint_events += 1;
+                summary.checkpoint_promoted_events += 1;
+            }
+            Some("workpoint_checkpoint_rejected") | Some("WorkpointCheckpointRejected") => {
+                summary.workpoint_events += 1;
+                summary.checkpoint_rejected_events += 1;
+            }
+            Some("workpoint_superseded") | Some("WorkpointSuperseded") => {
+                summary.workpoint_events += 1;
+                summary.superseded_events += 1;
+            }
+            Some("workpoint_resume_rendered") | Some("WorkpointResumeRendered") => {
+                summary.workpoint_events += 1;
+                summary.resume_rendered_events += 1;
+            }
+            Some("workpoint_drift_detected") | Some("WorkpointDriftDetected") => {
+                summary.workpoint_events += 1;
+                summary.drift_detected_events += 1;
+            }
+            Some("workpoint_degraded_fallback_recorded")
+            | Some("WorkpointDegradedFallbackRecorded") => {
+                summary.workpoint_events += 1;
+                summary.degraded_fallback_events += 1;
+            }
+            _ => {}
+        }
+    }
+    Ok(summary)
+}
+
 /// Summarize replay-log comparative evidence from persisted outcome events.
 pub fn secondary_loop_comparative_summary_from_replay(
     persistence: &SqlitePersistence,
@@ -339,6 +422,105 @@ mod tests {
         persistence
             .append_event(&entry)
             .expect("append replay test event");
+    }
+
+    fn workpoint_record(work_item_id: &str) -> WorkpointRecord {
+        WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            work_item_id: Some(work_item_id.to_string()),
+            session_id: Some("replay-session".to_string()),
+            status: WorkpointStatus::Proposed,
+            checkpoint_reason: WorkpointCheckpointReason::Manual,
+            confidence: WorkpointConfidence::High,
+            canonical: true,
+            mission: Some("Replay workpoint".to_string()),
+            next_slice: Some("Resume from replay".to_string()),
+            ..WorkpointRecord::default()
+        }
+    }
+
+    #[test]
+    fn test_replay_reconstructs_active_workpoint_pointer() {
+        let dir = temp_dir("workpoint-replay-active");
+        let mut cfg = FocusaConfig::default();
+        cfg.data_dir = dir.to_string_lossy().into_owned();
+        let persistence = SqlitePersistence::new(&cfg).unwrap();
+        let session_id = Uuid::now_v7();
+        let record = workpoint_record("focusa-a2w2.3");
+        let workpoint_id = record.workpoint_id;
+
+        append_event(
+            &persistence,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
+            Some(session_id),
+        );
+        append_event(
+            &persistence,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "replay promotion".to_string(),
+            },
+            Some(session_id),
+        );
+
+        let result = replay_events(
+            &persistence,
+            &ReplayConfig {
+                from: None,
+                until: None,
+                session_id: Some(session_id),
+                frame_id: None,
+            },
+        )
+        .unwrap();
+
+        assert!(result.errors.is_empty());
+        assert_eq!(result.final_state.workpoint.active_workpoint_id, Some(workpoint_id));
+        assert_eq!(result.final_state.workpoint.records.len(), 1);
+        assert_eq!(result.final_state.workpoint.records[0].status, WorkpointStatus::Active);
+    }
+
+    #[test]
+    fn test_workpoint_replay_summary_counts_recent_events() {
+        let dir = temp_dir("workpoint-replay-summary");
+        let mut cfg = FocusaConfig::default();
+        cfg.data_dir = dir.to_string_lossy().into_owned();
+        let persistence = SqlitePersistence::new(&cfg).unwrap();
+        let session_id = Uuid::now_v7();
+        let record = workpoint_record("focusa-a2w2.3");
+        let workpoint_id = record.workpoint_id;
+
+        append_event(
+            &persistence,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
+            Some(session_id),
+        );
+        append_event(
+            &persistence,
+            FocusaEvent::WorkpointDriftDetected {
+                workpoint_id: Some(workpoint_id),
+                severity: WorkpointDriftSeverity::High,
+                reason: "agent drifted from ActionIntent".to_string(),
+                recovery_hint: Some("resume from workpoint packet".to_string()),
+            },
+            Some(session_id),
+        );
+
+        let summary = workpoint_summary_from_replay(
+            &persistence,
+            &ReplayConfig {
+                from: None,
+                until: None,
+                session_id: Some(session_id),
+                frame_id: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(summary.workpoint_events, 2);
+        assert_eq!(summary.checkpoint_proposed_events, 1);
+        assert_eq!(summary.drift_detected_events, 1);
     }
 
     #[test]

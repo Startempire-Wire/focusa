@@ -40,3 +40,4 @@ pub mod turn;
 pub mod uxp;
 pub mod visual_workflow;
 pub mod work_loop;
+pub mod workpoint;

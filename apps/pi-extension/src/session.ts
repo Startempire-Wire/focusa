@@ -12,6 +12,24 @@ import { pushDelta } from "./tools.js";
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
+  if (!S.focusaAvailable) return;
+  try {
+    const packet = await focusaFetch("/workpoint/resume", {
+      method: "POST",
+      body: JSON.stringify({ mode: "compact_prompt" }),
+    });
+    if (packet?.status === "completed") {
+      S.activeWorkpointPacket = packet.resume_packet || packet;
+      S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+      focusaPost("/telemetry/trace", {
+        event_type: "workpoint_resume_packet_loaded",
+        payload: { reason, workpoint_id: packet.workpoint_id, canonical: packet.canonical },
+      });
+    }
+  } catch { /* best effort */ }
+}
+
 function seedCurrentAskFromPersistedState(ctx: any, data: any) {
   const restoredAsk = data?.currentAsk;
   const cleanedRestoredAsk = stripQuotedFocusaContext(restoredAsk?.text || "");
@@ -138,6 +156,8 @@ export function registerSession(pi: ExtensionAPI) {
     S.lastCompactDecision = "";
     S.compactResumePending = false;
     S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.activeWorkpointPacket = null;
+    S.activeWorkpointSummary = "";
     S.sessionCwd = ctx.cwd;
 
     // §37.5: Check CLI flags FIRST
@@ -178,6 +198,8 @@ export function registerSession(pi: ExtensionAPI) {
           intent: e.data.intent || "",
           currentFocus: e.data.currentFocus || "",
         };
+        S.activeWorkpointPacket = e.data.activeWorkpointPacket || null;
+        S.activeWorkpointSummary = e.data.activeWorkpointSummary || "";
         if (e.data.sessionId) S.sessionFrameKey = e.data.sessionId;
         // Explicitly clear stale pollution — do NOT carry across sessions
         S.localConstraints = [];
@@ -196,6 +218,7 @@ export function registerSession(pi: ExtensionAPI) {
     }
 
     await ensureFocusaSession(ctx);
+    await refreshSessionWorkpointPacket("session_start");
     await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
 
     // §35.8: Session name sync from Pi's scoped focus frame, never global active frame
@@ -352,6 +375,8 @@ export function registerSession(pi: ExtensionAPI) {
     S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
     S.turnCount = 0; S.cataloguedDecisions = []; S.cataloguedFacts = [];
     S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.activeWorkpointPacket = null;
+    S.activeWorkpointSummary = "";
     S.sessionCwd = ctx.cwd;
     S.activeFrameTitle = ""; S.activeFrameGoal = "";
     S.fileEditCounts = {}; S.compilationErrors = []; S.longSessionSignaled = false;
@@ -379,6 +404,8 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
+        S.activeWorkpointPacket = d.activeWorkpointPacket || null;
+        S.activeWorkpointSummary = d.activeWorkpointSummary || "";
         if (d.sessionId) S.sessionFrameKey = d.sessionId;
         break;
       }
@@ -387,12 +414,28 @@ export function registerSession(pi: ExtensionAPI) {
     if (!S.wbmEnabled) S.activeFrameId = null;
     if (S.focusaAvailable) {
       await ensureFocusaSession(ctx);
+      await refreshSessionWorkpointPacket("session_switch");
       await ensureActiveFrame(ctx, (event as any).sessionId || "unknown");
     }
   });
 
   // ── session_before_fork (§36.5) ───────────────────────────────────────────
   pi.on("session_before_fork", async (_event, _ctx) => {
+    if (S.focusaAvailable) {
+      await focusaFetch("/workpoint/checkpoint", {
+        method: "POST",
+        body: JSON.stringify({
+          mission: S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || "Pi fork boundary",
+          next_slice: S.lastFocusSnapshot.currentFocus || "Resume from fork WorkpointResumePacket.",
+          checkpoint_reason: "fork",
+          canonical: true,
+          promote: true,
+          source_turn_id: `pi-turn-${S.turnCount}`,
+          action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-fork", verification_hooks: ["fork refreshes workpoint"], status: "ready" },
+        }),
+      }).catch(() => null);
+      await refreshSessionWorkpointPacket("fork");
+    }
     await persistAuthoritativeState();
     if (S.focusaAvailable && S.activeFrameId) {
       focusaPost("/focus/update", {

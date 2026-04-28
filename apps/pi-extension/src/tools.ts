@@ -911,6 +911,117 @@ export function registerTools(pi: ExtensionAPI) {
     },
   });
 
+  // ── Spec88 Workpoint Continuity tools ────────────────────────────────────
+
+  function summarizeWorkpointResponse(body: any): string {
+    const status = String(body?.status || "unknown");
+    const id = String(body?.workpoint_id || body?.active_workpoint_id || "none");
+    const canonical = typeof body?.canonical === "boolean" ? String(body.canonical) : "unknown";
+    const next = String(body?.next_step_hint || body?.resume_packet?.next_slice || body?.workpoint?.next_slice || "resume from typed workpoint packet");
+    return `status=${status} id=${id} canonical=${canonical} next=${next}`;
+  }
+
+  pi.registerTool({
+    name: "focusa_workpoint_checkpoint",
+    label: "Workpoint Checkpoint",
+    description: "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.",
+    promptSnippet: "Before compact/resume/overflow: checkpoint typed workpoint; do not rely on transcript tail.",
+    parameters: Type.Object({
+      current_ask: Type.Optional(Type.String({ description: "Current operator ask or mission framing." })),
+      work_item_id: Type.Optional(Type.String({ description: "Beads/work item id, e.g. focusa-a2w2.6." })),
+      checkpoint_reason: Type.Optional(Type.String({ description: "manual|before_compact|after_compact|context_overflow|session_resume|model_switch|fork" })),
+      mission: Type.String({ description: "Current mission/objective to preserve across compaction." }),
+      target_objects: Type.Optional(Type.Array(Type.String(), { description: "Ontology/file/component/endpoint refs currently targeted." })),
+      current_action: Type.Optional(Type.String({ description: "Typed action, e.g. patch_component_binding or resume_workpoint." })),
+      verified_evidence: Type.Optional(Type.Array(Type.String(), { description: "Short evidence refs/results already verified; use handles, not raw logs." })),
+      blockers: Type.Optional(Type.Array(Type.String(), { description: "Open blockers or drift boundaries." })),
+      next_action: Type.String({ description: "Exact bounded next action to resume after compact/retry." }),
+      do_not_drift: Type.Optional(Type.Array(Type.String(), { description: "Actions/scope the next agent must not drift into." })),
+      source_turn_id: Type.Optional(Type.String({ description: "Pi/source turn id for provenance." })),
+      idempotency_key: Type.Optional(Type.String({ description: "Optional external idempotency key." })),
+      canonical: Type.Optional(Type.Boolean({ description: "False only for degraded fallback packets." })),
+    }),
+    promptGuidelines: [
+      "Use before /compact, model switches, session repair, and when context feels near limit.",
+      "Store handles/evidence summaries, not raw tool output.",
+      "The output is the continuation contract: mission, current action, verified evidence, blockers, next action.",
+      "If canonical=false, treat as degraded fallback and reconcile when Focusa is healthy.",
+    ],
+    async execute(_id, params) {
+      const p = params as any;
+      const actionType = p.current_action || "checkpoint_workpoint";
+      const evidence = Array.isArray(p.verified_evidence) ? p.verified_evidence : [];
+      const blockers = Array.isArray(p.blockers) ? p.blockers : [];
+      const doNotDrift = Array.isArray(p.do_not_drift) ? p.do_not_drift : [];
+      const payload: any = {
+        mission: p.mission,
+        next_slice: [p.next_action, ...doNotDrift.map((d: string) => `DO_NOT_DRIFT: ${d}`)].filter(Boolean).join("\n"),
+        work_item_id: p.work_item_id,
+        checkpoint_reason: p.checkpoint_reason || "manual",
+        canonical: p.canonical !== false,
+        promote: p.canonical !== false,
+        source_turn_id: p.source_turn_id,
+        idempotency_key: p.idempotency_key,
+        active_object_refs: Array.isArray(p.target_objects) ? p.target_objects : [],
+        action_intent: {
+          action_type: actionType,
+          target_ref: p.work_item_id || (Array.isArray(p.target_objects) ? p.target_objects[0] : undefined),
+          verification_hooks: evidence,
+          status: "ready",
+        },
+        verification_records: evidence.map((e: string) => ({
+          target_ref: p.work_item_id || "workpoint",
+          result: e,
+          evidence_ref: e.startsWith("HANDLE:") || e.startsWith("[HANDLE:") ? e : undefined,
+        })),
+        blockers: blockers.map((reason: string) => ({ reason, severity: "medium", status: "open" })),
+      };
+      const res = await focusaFetchDetailed("/workpoint/checkpoint", {
+        method: "POST",
+        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        body: JSON.stringify(payload),
+      });
+      const text = res.ok
+        ? `workpoint checkpoint → ${summarizeWorkpointResponse(res.body)}`
+        : `workpoint checkpoint unavailable → ${explainWorkLoopResult(res, "checkpoint failed")}`;
+      return {
+        content: [{ type: "text", text }],
+        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/checkpoint", request: payload, response: res.body },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_workpoint_resume",
+    label: "Workpoint Resume",
+    description: "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.",
+    promptSnippet: "After compact/resume/overflow: fetch WorkpointResumePacket and continue from it.",
+    parameters: Type.Object({
+      workpoint_id: Type.Optional(Type.String({ description: "Specific workpoint id; omit to use active workpoint." })),
+      mode: Type.Optional(Type.String({ description: "compact_prompt|full_json|operator_summary" })),
+    }),
+    promptGuidelines: [
+      "Use immediately after compaction or session resume before choosing next work.",
+      "If not_found, create a checkpoint before continuing important work.",
+      "If canonical=false, state degraded status and avoid treating it as canonical truth.",
+    ],
+    async execute(_id, params) {
+      const p = params as { workpoint_id?: string; mode?: string };
+      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt" };
+      const res = await focusaFetchDetailed("/workpoint/resume", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const text = res.ok
+        ? `workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim()
+        : `workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`;
+      return {
+        content: [{ type: "text", text }],
+        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/resume", request: payload, response: res.body },
+      };
+    },
+  });
+
   // ── Spec80 LLM-native tree/metacog tools ─────────────────────────────────
 
   function spec80ErrorCode(result: { ok: boolean; status: number; body: any | null }): string {

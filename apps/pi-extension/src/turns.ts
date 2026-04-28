@@ -11,6 +11,31 @@ import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFoc
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 
+
+async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
+  if (!S.focusaAvailable) return;
+  try {
+    await focusaFetch("/workpoint/checkpoint", {
+      method: "POST",
+      body: JSON.stringify({
+        mission: S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || "Pi discontinuity boundary",
+        next_slice: S.lastFocusSnapshot.currentFocus || "Resume from typed Workpoint after discontinuity.",
+        checkpoint_reason: reason,
+        canonical: true,
+        promote: true,
+        source_turn_id: `pi-turn-${S.turnCount}`,
+        action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-session", verification_hooks: [reason], status: "ready" },
+        ...extra,
+      }),
+    });
+    const packet = await focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify({ mode: "compact_prompt" }) });
+    if (packet?.status === "completed") {
+      S.activeWorkpointPacket = packet.resume_packet || packet;
+      S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+    }
+  } catch { /* best effort */ }
+}
+
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
   pi.on("before_agent_start", async (event, ctx) => {
@@ -574,6 +599,37 @@ export function registerTurns(pi: ExtensionAPI) {
         }
       }
 
+      const expectedActionType = S.activeWorkpointPacket?.action_intent?.action_type;
+      if (expectedActionType && assistantOutput.trim()) {
+        focusaFetch("/workpoint/drift-check", {
+          method: "POST",
+          body: JSON.stringify({
+            latest_action: assistantOutput.slice(0, 2000),
+            expected_action_type: expectedActionType,
+            emit: true,
+          }),
+        }).then((drift: any) => {
+          focusaPost("/telemetry/trace", {
+            event_type: drift?.drift_detected ? "workpoint_drift_detected" : "workpoint_drift_checked",
+            turn_id: `pi-turn-${S.turnCount}`,
+            frame_id: S.activeFrameId,
+            surface: "pi",
+            workpoint_id: drift?.workpoint_id || S.activeWorkpointPacket?.workpoint_id,
+            expected_action_type: expectedActionType,
+            drift_detected: Boolean(drift?.drift_detected),
+            next_step_hint: drift?.next_step_hint,
+          });
+        }).catch(() => {
+          focusaPost("/telemetry/trace", {
+            event_type: "workpoint_drift_check_unavailable",
+            turn_id: `pi-turn-${S.turnCount}`,
+            frame_id: S.activeFrameId,
+            surface: "pi",
+            expected_action_type: expectedActionType,
+          });
+        });
+      }
+
       focusaPost("/turn/complete", {
         turn_id: `pi-turn-${S.turnCount}`,
         frame_id: S.activeFrameId,
@@ -664,12 +720,21 @@ export function registerTurns(pi: ExtensionAPI) {
     const model = (event as any).model;
     S.activeContextWindow = model?.contextWindow || S.activeContextWindow;
     // §37.8: Wire model change to Focusa with frame context
+    await checkpointDiscontinuity("model_switch", { active_object_refs: [model?.id || "unknown-model"] });
     focusaPost("/focus-gate/ingest-signal", {
       signal_type: "model_change",
       surface: "pi",
       frame_id: S.activeFrameId,
       payload: { model_id: model?.id || "unknown", context_window: model?.contextWindow || S.activeContextWindow },
     });
+  });
+
+
+  // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.
+  (pi as any).on("after_provider_response", async (event: any, _ctx: any) => {
+    const status = Number((event as any).status || 0);
+    if (![400, 413, 422].includes(status)) return;
+    await checkpointDiscontinuity("context_overflow", { active_object_refs: [`provider_status:${status}`] });
   });
 
   // ── agent_end (§29 WBM catalogue + signals — single handler) ──────────────

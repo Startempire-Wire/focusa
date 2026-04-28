@@ -128,6 +128,9 @@ export const S = {
   compactResumePending: false,
   // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
   lastCompactDecision: "",
+  // Spec88 Workpoint resume packet projected from Focusa.
+  activeWorkpointPacket: null as any | null,
+  activeWorkpointSummary: "" as string,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
   // ECS handle registry: kind -> id -> { content, stored_at }
@@ -1199,6 +1202,8 @@ export function persistState(): void {
     authoritativeFailures: tailBounded(sanitizeFocusFailures(S.lastFocusSnapshot.failures), 20),
     intent: trimPersistText(S.lastFocusSnapshot.intent),
     currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
+    activeWorkpointPacket: S.activeWorkpointPacket,
+    activeWorkpointSummary: trimPersistText(S.activeWorkpointSummary),
     turnCount: S.turnCount,
     wbmEnabled: S.wbmEnabled,
     wbmNoCatalogue: S.wbmNoCatalogue,

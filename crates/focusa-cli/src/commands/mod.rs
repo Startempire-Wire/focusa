@@ -22,4 +22,5 @@ pub mod telemetry;
 pub mod threads;
 pub mod tokens;
 pub mod turns;
+pub mod workpoint;
 pub mod wrap;

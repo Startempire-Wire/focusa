@@ -2359,3 +2359,60 @@ async function checkFocusaHealth() {
 ```
 
 **Rule:** Check health on session_start and periodically (every 60s). Disable tools when down. Re-enable when back. The LLM never sees tools it can't use.
+
+---
+
+## 39. Spec88 Workpoint Continuity Operator Contract
+
+Spec88 adds a typed Workpoint continuity layer for Pi compaction, resume, context overflow, model switch, and fork boundaries. The rule is: **continue from `WorkpointResumePacket`, not from raw transcript tail**.
+
+### 39.1 First-class tools
+
+- `focusa_workpoint_checkpoint` — create a reducer-owned typed checkpoint before compacting, changing model, forking, recovering from overflow, or taking a risky branch.
+- `focusa_workpoint_resume` — fetch the active `WorkpointResumePacket` after compaction/resume/overflow/model switch before choosing next work.
+
+### 39.2 Lifecycle behavior
+
+Pi extension boundaries must:
+
+1. checkpoint current Workpoint before compaction/fork/model-switch/overflow recovery;
+2. refresh `/v1/workpoint/resume` and persist packet/summary into Pi session state;
+3. inject `## WorkpointResumePacket` into compaction summary/resume steer;
+4. submit exactly one hidden post-compact auto-resume turn with `triggerTurn: true`;
+5. record non-canonical `focusa-workpoint-fallback` only when Focusa is unavailable.
+
+### 39.3 Degraded fallback semantics
+
+A fallback packet with `canonical: false` is a safety marker, not canonical truth. Operators should treat it as a recovery hint, then run:
+
+```text
+focusa_workpoint_resume
+```
+
+If Focusa is still unavailable, continue only from the smallest bounded next action and checkpoint once the daemon returns.
+
+### 39.4 Drift warnings
+
+Turn-end drift checks compare latest assistant output against the active Workpoint action intent. A drift warning means the agent may be doing notes-only, generic validation, wrong-object work, repeated validation, work-item switching, or stale overcarry instead of the intended next slice.
+
+Safe operator recovery:
+
+```text
+focusa_workpoint_resume
+```
+
+Then resume the exact `next_slice` unless the operator explicitly steers otherwise.
+
+### 39.5 Rollout gate
+
+Before rollout, run:
+
+```bash
+./tests/spec88_workpoint_golden_eval_contract_test.sh
+./tests/spec87_impl_tool_desirability_test.sh
+./tests/spec81_impl_pi_extension_runtime_contract_test.sh
+./tests/scope_routing_regression_eval.sh
+cd apps/pi-extension && ./node_modules/.bin/tsc --noEmit
+cargo check -p focusa-cli -p focusa-api -p focusa-core --target-dir /tmp/focusa-cargo-target
+cargo test -p focusa-core workpoint --target-dir /tmp/focusa-cargo-target
+```

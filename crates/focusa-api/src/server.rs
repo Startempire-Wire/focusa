@@ -138,6 +138,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::training::router())
         .merge(routes::visual_workflow::router())
         .merge(routes::work_loop::router())
+        .merge(routes::workpoint::router())
         .merge(routes::turn::router())
         .merge(routes::ascc::router())
         .merge(routes::tokens::router())

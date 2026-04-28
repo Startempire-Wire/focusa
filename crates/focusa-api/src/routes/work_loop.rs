@@ -1116,13 +1116,53 @@ fn next_work_risk_class_for_status(wl: &focusa_core::types::WorkLoopState) -> &'
     }
 }
 
-fn resume_payload_for_status(wl: &focusa_core::types::WorkLoopState) -> Value {
+fn active_workpoint_summary_for_status(s: &focusa_core::types::FocusaState) -> Value {
+    let active = s
+        .workpoint
+        .active_workpoint_id
+        .and_then(|id| s.workpoint.records.iter().find(|record| record.workpoint_id == id));
+
+    json!({
+        "active_workpoint_id": s.workpoint.active_workpoint_id,
+        "records_count": s.workpoint.records.len(),
+        "recent_drift_count": s.workpoint.drift_events.len(),
+        "degraded_fallback_count": s.workpoint.degraded_fallbacks.len(),
+        "active": active.map(|record| json!({
+            "workpoint_id": record.workpoint_id,
+            "work_item_id": record.work_item_id,
+            "session_id": record.session_id,
+            "frame_id": record.frame_id,
+            "status": record.status,
+            "checkpoint_reason": record.checkpoint_reason,
+            "confidence": record.confidence,
+            "canonical": record.canonical,
+            "mission": record.mission,
+            "action_intent": record.action_intent.as_ref().map(|intent| json!({
+                "action_type": intent.action_type,
+                "target_ref": intent.target_ref,
+                "verification_hooks": intent.verification_hooks,
+                "status": intent.status,
+            })),
+            "verification_count": record.verification_records.len(),
+            "blocker_count": record.blockers.len(),
+            "next_slice": record.next_slice,
+            "source_turn_id": record.source_turn_id,
+            "updated_at": record.updated_at,
+        })),
+    })
+}
+
+fn resume_payload_for_status(
+    s: &focusa_core::types::FocusaState,
+    wl: &focusa_core::types::WorkLoopState,
+) -> Value {
     json!({
         "last_checkpoint_id": wl.run.last_checkpoint_id,
         "last_safe_reentry_prompt_basis": wl.last_safe_reentry_prompt_basis,
         "restored_context_summary": wl.restored_context_summary,
         "last_blocker_reason": wl.last_blocker_reason,
         "last_completed_turn_summary": wl.last_observed_summary,
+        "active_workpoint": active_workpoint_summary_for_status(s),
         "continuation_eligibility": wl.enabled && !wl.pause_flags.operator_override_active,
         "current_transport_health": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
             "degraded"
@@ -1767,22 +1807,28 @@ async fn status(
     let execution_environment =
         execution_environment_for_status(wl.transport_session_state.as_deref(), &worktree);
     let budget_remaining = budget_remaining_for_status(wl);
-    let resume_payload = resume_payload_for_status(wl);
+    let resume_payload = resume_payload_for_status(&s, wl);
     let commitment_lifecycle = commitment_lifecycle_for_status(wl);
     let secondary_loop_quality_metrics = secondary_loop_quality_metrics_for_status(&s, wl);
     let secondary_loop_eval_bundle = secondary_loop_eval_bundle_for_status(&s, wl);
     let secondary_loop_acceptance_hooks = secondary_loop_acceptance_hooks_for_status(&s);
+    let replay_config = focusa_core::replay::ReplayConfig {
+        from: None,
+        until: None,
+        session_id: s.session.as_ref().map(|session| session.session_id),
+        frame_id: None,
+    };
     let secondary_loop_replay_summary =
         focusa_core::replay::secondary_loop_comparative_summary_from_replay(
             &state.persistence,
-            &focusa_core::replay::ReplayConfig {
-                from: None,
-                until: None,
-                session_id: s.session.as_ref().map(|session| session.session_id),
-                frame_id: None,
-            },
+            &replay_config,
         )
         .map_err(|error| error.to_string());
+    let workpoint_replay_summary = focusa_core::replay::workpoint_summary_from_replay(
+        &state.persistence,
+        &replay_config,
+    )
+    .map_err(|error| error.to_string());
     let secondary_loop_replay_consumer =
         secondary_loop_replay_consumer_payload_for_status(wl, &secondary_loop_replay_summary);
     let secondary_loop_continuity_gate = secondary_loop_continuity_gate_for_status(
@@ -1874,7 +1920,8 @@ async fn status(
                 "last_checkpoint_id": wl.run.last_checkpoint_id,
                 "last_safe_reentry_prompt_basis": wl.last_safe_reentry_prompt_basis,
                 "restored_context_summary": wl.restored_context_summary,
-            }
+            },
+            "active_workpoint": active_workpoint_summary_for_status(&s)
         },
         "delegated_authorship": wl.delegated_authorship,
         "transport": {
@@ -1910,6 +1957,7 @@ async fn status(
         "secondary_loop_replay_comparative": secondary_loop_replay_comparative,
         "secondary_loop_closure_replay_evidence": secondary_loop_closure_replay_evidence,
         "secondary_loop_continuity_gate": secondary_loop_continuity_gate,
+        "workpoint_replay_summary": workpoint_replay_summary,
         "resume_payload": resume_payload,
         "commitment_lifecycle": commitment_lifecycle,
         "governance": {
@@ -2725,7 +2773,7 @@ async fn checkpoints(
     let wl = &focusa.work_loop;
     Ok(Json(json!({
         "last_checkpoint_id": wl.run.last_checkpoint_id,
-        "resume_payload": resume_payload_for_status(wl),
+        "resume_payload": resume_payload_for_status(&focusa, wl),
         "last_safe_reentry_prompt_basis": wl.last_safe_reentry_prompt_basis,
         "restored_context_summary": wl.restored_context_summary,
         "last_continue_reason": wl.last_continue_reason,
@@ -2908,6 +2956,68 @@ mod tests {
             blocker_class: None,
             checkpoint_summary: None,
         }
+    }
+
+    #[test]
+    fn workpoint_summary_surfaces_active_packet_for_status() {
+        let mut state = focusa_core::types::FocusaState::default();
+        let workpoint_id = Uuid::now_v7();
+        state.workpoint.active_workpoint_id = Some(workpoint_id);
+        state.workpoint.records.push(focusa_core::types::WorkpointRecord {
+            workpoint_id,
+            work_item_id: Some("focusa-a2w2.3".to_string()),
+            session_id: Some("pi-session".to_string()),
+            status: focusa_core::types::WorkpointStatus::Active,
+            checkpoint_reason: focusa_core::types::WorkpointCheckpointReason::BeforeCompact,
+            confidence: focusa_core::types::WorkpointConfidence::Verified,
+            canonical: true,
+            mission: Some("Preserve continuation across compaction".to_string()),
+            next_slice: Some("Project active workpoint into status payload".to_string()),
+            action_intent: Some(focusa_core::types::WorkpointActionIntentRecord {
+                action_type: "resume_workpoint".to_string(),
+                target_ref: Some("focusa-a2w2.3".to_string()),
+                verification_hooks: vec!["status includes active_workpoint".to_string()],
+                status: Some("ready".to_string()),
+            }),
+            ..focusa_core::types::WorkpointRecord::default()
+        });
+
+        let summary = active_workpoint_summary_for_status(&state);
+        assert_eq!(
+            summary
+                .get("active_workpoint_id")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            Some(workpoint_id.to_string())
+        );
+        let active = summary.get("active").unwrap();
+        assert_eq!(active.get("canonical").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            active.get("next_slice").and_then(Value::as_str),
+            Some("Project active workpoint into status payload")
+        );
+    }
+
+    #[test]
+    fn resume_payload_includes_active_workpoint_summary() {
+        let mut state = focusa_core::types::FocusaState::default();
+        let workpoint_id = Uuid::now_v7();
+        state.workpoint.active_workpoint_id = Some(workpoint_id);
+        state.workpoint.records.push(focusa_core::types::WorkpointRecord {
+            workpoint_id,
+            work_item_id: Some("focusa-a2w2.3".to_string()),
+            status: focusa_core::types::WorkpointStatus::Active,
+            canonical: true,
+            next_slice: Some("Resume from typed packet".to_string()),
+            ..focusa_core::types::WorkpointRecord::default()
+        });
+        let payload = resume_payload_for_status(&state, &state.work_loop);
+        assert_eq!(
+            payload
+                .pointer("/active_workpoint/active/next_slice")
+                .and_then(Value::as_str),
+            Some("Resume from typed packet")
+        );
     }
 
     fn sample_secondary_quality_trace(

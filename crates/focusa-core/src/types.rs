@@ -39,6 +39,8 @@ pub type TrancheRunId = Uuid;
 pub type TaskRunId = Uuid;
 /// Checkpoint identifier for continuous work recovery.
 pub type CheckpointId = Uuid;
+/// Workpoint identifier for Spec88 continuity checkpoints.
+pub type WorkpointId = Uuid;
 
 // ─── Continuous Work Loop (spec 79) ─────────────────────────────────────────
 
@@ -465,6 +467,181 @@ pub struct OntologyState {
     pub delta_log: Vec<OntologyDeltaRecord>,
 }
 
+
+// ─── Workpoint Continuity (Spec88) ─────────────────────────────────────────
+
+pub mod workpoint_caps {
+    pub const RECORDS: usize = 32;
+    pub const OBJECT_REFS: usize = 32;
+    pub const VERIFICATIONS: usize = 24;
+    pub const BLOCKERS: usize = 16;
+    pub const RESUME_EVENTS: usize = 24;
+    pub const DRIFT_EVENTS: usize = 32;
+    pub const DEGRADED_FALLBACKS: usize = 16;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkpointStatus {
+    #[default]
+    Proposed,
+    Active,
+    Superseded,
+    Rejected,
+    DegradedFallback,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkpointCheckpointReason {
+    SessionStart,
+    SessionResume,
+    BeforeCompact,
+    AfterCompact,
+    ContextOverflow,
+    ModelSwitch,
+    Fork,
+    Manual,
+    #[default]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkpointConfidence {
+    Low,
+    #[default]
+    Medium,
+    High,
+    Verified,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkpointDriftSeverity {
+    Info,
+    Low,
+    #[default]
+    Medium,
+    High,
+    Critical,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkpointActionIntentRecord {
+    pub action_type: String,
+    pub target_ref: Option<String>,
+    #[serde(default)]
+    pub verification_hooks: Vec<String>,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkpointVerificationRecord {
+    pub target_ref: String,
+    pub result: String,
+    pub evidence_ref: Option<String>,
+    pub verified_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkpointBlockerRecord {
+    pub reason: String,
+    pub severity: Option<String>,
+    pub target_ref: Option<String>,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkpointRecord {
+    pub workpoint_id: WorkpointId,
+    pub work_item_id: Option<String>,
+    pub session_id: Option<String>,
+    pub frame_id: Option<FrameId>,
+    pub status: WorkpointStatus,
+    pub checkpoint_reason: WorkpointCheckpointReason,
+    pub confidence: WorkpointConfidence,
+    pub canonical: bool,
+    pub mission: Option<String>,
+    #[serde(default)]
+    pub active_object_refs: Vec<String>,
+    pub action_intent: Option<WorkpointActionIntentRecord>,
+    #[serde(default)]
+    pub verification_records: Vec<WorkpointVerificationRecord>,
+    #[serde(default)]
+    pub blockers: Vec<WorkpointBlockerRecord>,
+    pub next_slice: Option<String>,
+    pub source_turn_id: Option<String>,
+    pub supersedes: Option<WorkpointId>,
+    pub rejection_reason: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Default for WorkpointRecord {
+    fn default() -> Self {
+        Self {
+            workpoint_id: Uuid::now_v7(),
+            work_item_id: None,
+            session_id: None,
+            frame_id: None,
+            status: WorkpointStatus::Proposed,
+            checkpoint_reason: WorkpointCheckpointReason::Unknown,
+            confidence: WorkpointConfidence::Medium,
+            canonical: false,
+            mission: None,
+            active_object_refs: vec![],
+            action_intent: None,
+            verification_records: vec![],
+            blockers: vec![],
+            next_slice: None,
+            source_turn_id: None,
+            supersedes: None,
+            rejection_reason: None,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkpointResumeRenderRecord {
+    pub workpoint_id: Option<WorkpointId>,
+    pub mode: String,
+    pub rendered_summary: String,
+    pub rendered_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkpointDriftRecord {
+    pub workpoint_id: Option<WorkpointId>,
+    pub severity: WorkpointDriftSeverity,
+    pub reason: String,
+    pub recovery_hint: Option<String>,
+    pub detected_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkpointDegradedFallbackRecord {
+    pub workpoint_id: WorkpointId,
+    pub reason: String,
+    pub packet: serde_json::Value,
+    pub recorded_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkpointState {
+    pub active_workpoint_id: Option<WorkpointId>,
+    #[serde(default)]
+    pub records: Vec<WorkpointRecord>,
+    #[serde(default)]
+    pub resume_events: Vec<WorkpointResumeRenderRecord>,
+    #[serde(default)]
+    pub drift_events: Vec<WorkpointDriftRecord>,
+    #[serde(default)]
+    pub degraded_fallbacks: Vec<WorkpointDegradedFallbackRecord>,
+}
+
 /// The complete cognitive state of a Focusa instance.
 ///
 /// INVARIANT: Conversation history is NEVER part of FocusaState.
@@ -485,6 +662,8 @@ pub struct FocusaState {
     pub pre: PreState,
     #[serde(default)]
     pub ontology: OntologyState,
+    #[serde(default)]
+    pub workpoint: WorkpointState,
     pub contribution: ContributionState,
     /// Canonical continuous work loop state (spec 79).
     #[serde(default)]
@@ -527,6 +706,7 @@ impl FocusaState {
             rfm: RfmState::default(),
             pre: PreState::default(),
             ontology: OntologyState::default(),
+            workpoint: WorkpointState::default(),
             contribution: ContributionState::default(),
             work_loop: WorkLoopState::default(),
             instances: vec![],
@@ -1363,6 +1543,58 @@ pub enum FocusaEvent {
     OntologyWorkingSetRefreshed {
         scope: String,
         reason: String,
+    },
+
+    // ─── Workpoint Continuity (Spec88) ─────────────────────────────────
+    #[serde(rename = "workpoint_checkpoint_proposed")]
+    WorkpointCheckpointProposed {
+        workpoint: WorkpointRecord,
+    },
+    #[serde(rename = "workpoint_checkpoint_promoted")]
+    WorkpointCheckpointPromoted {
+        workpoint_id: WorkpointId,
+        confidence: WorkpointConfidence,
+        reason: String,
+    },
+    #[serde(rename = "workpoint_checkpoint_rejected")]
+    WorkpointCheckpointRejected {
+        workpoint_id: WorkpointId,
+        reason: String,
+    },
+    #[serde(rename = "workpoint_superseded")]
+    WorkpointSuperseded {
+        old_workpoint_id: WorkpointId,
+        new_workpoint_id: WorkpointId,
+        reason: String,
+    },
+    #[serde(rename = "workpoint_resume_rendered")]
+    WorkpointResumeRendered {
+        workpoint_id: Option<WorkpointId>,
+        mode: String,
+        rendered_summary: String,
+    },
+    #[serde(rename = "workpoint_drift_detected")]
+    WorkpointDriftDetected {
+        workpoint_id: Option<WorkpointId>,
+        severity: WorkpointDriftSeverity,
+        reason: String,
+        recovery_hint: Option<String>,
+    },
+    #[serde(rename = "workpoint_degraded_fallback_recorded")]
+    WorkpointDegradedFallbackRecorded {
+        workpoint_id: WorkpointId,
+        reason: String,
+        packet: serde_json::Value,
+    },
+    #[serde(rename = "ontology_action_intent_bound")]
+    OntologyActionIntentBound {
+        workpoint_id: WorkpointId,
+        action_intent: WorkpointActionIntentRecord,
+    },
+    #[serde(rename = "ontology_verification_linked")]
+    OntologyVerificationLinked {
+        workpoint_id: WorkpointId,
+        verification: WorkpointVerificationRecord,
     },
 
     // Errors

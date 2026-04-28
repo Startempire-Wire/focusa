@@ -84,6 +84,53 @@ fn recommended_worker_for_task(
         fallback_available: !fallback,
     }
 }
+
+fn truncate_front<T>(items: &mut Vec<T>, cap: usize) {
+    if items.len() > cap {
+        let excess = items.len() - cap;
+        items.drain(0..excess);
+    }
+}
+
+fn bound_workpoint_record(record: &mut WorkpointRecord) {
+    truncate_front(&mut record.active_object_refs, workpoint_caps::OBJECT_REFS);
+    truncate_front(&mut record.verification_records, workpoint_caps::VERIFICATIONS);
+    truncate_front(&mut record.blockers, workpoint_caps::BLOCKERS);
+    if let Some(intent) = &mut record.action_intent {
+        truncate_front(&mut intent.verification_hooks, workpoint_caps::VERIFICATIONS);
+    }
+}
+
+fn find_workpoint_mut(
+    state: &mut FocusaState,
+    workpoint_id: WorkpointId,
+) -> Result<&mut WorkpointRecord, ReducerError> {
+    state
+        .workpoint
+        .records
+        .iter_mut()
+        .find(|w| w.workpoint_id == workpoint_id)
+        .ok_or_else(|| ReducerError::InvalidEvent(format!("Workpoint {} not found", workpoint_id)))
+}
+
+fn upsert_workpoint_record(state: &mut FocusaState, mut record: WorkpointRecord, now: chrono::DateTime<Utc>) {
+    bound_workpoint_record(&mut record);
+    if record.created_at.is_none() {
+        record.created_at = Some(now);
+    }
+    record.updated_at = Some(now);
+    if let Some(existing) = state
+        .workpoint
+        .records
+        .iter_mut()
+        .find(|w| w.workpoint_id == record.workpoint_id)
+    {
+        *existing = record;
+    } else {
+        state.workpoint.records.push(record);
+        truncate_front(&mut state.workpoint.records, workpoint_caps::RECORDS);
+    }
+}
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -2519,6 +2566,174 @@ pub fn reduce_with_meta(
             });
         }
 
+        // ─── Workpoint Continuity (Spec88) ──────────────────────────────
+        FocusaEvent::WorkpointCheckpointProposed { workpoint } => {
+            let now = Utc::now();
+            upsert_workpoint_record(&mut state, workpoint, now);
+        }
+        FocusaEvent::WorkpointCheckpointPromoted {
+            workpoint_id,
+            confidence,
+            reason: _,
+        } => {
+            let now = Utc::now();
+            let superseded_ids: Vec<_> = {
+                let promoted = find_workpoint_mut(&mut state, workpoint_id)?;
+                if promoted.status == WorkpointStatus::Rejected {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "Rejected workpoint {} cannot be promoted",
+                        workpoint_id
+                    )));
+                }
+                if promoted.status == WorkpointStatus::DegradedFallback || !promoted.canonical {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "Non-canonical degraded workpoint {} cannot be promoted silently",
+                        workpoint_id
+                    )));
+                }
+                promoted.status = WorkpointStatus::Active;
+                promoted.confidence = confidence;
+                promoted.updated_at = Some(now);
+                let work_item_id = promoted.work_item_id.clone();
+                let session_id = promoted.session_id.clone();
+                state
+                    .workpoint
+                    .records
+                    .iter()
+                    .filter(|w| {
+                        w.workpoint_id != workpoint_id
+                            && w.status == WorkpointStatus::Active
+                            && (work_item_id.is_none() || w.work_item_id == work_item_id)
+                            && (session_id.is_none() || w.session_id == session_id)
+                    })
+                    .map(|w| w.workpoint_id)
+                    .collect()
+            };
+            for old_id in superseded_ids {
+                if let Some(old) = state
+                    .workpoint
+                    .records
+                    .iter_mut()
+                    .find(|w| w.workpoint_id == old_id)
+                {
+                    old.status = WorkpointStatus::Superseded;
+                    old.updated_at = Some(now);
+                }
+            }
+            state.workpoint.active_workpoint_id = Some(workpoint_id);
+        }
+        FocusaEvent::WorkpointCheckpointRejected { workpoint_id, reason } => {
+            let now = Utc::now();
+            let record = find_workpoint_mut(&mut state, workpoint_id)?;
+            record.status = WorkpointStatus::Rejected;
+            record.rejection_reason = Some(reason);
+            record.updated_at = Some(now);
+            if state.workpoint.active_workpoint_id == Some(workpoint_id) {
+                state.workpoint.active_workpoint_id = None;
+            }
+        }
+        FocusaEvent::WorkpointSuperseded {
+            old_workpoint_id,
+            new_workpoint_id,
+            reason: _,
+        } => {
+            let now = Utc::now();
+            if !state
+                .workpoint
+                .records
+                .iter()
+                .any(|w| w.workpoint_id == new_workpoint_id)
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "New workpoint {} not found",
+                    new_workpoint_id
+                )));
+            }
+            let old = find_workpoint_mut(&mut state, old_workpoint_id)?;
+            old.status = WorkpointStatus::Superseded;
+            old.updated_at = Some(now);
+            state.workpoint.active_workpoint_id = Some(new_workpoint_id);
+        }
+        FocusaEvent::WorkpointResumeRendered {
+            workpoint_id,
+            mode,
+            rendered_summary,
+        } => {
+            state.workpoint.resume_events.push(WorkpointResumeRenderRecord {
+                workpoint_id,
+                mode,
+                rendered_summary,
+                rendered_at: Some(Utc::now()),
+            });
+            truncate_front(&mut state.workpoint.resume_events, workpoint_caps::RESUME_EVENTS);
+        }
+        FocusaEvent::WorkpointDriftDetected {
+            workpoint_id,
+            severity,
+            reason,
+            recovery_hint,
+        } => {
+            state.workpoint.drift_events.push(WorkpointDriftRecord {
+                workpoint_id,
+                severity,
+                reason,
+                recovery_hint,
+                detected_at: Some(Utc::now()),
+            });
+            truncate_front(&mut state.workpoint.drift_events, workpoint_caps::DRIFT_EVENTS);
+        }
+        FocusaEvent::WorkpointDegradedFallbackRecorded {
+            workpoint_id,
+            reason,
+            packet,
+        } => {
+            let now = Utc::now();
+            let record = WorkpointRecord {
+                workpoint_id,
+                status: WorkpointStatus::DegradedFallback,
+                checkpoint_reason: WorkpointCheckpointReason::ContextOverflow,
+                canonical: false,
+                created_at: Some(now),
+                updated_at: Some(now),
+                ..WorkpointRecord::default()
+            };
+            upsert_workpoint_record(&mut state, record, now);
+            state
+                .workpoint
+                .degraded_fallbacks
+                .push(WorkpointDegradedFallbackRecord {
+                    workpoint_id,
+                    reason,
+                    packet,
+                    recorded_at: Some(now),
+                });
+            truncate_front(
+                &mut state.workpoint.degraded_fallbacks,
+                workpoint_caps::DEGRADED_FALLBACKS,
+            );
+        }
+        FocusaEvent::OntologyActionIntentBound {
+            workpoint_id,
+            mut action_intent,
+        } => {
+            truncate_front(
+                &mut action_intent.verification_hooks,
+                workpoint_caps::VERIFICATIONS,
+            );
+            let record = find_workpoint_mut(&mut state, workpoint_id)?;
+            record.action_intent = Some(action_intent);
+            record.updated_at = Some(Utc::now());
+        }
+        FocusaEvent::OntologyVerificationLinked {
+            workpoint_id,
+            verification,
+        } => {
+            let record = find_workpoint_mut(&mut state, workpoint_id)?;
+            record.verification_records.push(verification);
+            truncate_front(&mut record.verification_records, workpoint_caps::VERIFICATIONS);
+            record.updated_at = Some(Utc::now());
+        }
+
         // ─── Errors ──────────────────────────────────────────────────────
         FocusaEvent::InvariantViolation {
             invariant: _,
@@ -2873,6 +3088,205 @@ mod tests {
         };
         let state = reduce(state, event).unwrap().new_state;
         (state, frame_id)
+    }
+
+    fn workpoint_record(work_item_id: &str) -> WorkpointRecord {
+        WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            work_item_id: Some(work_item_id.to_string()),
+            session_id: Some("pi-session".to_string()),
+            status: WorkpointStatus::Proposed,
+            checkpoint_reason: WorkpointCheckpointReason::Manual,
+            confidence: WorkpointConfidence::High,
+            canonical: true,
+            mission: Some("Preserve typed continuation".to_string()),
+            next_slice: Some("Implement reducer-owned workpoint state".to_string()),
+            action_intent: Some(WorkpointActionIntentRecord {
+                action_type: "checkpoint_workpoint".to_string(),
+                target_ref: Some(work_item_id.to_string()),
+                verification_hooks: vec!["cargo test -p focusa-core reducer::tests::test_workpoint".to_string()],
+                status: Some("ready".to_string()),
+            }),
+            ..WorkpointRecord::default()
+        }
+    }
+
+    // ─── Workpoint continuity (Spec88) ────────────────────────────────
+
+    #[test]
+    fn test_workpoint_defaults_are_empty_and_noncanonical() {
+        let state = fresh_state();
+        assert!(state.workpoint.active_workpoint_id.is_none());
+        assert!(state.workpoint.records.is_empty());
+        let record = WorkpointRecord::default();
+        assert_eq!(record.status, WorkpointStatus::Proposed);
+        assert!(!record.canonical);
+    }
+
+    #[test]
+    fn test_workpoint_promote_sets_active_pointer() {
+        let state = fresh_state();
+        let record = workpoint_record("focusa-a2w2.2");
+        let workpoint_id = record.workpoint_id;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
+        )
+        .unwrap()
+        .new_state;
+        assert!(state.workpoint.active_workpoint_id.is_none());
+
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "phase1 accepted".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(state.workpoint.active_workpoint_id, Some(workpoint_id));
+        let active = state
+            .workpoint
+            .records
+            .iter()
+            .find(|w| w.workpoint_id == workpoint_id)
+            .unwrap();
+        assert_eq!(active.status, WorkpointStatus::Active);
+        assert_eq!(active.confidence, WorkpointConfidence::Verified);
+    }
+
+    #[test]
+    fn test_workpoint_promote_supersedes_same_scope_active_record() {
+        let state = fresh_state();
+        let first = workpoint_record("focusa-a2w2.2");
+        let first_id = first.workpoint_id;
+        let second = workpoint_record("focusa-a2w2.2");
+        let second_id = second.workpoint_id;
+
+        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: first })
+            .unwrap()
+            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: first_id,
+                confidence: WorkpointConfidence::High,
+                reason: "first active".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: second })
+            .unwrap()
+            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: second_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "newer checkpoint".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(state.workpoint.active_workpoint_id, Some(second_id));
+        let first = state
+            .workpoint
+            .records
+            .iter()
+            .find(|w| w.workpoint_id == first_id)
+            .unwrap();
+        assert_eq!(first.status, WorkpointStatus::Superseded);
+    }
+
+    #[test]
+    fn test_workpoint_reject_and_degraded_fallback_cannot_promote() {
+        let state = fresh_state();
+        let record = workpoint_record("focusa-a2w2.2");
+        let workpoint_id = record.workpoint_id;
+        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: record })
+            .unwrap()
+            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointRejected {
+                workpoint_id,
+                reason: "missing ontology refs".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert!(reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id,
+                confidence: WorkpointConfidence::High,
+                reason: "should fail".to_string(),
+            },
+        )
+        .is_err());
+
+        let fallback_id = Uuid::now_v7();
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::WorkpointDegradedFallbackRecorded {
+                workpoint_id: fallback_id,
+                reason: "Focusa unavailable".to_string(),
+                packet: serde_json::json!({ "next": "resume from local packet" }),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert!(reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: fallback_id,
+                confidence: WorkpointConfidence::High,
+                reason: "should fail".to_string(),
+            },
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn test_workpoint_bounds_vectors_at_reducer_boundary() {
+        let state = fresh_state();
+        let mut record = workpoint_record("focusa-a2w2.2");
+        let workpoint_id = record.workpoint_id;
+        record.active_object_refs = (0..64).map(|i| format!("object-{i}")).collect();
+        record.verification_records = (0..64)
+            .map(|i| WorkpointVerificationRecord {
+                target_ref: format!("target-{i}"),
+                result: "passed".to_string(),
+                evidence_ref: None,
+                verified_at: None,
+            })
+            .collect();
+        record.blockers = (0..64)
+            .map(|i| WorkpointBlockerRecord {
+                reason: format!("blocker-{i}"),
+                severity: Some("low".to_string()),
+                target_ref: None,
+                status: Some("open".to_string()),
+            })
+            .collect();
+
+        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: record })
+            .unwrap()
+            .new_state;
+        let stored = state
+            .workpoint
+            .records
+            .iter()
+            .find(|w| w.workpoint_id == workpoint_id)
+            .unwrap();
+        assert_eq!(stored.active_object_refs.len(), workpoint_caps::OBJECT_REFS);
+        assert_eq!(stored.verification_records.len(), workpoint_caps::VERIFICATIONS);
+        assert_eq!(stored.blockers.len(), workpoint_caps::BLOCKERS);
     }
 
     // ─── Session lifecycle ───────────────────────────────────────────
