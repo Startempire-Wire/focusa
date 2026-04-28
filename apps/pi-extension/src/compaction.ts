@@ -20,7 +20,6 @@ function normalizeCompactionArtifacts(files: any[]): Array<{ kind: "file"; label
 }
 
 let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
-let lastCompactResumeKey = "";
 
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
@@ -224,9 +223,14 @@ export function registerCompaction(pi: ExtensionAPI) {
     // then hasQueuedMessages() -> agent.continue()). Without deferral,
     // sendMessage is still async when hasQueuedMessages() fires -> miss.
     // Also dedup: only resume once per compaction cycle.
-    const compactResumeKey = String((event as any).compactionEntry?.id || (event as any).compactionEntry?.uuid || (event as any).compactionEntry?.timestamp || S.totalCompactions || Date.now());
-    if (!S.compactResumePending && compactResumeKey !== lastCompactResumeKey) {
-      lastCompactResumeKey = compactResumeKey;
+    const compactionEntry = (event as any).compactionEntry || {};
+    const compactOrdinal = S.totalCompactions || compactionEntry.details?.totalCompactions || "unknown";
+    const compactResumeKey = String(compactionEntry.id || compactionEntry.uuid || compactionEntry.timestamp || `${S.sessionFrameKey || "session"}:compact:${compactOrdinal}`);
+    const recentlySubmitted = S.lastCompactResumeKey === compactResumeKey || (Date.now() - S.lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
+    if (!S.compactResumePending && !recentlySubmitted) {
+      S.lastCompactResumeKey = compactResumeKey;
+      S.lastCompactResumeAt = Date.now();
+      persistState();
       if (compactResumeRetryTimer) {
         clearTimeout(compactResumeRetryTimer);
         compactResumeRetryTimer = null;
@@ -277,6 +281,8 @@ See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
           }
         });
       }
+    } else if (recentlySubmitted) {
+      ctx.ui.notify("↩️ Compaction auto-resume already submitted for this compact cycle; suppressing duplicate.", "info");
     }
   });
 }

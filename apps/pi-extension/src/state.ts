@@ -126,6 +126,9 @@ export const S = {
   lastStreamLen: 0,
   // Auto-resume dedup: set when compaction fires, cleared after continuation sent
   compactResumePending: false,
+  // Persisted compaction auto-resume idempotency guard; prevents repeated post-compact resume spam across extension reloads.
+  lastCompactResumeKey: "",
+  lastCompactResumeAt: 0,
   // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
   lastCompactDecision: "",
   // Spec88 Workpoint resume packet projected from Focusa.
@@ -1204,6 +1207,8 @@ export function persistState(): void {
     currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
     activeWorkpointPacket: S.activeWorkpointPacket,
     activeWorkpointSummary: trimPersistText(S.activeWorkpointSummary),
+    lastCompactResumeKey: S.lastCompactResumeKey,
+    lastCompactResumeAt: S.lastCompactResumeAt,
     turnCount: S.turnCount,
     wbmEnabled: S.wbmEnabled,
     wbmNoCatalogue: S.wbmNoCatalogue,

@@ -12,8 +12,12 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, Mutex};
 use uuid::Uuid;
+
+static WORKPOINT_IDEMPOTENCY_CACHE: LazyLock<Mutex<HashMap<String, WorkpointRecord>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Deserialize, Default)]
 pub struct WorkpointCheckpointRequest {
@@ -277,6 +281,17 @@ async fn checkpoint(
     }
 
     if let Some(key) = req.idempotency_key.as_ref().filter(|key| !key.trim().is_empty()) {
+        if let Some(existing) = WORKPOINT_IDEMPOTENCY_CACHE.lock().ok().and_then(|cache| cache.get(key).cloned()) {
+            return Ok(Json(json!({
+                "status": "completed",
+                "workpoint_id": existing.workpoint_id,
+                "canonical": existing.canonical,
+                "idempotent_replay": true,
+                "workpoint": workpoint_packet(&existing),
+                "warnings": [],
+                "next_step_hint": "idempotency key already accepted; call /v1/workpoint/resume to render the packet"
+            })));
+        }
         let focusa = state.focusa.read().await;
         if let Some(existing) = focusa
             .workpoint
@@ -284,6 +299,9 @@ async fn checkpoint(
             .iter()
             .find(|record| record.idempotency_key.as_deref() == Some(key.as_str()))
         {
+            if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
+                cache.insert(key.clone(), existing.clone());
+            }
             return Ok(Json(json!({
                 "status": "completed",
                 "workpoint_id": existing.workpoint_id,
@@ -317,6 +335,11 @@ async fn checkpoint(
         ..WorkpointRecord::default()
     };
     let canonical = record.canonical;
+    if let Some(key) = record.idempotency_key.as_ref().filter(|key| !key.trim().is_empty()) {
+        if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
+            cache.insert(key.clone(), record.clone());
+        }
+    }
 
     dispatch_event(
         &state,

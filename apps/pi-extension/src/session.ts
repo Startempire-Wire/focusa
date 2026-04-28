@@ -210,6 +210,8 @@ export function registerSession(pi: ExtensionAPI) {
         S.cataloguedDecisions = e.data.cataloguedDecisions || [];
         S.cataloguedFacts = e.data.cataloguedFacts || [];
         S.totalCompactions = e.data.totalCompactions || 0;
+        S.lastCompactResumeKey = e.data.lastCompactResumeKey || "";
+        S.lastCompactResumeAt = e.data.lastCompactResumeAt || 0;
         S.activeFrameTitle = e.data.frameTitle || "";
         S.activeFrameGoal = e.data.frameGoal || "";
         seedCurrentAskFromPersistedState(ctx, e.data);
@@ -406,7 +408,7 @@ export function registerSession(pi: ExtensionAPI) {
     S.sessionCwd = ctx.cwd;
     S.activeFrameTitle = ""; S.activeFrameGoal = "";
     S.fileEditCounts = {}; S.compilationErrors = []; S.longSessionSignaled = false;
-    S.totalCompactions = 0; S.wbmNoCatalogue = false;
+    S.totalCompactions = 0; S.lastCompactResumeKey = ""; S.lastCompactResumeAt = 0; S.wbmNoCatalogue = false;
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     S.forkSuggested = false;
@@ -420,6 +422,8 @@ export function registerSession(pi: ExtensionAPI) {
         S.wbmEnabled = d.wbmEnabled || false;
         S.wbmNoCatalogue = d.wbmNoCatalogue || false;
         S.totalCompactions = d.totalCompactions || 0;
+        S.lastCompactResumeKey = d.lastCompactResumeKey || "";
+        S.lastCompactResumeAt = d.lastCompactResumeAt || 0;
         S.activeFrameTitle = d.frameTitle || "";
         S.activeFrameGoal = d.frameGoal || "";
         seedCurrentAskFromPersistedState(ctx, d);
