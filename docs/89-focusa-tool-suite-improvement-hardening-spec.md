@@ -624,4 +624,6 @@ Every tool should either:
 - improve future behavior,
 - or safely expose operator control.
 
-If a tool does none of these, it should be redesigned, merged, or demoted.
+If a tool does none of these, it remains in the suite but should be redesigned, clarified, merged upward, or hardened until its value is obvious.
+
+No existing Focusa tool should be demoted as part of this hardening program.
