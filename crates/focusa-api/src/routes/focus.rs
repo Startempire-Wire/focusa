@@ -474,11 +474,13 @@ async fn update_delta(
     // Prefer an explicit frame_id from the caller; otherwise fall back to the
     // daemon's active frame. This preserves Pi session-scoped frame writes
     // without relying on global active-frame alignment.
-    let fid = {
+    let (fid, auto_started_session) = {
         let focusa = state.focusa.read().await;
-        if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
-            return Ok(Json(resp));
-        }
+        let session_active = focusa
+            .session
+            .as_ref()
+            .map(|session| session.status == SessionStatus::Active)
+            .unwrap_or(false);
         if let Some(frame_id) = body.frame_id {
             if focusa
                 .focus_stack
@@ -486,16 +488,28 @@ async fn update_delta(
                 .iter()
                 .any(|frame| frame.id == frame_id)
             {
-                frame_id
+                (frame_id, !session_active)
             } else {
                 return Ok(Json(json!({"status": "no_active_frame"})));
             }
         } else if let Some(active_id) = focusa.focus_stack.active_id {
-            active_id
+            (active_id, !session_active)
         } else {
             return Ok(Json(json!({"status": "no_active_frame"})));
         }
     };
+
+    if auto_started_session {
+        state
+            .command_tx
+            .send(Action::StartSession {
+                adapter_id: Some("focus-update".to_string()),
+                workspace_id: Some("auto-recovered-focus-write".to_string()),
+                instance_id: None,
+            })
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
 
     state
         .command_tx
@@ -507,7 +521,11 @@ async fn update_delta(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(json!({"status": "accepted", "frame_id": fid})))
+    Ok(Json(json!({
+        "status": "accepted",
+        "frame_id": fid,
+        "auto_started_session": auto_started_session
+    })))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, focusaFetch, focusaPost, ensurePiFrame } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame } from "./state.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -201,8 +201,12 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
   emitWriteTelemetry("focusa_write_attempt", { targets, had_frame: !!S.activeFrameId });
 
   if (!S.focusaAvailable) {
-    emitWriteTelemetry("focusa_write_failed", { targets, reason: "offline" });
-    return { ok: false, reason: "offline" };
+    const recoveredOnline = await checkFocusa().catch(() => false);
+    if (!recoveredOnline) {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "offline" });
+      return { ok: false, reason: "offline" };
+    }
+    emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "offline", recovered: true });
   }
 
   // Validate every string slot before sending.
