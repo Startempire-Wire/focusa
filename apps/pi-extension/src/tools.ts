@@ -821,6 +821,21 @@ export function registerTools(pi: ExtensionAPI) {
   }
 
   pi.registerTool({
+    name: "focusa_work_loop_writer_status",
+    label: "Work Loop Writer Status",
+    description: "Read current work-loop writer ownership and mutation preflight guidance without mutating state.",
+    parameters: Type.Object({}),
+    async execute() {
+      const result = await focusaFetchDetailed("/work-loop/status");
+      const body = result.body || {};
+      const activeWriter = String(body.active_writer || "none");
+      const status = String(body.status || body.current_task?.status || "unknown");
+      const text = `work-loop writer-status → active_writer=${activeWriter} status=${status} preflight=read_only`;
+      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(result.status), active_writer: activeWriter, authorship_mode: body.authorship_mode, preflight: { mutates: false, writer_required_for: ["control", "context", "checkpoint", "select_next"] }, response: body } } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_work_loop_status",
     label: "Work Loop Status",
     description: "Get current continuous work-loop state and budgets.",
@@ -901,11 +916,17 @@ export function registerTools(pi: ExtensionAPI) {
         Type.Literal("push"),
         Type.Literal("audit"),
       ])),
+      preflight: Type.Optional(Type.Boolean({ description: "If true, only report intended route/writer and do not mutate work-loop state." })),
       root_work_item_id: Type.Optional(Type.String({ description: "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready." })),
     }),
     async execute(_id, params) {
-      const { action, reason, preset, root_work_item_id } = params as { action: "on" | "pause" | "resume" | "stop"; reason?: string; preset?: "conservative" | "balanced" | "push" | "audit"; root_work_item_id?: string };
+      const { action, reason, preset, preflight, root_work_item_id } = params as { action: "on" | "pause" | "resume" | "stop"; reason?: string; preset?: "conservative" | "balanced" | "push" | "audit"; preflight?: boolean; root_work_item_id?: string };
       const writerId = await preferredWriterId();
+
+      if (preflight) {
+        const route = action === "on" ? "/work-loop/enable" : action === "pause" ? "/work-loop/pause" : action === "resume" ? "/work-loop/resume" : "/work-loop/stop";
+        return { content: [{ type: "text", text: `work-loop ${action} preflight → route=${route} writer=${writerId} mutates=false` }], details: { ok: true, action: String(action), status: "preflight", route, writer_id: writerId, mutates: false } } as any;
+      }
 
       if (action === "on") {
         const rootWorkItemId = await inferRootWorkItemId(root_work_item_id);
@@ -1284,6 +1305,18 @@ export function registerTools(pi: ExtensionAPI) {
     return "REQUEST_FAILED";
   }
 
+  function metacogQualityGate(input: { content?: string; rationale?: string; confidence?: number; evidence_refs?: string[] }) {
+    const evidenceRefs = input.evidence_refs || [];
+    const contentWords = String(input.content || "").trim().split(/\s+/).filter(Boolean).length;
+    let score = 0;
+    if (contentWords >= 8) score += 0.35;
+    if (String(input.rationale || "").trim().length >= 20) score += 0.25;
+    if ((input.confidence ?? 0) >= 0.5) score += 0.15;
+    if (evidenceRefs.length > 0) score += 0.25;
+    const passed = score >= 0.6;
+    return { passed, score: Number(score.toFixed(2)), evidence_refs: evidenceRefs, recommendation: passed ? "eligible_for_retrieval" : "add rationale/evidence before promotion" };
+  }
+
   function spec80Result(
     tool: string,
     endpoint: string,
@@ -1303,6 +1336,9 @@ export function registerTools(pi: ExtensionAPI) {
         endpoint,
         request,
         response: result.body ?? null,
+        quality_gate: tool.startsWith("focusa_metacog_") ? metacogQualityGate(request) : undefined,
+        evidence_refs: Array.isArray(request.evidence_refs) ? request.evidence_refs : [],
+        suggested_metrics: tool.startsWith("focusa_metacog_") ? ["retrieval_reuse", "promotion_precision", "failure_recurrence"] : undefined,
         timestamp: new Date().toISOString(),
       },
     } as any;
@@ -1659,15 +1695,16 @@ export function registerTools(pi: ExtensionAPI) {
       kind: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.kind, description: "Signal kind." }),
       content: Type.String({ minLength: 1, maxLength: SPEC81_LIMITS.longText, description: "Signal content." }),
       rationale: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.rationale, description: "Optional rationale." })),
+      evidence_refs: Type.Optional(Type.Array(Type.String(), { description: "Evidence refs supporting this learning signal." })),
       confidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "Optional confidence 0..1" })),
       strategy_class: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.strategyClass, description: "Optional strategy class." })),
     }),
     async execute(_id, params) {
-      const keyCheck = validateNoExtraKeys("focusa_metacog_capture", params, ["kind", "content", "rationale", "confidence", "strategy_class"]);
+      const keyCheck = validateNoExtraKeys("focusa_metacog_capture", params, ["kind", "content", "rationale", "evidence_refs", "confidence", "strategy_class"]);
       if (!keyCheck.ok) {
         return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", params as Record<string, any>, "metacog capture", keyCheck.error);
       }
-      const raw = keyCheck.value as { kind: string; content: string; rationale?: string; confidence?: number; strategy_class?: string };
+      const raw = keyCheck.value as { kind: string; content: string; rationale?: string; evidence_refs?: string[]; confidence?: number; strategy_class?: string };
       const kindCheck = validateRequiredString("kind", raw.kind, SPEC81_LIMITS.kind);
       if (!kindCheck.ok) {
         return spec80ValidationResult("focusa_metacog_capture", "/v1/metacognition/capture", raw as Record<string, any>, "metacog capture", kindCheck.error);
@@ -1691,6 +1728,7 @@ export function registerTools(pi: ExtensionAPI) {
         kind: kindCheck.value,
         content: contentCheck.value,
         rationale: rationaleCheck.value,
+        evidence_refs: Array.isArray(raw.evidence_refs) ? raw.evidence_refs.slice(0, 8) : [],
         confidence: raw.confidence,
         strategy_class: strategyCheck.value,
       };
