@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "status": "completed",
+  "canonical": true,
+  "degraded": false,
+  "summary": "sample completed",
+  "tool": "focusa_workpoint_resume",
+  "family": "workpoint",
+  "workpoint_id": null,
+  "retry": { "safe": true, "posture": "safe_retry", "reason": "read-only sample" },
+  "side_effects": [],
+  "evidence_refs": ["docs/evidence/SPEC89_TOOL_RESULT_SCHEMA_MIGRATION_2026-04-28.md:5"],
+  "next_tools": [],
+  "error": null,
+  "raw": { "status": "completed" }
+}

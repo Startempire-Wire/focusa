@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.local/schemas/focusa-tool-result-v1.json",
+  "title": "FocusaToolResultV1",
+  "type": "object",
+  "required": ["ok", "status", "canonical", "degraded", "summary", "retry", "side_effects", "evidence_refs", "next_tools"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["accepted", "completed", "no_op", "blocked", "validation_rejected", "degraded", "offline", "error"] },
+    "canonical": { "type": "boolean" },
+    "degraded": { "type": "boolean" },
+    "summary": { "type": "string", "maxLength": 500 },
+    "endpoint": { "type": "string" },
+    "tool": { "type": "string", "pattern": "^focusa_" },
+    "family": { "type": "string" },
+    "workpoint_id": { "type": ["string", "null"] },
+    "retry": {
+      "type": "object",
+      "required": ["safe", "posture"],
+      "properties": {
+        "safe": { "type": "boolean" },
+        "posture": { "type": "string", "enum": ["safe_retry", "retry_with_idempotency_key", "check_side_effects_first", "do_not_retry_unchanged", "operator_required"] },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "side_effects": { "type": "array", "items": { "type": "string" } },
+    "evidence_refs": { "type": "array", "items": { "type": "string" } },
+    "next_tools": { "type": "array", "items": { "type": "string", "pattern": "^focusa_" } },
+    "error": {
+      "type": ["object", "null"],
+      "properties": {
+        "field": { "type": "string" },
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "allowed_values": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "raw": { "type": ["object", "array", "string", "number", "boolean", "null"] }
+  },
+  "additionalProperties": true
+}
