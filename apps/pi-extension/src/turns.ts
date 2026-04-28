@@ -36,6 +36,49 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
   } catch { /* best effort */ }
 }
 
+
+function formatWorkpointContextSections(): string[] {
+  const packet: any = S.activeWorkpointPacket;
+  if (!packet) return [];
+  const action = packet.action_intent || {};
+  const evidence = Array.isArray(packet.verification_records) ? packet.verification_records : [];
+  const blockers = Array.isArray(packet.blockers) ? packet.blockers : [];
+  const driftBoundaries = String(packet.next_slice || "")
+    .split(/\n+/)
+    .filter((line) => /DO_NOT_DRIFT:/i.test(line))
+    .map((line) => line.replace(/.*DO_NOT_DRIFT:\s*/i, "").trim())
+    .filter(Boolean);
+  const activeObjects = Array.isArray(packet.active_object_refs) && packet.active_object_refs.length ? packet.active_object_refs : ["(none)"];
+  const verificationHooks = [
+    ...(Array.isArray(action.verification_hooks) ? action.verification_hooks : []),
+    ...evidence.map((v: any) => v.result || v.evidence_ref || v.target_ref).filter(Boolean),
+  ].slice(0, 8);
+  const boundaryItems = driftBoundaries.length
+    ? driftBoundaries
+    : blockers.map((b: any) => b.reason).filter(Boolean).slice(0, 6).length
+      ? blockers.map((b: any) => b.reason).filter(Boolean).slice(0, 6)
+      : ["Do not override WorkpointResumePacket from transcript tail."];
+  return [
+    `WORKPOINT: ${S.activeWorkpointSummary || packet.next_slice || packet.mission || "active typed packet present"}`,
+    `WORKPOINT_CANONICAL: ${packet.canonical !== false}`,
+    `ACTIVE_OBJECT_SET:\n${activeObjects.map((x: string) => `  - ${x}`).join("\n")}`,
+    `ACTION_INTENT: ${action.action_type || "unknown"}${action.target_ref ? ` -> ${action.target_ref}` : ""}`,
+    `VERIFICATION_HOOKS:\n${(verificationHooks.length ? verificationHooks : ["(none)"]).map((x: string) => `  - ${x}`).join("\n")}`,
+    `DRIFT_BOUNDARIES:\n${boundaryItems.map((x: string) => `  - ${x}`).join("\n")}`,
+  ];
+}
+
+function providerStatusSuggestsContextOverflow(status: number, headers: Record<string, string> = {}): boolean {
+  if ([413].includes(status)) return true;
+  if (![400, 422].includes(status)) return false;
+  const joined = Object.entries(headers).map(([k, v]) => `${k}:${v}`).join(" ").toLowerCase();
+  return /context[_ -]?length|token|too large|payload|maximum context|input exceeds/.test(joined) || joined.length === 0;
+}
+
+function textSuggestsContextOverflow(text: string): boolean {
+  return /context_length_exceeded|input exceeds the context|maximum context|prompt too long|too many tokens/i.test(text || "");
+}
+
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
   pi.on("before_agent_start", async (event, ctx) => {
@@ -62,8 +105,14 @@ export function registerTurns(pi: ExtensionAPI) {
       "- The DECISIONS listed below were made earlier — do not contradict without explanation",
       "- If context was compacted, Focus State below is your source of truth",
     ].join("\n");
+    const workpointLaw = S.activeWorkpointPacket ? [
+      "\n## Focusa Workpoint Continuity Law",
+      "If a Focusa WorkpointResumePacket is present, treat it as the authoritative continuation anchor unless the operator explicitly steers elsewhere.",
+      "Do not use raw transcript tail to override the active workpoint.",
+      ...formatWorkpointContextSections(),
+    ].join("\n") : "";
 
-    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral;
+    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw;
 
     // §29: WBM inbound context injection
     if (S.wbmEnabled) {
@@ -161,6 +210,7 @@ export function registerTurns(pi: ExtensionAPI) {
       { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
       { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 2, relevanceScore: 100 },
       { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 3, relevanceScore: 100 },
+      buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(S.activeWorkpointPacket), (values) => values.join("\n"), 0, 4, 100),
       { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
       { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
       { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0, priority: 12, relevanceScore: missionIncluded ? 40 : 0 },
@@ -599,6 +649,10 @@ export function registerTurns(pi: ExtensionAPI) {
         }
       }
 
+      if (textSuggestsContextOverflow(assistantOutput)) {
+        await checkpointDiscontinuity("context_overflow", { active_object_refs: ["provider_error_text:context_length_exceeded"] });
+      }
+
       const expectedActionType = S.activeWorkpointPacket?.action_intent?.action_type;
       if (expectedActionType && assistantOutput.trim()) {
         focusaFetch("/workpoint/drift-check", {
@@ -733,7 +787,8 @@ export function registerTurns(pi: ExtensionAPI) {
   // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.
   (pi as any).on("after_provider_response", async (event: any, _ctx: any) => {
     const status = Number((event as any).status || 0);
-    if (![400, 413, 422].includes(status)) return;
+    const headers = ((event as any).headers || {}) as Record<string, string>;
+    if (!providerStatusSuggestsContextOverflow(status, headers)) return;
     await checkpointDiscontinuity("context_overflow", { active_object_refs: [`provider_status:${status}`] });
   });
 

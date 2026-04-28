@@ -12,6 +12,28 @@ import { pushDelta } from "./tools.js";
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+
+async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
+  if (!S.focusaAvailable) return;
+  const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
+  const nextSlice = S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
+  if (!mission && !nextSlice) return;
+  await focusaFetch("/workpoint/checkpoint", {
+    method: "POST",
+    body: JSON.stringify({
+      mission: mission || "Pi session resume",
+      next_slice: nextSlice || "Resume from low-confidence session state and immediately refine Workpoint.",
+      checkpoint_reason: reason === "session_start" ? "session_start" : "session_resume",
+      confidence: "low",
+      canonical: true,
+      promote: true,
+      session_id: S.sessionFrameKey,
+      source_turn_id: `pi-turn-${S.turnCount}`,
+      action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || S.sessionFrameKey || "pi-session", verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"], status: "needs_refinement" },
+    }),
+  }).catch(() => null);
+}
+
 async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
   if (!S.focusaAvailable) return;
   try {
@@ -218,8 +240,12 @@ export function registerSession(pi: ExtensionAPI) {
     }
 
     await ensureFocusaSession(ctx);
-    await refreshSessionWorkpointPacket("session_start");
     await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
+    await refreshSessionWorkpointPacket("session_start");
+    if (!S.activeWorkpointPacket) {
+      await ensureLowConfidenceWorkpoint("session_start");
+      await refreshSessionWorkpointPacket("session_start_low_confidence");
+    }
 
     // §35.8: Session name sync from Pi's scoped focus frame, never global active frame
     const data = await getFocusState().catch(() => null);
@@ -414,8 +440,12 @@ export function registerSession(pi: ExtensionAPI) {
     if (!S.wbmEnabled) S.activeFrameId = null;
     if (S.focusaAvailable) {
       await ensureFocusaSession(ctx);
-      await refreshSessionWorkpointPacket("session_switch");
       await ensureActiveFrame(ctx, (event as any).sessionId || "unknown");
+      await refreshSessionWorkpointPacket("session_switch");
+      if (!S.activeWorkpointPacket) {
+        await ensureLowConfidenceWorkpoint("session_resume");
+        await refreshSessionWorkpointPacket("session_switch_low_confidence");
+      }
     }
   });
 

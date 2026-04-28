@@ -31,6 +31,7 @@ pub struct WorkpointCheckpointRequest {
     pub next_slice: Option<String>,
     pub source_turn_id: Option<String>,
     pub promote: Option<bool>,
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -44,7 +45,145 @@ pub struct WorkpointDriftCheckRequest {
     pub workpoint_id: Option<Uuid>,
     pub latest_action: Option<String>,
     pub expected_action_type: Option<String>,
+    pub active_object_refs: Option<Vec<String>>,
+    pub do_not_drift: Option<Vec<String>>,
     pub emit: Option<bool>,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DriftDecision {
+    drift_detected: bool,
+    severity: WorkpointDriftSeverity,
+    reason: String,
+    recovery_hint: String,
+    drift_classes: Vec<String>,
+}
+
+fn normalize_for_match(value: &str) -> String {
+    value
+        .to_lowercase()
+        .chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { ' ' })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn object_tokens(value: &str) -> Vec<String> {
+    normalize_for_match(value)
+        .split_whitespace()
+        .filter(|token| token.len() >= 4)
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn latest_mentions_object(latest: &str, object_ref: &str) -> bool {
+    let latest_norm = normalize_for_match(latest);
+    if latest_norm.is_empty() {
+        return false;
+    }
+    let object_norm = normalize_for_match(object_ref);
+    if !object_norm.is_empty() && latest_norm.contains(&object_norm) {
+        return true;
+    }
+    object_tokens(object_ref)
+        .iter()
+        .any(|token| latest_norm.contains(token))
+}
+
+fn classify_drift(
+    record: &WorkpointRecord,
+    latest_action: &str,
+    expected_action_type: Option<&str>,
+    request_objects: &[String],
+    request_boundaries: &[String],
+) -> DriftDecision {
+    let latest_norm = normalize_for_match(latest_action);
+    let action = expected_action_type
+        .or_else(|| record.action_intent.as_ref().map(|intent| intent.action_type.as_str()))
+        .unwrap_or("");
+    let action_norm = normalize_for_match(action);
+    let mut classes = Vec::new();
+    let mut reasons = Vec::new();
+
+    if latest_norm.is_empty() {
+        return DriftDecision {
+            drift_detected: false,
+            severity: WorkpointDriftSeverity::Info,
+            reason: "latest action is empty; no drift decision".to_string(),
+            recovery_hint: "continue current action".to_string(),
+            drift_classes: vec![],
+        };
+    }
+
+    let notes_only_markers = ["note", "notes", "document", "docs", "breadcrumb", "summary", "handoff"];
+    let implementation_markers = ["implement", "patch", "edit", "verify", "test", "run", "inspect", "fix"];
+    let action_requires_execution = action_norm.contains("patch")
+        || action_norm.contains("implement")
+        || action_norm.contains("verify")
+        || action_norm.contains("binding")
+        || action_norm.contains("resume workpoint");
+    if action_requires_execution
+        && notes_only_markers.iter().any(|marker| latest_norm.contains(marker))
+        && !implementation_markers.iter().any(|marker| latest_norm.contains(marker))
+    {
+        classes.push("notes_only_drift".to_string());
+        reasons.push("latest action appears notes-only while Workpoint requires implementation or verification".to_string());
+    }
+
+    let mut active_objects = record.active_object_refs.clone();
+    active_objects.extend(request_objects.iter().cloned());
+    if let Some(target) = record.action_intent.as_ref().and_then(|intent| intent.target_ref.clone()) {
+        active_objects.push(target);
+    }
+    active_objects.sort();
+    active_objects.dedup();
+    if !active_objects.is_empty()
+        && !active_objects.iter().any(|object| latest_mentions_object(latest_action, object))
+    {
+        classes.push("wrong_object_drift".to_string());
+        reasons.push("latest action does not mention any active target object or action target".to_string());
+    }
+
+    let mut boundaries: Vec<String> = request_boundaries.to_vec();
+    if let Some(next) = &record.next_slice {
+        boundaries.extend(
+            next.lines()
+                .filter_map(|line| line.split_once("DO_NOT_DRIFT:").map(|(_, rhs)| rhs.trim().to_string())),
+        );
+    }
+    for boundary in boundaries.iter().filter(|boundary| !boundary.trim().is_empty()) {
+        if latest_mentions_object(latest_action, boundary) || latest_norm.contains(&normalize_for_match(boundary)) {
+            classes.push("do_not_drift_boundary".to_string());
+            reasons.push(format!("latest action touches prohibited boundary: {boundary}"));
+            break;
+        }
+    }
+
+    if !action_norm.is_empty() && !latest_norm.contains(&action_norm) {
+        let action_terms: Vec<_> = action_norm.split_whitespace().filter(|term| term.len() >= 4).collect();
+        if !action_terms.is_empty() && !action_terms.iter().any(|term| latest_norm.contains(term)) {
+            classes.push("action_intent_ignored".to_string());
+            reasons.push(format!("latest action does not align with expected action {action}"));
+        }
+    }
+
+    let drift_detected = !classes.is_empty();
+    DriftDecision {
+        drift_detected,
+        severity: if classes.iter().any(|class| class == "do_not_drift_boundary" || class == "wrong_object_drift") {
+            WorkpointDriftSeverity::High
+        } else if drift_detected {
+            WorkpointDriftSeverity::Medium
+        } else {
+            WorkpointDriftSeverity::Info
+        },
+        reason: if reasons.is_empty() { "latest action aligns with active Workpoint".to_string() } else { reasons.join("; ") },
+        recovery_hint: if drift_detected { "call /v1/workpoint/resume and continue the packet next_slice before adjacent work".to_string() } else { "continue current action".to_string() },
+        drift_classes: classes,
+    }
 }
 
 fn active_workpoint<'a>(state: &'a focusa_core::types::FocusaState) -> Option<&'a WorkpointRecord> {
@@ -71,6 +210,7 @@ fn workpoint_packet(record: &WorkpointRecord) -> Value {
         "blockers": record.blockers,
         "next_slice": record.next_slice,
         "source_turn_id": record.source_turn_id,
+        "idempotency_key": record.idempotency_key,
         "updated_at": record.updated_at,
     })
 }
@@ -136,6 +276,26 @@ async fn checkpoint(
         ));
     }
 
+    if let Some(key) = req.idempotency_key.as_ref().filter(|key| !key.trim().is_empty()) {
+        let focusa = state.focusa.read().await;
+        if let Some(existing) = focusa
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.idempotency_key.as_deref() == Some(key.as_str()))
+        {
+            return Ok(Json(json!({
+                "status": "completed",
+                "workpoint_id": existing.workpoint_id,
+                "canonical": existing.canonical,
+                "idempotent_replay": true,
+                "workpoint": workpoint_packet(existing),
+                "warnings": [],
+                "next_step_hint": "idempotency key already recorded; call /v1/workpoint/resume to render the packet"
+            })));
+        }
+    }
+
     let workpoint_id = req.workpoint_id.unwrap_or_else(Uuid::now_v7);
     let promote = req.promote.unwrap_or(true);
     let record = WorkpointRecord {
@@ -153,6 +313,7 @@ async fn checkpoint(
         verification_records: req.verification_records.unwrap_or_default(),
         next_slice: req.next_slice,
         source_turn_id: req.source_turn_id,
+        idempotency_key: req.idempotency_key,
         ..WorkpointRecord::default()
     };
     let canonical = record.canonical;
@@ -178,6 +339,7 @@ async fn checkpoint(
         "status": if promote && canonical { "accepted" } else { "partial" },
         "workpoint_id": workpoint_id,
         "canonical": canonical,
+        "idempotent_replay": false,
         "warnings": if promote && !canonical { vec!["non-canonical checkpoint was proposed but not promoted"] } else { vec![] },
         "next_step_hint": "call /v1/workpoint/resume to render the packet for Pi continuation"
     })))
@@ -270,6 +432,9 @@ async fn drift_check(
     if !permissions.allows("work-loop:read") {
         return Err(forbid("work-loop:read"));
     }
+    if req.emit.unwrap_or(false) && !permissions.allows("work-loop:write") {
+        return Err(forbid("work-loop:write"));
+    }
     let focusa = state.focusa.read().await;
     let record = req
         .workpoint_id
@@ -284,44 +449,51 @@ async fn drift_check(
         })));
     };
 
-    let expected = req.expected_action_type.or_else(|| {
+    let expected = req.expected_action_type.clone().or_else(|| {
         record
             .action_intent
             .as_ref()
             .map(|intent| intent.action_type.clone())
     });
-    let latest = req.latest_action.unwrap_or_default();
-    let drift_detected = expected
-        .as_ref()
-        .map(|expected| !latest.is_empty() && !latest.contains(expected))
-        .unwrap_or(false);
+    let latest = req.latest_action.clone().unwrap_or_default();
+    let request_objects = req.active_object_refs.clone().unwrap_or_default();
+    let request_boundaries = req.do_not_drift.clone().unwrap_or_default();
+    let decision = classify_drift(
+        record,
+        &latest,
+        expected.as_deref(),
+        &request_objects,
+        &request_boundaries,
+    );
     let workpoint_id = record.workpoint_id;
+    let canonical = record.canonical;
     drop(focusa);
 
-    if req.emit.unwrap_or(false) && drift_detected {
+    if req.emit.unwrap_or(false) && decision.drift_detected {
         dispatch_event(
             &state,
             FocusaEvent::WorkpointDriftDetected {
                 workpoint_id: Some(workpoint_id),
-                severity: WorkpointDriftSeverity::High,
-                reason: format!(
-                    "latest action did not match expected action {}",
-                    expected.clone().unwrap_or_else(|| "unknown".to_string())
-                ),
-                recovery_hint: Some("resume from active WorkpointResumePacket".to_string()),
+                severity: decision.severity,
+                reason: decision.reason.clone(),
+                recovery_hint: Some(decision.recovery_hint.clone()),
             },
         )
         .await?;
     }
 
     Ok(Json(json!({
-        "status": if drift_detected { "drift_detected" } else { "no_drift" },
+        "status": if decision.drift_detected { "drift_detected" } else { "no_drift" },
         "workpoint_id": workpoint_id,
-        "canonical": true,
-        "drift_detected": drift_detected,
+        "canonical": canonical,
+        "drift_detected": decision.drift_detected,
+        "drift_classes": decision.drift_classes,
+        "severity": decision.severity,
+        "reason": decision.reason,
+        "recovery_hint": decision.recovery_hint,
         "expected_action_type": expected,
         "warnings": [],
-        "next_step_hint": if drift_detected { "call /v1/workpoint/resume and realign before continuing" } else { "continue current action" }
+        "next_step_hint": if decision.drift_detected { "call /v1/workpoint/resume and realign before continuing" } else { "continue current action" }
     })))
 }
 
@@ -363,6 +535,7 @@ mod tests {
             workpoint_id: Uuid::now_v7(),
             canonical: true,
             next_slice: Some("Resume from packet".to_string()),
+            idempotency_key: Some("idem-1".to_string()),
             ..WorkpointRecord::default()
         };
         let packet = workpoint_packet(&record);
@@ -371,5 +544,57 @@ mod tests {
             packet.get("next_slice").and_then(Value::as_str),
             Some("Resume from packet")
         );
+        assert_eq!(packet.get("idempotency_key").and_then(Value::as_str), Some("idem-1"));
+    }
+
+    #[test]
+    fn drift_classifier_flags_notes_only_wrong_object_and_boundaries() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            canonical: true,
+            active_object_refs: vec!["Component:homepage.audio_widget".to_string()],
+            action_intent: Some(WorkpointActionIntentRecord {
+                action_type: "patch_component_binding".to_string(),
+                target_ref: Some("Component:homepage.audio_widget".to_string()),
+                verification_hooks: vec!["verify UI play state".to_string()],
+                status: Some("ready".to_string()),
+            }),
+            next_slice: Some("Patch the widget binding\nDO_NOT_DRIFT: notes-only/generic validation".to_string()),
+            ..WorkpointRecord::default()
+        };
+        let decision = classify_drift(
+            &record,
+            "Updated notes and generic validation summary for unrelated backend endpoint",
+            None,
+            &[],
+            &[],
+        );
+        assert!(decision.drift_detected);
+        assert!(decision.drift_classes.contains(&"notes_only_drift".to_string()));
+        assert!(decision.drift_classes.contains(&"wrong_object_drift".to_string()));
+    }
+
+    #[test]
+    fn drift_classifier_accepts_matching_target_and_action_term() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            canonical: true,
+            active_object_refs: vec!["Component:homepage.audio_widget".to_string()],
+            action_intent: Some(WorkpointActionIntentRecord {
+                action_type: "patch_component_binding".to_string(),
+                target_ref: Some("Component:homepage.audio_widget".to_string()),
+                verification_hooks: vec![],
+                status: Some("ready".to_string()),
+            }),
+            ..WorkpointRecord::default()
+        };
+        let decision = classify_drift(
+            &record,
+            "Patch homepage audio widget component binding and verify play pause state",
+            None,
+            &[],
+            &[],
+        );
+        assert!(!decision.drift_detected, "{}", decision.reason);
     }
 }
