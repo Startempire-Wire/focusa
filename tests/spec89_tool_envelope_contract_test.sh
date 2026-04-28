@@ -11,7 +11,7 @@ pass(){ echo "✓ PASS: $*"; }
 [[ -f "$SCHEMA" ]] || fail "schema missing: $SCHEMA"
 jq empty "$SCHEMA" >/dev/null || fail "schema is not valid JSON"
 tool_count=$(rg -n 'name: "focusa_' "$TOOLS_TS" | wc -l | tr -d ' ')
-[[ "$tool_count" == "35" ]] || fail "expected 35 focusa_* tools, got $tool_count"
+[[ "$tool_count" == "36" ]] || fail "expected 36 focusa_* tools, got $tool_count"
 rg 'interface FocusaToolResultV1' "$TOOLS_TS" >/dev/null || fail "FocusaToolResultV1 helper missing"
 rg 'function withToolResultEnvelope' "$TOOLS_TS" >/dev/null || fail "withToolResultEnvelope wrapper missing"
 rg 'tool_result_v1' "$TOOLS_TS" >/dev/null || fail "tool_result_v1 details extension missing"

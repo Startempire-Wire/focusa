@@ -40,6 +40,8 @@ assert_req focus_update_constraint POST /focus/update "{\"turn_id\":\"stress-con
 # Workpoint API and idempotency
 WP1="$TMP_DIR/workpoint1.json"; WP2="$TMP_DIR/workpoint2.json"
 request POST /workpoint/checkpoint "{\"mission\":\"Focusa tool stress\",\"next_slice\":\"Complete stress suite\",\"checkpoint_reason\":\"manual\",\"confidence\":\"high\",\"canonical\":true,\"promote\":true,\"idempotency_key\":\"$KEY\",\"action_intent\":{\"action_type\":\"stress_verify\",\"target_ref\":\"FocusaToolSuite\",\"verification_hooks\":[\"api\",\"cli\",\"pi\"],\"status\":\"ready\"}}" "$WP1" && jq -e '.status == "accepted" and .canonical == true' "$WP1" >/dev/null && pass workpoint_checkpoint || fail workpoint_checkpoint "$(cat "$WP1" 2>/dev/null)"
+sleep 1
+request POST /workpoint/evidence/link "{\"target_ref\":\"tests/focusa_tool_stress_test.sh\",\"result\":\"stress evidence link passed\",\"evidence_ref\":\"tests/focusa_tool_stress_test.sh:1\"}" "$TMP_DIR/workpoint_link.json" && jq -e '.status == "accepted" and .canonical == true' "$TMP_DIR/workpoint_link.json" >/dev/null && pass workpoint_evidence_link || fail workpoint_evidence_link "$(cat "$TMP_DIR/workpoint_link.json" 2>/dev/null)"
 request POST /workpoint/checkpoint "{\"mission\":\"Duplicate\",\"next_slice\":\"Duplicate\",\"idempotency_key\":\"$KEY\"}" "$WP2" && jq -e '.idempotent_replay == true' "$WP2" >/dev/null && pass workpoint_idempotency || fail workpoint_idempotency "$(cat "$WP2" 2>/dev/null)"
 sleep 1
 assert_req workpoint_current GET /workpoint/current '' '.status == "completed" and .canonical == true'

@@ -2682,6 +2682,19 @@ pub fn reduce_with_meta(
             });
             truncate_front(&mut state.workpoint.drift_events, workpoint_caps::DRIFT_EVENTS);
         }
+        FocusaEvent::WorkpointEvidenceLinked { workpoint_id, mut verification } => {
+            let now = Utc::now();
+            let record = find_workpoint_mut(&mut state, workpoint_id)?;
+            if !record.canonical || record.status == WorkpointStatus::DegradedFallback {
+                return Err(ReducerError::InvalidEvent(format!("Cannot link canonical evidence to non-canonical workpoint {}", workpoint_id)));
+            }
+            if verification.verified_at.is_none() {
+                verification.verified_at = Some(now);
+            }
+            record.verification_records.push(verification);
+            truncate_front(&mut record.verification_records, workpoint_caps::VERIFICATIONS);
+            record.updated_at = Some(now);
+        }
         FocusaEvent::WorkpointDegradedFallbackRecorded {
             workpoint_id,
             reason,

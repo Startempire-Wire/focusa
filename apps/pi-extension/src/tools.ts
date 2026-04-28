@@ -1137,6 +1137,42 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_workpoint_link_evidence",
+    label: "Workpoint Link Evidence",
+    description: "Attach a stable evidence reference or verification result to the active canonical Workpoint.",
+    promptSnippet: "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
+    parameters: Type.Object({
+      workpoint_id: Type.Optional(Type.String({ description: "Specific Workpoint id; omit to use active Workpoint." })),
+      target_ref: Type.String({ description: "Object/file/test/endpoint/work item the evidence verifies." }),
+      result: Type.String({ description: "Bounded verification result summary." }),
+      evidence_ref: Type.Optional(Type.String({ description: "Stable evidence handle, file path, test id, or artifact ref." })),
+      attach_to_workpoint: Type.Optional(Type.Boolean({ description: "Defaults true; false returns blocked/no-op guidance without linking." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      if (p.attach_to_workpoint === false) {
+        const text = "workpoint evidence link → no_op attach_to_workpoint=false";
+        return {
+          content: [{ type: "text", text }],
+          details: { ok: true, status: "no_op", reason: "attach_to_workpoint=false" },
+        } as any;
+      }
+      const res = await focusaFetchDetailed("/workpoint/evidence/link", {
+        method: "POST",
+        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref }),
+      });
+      const text = res.ok
+        ? `workpoint evidence link → status=${String(res.body?.status || "accepted")} id=${String(res.body?.workpoint_id || "none")}`
+        : `workpoint evidence link blocked → ${explainWorkLoopResult(res, "link failed")}`;
+      return {
+        content: [{ type: "text", text }],
+        details: { ok: res.ok, status: String(res.status), reason: res.ok ? "linked" : "blocked", endpoint: "/workpoint/evidence/link", response: res.body },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_workpoint_resume",
     label: "Workpoint Resume",
     description: "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.",

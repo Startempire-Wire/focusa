@@ -54,6 +54,14 @@ pub struct WorkpointDriftCheckRequest {
     pub emit: Option<bool>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct WorkpointEvidenceLinkRequest {
+    pub workpoint_id: Option<Uuid>,
+    pub target_ref: String,
+    pub result: String,
+    pub evidence_ref: Option<String>,
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DriftDecision {
@@ -495,6 +503,58 @@ async fn resume(
     })))
 }
 
+async fn link_evidence(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(req): Json<WorkpointEvidenceLinkRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("work-loop:write") {
+        return Err(forbid("work-loop:write"));
+    }
+    if req.target_ref.trim().is_empty() || req.result.trim().is_empty() {
+        return Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({
+            "status": "validation_rejected",
+            "canonical": false,
+            "field": "target_ref/result",
+            "retry_posture": "do_not_retry_unchanged",
+            "next_step_hint": "provide target_ref and result before linking Workpoint evidence"
+        }))));
+    }
+    let focusa = state.focusa.read().await;
+    let record = if let Some(workpoint_id) = req.workpoint_id {
+        focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id).cloned()
+    } else {
+        active_workpoint(&focusa).cloned()
+    };
+    let Some(record) = record else {
+        return Err((StatusCode::NOT_FOUND, Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "error": "no active Workpoint to link evidence",
+            "next_step_hint": "create or resume a canonical Workpoint before linking evidence"
+        }))));
+    };
+    drop(focusa);
+    let verification = WorkpointVerificationRecord {
+        target_ref: req.target_ref,
+        result: req.result,
+        evidence_ref: req.evidence_ref,
+        verified_at: None,
+    };
+    dispatch_event(&state, FocusaEvent::WorkpointEvidenceLinked {
+        workpoint_id: record.workpoint_id,
+        verification: verification.clone(),
+    }).await?;
+    Ok(Json(json!({
+        "status": "accepted",
+        "canonical": true,
+        "workpoint_id": record.workpoint_id,
+        "verification": verification,
+        "next_step_hint": "call /v1/workpoint/resume to see linked evidence in the packet"
+    })))
+}
+
 async fn drift_check(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -574,6 +634,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/workpoint/checkpoint", post(checkpoint))
         .route("/v1/workpoint/current", get(current))
         .route("/v1/workpoint/resume", post(resume))
+        .route("/v1/workpoint/evidence/link", post(link_evidence))
         .route("/v1/workpoint/drift-check", post(drift_check))
 }
 

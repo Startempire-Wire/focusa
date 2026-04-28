@@ -1583,6 +1583,11 @@ pub enum FocusaEvent {
         reason: String,
         recovery_hint: Option<String>,
     },
+    #[serde(rename = "workpoint_evidence_linked")]
+    WorkpointEvidenceLinked {
+        workpoint_id: WorkpointId,
+        verification: WorkpointVerificationRecord,
+    },
     #[serde(rename = "workpoint_degraded_fallback_recorded")]
     WorkpointDegradedFallbackRecorded {
         workpoint_id: WorkpointId,
