@@ -78,11 +78,16 @@ impl ApiClient {
     }
 
     pub async fn post(&self, path: &str, body: &Value) -> anyhow::Result<Value> {
+        self.post_with_headers(path, body, &[]).await
+    }
+
+    pub async fn post_with_headers(&self, path: &str, body: &Value, headers: &[(&str, &str)]) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
-        let resp = self
-            .client
-            .post(&url)
-            .json(body)
+        let mut req = self.client.post(&url).json(body);
+        for (key, value) in headers {
+            req = req.header(*key, *value);
+        }
+        let resp = req
             .send()
             .await
             .map_err(|err| classify_reqwest_error(err, &url))?;

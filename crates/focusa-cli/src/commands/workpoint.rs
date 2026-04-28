@@ -59,6 +59,24 @@ pub enum WorkpointCmd {
         #[arg(long)]
         emit: bool,
     },
+    /// Resolve candidate active object refs from active Workpoint plus optional hint.
+    ResolveObject {
+        #[arg(long)]
+        hint: Option<String>,
+    },
+    /// Link an evidence ref/result to the active or specified Workpoint.
+    EvidenceLink {
+        #[arg(long)]
+        workpoint_id: Option<String>,
+        #[arg(long)]
+        target_ref: String,
+        #[arg(long)]
+        result: String,
+        #[arg(long)]
+        evidence_ref: Option<String>,
+        #[arg(long, default_value = "focusa-cli")]
+        writer_id: String,
+    },
 }
 
 fn reason_to_api(reason: &str) -> String {
@@ -162,6 +180,24 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                     "expected_action_type": expected_action_type,
                     "emit": emit,
                 }),
+            )
+            .await?,
+        ),
+        WorkpointCmd::ResolveObject { hint } => (
+            "resolve-object",
+            api.post("/v1/workpoint/active-object/resolve", &json!({ "hint": hint })).await?,
+        ),
+        WorkpointCmd::EvidenceLink { workpoint_id, target_ref, result, evidence_ref, writer_id } => (
+            "evidence-link",
+            api.post_with_headers(
+                "/v1/workpoint/evidence/link",
+                &json!({
+                    "workpoint_id": workpoint_id,
+                    "target_ref": target_ref,
+                    "result": result,
+                    "evidence_ref": evidence_ref,
+                }),
+                &[("x-focusa-writer-id", writer_id.as_str())],
             )
             .await?,
         ),

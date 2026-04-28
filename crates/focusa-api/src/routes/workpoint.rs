@@ -62,6 +62,11 @@ pub struct WorkpointEvidenceLinkRequest {
     pub evidence_ref: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct ActiveObjectResolveRequest {
+    pub hint: Option<String>,
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DriftDecision {
@@ -503,6 +508,39 @@ async fn resume(
     })))
 }
 
+async fn resolve_active_object(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ActiveObjectResolveRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let focusa = state.focusa.read().await;
+    let record = active_workpoint(&focusa);
+    let mut refs: Vec<String> = record
+        .map(|record| record.active_object_refs.clone())
+        .unwrap_or_default();
+    if let Some(work_item_id) = record.and_then(|record| record.work_item_id.clone()) {
+        refs.push(work_item_id);
+    }
+    if let Some(target_ref) = record
+        .and_then(|record| record.action_intent.as_ref())
+        .and_then(|intent| intent.target_ref.clone())
+    {
+        refs.push(target_ref);
+    }
+    if let Some(hint) = req.hint.filter(|hint| !hint.trim().is_empty()) {
+        refs.push(hint);
+    }
+    refs.sort();
+    refs.dedup();
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": record.is_some(),
+        "workpoint_id": record.map(|record| record.workpoint_id),
+        "refs": refs,
+        "verified": false,
+        "next_step_hint": "treat refs as candidates unless verified by a canonical object read"
+    })))
+}
+
 async fn link_evidence(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -634,6 +672,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/workpoint/checkpoint", post(checkpoint))
         .route("/v1/workpoint/current", get(current))
         .route("/v1/workpoint/resume", post(resume))
+        .route("/v1/workpoint/active-object/resolve", post(resolve_active_object))
         .route("/v1/workpoint/evidence/link", post(link_evidence))
         .route("/v1/workpoint/drift-check", post(drift_check))
 }
