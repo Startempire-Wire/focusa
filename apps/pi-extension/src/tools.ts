@@ -240,6 +240,18 @@ function focusaToolDetails(details: Record<string, unknown>, result: FocusaToolR
   return { ...details, tool_result_v1: result };
 }
 
+function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidence_refs: string[]; summary?: string } {
+  const packet = S.activeWorkpointPacket || null;
+  const workpoint = packet?.resume_packet?.workpoint || packet?.workpoint || packet;
+  const workpointId = String(workpoint?.workpoint_id || packet?.workpoint_id || "") || null;
+  const verificationRecords = Array.isArray(workpoint?.verification_records) ? workpoint.verification_records : [];
+  const evidenceRefs = verificationRecords
+    .map((record: any) => String(record?.evidence_ref || record?.result || ""))
+    .filter(Boolean)
+    .slice(0, 8);
+  return { workpoint_id: workpointId, evidence_refs: evidenceRefs, summary: S.activeWorkpointSummary || undefined };
+}
+
 function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
   const details = (result?.details || {}) as Record<string, any>;
   if (details.tool_result_v1) return details.tool_result_v1 as FocusaToolResultV1;
@@ -257,6 +269,8 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
   const degraded = details.canonical === false || /degraded|NON-CANONICAL/.test(text);
   const status: FocusaToolStatus = validationRejected ? "validation_rejected" : offline ? "offline" : blocked ? "blocked" : degraded ? "degraded" : ok ? "completed" : "error";
   const readOnly = family === "lineage_intelligence" || tool.endsWith("_status") || tool.endsWith("_resume") || tool.endsWith("_head") || tool.endsWith("_path") || tool.includes("_retrieve") || tool.includes("_recent") || tool.includes("_doctor") || tool.includes("_diff_");
+  const activeWorkpoint = resolveActiveWorkpointContext();
+  const resultWorkpointId = String(details.response?.workpoint_id || details.response?.active_workpoint_id || details.workpoint_id || activeWorkpoint.workpoint_id || "") || null;
   return focusaToolResult({
     ok,
     status,
@@ -266,14 +280,14 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
     tool,
     family,
     endpoint: typeof details.endpoint === "string" ? details.endpoint : undefined,
-    workpoint_id: String(details.response?.workpoint_id || details.response?.active_workpoint_id || details.workpoint_id || "") || null,
+    workpoint_id: resultWorkpointId,
     retry: {
       safe: readOnly || status === "validation_rejected" || status === "offline",
       posture: status === "validation_rejected" ? "do_not_retry_unchanged" : readOnly ? "safe_retry" : "check_side_effects_first",
       reason: status,
     },
     side_effects: readOnly ? [] : [family],
-    evidence_refs: [],
+    evidence_refs: activeWorkpoint.evidence_refs,
     next_tools: status === "offline" ? [] : family === "workpoint" ? ["focusa_workpoint_resume"] : [],
     error: validationRejected || blocked || offline ? { code: status, message: text.slice(0, 240) } : null,
     raw: details.response ?? details,
