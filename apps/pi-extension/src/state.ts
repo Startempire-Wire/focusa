@@ -195,22 +195,30 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
   const timeout = S.cfg?.focusaApiTimeoutMs || 5000;
   const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
   const token = S.cfg?.focusaToken || "";
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), timeout);
-  try {
-    const r = await fetch(`${base}${path}`, {
-      ...opts,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(opts.headers as Record<string, string> || {}),
-      },
-      signal: ac.signal,
-    });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
-  finally { clearTimeout(t); }
+  const attempts = 2;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), timeout);
+    try {
+      const r = await fetch(`${base}${path}`, {
+        ...opts,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(opts.headers as Record<string, string> || {}),
+        },
+        signal: ac.signal,
+      });
+      if (r.ok) return await r.json();
+      if (![429, 502, 503, 504].includes(r.status) || attempt === attempts - 1) return null;
+    } catch {
+      if (attempt === attempts - 1) return null;
+    } finally {
+      clearTimeout(t);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  return null;
 }
 
 // Fire-and-forget variant
@@ -744,8 +752,9 @@ export function buildSliceSection(
 // ── Health check (§38.3, §11 backoff) ────────────────────────────────────────
 export async function checkFocusa(): Promise<boolean> {
   const h = await focusaFetch("/health");
+  const status = h?.ok === true ? null : await focusaFetch("/status");
   const wasAvailable = S.focusaAvailable;
-  S.focusaAvailable = h?.ok === true;
+  S.focusaAvailable = h?.ok === true || status?.session != null || status?.runtime_process?.single_daemon_ok === true;
 
   if (S.focusaAvailable) {
     S.healthFailCount = 0;

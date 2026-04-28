@@ -202,11 +202,9 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
 
   if (!S.focusaAvailable) {
     const recoveredOnline = await checkFocusa().catch(() => false);
-    if (!recoveredOnline) {
-      emitWriteTelemetry("focusa_write_failed", { targets, reason: "offline" });
-      return { ok: false, reason: "offline" };
-    }
-    emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "offline", recovered: true });
+    // Health probes can race daemon restarts or stale bridge state. Do not let a
+    // failed probe veto a real write; /focus/update is the authoritative check.
+    emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "offline", recovered: recoveredOnline, probe_only: true });
   }
 
   // Validate every string slot before sending.
@@ -256,11 +254,14 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
       emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame, status: response.status || "unknown" });
       return { ok: false, reason: "write_failed" };
     }
+    S.focusaAvailable = true;
     emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame, frame_id: response.frame_id || S.activeFrameId });
     return { ok: true };
   } catch {
-    emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame });
-    return { ok: false, reason: "write_failed" };
+    const online = await checkFocusa().catch(() => false);
+    const reason: PushDeltaFailureReason = online ? "write_failed" : "offline";
+    emitWriteTelemetry("focusa_write_failed", { targets, reason, recovered_frame: recoveredFrame });
+    return { ok: false, reason };
   }
 }
 

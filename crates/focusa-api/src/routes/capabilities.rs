@@ -25,6 +25,7 @@ use axum::{Json, Router, routing::get};
 use focusa_core::types::{CltNodeType, FrameRecord};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 const DEFAULT_AGENT_ID: &str = "focusa-default";
@@ -312,12 +313,24 @@ async fn lineage_path(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
     let s = state.focusa.read().await;
+    let index: HashMap<&str, _> = s.clt.nodes.iter().map(|n| (n.node_id.as_str(), n)).collect();
+    let mut seen = HashSet::new();
     let mut out = Vec::new();
     let mut current = Some(clt_node_id);
+    let mut truncated = false;
+    const MAX_LINEAGE_PATH_DEPTH: usize = 512;
 
     while let Some(id) = current {
-        if let Some(node) = s.clt.nodes.iter().find(|n| n.node_id == id) {
-            out.push(node.clone());
+        if out.len() >= MAX_LINEAGE_PATH_DEPTH {
+            truncated = true;
+            break;
+        }
+        if !seen.insert(id.clone()) {
+            truncated = true;
+            break;
+        }
+        if let Some(node) = index.get(id.as_str()) {
+            out.push((*node).clone());
             current = node.parent_id.clone();
         } else {
             break;
@@ -327,6 +340,7 @@ async fn lineage_path(
     Ok(Json(json!({
         "path": out,
         "depth": out.len(),
+        "truncated": truncated,
     })))
 }
 
