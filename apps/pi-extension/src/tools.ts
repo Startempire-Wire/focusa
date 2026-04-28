@@ -171,8 +171,22 @@ function validateNamedSlot(value: string, maxChars: number, kind: "intent" | "cu
 export type PushDeltaFailureReason = "offline" | "no_active_frame" | "validation_rejected" | "write_failed";
 
 export type PushDeltaResult =
-  | { ok: true }
-  | { ok: false; reason: PushDeltaFailureReason };
+  | { ok: true; duplicate_candidate?: boolean; idempotency_key?: string }
+  | { ok: false; reason: PushDeltaFailureReason; duplicate_candidate?: boolean; idempotency_key?: string };
+
+const RECENT_COGNITIVE_WRITE_KEYS: string[] = [];
+
+function cognitiveWriteKey(delta: Record<string, any>, explicitKey?: string): string {
+  if (explicitKey) return explicitKey;
+  return JSON.stringify(delta).toLowerCase().replace(/\s+/g, " ").slice(0, 500);
+}
+
+function duplicateCandidateForWrite(key: string): boolean {
+  const duplicate = RECENT_COGNITIVE_WRITE_KEYS.includes(key);
+  RECENT_COGNITIVE_WRITE_KEYS.push(key);
+  while (RECENT_COGNITIVE_WRITE_KEYS.length > 80) RECENT_COGNITIVE_WRITE_KEYS.shift();
+  return duplicate;
+}
 
 type FocusaToolStatus = "accepted" | "completed" | "no_op" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
 type FocusaRetryPosture = "safe_retry" | "retry_with_idempotency_key" | "check_side_effects_first" | "do_not_retry_unchanged" | "operator_required";
@@ -1084,6 +1098,45 @@ export function registerTools(pi: ExtensionAPI) {
     const next = String(body?.next_step_hint || body?.resume_packet?.next_slice || body?.workpoint?.next_slice || "resume from typed workpoint packet");
     return `status=${status} id=${id} canonical=${canonical} next=${next}`;
   }
+
+  pi.registerTool({
+    name: "focusa_state_hygiene_doctor",
+    label: "Focus State Hygiene Doctor",
+    description: "Diagnose stale or duplicate Focus State signals without mutating state.",
+    parameters: Type.Object({}),
+    async execute() {
+      const stack = await focusaFetchDetailed("/focus/stack", { method: "GET" });
+      const frames = stack.body?.stack?.frames || [];
+      const latest = Array.isArray(frames) ? frames[frames.length - 1] || {} : {};
+      const notes = latest?.state?.notes || [];
+      const result = { duplicate_candidates: RECENT_COGNITIVE_WRITE_KEYS.length, note_count: Array.isArray(notes) ? notes.length : 0, stale_candidates: [], recommended_action: "plan_before_apply" };
+      return { content: [{ type: "text", text: `state hygiene doctor → duplicate_candidates=${result.duplicate_candidates} note_count=${result.note_count} recommended=${result.recommended_action}` }], details: { ok: stack.ok, status: String(stack.status), response: result } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_state_hygiene_plan",
+    label: "Focus State Hygiene Plan",
+    description: "Create a proposal-style hygiene plan; does not mutate Focus State.",
+    parameters: Type.Object({ reason: Type.Optional(Type.String({ description: "Why hygiene is being considered." })) }),
+    async execute(_id, params) {
+      const p = params as any;
+      const plan = { mutates: false, reason: String(p.reason || "operator requested hygiene plan"), actions: ["review duplicate_candidates", "prefer supersede/update over deletion", "apply only with explicit approval"] };
+      return { content: [{ type: "text", text: `state hygiene plan → actions=${plan.actions.length} mutates=false` }], details: { ok: true, status: "completed", plan } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_state_hygiene_apply",
+    label: "Focus State Hygiene Apply",
+    description: "Approval-safe hygiene apply placeholder; requires approved=true and never deletes silently.",
+    parameters: Type.Object({ approved: Type.Boolean({ description: "Must be true to apply proposal-safe hygiene." }), reason: Type.Optional(Type.String()) }),
+    async execute(_id, params) {
+      const p = params as any;
+      if (p.approved !== true) return { content: [{ type: "text", text: "state hygiene apply blocked → approval required" }], details: { ok: false, status: "blocked", reason: "approval_required" } } as any;
+      return { content: [{ type: "text", text: "state hygiene apply → no destructive changes; proposal-safe hygiene acknowledged" }], details: { ok: true, status: "no_op", mutates: false, reason: p.reason || "approved" } } as any;
+    },
+  });
 
   pi.registerTool({
     name: "focusa_tool_doctor",
