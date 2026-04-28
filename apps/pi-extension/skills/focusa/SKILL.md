@@ -65,3 +65,9 @@ curl -s http://127.0.0.1:8787/v1/workpoint/current | jq .
 - Workpoint continuity survives compaction because it lives in reducer-owned typed state, not prompt history.
 - Check constraints before acting; do not violate recorded constraints.
 - Do not contradict prior decisions without explicit operator steering or new evidence.
+
+## Spec89 Tool Result Envelope
+
+Every `focusa_*` Pi tool preserves its visible text summary and adds `details.tool_result_v1` with common fields: `ok`, `status`, `canonical`, `degraded`, `summary`, `retry`, `side_effects`, `evidence_refs`, `next_tools`, `error`, and `raw`.
+
+Use `status`, `retry.posture`, and `next_tools` for recovery decisions instead of parsing prose. Treat `canonical=false` or `degraded=true` as non-authoritative fallback unless a later canonical Focusa read confirms it.

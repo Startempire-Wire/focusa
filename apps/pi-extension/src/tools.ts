@@ -174,6 +174,126 @@ export type PushDeltaResult =
   | { ok: true }
   | { ok: false; reason: PushDeltaFailureReason };
 
+type FocusaToolStatus = "accepted" | "completed" | "no_op" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
+type FocusaRetryPosture = "safe_retry" | "retry_with_idempotency_key" | "check_side_effects_first" | "do_not_retry_unchanged" | "operator_required";
+
+interface FocusaToolResultV1 {
+  ok: boolean;
+  status: FocusaToolStatus;
+  canonical: boolean;
+  degraded: boolean;
+  summary: string;
+  tool?: string;
+  family?: string;
+  endpoint?: string;
+  workpoint_id?: string | null;
+  retry: { safe: boolean; posture: FocusaRetryPosture; reason?: string };
+  side_effects: string[];
+  evidence_refs: string[];
+  next_tools: string[];
+  error?: { field?: string; code?: string; message?: string; allowed_values?: string[] } | null;
+  raw?: unknown;
+}
+
+function focusaToolResult(params: {
+  ok: boolean;
+  status: FocusaToolStatus;
+  summary: string;
+  canonical?: boolean;
+  degraded?: boolean;
+  tool?: string;
+  family?: string;
+  endpoint?: string;
+  workpoint_id?: string | null;
+  retry?: Partial<FocusaToolResultV1["retry"]>;
+  side_effects?: string[];
+  evidence_refs?: string[];
+  next_tools?: string[];
+  error?: FocusaToolResultV1["error"];
+  raw?: unknown;
+}): FocusaToolResultV1 {
+  const degraded = params.degraded ?? (params.status === "degraded" || params.status === "offline");
+  return {
+    ok: params.ok,
+    status: params.status,
+    canonical: params.canonical ?? (!degraded && params.ok),
+    degraded,
+    summary: params.summary.slice(0, 500),
+    tool: params.tool,
+    family: params.family,
+    endpoint: params.endpoint,
+    workpoint_id: params.workpoint_id ?? null,
+    retry: {
+      safe: params.retry?.safe ?? (params.status === "completed" || params.status === "no_op"),
+      posture: params.retry?.posture ?? (params.ok ? "safe_retry" : "operator_required"),
+      reason: params.retry?.reason,
+    },
+    side_effects: params.side_effects ?? [],
+    evidence_refs: params.evidence_refs ?? [],
+    next_tools: params.next_tools ?? [],
+    error: params.error ?? null,
+    raw: params.raw,
+  };
+}
+
+function focusaToolDetails(details: Record<string, unknown>, result: FocusaToolResultV1): Record<string, unknown> {
+  return { ...details, tool_result_v1: result };
+}
+
+function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
+  const details = (result?.details || {}) as Record<string, any>;
+  if (details.tool_result_v1) return details.tool_result_v1 as FocusaToolResultV1;
+  const text = String(result?.content?.[0]?.text || details.summary || "");
+  const family = tool.startsWith("focusa_workpoint_") ? "workpoint"
+    : tool.startsWith("focusa_work_loop_") ? "work_loop"
+      : tool.startsWith("focusa_tree_") ? "tree_snapshot_lineage"
+        : tool.startsWith("focusa_metacog_") ? "metacognition"
+          : tool.startsWith("focusa_lineage") || tool.startsWith("focusa_li_") ? "lineage_intelligence"
+            : tool === "focusa_scratch" ? "scratchpad" : "focus_state";
+  const ok = details.ok === true || details.valid === true || (!/^❌|blocked|.* unavailable/.test(text) && details.ok !== false && details.valid !== false);
+  const validationRejected = details.valid === false || /validation_rejected|rejected/.test(text);
+  const offline = /offline|unavailable/.test(text);
+  const blocked = /blocked/.test(text);
+  const degraded = details.canonical === false || /degraded|NON-CANONICAL/.test(text);
+  const status: FocusaToolStatus = validationRejected ? "validation_rejected" : offline ? "offline" : blocked ? "blocked" : degraded ? "degraded" : ok ? "completed" : "error";
+  const readOnly = family === "lineage_intelligence" || tool.endsWith("_status") || tool.endsWith("_resume") || tool.endsWith("_head") || tool.endsWith("_path") || tool.includes("_retrieve") || tool.includes("_recent") || tool.includes("_doctor") || tool.includes("_diff_");
+  return focusaToolResult({
+    ok,
+    status,
+    canonical: !degraded && !offline,
+    degraded,
+    summary: text || `${tool} ${status}`,
+    tool,
+    family,
+    endpoint: typeof details.endpoint === "string" ? details.endpoint : undefined,
+    workpoint_id: String(details.response?.workpoint_id || details.response?.active_workpoint_id || details.workpoint_id || "") || null,
+    retry: {
+      safe: readOnly || status === "validation_rejected" || status === "offline",
+      posture: status === "validation_rejected" ? "do_not_retry_unchanged" : readOnly ? "safe_retry" : "check_side_effects_first",
+      reason: status,
+    },
+    side_effects: readOnly ? [] : [family],
+    evidence_refs: [],
+    next_tools: status === "offline" ? [] : family === "workpoint" ? ["focusa_workpoint_resume"] : [],
+    error: validationRejected || blocked || offline ? { code: status, message: text.slice(0, 240) } : null,
+    raw: details.response ?? details,
+  });
+}
+
+function withToolResultEnvelope(tool: any): any {
+  if (!tool?.name?.startsWith?.("focusa_") || typeof tool.execute !== "function") return tool;
+  const execute = tool.execute;
+  return {
+    ...tool,
+    async execute(id: string, params: unknown) {
+      const result = await execute(id, params);
+      const details = (result?.details || {}) as Record<string, unknown>;
+      const toolResult = inferToolResult(tool.name, result);
+      return { ...result, details: focusaToolDetails(details, toolResult) };
+    },
+  };
+}
+
 function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
   switch (reason) {
     case "offline":
@@ -268,6 +388,8 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
 }
 
 export function registerTools(pi: ExtensionAPI) {
+  const registerTool = pi.registerTool.bind(pi);
+  pi.registerTool = ((tool: any) => registerTool(withToolResultEnvelope(tool))) as typeof pi.registerTool;
   // ── focusa_scratch ──────────────────────────────────────────────────────
   // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
   // ALL working notes welcome: reasoning, task lists, hypotheses, dead ends,
