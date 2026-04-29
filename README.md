@@ -396,6 +396,56 @@ Start here:
 - `docs/89-focusa-tool-suite-improvement-hardening-spec.md` — current tool-suite hardening snapshot.
 - `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md` — released runtime proof.
 
+### Individual Focusa tool docs
+
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools.
+
+| Tool | Family | Doc |
+| --- | --- | --- |
+| `focusa_scratch` | Focus State | [`docs/focusa-tools/tools/focusa_scratch.md`](docs/focusa-tools/tools/focusa_scratch.md) |
+| `focusa_decide` | Focus State | [`docs/focusa-tools/tools/focusa_decide.md`](docs/focusa-tools/tools/focusa_decide.md) |
+| `focusa_constraint` | Focus State | [`docs/focusa-tools/tools/focusa_constraint.md`](docs/focusa-tools/tools/focusa_constraint.md) |
+| `focusa_failure` | Focus State | [`docs/focusa-tools/tools/focusa_failure.md`](docs/focusa-tools/tools/focusa_failure.md) |
+| `focusa_intent` | Focus State | [`docs/focusa-tools/tools/focusa_intent.md`](docs/focusa-tools/tools/focusa_intent.md) |
+| `focusa_current_focus` | Focus State | [`docs/focusa-tools/tools/focusa_current_focus.md`](docs/focusa-tools/tools/focusa_current_focus.md) |
+| `focusa_next_step` | Focus State | [`docs/focusa-tools/tools/focusa_next_step.md`](docs/focusa-tools/tools/focusa_next_step.md) |
+| `focusa_open_question` | Focus State | [`docs/focusa-tools/tools/focusa_open_question.md`](docs/focusa-tools/tools/focusa_open_question.md) |
+| `focusa_recent_result` | Focus State | [`docs/focusa-tools/tools/focusa_recent_result.md`](docs/focusa-tools/tools/focusa_recent_result.md) |
+| `focusa_note` | Focus State | [`docs/focusa-tools/tools/focusa_note.md`](docs/focusa-tools/tools/focusa_note.md) |
+| `focusa_work_loop_writer_status` | Work-loop | [`docs/focusa-tools/tools/focusa_work_loop_writer_status.md`](docs/focusa-tools/tools/focusa_work_loop_writer_status.md) |
+| `focusa_work_loop_status` | Work-loop | [`docs/focusa-tools/tools/focusa_work_loop_status.md`](docs/focusa-tools/tools/focusa_work_loop_status.md) |
+| `focusa_work_loop_control` | Work-loop | [`docs/focusa-tools/tools/focusa_work_loop_control.md`](docs/focusa-tools/tools/focusa_work_loop_control.md) |
+| `focusa_work_loop_context` | Work-loop | [`docs/focusa-tools/tools/focusa_work_loop_context.md`](docs/focusa-tools/tools/focusa_work_loop_context.md) |
+| `focusa_work_loop_checkpoint` | Work-loop | [`docs/focusa-tools/tools/focusa_work_loop_checkpoint.md`](docs/focusa-tools/tools/focusa_work_loop_checkpoint.md) |
+| `focusa_work_loop_select_next` | Work-loop | [`docs/focusa-tools/tools/focusa_work_loop_select_next.md`](docs/focusa-tools/tools/focusa_work_loop_select_next.md) |
+| `focusa_state_hygiene_doctor` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_doctor.md`](docs/focusa-tools/tools/focusa_state_hygiene_doctor.md) |
+| `focusa_state_hygiene_plan` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_plan.md`](docs/focusa-tools/tools/focusa_state_hygiene_plan.md) |
+| `focusa_state_hygiene_apply` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_apply.md`](docs/focusa-tools/tools/focusa_state_hygiene_apply.md) |
+| `focusa_tool_doctor` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_tool_doctor.md`](docs/focusa-tools/tools/focusa_tool_doctor.md) |
+| `focusa_active_object_resolve` | Workpoint | [`docs/focusa-tools/tools/focusa_active_object_resolve.md`](docs/focusa-tools/tools/focusa_active_object_resolve.md) |
+| `focusa_evidence_capture` | Workpoint | [`docs/focusa-tools/tools/focusa_evidence_capture.md`](docs/focusa-tools/tools/focusa_evidence_capture.md) |
+| `focusa_workpoint_checkpoint` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_checkpoint.md`](docs/focusa-tools/tools/focusa_workpoint_checkpoint.md) |
+| `focusa_workpoint_link_evidence` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_link_evidence.md`](docs/focusa-tools/tools/focusa_workpoint_link_evidence.md) |
+| `focusa_workpoint_resume` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_resume.md`](docs/focusa-tools/tools/focusa_workpoint_resume.md) |
+| `focusa_tree_head` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_head.md`](docs/focusa-tools/tools/focusa_tree_head.md) |
+| `focusa_tree_path` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_path.md`](docs/focusa-tools/tools/focusa_tree_path.md) |
+| `focusa_tree_snapshot_state` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_snapshot_state.md`](docs/focusa-tools/tools/focusa_tree_snapshot_state.md) |
+| `focusa_tree_restore_state` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_restore_state.md`](docs/focusa-tools/tools/focusa_tree_restore_state.md) |
+| `focusa_tree_diff_context` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_diff_context.md`](docs/focusa-tools/tools/focusa_tree_diff_context.md) |
+| `focusa_metacog_capture` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_capture.md`](docs/focusa-tools/tools/focusa_metacog_capture.md) |
+| `focusa_metacog_retrieve` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_retrieve.md`](docs/focusa-tools/tools/focusa_metacog_retrieve.md) |
+| `focusa_metacog_reflect` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_reflect.md`](docs/focusa-tools/tools/focusa_metacog_reflect.md) |
+| `focusa_metacog_plan_adjust` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_plan_adjust.md`](docs/focusa-tools/tools/focusa_metacog_plan_adjust.md) |
+| `focusa_metacog_evaluate_outcome` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md`](docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md) |
+| `focusa_tree_recent_snapshots` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_recent_snapshots.md`](docs/focusa-tools/tools/focusa_tree_recent_snapshots.md) |
+| `focusa_tree_snapshot_compare_latest` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md`](docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md) |
+| `focusa_metacog_recent_reflections` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_recent_reflections.md`](docs/focusa-tools/tools/focusa_metacog_recent_reflections.md) |
+| `focusa_metacog_recent_adjustments` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md`](docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md) |
+| `focusa_metacog_loop_run` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_loop_run.md`](docs/focusa-tools/tools/focusa_metacog_loop_run.md) |
+| `focusa_metacog_doctor` | Metacognition | [`docs/focusa-tools/tools/focusa_metacog_doctor.md`](docs/focusa-tools/tools/focusa_metacog_doctor.md) |
+| `focusa_lineage_tree` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_lineage_tree.md`](docs/focusa-tools/tools/focusa_lineage_tree.md) |
+| `focusa_li_tree_extract` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_li_tree_extract.md`](docs/focusa-tools/tools/focusa_li_tree_extract.md) |
+
 ### Focusa skills
 
 The main `focusa` skill is the router and mental model. Focused companion skills provide progressive-disclosure playbooks for high-value workflows:
