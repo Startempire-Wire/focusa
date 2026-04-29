@@ -43,6 +43,19 @@ for (const dir of ['/root/.pi/skills','/home/wirebot/focusa/apps/pi-extension/sk
 NODE
 ```
 
+## Companion skills
+
+The main `focusa` skill is the router/mental model. Load focused companion skills for deeper playbooks:
+
+- `/skill:focusa-workpoint` — Workpoint checkpoint/resume/evidence/drift workflows.
+- `/skill:focusa-metacognition` — reusable learning, reflection, adjustments, evaluation.
+- `/skill:focusa-work-loop` — continuous work-loop writer/status/control workflows.
+- `/skill:focusa-cli-api` — direct daemon/CLI/API release proof and troubleshooting.
+- `/skill:focusa-troubleshooting` — offline/degraded/pending/blocked recovery.
+- `/skill:focusa-docs-maintenance` — public docs, skill docs, evidence, snapshot wording.
+
+Focused tool docs live under `docs/focusa-tools/README.md`.
+
 ## Best-practice principles
 
 Research/docs basis:

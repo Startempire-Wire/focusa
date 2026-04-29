@@ -106,6 +106,18 @@ This is **institutional intelligence**, not novelty AI.
 
 ---
 
+## Focused tool and skill docs
+
+- [focusa-tools/README.md](focusa-tools/README.md) — index for all current `focusa_*` tool family docs.
+- [focusa-tools/workpoint.md](focusa-tools/workpoint.md) — Workpoint continuity tools.
+- [focusa-tools/focus-state.md](focusa-tools/focus-state.md) — Focus State and scratchpad tools.
+- [focusa-tools/work-loop.md](focusa-tools/work-loop.md) — continuous work-loop tools.
+- [focusa-tools/metacognition.md](focusa-tools/metacognition.md) — metacognition tools.
+- [focusa-tools/tree-lineage.md](focusa-tools/tree-lineage.md) — tree, lineage, snapshot tools.
+- [focusa-tools/diagnostics-hygiene.md](focusa-tools/diagnostics-hygiene.md) — troubleshooting and state hygiene tools.
+
+Companion Pi skills mirror these docs: `focusa-workpoint`, `focusa-metacognition`, `focusa-work-loop`, `focusa-cli-api`, `focusa-troubleshooting`, and `focusa-docs-maintenance`.
+
 ## Status
 
 Focusa is under active development.

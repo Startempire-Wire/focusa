@@ -384,11 +384,29 @@ DIRECT_REAL_RELEASE_PROOF=PASS
 Start here:
 
 - `docs/README.md` — documentation index for the current snapshot.
+- `docs/focusa-tools/README.md` — focused docs for every current `focusa_*` tool family, with tool descriptions and examples.
+- `docs/focusa-tools/workpoint.md` — Workpoint checkpoint/resume/evidence/object-resolution tools.
+- `docs/focusa-tools/focus-state.md` — Focus State and scratchpad tools.
+- `docs/focusa-tools/work-loop.md` — continuous work-loop writer/status/control tools.
+- `docs/focusa-tools/metacognition.md` — metacog capture/retrieve/reflect/adjust/evaluate tools.
+- `docs/focusa-tools/tree-lineage.md` — lineage, tree, snapshot, diff, restore, and LI extraction tools.
+- `docs/focusa-tools/diagnostics-hygiene.md` — tool doctor and state hygiene tools.
 - `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md` — when to use each hardened Focusa tool.
 - `docs/88-ontology-backed-workpoint-continuity.md` — Workpoint continuity design.
 - `docs/89-focusa-tool-suite-improvement-hardening-spec.md` — current tool-suite hardening snapshot.
 - `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md` — released runtime proof.
-- `apps/pi-extension/skills/focusa/SKILL.md` — current Focusa skill text.
+
+### Focusa skills
+
+The main `focusa` skill is the router and mental model. Focused companion skills provide progressive-disclosure playbooks for high-value workflows:
+
+- `.pi/skills/focusa/SKILL.md` / `apps/pi-extension/skills/focusa/SKILL.md` — main Focusa router skill.
+- `.pi/skills/focusa-workpoint/SKILL.md` — Workpoint recovery, evidence linking, drift-safe handoff.
+- `.pi/skills/focusa-metacognition/SKILL.md` — reusable learning and quality-gated reflection.
+- `.pi/skills/focusa-work-loop/SKILL.md` — continuous work-loop ownership/control.
+- `.pi/skills/focusa-cli-api/SKILL.md` — daemon, CLI, API, release-proof operations.
+- `.pi/skills/focusa-troubleshooting/SKILL.md` — degraded/offline/pending/blocked recovery.
+- `.pi/skills/focusa-docs-maintenance/SKILL.md` — public docs, skills, evidence, and snapshot wording.
 
 ---
 
