@@ -2,6 +2,12 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — daemon resilience and Pi holdover
+
+- Hardened live `focusa-daemon` systemd restart policy with `Restart=always`, `RestartSec=1`, and disabled start-limit throttling.
+- Added Pi extension in-session holdover/kickstart: tools remain available, daemon start/restart is attempted automatically, health probes accelerate, and SSE/state reconciliation resumes when daemon returns.
+- Added `docs/current/DAEMON_RESILIENCE.md`.
+
 ## Unreleased — Spec92 agent status command
 
 - Added `focusa status --agent` with live Workpoint, Work-loop, token-budget, cache, and daemon status envelope.

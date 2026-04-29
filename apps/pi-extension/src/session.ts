@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -298,25 +298,23 @@ export function registerSession(pi: ExtensionAPI) {
         await checkFocusa();
 
         if (!S.focusaAvailable && !outageMode && S.healthFailCount >= offlineWarnThreshold) {
-          // Confirmed outage (not single blip) — disable tools, disconnect SSE
-          const active = pi.getActiveTools();
-          const filtered = active.filter((t: any) =>
-            !["focusa_decide", "focusa_constraint", "focusa_failure"].includes(typeof t === "string" ? t : t.name));
-          pi.setActiveTools(filtered.map((t: any) => typeof t === "string" ? t : t.name));
-          ctx.ui.setStatus("focusa", "📡 Focusa offline");
-          ctx.ui.notify(`Focusa daemon went offline (${S.healthFailCount} consecutive health check failures) — tools disabled`, "warning");
+          // Confirmed outage (not single blip) — preserve tool availability, enter holdover, and kickstart daemon.
+          ctx.ui.setStatus("focusa", "🛟 Focusa holdover · restarting");
+          ctx.ui.notify(`Focusa daemon unavailable (${S.healthFailCount} checks) — holdover active; kickstarting daemon without restarting session`, "warning");
           if (sseAbort) { sseAbort.abort(); sseAbort = null; }
           outageMode = true;
+          const recovered = await kickstartFocusaDaemon("session_health_check");
+          if (recovered) {
+            await checkFocusa();
+            ctx.ui.notify("Focusa daemon kickstarted — session preserved", "info");
+          }
+        } else if (!S.focusaAvailable && outageMode) {
+          ctx.ui.setStatus("focusa", "🛟 Focusa holdover · retrying");
+          await kickstartFocusaDaemon("session_health_retry");
         } else if (S.focusaAvailable && outageMode) {
-          // Came back — re-enable tools, reconnect SSE
-          const all = pi.getAllTools();
-          const active = pi.getActiveTools();
-          const focusaTools = all.filter((t: any) =>
-            ["focusa_decide", "focusa_constraint", "focusa_failure"].includes(t.name));
-          const names = [...new Set([...active.map((t: any) => typeof t === "string" ? t : t.name), ...focusaTools.map((t: any) => t.name)])];
-          pi.setActiveTools(names);
+          // Came back — reconnect SSE and reconcile holdover state; tools were never disabled.
           ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
-          ctx.ui.notify("Focusa daemon reconnected — tools re-enabled", "info");
+          ctx.ui.notify("Focusa daemon reconnected — holdover reconciled; session preserved", "info");
           await ensureActiveFrame(ctx);
           connectSSE();
 

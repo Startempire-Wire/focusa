@@ -24,6 +24,11 @@ export interface FocusaConfig {
   externalizeThresholdTokens: number;
   focusaApiBaseUrl: string;
   focusaApiTimeoutMs: number;
+  daemonAutoRestart: boolean;
+  daemonRestartCommand: string;
+  daemonRestartCooldownMs: number;
+  daemonRestartMaxPerHour: number;
+  daemonRecoveryProbeMs: number;
   fallbackMode: "passthrough" | "local-compact" | "disabled";
   emitMetrics: boolean;
   autoSuggestForkPct: number;
@@ -77,6 +82,11 @@ const DEFAULTS: FocusaConfig = {
   externalizeThresholdTokens: 800,
   focusaApiBaseUrl: "http://127.0.0.1:8787/v1",
   focusaApiTimeoutMs: 5000,
+  daemonAutoRestart: true,
+  daemonRestartCommand: "systemctl start focusa-daemon || systemctl restart focusa-daemon",
+  daemonRestartCooldownMs: 5_000,
+  daemonRestartMaxPerHour: 20,
+  daemonRecoveryProbeMs: 750,
   fallbackMode: "passthrough",
   emitMetrics: true,
   autoSuggestForkPct: 90,

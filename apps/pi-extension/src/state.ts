@@ -159,6 +159,9 @@ export const S = {
   footerSyncInterval: null as ReturnType<typeof setInterval> | null,
   healthBackoffMs: 30_000,     // §11 exponential backoff
   healthFailCount: 0,
+  daemonRestartAttempts: [] as number[],
+  daemonRestartInFlight: null as Promise<boolean> | null,
+  daemonHoldoverMode: false,
   // Outage audit (§11)
   outageStart: null as number | null,
   // §30 metacognitive indicators
@@ -754,6 +757,44 @@ export function buildSliceSection(
 }
 
 // ── Health check (§38.3, §11 backoff) ────────────────────────────────────────
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function kickstartFocusaDaemon(reason = "health_check"): Promise<boolean> {
+  if (!S.cfg?.daemonAutoRestart || !S.pi) return false;
+  if (S.daemonRestartInFlight) return S.daemonRestartInFlight;
+  const now = Date.now();
+  const hourAgo = now - 3_600_000;
+  S.daemonRestartAttempts = S.daemonRestartAttempts.filter((t) => t >= hourAgo);
+  if (S.daemonRestartAttempts.length >= (S.cfg.daemonRestartMaxPerHour || 20)) return false;
+  const last = S.daemonRestartAttempts[S.daemonRestartAttempts.length - 1] || 0;
+  if (now - last < (S.cfg.daemonRestartCooldownMs || 5_000)) return false;
+
+  S.daemonRestartAttempts.push(now);
+  const cmd = S.cfg.daemonRestartCommand || "systemctl start focusa-daemon || systemctl restart focusa-daemon";
+  S.daemonRestartInFlight = (async () => {
+    try {
+      await S.pi!.exec("bash", ["-lc", cmd]);
+      for (let i = 0; i < 12; i++) {
+        await sleep(S.cfg?.daemonRecoveryProbeMs || 750);
+        const h = await focusaFetch("/health");
+        if (h?.ok === true) return true;
+      }
+    } catch {
+      return false;
+    } finally {
+      S.daemonRestartInFlight = null;
+    }
+    return false;
+  })();
+  const ok = await S.daemonRestartInFlight;
+  if (ok) {
+    focusaPost("/telemetry/ops", { event: "daemon_kickstart_recovered", surface: "pi", reason });
+  }
+  return ok;
+}
+
 export async function checkFocusa(): Promise<boolean> {
   const h = await focusaFetch("/health");
   const status = h?.ok === true ? null : await focusaFetch("/status");
@@ -763,6 +804,7 @@ export async function checkFocusa(): Promise<boolean> {
   if (S.focusaAvailable) {
     S.healthFailCount = 0;
     S.healthBackoffMs = 30_000;
+    S.daemonHoldoverMode = false;
     // §11: Outage recovery — record audit event
     if (!wasAvailable && S.outageStart) {
       const durationMs = Date.now() - S.outageStart;
@@ -776,8 +818,9 @@ export async function checkFocusa(): Promise<boolean> {
     }
   } else {
     S.healthFailCount++;
-    // §11: Exponential backoff (30s → 60s → 120s → max 300s)
-    S.healthBackoffMs = Math.min(30_000 * Math.pow(2, S.healthFailCount - 1), 300_000);
+    S.daemonHoldoverMode = true;
+    // During daemon outage, probe quickly enough to recover inside the same Pi session.
+    S.healthBackoffMs = Math.min(1_000 * Math.pow(2, Math.min(S.healthFailCount - 1, 4)), 15_000);
     // §11: Record outage start
     if (wasAvailable && !S.outageStart) {
       S.outageStart = Date.now();
