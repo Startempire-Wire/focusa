@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Intelligent compaction fallbacks
+
+- Replaced bare `none` Focusa compaction summary fields with Workpoint/current-ask/frame/local-shadow/session fallback hydration.
+- Added `scripts/validate-compaction-fallbacks.mjs` guard and `docs/current/COMPACTION_FALLBACKS.md`.
+
 ## Unreleased — Spec92 full rollout proof
 
 - Recorded full Spec92 rollout evidence in `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`.

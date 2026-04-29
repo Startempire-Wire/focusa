@@ -504,3 +504,5 @@ Part of the Startempire Wire ecosystem.
 - [focusa_predict_stats](docs/focusa-tools/tools/focusa_predict_stats.md)
 
 - [Workpoint Session Scope Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)
+
+- [Compaction Fallbacks](docs/current/COMPACTION_FALLBACKS.md)

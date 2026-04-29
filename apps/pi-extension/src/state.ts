@@ -1064,7 +1064,18 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
 // ── Build compact instructions with local shadow (§33.10) ────────────────────
 export function buildCompactInstructions(prefix: string): string {
   const base = S.cfg?.compactInstructions || "Preserve intent, decisions, constraints, next_steps, failures.";
-  const parts = [prefix, "\n" + base];
+  const workpoint = S.activeWorkpointPacket || {};
+  const mission = String(workpoint?.mission || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle || "").trim();
+  const nextSlice = String(workpoint?.next_slice || S.lastCompactDecision || "").trim();
+  const projectRoot = String(workpoint?.project_root || S.sessionCwd || "").trim();
+  const parts = [
+    prefix,
+    "\n" + base,
+    "\nFallback policy: never emit bare 'none' for Focusa Cognitive Summary fields. If a slot is empty, fill it with the nearest related canonical source: Workpoint mission/next_slice/project_root/session_id, current operator ask, active frame goal/title, local shadow decisions/constraints/failures, git/beads/evidence mentioned in the conversation. If no related source exists, say 'No recorded <field>; no safe related fallback available.'",
+  ];
+  if (mission) parts.push(`Fallback Mission:\n- ${mission}`);
+  if (nextSlice) parts.push(`Fallback Next Step:\n- ${nextSlice}`);
+  if (projectRoot) parts.push(`Fallback Scope:\n- project_root:${projectRoot}`);
   if (S.localDecisions.length) parts.push(`Decisions:\n${S.localDecisions.map(d => `- ${d}`).join("\n")}`);
   if (S.localConstraints.length) parts.push(`Constraints:\n${S.localConstraints.map(c => `- ${c}`).join("\n")}`);
   if (S.localFailures.length) parts.push(`Failures:\n${S.localFailures.map(f => `- ${f}`).join("\n")}`);

@@ -19,6 +19,66 @@ function normalizeCompactionArtifacts(files: any[]): Array<{ kind: "file"; label
     .map((file) => ({ kind: "file" as const, label: basename(file), path_or_id: file }));
 }
 
+function compactLines(values: any, mapper?: (value: any) => string): string[] {
+  return (Array.isArray(values) ? values : [])
+    .map((value) => mapper ? mapper(value) : String(value || "").trim())
+    .filter(Boolean);
+}
+
+function packetField(packet: any, key: string): string {
+  return String(packet?.[key] || "").trim();
+}
+
+function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
+  const packet = workpointPacket?.resume_packet || S.activeWorkpointPacket || {};
+  const rendered = String(workpointPacket?.rendered_summary || S.activeWorkpointSummary || "").trim();
+  const mission = packetField(packet, "mission") || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle;
+  const nextSlice = packetField(packet, "next_slice") || S.currentAsk?.text || S.lastCompactDecision;
+  const currentFocus = fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || mission;
+  const decisions = compactLines(fs?.decisions).concat(S.localDecisions.slice(-5)).filter((v, i, a) => a.indexOf(v) === i);
+  const constraints = compactLines(fs?.constraints).concat(S.localConstraints.slice(-5)).filter((v, i, a) => a.indexOf(v) === i);
+  const failures = compactLines(sanitizeFocusFailures(fs?.failures || [])).concat(sanitizeFocusFailures(S.localFailures).slice(-3)).filter((v, i, a) => a.indexOf(v) === i);
+  const nextSteps = compactLines(fs?.next_steps);
+  if (nextSlice) nextSteps.unshift(`Continue from Workpoint next_slice: ${nextSlice}`);
+  const blockers = compactLines(packet?.blockers, (b) => String(b?.reason || b || "").trim());
+  const openQuestions = compactLines(fs?.open_questions);
+  const recentResults = compactLines(fs?.recent_results);
+  compactLines(packet?.verification_records, (r) => String(r?.result || r?.evidence_ref || "").trim()).forEach((r) => recentResults.push(`Verified evidence: ${r}`));
+  if (packetField(packet, "workpoint_id")) recentResults.push(`Canonical Workpoint available: ${packetField(packet, "workpoint_id")}`);
+  const artifactLines = compactLines(fs?.artifacts, (a) => `${a?.kind || "artifact"}:${a?.label || a?.path_or_id || "unlabeled"}${a?.path_or_id ? "@" + a.path_or_id : ""}`);
+  compactLines(packet?.active_object_refs).forEach((ref) => artifactLines.push(`active_object:${ref}`));
+  if (packetField(packet, "project_root")) artifactLines.push(`project_root:${packetField(packet, "project_root")}`);
+  if (packetField(packet, "session_id")) artifactLines.push(`session_id:${packetField(packet, "session_id")}`);
+  const notes = compactLines(fs?.notes);
+  if (!decisions.length && mission) decisions.push(`Continuation anchored to mission: ${mission}`);
+  if (!constraints.length && packetField(packet, "project_root")) constraints.push(`Resume scope is bound to project_root ${packetField(packet, "project_root")}`);
+  if (!openQuestions.length) openQuestions.push("No open questions recorded by Focusa or Workpoint.");
+  if (!blockers.length) blockers.push("No open blockers recorded by Focusa or Workpoint.");
+  if (!failures.length) failures.push("No active failure records in Focusa state.");
+  if (!notes.length && rendered) notes.push(`Workpoint summary: ${rendered}`);
+  const bullet = (items: string[]) => items.length ? items.slice(0, 12).map((x) => `- ${x}`).join("\n") : "- Not populated by Focusa; no safe related fallback available.";
+  const workpointSection = (rendered || Object.keys(packet).length) ? [
+    "# Workpoint Resume Packet",
+    rendered || `WORKPOINT ${packetField(packet, "workpoint_id") || "active"}: mission=${mission || "available"}`,
+    JSON.stringify(packet, null, 2).slice(0, 4000),
+    "",
+  ].join("\n") : "";
+  return [
+    workpointSection,
+    "# Focusa Cognitive Summary",
+    `## Intent\n${fs?.intent || mission || S.currentAsk?.text || "Continue current operator-directed work."}`,
+    `## Current Focus\n${currentFocus || "Continue current operator-directed work."}`,
+    `## Decisions Made\n${bullet(decisions)}`,
+    `## Active Constraints\n${bullet(constraints)}`,
+    `## Failures Encountered\n${bullet(failures)}`,
+    `## Next Steps\n${bullet(nextSteps.length ? nextSteps : ["Continue with the next bounded action from the canonical Workpoint/current operator ask."])}`,
+    `## Open Questions\n${bullet(openQuestions)}`,
+    `## Recent Results\n${bullet(recentResults.length ? recentResults : ["No recent_results slot entries; use Workpoint packet, git/beads, and evidence docs as the related fallback source."])}`,
+    `## Artifacts\n${bullet(artifactLines.length ? artifactLines : ["No artifact slot entries; use active project root and Workpoint refs as fallback anchors."])}`,
+    `## Notes\n${bullet(notes.length ? notes : ["Fallback summary hydrated from Workpoint, Focus State shadow, current ask, and session metadata."])}`,
+  ].join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
@@ -168,25 +228,7 @@ export function registerCompaction(pi: ExtensionAPI) {
         const ascc = await focusaFetch("/ascc/state");
         if (ascc?.focus_state) {
           const fs = ascc.focus_state;
-          const workpointSection = workpointPacket ? [
-            "# Workpoint Resume Packet",
-            workpointPacket.rendered_summary || S.activeWorkpointSummary || "active workpoint packet available",
-            JSON.stringify(workpointPacket.resume_packet || S.activeWorkpointPacket || {}, null, 2).slice(0, 4000),
-          ].join("\n\n") : "";
-          const summary = [
-            workpointSection,
-            "# Focusa Cognitive Summary",
-            `## Intent\n${fs.intent || "none"}`,
-            `## Current Focus\n${fs.current_focus || fs.current_state || "none"}`,
-            `## Decisions Made\n${(fs.decisions || []).map((d: string) => `- ${d}`).join("\n") || "none"}`,
-            `## Active Constraints\n${(fs.constraints || []).map((c: string) => `- ${c}`).join("\n") || "none"}`,
-            `## Failures Encountered\n${sanitizeFocusFailures(fs.failures || []).map((f: string) => `- ${f}`).join("\n") || "none"}`,
-            `## Next Steps\n${(fs.next_steps || []).map((n: string) => `- ${n}`).join("\n") || "none"}`,
-            `## Open Questions\n${(fs.open_questions || []).map((q: string) => `- ${q}`).join("\n") || "none"}`,
-            `## Recent Results\n${(fs.recent_results || []).map((r: string) => `- ${r}`).join("\n") || "none"}`,
-            `## Artifacts\n${(fs.artifacts || []).map((a: any) => `- ${a.kind}:${a.label}${a.path_or_id ? "@" + a.path_or_id : ""}`).join("\n") || "none"}`,
-            `## Notes\n${(fs.notes || []).map((n: string) => `- ${n}`).join("\n") || "none"}`,
-          ].join("\n\n");
+          const summary = buildCompactionFallbackSummary(fs, workpointPacket);
           const ev = event as any;
           return {
             compaction: {
@@ -280,7 +322,7 @@ export function registerCompaction(pi: ExtensionAPI) {
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
 ## WorkpointResumePacket
-${S.activeWorkpointSummary || "none"}
+${S.activeWorkpointSummary || (S.activeWorkpointPacket?.mission ? `WORKPOINT active: mission=${S.activeWorkpointPacket.mission}` : "No Workpoint packet recorded; continue from Last Active Focus and latest operator instruction.")}
 ${S.activeWorkpointPacket ? JSON.stringify(S.activeWorkpointPacket, null, 2).slice(0, 4000) : ""}
 ## Directive
 ${directive}

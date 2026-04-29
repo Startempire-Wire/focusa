@@ -387,3 +387,5 @@ The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelop
 - [focusa_predict_stats](focusa-tools/tools/focusa_predict_stats.md)
 
 - [Workpoint Session Scope Guard](current/WORKPOINT_SESSION_SCOPE_GUARD.md)
+
+- [Compaction Fallbacks](current/COMPACTION_FALLBACKS.md)
