@@ -127,6 +127,10 @@ enum Commands {
     #[command(subcommand)]
     Proposals(commands::proposals::ProposalCmd),
 
+    /// Prediction loop commands.
+    #[command(subcommand)]
+    Predict(commands::predict::PredictCmd),
+
     /// Reflection loop overlay.
     #[command(subcommand)]
     Reflect(commands::reflection::ReflectionCmd),
@@ -419,6 +423,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await,
         Commands::Release(cmd) => commands::release::run(cmd, cli.json).await,
         Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await,
+        Commands::Predict(cmd) => commands::predict::run(cmd, cli.json).await,
         Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await,
         Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,
         Commands::Ontology(cmd) => commands::ontology::run(cmd, cli.json).await,

@@ -23,6 +23,7 @@ pub mod memory;
 pub mod metacognition;
 pub mod ontology;
 pub mod permissions;
+pub mod predictions;
 pub mod proposals;
 pub mod proxy;
 pub mod reflection;

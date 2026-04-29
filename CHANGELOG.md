@@ -2,6 +2,12 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 prediction loop
+
+- Added prediction record, recent, evaluate, and stats API under `/v1/predictions*`.
+- Added `focusa predict record/recent/evaluate/stats`.
+- Added `docs/current/PREDICTIVE_POWER_GUIDE.md`.
+
 ## Unreleased — Spec92 Mac mission control
 
 - Added Mac app Mission tab with live daemon, Workpoint, Work-loop, tool-contract, token, cache, release, and recovery cards.

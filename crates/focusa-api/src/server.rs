@@ -20,7 +20,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};use tokio::process::{Child, ChildStdin};
+use std::time::{Duration, Instant};
+use tokio::process::{Child, ChildStdin};
 use tokio::sync::RwLock as TokioRwLock;
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 use uuid::Uuid;
@@ -131,6 +132,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::trust::router())
         .merge(routes::threads::router())
         .merge(routes::proposals::router())
+        .merge(routes::predictions::router())
         .merge(routes::rfm::router())
         .merge(routes::reflection::router())
         .merge(routes::skills::router())
@@ -557,8 +559,7 @@ pub async fn run(
 mod tests {
     use super::{
         dispatch_error_suggests_transport_recovery, scheduler_base_url,
-        should_auto_reenable_continuous, supervisor_allows_pi_driver,
-        was_explicit_operator_stop,
+        should_auto_reenable_continuous, supervisor_allows_pi_driver, was_explicit_operator_stop,
     };
     use focusa_core::types::WorkLoopStatus;
 

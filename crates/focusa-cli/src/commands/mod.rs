@@ -17,6 +17,7 @@ pub mod lineage;
 pub mod memory;
 pub mod metacognition;
 pub mod ontology;
+pub mod predict;
 pub mod proposals;
 pub mod reflection;
 pub mod release;
