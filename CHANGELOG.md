@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Non-Pi agent awareness spec
+
+- Added Spec93 and current usage docs for Focusa awareness outside Pi, explicitly including OpenClaw/oprnclaw Wirebot, Claude Code, OpenCode, and Letta.
+- Added `scripts/validate-non-pi-agent-awareness.mjs` guard.
+
 ## Unreleased — Skill reload hygiene
 
 - Fixed predictive-power skill frontmatter and documented that stale `~/apps/pi-extension/skills` compatibility path must be an empty directory, not a symlink to repo skills, to avoid Pi skill collisions.
