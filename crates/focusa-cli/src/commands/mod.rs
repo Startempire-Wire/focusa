@@ -2,6 +2,7 @@ pub mod autonomy;
 pub mod cache;
 pub mod clt;
 pub mod constitution;
+pub mod continue_work;
 pub mod contribute;
 pub mod daemon;
 pub mod debug;

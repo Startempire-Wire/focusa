@@ -45,8 +45,11 @@ enum Commands {
     /// Show daemon status.
     Status,
 
-    /// Run minimal agent-first doctor checks.
+    /// Run full agent-first doctor checks.
     Doctor,
+
+    /// Resume governed continuous work and refresh state.
+    Continue(commands::continue_work::ContinueArgs),
 
     /// Focus stack operations.
     #[command(subcommand)]
@@ -263,6 +266,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Doctor => commands::doctor::run(cli.json).await,
+        Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/focus/stack").await?;

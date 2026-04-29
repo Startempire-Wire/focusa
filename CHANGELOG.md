@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 continue command
+
+- Added full `focusa continue` command with work-loop writer governance, optional next-work selection, optional enable, Workpoint/Work-loop refresh, and standard Spec92 envelopes.
+- Added `docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md`.
+
 ## Unreleased — Spec92 full doctor command center
 
 - Added full `focusa doctor` command-center checks plus standard Spec92 output envelope; expanded token-budget visibility with `focusa tokens doctor` and `focusa tokens compact-plan`.
