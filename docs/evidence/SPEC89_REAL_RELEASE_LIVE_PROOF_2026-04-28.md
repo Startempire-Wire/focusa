@@ -5,10 +5,11 @@ Operator requirement: release must be installed and proven against the real daem
 ## Released artifact
 
 - Commit at release proof start: `860d961`
+- Final released commit after live fixes: `dd39dad`
 - Installed daemon path: `/home/wirebot/focusa/target/release/focusa-daemon`
 - Installed CLI path: `/home/wirebot/focusa/target/release/focusa`
 - Running service executable: `/home/wirebot/focusa/target/release/focusa-daemon`
-- Final daemon mtime: `2026-04-28 17:21:42 -0700`
+- Final daemon mtime after rebuild from `dd39dad`: `2026-04-28 17:23:31 -0700`
 - Final daemon size: `23220160`
 - Owner: `wirebot:wirebot`
 - Health: `{"ok":true,"version":"0.1.0"}`
