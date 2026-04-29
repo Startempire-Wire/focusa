@@ -11,6 +11,9 @@ Commands:
   start          Start the Focusa daemon
   stop           Stop the Focusa daemon
   status         Show daemon status
+  doctor         Run full agent-first doctor checks
+  cleanup        Recoverable cleanup of generated residue
+  continue       Resume governed continuous work and refresh state
   focus          Focus stack operations
   stack          Show focus stack overview
   gate           Focus Gate (candidate management)
@@ -26,7 +29,9 @@ Commands:
   constitution   Agent Constitution
   telemetry      Cognitive telemetry
   rfm            Reliability Focus Mode
+  release        Release proof orchestration
   proposals      Proposal Resolution Engine
+  predict        Prediction loop commands
   reflect        Reflection loop overlay
   metacognition  Metacognition command domain
   ontology       Ontology projections and vocab surfaces
@@ -49,16 +54,31 @@ Options:
   -V, --version          Print version
 ```
 
+## Current agent-first command groups
+
+- `doctor` — full agent-first health/readiness check.
+- `continue` — governed continuous-work resume and state refresh.
+- `release prove` — safe release proof orchestration, including optional GitHub release verification.
+- `cleanup --safe` — recoverable cleanup of generated residue.
+- `predict` — bounded prediction record/evaluate/recent/stats loop.
+- `tokens` and `cache` — token-budget and cache-metadata operational visibility.
+- `workpoint` — checkpoint/current/resume continuity operations.
+
 ## Common examples
 
 ```bash
-focusa status
-focusa workpoint current
-focusa workpoint resume
-focusa ontology primitives
-focusa ontology world
-focusa metacognition --help
-focusa tokens --help
+focusa status --agent
+focusa doctor --json
+focusa continue --json
+focusa release prove --tag v0.9.11-dev --fast --github --json
+focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence"
+focusa predict recent --limit 20
+focusa predict evaluate <prediction_id> --actual-outcome completed --score 1.0
+focusa predict stats
+focusa tokens doctor
+focusa cache doctor
+focusa workpoint current --json
+focusa workpoint resume --json
 ```
 
 Use `--json` for machine-readable output where supported.

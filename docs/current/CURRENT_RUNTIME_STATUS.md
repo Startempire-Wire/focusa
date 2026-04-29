@@ -1,7 +1,7 @@
 # Current Runtime Status
 
-**Snapshot:** `v0.9.10-dev`  
-**Repo head when written:** `5c20dfa`  
+**Snapshot:** `v0.9.11-dev`  
+**Repo head when written:** `5e4f284`  
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
@@ -9,7 +9,7 @@
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
-- Pi extension under `apps/pi-extension` exposing 43 current `focusa_*` tools.
+- Pi extension under `apps/pi-extension` exposing 47 current `focusa_*` tools.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `/root/.pi/skills/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor.
@@ -17,6 +17,10 @@
 - Tree/lineage/snapshot tools and lineage API surfaces.
 - Focus State bounded write tools and scratchpad separation.
 - State hygiene doctor/plan/apply surfaces; apply is approval-gated and non-destructive in the current build.
+- Agent-first polish surfaces: `focusa doctor`, `focusa status --agent`, `focusa continue`, `focusa release prove`, `focusa cleanup --safe`, token/cache doctors, hook telemetry, and error-empty recovery envelopes.
+- Prediction loop API/CLI/Pi tools for bounded record/recent/evaluate/stats workflows.
+- Workpoint session scope guard: checkpoint/resume packets carry `project_root`/`session_id` and reject cross-project resume packets with `rejected_scope_mismatch`.
+- Pi replacement compaction uses intelligent related fallbacks instead of bare `none` fields.
 
 ## Current proof files
 
@@ -26,6 +30,10 @@
 - `docs/evidence/SPEC90_INITIAL_IMPLEMENTATION_2026-04-28.md`
 - `docs/evidence/SPEC91_LIVE_TOOL_CONTRACT_PROOF_2026-04-28.md`
 - `docs/evidence/PRODUCTION_RELEASE_MAC_APP_GITHUB_FIX_2026-04-28.md`
+- `docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md`
+- `docs/current/PREDICTIVE_POWER_GUIDE.md`
+- `docs/current/COMPACTION_FALLBACKS.md`
+- `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
 
 ## Current verification commands
 

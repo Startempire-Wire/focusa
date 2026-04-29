@@ -2,6 +2,12 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Public docs polish/prediction sweep
+
+- Updated public README/docs snapshot language to `v0.9.11-dev` and documented Spec92 polish, prediction loop, Workpoint scope guard, daemon/CLI/API freshness, and compaction fallbacks.
+- Regenerated current CLI/API references and added predictive-power tool index coverage for all 47 Pi tools.
+- Documented skill path hygiene for stale `~/apps/pi-extension/skills` reload warnings.
+
 ## Unreleased — Intelligent compaction fallbacks
 
 - Replaced bare `none` Focusa compaction summary fields with Workpoint/current-ask/frame/local-shadow/session fallback hydration.

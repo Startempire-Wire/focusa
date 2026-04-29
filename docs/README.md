@@ -121,12 +121,15 @@ This is **institutional intelligence**, not novelty AI.
 - [current/PRODUCTION_RELEASE_COMMANDS.md](current/PRODUCTION_RELEASE_COMMANDS.md) — release, restart, GitHub proof, and cleanup commands.
 - [92-agent-first-polish-hooks-efficiency-spec.md](92-agent-first-polish-hooks-efficiency-spec.md) — agent-first polish, hooks, token/cache UX, and predictive-power spec.
 - [current/HOOK_COVERAGE.md](current/HOOK_COVERAGE.md) — current Pi hook coverage and Spec92 hook telemetry commands.
-- [current/EFFICIENCY_GUIDE.md](current/EFFICIENCY_GUIDE.md) — current token-budget telemetry and planned cache metadata commands.
+- [current/EFFICIENCY_GUIDE.md](current/EFFICIENCY_GUIDE.md) — current token-budget telemetry and cache metadata commands.
 - [current/DOCTOR_CONTINUE_RELEASE_PROVE.md](current/DOCTOR_CONTINUE_RELEASE_PROVE.md) — current doctor/continue command-center usage and envelopes.
 - [current/DAEMON_RESILIENCE.md](current/DAEMON_RESILIENCE.md) — live daemon restart hardening and Pi in-session holdover/kickstart behavior.
 - [current/ERROR_EMPTY_STATES.md](current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
 - [current/MAC_APP_MISSION_CONTROL.md](current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
 - [current/PREDICTIVE_POWER_GUIDE.md](current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
+- [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
+- [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
+- [current/WORKPOINT_SESSION_SCOPE_GUARD.md](current/WORKPOINT_SESSION_SCOPE_GUARD.md) — project/session-bound Workpoint resume guard.
 - [current/AGENT_COMMAND_COOKBOOK.md](current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
@@ -142,13 +145,14 @@ This is **institutional intelligence**, not novelty AI.
 - [focusa-tools/metacognition.md](focusa-tools/metacognition.md) — metacognition tools.
 - [focusa-tools/tree-lineage.md](focusa-tools/tree-lineage.md) — tree, lineage, snapshot tools.
 - [focusa-tools/diagnostics-hygiene.md](focusa-tools/diagnostics-hygiene.md) — troubleshooting and state hygiene tools.
+- [focusa-tools/predictive-power.md](focusa-tools/predictive-power.md) — prediction record/evaluate/stats tools.
 
-Companion Pi skills mirror these docs: `focusa-workpoint`, `focusa-metacognition`, `focusa-work-loop`, `focusa-cli-api`, `focusa-troubleshooting`, and `focusa-docs-maintenance`.
+Companion Pi skills mirror these docs: `focusa-workpoint`, `focusa-metacognition`, `focusa-work-loop`, `focusa-cli-api`, `focusa-troubleshooting`, `focusa-docs-maintenance`, and `predictive-power`.
 
 ## Status
 
 Focusa is under active development.
-The current `v0.9.0-dev` snapshot focuses on correctness, transparency, continuity, and live proof over marketing claims.
+The current `v0.9.11-dev` snapshot focuses on correctness, transparency, continuity, prediction accountability, compaction recovery, and live proof over marketing claims.
 
 ---
 
@@ -368,9 +372,9 @@ Focusa uses **Beads** as the authoritative system of record for tasks and long-t
 
 ## Status
 
-🚧 **Current snapshot: v0.9.0-dev**
+🚧 **Current snapshot: v0.9.11-dev**
 
-The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition surfaces, state hygiene tools, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
+The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition surfaces, prediction loop, agent-first polish commands, compaction fallbacks, Workpoint scope guard, state hygiene tools, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
 
 ---
 
@@ -378,14 +382,12 @@ The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelop
 
 > **Focusa preserves continuity of mind across long AI sessions by separating focus, memory, and expression from fragile conversation history.**
 
+## Prediction tool docs
+
 - [focusa_predict_record](focusa-tools/tools/focusa_predict_record.md)
-
 - [focusa_predict_recent](focusa-tools/tools/focusa_predict_recent.md)
-
 - [focusa_predict_evaluate](focusa-tools/tools/focusa_predict_evaluate.md)
-
 - [focusa_predict_stats](focusa-tools/tools/focusa_predict_stats.md)
-
+- [Predictive Power tools index](focusa-tools/predictive-power.md)
 - [Workpoint Session Scope Guard](current/WORKPOINT_SESSION_SCOPE_GUARD.md)
-
 - [Compaction Fallbacks](current/COMPACTION_FALLBACKS.md)

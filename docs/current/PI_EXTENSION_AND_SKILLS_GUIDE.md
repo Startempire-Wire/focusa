@@ -16,6 +16,17 @@
 - `focusa-cli-api` — direct daemon/CLI/API operations.
 - `focusa-troubleshooting` — degraded/offline/pending/blocked recovery.
 - `focusa-docs-maintenance` — public docs, tool docs, evidence, snapshot wording.
+- `predictive-power` — bounded prediction record/evaluate/stats workflow.
+
+## Skill path hygiene
+
+Canonical extension-packaged skills path:
+
+```text
+/home/wirebot/focusa/apps/pi-extension/skills
+```
+
+A stale reload path such as `~/apps/pi-extension/skills` resolves to `/root/apps/pi-extension/skills` in root-run Pi sessions. Keep launchers/settings on the canonical absolute path, or provide the compatibility symlink only as a local workaround.
 
 ## Install dependencies for local validation
 

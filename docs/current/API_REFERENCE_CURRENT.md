@@ -2,6 +2,8 @@
 
 Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. This is an inventory, not a full schema reference.
 
+**Current notable surfaces:** Workpoint scope guard, prediction loop, doctor/health, token/cache telemetry, work-loop, metacognition, tree/lineage, and tool contracts.
+
 ### ascc
 - `GET /v1/ascc/state`
 - `GET /v1/ascc/frame/{frame_id}`
@@ -19,6 +21,8 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 ### capabilities
 - `GET /v1/agents`
 - `GET /v1/agents/{agent_id}`
+- `GET /v1/agents/{agent_id}/constitution`
+- `GET /v1/agents/{agent_id}/capabilities`
 - `GET /v1/state/current`
 - `GET /v1/state/history`
 - `GET /v1/state/stack`
@@ -156,8 +160,14 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/ontology/tool-contracts`
 - `POST /v1/ontology/actions`
 
+### predictions
+- `POST /v1/predictions`
+- `GET /v1/predictions/recent`
+- `GET /v1/predictions/stats`
+- `POST /v1/predictions/{prediction_id}/evaluate`
+
 ### proposals
-- `GET/POST /v1/proposals`
+- `GET /v1/proposals`
 - `POST /v1/proposals/resolve`
 
 ### proxy
@@ -169,6 +179,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `POST /v1/reflect/run`
 - `GET /v1/reflect/history`
 - `GET /v1/reflect/status`
+- `GET /v1/reflect/scheduler`
 - `POST /v1/reflect/scheduler/tick`
 
 ### rfm
@@ -195,7 +206,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/events/health`
 
 ### sync
-- `GET/POST /v1/sync/peers`
+- `GET /v1/sync/peers`
 - `DELETE /v1/sync/peers/{peer_id}`
 - `GET /v1/sync/status/{peer_id}`
 - `POST /v1/sync/pull/{peer_id}`
@@ -220,7 +231,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/telemetry/trace/stats`
 
 ### threads
-- `GET/POST /v1/threads`
+- `GET /v1/threads`
 - `GET /v1/threads/{id}`
 - `POST /v1/threads/{id}/fork`
 - `POST /v1/threads/{id}/transfer`
@@ -253,11 +264,14 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/ufi`
 
 ### visual_workflow
+- `POST /v1/visual-workflow/evidence/store`
 - `GET /v1/visual-workflow/evidence`
 
 ### work_loop
 - `GET /v1/work-loop`
 - `GET /v1/work-loop/status`
+- `GET /v1/work-loop/replay/closure-evidence`
+- `GET /v1/work-loop/replay/closure-bundle`
 - `POST /v1/work-loop/enable`
 - `POST /v1/work-loop/pause`
 - `POST /v1/work-loop/resume`
@@ -272,6 +286,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `POST /v1/work-loop/events`
 - `POST /v1/work-loop/pause-flags`
 - `POST /v1/work-loop/delegation/enable`
+- `POST /v1/work-loop/delegation/clear`
 - `POST /v1/work-loop/degraded`
 - `GET /v1/work-loop/checkpoints`
 - `POST /v1/work-loop/checkpoint`

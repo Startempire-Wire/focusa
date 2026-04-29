@@ -8,6 +8,13 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - [Metacognition](./metacognition.md)
 - [Tree Lineage](./tree-lineage.md)
 - [Diagnostics Hygiene](./diagnostics-hygiene.md)
+- [Predictive Power](./predictive-power.md)
+
+## Current counts
+
+- 47 Pi tools documented with one page per tool.
+- Prediction tools are first-class (`record`, `recent`, `evaluate`, `stats`).
+- Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
 
 ## All tools
 
@@ -54,3 +61,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - [`focusa_metacog_doctor`](tools/focusa_metacog_doctor.md)
 - [`focusa_lineage_tree`](tools/focusa_lineage_tree.md)
 - [`focusa_li_tree_extract`](tools/focusa_li_tree_extract.md)
+- [`focusa_predict_record`](tools/focusa_predict_record.md)
+- [`focusa_predict_recent`](tools/focusa_predict_recent.md)
+- [`focusa_predict_evaluate`](tools/focusa_predict_evaluate.md)
+- [`focusa_predict_stats`](tools/focusa_predict_stats.md)

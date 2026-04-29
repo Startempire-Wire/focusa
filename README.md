@@ -4,7 +4,7 @@
 >
 > Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
 
-**Current public snapshot:** `v0.9.0-dev`  
+**Current public snapshot:** `v0.9.11-dev`  
 **Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.  
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
@@ -131,10 +131,10 @@ The Workpoint release path now waits for reducer-visible state before reporting 
 The CLI is the operator/debug surface for the daemon. Current command domains include:
 
 ```text
-start, stop, status, focus, stack, gate, memory, ecs, env, events,
-turns, state, clt, lineage, autonomy, constitution, telemetry, rfm,
-proposals, reflect, metacognition, ontology, skills, thread, export,
-contribute, cache, workpoint, tokens, wrap
+start, stop, status, doctor, cleanup, continue, focus, stack, gate, memory,
+ecs, env, events, turns, state, clt, lineage, autonomy, constitution,
+telemetry, rfm, release, proposals, predict, reflect, metacognition,
+ontology, skills, thread, export, contribute, cache, workpoint, tokens, wrap
 ```
 
 Most commands support human-readable output, and the top-level CLI supports `--json` for machine-readable workflows.
@@ -148,8 +148,11 @@ The Pi extension is the main agent-facing integration. It registers 43 `focusa_*
 - **Work-loop:** writer status, status, control, context, checkpoint, select next.
 - **Tree/lineage:** head, path, snapshot, diff, restore, recent snapshots, compare latest, lineage tree, LI extraction.
 - **Metacognition:** capture, retrieve, reflect, plan adjustment, evaluate outcome, recent reflections, recent adjustments, loop run, doctor.
+- **Prediction loop:** record, recent, evaluate, and stats tools for bounded inspectable predictions.
 - **State hygiene:** doctor, plan, approval-safe apply.
 - **Tool doctor:** diagnostic entrypoint for Focusa tool readiness and likely recovery path.
+- **Workpoint scope guard:** project/session-bound resume packets reject cross-project continuation.
+- **Compaction fallback guard:** Pi replacement compaction hydrates sparse fields from related canonical sources instead of emitting bare `none`.
 
 Every `focusa_*` tool is expected to expose a common `tool_result_v1` result envelope with status, canonical/degraded flags, retry guidance, side effects, evidence refs, and next-tool hints.
 
@@ -503,6 +506,15 @@ Part of the Startempire Wire ecosystem.
 
 - [focusa_predict_stats](docs/focusa-tools/tools/focusa_predict_stats.md)
 
-- [Workpoint Session Scope Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)
 
+## Current polish and prediction docs
+
+- [Predictive Power Guide](docs/current/PREDICTIVE_POWER_GUIDE.md)
+- [Agent Command Cookbook](docs/current/AGENT_COMMAND_COOKBOOK.md)
+- [Doctor / Continue / Release Prove](docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md)
+- [Workpoint Session Scope Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)
 - [Compaction Fallbacks](docs/current/COMPACTION_FALLBACKS.md)
+- [Daemon Resilience](docs/current/DAEMON_RESILIENCE.md)
+- [Efficiency Guide](docs/current/EFFICIENCY_GUIDE.md)
+- [Hook Coverage](docs/current/HOOK_COVERAGE.md)
+- [Spec92 Full Rollout Proof](docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md)

@@ -58,7 +58,7 @@ bun run build
 ```bash
 cd /home/wirebot/focusa
 gh run list --limit 6 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
-gh release view v0.9.10-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
+gh release view v0.9.11-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
 ```
 
 For current real proof see:
@@ -66,4 +66,5 @@ For current real proof see:
 - `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md`
 - `docs/evidence/SPEC91_LIVE_TOOL_CONTRACT_PROOF_2026-04-28.md`
 - `docs/evidence/PRODUCTION_RELEASE_MAC_APP_GITHUB_FIX_2026-04-28.md`
+- `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
 - `docs/current/PRODUCTION_RELEASE_COMMANDS.md`
