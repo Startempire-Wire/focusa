@@ -60,10 +60,28 @@ fixture_checks=workpoint:passed,work_loop:passed,tree_lineage:passed,metacogniti
 
 ## Production actions
 
-Pending after commit/tag push:
+Completed after commit:
 
-- Build release binaries with `cargo build --release --bins`.
-- Restart `focusa-daemon`.
-- Verify `/v1/health` and `/v1/ontology/tool-contracts`.
-- Push release tag and wait for GitHub CI/release workflows to pass.
-- Remove temporary local proof logs after evidence capture.
+```bash
+cargo build --release --bins
+systemctl restart focusa-daemon
+systemctl is-active focusa-daemon
+readlink -f /proc/$(systemctl show -p MainPID --value focusa-daemon)/exe
+curl -sS http://127.0.0.1:8787/v1/health | jq .
+curl -sS http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'
+node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
+```
+
+Result:
+
+```text
+active
+/home/wirebot/focusa/target/release/focusa-daemon
+{"ok":true,"version":"0.1.0"}
+"spec90.tool_contracts.v1"
+43
+Spec91 live tool contract proof: passed
+fixture_checks=workpoint:passed,work_loop:passed,tree_lineage:passed,metacognition:passed,focus_state:passed
+```
+
+Remaining release action: push commit/tag and wait for GitHub CI/release workflows to pass, then remove temporary local proof logs.
