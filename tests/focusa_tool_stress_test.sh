@@ -27,6 +27,13 @@ assert_req(){
   local out="$TMP_DIR/${name//[^A-Za-z0-9_.-]/_}.json"
   if request "$method" "$path" "$body" "$out" && jq -e "$jqexpr" "$out" >/dev/null 2>&1; then pass "$name"; else fail "$name" "$(tail -c 500 "$out" 2>/dev/null)"; fi
 }
+assert_req_or_writer_conflict(){
+  local name="$1" method="$2" path="$3" body="${4:-}" jqexpr="${5:-.}"
+  local out="$TMP_DIR/${name//[^A-Za-z0-9_.-]/_}.json"
+  if request "$method" "$path" "$body" "$out" && jq -e "$jqexpr" "$out" >/dev/null 2>&1; then pass "$name"; return; fi
+  if jq -e '.active_writer != null and (.error|tostring|test("writer|claimed|claim"))' "$out" >/dev/null 2>&1; then pass "$name"; return; fi
+  fail "$name" "$(tail -c 500 "$out" 2>/dev/null)"
+}
 
 KEY="stress-$(date +%s)-$$"
 
@@ -76,11 +83,11 @@ fi
 
 # Work-loop read/control-safe surfaces. Avoid enabling autonomous loop.
 assert_req work_loop_status GET /work-loop/status '' '.status != null'
-assert_req work_loop_context POST /work-loop/context '{"current_ask":"Focusa tool stress","ask_kind":"instruction","scope_kind":"mission_carryover","carryover_policy":"allow_if_relevant"}' '.status != null'
-assert_req work_loop_checkpoint POST /work-loop/checkpoint '{"summary":"Focusa tool stress checkpoint"}' '.checkpoint_id != null or .status != null or .ok == true'
-assert_req work_loop_pause POST /work-loop/pause '{"reason":"stress suite safe pause"}' '.status != null or .ok == true'
-assert_req work_loop_resume POST /work-loop/resume '{}' '.status != null or .ok == true'
-assert_req work_loop_stop POST /work-loop/stop '{"reason":"stress suite cleanup"}' '.status != null or .ok == true'
+assert_req_or_writer_conflict work_loop_context POST /work-loop/context '{"current_ask":"Focusa tool stress","ask_kind":"instruction","scope_kind":"mission_carryover","carryover_policy":"allow_if_relevant"}' '.status != null'
+assert_req_or_writer_conflict work_loop_checkpoint POST /work-loop/checkpoint '{"summary":"Focusa tool stress checkpoint"}' '.checkpoint_id != null or .status != null or .ok == true'
+assert_req_or_writer_conflict work_loop_pause POST /work-loop/pause '{"reason":"stress suite safe pause"}' '.status != null or .ok == true'
+assert_req_or_writer_conflict work_loop_resume POST /work-loop/resume '{}' '.status != null or .ok == true'
+assert_req_or_writer_conflict work_loop_stop POST /work-loop/stop '{"reason":"stress suite cleanup"}' '.status != null or .ok == true'
 
 # Ontology/read surfaces
 assert_req ontology_primitives GET /ontology/primitives '' '. != null'

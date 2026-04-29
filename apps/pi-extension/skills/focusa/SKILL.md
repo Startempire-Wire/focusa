@@ -15,6 +15,18 @@ When Focusa is active, use these tools:
 - `focusa_workpoint_checkpoint` — checkpoint typed continuation before compact/resume/overflow/model switch/fork/risky work.
 - `focusa_workpoint_resume` — fetch the active `WorkpointResumePacket` before continuing after compact/resume/overflow/model switch/fork.
 
+## Spec89 Hardened Tool Pickup
+
+Default sequence after uncertainty: `focusa_workpoint_resume` → `focusa_tool_doctor` → `focusa_active_object_resolve` → `focusa_evidence_capture`/`focusa_workpoint_link_evidence` → task-specific tool.
+
+Use `focusa_work_loop_writer_status` before mutating work-loop state when ownership is uncertain, and use `focusa_work_loop_control` with `preflight=true` before control changes.
+
+Use metacog tools only for reusable learning; include rationale/evidence refs and respect `quality_gate` recommendations.
+
+Use `focusa_state_hygiene_doctor`/`plan` before any hygiene apply; do not silently delete or demote existing Focusa tools.
+
+Full operator guide: `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md`.
+
 ## Workpoint Continuity Rules
 
 1. Meaning lives in the typed Workpoint, not in raw transcript tail.

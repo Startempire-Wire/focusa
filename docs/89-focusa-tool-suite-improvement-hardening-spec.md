@@ -1,7 +1,7 @@
 # 89 — Focusa Tool Suite Improvement and Hardening Spec
 
 **Date:** 2026-04-28
-**Status:** proposed
+**Status:** implemented
 **Priority:** critical
 **Bead:** `focusa-d0mv`
 **Owner:** Focusa + Pi integration
@@ -627,3 +627,23 @@ Every tool should either:
 If a tool does none of these, it remains in the suite but should be redesigned, clarified, merged upward, or hardened until its value is obvious.
 
 No existing Focusa tool should be demoted as part of this hardening program.
+
+---
+
+## 14) Implementation status — 2026-04-28
+
+Spec89 implementation completed through phases 0–7 under root Bead `focusa-bcyd`.
+
+| Phase | Status | Evidence |
+| --- | --- | --- |
+| Urgent failures | Complete | `docs/evidence/SPEC89_URGENT_FIX_VALIDATION_2026-04-28.md` |
+| Phase 0 inventory/contracts | Complete | `docs/evidence/SPEC89_PHASE0_COMPLETION_MATRIX_2026-04-28.md` |
+| Phase 1 result envelope | Complete | `docs/evidence/SPEC89_PHASE1_ENVELOPE_EVIDENCE_2026-04-28.md` |
+| Phase 2 Workpoint spine | Complete | `docs/evidence/SPEC89_PHASE2_WORKPOINT_SPINE_EVIDENCE_2026-04-28.md` |
+| Phase 3 doctor/resolver/evidence | Complete | `docs/evidence/SPEC89_PHASE3_DOCTOR_RESOLVER_EVIDENCE_2026-04-28.md` |
+| Phase 4 work-loop/metacog UX | Complete | `docs/evidence/SPEC89_PHASE4_WORK_LOOP_METACOG_EVIDENCE_2026-04-28.md` |
+| Phase 5 dedupe/hygiene | Complete | `docs/evidence/SPEC89_PHASE5_DEDUPE_HYGIENE_EVIDENCE_2026-04-28.md` |
+| Phase 6 pickup/parity/stress | Complete | `docs/evidence/SPEC89_PHASE6_PICKUP_PARITY_STRESS_EVIDENCE_2026-04-28.md` |
+| Phase 7 docs/guardrails | Complete | `docs/evidence/SPEC89_PHASE7_CLOSURE_GUARDRAILS_EVIDENCE_2026-04-28.md` |
+
+Operator guidance lives in `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md`.
