@@ -1,875 +1,399 @@
 # Focusa
 
-> **A local-first cognitive governance framework for AI agents.**
+> **Local-first cognitive continuity and governance for AI agents.**
 >
-> Focusa is not a chatbot. Not an agent framework. Not a RAG system.
-> It is the system that makes agents **trustworthy over time**.
+> Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
+
+**Current public snapshot:** `v0.9.0-dev`  
+**Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.  
+**Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
 ---
 
-## The Problem
+## Why Focusa exists
 
-Modern AI systems fail in long-running sessions because:
+Long agent sessions fail in predictable ways:
 
-1. **Conversation is treated as memory.** When chat history is all you have, compaction silently destroys meaning, decisions vanish, and the model "forgets what it was doing."
+- **Conversation is mistaken for memory.** When the model context is compacted or overflows, decisions, constraints, evidence, and next steps become lossy prose.
+- **The active task drifts.** Agents keep working, but not always on the same object, scope, or operator intent.
+- **Proof gets buried in logs.** A test result, API response, or file path may be visible once and then disappear into transcript noise.
+- **Learning is ungrounded.** Agents can record lessons, but without evidence, quality gates, or evaluation loops, those lessons become another pile of notes.
+- **Autonomy is hard to trust.** The operator needs visible state, checkpoints, rollback points, and writer ownership instead of hidden memory writes.
 
-2. **Intent drifts.** There is no structured notion of "current focus." Nested subtasks collapse into linear chat. Constraints and decisions stated 50 turns ago disappear.
-
-3. **Priority confusion.** Everything is treated as equally important. No organic surfacing of what matters *now*. No way to say "this is background noise, that is critical."
-
-4. **Trust is unverifiable.** Autonomy is granted by config flags, not earned through evidence. There is no way to measure whether an agent is improving, regressing, or drifting. Learning is invisible, identity is mutable, and rollback is impossible.
-
-5. **Compaction destroys meaning.** Automatic summarization silently deletes: why a decision was made, what constraints exist, what artifacts were referenced, what the next step should be. The agent starts over from a lossy summary.
-
-This is not a token problem. It is a **continuity of mind** problem.
-
-## The Core Insight
-
-> **Meaning should never live only in conversation.**
-
-Focusa extracts, structures, and persists meaning *outside* the model so that context compaction never destroys intent. Focus State replaces chat history as the carrier of meaning. Compaction becomes harmless because everything that matters is already somewhere safe.
-
-## What Focusa Is
-
-Focusa is a **local cognitive proxy** that sits between an AI harness (Claude Code, Codex CLI, Gemini CLI, Letta, Zed ACP, or any OpenAI-compatible API) and the model backend. It governs **focus, context fidelity, and priority emergence** across long-running sessions.
-
-Focusa does NOT replace agents, models, or frameworks. It augments them by providing:
-
-- **Hierarchical focus control** — know exactly what the system is doing and why
-- **Deterministic context compression** — meaning survives compaction
-- **Lossless artifact offloading** — large data referenced by handle, not inlined
-- **Advisory salience surfacing** — priorities emerge without auto-acting
-- **Explicit, auditable memory** — no hidden writes, no personality drift
-- **Earned autonomy** — trust measured by evidence, not granted by config
-- **Constitutional governance** — agent identity evolves deliberately, never silently
-
-### What Focusa Is Not
-
-- Not a model
-- Not an agent framework
-- Not an automation engine
-- Not a RAG system
-- Not a scheduler
-- Not autonomous
-- Not cloud-dependent
-
-## System Diagram
-
-```
-┌─ EXTERNAL ──────────────────────────────────────────────────────────────────────────────┐
-│                                                                                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │  Claude Code  │  │  Codex CLI   │  │  Gemini CLI  │  │  Zed (ACP)   │  │  Letta   │ │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └────┬─────┘ │
-│         └──────────────────┴────────────┬────┴─────────────────┘               │       │
-│                                         │                                       │       │
-│                              ┌──────────▼──────────┐              ┌─────────────▼─────┐ │
-│                              │   Proxy Adapter      │              │  ACP Proxy        │ │
-│                              │   Mode A: CLI Wrap   │              │  Mode C: JSON-RPC │ │
-│                              │   Mode B: HTTP Proxy │              │  p50<5ms p95<15ms │ │
-│                              └──────────┬──────────┘              └─────────┬─────────┘ │
-│                                         └────────────────┬──────────────────┘           │
-│                                                          │                               │
-│  User                                                    │   Prompt + Response            │
-│  ──────────────────────────────────────────              │   (intercepted)                │
-│  Override · Pin · Suppress · Grant                        │                               │
-│  Autonomy · Edit Constitution · Fork                     │                               │
-│  Thread · Rehydrate Artifact                              │                               │
-│  ───────────────────────────────────┐                    │                               │
-│                                     │                    │                               │
-└─────────────────────────────────────┼────────────────────┼───────────────────────────────┘
-                                      │                    │
-┌─ FOCUSA DAEMON (Rust) ─────────────────────────────────────────────────────────────────────┐
-│                                      │                    │                                  │
-│  ┌───────────────────────────────────┼────────────────────┼────────────────────────────┐    │
-│  │            ╔═══════════════════════════════════════════╗                             │    │
-│  │            ║         CORE REDUCER (single writer)      ║                             │    │
-│  │            ║                                           ║                             │    │
-│  │            ║  reduce(state, event) → {new_state,       ║                             │    │
-│  │            ║                          emitted_events}  ║                             │    │
-│  │            ║                                           ║                             │    │
-│  │            ║  15 event types · 7 invariants            ║                             │    │
-│  │            ║  Deterministic · Replayable · No I/O      ║                             │    │
-│  │            ╚═══════════╤═══════════════╤═══════════════╝                             │    │
-│  │                        │               │                                              │    │
-│  │            ┌───────────▼───┐   ┌───────▼──────────────────────────────────────┐      │    │
-│  │            │  FocusaState  │   │  Emitted Events                              │      │    │
-│  │            │  {            │   │  → Persistence (JSON + JSONL)                 │      │    │
-│  │            │   session     │   │  → CTL Telemetry (append-only)                │      │    │
-│  │            │   focus_stack │   │  → SSE Event Stream (CLI/TUI/GUI)             │      │    │
-│  │            │   focus_gate  │   │  → Worker Queue (async jobs)                  │      │    │
-│  │            │   ref_index   │   └──────────────────────────────────────────────┘      │    │
-│  │            │   memory      │                                                          │    │
-│  │            │   version     │                                                          │    │
-│  │            │  }            │                                                          │    │
-│  │            └───────────────┘                                                          │    │
-│  │                                                                                       │    │
-│  └───────────────────────────────────────────────────────────────────────────────────────┘    │
-│                                                                                              │
-│  ┌─ PLANE 1: COGNITIVE CONTROL ───────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌─────────────────────────────────┐     ┌──────────────────────────────────────────┐  │  │
-│  │  │  FOCUS STACK (HEC)              │     │  FOCUS GATE (RAS-inspired)               │  │  │
-│  │  │                                 │     │                                          │  │  │
-│  │  │  Hierarchical Execution Context │     │  Pre-conscious salience filter           │  │  │
-│  │  │                                 │     │                                          │  │  │
-│  │  │  ┌─ Root Frame (paused) ──┐     │     │  Signals ──→ Candidates ──→ Surfaced     │  │  │
-│  │  │  │  ┌─ Parent (paused) ─┐ │     │     │                                          │  │  │
-│  │  │  │  │  ┌─ ACTIVE ─────┐ │ │     │     │  Pressure formula:                       │  │  │
-│  │  │  │  │  │ • title      │ │ │     │     │    base (+0.2 to +2.0 by signal kind)    │  │  │
-│  │  │  │  │  │ • goal       │ │ │     │     │    × goal alignment (×0.8/×1.1/×1.3)     │  │  │
-│  │  │  │  │  │ • beads_id   │ │ │     │     │    + recency (+0.3 if <5min)              │  │  │
-│  │  │  │  │  │ • ASCC ckpt  │ │ │     │     │    + risk (+0.4 if error/warning)         │  │  │
-│  │  │  │  │  │ • ECS refs   │ │ │     │     │    × decay (×0.98 per tick)               │  │  │
-│  │  │  │  │  │ • constraints│ │ │     │     │                                          │  │  │
-│  │  │  │  │  └──────────────┘ │ │     │     │  Surface threshold: 2.2                  │  │  │
-│  │  │  │  └───────────────────┘ │     │     │  Pinned items: immune to decay            │  │  │
-│  │  │  └────────────────────────┘     │     │  Advisory only — NEVER auto-switches      │  │  │
-│  │  │                                 │     │                                          │  │  │
-│  │  │  Exactly 1 active frame         │     │  Candidates:                              │  │  │
-│  │  │  Every frame → Beads issue      │     │   suggest_push_frame                      │  │  │
-│  │  │  Completion reasons:            │     │   suggest_resume_frame                    │  │  │
-│  │  │   goal_achieved | blocked       │     │   suggest_check_artifact                  │  │  │
-│  │  │   abandoned | superseded        │     │   suggest_fix_error                       │  │  │
-│  │  │   error                         │     │   suggest_pin_memory                      │  │  │
-│  │  └─────────────────────────────────┘     └──────────────────────────────────────────┘  │  │
-│  │                                                         ▲                               │  │
-│  │                                                         │ signals                       │  │
-│  │                                               ┌─────────┴──────────────────┐            │  │
-│  │                                               │  INTUITION ENGINE          │            │  │
-│  │                                               │  (subconscious)            │            │  │
-│  │                                               │                            │            │  │
-│  │                                               │  Async only · Read-only    │            │  │
-│  │                                               │  Cannot mutate state       │            │  │
-│  │                                               │  Cannot trigger actions    │            │  │
-│  │                                               │                            │            │  │
-│  │                                               │  Signal types:             │            │  │
-│  │                                               │   temporal · repetition    │            │  │
-│  │                                               │   consistency · structural │            │  │
-│  │                                               │                            │            │  │
-│  │                                               │  Ephemeral until promoted  │            │  │
-│  │                                               │  by Focus Gate             │            │  │
-│  │                                               └────────────────────────────┘            │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ PLANE 2: CONTEXT FIDELITY ────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌────────────────────────────┐  ┌──────────────────────┐  ┌────────────────────────┐  │  │
-│  │  │  ASCC                      │  │  ECS                  │  │  CLT                   │  │  │
-│  │  │  Anchored Structured       │  │  Externalized Context │  │  Context Lineage Tree  │  │  │
-│  │  │  Context Checkpointing     │  │  Store                │  │                        │  │  │
-│  │  │                            │  │                        │  │  Append-only tree of   │  │  │
-│  │  │  10 fixed slots per frame: │  │  Content-addressed     │  │  interaction history   │  │  │
-│  │  │   intent                   │  │  immutable blobs       │  │                        │  │  │
-│  │  │   current_focus            │  │                        │  │  3 node types:         │  │  │
-│  │  │   decisions (cap 30)       │  │  7 handle kinds:       │  │   interaction          │  │  │
-│  │  │   artifacts (cap 50)       │  │   log · diff · text    │  │   summary              │  │  │
-│  │  │   constraints (cap 30)     │  │   json · url           │  │   branch_marker        │  │  │
-│  │  │   open_questions (cap 20)  │  │   file_snapshot        │  │                        │  │  │
-│  │  │   next_steps (cap 15)      │  │   other                │  │  Compaction inserts —  │  │  │
-│  │  │   recent_results (cap 10)  │  │                        │  │  never deletes         │  │  │
-│  │  │   failures (cap 20)        │  │  Prompt form:          │  │                        │  │  │
-│  │  │   notes (cap 20)           │  │  [HANDLE:kind:id       │  │  Focus State refs      │  │  │
-│  │  │                            │  │   "label"]             │  │  exactly 1 CLT head    │  │  │
-│  │  │  Delta-only updates        │  │                        │  │                        │  │  │
-│  │  │  Deterministic merge rules │  │  Externalize at:       │  │  7 design rules        │  │  │
-│  │  │  Section pinning           │  │   >8KB or >800 tokens  │  │  (non-negotiable)      │  │  │
-│  │  │  Replaces chat history     │  │  Explicit rehydration  │  │                        │  │  │
-│  │  └────────────────────────────┘  └──────────────────────┘  └────────────────────────┘  │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ PLANE 3: MEMORY ──────────────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌──────────────────────────────────┐    ┌──────────────────────────────────────────┐   │  │
-│  │  │  SEMANTIC MEMORY                 │    │  PROCEDURAL MEMORY                       │   │  │
-│  │  │                                  │    │                                          │   │  │
-│  │  │  Keyed facts/preferences         │    │  Reinforced rules/habits                 │   │  │
-│  │  │  {key, value, confidence, TTL}   │    │  {id, rule, weight, scope, enabled}      │   │  │
-│  │  │                                  │    │                                          │   │  │
-│  │  │  Whitelisted keys → prompt       │    │  Weight decays ×0.99 per tick            │   │  │
-│  │  │  Opt-in only · Never inferred    │    │  Scoped: global | frame | project        │   │  │
-│  │  └──────────────────────────────────┘    │  Max 5 rules injected per turn           │   │  │
-│  │                                           └──────────────────────────────────────────┘   │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ PLANE 4: BACKGROUND COGNITION ────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌──────────────────────────────────────────────────────────────────────────────────┐   │  │
-│  │  │  WORKER QUEUE                                                                    │   │  │
-│  │  │                                                                                  │   │  │
-│  │  │  Async · Bounded (100 jobs) · Max 200ms/job · Never blocks hot path              │   │  │
-│  │  │                                                                                  │   │  │
-│  │  │  ┌────────────────┐ ┌──────────────────┐ ┌───────────────────┐ ┌──────────────┐ │   │  │
-│  │  │  │ classify_turn  │ │ extract_ascc_    │ │ detect_repetition │ │ scan_for_    │ │   │  │
-│  │  │  │                │ │ delta            │ │                   │ │ errors       │ │   │  │
-│  │  │  │ Tags: files,   │ │                  │ │ Repetition hints  │ │              │ │   │  │
-│  │  │  │ errors, tools, │ │ Structured delta │ │ → Focus Gate      │ │ Error sigs   │ │   │  │
-│  │  │  │ intent shifts  │ │ → Reducer merges │ │                   │ │ w/ severity  │ │   │  │
-│  │  │  └────────────────┘ └──────────────────┘ └───────────────────┘ └──────────────┘ │   │  │
-│  │  │  ┌────────────────┐                                                              │   │  │
-│  │  │  │ suggest_memory │  Workers return RESULTS — never mutate state directly         │   │  │
-│  │  │  │                │  Reducer decides whether to accept                            │   │  │
-│  │  │  │ Advisory only  │                                                              │   │  │
-│  │  │  └────────────────┘                                                              │   │  │
-│  │  └──────────────────────────────────────────────────────────────────────────────────┘   │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ GOVERNANCE LAYER ─────────────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌────────────────────────┐  ┌──────────────────────┐  ┌───────────────────────────┐   │  │
-│  │  │  UXP                   │  │  UFI                  │  │  AUTONOMY CALIBRATION     │   │  │
-│  │  │  User Experience       │  │  User Friction Index  │  │                           │   │  │
-│  │  │  Profile               │  │                       │  │  6 dimensions:            │   │  │
-│  │  │                        │  │  14 signal types      │  │   Correctness · Stability │   │  │
-│  │  │  7 dimensions:         │  │  3 weight tiers:      │  │   Efficiency · Trust      │   │  │
-│  │  │   autonomy_tolerance   │  │   High (objective)    │  │   Grounding · Recovery    │   │  │
-│  │  │   verbosity_preference │  │   Medium              │  │                           │   │  │
-│  │  │   interruption_sensit. │  │   Low (language-only) │  │  ARI: 0–100              │   │  │
-│  │  │   explanation_depth    │  │                       │  │  6 levels: AL0→AL5        │   │  │
-│  │  │   confirmation_pref.   │  │  Language signals     │  │                           │   │  │
-│  │  │   risk_tolerance       │  │  NEVER dominate       │  │  Never self-escalates     │   │  │
-│  │  │   review_cadence       │  │  aggregate            │  │  Human grant required     │   │  │
-│  │  │                        │  │                       │  │  Scope + TTL mandatory    │   │  │
-│  │  │  α ≤ 0.1, window ≥ 30 │  │  UFI ──→ UXP bridge:  │  │                           │   │  │
-│  │  │  User override freezes │  │  trend-only learning  │  │  ARI weights:             │   │  │
-│  │  │  learning              │  │                       │  │   Outcome 50%             │   │  │
-│  │  └────────────────────────┘  └──────────────────────┘  │   Efficiency 20%          │   │  │
-│  │                                                         │   Discipline 15%          │   │  │
-│  │  ┌────────────────────────┐  ┌──────────────────────┐  │   Safety 15%              │   │  │
-│  │  │  AGENT CONSTITUTION    │  │  CONSTITUTION         │  └───────────────────────────┘   │  │
-│  │  │  (ACP)                 │  │  SYNTHESIZER (CS)     │                                  │  │
-│  │  │                        │  │                       │  ┌───────────────────────────┐   │  │
-│  │  │  Versioned, immutable  │  │  Offline, read-only   │  │  RELIABILITY FOCUS MODE   │   │  │
-│  │  │  reasoning charter     │  │  analysis assistant   │  │  (RFM)                    │   │  │
-│  │  │                        │  │                       │  │                           │   │  │
-│  │  │  • Principles          │  │  5-step process:      │  │  R0: Normal               │   │  │
-│  │  │  • Self-eval heuristics│  │   1. Evidence aggr.   │  │  R1: Validation            │   │  │
-│  │  │  • Autonomy posture    │  │   2. Tension detect   │  │  R2: Regeneration          │   │  │
-│  │  │  • Safety rules        │  │   3. Principle map    │  │  R3: Ensemble              │   │  │
-│  │  │  • Expression rules    │  │   4. Candidate edit   │  │                           │   │  │
-│  │  │                        │  │   5. Draft assembly   │  │  Microcell validators:     │   │  │
-│  │  │  SemVer · 1 active     │  │                       │  │   Schema · Constraint     │   │  │
-│  │  │  per agent · Rollback  │  │  Human activation     │  │   Consistency · Reference │   │  │
-│  │  │                        │  │  required · Min 50    │  │                           │   │  │
-│  │  │  Never self-modifies   │  │  tasks evidence       │  │  AIS: ≥0.90 safe         │   │  │
-│  │  │  New sessions only     │  │  Never auto-applies   │  │       <0.70 triggers RFM  │   │  │
-│  │  └────────────────────────┘  └──────────────────────┘  └───────────────────────────┘   │  │
-│  │                                                                                         │  │
-│  │  ┌──────────────────────────────────────────────────────────────────────────────────┐   │  │
-│  │  │  PROPOSAL RESOLUTION ENGINE (PRE)                                                │   │  │
-│  │  │                                                                                  │   │  │
-│  │  │  Observations (CLT, refs, telemetry) → always concurrent, append-only            │   │  │
-│  │  │  Decisions (focus, thesis, autonomy) → proposals → scored → resolved             │   │  │
-│  │  │  Time-bounded windows: 500ms–2000ms · Deterministic scoring · No locks           │   │  │
-│  │  └──────────────────────────────────────────────────────────────────────────────────┘   │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ THREADS & CONCURRENCY ────────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌────────────────────┐    ┌──────────────────┐    ┌────────────────────────────────┐  │  │
-│  │  │  THREAD             │    │  INSTANCE         │    │  SESSION                       │  │  │
-│  │  │  (persistent        │    │  (where)          │    │  (when)                        │  │  │
-│  │  │   cognitive         │    │                    │    │                                │  │  │
-│  │  │   workspace)        │    │  5 kinds:          │    │  Binds instance to temporal    │  │  │
-│  │  │                     │    │   acp | cli | tui  │    │  execution window              │  │  │
-│  │  │  Binds:             │    │   gui | background │    │                                │  │  │
-│  │  │   Thread Thesis     │    │                    │    │  ATTACHMENT (what):            │  │  │
-│  │  │   CLT               │    │  One per harness   │    │   Binds session to thread     │  │  │
-│  │  │   Focus Stack       │    │  connection        │    │   Roles: active | assistant   │  │  │
-│  │  │   Reference Store   │    │                    │    │          observer | background │  │  │
-│  │  │   Telemetry         │    │  Capability-scoped │    │                                │  │  │
-│  │  │   Autonomy history  │    │                    │    │  Multiple instances can        │  │  │
-│  │  │                     │    │                    │    │  attach to same thread         │  │  │
-│  │  │  Ops: Create Resume │    │                    │    │  via PRE resolution            │  │  │
-│  │  │  Save Fork Archive  │    │                    │    │                                │  │  │
-│  │  │                     │    │                    │    │                                │  │  │
-│  │  │  Never share        │    │                    │    │                                │  │  │
-│  │  │  mutable state      │    │                    │    │                                │  │  │
-│  │  └────────────────────┘    └──────────────────┘    └────────────────────────────────┘  │  │
-│  │                                                                                         │  │
-│  │  ┌──────────────────────────────────────────────────────────────────────────────────┐   │  │
-│  │  │  THREAD THESIS — living semantic anchor per thread                               │   │  │
-│  │  │  {primary_intent, secondary_goals, constraints, open_questions,                  │   │  │
-│  │  │   assumptions, confidence{score,rationale}, scope{domain,horizon,risk}, sources}  │   │  │
-│  │  │  Updated by events, not per-turn · Min confidence delta · Cooldown between       │   │  │
-│  │  └──────────────────────────────────────────────────────────────────────────────────┘   │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ EXPRESSION ENGINE (HOT PATH) ──── <20ms overhead ────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  Assembles prompt from Focus State — deterministic, bounded, structured                 │  │
-│  │                                                                                         │  │
-│  │  7 slots (in order):                                                                    │  │
-│  │   ┌──────────────┐ ┌───────────────────┐ ┌──────────────────────────────────────────┐  │  │
-│  │   │ 1. System    │ │ 2. Operating Rules│ │ 3. Active Focus Frame (ASCC checkpoint)  │  │  │
-│  │   │    Header    │ │    (≤5 rules by   │ │    (all 10 slots from active frame)      │  │  │
-│  │   │              │ │     weight)       │ │                                          │  │  │
-│  │   └──────────────┘ └───────────────────┘ └──────────────────────────────────────────┘  │  │
-│  │   ┌──────────────────────┐ ┌───────────────────┐ ┌─────────┐ ┌────────────────────┐   │  │
-│  │   │ 4. Parent Context    │ │ 5. Artifact       │ │ 6. User │ │ 7. Execution       │   │  │
-│  │   │    (≤2 ancestors,    │ │    Handles (ECS   │ │    Input│ │    Directive        │   │  │
-│  │   │     intent+decisions │ │    refs only)     │ │         │ │                    │   │  │
-│  │   │     +constraints)    │ │                   │ │         │ │                    │   │  │
-│  │   └──────────────────────┘ └───────────────────┘ └─────────┘ └────────────────────┘   │  │
-│  │                                                                                         │  │
-│  │  Budget: 6000 prompt + 2000 reserve · Degradation cascade (explicit, logged, never      │  │
-│  │  silent): drop parents → drop ASCC slots → digest → truncate input → abort (last resort)│  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ OBSERVABILITY ────────────────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌─────────────────────────┐ ┌──────────────────────┐ ┌───────────────────────────┐    │  │
-│  │  │  CTL (Cognitive         │ │  CACHE PERMISSION     │ │  TRAINING DATASET EXPORT  │    │  │
-│  │  │  Telemetry Layer)       │ │  MATRIX               │ │                           │    │  │
-│  │  │                         │ │                        │ │  4 families:              │    │  │
-│  │  │  Passive · Append-only  │ │  5 classes: C0→C4     │ │   focusa_sft             │    │  │
-│  │  │  Local SQLite/DuckDB    │ │  10 invalidation      │ │   focusa_preference      │    │  │
-│  │  │                         │ │  triggers              │ │   focusa_contrastive     │    │  │
-│  │  │  7 event schemas:       │ │  6 cache bust         │ │   focusa_long_horizon    │    │  │
-│  │  │   model.tokens          │ │  categories (A–F)     │ │                           │    │  │
-│  │  │   focus.transition      │ │                        │ │  JSONL/Parquet output    │    │  │
-│  │  │   lineage.node.created  │ │                        │ │  Full provenance         │    │  │
-│  │  │   gate.decision         │ │                        │ │  + UXP/UFI signals       │    │  │
-│  │  │   tool.call             │ │                        │ │                           │    │  │
-│  │  │   ux.signal             │ │                        │ │  Compatible:             │    │  │
-│  │  │   autonomy.update       │ │                        │ │   Unsloth · HuggingFace  │    │  │
-│  │  │                         │ │                        │ │   Axolotl · TRL          │    │  │
-│  │  │  Key derived metrics:   │ │                        │ │                           │    │  │
-│  │  │   tokens_per_task       │ │                        │ │                           │    │  │
-│  │  │   context_recovery_cost │ │                        │ │                           │    │  │
-│  │  │   compression_regret    │ │                        │ │                           │    │  │
-│  │  └─────────────────────────┘ └──────────────────────┘ └───────────────────────────┘    │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ PLANE 5: INTERFACES ─────────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ┌──────────────┐ ┌─────────────────────────┐ ┌─────────────┐ ┌─────────────────────┐ │  │
-│  │  │  CLI          │ │  LOCAL HTTP API          │ │  TUI         │ │  MENUBAR GUI        │ │  │
-│  │  │  (Rust)       │ │  (Capabilities API)      │ │  (ratatui)   │ │  (SvelteKit+Tauri)  │ │  │
-│  │  │               │ │                           │ │              │ │                     │ │  │
-│  │  │  14 domains   │ │  127.0.0.1:<port>/v1     │ │  14 views    │ │  Focus Bubble       │ │  │
-│  │  │  --json mode  │ │  13 resource namespaces   │ │  Live SSE    │ │  Thought Clouds     │ │  │
-│  │  │  Exit: 0–4    │ │  Bearer token auth        │ │  Read-only   │ │  Intuition Pulses   │ │  │
-│  │  │               │ │  SSE event streaming      │ │              │ │  Non-modal           │ │  │
-│  │  └──────────────┘ └─────────────────────────┘ └─────────────┘ └─────────────────────┘ │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ CAPABILITY PERMISSIONS ── policy always wins over permission ─────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  Scopes: <domain>:<action> · 3 classes: Read | Command | Administrative                 │  │
-│  │  3 token types: Owner (full) | Agent (scoped, revocable) | Integration (read, expirable)│  │
-│  │                                                                                         │  │
-│  │  AGENT SKILL BUNDLE: 18 skills (8 cognition + 4 telemetry + 2 explain + 4 proposal)    │  │
-│  │  Prohibited: set_focus_state · modify_lineage · write_reference · activate_constitution │  │
-│  │              escalate_autonomy · approve_export                                          │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-│  ┌─ PERSISTENCE (local-first) ────────────────────────────────────────────────────────────┐  │
-│  │                                                                                         │  │
-│  │  ~/.focusa/                                                                             │  │
-│  │  ├── state/                                                                             │  │
-│  │  │   ├── focus_stack.json       Focus Stack snapshot                                    │  │
-│  │  │   ├── focus_gate.json        Candidate list (bounded 200)                            │  │
-│  │  │   ├── memory.json            Semantic + procedural records                           │  │
-│  │  │   └── sessions.json          Session metadata                                        │  │
-│  │  ├── ascc/                                                                              │  │
-│  │  │   └── <frame_id>.json        ASCC checkpoint per frame                               │  │
-│  │  ├── ecs/                                                                               │  │
-│  │  │   ├── objects/               Immutable content-addressed blobs                       │  │
-│  │  │   ├── handles/               Metadata per handle                                     │  │
-│  │  │   └── index.json             Handle index                                            │  │
-│  │  ├── events.jsonl               Append-only event log (bounded)                         │  │
-│  │  └── config.toml                Single config + env overrides                           │  │
-│  │                                                                                         │  │
-│  │  All persistence survives daemon restart · Event log supports deterministic replay       │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                              │
-└──────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌─ EXTERNAL AUTHORITY ─────────────────────────────────────────────────────────────────────────┐
-│                                                                                               │
-│  ┌────────────────────────────┐                                                               │
-│  │  BEADS                     │  If work is not in Beads, it does not exist.                  │
-│  │  (Task Authority)          │  Every Focus Frame maps to a Beads issue.                     │
-│  │                            │  tokens_per_task is the canonical optimization metric.         │
-│  └────────────────────────────┘                                                               │
-│                                                                                               │
-│  ┌────────────────────────────┐                                                               │
-│  │  MODEL ENDPOINT            │  Focusa is harness-agnostic and model-agnostic.               │
-│  │  (any provider)            │  Anthropic · OpenAI · Google · Local · any OpenAI-compatible   │
-│  │                            │  If Focusa fails → passthrough (fail-safe, never blocks)      │
-│  └────────────────────────────┘                                                               │
-│                                                                                               │
-└───────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-## Data Flow Summary
-
-```
-                    ┌──────────┐
-    User Prompt ───→│  Adapter  │───→ Turn Start
-                    └────┬─────┘
-                         │
-                         ▼
-                ┌────────────────┐
-                │   Expression   │──→ Assembled Prompt ──→ Model
-                │   Engine       │    (7 slots, bounded)
-                └───────┬────────┘
-                        │ reads
-            ┌───────────┼───────────────────┐
-            ▼           ▼                   ▼
-     ┌────────────┐ ┌───────┐        ┌───────────┐
-     │Focus State │ │Memory │        │ECS Handles│
-     │(from ASCC) │ │(≤5    │        │(refs only)│
-     └────────────┘ │rules) │        └───────────┘
-                    └───────┘
-
-    Model Response ──→ Adapter ──→ Turn Complete
-                                        │
-                           ┌────────────┼──────────────────────┐
-                           ▼            ▼                      ▼
-                    ┌─────────────┐ ┌──────────┐        ┌──────────┐
-                    │  Workers    │ │  CLT      │        │ Telemetry│
-                    │  (async)    │ │  (new     │        │ (CTL     │
-                    │             │ │   node)   │        │  events) │
-                    └──────┬──────┘ └──────────┘        └──────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-       ┌──────────┐ ┌──────────┐ ┌──────────┐
-       │  ASCC    │ │  Focus   │ │  Memory  │
-       │  Delta   │ │  Gate    │ │  Suggest │
-       │  (merge) │ │  Signals │ │  (advise)│
-       └────┬─────┘ └────┬─────┘ └──────────┘
-            │            │
-            └──────┬─────┘
-                   ▼
-            ┌──────────────┐
-            │   REDUCER    │──→ New State ──→ Persist
-            │  (canonical) │──→ Events    ──→ Log
-            └──────────────┘
-```
-
-## Architecture
-
-### 5 Planes
-
-**1. Cognitive Control Plane**
-- **Focus Stack (HEC)** — Hierarchical Execution Contexts. Models nested task attention. Exactly one active Focus Frame at any time. Every frame maps to a Beads issue. Frames are entered and exited explicitly, with required completion reasons (`goal_achieved`, `blocked`, `abandoned`, `superseded`, `error`). Parent frames contribute selectively to prompts.
-- **Focus Gate** — RAS-inspired pre-conscious salience filter. Ingests signals from adapters, workers, daemon, memory. Produces candidates with surface pressure that increases with persistence, goal alignment, risk, and novelty. Pressure decays at `×0.98` per tick. Surface threshold: `2.2`. Candidates surfaced for review only — never auto-switch focus. Supports pinning (immune to decay), suppression (pressure zeroed, audit trail retained), and time-based signals.
-
-**2. Context Fidelity Plane**
-- **ASCC** — Anchored Structured Context Checkpointing. Maintains a persistent structured summary per focus frame with 10 fixed slots: `intent`, `current_focus`, `decisions` (cap 30), `artifacts` (cap 50), `constraints` (cap 30), `open_questions` (cap 20), `next_steps` (cap 15), `recent_results` (cap 10), `failures` (cap 20), `notes` (cap 20). Deterministic merge rules per slot. Delta-only updates using turn anchors. Section pinning immune to prompt degradation. Replaces linear chat history.
-- **ECS** — Externalized Context Store. Stores large artifacts (diffs, logs, outputs, file snapshots) as immutable content-addressed blobs. Referenced by handles in prompts: `[HANDLE:<kind>:<id> "<label>"]`. 7 handle kinds: `log`, `diff`, `text`, `json`, `url`, `file_snapshot`, `other`. Externalize threshold: **8KB / 800 tokens**. Explicit rehydration only. Session-scoped. Human-pinnable.
-- **CLT** — Context Lineage Tree. Append-only tree of interaction history. 3 node types: `interaction`, `summary`, `branch_marker`. 7 non-negotiable design rules (append-only, immutable nodes, never mutates Focus State, Focus State references exactly one CLT head, compaction inserts — never deletes, abandoned branches never erased, fully inspectable/navigable/replayable). Answers "where have we been" not "what do we believe."
-
-**3. Memory Plane**
-- **Semantic Memory** — Small explicit facts/preferences. Keyed records (`user.response_style`, `project.name`, etc.) with confidence and TTL. Whitelisted keys injected into prompt.
-- **Procedural Memory** — Reinforced rules/habits. Weight-based (decays at `×0.99` per tick). Scoped: `global`, `frame:<id>`, `project:<name>`. At most 5 rules injected per turn, ordered by weight and scope relevance.
-- Memory is **opt-in only**. Workers may suggest, never write. No automatic personality drift. No silent preference learning.
-
-**4. Background Cognition Plane**
-- **Workers** — Async task queue (bounded 100 jobs). 5 job kinds: `classify_turn`, `extract_ascc_delta`, `detect_repetition`, `scan_for_errors`, `suggest_memory`. Priority: `Low | Normal | High`. Max execution: **200ms per job**. Workers return results — never mutate state directly. Reducer decides whether to accept.
-- **Intuition Engine** — Subconscious pattern detector. Runs async only. Emits signals (temporal, repetition, consistency, structural). Cannot block hot path. Cannot mutate Focus State. Cannot trigger actions. All signals are explainable and ephemeral until promoted by Focus Gate.
-
-**5. Interfaces**
-- **CLI** — Primary control surface. `focusa <domain> <action> [flags]`. 14 domains mirroring Capabilities API. Machine-readable output (`--json`). Exit codes: 0 success, 1 invalid, 2 policy violation, 3 unauthorized, 4 internal.
-- **Local HTTP API** — `http://127.0.0.1:<port>/v1`. 13 resource namespaces. Bearer token auth. SSE event streaming. Commands via `/v1/commands/submit`. All writes audited.
-- **TUI** — Full-screen terminal UI (ratatui). 14 navigable domain views. Live updates via SSE. Read-only by default.
-- **Menubar GUI** — SvelteKit + Tauri. Ambient cognitive awareness. Focus Bubble (center), Background Thought Clouds (inactive frames), Intuition Pulses (subconscious ripples). Never modal, never demands attention.
-
-### Core Reducer
-
-All state mutations flow through a single deterministic reducer:
-
-```
-reduce(state: FocusaState, event: FocusaEvent) → ReductionResult { new_state, emitted_events }
-```
-
-15 canonical event types. 7 global invariants (at most one active frame, every frame maps to Beads, Focus State sections always exist, Intuition cannot mutate focus, Focus Gate is advisory only, artifacts immutable once registered, conversation never mutates cognition). State version incremented on every successful reduction. Deterministic, replayable, crash-safe, testable in isolation.
-
-### Governance Layer
-
-**UXP (User Experience Profile)** — Slow-moving calibration of user preferences. 7 canonical dimensions: `autonomy_tolerance`, `verbosity_preference`, `interruption_sensitivity`, `explanation_depth`, `confirmation_preference`, `risk_tolerance`, `review_cadence`. Each dimension has: value (0–1), confidence, citations, scope (user/agent/model/harness), learning rate (`α ≤ 0.1`, window `≥ 30`), user override.
-
-**UFI (User Friction Index)** — Fast-moving interaction cost measurement. 14 signal types in 3 weight tiers: High (task_reopened, manual_override, immediate_correction, undo_or_revert, explicit_rejection), Medium (rephrase, repeat_request, scope_clarification, forced_simplification), Low/Language-only (negation_language, meta_language, impatience_marker). Language signals may NEVER dominate aggregate.
-
-**UFI → UXP Bridge:**
-```
-UXP_new = clamp(UXP_old × (1 - α) + mean(UFI_window) × α, 0.0, 1.0)
-```
-
-**Autonomy Calibration** — Evidence-based trust scoring. 6 dimensions: Correctness, Stability, Efficiency, Trust, Grounding, Recovery. ARI (Autonomy Reliability Index) 0–100. 6 autonomy levels (AL0 advisory → AL5 long-horizon). Promotion requires explicit human grant + minimum ARI + minimum sample size + defined scope + TTL. Never self-escalates.
-
-**Agent Constitution (ACP)** — Versioned, immutable reasoning charter. Behavioral principles, self-evaluation heuristics, autonomy posture, safety rules, expression constraints. Constitutions never self-modify. One active version per agent. Changes apply only to new sessions. Semantic versioning (`MAJOR.MINOR.PATCH`). One-click rollback.
-
-**Constitution Synthesizer (CS)** — Offline, read-only analysis assistant that proposes ACP revisions. 5-step deterministic process: evidence aggregation → normative tension detection → principle impact mapping → candidate rewrite → draft assembly. Requires explicit human activation. Never auto-applies. Evidence-linked diffs. Minimum 50 tasks for analysis window.
-
-**Reliability Focus Mode (RFM)** — 4 levels: R0 (normal) → R1 (validation) → R2 (regeneration) → R3 (ensemble). Microcell validators: Schema, Constraint, Consistency, Reference-Grounding. Artifact Integrity Score (AIS): `≥0.90` safe, `0.70–0.90` degraded, `<0.70` triggers RFM. Agent cannot earn autonomy while losing artifact integrity.
-
-**Proposal Resolution Engine (PRE)** — Timestamped async concurrency across multiple instances. Observations (CLT nodes, refs, telemetry) always concurrent. Decisions (focus changes, thesis updates, autonomy adjustments) expressed as proposals → scored → resolved in time-bounded windows (default 500ms–2000ms).
-
-### Threads, Instances, Sessions
-
-**Thread** = persistent cognitive workspace binding: Thread Thesis, CLT, Focus Stack, Reference Store namespace, telemetry, autonomy history. Operations: Create, Resume, Save, Rename, Fork, Archive. 5 guarantees: threads never share mutable state, one active per session, CLT nodes belong to one thread, telemetry is thread-scoped, autonomy is thread-specific.
-
-**Thread Thesis** = living semantic anchor: primary intent, secondary goals, explicit/implicit constraints, open questions, assumptions, confidence `{score, rationale}`, scope `{domain, time_horizon, risk_level}`, sources. Updated by events, not per-turn. Minimum confidence delta for change. Cooldown between updates.
-
-**Instance** = where (runtime integration point: `acp | cli | tui | gui | background`). **Session** = when (temporal execution window). **Attachment** = what (binding between instance/session and thread, with role: `active | assistant | observer | background`).
-
-### Observability
-
-**Cognitive Telemetry Layer (CTL)** — Passive, append-only. 7 event type schemas: model.tokens, focus.transition, lineage.node.created, gate.decision, tool.call, ux.signal, autonomy.update. Task-centric derived metrics: tokens_per_task, context_recovery_cost, compression_regret. Storage: local SQLite/DuckDB. Exportable for SFT, DPO, RLHF.
-
-**Cache Permission Matrix** — 5 classes: C0 (immutable, safe) → C4 (forbidden). 10 hard invalidation triggers. 6 intentional cache bust categories (A–F): fresh evidence, authority change, compaction, staleness, salience collapse, provider mismatch.
-
-**Training Dataset Export** — 4 families: `focusa_sft`, `focusa_preference`, `focusa_contrastive`, `focusa_long_horizon`. Full schemas with provenance, lineage, UXP/UFI signals. JSONL/Parquet output. Verified compatibility: Unsloth, HuggingFace datasets, Axolotl, TRL.
-
-### Capability Permissions
-
-Scopes: `<domain>:<action>`. 3 classes: Read (safe, non-destructive), Command (intentional mutation, requires policy validation), Administrative (reserved for local owner). 3 token types: Owner (full), Agent (scoped, revocable), Integration (read-only, expirable). **Policy always wins over permission.**
-
-### Agent Skill Bundle
-
-18 skills in 4 categories: Cognition Inspection (8 read-only), Telemetry & Metrics (4 read-only), Explanation & Traceability (2 read-only), Proposal & Request (4 guarded — never enact change). Explicitly prohibited: `set_focus_state`, `modify_lineage`, `write_reference`, `activate_constitution`, `escalate_autonomy`, `approve_export`. Skills reveal truth. Gates decide action. Autonomy is earned.
-
-## Performance Budgets
-
-| Area | Target |
-|------|--------|
-| Hot path (proxy overhead) | **< 20ms** typical |
-| Focus Gate signal ingest | **< 5ms** typical |
-| Worker job execution | **< 200ms** per job |
-| Prompt assembly | Deterministic, bounded |
-| Background tasks | Async, never block hot path |
-| ACP proxy overhead | **p50 < 5ms, p95 < 15ms** |
-| Long sessions | Hours/days without reset |
-
-## Technology Stack
-
-| Layer | Technology |
-|---|---|
-| Core Runtime | Rust |
-| IPC / API | Local HTTP (JSON) + SSE |
-| CLI | Rust |
-| TUI | ratatui |
-| GUI | SvelteKit + Tauri |
-| State Storage | Local filesystem (JSON + JSONL) + SQLite |
-| Task Authority | Beads |
-
-## Design Principles
-
-1. **Focus over autonomy** — The system maintains what you're doing, not decides what to do
-2. **Structure over prose** — Meaning lives in typed fields, not natural language summaries
-3. **Advisory over controlling** — Focus Gate surfaces candidates, never auto-acts
-4. **Determinism over magic** — Same state + same input = same prompt, every time
-5. **Human intent always wins** — Override anything, rollback anything, inspect everything
-6. **Failure must be visible** — No silent truncation, no hidden degradation, no unexplained drift
-
-## Canonical Invariants
-
-These are architectural invariants. Violating any of them is a system fault:
-
-1. At most one active Focus Frame exists at any time
-2. Every Focus Frame maps to a Beads issue
-3. Focus State sections always exist (may be empty, never absent)
-4. Intuition Engine cannot mutate focus
-5. Focus Gate is advisory only
-6. Artifacts are immutable once registered
-7. Conversation never mutates cognition
-8. All state transitions are deterministic and replayable from event log
-9. No silent prompt changes, no hidden memory writes
-10. Session isolation — no cross-session state leakage
-
-## Repository Structure
-
-```
-focusa/
-├── README.md                          # This file
-├── AGENTS.md                          # Agent behavioral protocol
-├── .beads/                            # Task tracking (Beads workspace)
-├── docs/                              # Authoritative specifications (67 docs)
-│   ├── 00-glossary.md                 # Canonical terminology (LOCKED)
-│   ├── 01-architecture-overview.md    # System picture & responsibilities
-│   ├── core-reducer.md               # Reducer contract, 15 events, 7 invariants
-│   ├── G1-detail-03-runtime-daemon.md # AppState, session identity, persistence
-│   ├── G1-detail-05-focus-stack-hec.md # FrameRecord, FocusStackState, operations
-│   ├── G1-detail-06-focus-gate.md     # Signal/Candidate models, pressure formula
-│   ├── G1-07-ascc.md                  # CheckpointRecord, 10 slots, merge rules
-│   ├── G1-detail-08-ecs.md            # HandleRef, HandleKind, threshold policy
-│   ├── G1-09-memory.md               # SemanticRecord, RuleRecord, decay
-│   ├── G1-10-workers.md              # WorkerJob, queue, job definitions
-│   ├── G1-detail-11-prompt-assembly.md # 7 slots, token budget, degradation cascade
-│   ├── 14-uxp-ufi-schema.md          # UXP dimensions, UFI signals, learning bridge
-│   ├── 15-agent-schema.md            # Agent identity, behavioral defaults, policies
-│   ├── 16-agent-constitution.md       # ACP schema, principles, safety rules
-│   ├── 16-constitution-synthesizer.md # CS process, output schema, review workflow
-│   ├── 17-context-lineage-tree.md     # CLT nodes, design rules, compaction
-│   ├── 18-cache-permission-matrix.md  # 5 cache classes, permission matrix
-│   ├── 19-intentional-cache-busting.md # 6 bust categories A-F
-│   ├── 20-training-dataset-schema.md  # 4 dataset families with full schemas
-│   ├── 22-data-contribution.md        # ODCL pipeline, contribution policy
-│   ├── 23-capabilities-api.md         # 13 namespaces, command model, SSE
-│   ├── 24-capabilities-cli.md         # 14 domains, output modes, exit codes
-│   ├── 25-capability-permissions.md   # Scope model, 3 token types, enforcement
-│   ├── 26-agent-capability-scope.md   # 3 scope tiers, prohibited actions
-│   ├── 27-tui-spec.md                # 14 domain views, layout, key bindings
-│   ├── 28-ratatui-component-tree.md   # 50+ widget components, data flow
-│   ├── 29-telemetry-spec.md           # CTL design, 5 event classes, invariants
-│   ├── 30-telemetry-schema.md         # 7 event payload schemas
-│   ├── 33-acp-proxy-spec.md           # ACP observation + proxy modes
-│   ├── 34-agent-skills-spec.md        # 18 skills, 4 categories, prohibited skills
-│   ├── 35-skill-to-capabilities-mapping.md # Exact skill → API endpoint mapping
-│   ├── 36-reliability-focus-mode.md   # RFM levels, microcells, AIS thresholds
-│   ├── 37-autonomy-calibration-spec.md # 6 dimensions, scoring, calibration suites
-│   ├── 38-thread-thesis-spec.md       # Schema, lifecycle, update triggers
-│   ├── 39-thread-lifecycle-spec.md    # 6 operations, 5 guarantees
-│   ├── 40-instance-session-attachment-spec.md # Schemas, roles, multiplexing
-│   ├── 41-proposal-resolution-engine.md # Proposal schema, resolution algorithm
-│   ├── PRD.md                         # Product requirements (MVP + updated vision)
-│   └── ... (+ remaining specs, bootstrap prompts, UI specs)
-├── crates/                            # Rust implementation
-│   ├── focusa-core/                   # All cognition
-│   ├── focusa-cli/                    # CLI (thin facade)
-│   └── focusa-api/                    # HTTP API (thin facade)
-├── apps/
-│   └── menubar/                       # SvelteKit + Tauri GUI
-└── packages/
-    ├── ui-tokens/                     # Design tokens
-    ├── api-client/                    # API client library
-    └── types/                         # Shared TypeScript types
-```
-
-## How It Works (Turn-by-Turn)
-
-### 1. Harness sends a user prompt
-
-The adapter intercepts the prompt. Focusa reads current Focus State, ASCC checkpoint, selected memory, and ECS handles.
-
-### 2. Expression Engine assembles the prompt
-
-7 deterministic slots: System Header → Operating Rules (≤5 procedural rules by weight) → Active Focus Frame (ASCC checkpoint, all 10 slots) → Parent Context (optional, bounded) → Artifact Handles (ECS refs only) → User Input → Execution Directive.
-
-Token budget enforced (default: 6000 prompt, 2000 reserve). If exceeded, degradation cascade: drop lowest-priority parent frames → drop non-essential ASCC slots → truncate rehydrated handles → fail only as last resort. All truncation is explicit, logged, reversible.
-
-### 3. Model responds
-
-Response flows back through adapter. Workers fire asynchronously:
-- `classify_turn`: tag file paths, errors, tools, intent shifts
-- `extract_ascc_delta`: produce structured delta proposal for merge
-- `scan_for_errors`: emit error signals with severity
-- `suggest_memory`: propose memory updates (advisory only)
-
-### 4. ASCC merges the delta
-
-Deterministic merge rules applied per slot: intent updated only on explicit change marker, decisions appended/deduped (cap 30), artifacts appended/deduped by `(kind + path + label)` (cap 50), open questions removed when answered, next steps replaced with latest, recent results keep last 10 newest-first, failures appended (cap 20), notes append/decay oldest first (cap 20). Revision incremented. Anchor advanced to current turn.
-
-### 5. Focus Gate updates candidates
-
-Signals from workers ingested. Fingerprint dedupe. Pressure updated with base increments (error: +1.2, warning: +0.7, user_input: +0.6, tool_output: +0.5, repeated_pattern: +0.8, assistant_output: +0.2, manual_pin: +2.0), modified by goal alignment (×1.3/×1.1/×0.8), recency (+0.3 within 5 min), risk (+0.4 for error/warning). Decay: `×0.98` per tick. Candidates surfaced when `pressure ≥ 2.2`.
-
-### 6. Everything persisted
-
-Focus State snapshot, ASCC checkpoint, new CLT node, telemetry events, candidate list — all persisted to local storage. Event log is append-only, supports deterministic replay. State survives daemon restart.
-
-### 7. Next turn
-
-Focus State is re-injected. ASCC carries forward. Artifacts remain in ECS. Memory is stable. Compaction can happen to conversation history without loss — because meaning lives in Focus State, not in conversation.
-
-## How Autonomy Is Earned
-
-1. Agent starts at **AL0** (advisory only)
-2. System observes performance across 6 dimensions (Correctness, Stability, Efficiency, Trust, Grounding, Recovery)
-3. ARI score computed from weighted categories: Outcome 50%, Efficiency 20%, Discipline 15%, Safety 15%
-4. When ARI meets threshold with sufficient sample size, Focusa **recommends** promotion
-5. Human explicitly grants autonomy: `focusa autonomy grant --level 2 --scope ./repo --ttl 72h`
-6. Constitution Synthesizer periodically proposes ACP refinements based on accumulated evidence
-7. Human reviews CS drafts, edits wording, activates or discards
-8. Agent identity evolves **deliberately**, with full version history and one-click rollback
-
-## Integration Model
-
-### Supported Harnesses (MVP)
-
-- Letta
-- Claude Code
-- Codex CLI
-- Gemini CLI
-- Zed (via ACP)
-- Any OpenAI-compatible API
-
-### Integration Modes
-
-**Mode A — Wrap Harness CLI (Primary):** Focusa wraps the harness stdin/stdout. Intercepts all I/O. Zero harness modification required.
-
-**Mode B — HTTP Proxy (Optional):** Focusa runs as HTTP proxy between harness and model endpoint.
-
-**Mode C — ACP Proxy:** Focusa terminates ACP client transport, routes bidirectionally, applies full cognitive governance. Latency budget: p50 < 5ms, p95 < 15ms.
-
-### Fail-Safe
-
-If Focusa fails, the adapter passes through raw requests (passthrough mode), emits failure event, does not block the harness. Focusa is invisible unless inspected.
-
-## Relationship to Beads
-
-Beads is the authoritative task system. Focusa governs focus. Beads governs what work exists.
-
-- Every Focus Frame maps to a Beads issue
-- If work is not in Beads, it does not exist
-- Task lifecycle events (started, completed, abandoned) drive telemetry
-- `tokens_per_task` is the canonical optimization metric
-
-## Relationship to Wirebot
-
-Focusa is the cognitive governance layer inside Wirebot. The [FOCUSA_WIREBOT_INTEGRATION.md](../wirebot-core/docs/FOCUSA_WIREBOT_INTEGRATION.md) (152KB, 58 sections) maps every Focusa subsystem onto the Wirebot Memory Bridge infrastructure:
-
-- Focusa Core Reducer → bridge plugin TypeScript
-- Focus Stack → Clawdbot session model
-- ASCC → Letta memory blocks + workspace files
-- ECS → workspace files indexed by memory-core
-- Memory → Mem0 (semantic) + local rules (procedural)
-- Telemetry → append-only JSONL + systemd journal
-- Agent Constitution → workspace SOUL.md
-
-## Success Criteria
-
-The system is working when:
-
-1. Long sessions remain coherent (hours/days without reset)
-2. Compaction does not destroy intent
-3. Focus never auto-switches
-4. Priorities surface meaningfully without interruption
-5. Artifacts are never lost
-6. Failures are observable
-7. Works with real harnesses as a transparent proxy
-8. CLI-only usage is sufficient
-9. Agent can explain why its behavior changed
-10. Autonomy can run for extended periods with verifiable trust
-
-## Status
-
-🚧 **Architecture Locked — Specifications Complete — Pre-Implementation**
-
-67 specification documents (416KB) fully cover every subsystem. Documentation is sufficient to implement without guesswork.
-
-## One-Sentence Summary
-
-> **Focusa preserves continuity of mind across long AI sessions by separating focus, memory, and expression from fragile conversation history.**
-
-## Final Invariant
-
-> **Meaning lives in Focus State, not in conversation.**
+Focusa was created to move durable meaning out of raw conversation and into typed, inspectable, local state.
 
 ---
 
-## Quick Start
+## What Focusa is
 
-### 1. Start the Daemon
+Focusa is a local cognitive runtime that runs beside an agent harness such as Pi. It does not replace the agent or the model. It gives the agent structured memory, continuity, evidence handling, and governance surfaces.
+
+In plain terms, Focusa gives an agent:
+
+- a **current state of mind** (`Focus State`),
+- a **continuation contract** after compaction (`Workpoint`),
+- a way to **save proof without bloating prompts** (`Evidence` + handles),
+- a **lineage/snapshot system** for recovery,
+- a **metacognition loop** for reusable learning,
+- a **work-loop control surface** with writer ownership,
+- and a common result envelope so tools return predictable status, retry, evidence, and next-tool guidance.
+
+Focusa is local-first. State lives on the machine running the daemon, under the project/data directory, and can be inspected through the CLI/API.
+
+### What Focusa is not
+
+- Not a model.
+- Not a chatbot.
+- Not a replacement for Pi, Claude Code, Codex, or other harnesses.
+- Not a generic RAG system.
+- Not a cloud memory service.
+- Not finished or frozen; it is under active development.
+
+---
+
+## What a user can expect from Focusa-enhanced agents
+
+When Focusa is working well, an agent should:
+
+1. **Resume cleanly after compaction.** It should call `focusa_workpoint_resume` and continue from a typed packet instead of guessing from the transcript tail.
+2. **Keep the current mission visible.** Intent, focus, constraints, failures, recent results, and next steps are stored in bounded fields.
+3. **Preserve decisions and why they were made.** Decisions are concise architectural records, not buried paragraphs.
+4. **Treat evidence as first-class.** Test output, API proof, release checks, and file references can be linked to the active Workpoint.
+5. **Notice drift.** Workpoint drift checks can tell whether the agent is still working on the expected action/object.
+6. **Avoid prompt bloat.** Large outputs become handles or evidence refs instead of raw transcript paste.
+7. **Recover from uncertainty.** Tool results include status, retry posture, canonical/degraded state, and next-tool hints.
+8. **Learn with discipline.** Metacognition tools include quality gates, evidence refs, and evaluation metrics instead of unconstrained note-taking.
+9. **Respect ownership.** Work-loop mutation tools expose writer conflicts and preflight state instead of silently taking over.
+10. **Remain inspectable.** The CLI/API expose state, lineage, snapshots, events, memory, ontology, Workpoints, and tool health.
+
+---
+
+## Current architecture snapshot
+
+```text
+Agent harness / Pi session
+        │
+        │ focusa_* tools, commands, lifecycle hooks
+        ▼
+Pi Focusa extension ── thin adapter, no parallel memory
+        │
+        │ HTTP JSON calls
+        ▼
+Focusa daemon / API (Rust)
+        │
+        ├─ Focus State: bounded current cognitive state
+        ├─ Workpoint: typed continuation and evidence spine
+        ├─ Core reducer: deterministic state transitions
+        ├─ Ontology: objects, links, working sets, active refs
+        ├─ Lineage / CLT: branch-aware context history
+        ├─ Tree snapshots: recoverable state checkpoints
+        ├─ Metacognition: capture/retrieve/reflect/adjust/evaluate
+        ├─ Work-loop: continuous execution state and writer control
+        ├─ ECS / references: externalized handles for large content
+        └─ CLI/API parity surfaces
+```
+
+### Core crate: `focusa-core`
+
+The core crate owns data types and reducer logic. Important current state includes:
+
+- `FocusaState` — session, focus stack, Focus State, gate, memory, telemetry, ontology, Workpoint, and continuous work state.
+- `FocusState` — bounded slots for intent, current focus, decisions, constraints, failures, next steps, open questions, recent results, notes, and artifacts.
+- `WorkpointState` — active Workpoint ID, records, resume events, drift events, degraded fallbacks.
+- `OntologyState` — proposals, objects/links/status changes, working-set refreshes, verification records, and delta log.
+- `FocusaEvent` — reducer-owned event taxonomy for Focus State, ontology, Workpoint, continuous work, telemetry, memory, and related state transitions.
+
+The reducer is the authority for state mutation. API routes and Pi tools should submit typed events or commands; they should not become alternate memory systems.
+
+### API crate: `focusa-api`
+
+The daemon exposes local HTTP endpoints under `/v1`. Current important namespaces include:
+
+- `/v1/health`, `/v1/status`
+- `/v1/focus/*`
+- `/v1/workpoint/*`
+- `/v1/work-loop/*`
+- `/v1/lineage/*`
+- `/v1/ontology/*`
+- `/v1/metacognition/*`
+- `/v1/threads/*`, `/v1/instances/*`
+- `/v1/capabilities/*`
+- telemetry, memory, ECS/reference, gate, proposals, autonomy, cache, and token surfaces
+
+The Workpoint release path now waits for reducer-visible state before reporting success:
+
+- `POST /v1/workpoint/checkpoint` returns `accepted` only after the new active Workpoint is visible to `/current` and `/resume`.
+- `POST /v1/workpoint/evidence/link` returns `accepted` only after linked evidence is visible in Workpoint state.
+- If reducer state has not materialized yet, the route returns `pending` with retry guidance instead of pretending the operation is complete.
+
+### CLI crate: `focusa-cli`
+
+The CLI is the operator/debug surface for the daemon. Current command domains include:
+
+```text
+start, stop, status, focus, stack, gate, memory, ecs, env, events,
+turns, state, clt, lineage, autonomy, constitution, telemetry, rfm,
+proposals, reflect, metacognition, ontology, skills, thread, export,
+contribute, cache, workpoint, tokens, wrap
+```
+
+Most commands support human-readable output, and the top-level CLI supports `--json` for machine-readable workflows.
+
+### Pi extension
+
+The Pi extension is the main agent-facing integration. It registers 43 `focusa_*` tools grouped into these families:
+
+- **Focus State:** scratch, decide, constraint, failure, intent, current focus, next step, open question, recent result, note.
+- **Workpoint:** checkpoint, resume, link evidence, active object resolve, evidence capture.
+- **Work-loop:** writer status, status, control, context, checkpoint, select next.
+- **Tree/lineage:** head, path, snapshot, diff, restore, recent snapshots, compare latest, lineage tree, LI extraction.
+- **Metacognition:** capture, retrieve, reflect, plan adjustment, evaluate outcome, recent reflections, recent adjustments, loop run, doctor.
+- **State hygiene:** doctor, plan, approval-safe apply.
+- **Tool doctor:** diagnostic entrypoint for Focusa tool readiness and likely recovery path.
+
+Every `focusa_*` tool is expected to expose a common `tool_result_v1` result envelope with status, canonical/degraded flags, retry guidance, side effects, evidence refs, and next-tool hints.
+
+---
+
+## Workpoint continuity
+
+A Workpoint is a typed continuation record. It preserves:
+
+- mission / current ask,
+- active object refs,
+- action intent,
+- verification records,
+- blockers and drift boundaries,
+- next slice / exact next action,
+- canonical vs degraded state.
+
+Use Workpoints whenever raw conversation becomes unreliable:
+
+```text
+Before compaction or risky handoff:
+  focusa_workpoint_checkpoint
+
+After compaction, model switch, fork, or uncertainty:
+  focusa_workpoint_resume
+
+After tests, release proof, API evidence, or file proof:
+  focusa_workpoint_link_evidence
+```
+
+A non-canonical Workpoint is a fallback hint, not truth. The agent should say it is degraded and recover through a canonical Focusa read when possible.
+
+---
+
+## Metacognition and learning
+
+Focusa metacognition is for reusable learning. It is not a dumping ground for every thought.
+
+The loop is:
+
+1. `focusa_metacog_capture` — store a reusable signal with rationale/evidence.
+2. `focusa_metacog_retrieve` — search prior learning before planning.
+3. `focusa_metacog_reflect` — generate hypotheses and strategy updates.
+4. `focusa_metacog_plan_adjust` — turn reflection into a tracked adjustment.
+5. `focusa_metacog_evaluate_outcome` — decide whether the adjustment improved results.
+
+Spec89 added quality-gate details and suggested metrics so weak, vague, or low-evidence learning can be improved before it influences future behavior.
+
+---
+
+## State hygiene
+
+Focusa state should be useful, not hoarded. The current hygiene tools are intentionally proposal-first:
+
+- `focusa_state_hygiene_doctor` diagnoses stale or duplicate signals without mutation.
+- `focusa_state_hygiene_plan` creates a proposed cleanup path.
+- `focusa_state_hygiene_apply` is approval-gated and non-destructive in the current snapshot.
+
+No Focusa tool should be silently deleted or demoted as a shortcut. Weak tools should be clarified, hardened, merged upward, or redesigned.
+
+---
+
+## Quick start
+
+### Build and run locally
 
 ```bash
-# Local (default — localhost only)
+git clone <repo-url> focusa
+cd focusa
+cargo build --release -p focusa-api -p focusa-cli
+
+# Start daemon in foreground
 cargo run --bin focusa-daemon
 
-# Remote access via Tailscale
-FOCUSA_BIND=0.0.0.0:8787 cargo run --bin focusa-daemon
-```
-
-### 2. Use the CLI
-
-```bash
-# Local
+# In another shell
 cargo run --bin focusa -- status
-
-# Remote (from Mac via Tailscale)
-FOCUSA_API_URL=http://100.94.238.56:8787 cargo run --bin focusa -- status
+cargo run --bin focusa -- workpoint current
 ```
 
-### 3. Use the TUI
+Default API URL:
 
-```bash
-# Local
-cargo run --bin focusa-tui
-
-# Remote
-FOCUSA_API_URL=http://100.94.238.56:8787 cargo run --bin focusa-tui
+```text
+http://127.0.0.1:8787
 ```
 
-### 4. Use the Menubar App
+### Installed service pattern
 
-Download from [GitHub Releases](https://github.com/Startempire-Wire/focusa/releases), or build locally:
+A deployed local service typically runs:
 
-```bash
-cd apps/menubar
-bun install
-bunx tauri build
+```text
+/home/wirebot/focusa/target/release/focusa-daemon
 ```
 
-Configure the API URL in the app: click the **⚙** gear icon → enter your daemon URL → **Test Connection** → **Save**.
-
-### 5. Use the Proxy
-
-Point your AI harness to the Focusa proxy endpoint:
+Health check:
 
 ```bash
-# Set upstream (OpenAI, Anthropic, etc.)
-export FOCUSA_UPSTREAM_URL=https://api.openai.com/v1/chat/completions
-export FOCUSA_API_KEY=sk-...
-
-# Your harness uses this URL instead of the model directly:
-# http://127.0.0.1:8787/proxy/v1/chat/completions
+curl -sS http://127.0.0.1:8787/v1/health | jq .
 ```
 
-## Remote Access (Mac → VPS via Tailscale)
+### CLI examples
 
-Focusa runs on your VPS. Your Mac accesses it over Tailscale.
-
-### Option A: Bind to all interfaces (simplest)
-
-On your VPS:
 ```bash
-FOCUSA_BIND=0.0.0.0:8787 focusa-daemon
-```
-
-On your Mac (CLI/TUI):
-```bash
-export FOCUSA_API_URL=http://100.94.238.56:8787
+# Daemon status
 focusa status
-focusa-tui
+
+# Current Workpoint
+focusa workpoint current
+
+# Resume packet
+focusa workpoint resume
+
+# Drift check
+focusa workpoint drift-check \
+  --latest-action 'release verify Spec89FocusaToolSuite live_api cli pi_tool' \
+  --expected-action-type release_verify
+
+# Ontology surfaces
+focusa ontology primitives
+focusa ontology world
+focusa ontology slices
 ```
 
-In the menubar app: **⚙** → `http://100.94.238.56:8787` → Save.
-
-> **Note:** `0.0.0.0` binds to all interfaces. This is safe when your VPS firewall blocks port 8787 from the public internet (only Tailscale peers can reach it via `100.x.x.x`).
-
-### Option B: Bind to Tailscale IP only (most secure)
+### API examples
 
 ```bash
-FOCUSA_BIND=100.94.238.56:8787 focusa-daemon
+# Health
+curl -sS http://127.0.0.1:8787/v1/health | jq .
+
+# Current Workpoint
+curl -sS http://127.0.0.1:8787/v1/workpoint/current | jq .
+
+# Resume Workpoint
+curl -sS -X POST http://127.0.0.1:8787/v1/workpoint/resume \
+  -H 'content-type: application/json' \
+  -d '{"mode":"operator"}' | jq .
 ```
 
-Only Tailscale peers can connect. Not reachable from localhost or public IP.
+### Pi skill and tools
 
-### Option C: SSH tunnel (no bind change needed)
+The current Focusa Pi skill lives in:
 
-Keep daemon on `127.0.0.1:8787` (default). From your Mac:
+- project: `.pi/skills/focusa/SKILL.md`
+- extension package: `apps/pi-extension/skills/focusa/SKILL.md`
+- installed global copy: `~/.pi/skills/focusa/SKILL.md`
+
+If Pi reports `description is required`, the skill is missing YAML frontmatter. A valid Focusa skill starts with:
+
+```yaml
+---
+name: focusa
+description: Use when preserving Focusa cognitive state, resuming after compaction/model switch/context overflow, linking evidence to Workpoints, using Focus State, work-loop, lineage/tree, metacognition, state-hygiene, or diagnosing Focusa tool readiness.
+---
+```
+
+Validate skill loading with Pi's actual loader:
+
 ```bash
-ssh -L 8787:127.0.0.1:8787 root@100.94.238.56
+node --input-type=module - <<'NODE'
+import { loadSkills } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
+const r = loadSkills({ cwd: process.cwd(), agentDir: '/root/.pi/agent', skillPaths: [], includeDefaults: true });
+console.log(r.skills.map(s => [s.name, s.description.length, s.filePath]));
+console.log(r.diagnostics);
+NODE
 ```
 
-Then use `http://127.0.0.1:8787` everywhere — the tunnel forwards to VPS.
+---
 
-### Environment Variables
+## Current repository layout
 
-| Variable | Default | Used By | Purpose |
-|----------|---------|---------|---------|
-| `FOCUSA_BIND` | `127.0.0.1:8787` | Daemon | API listen address |
-| `FOCUSA_API_URL` | `http://127.0.0.1:8787` | CLI, TUI | API endpoint |
-| `FOCUSA_UPSTREAM_URL` | OpenAI | Daemon | Proxy upstream LLM |
-| `FOCUSA_API_KEY` | — | Daemon | Proxy auth to upstream |
-| `RUST_LOG` | `focusa=info` | All | Log level |
+```text
+focusa/
+├── README.md                         # GitHub-facing overview
+├── Cargo.toml                        # Rust workspace
+├── crates/
+│   ├── focusa-core/                  # Reducer, state, event types, memory, workers
+│   ├── focusa-api/                   # Local daemon / HTTP API binary focusa-daemon
+│   ├── focusa-cli/                   # CLI binary focusa
+│   └── focusa-tui/                   # TUI crate
+├── apps/
+│   └── pi-extension/                 # Pi integration and Focusa tools
+├── docs/                             # Specs, evidence, audits, operator guides
+├── tests/                            # Contract and live-stress scripts
+└── .pi/skills/focusa/                # Project-local Focusa skill
+```
+
+Some older docs describe planned GUI/proxy/autonomy surfaces in more detail than the current runtime exposes. Treat those as design direction unless the README/current evidence says they are released in this snapshot.
+
+---
+
+## Current live proof
+
+Current release proof is documented in:
+
+```text
+docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md
+```
+
+That proof verified a rebuilt installed daemon and CLI through direct live API/CLI/Pi tool probes, including:
+
+- daemon health,
+- Workpoint checkpoint/current/resume,
+- Workpoint evidence link visible in resume,
+- Focus State update,
+- metacognition capture,
+- work-loop status,
+- CLI Workpoint current and drift-check,
+- Pi `focusa_workpoint_resume`.
+
+Proof marker:
+
+```text
+DIRECT_REAL_RELEASE_PROOF=PASS
+```
+
+---
+
+## Design principles
+
+1. **Meaning lives in typed state, not transcript luck.**
+2. **Focusa is the cognitive authority; adapters stay thin.**
+3. **Every important result should say whether it is canonical, degraded, retryable, or blocked.**
+4. **Evidence should be linked, not pasted forever.**
+5. **Agents should recover through explicit state reads, not memory vibes.**
+6. **Operator steering wins over automation.**
+7. **Local-first and inspectable beats hidden cloud memory.**
+8. **Focusa remains evolvable; docs describe snapshots, not permanent completion.**
+
+---
+
+## Documentation map
+
+Start here:
+
+- `docs/README.md` — documentation index for the current snapshot.
+- `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md` — when to use each hardened Focusa tool.
+- `docs/88-ontology-backed-workpoint-continuity.md` — Workpoint continuity design.
+- `docs/89-focusa-tool-suite-improvement-hardening-spec.md` — current tool-suite hardening snapshot.
+- `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md` — released runtime proof.
+- `apps/pi-extension/skills/focusa/SKILL.md` — current Focusa skill text.
+
+---
 
 ## License
 
 Proprietary — Startempire Wire
 
-*Part of the Startempire Wire ecosystem — cognitive governance for Wirebot, the AI business operating partner for founders.*
+Part of the Startempire Wire ecosystem.

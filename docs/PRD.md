@@ -1,6 +1,6 @@
 # Focusa — Product Requirements Document (PRD)
-**Version:** MVP v1.0  
-**Status:** Architecture Locked  
+**Version:** v0.9.0-dev snapshot  
+**Status:** Active development; current runtime implemented across core/API/CLI/Pi with additional design surfaces evolving  
 **Audience:** Engineers, Agent Implementers, Technical Stakeholders  
 **Product Type:** Local Cognitive Runtime / Harness-Agnostic Proxy  
 **Relationship:** Standalone now; future NavisAI subsystem  
@@ -18,10 +18,12 @@ Focusa does **not** replace:
 - models
 
 Focusa **augments** them by providing:
-- hierarchical focus control
-- deterministic context compression
-- lossless artifact offloading
-- advisory salience surfacing
+- bounded Focus State
+- Workpoint continuity across compaction and model switches
+- evidence linking and handle-based proof preservation
+- lineage, tree snapshots, and recovery surfaces
+- metacognition quality gates and learning loops
+- work-loop writer ownership and preflight controls
 - minimal, explicit memory
 
 ---

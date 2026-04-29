@@ -594,7 +594,7 @@ This spec does not require:
 
 ---
 
-## 12) Final success criteria
+## 12) Current success criteria
 
 Spec 89 is complete when:
 
@@ -645,5 +645,6 @@ Spec89 implementation completed through phases 0–7 under root Bead `focusa-bcy
 | Phase 5 dedupe/hygiene | Complete | `docs/evidence/SPEC89_PHASE5_DEDUPE_HYGIENE_EVIDENCE_2026-04-28.md` |
 | Phase 6 pickup/parity/stress | Complete | `docs/evidence/SPEC89_PHASE6_PICKUP_PARITY_STRESS_EVIDENCE_2026-04-28.md` |
 | Phase 7 docs/guardrails | Complete | `docs/evidence/SPEC89_PHASE7_CLOSURE_GUARDRAILS_EVIDENCE_2026-04-28.md` |
+| Real release proof | Complete for current snapshot | `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md` |
 
 Operator guidance lives in `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md`.

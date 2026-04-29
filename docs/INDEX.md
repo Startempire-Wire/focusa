@@ -1,9 +1,9 @@
-# Focusa — Finalized Documentation Set
+# Focusa — Current Documentation Snapshot
 
-**Canonical doc set with merged ontology/Pi-alignment addenda.**
-Only the **latest finalized version** of each doc is included. Superseded drafts eliminated.
+**Current public docs map with core architecture, runtime surfaces, ontology/Pi alignment, and implementation evidence.**
+Focusa remains under active development; docs describe logical snapshots and may include older design-direction material.
 
-**Source conversation:** `/data/wirebot/focusa/focusa-chatgpt-conversation.md`
+**Current docs snapshot:** `v0.9.0-dev`
 
 ---
 
@@ -28,7 +28,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 
 | #   | File                                                       | Subsystem                                         |
 | --- | ---------------------------------------------------------- | ------------------------------------------------- |
-| 01  | [01-architecture-overview.md](01-architecture-overview.md) | MVP architecture overview                         |
+| 01  | [01-architecture-overview.md](01-architecture-overview.md) | Architecture overview and design direction        |
 | 02  | [02-runtime-daemon.md](02-runtime-daemon.md)               | Runtime daemon, state, persistence                |
 | 03  | [03-focus-stack.md](03-focus-stack.md)                     | Focus Stack & Focus Frames                        |
 | 04  | [04-focus-gate.md](04-focus-gate.md)                       | Focus Gate (RAS-inspired salience filter)         |
@@ -38,7 +38,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 08  | [08-expression-engine.md](08-expression-engine.md)         | Expression Engine (prompt assembly)               |
 | 09  | [09-proxy-adapter.md](09-proxy-adapter.md)                 | Proxy & harness adapters                          |
 | 10  | [10-monorepo-layout.md](10-monorepo-layout.md)             | Monorepo layout                                   |
-| 11  | [11-menubar-ui-spec.md](11-menubar-ui-spec.md)             | Menubar UI (Tauri + SvelteKit)                    |
+| 11  | [11-menubar-ui-spec.md](11-menubar-ui-spec.md)             | Menubar UI design direction (not guaranteed in current runtime) |
 
 ---
 
@@ -184,7 +184,7 @@ These docs from the initial spec cover topics that were NOT rewritten in the Gen
 
 | File                                                 | Description                                                |
 | ---------------------------------------------------- | ---------------------------------------------------------- |
-| [bootstrap-prompt.md](bootstrap-prompt.md)           | Engineer agent bootstrap prompt (MVP)                      |
+| [bootstrap-prompt.md](bootstrap-prompt.md)           | Engineer agent bootstrap prompt                      |
 | [bootstrap-prompt-rust.md](bootstrap-prompt-rust.md) | Rust-first engineer agent bootstrap prompt                 |
 | [core-reducer.md](core-reducer.md)                   | Focusa-Core Reducer — canonical pseudocode (AUTHORITATIVE) |
 
@@ -211,7 +211,7 @@ These Gen1 docs contain **data models, algorithms, schemas, acceptance tests, an
 
 | File                                                                     | Description                                                   |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [G1-detail-PRD-gen2-intermediate.md](G1-detail-PRD-gen2-intermediate.md) | Gen2 intermediate PRD (between Gen1 full PRD and final delta) |
+| [G1-detail-PRD-gen2-intermediate.md](G1-detail-PRD-gen2-intermediate.md) | Gen2 intermediate PRD snapshot |
 | [PRD-delta-threads.md](PRD-delta-threads.md)                             | Thread concept section for PRD                                |
 | [PRD-delta-thread-workspaces.md](PRD-delta-thread-workspaces.md)         | Thread as cognitive workspace section                         |
 
@@ -223,7 +223,7 @@ These Gen1 docs contain **data models, algorithms, schemas, acceptance tests, an
 2. **Architecture:** [01-architecture-overview.md](01-architecture-overview.md) → [02-runtime-daemon.md](02-runtime-daemon.md)
 3. **Core subsystems:** 03 → 04 → 05 → 06 → 07 → 08 (Focus Stack → Gate → Intuition → State → Reference → Expression)
 4. **For implementation depth:** Read the `G1-detail-*` counterpart of each Gen2 doc
-5. **Memory:** [G1-07-ascc.md](G1-07-ascc.md) + [G1-09-memory.md](G1-09-memory.md) (Gen1 only — not yet rewritten)
+5. **Memory:** [G1-07-ascc.md](G1-07-ascc.md) + [G1-09-memory.md](G1-09-memory.md) (older detailed specs; compare with current README/evidence for runtime state)
 6. **Autonomy:** 12 → 13 → 37
 7. **Agent model:** 15 → 16 → 16-constitution-synthesizer
 8. **Advanced:** 17 (CLT) → 36 (Reliability) → 38-41 (Threads/Concurrency/Proposals)

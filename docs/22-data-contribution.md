@@ -28,7 +28,7 @@ Contribution is:
 
 The **Opt-In Data Contribution Layer (ODCL)** is a **post-cognition export pipeline**
 that:
-- observes finalized Focusa cognition artifacts
+- observes current Focusa cognition artifacts after they are reducer-owned and evidence-linked
 - filters them for eligibility
 - queues them locally
 - optionally uploads them for model training

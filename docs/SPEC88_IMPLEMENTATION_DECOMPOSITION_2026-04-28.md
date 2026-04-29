@@ -709,7 +709,7 @@ Parallel-safe lanes after Phase 3:
 
 - CLI can proceed once endpoint schemas stabilize.
 - Pi tool registration can proceed against mock/stub endpoint envelopes.
-- Drift detector can start in preview-only mode while event emission is finalized.
+- Drift detector can start in preview-only mode while event emission matures.
 
 ---
 

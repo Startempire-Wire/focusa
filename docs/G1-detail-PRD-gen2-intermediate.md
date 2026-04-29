@@ -1,8 +1,8 @@
-# PRD.md — Focusa Product Requirements Document (MVP)
+# PRD.md — Focusa Product Requirements Snapshot
 
 **Product:** Focusa  
-**Version:** MVP v1.0  
-**Status:** Architecture Locked  
+**Version:** v0.9.0-dev snapshot  
+**Status:** Active development; older design snapshot retained for architectural context  
 **Category:** Local Cognitive Runtime  
 **Audience:** Engineers, Agent Implementers, System Designers  
 

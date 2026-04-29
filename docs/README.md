@@ -1,10 +1,8 @@
-# Focusa
+# Focusa Docs
 
-**Focusa** is a local-first cognitive governance framework for AI agents.
+**Focusa** is a local-first cognitive continuity and governance runtime for AI agents.
 
-It is not a chatbot.  
-It is not an agent framework.  
-It is the system that makes agents *trustworthy over time*.
+This docs index describes the current development snapshot. Focusa is implemented across Rust core/API/CLI plus the Pi extension, and it remains under active development.
 
 ---
 
@@ -18,19 +16,18 @@ It is the system that makes agents *trustworthy over time*.
 
 ---
 
-## Core Concepts
+## Current Runtime Concepts
 
-- **Focus State** – what the system is currently doing
-- **Focus Stack** – structured attention over tasks
-- **Focus Gate** – what is allowed to surface
-- **Reference Store** – lossless external memory
-- **Expression Engine** – language output
-- **Intuition Engine** – subconscious signal formation
-- **UXP / UFI** – transparent experience calibration
-- **Autonomy Reliability Index** – earned trust
-- **Agent** – persistent behavioral persona
-- **Agent Constitution (ACP)** – immutable reasoning charter
-- **Constitution Synthesizer (CS)** – evidence-driven constitution drafting
+- **Focus State** – bounded current cognitive state: intent, focus, decisions, constraints, failures, next steps, open questions, recent results, notes, artifacts.
+- **Workpoint** – typed continuation contract for compaction/model-switch/fork/retry recovery.
+- **Evidence refs** – stable proof handles linked to Workpoints instead of raw transcript blobs.
+- **Focus Stack** – structured attention over tasks and frames.
+- **Context Lineage Tree (CLT)** – branch-aware interaction lineage.
+- **Ontology** – objects, links, working sets, action intent, and verification relations.
+- **Metacognition** – capture/retrieve/reflect/adjust/evaluate loop for reusable learning.
+- **Work-loop** – continuous execution state with writer ownership and preflight controls.
+- **Tool Result Envelope** – common status/canonical/degraded/retry/evidence/next-tool metadata for `focusa_*` tools.
+- **UXP/UFI, autonomy, constitutions** – governance design surfaces with partial runtime support and ongoing development.
 
 ---
 
@@ -112,7 +109,7 @@ This is **institutional intelligence**, not novelty AI.
 ## Status
 
 Focusa is under active development.
-The MVP focuses on correctness, transparency, and trust.
+The current `v0.9.0-dev` snapshot focuses on correctness, transparency, continuity, and live proof over marketing claims.
 
 ---
 
@@ -302,10 +299,9 @@ Primary control surface:
 - JSON over HTTP
 - Used by CLI, GUI, adapters
 
-### Menubar GUI
-- Passive observability
-- Calm, ambient state awareness
-- No intrusive alerts
+### GUI / TUI
+- TUI crate exists as a runtime surface.
+- Menubar/Tauri material in older docs is design direction unless a current release note or evidence file says it is shipped in the active snapshot.
 
 ---
 
@@ -333,9 +329,9 @@ Focusa uses **Beads** as the authoritative system of record for tasks and long-t
 
 ## Status
 
-🚧 **Architecture Locked — Pre-Implementation**
+🚧 **Current snapshot: v0.9.0-dev**
 
-Documentation is sufficient to implement the MVP without guesswork.
+The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition surfaces, state hygiene tools, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
 
 ---
 
