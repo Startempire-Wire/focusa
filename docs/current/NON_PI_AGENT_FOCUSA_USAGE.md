@@ -123,3 +123,39 @@ node scripts/validate-non-pi-agent-awareness.mjs
 ```
 
 The guard should verify that public docs and integration snippets mention OpenClaw/Wirebot, Workpoint resume/checkpoint, doctor, evidence, prediction, degraded fallback, and operator steering.
+
+
+## OpenClaw plugin implementation
+
+Focusa ships a local OpenClaw plugin skeleton for gateway injection:
+
+```text
+apps/openclaw-focusa-awareness/
+  openclaw.plugin.json
+  index.ts
+```
+
+The plugin listens on `before_agent_start`, fetches `/v1/awareness/card`, and returns `{ prependContext: rendered_card }`. If Focusa is unavailable, it injects a degraded fallback card with `cognition_degraded=true`.
+
+Validation:
+
+```bash
+node scripts/validate-openclaw-focusa-awareness-plugin.mjs
+node scripts/validate-openclaw-focusa-awareness-config.mjs
+node scripts/prove-non-pi-agent-awareness-live.mjs
+```
+
+Configured production path:
+
+```text
+/data/wirebot/users/verious/openclaw.json
+plugins.allow += focusa-awareness
+plugins.load.paths += /home/wirebot/focusa/apps/openclaw-focusa-awareness
+plugins.entries.focusa-awareness.enabled = true
+```
+
+Activation requires an OpenClaw gateway restart/reload. Because that restarts the live Wirebot gateway, perform it in an operator-approved window:
+
+```bash
+systemctl restart openclaw-gateway
+```

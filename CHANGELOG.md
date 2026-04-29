@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — OpenClaw Focusa awareness plugin
+
+- Added `apps/openclaw-focusa-awareness` plugin skeleton to inject `/v1/awareness/card` into OpenClaw/Wirebot `before_agent_start`.
+- Added plugin/config validation guards and enabled `focusa-awareness` in `/data/wirebot/users/verious/openclaw.json`; live activation requires operator-approved gateway restart.
+
 ## Unreleased — Spec93 awareness card API
 
 - Added `/v1/awareness/card` and `focusa awareness card` for OpenClaw/Wirebot and other non-Pi agents.

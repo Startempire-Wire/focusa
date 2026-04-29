@@ -1,0 +1,20 @@
+{
+  "id": "focusa-awareness",
+  "kind": "extension",
+  "name": "Focusa Awareness",
+  "description": "Injects a Focusa Utility Card into OpenClaw/Wirebot agent starts.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "focusaUrl": { "type": "string", "default": "http://127.0.0.1:8787" },
+      "adapterId": { "type": "string", "default": "openclaw" },
+      "workspaceId": { "type": "string", "default": "wirebot" },
+      "agentId": { "type": "string", "default": "wirebot" },
+      "operatorId": { "type": "string", "default": "verious.smith" },
+      "projectRoot": { "type": "string", "default": "/data/wirebot/users/verious" },
+      "timeoutMs": { "type": "number", "default": 1500 },
+      "enabled": { "type": "boolean", "default": true }
+    }
+  }
+}
