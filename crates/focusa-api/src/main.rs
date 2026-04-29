@@ -102,11 +102,10 @@ impl Drop for DaemonInstanceLock {
 fn read_lock_pid(path: &Path) -> Option<u32> {
     let content = fs::read_to_string(path).ok()?;
     for line in content.lines() {
-        if let Some(rest) = line.strip_prefix("pid=") {
-            if let Ok(pid) = rest.trim().parse::<u32>() {
+        if let Some(rest) = line.strip_prefix("pid=")
+            && let Ok(pid) = rest.trim().parse::<u32>() {
                 return Some(pid);
             }
-        }
     }
     None
 }

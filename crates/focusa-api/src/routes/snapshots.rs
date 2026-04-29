@@ -291,12 +291,11 @@ async fn restore_snapshot(
 
     let record = {
         let mut store = snapshot_store().lock().expect("snapshot store poisoned");
-        if !store.contains_key(&body.snapshot_id) {
-            if let Some(mut disk_record) = load_snapshot_record(&state, &body.snapshot_id) {
+        if !store.contains_key(&body.snapshot_id)
+            && let Some(mut disk_record) = load_snapshot_record(&state, &body.snapshot_id) {
                 disk_record.accessed_at = Utc::now();
                 store.insert(body.snapshot_id.clone(), disk_record);
             }
-        }
 
         let Some(record) = store.get_mut(&body.snapshot_id) else {
             return Err((
@@ -396,18 +395,16 @@ async fn diff_snapshots(
     let (from, to) = {
         let mut store = snapshot_store().lock().expect("snapshot store poisoned");
 
-        if !store.contains_key(&body.from_snapshot_id) {
-            if let Some(mut rec) = load_snapshot_record(&state, &body.from_snapshot_id) {
+        if !store.contains_key(&body.from_snapshot_id)
+            && let Some(mut rec) = load_snapshot_record(&state, &body.from_snapshot_id) {
                 rec.accessed_at = Utc::now();
                 store.insert(body.from_snapshot_id.clone(), rec);
             }
-        }
-        if !store.contains_key(&body.to_snapshot_id) {
-            if let Some(mut rec) = load_snapshot_record(&state, &body.to_snapshot_id) {
+        if !store.contains_key(&body.to_snapshot_id)
+            && let Some(mut rec) = load_snapshot_record(&state, &body.to_snapshot_id) {
                 rec.accessed_at = Utc::now();
                 store.insert(body.to_snapshot_id.clone(), rec);
             }
-        }
 
         let Some(from) = store.get_mut(&body.from_snapshot_id) else {
             return Err((

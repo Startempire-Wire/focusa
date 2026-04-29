@@ -103,14 +103,38 @@ function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: n
   ctx.ui.setStatus("focusa-ctx", "");
 }
 
-function scheduleCompactionResumeWatchdog(ctx: any) {
+function submitCompactionResumeTurn(ctx: any, steerMessage: string): boolean {
+  const pi2 = S.pi;
+  if (!pi2) return false;
+  pi2.sendMessage({
+    customType: "focusa-compact-resume",
+    content: steerMessage,
+    display: false,
+  }, { triggerTurn: true });
+  ctx.ui.notify(`✅ Compaction done — auto-resume turn submitted`, "info");
+  return true;
+}
+
+function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, retryAttempt = 1) {
   if (!S.compactResumePending) return;
+  const nextAttempt = retryAttempt + 1;
   compactResumeRetryTimer = setTimeout(() => {
     compactResumeRetryTimer = null;
     if (!S.compactResumePending) return;
-    S.compactResumePending = false;
-    ctx.ui.notify("⚠️ Compaction completed but auto-resume did not start; press Enter/continue once.", "warning");
-  }, 8000);
+    try {
+      submitCompactionResumeTurn(ctx, steerMessage);
+      scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
+    } catch (e) {
+      console.warn(`[focusa] compaction auto-resume retry ${retryAttempt} failed:`, e);
+      if (!S.compactResumePending) return;
+      scheduleCompactionResumeRetry(ctx, steerMessage, nextAttempt);
+    }
+  }, Math.min(30_000, 2_000 * retryAttempt));
+}
+
+function scheduleCompactionResumeWatchdog(ctx: any, steerMessage: string) {
+  if (!S.compactResumePending) return;
+  scheduleCompactionResumeRetry(ctx, steerMessage, 1);
 }
 
 export function registerCompaction(pi: ExtensionAPI) {
@@ -268,13 +292,8 @@ When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
 
 See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
           try {
-            pi2.sendMessage({
-              customType: "focusa-compact-resume",
-              content: steerMessage,
-              display: false,
-            }, { triggerTurn: true });
-            scheduleCompactionResumeWatchdog(ctx);
-            ctx.ui.notify(`✅ Compaction done — auto-resume turn submitted`, "info");
+            submitCompactionResumeTurn(ctx, steerMessage);
+            scheduleCompactionResumeWatchdog(ctx, steerMessage);
           } catch (e) {
             console.warn("[focusa] auto-resume failed:", e);
             S.compactResumePending = false;

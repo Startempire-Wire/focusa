@@ -106,20 +106,20 @@ jobs:
           ### 🚀 Quick Start (macOS)
           \`\`\`bash
           # Download and extract the binary
-          tar -xzf focusa-v0.2.10-*.tar.gz
-          tar -xzf focusa-tui-v0.2.10-*.tar.gz
+          tar -xzf focusa-${TAG}-*.tar.gz
+          tar -xzf focusa-tui-${TAG}-*.tar.gz
           
           # Start the daemon
-          ./focusa-daemon-v0.2.10-<your-platform>
+          ./focusa-daemon-${TAG}-<your-platform>
           
           # In another terminal — push a focus frame
-          ./focusa-v0.2.10-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
+          ./focusa-${TAG}-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
           
           # Check status
-          ./focusa-v0.2.10-<your-platform> status
+          ./focusa-${TAG}-<your-platform> status
           
           # Launch TUI dashboard
-          ./focusa-tui-v0.2.10-<your-platform>
+          ./focusa-tui-${TAG}-<your-platform>
           \`\`\`
 
           ### Commits

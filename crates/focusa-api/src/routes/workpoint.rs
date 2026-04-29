@@ -212,7 +212,7 @@ fn classify_drift(
     }
 }
 
-fn active_workpoint<'a>(state: &'a focusa_core::types::FocusaState) -> Option<&'a WorkpointRecord> {
+fn active_workpoint(state: &focusa_core::types::FocusaState) -> Option<&WorkpointRecord> {
     state
         .workpoint
         .active_workpoint_id
@@ -303,11 +303,10 @@ async fn wait_for_active_workpoint(state: &Arc<AppState>, workpoint_id: Uuid) ->
     for _ in 0..240 {
         {
             let focusa = state.focusa.read().await;
-            if focusa.workpoint.active_workpoint_id == Some(workpoint_id) {
-                if let Some(record) = focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id) {
+            if focusa.workpoint.active_workpoint_id == Some(workpoint_id)
+                && let Some(record) = focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id) {
                     return Some(record.clone());
                 }
-            }
         }
         sleep(Duration::from_millis(50)).await;
     }
@@ -466,11 +465,10 @@ async fn checkpoint(
             ));
         }
     }
-    if let (Some(key), Some(record)) = (idempotency_key.as_ref().filter(|key| !key.trim().is_empty()), promoted_record.as_ref()) {
-        if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
+    if let (Some(key), Some(record)) = (idempotency_key.as_ref().filter(|key| !key.trim().is_empty()), promoted_record.as_ref())
+        && let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
             cache.insert(key.clone(), record.clone());
         }
-    }
 
     Ok(Json(json!({
         "status": if promote && canonical { "accepted" } else { "partial" },

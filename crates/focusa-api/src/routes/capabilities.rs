@@ -275,7 +275,7 @@ async fn lineage_tree(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
     let s = state.focusa.read().await;
-    let nodes: Vec<_> = s.clt.nodes.iter().cloned().collect();
+    let nodes: Vec<_> = s.clt.nodes.to_vec();
     let head = s.clt.head_id.clone();
     let root = nodes
         .iter()

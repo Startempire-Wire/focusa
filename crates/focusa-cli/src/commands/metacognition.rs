@@ -131,9 +131,7 @@ fn print_json(value: &Value) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run_loop(
-    api: &ApiClient,
-    json_mode: bool,
+struct LoopRunArgs {
     kind: String,
     content: String,
     rationale: Option<String>,
@@ -146,7 +144,23 @@ async fn run_loop(
     failure_classes: Vec<String>,
     selected_updates: Vec<String>,
     observed_metrics: Vec<String>,
-) -> anyhow::Result<()> {
+}
+
+async fn run_loop(api: &ApiClient, json_mode: bool, args: LoopRunArgs) -> anyhow::Result<()> {
+    let LoopRunArgs {
+        kind,
+        content,
+        rationale,
+        confidence,
+        strategy_class,
+        current_ask,
+        scope_tags,
+        k,
+        turn_range,
+        failure_classes,
+        selected_updates,
+        observed_metrics,
+    } = args;
     let kind = require_non_empty("kind", &kind)?;
     let content = require_non_empty("content", &content)?;
     let current_ask = require_non_empty("current_ask", &current_ask)?;
@@ -543,18 +557,20 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
             run_loop(
                 &api,
                 json_mode,
-                kind,
-                content,
-                rationale,
-                confidence,
-                strategy_class,
-                current_ask,
-                scope_tags,
-                k,
-                turn_range,
-                failure_classes,
-                selected_updates,
-                observed_metrics,
+                LoopRunArgs {
+                    kind,
+                    content,
+                    rationale,
+                    confidence,
+                    strategy_class,
+                    current_ask,
+                    scope_tags,
+                    k,
+                    turn_range,
+                    failure_classes,
+                    selected_updates,
+                    observed_metrics,
+                },
             )
             .await?;
         }

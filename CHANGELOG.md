@@ -2,6 +2,14 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — GitHub release and Mac app refresh
+
+- Fixed GitHub CI/release clippy and spec-gate blockers.
+- Updated the Mac menubar app to version `0.9.9` across package, Tauri, lockfile, and UI version surfaces.
+- Added Bun lockfile for the menubar app because the release workflow installs with Bun.
+- Updated release-note examples to use the active release tag instead of stale `v0.2.10` paths.
+- Restored pending-gated compaction auto-resume retry wiring required by strict spec gates.
+
 ## Unreleased — Spec91 live tool contract proof
 
 - Added Spec91 for live runtime proof that the daemon ontology tool-contract projection matches the canonical registry.

@@ -1785,8 +1785,8 @@ fn parse_import_targets(content: &str, language: &str) -> Vec<String> {
                             }
                         }
                     }
-                } else if trimmed.starts_with("import ") {
-                    if let Some(start) = trimmed.find('"').or_else(|| trimmed.find('\'')) {
+                } else if trimmed.starts_with("import ")
+                    && let Some(start) = trimmed.find('"').or_else(|| trimmed.find('\'')) {
                         let quote = trimmed.as_bytes()[start] as char;
                         let inner = &trimmed[start + 1..];
                         if let Some(end) = inner.find(quote) {
@@ -1796,7 +1796,6 @@ fn parse_import_targets(content: &str, language: &str) -> Vec<String> {
                             }
                         }
                     }
-                }
             }
             "python" => {
                 if let Some(rest) = trimmed.strip_prefix("import ") {
@@ -2057,8 +2056,8 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
             }));
         }
 
-        if file_type == "manifest" {
-            if let Some(content) = read_text(&path) {
+        if file_type == "manifest"
+            && let Some(content) = read_text(&path) {
                 let manifest_package_id = if rel.ends_with("Cargo.toml") {
                     let cargo_name = parse_cargo_name(&content).unwrap_or_else(|| {
                         Path::new(&rel)
@@ -2177,7 +2176,6 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                     "status": "verified",
                 }));
             }
-        }
 
         if file_type == "test" {
             let test_id = stable_id("test", &rel);
@@ -2892,8 +2890,8 @@ fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Works
     }
 
     let page_id = frame.map(|f| stable_id("page", &f.id.to_string()));
-    if let Some(frame_ref) = frame {
-        if let Some(ref id) = page_id {
+    if let Some(frame_ref) = frame
+        && let Some(ref id) = page_id {
             object_ids.insert(id.clone());
             objects.push(json!({
                 "id": id,
@@ -2907,7 +2905,6 @@ fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Works
                 "fresh": true,
             }));
         }
-    }
 
     for handle in visual_handles {
         let label = handle.label.to_ascii_lowercase();
@@ -3273,6 +3270,17 @@ fn affordance_execution_projection(
         "object_type": "permission",
         "permission_kind": "workspace_write",
         "status": if workspace_writable { "active" } else { "blocked" },
+        "membership_class": "deterministic",
+        "provenance_class": "runtime_observed",
+        "fresh": true,
+    }));
+
+    let destructive_confirmation_precondition_id = stable_id("precondition", "destructive_confirmation_required");
+    objects.push(json!({
+        "id": destructive_confirmation_precondition_id.clone(),
+        "object_type": "precondition",
+        "precondition_kind": "destructive_confirmation_required",
+        "status": "active",
         "membership_class": "deterministic",
         "provenance_class": "runtime_observed",
         "fresh": true,
@@ -3701,6 +3709,14 @@ fn affordance_execution_projection(
             );
         }
     }
+
+    push_link(
+        "blocks_execution_of",
+        &destructive_confirmation_precondition_id,
+        &edit_workspace_affordance_id,
+        "destructive operations require explicit confirmation",
+        "verified",
+    );
 
     if !workspace_writable {
         push_link(
@@ -4699,8 +4715,8 @@ fn proposed_events_from_action(
             if matches!(
                 action_type,
                 "mark_blocked" | "restore_progress" | "verify_progress" | "complete_task"
-            ) {
-                if let Some(subject) = subject_id.clone() {
+            )
+                && let Some(subject) = subject_id.clone() {
                     let to_status = match action_type {
                         "mark_blocked" => "blocked",
                         "restore_progress" => "active",
@@ -4719,7 +4735,6 @@ fn proposed_events_from_action(
                         source: source.to_string(),
                     });
                 }
-            }
 
             if action_type == "refresh_working_set" {
                 events.push(FocusaEvent::OntologyWorkingSetMembershipProposed {
