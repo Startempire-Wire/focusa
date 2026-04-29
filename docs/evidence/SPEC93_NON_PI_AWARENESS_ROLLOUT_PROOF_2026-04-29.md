@@ -102,3 +102,36 @@ claims=Spec92/Spec93 awareness, CLI/API refs, OpenClaw plugin, proof scripts
 ## Result
 
 Spec93 is implemented and active: non-Pi agents have a Focusa awareness API/CLI, and OpenClaw/Wirebot now injects a Focusa Utility Card during `before_agent_start`.
+
+
+## Release publication
+
+Spec93 release tag and GitHub Release published successfully:
+
+```text
+tag: v0.9.12-dev
+release: https://github.com/Startempire-Wire/focusa/releases/tag/v0.9.12-dev
+release_action: success
+```
+
+Release assets verified via `gh release view v0.9.12-dev`:
+
+```text
+focusa-daemon-v0.9.12-dev-aarch64-apple-darwin
+focusa-daemon-v0.9.12-dev-x86_64-apple-darwin
+focusa-tui-v0.9.12-dev-aarch64-apple-darwin
+focusa-tui-v0.9.12-dev-x86_64-apple-darwin
+focusa-v0.9.12-dev-aarch64-apple-darwin
+focusa-v0.9.12-dev-x86_64-apple-darwin
+Focusa_0.9.9_aarch64.dmg
+Focusa_0.9.9_x64.dmg
+Focusa_aarch64.app.tar.gz
+Focusa_x64.app.tar.gz
+```
+
+Final release proof initially observed Focusa live fixture timeout during daemon restart window, then passed after daemon health was confirmed:
+
+```text
+Spec91 live tool contract proof: passed
+focusa release prove --tag v0.9.12-dev --fast --github: completed
+```

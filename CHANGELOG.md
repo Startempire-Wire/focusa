@@ -2,6 +2,10 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec93 release publication proof
+
+- Published `v0.9.12-dev` and recorded final release proof in `docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md`.
+
 ## Unreleased — Spec93 rollout evidence
 
 - Added `docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md` with OpenClaw/Wirebot live injection proof.
