@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 full rollout proof
+
+- Recorded full Spec92 rollout evidence in `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`.
+- Live daemon rebuilt/restarted and verified after full gates.
+
 ## Unreleased — Workpoint session scope guard
 
 - Added `project_root` to Workpoint checkpoints/resume packets and reject mismatched resume packets with `rejected_scope_mismatch`.
