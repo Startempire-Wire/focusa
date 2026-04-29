@@ -2,6 +2,10 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 release prove command
+
+- Added `focusa release prove --tag <tag>` release-proof orchestration with Spec90/91 validation, work-loop wiring proof, daemon health, Guardian scans, optional cargo gates, optional GitHub release lookup, and standard Spec92 envelope.
+
 ## Unreleased — daemon resilience and Pi holdover
 
 - Hardened live `focusa-daemon` systemd restart policy with `Restart=always`, `RestartSec=1`, and disabled start-limit throttling.

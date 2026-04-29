@@ -116,6 +116,10 @@ enum Commands {
     #[command(subcommand)]
     Rfm(commands::rfm::RfmCmd),
 
+    /// Release proof orchestration.
+    #[command(subcommand)]
+    Release(commands::release::ReleaseCmd),
+
     /// Proposal Resolution Engine.
     #[command(subcommand)]
     Proposals(commands::proposals::ProposalCmd),
@@ -374,6 +378,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await,
         Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await,
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await,
+        Commands::Release(cmd) => commands::release::run(cmd, cli.json).await,
         Commands::Proposals(cmd) => commands::proposals::run(cmd, cli.json).await,
         Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await,
         Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,

@@ -67,8 +67,12 @@ JSON output includes:
 
 ## Release proof
 
-Full release proof command is a later Spec92 bead and must not be claimed live until implemented:
+Release proof command:
 
 ```bash
 focusa release prove --tag <tag>
+focusa release prove --tag <tag> --fast
+focusa release prove --tag <tag> --github
 ```
+
+`focusa release prove` orchestrates the standard validation gates: git state, Spec90 contract validation, Spec91 safe live proof, work-loop auto-continue wiring test, daemon health, Guardian scans, and optionally cargo workspace gates plus GitHub release asset lookup.

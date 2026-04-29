@@ -18,6 +18,7 @@ pub mod metacognition;
 pub mod ontology;
 pub mod proposals;
 pub mod reflection;
+pub mod release;
 pub mod rfm;
 pub mod skills;
 pub mod telemetry;
