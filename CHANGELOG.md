@@ -2,6 +2,12 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec91 live tool contract proof
+
+- Added Spec91 for live runtime proof that the daemon ontology tool-contract projection matches the canonical registry.
+- Added `scripts/prove-focusa-tool-contracts-live.mjs`.
+- Added live proof docs at `docs/current/LIVE_TOOL_CONTRACT_PROOF.md`.
+
 ## Unreleased — Spec90 tool contract foundation
 
 - Added Spec90 for ontology-backed Focusa tool contracts and parity hardening.

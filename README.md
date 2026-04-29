@@ -412,6 +412,8 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/VALIDATION_AND_RELEASE_PROOF.md`](docs/current/VALIDATION_AND_RELEASE_PROOF.md) — current validation and real runtime proof expectations.
 - [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](docs/90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 current tool contract/parity hardening plan.
 - [`docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`](docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current machine-readable tool contract registry table.
+- [`docs/91-live-tool-contract-proof-harness-spec.md`](docs/91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness for tool contracts.
+- [`docs/current/LIVE_TOOL_CONTRACT_PROOF.md`](docs/current/LIVE_TOOL_CONTRACT_PROOF.md) — current live proof command and expected result.
 
 ### Individual Focusa tool docs
 

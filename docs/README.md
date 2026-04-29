@@ -120,6 +120,8 @@ This is **institutional intelligence**, not novelty AI.
 - [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
+- [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.
+- [current/LIVE_TOOL_CONTRACT_PROOF.md](current/LIVE_TOOL_CONTRACT_PROOF.md) — live proof command and expected result.
 
 ## Focused tool and skill docs
 
