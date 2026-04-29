@@ -46,6 +46,32 @@ fn status_message(status: StatusCode) -> &'static str {
     }
 }
 
+fn recovery_command(status: StatusCode) -> &'static str {
+    match status {
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+            "focusa doctor && check FOCUSA_AUTH_TOKEN/scopes"
+        }
+        StatusCode::NOT_FOUND => "focusa doctor && focusa docs status",
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+            "systemctl status focusa-daemon --no-pager && journalctl -u focusa-daemon -n 80 --no-pager"
+        }
+        _ if status.is_server_error() => {
+            "focusa doctor && journalctl -u focusa-daemon -n 80 --no-pager"
+        }
+        _ => "check request body/route, then retry with --json for details",
+    }
+}
+
+fn severity(status: StatusCode) -> &'static str {
+    if status.is_server_error() {
+        "blocked"
+    } else if status == StatusCode::NOT_FOUND {
+        "watch"
+    } else {
+        "degraded"
+    }
+}
+
 pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
     let incoming_corr = req
         .headers()
@@ -78,8 +104,17 @@ pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
     }
 
     let envelope = json!({
+        "status": "blocked",
         "code": status_code_key(status),
         "message": status_message(status),
+        "what_failed": status_message(status),
+        "likely_why": status.canonical_reason().unwrap_or("unknown"),
+        "safe_recovery": recovery_command(status),
+        "command": recovery_command(status),
+        "fallback": "focusa doctor",
+        "docs": ["docs/current/ERROR_EMPTY_STATES.md", "docs/current/TROUBLESHOOTING_CURRENT.md"],
+        "evidence_refs": [],
+        "severity": severity(status),
         "details": {
             "http_status": status.as_u16(),
             "reason": status.canonical_reason().unwrap_or("unknown"),

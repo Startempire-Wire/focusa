@@ -124,6 +124,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/EFFICIENCY_GUIDE.md](current/EFFICIENCY_GUIDE.md) — current token-budget telemetry and planned cache metadata commands.
 - [current/DOCTOR_CONTINUE_RELEASE_PROVE.md](current/DOCTOR_CONTINUE_RELEASE_PROVE.md) — current doctor/continue command-center usage and envelopes.
 - [current/DAEMON_RESILIENCE.md](current/DAEMON_RESILIENCE.md) — live daemon restart hardening and Pi in-session holdover/kickstart behavior.
+- [current/ERROR_EMPTY_STATES.md](current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
 - [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.

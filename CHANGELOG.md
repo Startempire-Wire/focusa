@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 error and empty-state envelopes
+
+- Expanded CLI JSON failures and API non-JSON HTTP failures to include recovery-first Spec92 envelope fields.
+- Added `docs/current/ERROR_EMPTY_STATES.md`.
+
 ## Unreleased — Spec92 safe cleanup command
 
 - Added `focusa cleanup --safe` and `--dry-run` for recoverable cleanup of known generated residue while preserving `.beads/`, `data/`, and `target/`.

@@ -179,21 +179,56 @@ enum Commands {
     },
 }
 
-fn classify_cli_error(message: &str) -> (&'static str, &str) {
+fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static str, &'static str) {
     if message.contains("[API_TIMEOUT]") {
-        ("API_TIMEOUT", message)
+        (
+            "API_TIMEOUT",
+            "API request timed out",
+            "daemon overloaded or unreachable",
+            "focusa doctor && systemctl status focusa-daemon --no-pager",
+        )
     } else if message.contains("[API_CONNECT_ERROR]") {
-        ("API_CONNECT_ERROR", message)
+        (
+            "API_CONNECT_ERROR",
+            "Could not connect to Focusa API",
+            "daemon down or port unavailable",
+            "focusa start || systemctl restart focusa-daemon",
+        )
     } else if message.contains("[API_HTTP_ERROR]") {
-        ("API_HTTP_ERROR", message)
+        (
+            "API_HTTP_ERROR",
+            "Focusa API returned an error status",
+            "request rejected or server-side route failed",
+            "focusa doctor && retry with --json",
+        )
     } else if message.contains("[API_DECODE_ERROR]") {
-        ("API_DECODE_ERROR", message)
+        (
+            "API_DECODE_ERROR",
+            "Could not decode API response",
+            "unexpected response shape or proxy error",
+            "curl -sS http://127.0.0.1:8787/v1/health | jq .",
+        )
     } else if message.contains("[API_REQUEST_ERROR]") {
-        ("API_REQUEST_ERROR", message)
+        (
+            "API_REQUEST_ERROR",
+            "Focusa API request failed",
+            "network/client failure",
+            "focusa doctor",
+        )
     } else if message.contains("[CLI_INPUT_ERROR]") {
-        ("CLI_INPUT_ERROR", message)
+        (
+            "CLI_INPUT_ERROR",
+            "CLI input rejected",
+            "missing required safe flag or invalid arguments",
+            "focusa --help",
+        )
     } else {
-        ("COMMAND_ERROR", message)
+        (
+            "COMMAND_ERROR",
+            "Command failed",
+            "command-specific failure",
+            "focusa doctor",
+        )
     }
 }
 
@@ -402,13 +437,21 @@ async fn main() -> anyhow::Result<()> {
     if let Err(err) = result {
         if cli.json {
             let error_message = err.to_string();
-            let (code, reason) = classify_cli_error(&error_message);
+            let (code, what_failed, likely_why, safe_recovery) = classify_cli_error(&error_message);
             println!(
                 "{}",
                 serde_json::to_string_pretty(&serde_json::json!({
-                    "status": "error",
+                    "status": "blocked",
                     "code": code,
-                    "reason": reason,
+                    "what_failed": what_failed,
+                    "likely_why": likely_why,
+                    "safe_recovery": safe_recovery,
+                    "command": safe_recovery,
+                    "fallback": "focusa doctor",
+                    "docs": ["docs/current/ERROR_EMPTY_STATES.md", "docs/current/TROUBLESHOOTING_CURRENT.md"],
+                    "evidence_refs": [],
+                    "severity": "blocked",
+                    "details": { "raw_error": error_message },
                 }))?
             );
             return Ok(());
