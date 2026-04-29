@@ -19,6 +19,12 @@ Operator requested failed GitHub releases fixed, Mac app brought current, produc
   - `apps/menubar/src-tauri/Cargo.toml`
   - `apps/menubar/src-tauri/tauri.conf.json`
   - `apps/menubar/src/lib/components/Settings.svelte`
+- Updated stale Mac app runtime surfaces to current Focusa core/API:
+  - `apps/menubar/src/lib/api.ts` centralizes local daemon API access.
+  - `apps/menubar/src/lib/stores/runtime.svelte.ts` tracks health, Workpoint, Work-loop, ontology contract count/version, and recent events.
+  - `apps/menubar/src/routes/+page.svelte` now polls current `/v1/health`, `/v1/ontology/tool-contracts`, `/v1/workpoint/current`, `/v1/work-loop/status`, and `/v1/events/recent` alongside `/v1/state/dump`.
+  - `apps/menubar/src/lib/stores/focus-canvas.svelte.ts` now loads live focus stack/events instead of mock demo frames.
+  - `apps/menubar/src/routes/canvas/+page.svelte` now displays live timeline data and keeps replay read-only.
 - Updated GitHub release notes template to use the active tag variable instead of stale `v0.2.10` examples.
 
 ## Local validation
@@ -29,7 +35,7 @@ Frontend/Mac app checks:
 cd apps/menubar && bun install && bun run check && bun run build
 ```
 
-Result: passed; Svelte reported existing accessibility warnings only.
+Result: passed; Svelte reported existing accessibility warnings only. After stale-surface update, the app still builds against current live daemon endpoints.
 
 Rust/tests:
 
@@ -83,5 +89,7 @@ active
 Spec91 live tool contract proof: passed
 fixture_checks=workpoint:passed,work_loop:passed,tree_lineage:passed,metacognition:passed,focus_state:passed
 ```
+
+A later local health timeout after spec-gate daemon churn was resolved by restarting the production daemon and re-running Spec91 proof; `/v1/health` and all safe fixtures passed.
 
 Remaining release action: push commit/tag and wait for GitHub CI/release workflows to pass, then remove temporary local proof logs.

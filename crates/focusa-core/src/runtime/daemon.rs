@@ -4948,60 +4948,60 @@ Return:
                         .await;
                 }
             }
-            WorkerJobKind::DetectRepetition => {
+            WorkerJobKind::DetectRepetition
                 if result
                     .payload
                     .get("is_repetitive")
                     .and_then(|v| v.as_bool())
-                    .unwrap_or(false)
-                {
-                    let summary = format!(
-                        "repetition detected (ratio={})",
-                        result
-                            .payload
-                            .get("repetition_ratio")
-                            .unwrap_or(&serde_json::Value::Null)
-                    );
-                    let signal = Signal {
-                        id: Uuid::now_v7(),
-                        ts: Utc::now(),
-                        origin: SignalOrigin::Worker,
-                        kind: SignalKind::RepeatedPattern,
-                        frame_context: job.frame_context,
-                        summary,
-                        payload_ref: None,
-                        tags: vec!["worker".into()],
-                    };
-                    let _ = self.process_action(Action::IngestSignal { signal }).await;
-                }
+                    .unwrap_or(false) =>
+            {
+                let summary = format!(
+                    "repetition detected (ratio={})",
+                    result
+                        .payload
+                        .get("repetition_ratio")
+                        .unwrap_or(&serde_json::Value::Null)
+                );
+                let signal = Signal {
+                    id: Uuid::now_v7(),
+                    ts: Utc::now(),
+                    origin: SignalOrigin::Worker,
+                    kind: SignalKind::RepeatedPattern,
+                    frame_context: job.frame_context,
+                    summary,
+                    payload_ref: None,
+                    tags: vec!["worker".into()],
+                };
+                let _ = self.process_action(Action::IngestSignal { signal }).await;
             }
-            WorkerJobKind::ScanForErrors => {
+            WorkerJobKind::DetectRepetition => {}
+            WorkerJobKind::ScanForErrors
                 if result
                     .payload
                     .get("has_errors")
                     .and_then(|v| v.as_bool())
-                    .unwrap_or(false)
-                {
-                    let summary = format!(
-                        "worker scan_for_errors detected patterns: {}",
-                        result
-                            .payload
-                            .get("error_patterns_found")
-                            .unwrap_or(&serde_json::Value::Null)
-                    );
-                    let signal = Signal {
-                        id: Uuid::now_v7(),
-                        ts: Utc::now(),
-                        origin: SignalOrigin::Worker,
-                        kind: SignalKind::Error,
-                        frame_context: job.frame_context,
-                        summary,
-                        payload_ref: None,
-                        tags: vec!["worker".into()],
-                    };
-                    let _ = self.process_action(Action::IngestSignal { signal }).await;
-                }
+                    .unwrap_or(false) =>
+            {
+                let summary = format!(
+                    "worker scan_for_errors detected patterns: {}",
+                    result
+                        .payload
+                        .get("error_patterns_found")
+                        .unwrap_or(&serde_json::Value::Null)
+                );
+                let signal = Signal {
+                    id: Uuid::now_v7(),
+                    ts: Utc::now(),
+                    origin: SignalOrigin::Worker,
+                    kind: SignalKind::Error,
+                    frame_context: job.frame_context,
+                    summary,
+                    payload_ref: None,
+                    tags: vec!["worker".into()],
+                };
+                let _ = self.process_action(Action::IngestSignal { signal }).await;
             }
+            WorkerJobKind::ScanForErrors => {}
             WorkerJobKind::SuggestMemory => {
                 // Create procedural rules from worker suggestions.
                 if let Some(suggestions) =

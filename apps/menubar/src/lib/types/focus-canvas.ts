@@ -33,7 +33,17 @@ export interface CanvasFocusStack {
   active_id: string | null;
 }
 
+export interface CanvasEvent {
+  id: string;
+  timestamp: string;
+  type: string;
+  summary: string;
+  frame_id?: string;
+}
+
 export interface CanvasState {
   stack: CanvasFocusStack;
   activeFrame: CanvasFocusFrame | null;
+  events: CanvasEvent[];
+  error: string | null;
 }

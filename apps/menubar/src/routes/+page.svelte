@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { fetchJson } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
+  import { runtimeStore } from '$lib/stores/runtime.svelte';
   import FocusView from '$lib/components/FocusView.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
@@ -13,29 +15,30 @@
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
 
-  function getApiUrl(): string {
-    try {
-      return localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787';
-    } catch {
-      return 'http://127.0.0.1:8787';
-    }
-  }
-
   async function poll() {
-    const base = getApiUrl();
     try {
-      const resp = await fetch(`${base}/v1/state/dump`, {
-        signal: AbortSignal.timeout(3000),
+      const [state, health, contracts, workpoint, workLoop, events] = await Promise.all([
+        fetchJson('/v1/state/dump', 5000),
+        fetchJson('/v1/health'),
+        fetchJson('/v1/ontology/tool-contracts'),
+        fetchJson('/v1/workpoint/current'),
+        fetchJson('/v1/work-loop/status'),
+        fetchJson('/v1/events/recent?limit=5'),
+      ]);
+      focusStore.update(state);
+      gateStore.update(state.focus_gate);
+      runtimeStore.update({
+        health,
+        workpoint,
+        workLoop,
+        ontologyContractsVersion: contracts.version ?? null,
+        ontologyContractsCount: Array.isArray(contracts.contracts) ? contracts.contracts.length : 0,
+        recentEventCount: Array.isArray(events.events) ? events.events.length : 0,
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        focusStore.update(data);
-        gateStore.update(data.focus_gate);
-      } else {
-        focusStore.setError(`HTTP ${resp.status}`);
-      }
-    } catch (e) {
-      focusStore.disconnect();
+    } catch (e: any) {
+      const msg = e?.message || 'Failed to connect';
+      focusStore.setError(msg);
+      runtimeStore.setError(msg);
     }
   }
 

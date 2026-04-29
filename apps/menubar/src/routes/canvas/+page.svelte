@@ -9,60 +9,6 @@
   let showAscc = true;
   let showTimeline = true;
   
-  // Demo-only events. Real implementation should fetch from the daemon.
-  const nowMs = Date.now();
-  const mockEvents = [
-    {
-      id: 'evt-001',
-      timestamp: new Date(nowMs - 3600000).toISOString(),
-      type: 'focus_frame_pushed',
-      summary: 'Started implementing auth module',
-      frame_id: 'frame-001'
-    },
-    {
-      id: 'evt-002',
-      timestamp: new Date(nowMs - 3000000).toISOString(),
-      type: 'turn_completed',
-      summary: 'Completed turn with 150 tokens output',
-      frame_id: 'frame-001'
-    },
-    {
-      id: 'evt-003',
-      timestamp: new Date(nowMs - 2400000).toISOString(),
-      type: 'checkpoint_updated',
-      summary: 'ASCC updated with new decisions',
-      frame_id: 'frame-001'
-    },
-    {
-      id: 'evt-004',
-      timestamp: new Date(nowMs - 1800000).toISOString(),
-      type: 'focus_frame_pushed',
-      summary: 'Setup OAuth provider integration',
-      frame_id: 'frame-002'
-    },
-    {
-      id: 'evt-005',
-      timestamp: new Date(nowMs - 1200000).toISOString(),
-      type: 'signal_ingested',
-      summary: 'Error signal: API rate limit exceeded',
-      frame_id: 'frame-002'
-    },
-    {
-      id: 'evt-006',
-      timestamp: new Date(nowMs - 600000).toISOString(),
-      type: 'candidate_surfaced',
-      summary: 'Consider retry with exponential backoff',
-      frame_id: 'frame-002'
-    },
-    {
-      id: 'evt-007',
-      timestamp: new Date(nowMs - 300000).toISOString(),
-      type: 'turn_completed',
-      summary: 'Completed turn with 280 tokens output',
-      frame_id: 'frame-002'
-    }
-  ];
-  
   function handleFrameSelect(frameId: string) {
     focusCanvasStore.setActiveFrame(frameId);
   }
@@ -72,16 +18,12 @@
   }
   
   function handleEventReplay(event: CustomEvent<{ eventId: string }>) {
-    const evt = mockEvents.find((e) => e.id === event.detail.eventId);
-    if (!evt) return;
-
-    // Demo-only handler. Intentionally no side effects.
-    evt;
+    // Read-only canvas: replay is intentionally disabled until isolated fixtures exist.
+    selectedEventId = event.detail.eventId;
   }
   
   onMount(() => {
-    // Load initial data
-    focusCanvasStore.loadMock();
+    focusCanvasStore.loadLive();
   });
 </script>
 
@@ -133,7 +75,7 @@
     {#if showTimeline}
       <aside class="timeline-sidebar">
         <Timeline 
-          events={mockEvents}
+          events={$focusCanvasStore.events}
           selectedEventId={selectedEventId}
           on:select={handleEventSelect}
           on:replay={handleEventReplay}

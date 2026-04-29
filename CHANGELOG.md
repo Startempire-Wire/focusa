@@ -6,6 +6,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 - Fixed GitHub CI/release clippy and spec-gate blockers.
 - Updated the Mac menubar app to version `0.9.9` across package, Tauri, lockfile, and UI version surfaces.
+- Updated the Mac menubar app to current Focusa core/API surfaces: health, ontology tool contracts, Workpoint, Work-loop, recent events, state dump, and live canvas events.
 - Added Bun lockfile for the menubar app because the release workflow installs with Bun.
 - Updated release-note examples to use the active release tag instead of stale `v0.2.10` paths.
 - Restored pending-gated compaction auto-resume retry wiring required by strict spec gates.

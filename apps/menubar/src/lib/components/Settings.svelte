@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
   import { focusStore } from '$lib/stores/focus.svelte';
+  import { runtimeStore } from '$lib/stores/runtime.svelte';
 
   // Initialize directly — ssr=false so localStorage is always available
   let url = $state(localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787');
@@ -131,6 +132,26 @@
       <div class="status-row">
         <span class="status-key">State version</span>
         <span class="status-val mono">{focusStore.version}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Tool contracts</span>
+        <span class="status-val mono">{runtimeStore.snapshot.ontologyContractsCount}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Contract version</span>
+        <span class="status-val mono">{runtimeStore.snapshot.ontologyContractsVersion ?? 'unknown'}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Work-loop</span>
+        <span class="status-val mono">{runtimeStore.snapshot.workLoop?.status ?? 'unknown'}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Workpoint</span>
+        <span class="status-val mono">{runtimeStore.snapshot.workpoint?.status ?? 'unknown'}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Recent events</span>
+        <span class="status-val mono">{runtimeStore.snapshot.recentEventCount}</span>
       </div>
     </div>
   </section>
