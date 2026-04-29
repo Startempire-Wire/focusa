@@ -106,6 +106,19 @@ This is **institutional intelligence**, not novelty AI.
 
 ---
 
+
+## Current-build references
+
+- [../CHANGELOG.md](../CHANGELOG.md) — current snapshot change history.
+- [current/CURRENT_RUNTIME_STATUS.md](current/CURRENT_RUNTIME_STATUS.md) — current implemented runtime status and limits.
+- [current/API_REFERENCE_CURRENT.md](current/API_REFERENCE_CURRENT.md) — current API route inventory.
+- [current/CLI_REFERENCE_CURRENT.md](current/CLI_REFERENCE_CURRENT.md) — current CLI command inventory.
+- [current/PI_EXTENSION_AND_SKILLS_GUIDE.md](current/PI_EXTENSION_AND_SKILLS_GUIDE.md) — Pi extension and skills guide.
+- [current/WORKPOINT_LIFECYCLE_GUIDE.md](current/WORKPOINT_LIFECYCLE_GUIDE.md) — Workpoint lifecycle guide.
+- [current/TOOL_RESULT_ENVELOPE_V1.md](current/TOOL_RESULT_ENVELOPE_V1.md) — structured tool result contract.
+- [current/TROUBLESHOOTING_CURRENT.md](current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
+- [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof.
+
 ## Focused tool and skill docs
 
 - [focusa-tools/README.md](focusa-tools/README.md) — index for all current `focusa_*` tool family docs.

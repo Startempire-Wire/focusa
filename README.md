@@ -396,6 +396,21 @@ Start here:
 - `docs/89-focusa-tool-suite-improvement-hardening-spec.md` — current tool-suite hardening snapshot.
 - `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md` — released runtime proof.
 
+
+### Current-build references
+
+These docs describe only the current present build/snapshot surfaces:
+
+- [`CHANGELOG.md`](CHANGELOG.md) — current snapshot change history.
+- [`docs/current/CURRENT_RUNTIME_STATUS.md`](docs/current/CURRENT_RUNTIME_STATUS.md) — implemented runtime status and current limits.
+- [`docs/current/API_REFERENCE_CURRENT.md`](docs/current/API_REFERENCE_CURRENT.md) — current API route inventory generated from route registrations.
+- [`docs/current/CLI_REFERENCE_CURRENT.md`](docs/current/CLI_REFERENCE_CURRENT.md) — current CLI command inventory from `focusa --help`.
+- [`docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md`](docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md) — Pi extension and skill locations/validation.
+- [`docs/current/WORKPOINT_LIFECYCLE_GUIDE.md`](docs/current/WORKPOINT_LIFECYCLE_GUIDE.md) — current Workpoint usage and recovery flow.
+- [`docs/current/TOOL_RESULT_ENVELOPE_V1.md`](docs/current/TOOL_RESULT_ENVELOPE_V1.md) — current structured tool result contract.
+- [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
+- [`docs/current/VALIDATION_AND_RELEASE_PROOF.md`](docs/current/VALIDATION_AND_RELEASE_PROOF.md) — current validation and real runtime proof expectations.
+
 ### Individual Focusa tool docs
 
 Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools.
