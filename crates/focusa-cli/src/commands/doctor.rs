@@ -54,7 +54,7 @@ pub async fn run(json_mode: bool) -> anyhow::Result<()> {
 
     checks.push(api_check(&api, "daemon health", "/v1/health").await);
     checks.push(api_check(&api, "command-center doctor API", "/v1/doctor").await);
-    checks.push(api_check(&api, "API route inventory surface", "/v1/capabilities").await);
+    checks.push(api_check(&api, "API route inventory surface", "/v1/agents").await);
     checks.push(api_check(&api, "Spec90 tool contracts", "/v1/ontology/tool-contracts").await);
     checks.push(api_check(&api, "Workpoint canonicality", "/v1/workpoint/current").await);
     checks.push(api_check(&api, "Work-loop writer state", "/v1/work-loop/status").await);
