@@ -123,3 +123,35 @@ Resume attempted from another project:
 ## Result
 
 Spec92 rollout is implemented, tested with real unit/build/integration gates, published to `main`, and live on the production Focusa daemon.
+
+
+## GitHub release publication
+
+Tag pushed and GitHub Release completed successfully:
+
+```text
+tag: v0.9.11-dev
+release: https://github.com/Startempire-Wire/focusa/releases/tag/v0.9.11-dev
+release_action: success
+```
+
+Release assets verified:
+
+```text
+focusa-daemon-v0.9.11-dev-aarch64-apple-darwin
+focusa-daemon-v0.9.11-dev-x86_64-apple-darwin
+focusa-tui-v0.9.11-dev-aarch64-apple-darwin
+focusa-tui-v0.9.11-dev-x86_64-apple-darwin
+focusa-v0.9.11-dev-aarch64-apple-darwin
+focusa-v0.9.11-dev-x86_64-apple-darwin
+Focusa_0.9.9_aarch64.dmg
+Focusa_0.9.9_x64.dmg
+Focusa_aarch64.app.tar.gz
+Focusa_x64.app.tar.gz
+```
+
+Final release proof:
+
+```text
+focusa release prove --tag v0.9.11-dev --fast --github: completed
+```
