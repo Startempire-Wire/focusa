@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Agent awareness layer
+
+- Added a Pi startup/reload Focusa Utility Card injected into the system prompt and displayed once per session so agents know when to use Workpoints, doctor, evidence, predictions, metacognition, work-loop, and compaction fallbacks.
+- Added public agent-awareness quickstart/docs and `scripts/validate-agent-awareness.mjs` guard.
+
 ## Unreleased — Public docs polish/prediction sweep
 
 - Updated public README/docs snapshot language to `v0.9.11-dev` and documented Spec92 polish, prediction loop, Workpoint scope guard, daemon/CLI/API freshness, and compaction fallbacks.

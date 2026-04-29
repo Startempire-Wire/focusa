@@ -509,6 +509,9 @@ Part of the Startempire Wire ecosystem.
 
 ## Current polish and prediction docs
 
+
+- [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
+- [Focusa Agent Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
 - [Predictive Power Guide](docs/current/PREDICTIVE_POWER_GUIDE.md)
 - [Agent Command Cookbook](docs/current/AGENT_COMMAND_COOKBOOK.md)
 - [Doctor / Continue / Release Prove](docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md)

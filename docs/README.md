@@ -129,6 +129,8 @@ This is **institutional intelligence**, not novelty AI.
 - [current/PREDICTIVE_POWER_GUIDE.md](current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
+- [current/FOCUSA_AGENT_UTILITY_CARD.md](current/FOCUSA_AGENT_UTILITY_CARD.md) — startup/reload runtime awareness card contract.
+- [current/AGENT_AWARENESS_QUICKSTART.md](current/AGENT_AWARENESS_QUICKSTART.md) — minimal Focusa utility rules every agent should know.
 - [current/WORKPOINT_SESSION_SCOPE_GUARD.md](current/WORKPOINT_SESSION_SCOPE_GUARD.md) — project/session-bound Workpoint resume guard.
 - [current/AGENT_COMMAND_COOKBOOK.md](current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.

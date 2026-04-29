@@ -7,9 +7,11 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary } from "./state.js";import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary } from "./state.js";
+import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
+import { buildFocusaUtilityCard } from "./awareness.js";
 
 
 async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
@@ -116,8 +118,14 @@ export function registerTurns(pi: ExtensionAPI) {
       "Do not use raw transcript tail to override the active workpoint.",
       ...formatWorkpointContextSections(),
     ].join("\n") : "";
+    const utilityCard = "\n" + buildFocusaUtilityCard("system");
 
-    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw;
+    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + utilityCard;
+
+    if (!S.seenFirstBeforeAgentStart) {
+      S.seenFirstBeforeAgentStart = true;
+      pi.sendMessage({ customType: "focusa-utility-card", content: buildFocusaUtilityCard("visible"), display: true });
+    }
 
     // §29: WBM inbound context injection
     if (S.wbmEnabled) {
