@@ -14,6 +14,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
+use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
 static WORKPOINT_IDEMPOTENCY_CACHE: LazyLock<Mutex<HashMap<String, WorkpointRecord>>> =
@@ -298,6 +299,41 @@ fn resume_summary(record: &WorkpointRecord) -> String {
     )
 }
 
+async fn wait_for_active_workpoint(state: &Arc<AppState>, workpoint_id: Uuid) -> Option<WorkpointRecord> {
+    for _ in 0..240 {
+        {
+            let focusa = state.focusa.read().await;
+            if focusa.workpoint.active_workpoint_id == Some(workpoint_id) {
+                if let Some(record) = focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id) {
+                    return Some(record.clone());
+                }
+            }
+        }
+        sleep(Duration::from_millis(50)).await;
+    }
+    None
+}
+
+async fn wait_for_workpoint_evidence(state: &Arc<AppState>, workpoint_id: Uuid, evidence_ref: Option<&str>, target_ref: &str, result: &str) -> Option<WorkpointRecord> {
+    for _ in 0..240 {
+        {
+            let focusa = state.focusa.read().await;
+            if let Some(record) = focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id) {
+                let linked = record.verification_records.iter().any(|verification| {
+                    verification.target_ref == target_ref
+                        && verification.result == result
+                        && verification.evidence_ref.as_deref() == evidence_ref
+                });
+                if linked {
+                    return Some(record.clone());
+                }
+            }
+        }
+        sleep(Duration::from_millis(50)).await;
+    }
+    None
+}
+
 async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
@@ -378,6 +414,7 @@ async fn checkpoint(
 
     let workpoint_id = req.workpoint_id.unwrap_or_else(Uuid::now_v7);
     let promote = req.promote.unwrap_or(true);
+    let idempotency_key = req.idempotency_key.clone();
     let record = WorkpointRecord {
         workpoint_id,
         work_item_id: req.work_item_id,
@@ -397,17 +434,13 @@ async fn checkpoint(
         ..WorkpointRecord::default()
     };
     let canonical = record.canonical;
-    if let Some(key) = record.idempotency_key.as_ref().filter(|key| !key.trim().is_empty()) {
-        if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
-            cache.insert(key.clone(), record.clone());
-        }
-    }
 
     dispatch_event(
         &state,
         FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
     )
     .await?;
+    let mut promoted_record = None;
     if promote && canonical {
         dispatch_event(
             &state,
@@ -418,6 +451,25 @@ async fn checkpoint(
             },
         )
         .await?;
+        promoted_record = wait_for_active_workpoint(&state, workpoint_id).await;
+        if promoted_record.is_none() {
+            return Err((
+                StatusCode::ACCEPTED,
+                Json(json!({
+                    "status": "pending",
+                    "workpoint_id": workpoint_id,
+                    "canonical": canonical,
+                    "idempotent_replay": false,
+                    "warnings": ["checkpoint accepted but active Workpoint promotion has not materialized yet"],
+                    "next_step_hint": "retry /v1/workpoint/current before relying on this Workpoint"
+                })),
+            ));
+        }
+    }
+    if let (Some(key), Some(record)) = (idempotency_key.as_ref().filter(|key| !key.trim().is_empty()), promoted_record.as_ref()) {
+        if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
+            cache.insert(key.clone(), record.clone());
+        }
     }
 
     Ok(Json(json!({
@@ -425,6 +477,7 @@ async fn checkpoint(
         "workpoint_id": workpoint_id,
         "canonical": canonical,
         "idempotent_replay": false,
+        "workpoint": promoted_record.as_ref().map(workpoint_packet),
         "warnings": if promote && !canonical { vec!["non-canonical checkpoint was proposed but not promoted"] } else { vec![] },
         "next_step_hint": "call /v1/workpoint/resume to render the packet for Pi continuation"
     })))
@@ -574,6 +627,7 @@ async fn link_evidence(
         }))));
     };
     drop(focusa);
+    let workpoint_id = record.workpoint_id;
     let verification = WorkpointVerificationRecord {
         target_ref: req.target_ref,
         result: req.result,
@@ -581,14 +635,35 @@ async fn link_evidence(
         verified_at: None,
     };
     dispatch_event(&state, FocusaEvent::WorkpointEvidenceLinked {
-        workpoint_id: record.workpoint_id,
+        workpoint_id,
         verification: verification.clone(),
     }).await?;
+    let linked_record = wait_for_workpoint_evidence(
+        &state,
+        workpoint_id,
+        verification.evidence_ref.as_deref(),
+        &verification.target_ref,
+        &verification.result,
+    ).await;
+    if linked_record.is_none() {
+        return Err((
+            StatusCode::ACCEPTED,
+            Json(json!({
+                "status": "pending",
+                "canonical": true,
+                "workpoint_id": workpoint_id,
+                "verification": verification,
+                "warnings": ["evidence link accepted but is not visible in Workpoint state yet"],
+                "next_step_hint": "retry /v1/workpoint/resume before relying on this evidence link"
+            })),
+        ));
+    }
     Ok(Json(json!({
         "status": "accepted",
         "canonical": true,
-        "workpoint_id": record.workpoint_id,
+        "workpoint_id": workpoint_id,
         "verification": verification,
+        "workpoint": linked_record.as_ref().map(workpoint_packet),
         "next_step_hint": "call /v1/workpoint/resume to see linked evidence in the packet"
     })))
 }
