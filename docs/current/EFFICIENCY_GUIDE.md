@@ -87,3 +87,13 @@ CLI:
 focusa cache doctor
 focusa --json cache doctor --limit 10
 ```
+
+
+## Minimal command-center doctor
+
+```bash
+focusa doctor
+focusa --json doctor
+```
+
+The minimal doctor aggregates daemon reachability, focus stack depth, tool-call telemetry, token-budget records, and cache metadata records.

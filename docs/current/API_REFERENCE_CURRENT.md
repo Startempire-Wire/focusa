@@ -123,6 +123,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 
 ### health
 - `GET /v1/health`
+- `GET /v1/doctor`
 
 ### info
 - `GET /v1/info`

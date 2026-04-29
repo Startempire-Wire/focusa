@@ -2,6 +2,10 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 minimal doctor command center
+
+- Added `GET /v1/doctor` and `focusa doctor` as a minimal command-center health/status view.
+
 ## Unreleased — Spec92 cache metadata doctor
 
 - Added `POST /v1/telemetry/cache-metadata` and `GET /v1/telemetry/cache-metadata/status` for bounded cache metadata records.

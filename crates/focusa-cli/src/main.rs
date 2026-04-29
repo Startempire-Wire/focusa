@@ -45,6 +45,9 @@ enum Commands {
     /// Show daemon status.
     Status,
 
+    /// Run minimal agent-first doctor checks.
+    Doctor,
+
     /// Focus stack operations.
     #[command(subcommand)]
     Focus(commands::focus::FocusCmd),
@@ -236,7 +239,9 @@ async fn main() -> anyhow::Result<()> {
                         .unwrap_or("unknown")
                         .to_string()
                 };
-                let daemon_count = resp["runtime_process"]["daemon_count"].as_u64().unwrap_or(0);
+                let daemon_count = resp["runtime_process"]["daemon_count"]
+                    .as_u64()
+                    .unwrap_or(0);
                 let duplicate_count = resp["runtime_process"]["duplicate_daemon_count"]
                     .as_u64()
                     .unwrap_or(0);
@@ -249,8 +254,52 @@ async fn main() -> anyhow::Result<()> {
                 println!("  pid:         {}", current_pid);
                 println!("  daemons:     {}", daemon_count);
                 if duplicate_count > 0 {
-                    println!("  warning:     duplicate daemons detected ({})", duplicate_count);
+                    println!(
+                        "  warning:     duplicate daemons detected ({})",
+                        duplicate_count
+                    );
                 }
+            }
+            Ok(())
+        }
+        Commands::Doctor => {
+            let api = api_client::ApiClient::new();
+            let resp = api.get("/v1/doctor").await?;
+            if cli.json {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!(
+                    "Focusa Doctor: {}",
+                    resp["status"].as_str().unwrap_or("unknown")
+                );
+                println!(
+                    "  summary: {}",
+                    resp["summary"].as_str().unwrap_or("unknown")
+                );
+                println!(
+                    "  stack depth: {}",
+                    resp["focus"]["stack_depth"].as_u64().unwrap_or(0)
+                );
+                println!(
+                    "  events: {}",
+                    resp["telemetry"]["total_events"].as_u64().unwrap_or(0)
+                );
+                println!(
+                    "  token records: {}",
+                    resp["telemetry"]["token_budget_records"]
+                        .as_u64()
+                        .unwrap_or(0)
+                );
+                println!(
+                    "  cache records: {}",
+                    resp["telemetry"]["cache_metadata_records"]
+                        .as_u64()
+                        .unwrap_or(0)
+                );
+                println!(
+                    "  next: {}",
+                    resp["next_action"].as_str().unwrap_or("continue")
+                );
             }
             Ok(())
         }
