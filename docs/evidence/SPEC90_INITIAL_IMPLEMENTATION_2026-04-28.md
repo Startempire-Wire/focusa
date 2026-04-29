@@ -52,9 +52,20 @@ Rust API validation:
 
 ```bash
 cargo check -p focusa-api --target-dir /tmp/focusa-cargo-target
+cargo build --release -p focusa-api --bin focusa-daemon
+systemctl restart focusa-daemon
+curl -sS http://127.0.0.1:8787/v1/health | jq .
+curl -sS http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'
 ```
 
-Result: passed.
+Result:
+
+```text
+active
+{"ok":true,"version":"0.1.0"}
+"spec90.tool_contracts.v1"
+43
+```
 
 Secret scan:
 
@@ -65,7 +76,18 @@ Secret scan:
 ✅ No secrets found in /home/wirebot/focusa/CHANGELOG.md
 ```
 
+## Result envelope proof
+
+`node scripts/validate-focusa-tool-contracts.mjs` verifies the Pi extension installs `withToolResultEnvelope` before all 43 current `focusa_*` tool registrations, so every current registered tool is wrapped for `tool_result_v1` output.
+
+## Workpoint proof
+
+A canonical Workpoint checkpoint recorded this release slice after the daemon restart:
+
+```text
+WORKPOINT 019dd6f5-e973-7641-8504-491627b1815b: mission=Spec90 tool contract parity implementation; action=live_release_proof; next=record evidence, close remaining beads that passed, commit docs/evidence; canonical=true
+```
+
 ## Remaining follow-ups
 
-- Enforce deeper `tool_result_v1` parity across every tool path.
-- Add live daemon full-chain doctor proof when Focusa daemon is available.
+- Optional future hardening: add example runtime calls for each mutating tool class when safe fixtures exist.

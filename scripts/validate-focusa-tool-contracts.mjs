@@ -22,7 +22,18 @@ const toolsSrc = read(toolsPath);
 const contractsSrc = read(contractsPath);
 const readme = read(readmePath);
 
-const toolNames = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)].map((m) => m[1]);
+const wrapperInstallIndex = toolsSrc.indexOf('pi.registerTool = ((tool: any) => registerTool(withToolResultEnvelope(tool)))');
+if (wrapperInstallIndex === -1) {
+  fail('tool_result_v1 wrapper install not found in registerTools');
+}
+
+const toolMatches = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
+const toolNames = toolMatches.map((m) => m[1]);
+for (const match of toolMatches) {
+  if (wrapperInstallIndex !== -1 && match.index < wrapperInstallIndex) {
+    fail('tool registered before tool_result_v1 wrapper install', match[1]);
+  }
+}
 const uniqueToolNames = [...new Set(toolNames)];
 if (toolNames.length !== uniqueToolNames.length) {
   fail('duplicate Pi tool registrations', toolNames.filter((name, idx) => toolNames.indexOf(name) !== idx));
