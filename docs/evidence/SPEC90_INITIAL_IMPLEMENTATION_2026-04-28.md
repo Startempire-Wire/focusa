@@ -10,6 +10,8 @@ Operator requested a new spec, full granular decomposition into beads, beginning
 - Contract registry: `apps/pi-extension/src/tool-contracts.ts`
 - Validator: `scripts/validate-focusa-tool-contracts.mjs`
 - Registry docs: `docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`
+- JSON registry projection: `docs/current/focusa-tool-contracts.json`
+- Ontology API projection: `GET /v1/ontology/tool-contracts`
 - Doctor integration: `focusa_tool_doctor` now reports contract totals/family coverage/scoped coverage/exemptions.
 - README/docs index/changelog links for Spec90 and registry docs.
 
@@ -46,6 +48,14 @@ cd apps/pi-extension && ./node_modules/.bin/tsc --noEmit
 
 Result: passed.
 
+Rust API validation:
+
+```bash
+cargo check -p focusa-api --target-dir /tmp/focusa-cargo-target
+```
+
+Result: passed.
+
 Secret scan:
 
 ```text
@@ -57,6 +67,5 @@ Secret scan:
 
 ## Remaining follow-ups
 
-- Project contracts through the ontology API using the same registry.
 - Enforce deeper `tool_result_v1` parity across every tool path.
 - Add live daemon full-chain doctor proof when Focusa daemon is available.

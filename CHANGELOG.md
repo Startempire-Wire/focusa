@@ -6,6 +6,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 - Added Spec90 for ontology-backed Focusa tool contracts and parity hardening.
 - Added current machine-readable registry for all 43 `focusa_*` Pi tools.
+- Added JSON registry projection and `GET /v1/ontology/tool-contracts` API projection.
 - Added deterministic contract validation script.
 - Upgraded `focusa_tool_doctor` to report contract coverage summary.
 - Added current tool contract registry documentation.

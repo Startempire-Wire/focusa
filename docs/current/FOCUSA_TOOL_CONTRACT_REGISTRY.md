@@ -6,6 +6,10 @@ This page documents the current machine-readable contract registry in `apps/pi-e
 
 Validation: `node scripts/validate-focusa-tool-contracts.mjs`.
 
+JSON projection: [`focusa-tool-contracts.json`](focusa-tool-contracts.json).
+
+Ontology API projection: `GET /v1/ontology/tool-contracts`.
+
 | Tool | Family | Ontology action | API routes | CLI commands | Parity | Doc |
 | --- | --- | --- | --- | --- | --- | --- |
 | `focusa_scratch` | `focus_state` | `focus_state.scratch` | <em>exempt</em> | `focusa focus` | `local_only` | [`doc`](../focusa-tools/tools/focusa_scratch.md) |

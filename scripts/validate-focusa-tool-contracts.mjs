@@ -7,6 +7,7 @@ const root = process.cwd();
 const toolsPath = path.join(root, 'apps/pi-extension/src/tools.ts');
 const contractsPath = path.join(root, 'apps/pi-extension/src/tool-contracts.ts');
 const readmePath = path.join(root, 'README.md');
+const registryJsonPath = path.join(root, 'docs/current/focusa-tool-contracts.json');
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
@@ -35,6 +36,16 @@ if (!jsonMatch) {
 let contracts = [];
 if (jsonMatch) {
   contracts = JSON.parse(`${jsonMatch[1]}\n]`);
+}
+
+let registryJson = null;
+if (fs.existsSync(registryJsonPath)) {
+  registryJson = JSON.parse(read(registryJsonPath));
+  if (JSON.stringify(registryJson.contracts) !== JSON.stringify(contracts)) {
+    fail('JSON registry drifted from TypeScript registry', registryJsonPath);
+  }
+} else {
+  fail('missing JSON registry projection', registryJsonPath);
 }
 
 const contractNames = contracts.map((contract) => contract.name);
@@ -83,6 +94,10 @@ for (const contract of contracts) {
     if (!routeInventory.has(routePath)) fail(`${prefix} API route not in route inventory`, route);
   }
   if (!readme.includes(contract.doc_path)) fail(`${prefix} README missing tool doc link`, contract.doc_path);
+}
+
+if (!routeInventory.has('/v1/ontology/tool-contracts')) {
+  fail('ontology tool-contracts projection route missing', '/v1/ontology/tool-contracts');
 }
 
 const byFamily = contracts.reduce((acc, contract) => {

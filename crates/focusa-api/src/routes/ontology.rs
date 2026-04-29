@@ -5304,12 +5304,21 @@ async fn slices(
     ))
 }
 
+async fn tool_contracts() -> Json<Value> {
+    let registry: Value = serde_json::from_str(include_str!(
+        "../../../../docs/current/focusa-tool-contracts.json"
+    ))
+    .unwrap_or_else(|err| json!({"error":"invalid tool contract registry","details":err.to_string()}));
+    Json(registry)
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/ontology/primitives", get(primitives))
         .route("/v1/ontology/contracts", get(contracts))
         .route("/v1/ontology/world", get(world))
         .route("/v1/ontology/slices", get(slices))
+        .route("/v1/ontology/tool-contracts", get(tool_contracts))
         .route("/v1/ontology/actions", post(execute_ontology_action))
 }
 
