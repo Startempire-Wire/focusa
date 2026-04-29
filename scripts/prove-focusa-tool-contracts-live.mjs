@@ -7,8 +7,10 @@ import { spawnSync } from 'node:child_process';
 const root = process.cwd();
 const baseUrl = process.env.FOCUSA_API_BASE_URL || 'http://127.0.0.1:8787';
 const jsonMode = process.argv.includes('--json');
+const safeFixturesMode = process.argv.includes('--safe-fixtures');
 const failures = [];
 const checkedEndpoints = [];
+const fixtureChecks = [];
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -74,6 +76,25 @@ if (liveRegistry && !payloadEqual) fail('live registry payload differs from stat
 const apiRef = fs.readFileSync(path.join(root, 'docs/current/API_REFERENCE_CURRENT.md'), 'utf8');
 if (!apiRef.includes('/v1/ontology/tool-contracts')) fail('API reference missing live tool-contracts route');
 
+if (safeFixturesMode) {
+  const safeFixtureEndpoints = [
+    { family: 'workpoint', representative_tools: ['focusa_workpoint_resume'], endpoint: '/v1/workpoint/current' },
+    { family: 'work_loop', representative_tools: ['focusa_work_loop_status'], endpoint: '/v1/work-loop/status' },
+    { family: 'tree_lineage', representative_tools: ['focusa_tree_head', 'focusa_lineage_tree'], endpoint: '/v1/lineage/head' },
+    { family: 'metacognition', representative_tools: ['focusa_metacog_recent_reflections'], endpoint: '/v1/metacognition/reflections/recent' },
+    { family: 'focus_state', representative_tools: ['focusa_current_focus'], endpoint: '/v1/focus/frame/current' },
+  ];
+  for (const probe of safeFixtureEndpoints) {
+    try {
+      const body = await getJson(probe.endpoint);
+      fixtureChecks.push({ ...probe, status: 'passed', response_kind: typeof body, mutates: false });
+    } catch (err) {
+      fixtureChecks.push({ ...probe, status: 'blocked', error: err.message, mutates: false });
+      fail('safe fixture read-only probe failed', { endpoint: probe.endpoint, error: err.message });
+    }
+  }
+}
+
 const result = {
   status: failures.length ? 'failed' : 'passed',
   health: health ? { ok: health.ok, version: health.version } : null,
@@ -85,6 +106,8 @@ const result = {
   extra_live_contracts: extraLiveContracts,
   payload_equal: payloadEqual,
   checked_endpoints: checkedEndpoints,
+  safe_fixtures_mode: safeFixturesMode,
+  fixture_checks: fixtureChecks,
   failures,
 };
 
@@ -97,6 +120,7 @@ if (jsonMode) {
   console.log(`live=${result.live_version || 'none'} count=${result.live_count}`);
   console.log(`payload_equal=${result.payload_equal}`);
   console.log(`checked_endpoints=${result.checked_endpoints.join(',')}`);
+  if (safeFixturesMode) console.log(`fixture_checks=${fixtureChecks.map((check) => `${check.family}:${check.status}`).join(',')}`);
   if (failures.length) {
     for (const failure of failures) console.error(`FAIL ${failure.message}${failure.detail ? ` ${JSON.stringify(failure.detail)}` : ''}`);
   }

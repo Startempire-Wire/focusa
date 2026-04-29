@@ -8,6 +8,7 @@ Operator requested a new granular spec, bead decomposition, implementation start
 
 - Spec: `docs/91-live-tool-contract-proof-harness-spec.md`
 - Live proof script: `scripts/prove-focusa-tool-contracts-live.mjs`
+- Read-only safe fixture mode: `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`
 - User docs: `docs/current/LIVE_TOOL_CONTRACT_PROOF.md`
 - README/docs index/changelog links
 
@@ -45,6 +46,18 @@ payload_equal=true
 checked_endpoints=/v1/health,/v1/ontology/tool-contracts
 ```
 
+Live Spec91 safe fixture proof:
+
+```text
+Spec91 live tool contract proof: passed
+health=ok version=0.1.0
+static=spec90.tool_contracts.v1 count=43
+live=spec90.tool_contracts.v1 count=43
+payload_equal=true
+checked_endpoints=/v1/health,/v1/ontology/tool-contracts,/v1/workpoint/current,/v1/work-loop/status,/v1/lineage/head,/v1/metacognition/reflections/recent,/v1/focus/frame/current
+fixture_checks=workpoint:passed,work_loop:passed,tree_lineage:passed,metacognition:passed,focus_state:passed
+```
+
 TypeScript:
 
 ```bash
@@ -74,4 +87,4 @@ Secret scan:
 
 ## Remaining follow-up
 
-`focusa-8e34.6` remains optional future work: safe fixture mode for representative non-destructive Pi tool probes.
+No Spec91 bead remains open. Future work may add isolated write fixtures, but the current safe fixture mode is read-only and complete for representative live family probes.

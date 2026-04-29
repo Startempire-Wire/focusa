@@ -49,6 +49,8 @@ The script MUST support:
 ```bash
 node scripts/prove-focusa-tool-contracts-live.mjs
 node scripts/prove-focusa-tool-contracts-live.mjs --json
+node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
+node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json
 ```
 
 Human output MUST include:
@@ -72,9 +74,25 @@ JSON output MUST include:
 - `extra_live_contracts`
 - `payload_equal`
 - `checked_endpoints`
+- `safe_fixtures_mode`
+- `fixture_checks`
 - `failures`
 
-## 7. Safety/privacy requirements
+## 7. Safe fixture mode
+
+`--safe-fixtures` MUST remain read-only. It verifies representative current tool families through local API endpoints without mutating Focus State, Workpoints, Work-loop state, metacognition state, or user data.
+
+Current representative probes:
+
+- Workpoint: `GET /v1/workpoint/current`
+- Work-loop: `GET /v1/work-loop/status`
+- Tree/lineage: `GET /v1/lineage/head`
+- Metacognition: `GET /v1/metacognition/reflections/recent`
+- Focus State: `GET /v1/focus/frame/current`
+
+Mutating tools remain covered by static contracts/result-envelope validation until safe write-fixture isolation exists.
+
+## 8. Safety/privacy requirements
 
 - Do not print raw secrets.
 - Do not include env vars in evidence output.
@@ -82,7 +100,7 @@ JSON output MUST include:
 - Keep proof logs bounded.
 - Use `guardian scan` before release evidence commit.
 
-## 8. Bead decomposition requirements
+## 9. Bead decomposition requirements
 
 Minimum beads:
 
@@ -91,9 +109,9 @@ Minimum beads:
 3. Add current documentation for live proof usage.
 4. Wire README/docs index/changelog links.
 5. Record proof evidence and secret scan.
-6. Optional future: safe fixture mode for non-destructive live Pi tool class probes.
+6. Safe fixture mode for representative read-only live tool-family probes.
 
-## 9. Acceptance criteria
+## 10. Acceptance criteria
 
 Initial implementation is complete when:
 
@@ -107,11 +125,11 @@ Initial implementation is complete when:
 
 Full implementation is complete when:
 
-- Safe fixture mode can exercise representative read-only and non-destructive tool classes.
+- Safe fixture mode exercises representative read-only/non-mutating tool families.
 - Release automation gates on both Spec90 static validation and Spec91 live proof.
 - Doctor output can cite the latest live proof result/ref.
 
-## 10. Implementation sequence
+## 11. Implementation sequence
 
 1. Create this spec.
 2. Create bead epic/subtasks.
