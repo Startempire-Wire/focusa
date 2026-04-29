@@ -2,6 +2,10 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 safe cleanup command
+
+- Added `focusa cleanup --safe` and `--dry-run` for recoverable cleanup of known generated residue while preserving `.beads/`, `data/`, and `target/`.
+
 ## Unreleased — Spec92 release prove command
 
 - Added `focusa release prove --tag <tag>` release-proof orchestration with Spec90/91 validation, work-loop wiring proof, daemon health, Guardian scans, optional cargo gates, optional GitHub release lookup, and standard Spec92 envelope.

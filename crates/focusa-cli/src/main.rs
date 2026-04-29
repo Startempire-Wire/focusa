@@ -52,6 +52,9 @@ enum Commands {
     /// Run full agent-first doctor checks.
     Doctor,
 
+    /// Recoverable cleanup of generated residue.
+    Cleanup(commands::cleanup::CleanupArgs),
+
     /// Resume governed continuous work and refresh state.
     Continue(commands::continue_work::ContinueArgs),
 
@@ -333,6 +336,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Doctor => commands::doctor::run(cli.json).await,
+        Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();

@@ -76,3 +76,13 @@ focusa release prove --tag <tag> --github
 ```
 
 `focusa release prove` orchestrates the standard validation gates: git state, Spec90 contract validation, Spec91 safe live proof, work-loop auto-continue wiring test, daemon health, Guardian scans, and optionally cargo workspace gates plus GitHub release asset lookup.
+
+
+## Cleanup
+
+```bash
+focusa cleanup --safe --dry-run
+focusa cleanup --safe
+```
+
+`focusa cleanup --safe` moves known generated residue to `/home/wirebot/.trash/focusa-clean-*` and preserves `.beads/`, `data/`, and `target/`.
