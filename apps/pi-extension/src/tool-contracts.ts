@@ -1,0 +1,1063 @@
+// Generated/maintained for Spec90. Keep this registry current with apps/pi-extension/src/tools.ts.
+
+export type FocusaToolFamily =
+  | "focus_state"
+  | "workpoint"
+  | "work_loop"
+  | "metacognition"
+  | "tree_lineage"
+  | "diagnostics_hygiene";
+
+export type FocusaToolParityStatus = "full" | "domain" | "pi_only" | "local_only" | "degraded_known";
+
+export interface FocusaToolContract {
+  name: string;
+  family: FocusaToolFamily;
+  label: string;
+  purpose: string;
+  ontology_action: string;
+  ontology_objects: string[];
+  api_routes: string[];
+  cli_commands: string[];
+  core_surface: string;
+  doc_path: string;
+  result_envelope: "tool_result_v1";
+  side_effect_profile: string;
+  parity_status: FocusaToolParityStatus;
+  exemptions: string[];
+  live_check: string;
+}
+
+export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
+  {
+    "name": "focusa_scratch",
+    "label": "Scratchpad",
+    "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+    "family": "focus_state",
+    "ontology_action": "focus_state.scratch",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_scratch.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "local_note",
+    "parity_status": "local_only",
+    "exemptions": [
+      "local_scratchpad_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_decide",
+    "label": "Record Decision",
+    "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
+    "family": "focus_state",
+    "ontology_action": "focus_state.decide",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_decide.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_constraint",
+    "label": "Record Constraint",
+    "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
+    "family": "focus_state",
+    "ontology_action": "focus_state.constraint",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_constraint.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_failure",
+    "label": "Record Failure",
+    "purpose": "Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars.",
+    "family": "focus_state",
+    "ontology_action": "focus_state.failure",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_failure.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_intent",
+    "label": "Set Intent",
+    "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
+    "family": "focus_state",
+    "ontology_action": "focus_state.intent",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_intent.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_current_focus",
+    "label": "Set Current Focus",
+    "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
+    "family": "focus_state",
+    "ontology_action": "focus_state.current.focus",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_current_focus.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_next_step",
+    "label": "Record Next Step",
+    "purpose": "Record what you plan to do next (max 160 chars).",
+    "family": "focus_state",
+    "ontology_action": "focus_state.next.step",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_next_step.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_open_question",
+    "label": "Record Open Question",
+    "purpose": "Record an open question that needs to be answered (max 200 chars).",
+    "family": "focus_state",
+    "ontology_action": "focus_state.open.question",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_open_question.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_recent_result",
+    "label": "Record Recent Result",
+    "purpose": "Record a completed result, output, or reference (max 300 chars).",
+    "family": "focus_state",
+    "ontology_action": "focus_state.recent.result",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_recent_result.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_note",
+    "label": "Record Note",
+    "purpose": "Miscellaneous note (max 200 chars). Bounded at 20, oldest decay first.",
+    "family": "focus_state",
+    "ontology_action": "focus_state.note",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
+    "cli_commands": [
+      "focusa focus"
+    ],
+    "core_surface": "FocusState reducer/update",
+    "doc_path": "docs/focusa-tools/tools/focusa_note.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_work_loop_writer_status",
+    "label": "Work Loop Writer Status",
+    "purpose": "Read current work-loop writer ownership and mutation preflight guidance without mutating state.",
+    "family": "work_loop",
+    "ontology_action": "work_loop.writer.status",
+    "ontology_objects": [
+      "WorkLoopState"
+    ],
+    "api_routes": [
+      "GET /v1/work-loop/status"
+    ],
+    "cli_commands": [],
+    "core_surface": "Work-loop state/writer controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_work_loop_writer_status.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_work_loop_status",
+    "label": "Work Loop Status",
+    "purpose": "Get current continuous work-loop state and budgets.",
+    "family": "work_loop",
+    "ontology_action": "work_loop.status",
+    "ontology_objects": [
+      "WorkLoopState"
+    ],
+    "api_routes": [
+      "GET /v1/work-loop/status"
+    ],
+    "cli_commands": [],
+    "core_surface": "Work-loop state/writer controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_work_loop_status.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_work_loop_control",
+    "label": "Work Loop Control",
+    "purpose": "Control continuous work loop: on, pause, resume, stop.",
+    "family": "work_loop",
+    "ontology_action": "work_loop.control",
+    "ontology_objects": [
+      "WorkLoopState"
+    ],
+    "api_routes": [
+      "POST /v1/work-loop/enable",
+      "POST /v1/work-loop/pause",
+      "POST /v1/work-loop/resume",
+      "POST /v1/work-loop/stop"
+    ],
+    "cli_commands": [],
+    "core_surface": "Work-loop state/writer controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_work_loop_control.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_work_loop_context",
+    "label": "Work Loop Context",
+    "purpose": "Update continuation decision context (current ask/scope/steering).",
+    "family": "work_loop",
+    "ontology_action": "work_loop.context",
+    "ontology_objects": [
+      "WorkLoopState"
+    ],
+    "api_routes": [
+      "POST /v1/work-loop/context"
+    ],
+    "cli_commands": [],
+    "core_surface": "Work-loop state/writer controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_work_loop_context.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_work_loop_checkpoint",
+    "label": "Work Loop Checkpoint",
+    "purpose": "Create a manual continuous-loop checkpoint.",
+    "family": "work_loop",
+    "ontology_action": "work_loop.checkpoint",
+    "ontology_objects": [
+      "WorkLoopState"
+    ],
+    "api_routes": [
+      "POST /v1/work-loop/checkpoint"
+    ],
+    "cli_commands": [],
+    "core_surface": "Work-loop state/writer controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_work_loop_checkpoint.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "checkpoint",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_work_loop_select_next",
+    "label": "Work Loop Select Next",
+    "purpose": "Ask daemon to defer blocked work and select next ready work item.",
+    "family": "work_loop",
+    "ontology_action": "work_loop.select.next",
+    "ontology_objects": [
+      "WorkLoopState"
+    ],
+    "api_routes": [
+      "POST /v1/work-loop/select-next"
+    ],
+    "cli_commands": [],
+    "core_surface": "Work-loop state/writer controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_work_loop_select_next.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_state_hygiene_doctor",
+    "label": "Focus State Hygiene Doctor",
+    "purpose": "Diagnose stale or duplicate Focus State signals without mutating state.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "diagnostics_hygiene.state_hygiene.doctor",
+    "ontology_objects": [
+      "ToolContract"
+    ],
+    "api_routes": [],
+    "cli_commands": [],
+    "core_surface": "Local diagnostic/hygiene orchestration",
+    "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_doctor.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "approval_placeholder",
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_state_hygiene_plan",
+    "label": "Focus State Hygiene Plan",
+    "purpose": "Create a proposal-style hygiene plan; does not mutate Focus State.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "diagnostics_hygiene.state_hygiene.plan",
+    "ontology_objects": [
+      "ToolContract"
+    ],
+    "api_routes": [],
+    "cli_commands": [],
+    "core_surface": "Local diagnostic/hygiene orchestration",
+    "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_plan.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "approval_placeholder",
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_state_hygiene_apply",
+    "label": "Focus State Hygiene Apply",
+    "purpose": "Approval-safe hygiene apply placeholder; requires approved=true and never deletes silently.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "diagnostics_hygiene.state_hygiene.apply",
+    "ontology_objects": [
+      "ToolContract"
+    ],
+    "api_routes": [],
+    "cli_commands": [],
+    "core_surface": "Local diagnostic/hygiene orchestration",
+    "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "approval_placeholder",
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tool_doctor",
+    "label": "Focusa Tool Doctor",
+    "purpose": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "diagnostics_hygiene.tool_doctor",
+    "ontology_objects": [
+      "ToolContract"
+    ],
+    "api_routes": [
+      "GET /v1/health",
+      "GET /v1/workpoint/current",
+      "GET /v1/work-loop/status"
+    ],
+    "cli_commands": [],
+    "core_surface": "Local diagnostic/hygiene orchestration",
+    "doc_path": "docs/focusa-tools/tools/focusa_tool_doctor.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "diagnostic",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_active_object_resolve",
+    "label": "Focusa Active Object Resolve",
+    "purpose": "Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.active.object.resolve",
+    "ontology_objects": [
+      "WorkpointResumePacket",
+      "EvidenceRef"
+    ],
+    "api_routes": [
+      "POST /v1/workpoint/active-object/resolve"
+    ],
+    "cli_commands": [
+      "focusa workpoint"
+    ],
+    "core_surface": "Workpoint reducer/state",
+    "doc_path": "docs/focusa-tools/tools/focusa_active_object_resolve.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_evidence_capture",
+    "label": "Focusa Evidence Capture",
+    "purpose": "Capture a bounded evidence ref/result and optionally link it to the active Workpoint.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.evidence.capture",
+    "ontology_objects": [
+      "WorkpointResumePacket",
+      "EvidenceRef"
+    ],
+    "api_routes": [
+      "POST /v1/workpoint/evidence/link"
+    ],
+    "cli_commands": [
+      "focusa workpoint"
+    ],
+    "core_surface": "Workpoint reducer/state",
+    "doc_path": "docs/focusa-tools/tools/focusa_evidence_capture.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "evidence_link",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_workpoint_checkpoint",
+    "label": "Workpoint Checkpoint",
+    "purpose": "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.checkpoint",
+    "ontology_objects": [
+      "WorkpointResumePacket",
+      "EvidenceRef"
+    ],
+    "api_routes": [
+      "POST /v1/workpoint/checkpoint"
+    ],
+    "cli_commands": [
+      "focusa workpoint"
+    ],
+    "core_surface": "Workpoint reducer/state",
+    "doc_path": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "checkpoint",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_workpoint_link_evidence",
+    "label": "Workpoint Link Evidence",
+    "purpose": "Attach a stable evidence reference or verification result to the active canonical Workpoint.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.link.evidence",
+    "ontology_objects": [
+      "WorkpointResumePacket",
+      "EvidenceRef"
+    ],
+    "api_routes": [
+      "POST /v1/workpoint/evidence/link"
+    ],
+    "cli_commands": [
+      "focusa workpoint"
+    ],
+    "core_surface": "Workpoint reducer/state",
+    "doc_path": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "evidence_link",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_workpoint_resume",
+    "label": "Workpoint Resume",
+    "purpose": "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.resume",
+    "ontology_objects": [
+      "WorkpointResumePacket",
+      "EvidenceRef"
+    ],
+    "api_routes": [
+      "POST /v1/workpoint/resume"
+    ],
+    "cli_commands": [
+      "focusa workpoint"
+    ],
+    "core_surface": "Workpoint reducer/state",
+    "doc_path": "docs/focusa-tools/tools/focusa_workpoint_resume.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_head",
+    "label": "Tree Head",
+    "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.head",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [
+      "GET /v1/lineage/head"
+    ],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_head.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_path",
+    "label": "Tree Path",
+    "purpose": "Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.path",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [
+      "GET /v1/lineage/path/{clt_node_id}"
+    ],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_path.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_snapshot_state",
+    "label": "Tree Snapshot State",
+    "purpose": "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.snapshot.state",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_snapshot_state.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_session_snapshot_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_restore_state",
+    "label": "Tree Restore State",
+    "purpose": "Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.restore.state",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_restore_state.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_session_snapshot_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_diff_context",
+    "label": "Tree Diff Context",
+    "purpose": "Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.diff.context",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_diff_context.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_session_snapshot_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_capture",
+    "label": "Metacog Capture",
+    "purpose": "Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.capture",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/capture"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_capture.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_retrieve",
+    "label": "Metacog Retrieve",
+    "purpose": "Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.retrieve",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/retrieve"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_retrieve.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_reflect",
+    "label": "Metacog Reflect",
+    "purpose": "Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.reflect",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/reflect"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_reflect.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_plan_adjust",
+    "label": "Metacog Plan Adjust",
+    "purpose": "Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.plan.adjust",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/adjust"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_plan_adjust.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_evaluate_outcome",
+    "label": "Metacog Evaluate Outcome",
+    "purpose": "Judge whether an adjustment improved results and whether the learning should be promoted.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.evaluate.outcome",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/evaluate"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_recent_snapshots",
+    "label": "Tree Recent Snapshots",
+    "purpose": "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.recent.snapshots",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_recent_snapshots.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_session_snapshot_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_tree_snapshot_compare_latest",
+    "label": "Tree Snapshot Compare Latest",
+    "purpose": "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.snapshot.compare.latest",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_session_snapshot_only"
+    ],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_recent_reflections",
+    "label": "Metacog Recent Reflections",
+    "purpose": "Best safe helper for finding recent reflection ids and update sets before adjust or promote work.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.recent.reflections",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "GET /v1/metacognition/reflections/recent"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_recent_adjustments",
+    "label": "Metacog Recent Adjustments",
+    "purpose": "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.recent.adjustments",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "GET /v1/metacognition/adjustments/recent"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_loop_run",
+    "label": "Metacog Loop Run",
+    "purpose": "Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.loop.run",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/capture",
+      "POST /v1/metacognition/retrieve",
+      "POST /v1/metacognition/reflect",
+      "POST /v1/metacognition/adjust",
+      "POST /v1/metacognition/evaluate"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_metacog_doctor",
+    "label": "Metacog Doctor",
+    "purpose": "Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed.",
+    "family": "metacognition",
+    "ontology_action": "metacognition.doctor",
+    "ontology_objects": [
+      "MetacogSignal"
+    ],
+    "api_routes": [
+      "POST /v1/metacognition/retrieve",
+      "GET /v1/metacognition/reflections/recent"
+    ],
+    "cli_commands": [
+      "focusa metacognition"
+    ],
+    "core_surface": "Metacognition store/retriever",
+    "doc_path": "docs/focusa-tools/tools/focusa_metacog_doctor.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_lineage_tree",
+    "label": "Lineage Tree",
+    "purpose": "Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.tree",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [
+      "GET /v1/lineage/tree"
+    ],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_lineage_tree.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  },
+  {
+    "name": "focusa_li_tree_extract",
+    "label": "LI Tree Extract",
+    "purpose": "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding.",
+    "family": "tree_lineage",
+    "ontology_action": "tree_lineage.lineage_intelligence.tree.extract",
+    "ontology_objects": [
+      "LineageNode",
+      "TreeSnapshot"
+    ],
+    "api_routes": [
+      "GET /v1/lineage/tree"
+    ],
+    "cli_commands": [
+      "focusa lineage",
+      "focusa clt"
+    ],
+    "core_surface": "Context lineage tree/snapshot state",
+    "doc_path": "docs/focusa-tools/tools/focusa_li_tree_extract.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+  }
+];
+
+export function focusaToolContractSummary() {
+  const byFamily: Record<string, number> = {};
+  for (const contract of FOCUSA_TOOL_CONTRACTS) {
+    byFamily[contract.family] = (byFamily[contract.family] || 0) + 1;
+  }
+  return { total: FOCUSA_TOOL_CONTRACTS.length, by_family: byFamily };
+}
+
+export function findFocusaToolContract(name: string) {
+  return FOCUSA_TOOL_CONTRACTS.find((contract) => contract.name === name);
+}

@@ -11,6 +11,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame } from "./state.js";
+import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -1152,8 +1153,14 @@ export function registerTools(pi: ExtensionAPI) {
       const workpoint = await focusaFetchDetailed("/workpoint/current", { method: "GET" });
       const loop = await focusaFetchDetailed("/work-loop/status", { method: "GET" });
       const ready = health.ok && workpoint.ok;
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
-      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, workpoint: workpoint.body, work_loop: loop.body } } as any;
+      const contractSummary = focusaToolContractSummary();
+      const scopedContracts = String(p.scope || "all") === "all"
+        ? FOCUSA_TOOL_CONTRACTS
+        : FOCUSA_TOOL_CONTRACTS.filter((contract) => contract.family === String(p.scope || "") || contract.name.includes(String(p.scope || "")));
+      const missingDocs = scopedContracts.filter((contract) => !contract.doc_path).map((contract) => contract.name);
+      const knownExemptions = scopedContracts.filter((contract) => contract.exemptions.length > 0).map((contract) => ({ name: contract.name, exemptions: contract.exemptions }));
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
+      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions } } } as any;
     },
   });
 
