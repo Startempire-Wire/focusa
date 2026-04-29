@@ -166,5 +166,5 @@ The guard must verify:
 2. Publish `docs/current/NON_PI_AGENT_FOCUSA_USAGE.md`.
 3. Add docs links.
 4. Add `scripts/validate-non-pi-agent-awareness.mjs`.
-5. Implemented local OpenClaw plugin skeleton at `apps/openclaw-focusa-awareness`; production config is enabled and activation requires an operator-approved gateway restart.
+5. Implemented local OpenClaw plugin skeleton at `apps/focusa-awareness`; production config is enabled and activation requires an operator-approved gateway restart.
 6. Later: live end-to-end OpenClaw turn proof after restart.

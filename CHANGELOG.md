@@ -4,8 +4,8 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — OpenClaw Focusa awareness plugin
 
-- Added `apps/openclaw-focusa-awareness` plugin skeleton to inject `/v1/awareness/card` into OpenClaw/Wirebot `before_agent_start`.
-- Added plugin/config validation guards and enabled `focusa-awareness` in `/data/wirebot/users/verious/openclaw.json`; live activation requires operator-approved gateway restart.
+- Added `apps/focusa-awareness` plugin skeleton to inject `/v1/awareness/card` into OpenClaw/Wirebot `before_agent_start`.
+- Added plugin/config validation guards and enabled `focusa-awareness` in `/data/wirebot/users/verious/openclaw.json`; live activation requires operator-approved gateway restart. Also documented/fixed production systemd startup to use optional `/run/wirebot/gateway.env` so ExecStartPre can recreate tmpfs secrets after reboot.
 
 ## Unreleased — Spec93 awareness card API
 

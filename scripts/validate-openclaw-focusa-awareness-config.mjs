@@ -5,7 +5,7 @@ const configPath = process.env.OPENCLAW_CONFIG_PATH || '/data/wirebot/users/veri
 const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 const plugins = data.plugins || {};
 const failures = [];
-const pluginPath = '/home/wirebot/focusa/apps/openclaw-focusa-awareness';
+const pluginPath = '/home/wirebot/focusa/apps/focusa-awareness';
 if (!plugins.allow?.includes?.('focusa-awareness')) failures.push('plugins.allow missing focusa-awareness');
 if (!plugins.load?.paths?.includes?.(pluginPath)) failures.push(`plugins.load.paths missing ${pluginPath}`);
 const entry = plugins.entries?.['focusa-awareness'];

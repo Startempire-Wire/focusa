@@ -130,7 +130,7 @@ The guard should verify that public docs and integration snippets mention OpenCl
 Focusa ships a local OpenClaw plugin skeleton for gateway injection:
 
 ```text
-apps/openclaw-focusa-awareness/
+apps/focusa-awareness/
   openclaw.plugin.json
   index.ts
 ```
@@ -150,7 +150,7 @@ Configured production path:
 ```text
 /data/wirebot/users/verious/openclaw.json
 plugins.allow += focusa-awareness
-plugins.load.paths += /home/wirebot/focusa/apps/openclaw-focusa-awareness
+plugins.load.paths += /home/wirebot/focusa/apps/focusa-awareness
 plugins.entries.focusa-awareness.enabled = true
 ```
 
@@ -159,3 +159,14 @@ Activation requires an OpenClaw gateway restart/reload. Because that restarts th
 ```bash
 systemctl restart openclaw-gateway
 ```
+
+
+## Systemd startup note
+
+The production `openclaw-gateway.service` must not require `/run/wirebot/gateway.env` before `ExecStartPre=/data/wirebot/bin/inject-gateway-secrets.sh` runs, because `/run` is tmpfs and may be empty after reboot. The unit should use:
+
+```text
+EnvironmentFile=-/run/wirebot/gateway.env
+```
+
+The injector then writes the real runtime env file before `ExecStart` launches OpenClaw.
