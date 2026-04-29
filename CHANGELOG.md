@@ -2,6 +2,10 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 agent status command
+
+- Added `focusa status --agent` with live Workpoint, Work-loop, token-budget, cache, and daemon status envelope.
+
 ## Unreleased — Spec92 continue command
 
 - Added full `focusa continue` command with work-loop writer governance, optional next-work selection, optional enable, Workpoint/Work-loop refresh, and standard Spec92 envelopes.

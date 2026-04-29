@@ -13,6 +13,15 @@ focusa --json doctor
 
 `focusa doctor` checks daemon health, daemon executable path, API/capability inventory, Spec90 tool contracts, Spec91 proof harness presence, Pi skill paths, Workpoint canonicality, Work-loop state, token telemetry, cache metadata, Mac app package presence, release docs, and Guardian scanner presence.
 
+## Agent status
+
+```bash
+focusa status --agent
+focusa --json status --agent
+```
+
+`focusa status --agent` returns a standard Spec92 envelope combining live `/v1/status`, Workpoint, Work-loop, token-budget, and cache metadata surfaces.
+
 ## Continue
 
 ```bash

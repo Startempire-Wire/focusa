@@ -43,7 +43,11 @@ enum Commands {
     Stop,
 
     /// Show daemon status.
-    Status,
+    Status {
+        /// Agent-first status envelope with Workpoint, Work-loop, token, and cache details.
+        #[arg(long)]
+        agent: bool,
+    },
 
     /// Run full agent-first doctor checks.
     Doctor,
@@ -226,10 +230,69 @@ async fn main() -> anyhow::Result<()> {
             }
             Ok(())
         }
-        Commands::Status => {
+        Commands::Status { agent } => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/status").await?;
-            if cli.json {
+            if agent {
+                let workpoint = api.get("/v1/workpoint/current").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let work_loop = api.get("/v1/work-loop/status").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let token_budget = api
+                    .get("/v1/telemetry/token-budget/status?limit=5")
+                    .await
+                    .unwrap_or_else(
+                        |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                    );
+                let cache = api
+                    .get("/v1/telemetry/cache-metadata/status?limit=5")
+                    .await
+                    .unwrap_or_else(
+                        |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                    );
+                let envelope = serde_json::json!({
+                    "status": "completed",
+                    "summary": "Agent status envelope refreshed from live Focusa surfaces",
+                    "next_action": "Use focusa continue to resume governed work or focusa doctor for full diagnostics",
+                    "why": "Spec92 requires a direct agent-first status view for current runtime/workflow state.",
+                    "commands": ["focusa status --agent", "focusa continue", "focusa doctor"],
+                    "recovery": ["focusa start", "journalctl -u focusa-daemon -n 80 --no-pager"],
+                    "evidence_refs": ["/v1/status", "/v1/workpoint/current", "/v1/work-loop/status"],
+                    "docs": ["docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
+                    "warnings": [],
+                    "details": {"status": resp, "workpoint": workpoint, "work_loop": work_loop, "token_budget": token_budget, "cache": cache},
+                });
+                if cli.json {
+                    println!("{}", serde_json::to_string_pretty(&envelope)?);
+                } else {
+                    println!(
+                        "Status: {}",
+                        envelope["status"].as_str().unwrap_or("completed")
+                    );
+                    println!(
+                        "Summary: {}",
+                        envelope["summary"]
+                            .as_str()
+                            .unwrap_or("agent status refreshed")
+                    );
+                    println!(
+                        "Next action: {}",
+                        envelope["next_action"]
+                            .as_str()
+                            .unwrap_or("focusa continue")
+                    );
+                    println!(
+                        "Why: {}",
+                        envelope["why"].as_str().unwrap_or("Spec92 agent status")
+                    );
+                    println!("Command: focusa continue");
+                    println!("Recovery: focusa doctor && systemctl status focusa-daemon");
+                    println!("Evidence: /v1/status, /v1/workpoint/current, /v1/work-loop/status");
+                    println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
+                }
+            } else if cli.json {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 let version = resp["version"].as_u64().unwrap_or(0);
