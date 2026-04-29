@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — command documentation pass
+
+- Added `docs/current/PRODUCTION_RELEASE_COMMANDS.md` with copy/paste release, daemon restart, GitHub proof, Mac app, and cleanup commands.
+- Updated current runtime, validation, and Pi extension docs with concrete commands for current build verification.
+
 ## Unreleased — GitHub release and Mac app refresh
 
 - Fixed GitHub CI/release clippy and spec-gate blockers.

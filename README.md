@@ -410,6 +410,7 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/TOOL_RESULT_ENVELOPE_V1.md`](docs/current/TOOL_RESULT_ENVELOPE_V1.md) — current structured tool result contract.
 - [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
 - [`docs/current/VALIDATION_AND_RELEASE_PROOF.md`](docs/current/VALIDATION_AND_RELEASE_PROOF.md) — current validation and real runtime proof expectations.
+- [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md) — copy/paste commands for release, restart, GitHub proof, and cleanup.
 - [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](docs/90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 current tool contract/parity hardening plan.
 - [`docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`](docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current machine-readable tool contract registry table.
 - [`docs/91-live-tool-contract-proof-harness-spec.md`](docs/91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness for tool contracts.

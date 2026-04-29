@@ -1,7 +1,7 @@
 # Current Runtime Status
 
-**Snapshot:** `v0.9.2-dev`  
-**Repo head when written:** `093b7f8`  
+**Snapshot:** `v0.9.10-dev`  
+**Repo head when written:** `5c20dfa`  
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
@@ -23,6 +23,22 @@
 - `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md`
 - `docs/evidence/FOCUSA_FOCUSED_SKILLS_AND_TOOL_DOCS_RELEASE_2026-04-28.md`
 - `docs/evidence/FOCUSA_ONE_TOOL_PER_DOC_CORRECTION_2026-04-28.md`
+- `docs/evidence/SPEC90_INITIAL_IMPLEMENTATION_2026-04-28.md`
+- `docs/evidence/SPEC91_LIVE_TOOL_CONTRACT_PROOF_2026-04-28.md`
+- `docs/evidence/PRODUCTION_RELEASE_MAC_APP_GITHUB_FIX_2026-04-28.md`
+
+## Current verification commands
+
+```bash
+cd /home/wirebot/focusa
+node scripts/validate-focusa-tool-contracts.mjs
+node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
+cargo clippy --workspace -- -D warnings
+./scripts/ci/run-spec-gates.sh
+curl -sS --max-time 5 http://127.0.0.1:8787/v1/health | jq .
+```
+
+See [`PRODUCTION_RELEASE_COMMANDS.md`](PRODUCTION_RELEASE_COMMANDS.md) for full release, restart, GitHub, and cleanup commands.
 
 ## Current limits
 

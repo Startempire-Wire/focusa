@@ -118,6 +118,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/TOOL_RESULT_ENVELOPE_V1.md](current/TOOL_RESULT_ENVELOPE_V1.md) — structured tool result contract.
 - [current/TROUBLESHOOTING_CURRENT.md](current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
 - [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof.
+- [current/PRODUCTION_RELEASE_COMMANDS.md](current/PRODUCTION_RELEASE_COMMANDS.md) — release, restart, GitHub proof, and cleanup commands.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
 - [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.
