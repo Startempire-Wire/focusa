@@ -1,11 +1,107 @@
 {
   "version": "spec90.tool_contracts.v1",
-  "source": "apps/pi-extension/src/tool-contracts.ts",
+  "generated_at": "2026-04-29T05:31:01.168Z",
   "contracts": [
+    {
+      "name": "focusa_predict_record",
+      "label": "Record Prediction",
+      "purpose": "Record a bounded, inspectable Focusa prediction.",
+      "family": "metacognition",
+      "ontology_action": "prediction.record",
+      "ontology_objects": [
+        "PredictionRecord",
+        "MetacognitionStore"
+      ],
+      "api_routes": [
+        "POST /v1/predictions"
+      ],
+      "cli_commands": [
+        "focusa predict record"
+      ],
+      "core_surface": "Spec92 prediction store and telemetry",
+      "doc_path": "docs/focusa-tools/tools/focusa_predict_record.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_prediction",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    },
+    {
+      "name": "focusa_predict_recent",
+      "label": "Recent Predictions",
+      "purpose": "List recent bounded Focusa prediction records.",
+      "family": "metacognition",
+      "ontology_action": "prediction.recent",
+      "ontology_objects": [
+        "PredictionRecord",
+        "MetacognitionStore"
+      ],
+      "api_routes": [
+        "GET /v1/predictions/recent"
+      ],
+      "cli_commands": [
+        "focusa predict recent"
+      ],
+      "core_surface": "Spec92 prediction store and telemetry",
+      "doc_path": "docs/focusa-tools/tools/focusa_predict_recent.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    },
+    {
+      "name": "focusa_predict_evaluate",
+      "label": "Evaluate Prediction",
+      "purpose": "Evaluate a Focusa prediction against an actual outcome and optional score.",
+      "family": "metacognition",
+      "ontology_action": "prediction.evaluate",
+      "ontology_objects": [
+        "PredictionRecord",
+        "MetacognitionStore"
+      ],
+      "api_routes": [
+        "POST /v1/predictions/{prediction_id}/evaluate"
+      ],
+      "cli_commands": [
+        "focusa predict evaluate"
+      ],
+      "core_surface": "Spec92 prediction store and telemetry",
+      "doc_path": "docs/focusa-tools/tools/focusa_predict_evaluate.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_prediction_evaluation",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    },
+    {
+      "name": "focusa_predict_stats",
+      "label": "Prediction Stats",
+      "purpose": "Report Focusa prediction accuracy/calibration stats.",
+      "family": "metacognition",
+      "ontology_action": "prediction.stats",
+      "ontology_objects": [
+        "PredictionRecord",
+        "MetacognitionStore"
+      ],
+      "api_routes": [
+        "GET /v1/predictions/stats"
+      ],
+      "cli_commands": [
+        "focusa predict stats"
+      ],
+      "core_surface": "Spec92 prediction store and telemetry",
+      "doc_path": "docs/focusa-tools/tools/focusa_predict_stats.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus focusa_predict_stats and /v1/predictions/stats"
+    },
     {
       "name": "focusa_scratch",
       "label": "Scratchpad",
-      "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
       "family": "focus_state",
       "ontology_action": "focus_state.scratch",
       "ontology_objects": [
@@ -28,7 +124,7 @@
     {
       "name": "focusa_decide",
       "label": "Record Decision",
-      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
+      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
       "family": "focus_state",
       "ontology_action": "focus_state.decide",
       "ontology_objects": [
@@ -51,7 +147,7 @@
     {
       "name": "focusa_constraint",
       "label": "Record Constraint",
-      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
+      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
       "family": "focus_state",
       "ontology_action": "focus_state.constraint",
       "ontology_objects": [
@@ -97,7 +193,7 @@
     {
       "name": "focusa_intent",
       "label": "Set Intent",
-      "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
+      "purpose": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.intent",
       "ontology_objects": [
@@ -120,7 +216,7 @@
     {
       "name": "focusa_current_focus",
       "label": "Set Current Focus",
-      "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
+      "purpose": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.current.focus",
       "ontology_objects": [

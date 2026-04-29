@@ -26,8 +26,13 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
   try {
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
-      body: JSON.stringify({ mode }),
+      body: JSON.stringify({ mode, session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
     });
+    if (packet && packet.status === "rejected_scope_mismatch") {
+      S.activeWorkpointPacket = null;
+      S.activeWorkpointSummary = "";
+      return null;
+    }
     if (packet && packet.status === "completed") {
       S.activeWorkpointPacket = packet.resume_packet || packet;
       S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";

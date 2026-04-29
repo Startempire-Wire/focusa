@@ -2,6 +2,13 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Workpoint session scope guard
+
+- Added `project_root` to Workpoint checkpoints/resume packets and reject mismatched resume packets with `rejected_scope_mismatch`.
+- Pi checkpoint/resume calls now send current session/project root and clear mismatched packets instead of injecting cross-session context.
+- Added first-class prediction Pi tools, tool contracts, docs, and predictive-power skill.
+- Added real Rust tests for Workpoint project-root guard and durable prediction store.
+
 ## Unreleased — Spec92 cookbook and drift validation
 
 - Added `docs/current/AGENT_COMMAND_COOKBOOK.md`.

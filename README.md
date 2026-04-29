@@ -494,3 +494,13 @@ The main `focusa` skill is the router and mental model. Focused companion skills
 Proprietary — Startempire Wire
 
 Part of the Startempire Wire ecosystem.
+
+- [focusa_predict_record](docs/focusa-tools/tools/focusa_predict_record.md)
+
+- [focusa_predict_recent](docs/focusa-tools/tools/focusa_predict_recent.md)
+
+- [focusa_predict_evaluate](docs/focusa-tools/tools/focusa_predict_evaluate.md)
+
+- [focusa_predict_stats](docs/focusa-tools/tools/focusa_predict_stats.md)
+
+- [Workpoint Session Scope Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)

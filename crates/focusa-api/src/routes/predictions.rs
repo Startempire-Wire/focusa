@@ -8,6 +8,8 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -31,10 +33,41 @@ struct EvaluateBody {
     learning_signal_ref: Option<String>,
 }
 
-fn prediction_payload(event: &Value) -> Option<&Value> {
-    event
-        .get("payload")
-        .filter(|_| event.get("event_type").and_then(|v| v.as_str()) == Some("spec92_prediction"))
+fn store_path() -> PathBuf {
+    let home = std::env::var("FOCUSA_HOME").unwrap_or_else(|_| "/home/wirebot/focusa".to_string());
+    PathBuf::from(home).join("data/spec92_predictions.json")
+}
+
+fn read_predictions() -> Vec<Value> {
+    let path = store_path();
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<Vec<Value>>(&s).ok())
+        .unwrap_or_default()
+}
+
+fn bound_predictions(mut predictions: Vec<Value>) -> Vec<Value> {
+    if predictions.len() > 1000 {
+        let overflow = predictions.len() - 1000;
+        predictions.drain(0..overflow);
+    }
+    predictions
+}
+
+fn write_predictions_to(
+    path: &std::path::Path,
+    predictions: Vec<Value>,
+) -> std::io::Result<Vec<Value>> {
+    let predictions = bound_predictions(predictions);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(&predictions)?)?;
+    Ok(predictions)
+}
+
+fn write_predictions(predictions: Vec<Value>) -> std::io::Result<Vec<Value>> {
+    write_predictions_to(&store_path(), predictions)
 }
 
 async fn record(
@@ -57,41 +90,27 @@ async fn record(
         "score": null,
         "learning_signal_ref": null,
     });
+    let mut predictions = read_predictions();
+    predictions.push(payload.clone());
+    let status = match write_predictions(predictions) {
+        Ok(_) => "recorded",
+        Err(_) => "blocked",
+    };
     let mut focusa = state.focusa.write().await;
     focusa.telemetry.total_events += 1;
-    focusa.telemetry.trace_events.push(json!({
-        "event_id": Uuid::now_v7().to_string(),
-        "event_type": "spec92_prediction",
-        "timestamp": Utc::now().to_rfc3339(),
-        "payload": payload,
-    }));
-    if focusa.telemetry.trace_events.len() > 5000 {
-        let overflow = focusa.telemetry.trace_events.len() - 5000;
-        focusa.telemetry.trace_events.drain(0..overflow);
-    }
-    Json(json!({"status":"recorded", "prediction": payload}))
+    Json(json!({"status": status, "prediction": payload}))
 }
 
-async fn recent(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<HashMap<String, String>>,
-) -> Json<Value> {
+async fn recent(Query(params): Query<HashMap<String, String>>) -> Json<Value> {
     let limit = params
         .get("limit")
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(20)
         .min(100);
-    let s = state.focusa.read().await;
-    let mut predictions: Vec<Value> = s
-        .telemetry
-        .trace_events
-        .iter()
-        .filter_map(prediction_payload)
-        .rev()
-        .take(limit)
-        .cloned()
-        .collect();
-    predictions.reverse();
+    let mut predictions = read_predictions();
+    if predictions.len() > limit {
+        predictions = predictions.split_off(predictions.len() - limit);
+    }
     Json(json!({
         "status": "completed",
         "summary": format!("{} prediction record(s)", predictions.len()),
@@ -100,19 +119,12 @@ async fn recent(
 }
 
 async fn evaluate(
-    State(state): State<Arc<AppState>>,
     Path(prediction_id): Path<String>,
     Json(body): Json<EvaluateBody>,
 ) -> Json<Value> {
-    let mut focusa = state.focusa.write().await;
+    let mut predictions = read_predictions();
     let mut updated = None;
-    for event in focusa.telemetry.trace_events.iter_mut().rev() {
-        if event.get("event_type").and_then(|v| v.as_str()) != Some("spec92_prediction") {
-            continue;
-        }
-        let Some(payload) = event.get_mut("payload") else {
-            continue;
-        };
+    for payload in predictions.iter_mut().rev() {
         if payload.get("prediction_id").and_then(|v| v.as_str()) != Some(prediction_id.as_str()) {
             continue;
         }
@@ -143,24 +155,22 @@ async fn evaluate(
         break;
     }
     match updated {
-        Some(prediction) => Json(json!({"status":"evaluated", "prediction": prediction})),
+        Some(prediction) => match write_predictions(predictions) {
+            Ok(_) => Json(json!({"status":"evaluated", "prediction": prediction})),
+            Err(err) => Json(
+                json!({"status":"blocked", "what_failed":"write prediction store", "likely_why":err.to_string(), "safe_recovery":"check data directory permissions"}),
+            ),
+        },
         None => Json(
             json!({"status":"not_found", "prediction_id": prediction_id, "safe_recovery":"focusa predict recent --json"}),
         ),
     }
 }
 
-async fn stats(State(state): State<Arc<AppState>>) -> Json<Value> {
-    let s = state.focusa.read().await;
-    let predictions: Vec<&Value> = s
-        .telemetry
-        .trace_events
-        .iter()
-        .filter_map(prediction_payload)
-        .collect();
+async fn stats() -> Json<Value> {
+    let predictions = read_predictions();
     let evaluated: Vec<&Value> = predictions
         .iter()
-        .copied()
         .filter(|p| !p.get("score").unwrap_or(&Value::Null).is_null())
         .collect();
     let mut by_type: HashMap<String, (usize, usize, f64)> = HashMap::new();
@@ -178,7 +188,7 @@ async fn stats(State(state): State<Arc<AppState>>) -> Json<Value> {
         }
     }
     let by_type_json: HashMap<String, Value> = by_type.into_iter().map(|(k, (total, eval, sum))| {
-        (k, json!({"total": total, "evaluated": eval, "accuracy": if eval > 0 { sum / eval as f64 } else { Value::Null.as_f64().unwrap_or(0.0) }}))
+        (k, json!({"total": total, "evaluated": eval, "accuracy": if eval > 0 { sum / eval as f64 } else { 0.0 }}))
     }).collect();
     let score_sum: f64 = evaluated
         .iter()
@@ -206,4 +216,43 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/predictions/recent", get(recent))
         .route("/v1/predictions/stats", get(stats))
         .route("/v1/predictions/{prediction_id}/evaluate", post(evaluate))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bound_predictions_keeps_latest_thousand_records() {
+        let records: Vec<Value> = (0..1005).map(|i| json!({"prediction_id": i})).collect();
+        let bounded = bound_predictions(records);
+        assert_eq!(bounded.len(), 1000);
+        assert_eq!(
+            bounded
+                .first()
+                .and_then(|v| v.get("prediction_id"))
+                .and_then(|v| v.as_i64()),
+            Some(5)
+        );
+        assert_eq!(
+            bounded
+                .last()
+                .and_then(|v| v.get("prediction_id"))
+                .and_then(|v| v.as_i64()),
+            Some(1004)
+        );
+    }
+
+    #[test]
+    fn write_predictions_to_persists_json_records() {
+        let dir = std::env::temp_dir().join(format!("focusa-pred-test-{}", Uuid::now_v7()));
+        let path = dir.join("predictions.json");
+        let records = vec![json!({"prediction_id":"p1","prediction_type":"token_risk"})];
+        let written = write_predictions_to(&path, records).expect("write predictions");
+        assert_eq!(written.len(), 1);
+        let text = fs::read_to_string(&path).expect("read predictions");
+        let parsed: Vec<Value> = serde_json::from_str(&text).expect("json predictions");
+        assert_eq!(parsed[0]["prediction_id"], "p1");
+        let _ = fs::remove_dir_all(dir);
+    }
 }

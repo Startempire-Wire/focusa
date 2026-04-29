@@ -467,7 +467,6 @@ pub struct OntologyState {
     pub delta_log: Vec<OntologyDeltaRecord>,
 }
 
-
 // ─── Workpoint Continuity (Spec88) ─────────────────────────────────────────
 
 pub mod workpoint_caps {
@@ -558,6 +557,7 @@ pub struct WorkpointRecord {
     pub workpoint_id: WorkpointId,
     pub work_item_id: Option<String>,
     pub session_id: Option<String>,
+    pub project_root: Option<String>,
     pub frame_id: Option<FrameId>,
     pub status: WorkpointStatus,
     pub checkpoint_reason: WorkpointCheckpointReason,
@@ -586,6 +586,7 @@ impl Default for WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
             work_item_id: None,
             session_id: None,
+            project_root: None,
             frame_id: None,
             status: WorkpointStatus::Proposed,
             checkpoint_reason: WorkpointCheckpointReason::Unknown,

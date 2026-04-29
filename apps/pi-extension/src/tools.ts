@@ -1251,6 +1251,8 @@ export function registerTools(pi: ExtensionAPI) {
         mission: p.mission,
         next_slice: [p.next_action, ...doNotDrift.map((d: string) => `DO_NOT_DRIFT: ${d}`)].filter(Boolean).join("\n"),
         work_item_id: p.work_item_id,
+        session_id: S.sessionFrameKey,
+        project_root: S.sessionCwd || process.cwd(),
         checkpoint_reason: p.checkpoint_reason || "manual",
         canonical: p.canonical !== false,
         promote: p.canonical !== false,
@@ -1339,14 +1341,16 @@ export function registerTools(pi: ExtensionAPI) {
     ],
     async execute(_id, params) {
       const p = params as { workpoint_id?: string; mode?: string };
-      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt" };
+      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() };
       const res = await focusaFetchDetailed("/workpoint/resume", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      const text = res.ok
+      const text = res.ok && res.body?.status !== "rejected_scope_mismatch"
         ? `workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim()
-        : `workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`;
+        : res.body?.status === "rejected_scope_mismatch"
+          ? `workpoint resume rejected: project/session mismatch. Ignore packet; follow latest operator instruction and current repo.`
+          : `workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`;
       return {
         content: [{ type: "text", text }],
         details: { ok: res.ok, status: res.status, endpoint: "/workpoint/resume", request: payload, response: res.body },
@@ -2405,4 +2409,64 @@ export function registerTools(pi: ExtensionAPI) {
       } as any;
     },
   });
+
+  // ── Spec92 first-class prediction tools ─────────────────────────────────
+  pi.registerTool({
+    name: "focusa_predict_record",
+    label: "Record Prediction",
+    description: "Record a bounded, inspectable Focusa prediction. Predictions guide decisions; they never override operator steering.",
+    parameters: Type.Object({
+      prediction_type: Type.String({ description: "Prediction type, e.g. next_action_success|tool_choice|release_failure|stale_state|context_relevance|token_risk|cache_hit|drift_risk|workpoint_resume_success|compaction_recovery" }),
+      predicted_outcome: Type.String({ description: "Predicted outcome." }),
+      confidence: Type.Number({ description: "Confidence from 0.0 to 1.0." }),
+      recommended_action: Type.String({ description: "Recommended action if this prediction matters." }),
+      why: Type.String({ description: "Evidence-calibrated explanation." }),
+      context_refs: Type.Optional(Type.Array(Type.String({ description: "Evidence refs or handles." }))),
+    }),
+    async execute(_id, params) {
+      const res = await focusaFetch("/predictions", { method: "POST", body: JSON.stringify(params) });
+      return { content: [{ type: "text", text: `prediction record → ${res?.status || "unavailable"}` }], details: res || { status: "blocked" } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_predict_recent",
+    label: "Recent Predictions",
+    description: "List recent bounded Focusa prediction records.",
+    parameters: Type.Object({ limit: Type.Optional(Type.Number({ description: "Recent prediction count, max 100." })) }),
+    async execute(_id, params) {
+      const limit = Math.max(1, Math.min(100, Number((params as any).limit || 20)));
+      const res = await focusaFetch(`/predictions/recent?limit=${limit}`);
+      return { content: [{ type: "text", text: `predictions recent → ${res?.predictions?.length || 0}` }], details: res || { status: "blocked" } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_predict_evaluate",
+    label: "Evaluate Prediction",
+    description: "Evaluate a Focusa prediction against an actual outcome and optional score.",
+    parameters: Type.Object({
+      prediction_id: Type.String({ description: "Prediction id to evaluate." }),
+      actual_outcome: Type.String({ description: "Observed actual outcome." }),
+      score: Type.Optional(Type.Number({ description: "Score 0.0 to 1.0." })),
+      learning_signal_ref: Type.Optional(Type.String({ description: "Optional metacog/learning signal ref." })),
+    }),
+    async execute(_id, params) {
+      const { prediction_id, ...body } = params as any;
+      const res = await focusaFetch(`/predictions/${encodeURIComponent(prediction_id)}/evaluate`, { method: "POST", body: JSON.stringify(body) });
+      return { content: [{ type: "text", text: `prediction evaluate → ${res?.status || "unavailable"}` }], details: res || { status: "blocked" } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_predict_stats",
+    label: "Prediction Stats",
+    description: "Report Focusa prediction accuracy/calibration stats.",
+    parameters: Type.Object({}),
+    async execute() {
+      const res = await focusaFetch("/predictions/stats");
+      return { content: [{ type: "text", text: `prediction stats → ${res?.summary || "unavailable"}` }], details: res || { status: "blocked" } } as any;
+    },
+  });
+
 }

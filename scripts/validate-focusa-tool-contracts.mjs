@@ -78,7 +78,7 @@ const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'do
 
 const routeInventory = new Set([...fs.readdirSync(path.join(root, 'crates/focusa-api/src/routes'))
   .filter((file) => file.endsWith('.rs'))
-  .flatMap((file) => [...read(path.join(root, 'crates/focusa-api/src/routes', file)).matchAll(/\.route\("([^"]+)"/g)].map((m) => m[1]))]);
+  .flatMap((file) => [...read(path.join(root, 'crates/focusa-api/src/routes', file)).matchAll(/\.route\(\s*"([^"]+)"/g)].map((m) => m[1]))]);
 
 for (const contract of contracts) {
   const prefix = `${contract.name}:`;

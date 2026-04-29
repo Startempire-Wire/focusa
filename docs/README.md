@@ -377,3 +377,13 @@ The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelop
 ## One-Sentence Summary
 
 > **Focusa preserves continuity of mind across long AI sessions by separating focus, memory, and expression from fragile conversation history.**
+
+- [focusa_predict_record](focusa-tools/tools/focusa_predict_record.md)
+
+- [focusa_predict_recent](focusa-tools/tools/focusa_predict_recent.md)
+
+- [focusa_predict_evaluate](focusa-tools/tools/focusa_predict_evaluate.md)
+
+- [focusa_predict_stats](focusa-tools/tools/focusa_predict_stats.md)
+
+- [Workpoint Session Scope Guard](current/WORKPOINT_SESSION_SCOPE_GUARD.md)

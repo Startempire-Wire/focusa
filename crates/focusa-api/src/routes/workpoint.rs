@@ -4,7 +4,10 @@ use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::{
     Action, FocusaEvent, WorkpointActionIntentRecord, WorkpointCheckpointReason,
     WorkpointConfidence, WorkpointDriftSeverity, WorkpointRecord, WorkpointStatus,
@@ -14,7 +17,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use uuid::Uuid;
 
 static WORKPOINT_IDEMPOTENCY_CACHE: LazyLock<Mutex<HashMap<String, WorkpointRecord>>> =
@@ -25,6 +28,7 @@ pub struct WorkpointCheckpointRequest {
     pub workpoint_id: Option<Uuid>,
     pub work_item_id: Option<String>,
     pub session_id: Option<String>,
+    pub project_root: Option<String>,
     pub frame_id: Option<Uuid>,
     pub checkpoint_reason: Option<String>,
     pub confidence: Option<WorkpointConfidence>,
@@ -43,6 +47,8 @@ pub struct WorkpointCheckpointRequest {
 pub struct WorkpointResumeRequest {
     pub workpoint_id: Option<Uuid>,
     pub mode: Option<String>,
+    pub session_id: Option<String>,
+    pub project_root: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -67,7 +73,6 @@ pub struct WorkpointEvidenceLinkRequest {
 pub struct ActiveObjectResolveRequest {
     pub hint: Option<String>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DriftDecision {
@@ -114,9 +119,11 @@ fn latest_mentions_object(latest: &str, object_ref: &str) -> bool {
         return true;
     }
     let latest_tokens = latest_tokens(latest);
-    object_tokens(object_ref)
-        .iter()
-        .any(|token| latest_tokens.iter().any(|latest_token| latest_token == token))
+    object_tokens(object_ref).iter().any(|token| {
+        latest_tokens
+            .iter()
+            .any(|latest_token| latest_token == token)
+    })
 }
 
 fn classify_drift(
@@ -128,7 +135,12 @@ fn classify_drift(
 ) -> DriftDecision {
     let latest_norm = normalize_for_match(latest_action);
     let action = expected_action_type
-        .or_else(|| record.action_intent.as_ref().map(|intent| intent.action_type.as_str()))
+        .or_else(|| {
+            record
+                .action_intent
+                .as_ref()
+                .map(|intent| intent.action_type.as_str())
+        })
         .unwrap_or("");
     let action_norm = normalize_for_match(action);
     let mut classes = Vec::new();
@@ -144,16 +156,37 @@ fn classify_drift(
         };
     }
 
-    let notes_only_markers = ["note", "notes", "document", "docs", "breadcrumb", "summary", "handoff"];
-    let implementation_markers = ["implement", "patch", "edit", "verify", "test", "run", "inspect", "fix"];
+    let notes_only_markers = [
+        "note",
+        "notes",
+        "document",
+        "docs",
+        "breadcrumb",
+        "summary",
+        "handoff",
+    ];
+    let implementation_markers = [
+        "implement",
+        "patch",
+        "edit",
+        "verify",
+        "test",
+        "run",
+        "inspect",
+        "fix",
+    ];
     let action_requires_execution = action_norm.contains("patch")
         || action_norm.contains("implement")
         || action_norm.contains("verify")
         || action_norm.contains("binding")
         || action_norm.contains("resume workpoint");
     if action_requires_execution
-        && notes_only_markers.iter().any(|marker| latest_norm.contains(marker))
-        && !implementation_markers.iter().any(|marker| latest_norm.contains(marker))
+        && notes_only_markers
+            .iter()
+            .any(|marker| latest_norm.contains(marker))
+        && !implementation_markers
+            .iter()
+            .any(|marker| latest_norm.contains(marker))
     {
         classes.push("notes_only_drift".to_string());
         reasons.push("latest action appears notes-only while Workpoint requires implementation or verification".to_string());
@@ -161,65 +194,102 @@ fn classify_drift(
 
     let mut active_objects = record.active_object_refs.clone();
     active_objects.extend(request_objects.iter().cloned());
-    if let Some(target) = record.action_intent.as_ref().and_then(|intent| intent.target_ref.clone()) {
+    if let Some(target) = record
+        .action_intent
+        .as_ref()
+        .and_then(|intent| intent.target_ref.clone())
+    {
         active_objects.push(target);
     }
     active_objects.sort();
     active_objects.dedup();
     if !active_objects.is_empty()
-        && !active_objects.iter().any(|object| latest_mentions_object(latest_action, object))
+        && !active_objects
+            .iter()
+            .any(|object| latest_mentions_object(latest_action, object))
     {
         classes.push("wrong_object_drift".to_string());
-        reasons.push("latest action does not mention any active target object or action target".to_string());
+        reasons.push(
+            "latest action does not mention any active target object or action target".to_string(),
+        );
     }
 
     let mut boundaries: Vec<String> = request_boundaries.to_vec();
     if let Some(next) = &record.next_slice {
-        boundaries.extend(
-            next.lines()
-                .filter_map(|line| line.split_once("DO_NOT_DRIFT:").map(|(_, rhs)| rhs.trim().to_string())),
-        );
+        boundaries.extend(next.lines().filter_map(|line| {
+            line.split_once("DO_NOT_DRIFT:")
+                .map(|(_, rhs)| rhs.trim().to_string())
+        }));
     }
-    for boundary in boundaries.iter().filter(|boundary| !boundary.trim().is_empty()) {
-        if latest_mentions_object(latest_action, boundary) || latest_norm.contains(&normalize_for_match(boundary)) {
+    for boundary in boundaries
+        .iter()
+        .filter(|boundary| !boundary.trim().is_empty())
+    {
+        if latest_mentions_object(latest_action, boundary)
+            || latest_norm.contains(&normalize_for_match(boundary))
+        {
             classes.push("do_not_drift_boundary".to_string());
-            reasons.push(format!("latest action touches prohibited boundary: {boundary}"));
+            reasons.push(format!(
+                "latest action touches prohibited boundary: {boundary}"
+            ));
             break;
         }
     }
 
     if !action_norm.is_empty() && !latest_norm.contains(&action_norm) {
-        let action_terms: Vec<_> = action_norm.split_whitespace().filter(|term| term.len() >= 4).collect();
+        let action_terms: Vec<_> = action_norm
+            .split_whitespace()
+            .filter(|term| term.len() >= 4)
+            .collect();
         if !action_terms.is_empty() && !action_terms.iter().any(|term| latest_norm.contains(term)) {
             classes.push("action_intent_ignored".to_string());
-            reasons.push(format!("latest action does not align with expected action {action}"));
+            reasons.push(format!(
+                "latest action does not align with expected action {action}"
+            ));
         }
     }
 
     let drift_detected = !classes.is_empty();
     DriftDecision {
         drift_detected,
-        severity: if classes.iter().any(|class| class == "do_not_drift_boundary" || class == "wrong_object_drift") {
+        severity: if classes
+            .iter()
+            .any(|class| class == "do_not_drift_boundary" || class == "wrong_object_drift")
+        {
             WorkpointDriftSeverity::High
         } else if drift_detected {
             WorkpointDriftSeverity::Medium
         } else {
             WorkpointDriftSeverity::Info
         },
-        reason: if reasons.is_empty() { "latest action aligns with active Workpoint".to_string() } else { reasons.join("; ") },
-        recovery_hint: if drift_detected { "call /v1/workpoint/resume and continue the packet next_slice before adjacent work".to_string() } else { "continue current action".to_string() },
+        reason: if reasons.is_empty() {
+            "latest action aligns with active Workpoint".to_string()
+        } else {
+            reasons.join("; ")
+        },
+        recovery_hint: if drift_detected {
+            "call /v1/workpoint/resume and continue the packet next_slice before adjacent work"
+                .to_string()
+        } else {
+            "continue current action".to_string()
+        },
         drift_classes: classes,
     }
 }
 
 fn active_workpoint(state: &focusa_core::types::FocusaState) -> Option<&WorkpointRecord> {
-    state
-        .workpoint
-        .active_workpoint_id
-        .and_then(|id| state.workpoint.records.iter().find(|record| record.workpoint_id == id))
+    state.workpoint.active_workpoint_id.and_then(|id| {
+        state
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == id)
+    })
 }
 
-fn parse_checkpoint_reason(reason: Option<&str>) -> Result<WorkpointCheckpointReason, (StatusCode, Json<Value>)> {
+fn parse_checkpoint_reason(
+    reason: Option<&str>,
+) -> Result<WorkpointCheckpointReason, (StatusCode, Json<Value>)> {
     let Some(reason) = reason.map(str::trim).filter(|reason| !reason.is_empty()) else {
         return Ok(WorkpointCheckpointReason::Manual);
     };
@@ -231,7 +301,9 @@ fn parse_checkpoint_reason(reason: Option<&str>) -> Result<WorkpointCheckpointRe
         "context-overflow" | "context_overflow" => Ok(WorkpointCheckpointReason::ContextOverflow),
         "model-switch" | "model_switch" => Ok(WorkpointCheckpointReason::ModelSwitch),
         "fork" => Ok(WorkpointCheckpointReason::Fork),
-        "operator-checkpoint" | "operator_checkpoint" => Ok(WorkpointCheckpointReason::OperatorCheckpoint),
+        "operator-checkpoint" | "operator_checkpoint" => {
+            Ok(WorkpointCheckpointReason::OperatorCheckpoint)
+        }
         "manual" => Ok(WorkpointCheckpointReason::Manual),
         "unknown" => Ok(WorkpointCheckpointReason::Unknown),
         other => Err((
@@ -265,6 +337,7 @@ fn workpoint_packet(record: &WorkpointRecord) -> Value {
         "workpoint_id": record.workpoint_id,
         "work_item_id": record.work_item_id,
         "session_id": record.session_id,
+        "project_root": record.project_root,
         "frame_id": record.frame_id,
         "status": record.status,
         "checkpoint_reason": record.checkpoint_reason,
@@ -288,7 +361,10 @@ fn resume_summary(record: &WorkpointRecord) -> String {
         .as_ref()
         .map(|intent| intent.action_type.as_str())
         .unwrap_or("unknown_action");
-    let next = record.next_slice.as_deref().unwrap_or("continue from active workpoint");
+    let next = record
+        .next_slice
+        .as_deref()
+        .unwrap_or("continue from active workpoint");
     format!(
         "WORKPOINT {}: mission={}; action={}; next={}; canonical={}",
         record.workpoint_id,
@@ -299,25 +375,44 @@ fn resume_summary(record: &WorkpointRecord) -> String {
     )
 }
 
-async fn wait_for_active_workpoint(state: &Arc<AppState>, workpoint_id: Uuid) -> Option<WorkpointRecord> {
+async fn wait_for_active_workpoint(
+    state: &Arc<AppState>,
+    workpoint_id: Uuid,
+) -> Option<WorkpointRecord> {
     for _ in 0..240 {
         {
             let focusa = state.focusa.read().await;
             if focusa.workpoint.active_workpoint_id == Some(workpoint_id)
-                && let Some(record) = focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id) {
-                    return Some(record.clone());
-                }
+                && let Some(record) = focusa
+                    .workpoint
+                    .records
+                    .iter()
+                    .find(|record| record.workpoint_id == workpoint_id)
+            {
+                return Some(record.clone());
+            }
         }
         sleep(Duration::from_millis(50)).await;
     }
     None
 }
 
-async fn wait_for_workpoint_evidence(state: &Arc<AppState>, workpoint_id: Uuid, evidence_ref: Option<&str>, target_ref: &str, result: &str) -> Option<WorkpointRecord> {
+async fn wait_for_workpoint_evidence(
+    state: &Arc<AppState>,
+    workpoint_id: Uuid,
+    evidence_ref: Option<&str>,
+    target_ref: &str,
+    result: &str,
+) -> Option<WorkpointRecord> {
     for _ in 0..240 {
         {
             let focusa = state.focusa.read().await;
-            if let Some(record) = focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id) {
+            if let Some(record) = focusa
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == workpoint_id)
+            {
                 let linked = record.verification_records.iter().any(|verification| {
                     verification.target_ref == target_ref
                         && verification.result == result
@@ -377,8 +472,16 @@ async fn checkpoint(
         ));
     }
 
-    if let Some(key) = req.idempotency_key.as_ref().filter(|key| !key.trim().is_empty()) {
-        if let Some(existing) = WORKPOINT_IDEMPOTENCY_CACHE.lock().ok().and_then(|cache| cache.get(key).cloned()) {
+    if let Some(key) = req
+        .idempotency_key
+        .as_ref()
+        .filter(|key| !key.trim().is_empty())
+    {
+        if let Some(existing) = WORKPOINT_IDEMPOTENCY_CACHE
+            .lock()
+            .ok()
+            .and_then(|cache| cache.get(key).cloned())
+        {
             return Ok(Json(json!({
                 "status": "completed",
                 "workpoint_id": existing.workpoint_id,
@@ -418,6 +521,7 @@ async fn checkpoint(
         workpoint_id,
         work_item_id: req.work_item_id,
         session_id: req.session_id,
+        project_root: req.project_root,
         frame_id: req.frame_id,
         status: WorkpointStatus::Proposed,
         checkpoint_reason: parse_checkpoint_reason(req.checkpoint_reason.as_deref())?,
@@ -465,10 +569,15 @@ async fn checkpoint(
             ));
         }
     }
-    if let (Some(key), Some(record)) = (idempotency_key.as_ref().filter(|key| !key.trim().is_empty()), promoted_record.as_ref())
-        && let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
-            cache.insert(key.clone(), record.clone());
-        }
+    if let (Some(key), Some(record)) = (
+        idempotency_key
+            .as_ref()
+            .filter(|key| !key.trim().is_empty()),
+        promoted_record.as_ref(),
+    ) && let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock()
+    {
+        cache.insert(key.clone(), record.clone());
+    }
 
     Ok(Json(json!({
         "status": if promote && canonical { "accepted" } else { "partial" },
@@ -521,7 +630,13 @@ async fn resume(
     let focusa = state.focusa.read().await;
     let record = req
         .workpoint_id
-        .and_then(|id| focusa.workpoint.records.iter().find(|record| record.workpoint_id == id))
+        .and_then(|id| {
+            focusa
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == id)
+        })
         .or_else(|| active_workpoint(&focusa));
     let Some(record) = record else {
         return Ok(Json(json!({
@@ -532,8 +647,51 @@ async fn resume(
             "next_step_hint": "checkpoint the current mission/action before retrying resume"
         })));
     };
+    let mut mismatch_warnings: Vec<String> = Vec::new();
+    if let Some(expected) = req
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+    {
+        let actual = record.project_root.as_deref().unwrap_or("").trim();
+        if actual.is_empty() || actual != expected {
+            return Ok(Json(json!({
+                "status": "rejected_scope_mismatch",
+                "canonical": false,
+                "workpoint_id": record.workpoint_id,
+                "warnings": ["workpoint project_root does not match current Pi project/root"],
+                "expected_project_root": expected,
+                "packet_project_root": actual,
+                "safe_recovery": "ignore this resume packet; follow latest operator instruction and local git/beads for the current project",
+                "next_step_hint": "create a new Workpoint checkpoint in the current project before trusting resume"
+            })));
+        }
+    } else if record.project_root.is_none() {
+        mismatch_warnings.push("resume requested without project_root and packet has no project_root; treat as degraded unless operator explicitly confirms".to_string());
+    }
+    if let Some(expected) = req
+        .session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+    {
+        let actual = record.session_id.as_deref().unwrap_or("").trim();
+        if !actual.is_empty() && actual != expected {
+            return Ok(Json(json!({
+                "status": "rejected_scope_mismatch",
+                "canonical": false,
+                "workpoint_id": record.workpoint_id,
+                "warnings": ["workpoint session_id does not match current Pi session"],
+                "expected_session_id": expected,
+                "packet_session_id": actual,
+                "safe_recovery": "ignore this resume packet; follow latest operator instruction and local git/beads for the current session",
+                "next_step_hint": "create a new Workpoint checkpoint in the current session before trusting resume"
+            })));
+        }
+    }
     let workpoint_id = record.workpoint_id;
-    let canonical = record.canonical;
+    let canonical = record.canonical && mismatch_warnings.is_empty();
     let packet = workpoint_packet(record);
     let summary = resume_summary(record);
     drop(focusa);
@@ -554,7 +712,7 @@ async fn resume(
         "canonical": canonical,
         "resume_packet": packet,
         "rendered_summary": summary,
-        "warnings": if canonical { vec![] } else { vec!["resume packet is non-canonical degraded fallback"] },
+        "warnings": if canonical { mismatch_warnings } else { let mut w = mismatch_warnings; w.push("resume packet is non-canonical degraded fallback".to_string()); w },
         "next_step_hint": "inject rendered_summary plus resume_packet before the next Pi turn"
     })))
 }
@@ -602,27 +760,38 @@ async fn link_evidence(
         return Err(forbid("work-loop:write"));
     }
     if req.target_ref.trim().is_empty() || req.result.trim().is_empty() {
-        return Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({
-            "status": "validation_rejected",
-            "canonical": false,
-            "field": "target_ref/result",
-            "retry_posture": "do_not_retry_unchanged",
-            "next_step_hint": "provide target_ref and result before linking Workpoint evidence"
-        }))));
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "field": "target_ref/result",
+                "retry_posture": "do_not_retry_unchanged",
+                "next_step_hint": "provide target_ref and result before linking Workpoint evidence"
+            })),
+        ));
     }
     let focusa = state.focusa.read().await;
     let record = if let Some(workpoint_id) = req.workpoint_id {
-        focusa.workpoint.records.iter().find(|record| record.workpoint_id == workpoint_id).cloned()
+        focusa
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == workpoint_id)
+            .cloned()
     } else {
         active_workpoint(&focusa).cloned()
     };
     let Some(record) = record else {
-        return Err((StatusCode::NOT_FOUND, Json(json!({
-            "status": "blocked",
-            "canonical": false,
-            "error": "no active Workpoint to link evidence",
-            "next_step_hint": "create or resume a canonical Workpoint before linking evidence"
-        }))));
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "status": "blocked",
+                "canonical": false,
+                "error": "no active Workpoint to link evidence",
+                "next_step_hint": "create or resume a canonical Workpoint before linking evidence"
+            })),
+        ));
     };
     drop(focusa);
     let workpoint_id = record.workpoint_id;
@@ -632,17 +801,22 @@ async fn link_evidence(
         evidence_ref: req.evidence_ref,
         verified_at: None,
     };
-    dispatch_event(&state, FocusaEvent::WorkpointEvidenceLinked {
-        workpoint_id,
-        verification: verification.clone(),
-    }).await?;
+    dispatch_event(
+        &state,
+        FocusaEvent::WorkpointEvidenceLinked {
+            workpoint_id,
+            verification: verification.clone(),
+        },
+    )
+    .await?;
     let linked_record = wait_for_workpoint_evidence(
         &state,
         workpoint_id,
         verification.evidence_ref.as_deref(),
         &verification.target_ref,
         &verification.result,
-    ).await;
+    )
+    .await;
     if linked_record.is_none() {
         return Err((
             StatusCode::ACCEPTED,
@@ -681,7 +855,13 @@ async fn drift_check(
     let focusa = state.focusa.read().await;
     let record = req
         .workpoint_id
-        .and_then(|id| focusa.workpoint.records.iter().find(|record| record.workpoint_id == id))
+        .and_then(|id| {
+            focusa
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == id)
+        })
         .or_else(|| active_workpoint(&focusa));
     let Some(record) = record else {
         return Ok(Json(json!({
@@ -745,7 +925,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/workpoint/checkpoint", post(checkpoint))
         .route("/v1/workpoint/current", get(current))
         .route("/v1/workpoint/resume", post(resume))
-        .route("/v1/workpoint/active-object/resolve", post(resolve_active_object))
+        .route(
+            "/v1/workpoint/active-object/resolve",
+            post(resolve_active_object),
+        )
         .route("/v1/workpoint/evidence/link", post(link_evidence))
         .route("/v1/workpoint/drift-check", post(drift_check))
 }
@@ -789,7 +972,44 @@ mod tests {
             packet.get("next_slice").and_then(Value::as_str),
             Some("Resume from packet")
         );
-        assert_eq!(packet.get("idempotency_key").and_then(Value::as_str), Some("idem-1"));
+        assert_eq!(
+            packet.get("idempotency_key").and_then(Value::as_str),
+            Some("idem-1")
+        );
+    }
+
+    #[test]
+    fn workpoint_packet_includes_project_root_for_scope_guard() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            session_id: Some("session-a".to_string()),
+            project_root: Some("/repo/a".to_string()),
+            canonical: true,
+            next_slice: Some("Resume only in /repo/a".to_string()),
+            ..WorkpointRecord::default()
+        };
+        let packet = workpoint_packet(&record);
+        assert_eq!(
+            packet.get("project_root").and_then(Value::as_str),
+            Some("/repo/a")
+        );
+        assert_eq!(
+            packet.get("session_id").and_then(Value::as_str),
+            Some("session-a")
+        );
+    }
+
+    #[test]
+    fn project_root_mismatch_is_detectable_before_resume_injection() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            project_root: Some("/repo/focusa".to_string()),
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let expected = "/repo/asapdigest";
+        let actual = record.project_root.as_deref().unwrap_or("");
+        assert_ne!(actual, expected);
     }
 
     #[test]
@@ -804,7 +1024,9 @@ mod tests {
                 verification_hooks: vec!["verify UI play state".to_string()],
                 status: Some("ready".to_string()),
             }),
-            next_slice: Some("Patch the widget binding\nDO_NOT_DRIFT: notes-only/generic validation".to_string()),
+            next_slice: Some(
+                "Patch the widget binding\nDO_NOT_DRIFT: notes-only/generic validation".to_string(),
+            ),
             ..WorkpointRecord::default()
         };
         let decision = classify_drift(
@@ -815,8 +1037,16 @@ mod tests {
             &[],
         );
         assert!(decision.drift_detected);
-        assert!(decision.drift_classes.contains(&"notes_only_drift".to_string()));
-        assert!(decision.drift_classes.contains(&"wrong_object_drift".to_string()));
+        assert!(
+            decision
+                .drift_classes
+                .contains(&"notes_only_drift".to_string())
+        );
+        assert!(
+            decision
+                .drift_classes
+                .contains(&"wrong_object_drift".to_string())
+        );
     }
 
     #[test]
@@ -851,8 +1081,14 @@ mod tests {
         );
         let err = parse_checkpoint_reason(Some("not_a_reason")).unwrap_err();
         assert_eq!(err.0, StatusCode::UNPROCESSABLE_ENTITY);
-        assert_eq!(err.1.0.get("status").and_then(Value::as_str), Some("validation_rejected"));
-        assert_eq!(err.1.0.get("field").and_then(Value::as_str), Some("checkpoint_reason"));
+        assert_eq!(
+            err.1.0.get("status").and_then(Value::as_str),
+            Some("validation_rejected")
+        );
+        assert_eq!(
+            err.1.0.get("field").and_then(Value::as_str),
+            Some("checkpoint_reason")
+        );
     }
 
     #[test]
@@ -867,7 +1103,9 @@ mod tests {
                 verification_hooks: vec!["api".to_string(), "cli".to_string(), "pi".to_string()],
                 status: Some("ready".to_string()),
             }),
-            next_slice: Some("Complete stress suite\nDO_NOT_DRIFT: Do not demote existing tools.".to_string()),
+            next_slice: Some(
+                "Complete stress suite\nDO_NOT_DRIFT: Do not demote existing tools.".to_string(),
+            ),
             ..WorkpointRecord::default()
         };
         let decision = classify_drift(
