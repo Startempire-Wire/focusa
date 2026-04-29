@@ -2,9 +2,9 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
-## Unreleased — Spec92 minimal doctor command center
+## Unreleased — Spec92 full doctor command center
 
-- Added `GET /v1/doctor` and `focusa doctor` as a minimal command-center health/status view.
+- Added full `focusa doctor` command-center checks plus standard Spec92 output envelope; expanded token-budget visibility with `focusa tokens doctor` and `focusa tokens compact-plan`.
 
 ## Unreleased — Spec92 cache metadata doctor
 

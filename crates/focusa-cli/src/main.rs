@@ -262,47 +262,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Ok(())
         }
-        Commands::Doctor => {
-            let api = api_client::ApiClient::new();
-            let resp = api.get("/v1/doctor").await?;
-            if cli.json {
-                println!("{}", serde_json::to_string_pretty(&resp)?);
-            } else {
-                println!(
-                    "Focusa Doctor: {}",
-                    resp["status"].as_str().unwrap_or("unknown")
-                );
-                println!(
-                    "  summary: {}",
-                    resp["summary"].as_str().unwrap_or("unknown")
-                );
-                println!(
-                    "  stack depth: {}",
-                    resp["focus"]["stack_depth"].as_u64().unwrap_or(0)
-                );
-                println!(
-                    "  events: {}",
-                    resp["telemetry"]["total_events"].as_u64().unwrap_or(0)
-                );
-                println!(
-                    "  token records: {}",
-                    resp["telemetry"]["token_budget_records"]
-                        .as_u64()
-                        .unwrap_or(0)
-                );
-                println!(
-                    "  cache records: {}",
-                    resp["telemetry"]["cache_metadata_records"]
-                        .as_u64()
-                        .unwrap_or(0)
-                );
-                println!(
-                    "  next: {}",
-                    resp["next_action"].as_str().unwrap_or("continue")
-                );
-            }
-            Ok(())
-        }
+        Commands::Doctor => commands::doctor::run(cli.json).await,
         Commands::Stack => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/focus/stack").await?;

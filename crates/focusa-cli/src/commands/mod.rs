@@ -5,6 +5,7 @@ pub mod constitution;
 pub mod contribute;
 pub mod daemon;
 pub mod debug;
+pub mod doctor;
 pub mod ecs;
 pub mod env;
 pub mod export;

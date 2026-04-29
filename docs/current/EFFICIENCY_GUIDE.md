@@ -26,6 +26,8 @@ CLI:
 ```bash
 focusa telemetry token-budget
 focusa --json telemetry token-budget --limit 10
+focusa tokens doctor
+focusa tokens compact-plan
 ```
 
 Pi doctor:
@@ -89,11 +91,11 @@ focusa --json cache doctor --limit 10
 ```
 
 
-## Minimal command-center doctor
+## Full doctor command center
 
 ```bash
 focusa doctor
 focusa --json doctor
 ```
 
-The minimal doctor aggregates daemon reachability, focus stack depth, tool-call telemetry, token-budget records, and cache metadata records.
+The full doctor aggregates daemon health, daemon executable path, API route/capability inventory, Spec90/Spec91 proof surfaces, Pi skill paths, Workpoint canonicality, Work-loop writer state, token telemetry, cache metadata, Mac app package presence, release docs, Guardian scanner presence, recovery commands, and evidence refs.
