@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 Mac mission control
+
+- Added Mac app Mission tab with live daemon, Workpoint, Work-loop, tool-contract, token, cache, release, and recovery cards.
+- Added `docs/current/MAC_APP_MISSION_CONTROL.md`.
+
 ## Unreleased — Spec92 error and empty-state envelopes
 
 - Expanded CLI JSON failures and API non-JSON HTTP failures to include recovery-first Spec92 envelope fields.

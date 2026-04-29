@@ -83,7 +83,7 @@
 
 {#if isOpen}
   <div class="modal-backdrop" on:click={close} role="presentation">
-    <div class="modal" on:click|stopPropagation role="dialog" aria-modal="true">
+    <div class="modal" on:click|stopPropagation on:keydown|stopPropagation role="dialog" aria-modal="true" tabindex="-1">
       <header>
         <h3>Add Sync Peer</h3>
         <button class="close-btn" on:click={close} aria-label="Close">&times;</button>

@@ -6,24 +6,27 @@
   import FocusView from '$lib/components/FocusView.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
+  import MissionControl from '$lib/components/MissionControl.svelte';
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
 
-  type Tab = 'focus' | 'gate' | 'sync' | 'settings';
+  type Tab = 'focus' | 'mission' | 'gate' | 'sync' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
 
   async function poll() {
     try {
-      const [state, health, contracts, workpoint, workLoop, events] = await Promise.all([
+      const [state, health, contracts, workpoint, workLoop, events, tokenBudget, cacheMetadata] = await Promise.all([
         fetchJson('/v1/state/dump', 5000),
         fetchJson('/v1/health'),
         fetchJson('/v1/ontology/tool-contracts'),
         fetchJson('/v1/workpoint/current'),
         fetchJson('/v1/work-loop/status'),
         fetchJson('/v1/events/recent?limit=5'),
+        fetchJson('/v1/telemetry/token-budget/status?limit=5'),
+        fetchJson('/v1/telemetry/cache-metadata/status?limit=5'),
       ]);
       focusStore.update(state);
       gateStore.update(state.focus_gate);
@@ -34,6 +37,9 @@
         ontologyContractsVersion: contracts.version ?? null,
         ontologyContractsCount: Array.isArray(contracts.contracts) ? contracts.contracts.length : 0,
         recentEventCount: Array.isArray(events.events) ? events.events.length : 0,
+        tokenBudget,
+        cacheMetadata,
+        releaseProof: { status: 'ready', summary: 'run focusa release prove --tag <tag>' },
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to connect';
@@ -62,6 +68,9 @@
     <button class="tab" class:active={activeTab === 'focus'} onclick={() => activeTab = 'focus'}>
       Focus
     </button>
+    <button class="tab" class:active={activeTab === 'mission'} onclick={() => activeTab = 'mission'}>
+      Mission
+    </button>
     <button class="tab" class:active={activeTab === 'gate'} onclick={() => activeTab = 'gate'}>
       Gate
       {#if gateStore.surfacedCount > 0}
@@ -81,6 +90,8 @@
 <main class="content">
   {#if activeTab === 'focus'}
     <FocusView />
+  {:else if activeTab === 'mission'}
+    <MissionControl />
   {:else if activeTab === 'gate'}
     <GatePanel />
   {:else if activeTab === 'sync'}

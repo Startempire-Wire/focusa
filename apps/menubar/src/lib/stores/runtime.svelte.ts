@@ -5,6 +5,9 @@ export interface RuntimeSnapshot {
   ontologyContractsVersion: string | null;
   ontologyContractsCount: number;
   recentEventCount: number;
+  tokenBudget: any | null;
+  cacheMetadata: any | null;
+  releaseProof: any | null;
 }
 
 function createRuntimeStore() {
@@ -15,6 +18,9 @@ function createRuntimeStore() {
     ontologyContractsVersion: null,
     ontologyContractsCount: 0,
     recentEventCount: 0,
+    tokenBudget: null,
+    cacheMetadata: null,
+    releaseProof: null,
   });
   let errorMsg = $state<string | null>(null);
 

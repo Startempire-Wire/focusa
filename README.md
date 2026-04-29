@@ -417,6 +417,7 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md`](docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md) — current doctor/continue command-center usage and envelopes.
 - [`docs/current/DAEMON_RESILIENCE.md`](docs/current/DAEMON_RESILIENCE.md) — live daemon restart hardening and Pi in-session holdover/kickstart behavior.
 - [`docs/current/ERROR_EMPTY_STATES.md`](docs/current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
+- [`docs/current/MAC_APP_MISSION_CONTROL.md`](docs/current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
 - [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](docs/90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 current tool contract/parity hardening plan.
 - [`docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`](docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current machine-readable tool contract registry table.
 - [`docs/91-live-tool-contract-proof-harness-spec.md`](docs/91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness for tool contracts.
