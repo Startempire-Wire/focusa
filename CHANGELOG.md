@@ -2,6 +2,13 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 token budget telemetry
+
+- Added `POST /v1/telemetry/token-budget` and `GET /v1/telemetry/token-budget/status` for bounded Spec92 token-budget records.
+- Added `focusa telemetry token-budget` CLI visibility.
+- Pi `before_provider_request` hook now records bounded token-budget metadata to the daemon when available.
+- Added `docs/current/EFFICIENCY_GUIDE.md`.
+
 ## Unreleased — Spec92 hook telemetry foundation
 
 - Added first Spec92 implementation slice: missing Pi hook registrations for resources, agent/message/provider/tool execution, and session tree lifecycle events.

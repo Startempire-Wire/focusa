@@ -204,6 +204,8 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 
 ### telemetry
 - `GET /v1/telemetry/tokens`
+- `GET /v1/telemetry/token-budget/status`
+- `POST /v1/telemetry/token-budget`
 - `GET /v1/telemetry/cost`
 - `GET /v1/telemetry/tools`
 - `POST /v1/telemetry/tool-usage`

@@ -1,7 +1,7 @@
 //! Telemetry routes.
 
 use crate::server::AppState;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::{
     Json, Router,
     routing::{get, post},
@@ -9,6 +9,7 @@ use axum::{
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -20,6 +21,77 @@ async fn tokens(State(state): State<Arc<AppState>>) -> Json<Value> {
         "total_prompt_tokens": s.telemetry.total_prompt_tokens,
         "total_completion_tokens": s.telemetry.total_completion_tokens,
         "tokens_per_task": s.telemetry.tokens_per_task,
+    }))
+}
+
+/// GET /v1/telemetry/token-budget/status — Spec92 token budget telemetry summary.
+async fn token_budget_status(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Json<Value> {
+    let limit = params
+        .get("limit")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(20)
+        .min(100);
+    let s = state.focusa.read().await;
+    let mut records: Vec<Value> = s
+        .telemetry
+        .trace_events
+        .iter()
+        .filter(|event| {
+            event.get("event_type").and_then(|v| v.as_str()) == Some("spec92_token_budget")
+        })
+        .rev()
+        .take(limit)
+        .cloned()
+        .collect();
+    records.reverse();
+    let latest = records.last().cloned().unwrap_or(Value::Null);
+    let latest_payload = latest.get("payload").cloned().unwrap_or(Value::Null);
+    let budget_class = latest_payload
+        .get("budget_class")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    Json(json!({
+        "status": if budget_class == "critical" { "critical" } else if budget_class == "high" { "high" } else if budget_class == "watch" { "watch" } else { "ok" },
+        "summary": format!("latest token budget class: {budget_class}"),
+        "record_count": records.len(),
+        "latest": latest,
+        "records": records,
+        "next_action": if matches!(budget_class, "critical" | "high") { "compact large tool results or use ECS handles before continuing" } else { "continue normally; monitor token budget" },
+        "commands": ["node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures", "focusa telemetry token-budget"],
+    }))
+}
+
+/// POST /v1/telemetry/token-budget — record Spec92 token budget telemetry.
+async fn record_token_budget(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<Value>,
+) -> Json<Value> {
+    let mut focusa = state.focusa.write().await;
+    focusa.telemetry.total_events += 1;
+    let event_id = Uuid::now_v7().to_string();
+    let budget_class = body
+        .get("budget_class")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    focusa.telemetry.trace_events.push(json!({
+        "event_id": event_id,
+        "event_type": "spec92_token_budget",
+        "timestamp": Utc::now().to_rfc3339(),
+        "turn_id": body.get("turn_id").cloned().unwrap_or(Value::Null),
+        "payload": body,
+    }));
+    if focusa.telemetry.trace_events.len() > 5000 {
+        let overflow = focusa.telemetry.trace_events.len() - 5000;
+        focusa.telemetry.trace_events.drain(0..overflow);
+    }
+    Json(json!({
+        "status": "recorded",
+        "event_type": "spec92_token_budget",
+        "budget_class": budget_class,
     }))
 }
 
@@ -90,6 +162,11 @@ async fn record_tool_usage(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/telemetry/tokens", get(tokens))
+        .route(
+            "/v1/telemetry/token-budget/status",
+            get(token_budget_status),
+        )
+        .route("/v1/telemetry/token-budget", post(record_token_budget))
         .route("/v1/telemetry/cost", get(cost))
         .route("/v1/telemetry/tools", get(tool_usage))
         .route("/v1/telemetry/tool-usage", post(record_tool_usage))

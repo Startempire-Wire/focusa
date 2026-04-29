@@ -7,6 +7,12 @@ use clap::Subcommand;
 pub enum TelemetryCmd {
     /// Show token usage.
     Tokens,
+    /// Show Spec92 token budget telemetry.
+    TokenBudget {
+        /// Number of recent records to return.
+        #[arg(long, default_value_t = 20)]
+        limit: u32,
+    },
     /// Show cost estimate.
     Cost,
 }
@@ -23,6 +29,28 @@ pub async fn run(cmd: TelemetryCmd, json: bool) -> anyhow::Result<()> {
                 println!("  prompt:     {}", resp["total_prompt_tokens"]);
                 println!("  completion: {}", resp["total_completion_tokens"]);
                 println!("  events:     {}", resp["total_events"]);
+            }
+        }
+        TelemetryCmd::TokenBudget { limit } => {
+            let resp = api
+                .get(&format!("/v1/telemetry/token-budget/status?limit={limit}"))
+                .await?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!(
+                    "Token Budget: {}",
+                    resp["status"].as_str().unwrap_or("unknown")
+                );
+                println!(
+                    "  summary: {}",
+                    resp["summary"].as_str().unwrap_or("unknown")
+                );
+                println!("  records: {}", resp["record_count"].as_u64().unwrap_or(0));
+                println!(
+                    "  next: {}",
+                    resp["next_action"].as_str().unwrap_or("monitor")
+                );
             }
         }
         TelemetryCmd::Cost => {

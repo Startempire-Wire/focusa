@@ -132,6 +132,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     };
     recordTokenTelemetry(record);
     recordHookTelemetry(record);
+    if (S.focusaAvailable) focusaPost("/telemetry/token-budget", record);
     bestEffortTelemetry("spec92.before_provider_request", record);
     return undefined;
   });

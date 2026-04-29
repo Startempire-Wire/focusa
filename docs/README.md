@@ -121,6 +121,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/PRODUCTION_RELEASE_COMMANDS.md](current/PRODUCTION_RELEASE_COMMANDS.md) — release, restart, GitHub proof, and cleanup commands.
 - [92-agent-first-polish-hooks-efficiency-spec.md](92-agent-first-polish-hooks-efficiency-spec.md) — agent-first polish, hooks, token/cache UX, and predictive-power spec.
 - [current/HOOK_COVERAGE.md](current/HOOK_COVERAGE.md) — current Pi hook coverage and Spec92 hook telemetry commands.
+- [current/EFFICIENCY_GUIDE.md](current/EFFICIENCY_GUIDE.md) — current token-budget telemetry and planned cache metadata commands.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
 - [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.
