@@ -95,6 +95,76 @@ async fn record_token_budget(
     }))
 }
 
+/// GET /v1/telemetry/cache-metadata/status — Spec92 cache metadata summary.
+async fn cache_metadata_status(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Json<Value> {
+    let limit = params
+        .get("limit")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(20)
+        .min(100);
+    let s = state.focusa.read().await;
+    let mut records: Vec<Value> = s
+        .telemetry
+        .trace_events
+        .iter()
+        .filter(|event| {
+            event.get("event_type").and_then(|v| v.as_str()) == Some("spec92_cache_metadata")
+        })
+        .rev()
+        .take(limit)
+        .cloned()
+        .collect();
+    records.reverse();
+    let latest = records.last().cloned().unwrap_or(Value::Null);
+    let eligible_count = records
+        .iter()
+        .filter(|event| {
+            event
+                .get("payload")
+                .and_then(|p| p.get("cache_eligible"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+        })
+        .count();
+    Json(json!({
+        "status": "ok",
+        "summary": format!("cache metadata records: {}, eligible: {}", records.len(), eligible_count),
+        "record_count": records.len(),
+        "eligible_count": eligible_count,
+        "latest": latest,
+        "records": records,
+        "next_action": if records.is_empty() { "run a provider turn to collect cache metadata" } else { "continue; review repeated_prefix_hash before cache-policy tuning" },
+        "commands": ["focusa cache doctor", "focusa --json cache doctor --limit 10"],
+    }))
+}
+
+/// POST /v1/telemetry/cache-metadata — record Spec92 cache metadata.
+async fn record_cache_metadata(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<Value>,
+) -> Json<Value> {
+    let mut focusa = state.focusa.write().await;
+    focusa.telemetry.total_events += 1;
+    focusa.telemetry.trace_events.push(json!({
+        "event_id": Uuid::now_v7().to_string(),
+        "event_type": "spec92_cache_metadata",
+        "timestamp": Utc::now().to_rfc3339(),
+        "turn_id": body.get("turn_id").cloned().unwrap_or(Value::Null),
+        "payload": body,
+    }));
+    if focusa.telemetry.trace_events.len() > 5000 {
+        let overflow = focusa.telemetry.trace_events.len() - 5000;
+        focusa.telemetry.trace_events.drain(0..overflow);
+    }
+    Json(json!({
+        "status": "recorded",
+        "event_type": "spec92_cache_metadata",
+    }))
+}
+
 /// GET /v1/telemetry/cost — cost estimate.
 async fn cost(State(state): State<Arc<AppState>>) -> Json<Value> {
     let s = state.focusa.read().await;
@@ -167,6 +237,11 @@ pub fn router() -> Router<Arc<AppState>> {
             get(token_budget_status),
         )
         .route("/v1/telemetry/token-budget", post(record_token_budget))
+        .route(
+            "/v1/telemetry/cache-metadata/status",
+            get(cache_metadata_status),
+        )
+        .route("/v1/telemetry/cache-metadata", post(record_cache_metadata))
         .route("/v1/telemetry/cost", get(cost))
         .route("/v1/telemetry/tools", get(tool_usage))
         .route("/v1/telemetry/tool-usage", post(record_tool_usage))

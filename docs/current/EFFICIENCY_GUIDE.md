@@ -2,7 +2,7 @@
 
 **Spec:** [`docs/92-agent-first-polish-hooks-efficiency-spec.md`](../92-agent-first-polish-hooks-efficiency-spec.md)
 
-This page documents the current Spec92 token-budget telemetry slice. Cache metadata is still a later Spec92 phase.
+This page documents the current Spec92 token-budget telemetry slice. Cache metadata now has an initial bounded Spec92 metadata surface.
 
 ## Current token-budget surfaces
 
@@ -62,10 +62,28 @@ Then compact large tool-result history or store large evidence in ECS handles be
 
 ## Cache phase status
 
-Cache metadata commands from Spec92 are not implemented yet. Planned commands:
+Current cache metadata commands:
 
 ```bash
 focusa cache doctor
-focusa cache status --agent
-focusa cache explain <cache_key>
+focusa --json cache doctor --limit 10
+```
+
+
+## Current cache metadata surfaces
+
+Daemon API:
+
+```bash
+curl -sS http://127.0.0.1:8787/v1/telemetry/cache-metadata/status | jq .
+curl -sS -X POST http://127.0.0.1:8787/v1/telemetry/cache-metadata \
+  -H 'Content-Type: application/json' \
+  -d '{"cache_key":"example","cache_eligible":true,"payload_hash":"example"}' | jq .
+```
+
+CLI:
+
+```bash
+focusa cache doctor
+focusa --json cache doctor --limit 10
 ```

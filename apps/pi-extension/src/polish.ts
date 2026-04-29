@@ -124,7 +124,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
 
   hookApi.on("before_provider_request", async (event: any, _ctx: any) => {
     const summary = payloadSummary(event?.payload || event?.request || event);
-    const record = {
+    const record: any = {
       hook: "before_provider_request",
       provider: event?.provider || event?.model?.provider || "unknown",
       model: event?.model?.id || event?.model || "unknown",
@@ -132,7 +132,19 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     };
     recordTokenTelemetry(record);
     recordHookTelemetry(record);
-    if (S.focusaAvailable) focusaPost("/telemetry/token-budget", record);
+    if (S.focusaAvailable) {
+      focusaPost("/telemetry/token-budget", record);
+      focusaPost("/telemetry/cache-metadata", {
+        hook: record.hook,
+        provider: record.provider,
+        model: record.model,
+        cache_key: record.repeated_prefix_hash,
+        payload_hash: record.payload_hash,
+        size_bytes: record.size_bytes,
+        input_token_estimate: record.input_token_estimate,
+        cache_eligible: record.cache_eligible,
+      });
+    }
     bestEffortTelemetry("spec92.before_provider_request", record);
     return undefined;
   });

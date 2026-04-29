@@ -2,6 +2,12 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 cache metadata doctor
+
+- Added `POST /v1/telemetry/cache-metadata` and `GET /v1/telemetry/cache-metadata/status` for bounded cache metadata records.
+- Added `focusa cache doctor` CLI visibility.
+- Pi provider hook now emits cache metadata derived from bounded provider-request summaries.
+
 ## Unreleased — Spec92 token budget telemetry
 
 - Added `POST /v1/telemetry/token-budget` and `GET /v1/telemetry/token-budget/status` for bounded Spec92 token-budget records.
