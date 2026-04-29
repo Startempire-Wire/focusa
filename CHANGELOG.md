@@ -2,6 +2,12 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 hook telemetry foundation
+
+- Added first Spec92 implementation slice: missing Pi hook registrations for resources, agent/message/provider/tool execution, and session tree lifecycle events.
+- Added bounded in-memory hook/token telemetry and exposed summary details through `focusa_tool_doctor`.
+- Added current hook coverage docs at `docs/current/HOOK_COVERAGE.md`.
+
 ## Unreleased — Spec92 polish/prediction spec
 
 - Added Spec92 for agent-first polish, missing Pi hooks, token efficiency, cache UX, command-center surfaces, Mac mission-control polish, and predictive-power accumulation.

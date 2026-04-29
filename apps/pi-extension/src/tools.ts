@@ -1159,8 +1159,14 @@ export function registerTools(pi: ExtensionAPI) {
         : FOCUSA_TOOL_CONTRACTS.filter((contract) => contract.family === String(p.scope || "") || contract.name.includes(String(p.scope || "")));
       const missingDocs = scopedContracts.filter((contract) => !contract.doc_path).map((contract) => contract.name);
       const knownExemptions = scopedContracts.filter((contract) => contract.exemptions.length > 0).map((contract) => ({ name: contract.name, exemptions: contract.exemptions }));
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
-      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions } } } as any;
+      const hookCounts = S.spec92HookTelemetry.reduce((acc: Record<string, number>, item: any) => {
+        const hook = String(item.hook || "unknown");
+        acc[hook] = (acc[hook] || 0) + 1;
+        return acc;
+      }, {});
+      const latestToken = S.spec92TokenTelemetry.at(-1) || null;
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
+      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
     },
   });
 

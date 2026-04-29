@@ -314,7 +314,12 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
 
   const usage = ctx.getContextUsage?.();
   if (!usage?.tokens) return;
-  const pct = (usage.tokens / S.activeContextWindow) * 100;
+  if (typeof usage.contextWindow === "number" && usage.contextWindow > 0) {
+    S.activeContextWindow = usage.contextWindow;
+  }
+  const pct = typeof usage.percent === "number"
+    ? usage.percent
+    : (usage.tokens / (usage.contextWindow || S.activeContextWindow)) * 100;
 
   // Reset hourly counter
   if (Date.now() - S.compactHourStart > 3_600_000) {

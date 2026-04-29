@@ -16,6 +16,7 @@ import { registerWbm } from "./wbm.js";
 import { registerCompaction } from "./compaction.js";
 import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
+import { registerPolishHooks } from "./polish.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   S.pi = pi;
@@ -39,6 +40,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
   registerCompaction(pi);
   registerSession(pi);
   registerTurns(pi);
+  registerPolishHooks(pi);
 
   // ── §33.6: Provider registration ───────────────────────────────────────
   pi.registerProvider("focusa", {

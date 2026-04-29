@@ -146,7 +146,10 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §36.7: Budget check — cap injection to 15% of headroom, max 1500 tokens
     const usage = ctx.getContextUsage?.();
-    const window = S.activeContextWindow || 128000;
+    const window = usage?.contextWindow || S.activeContextWindow || 128000;
+    if (typeof usage?.contextWindow === "number" && usage.contextWindow > 0) {
+      S.activeContextWindow = usage.contextWindow;
+    }
     const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
     const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
 

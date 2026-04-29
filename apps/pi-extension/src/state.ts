@@ -140,6 +140,10 @@ export const S = {
   ecsRegistry: {} as Record<string, Record<string, { content: string; storedAt: number }>>,
   // Tool usage batching (§33.4)
   toolUsageBatch: [] as string[],
+  // Spec92 bounded hook/token telemetry (in-memory Pi extension ring buffers)
+  spec92HookTelemetry: [] as Array<Record<string, unknown>>,
+  spec92TokenTelemetry: [] as Array<Record<string, unknown>>,
+  spec92ToolStartTimes: {} as Record<string, number>,
   // Intuition signals (§36.2, §34.2D)
   compilationErrors: [] as number[],
   fileEditCounts: {} as Record<string, number>,
