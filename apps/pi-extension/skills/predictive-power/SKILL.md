@@ -1,3 +1,8 @@
+---
+name: predictive-power
+description: "Use when recording, evaluating, or interpreting Focusa predictions, risk forecasts, calibration stats, or predictive next-action guidance."
+---
+
 # Predictive Power
 
 Use this skill when recording, evaluating, or interpreting Focusa predictions.

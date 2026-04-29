@@ -26,7 +26,13 @@ Canonical extension-packaged skills path:
 /home/wirebot/focusa/apps/pi-extension/skills
 ```
 
-A stale reload path such as `~/apps/pi-extension/skills` resolves to `/root/apps/pi-extension/skills` in root-run Pi sessions. Keep launchers/settings on the canonical absolute path, or provide the compatibility symlink only as a local workaround.
+A stale reload path such as `~/apps/pi-extension/skills` resolves to `/root/apps/pi-extension/skills` in root-run Pi sessions. Do **not** symlink that path to the repo skill directory; that makes Pi load the same skill names twice and produces `[Skill conflicts]` collisions. Keep the stale compatibility directory present but empty, and keep canonical runtime skills in `/root/.pi/skills`.
+
+Validate skill hygiene:
+
+```bash
+node scripts/validate-skill-hygiene.mjs
+```
 
 ## Install dependencies for local validation
 

@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Skill reload hygiene
+
+- Fixed predictive-power skill frontmatter and documented that stale `~/apps/pi-extension/skills` compatibility path must be an empty directory, not a symlink to repo skills, to avoid Pi skill collisions.
+- Added `scripts/validate-skill-hygiene.mjs`.
+
 ## Unreleased — Agent awareness layer
 
 - Added a Pi startup/reload Focusa Utility Card injected into the system prompt and displayed once per session so agents know when to use Workpoints, doctor, evidence, predictions, metacognition, work-loop, and compaction fallbacks.
