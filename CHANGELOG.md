@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 polish/prediction spec
+
+- Added Spec92 for agent-first polish, missing Pi hooks, token efficiency, cache UX, command-center surfaces, Mac mission-control polish, and predictive-power accumulation.
+- Documented how Focusa can accumulate predictive power using current event, Workpoint, metacognition, telemetry, CLT, ontology, and evidence frameworks.
+
 ## Unreleased — command documentation pass
 
 - Added `docs/current/PRODUCTION_RELEASE_COMMANDS.md` with copy/paste release, daemon restart, GitHub proof, Mac app, and cleanup commands.
