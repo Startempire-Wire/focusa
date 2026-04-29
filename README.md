@@ -419,6 +419,7 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/ERROR_EMPTY_STATES.md`](docs/current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
 - [`docs/current/MAC_APP_MISSION_CONTROL.md`](docs/current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
 - [`docs/current/PREDICTIVE_POWER_GUIDE.md`](docs/current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
+- [`docs/current/AGENT_COMMAND_COOKBOOK.md`](docs/current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
 - [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](docs/90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 current tool contract/parity hardening plan.
 - [`docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`](docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current machine-readable tool contract registry table.
 - [`docs/91-live-tool-contract-proof-harness-spec.md`](docs/91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness for tool contracts.

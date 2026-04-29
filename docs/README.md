@@ -127,6 +127,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/ERROR_EMPTY_STATES.md](current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
 - [current/MAC_APP_MISSION_CONTROL.md](current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
 - [current/PREDICTIVE_POWER_GUIDE.md](current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
+- [current/AGENT_COMMAND_COOKBOOK.md](current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
 - [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.

@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec92 cookbook and drift validation
+
+- Added `docs/current/AGENT_COMMAND_COOKBOOK.md`.
+- Added `scripts/validate-spec92-surface.mjs` to prevent docs/CLI/API/Mac surface drift.
+
 ## Unreleased — Spec92 prediction loop
 
 - Added prediction record, recent, evaluate, and stats API under `/v1/predictions*`.
