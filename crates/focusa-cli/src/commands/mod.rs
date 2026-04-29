@@ -1,4 +1,5 @@
 pub mod autonomy;
+pub mod awareness;
 pub mod cache;
 pub mod cleanup;
 pub mod clt;

@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft implementation spec.
+Implementation in progress. First runtime slice implemented: `/v1/awareness/card`, `focusa awareness card`, and live proof harness.
 
 ## Purpose
 

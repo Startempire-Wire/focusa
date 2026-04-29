@@ -32,6 +32,13 @@ Before risky/uncertain next action: record prediction; after outcome: evaluate i
 Operator steering wins.
 ```
 
+## Awareness card endpoint
+
+```bash
+curl -sS "http://127.0.0.1:8787/v1/awareness/card?adapter_id=openclaw&workspace_id=wirebot&agent_id=wirebot&operator_id=verious.smith" | jq -r .rendered_card
+focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith
+```
+
 ## OpenClaw / Wirebot integration modes
 
 ### Mode A — Proxy-level injection

@@ -107,6 +107,10 @@ enum Commands {
     #[command(subcommand)]
     Autonomy(commands::autonomy::AutonomyCmd),
 
+    /// Non-Pi agent awareness utility cards.
+    #[command(subcommand)]
+    Awareness(commands::awareness::AwarenessCmd),
+
     /// Agent Constitution.
     #[command(subcommand)]
     Constitution(commands::constitution::ConstitutionCmd),
@@ -418,6 +422,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Clt(cmd) => commands::clt::run(cmd, cli.json).await,
         Commands::Lineage(cmd) => commands::lineage::run(cmd, cli.json).await,
         Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await,
+        Commands::Awareness(cmd) => commands::awareness::run(cmd, cli.json).await,
         Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await,
         Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await,
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await,

@@ -143,6 +143,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::workpoint::router())
         .merge(routes::turn::router())
         .merge(routes::ascc::router())
+        .merge(routes::awareness::router())
         .merge(routes::tokens::router())
         .merge(routes::sse::router())
         .layer(axum_mw::from_fn(middleware::auth::auth_layer))

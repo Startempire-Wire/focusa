@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec93 awareness card API
+
+- Added `/v1/awareness/card` and `focusa awareness card` for OpenClaw/Wirebot and other non-Pi agents.
+- Added `scripts/prove-non-pi-agent-awareness-live.mjs` live proof harness.
+
 ## Unreleased — Non-Pi agent awareness spec
 
 - Added Spec93 and current usage docs for Focusa awareness outside Pi, explicitly including OpenClaw/oprnclaw Wirebot, Claude Code, OpenCode, and Letta.

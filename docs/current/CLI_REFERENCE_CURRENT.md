@@ -26,6 +26,7 @@ Commands:
   clt            Context Lineage Tree
   lineage        Lineage API parity domain
   autonomy       Autonomy calibration
+  awareness      Non-Pi agent awareness utility cards
   constitution   Agent Constitution
   telemetry      Cognitive telemetry
   rfm            Reliability Focus Mode
@@ -69,6 +70,7 @@ Options:
 ```bash
 focusa status --agent
 focusa doctor --json
+focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith
 focusa continue --json
 focusa release prove --tag v0.9.11-dev --fast --github --json
 focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence"

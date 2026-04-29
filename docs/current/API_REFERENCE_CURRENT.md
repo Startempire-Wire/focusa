@@ -18,6 +18,9 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/autonomy`
 - `GET /v1/autonomy/history`
 
+### awareness
+- `GET /v1/awareness/card`
+
 ### capabilities
 - `GET /v1/agents`
 - `GET /v1/agents/{agent_id}`
