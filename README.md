@@ -514,6 +514,7 @@ Part of the Startempire Wire ecosystem.
 - [Focusa Agent Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
 - [Non-Pi Agent Focusa Usage](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
 - [Spec93 Non-Pi Agent Focusa Awareness](docs/93-non-pi-agent-focusa-awareness-spec.md)
+- [Spec93 Non-Pi Awareness Rollout Proof](docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md)
 - [Predictive Power Guide](docs/current/PREDICTIVE_POWER_GUIDE.md)
 - [Agent Command Cookbook](docs/current/AGENT_COMMAND_COOKBOOK.md)
 - [Doctor / Continue / Release Prove](docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md)

@@ -2,6 +2,14 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — Spec93 rollout evidence
+
+- Added `docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md` with OpenClaw/Wirebot live injection proof.
+
+## Unreleased — Docs/runtime parity validation
+
+- Added docs-runtime parity and live OpenClaw injection proof guards.
+
 ## Unreleased — OpenClaw Focusa awareness plugin
 
 - Added `apps/focusa-awareness` plugin skeleton to inject `/v1/awareness/card` into OpenClaw/Wirebot `before_agent_start`.

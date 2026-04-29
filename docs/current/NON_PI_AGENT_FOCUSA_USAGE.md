@@ -143,6 +143,7 @@ Validation:
 node scripts/validate-openclaw-focusa-awareness-plugin.mjs
 node scripts/validate-openclaw-focusa-awareness-config.mjs
 node scripts/prove-non-pi-agent-awareness-live.mjs
+node scripts/prove-openclaw-focusa-injection-live.mjs
 ```
 
 Configured production path:
