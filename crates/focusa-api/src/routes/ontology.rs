@@ -4,10 +4,17 @@
 //! This keeps ontology bounded and inspectable while routing canonical ontology
 //! mutations through governance-aware reducer events.
 
+use crate::routes::bounded::{
+    BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
+    pressure_status,
+};
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -15,7 +22,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use uuid::Uuid;
 
 const OBJECT_TYPES: &[&str] = &[
@@ -323,6 +330,39 @@ const SLICE_TYPES: &[&str] = &[
     "regression",
     "architecture",
 ];
+
+static ACTION_CATALOG_PROJECTION: LazyLock<Vec<Value>> = LazyLock::new(|| {
+    ACTION_TYPES
+        .iter()
+        .map(|name| {
+            let contract = action_contract(name);
+            let verification_hooks = contract
+                .get("verification_hooks")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let runtime_execution_supported = contract
+                .get("tool_mappings")
+                .and_then(Value::as_array)
+                .map(|mappings| !mappings.is_empty())
+                .unwrap_or(false);
+            let reducer_visible = contract
+                .get("expected_ontology_deltas")
+                .and_then(Value::as_array)
+                .map(|deltas| !deltas.is_empty())
+                .unwrap_or(false);
+            json!({
+                "name": name,
+                "constraint_checked": true,
+                "reducer_visible": reducer_visible,
+                "verification_hooks": verification_hooks,
+                "runtime_execution_supported": runtime_execution_supported,
+                "catalog_role": "contract_projection_reference",
+                "cache_role": "static_action_catalog_projection"
+            })
+        })
+        .collect()
+});
 const MAX_DISCOVERED_PATHS: usize = 512;
 const MAX_DISCOVERY_SCAN_PATHS: usize = 4096;
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
@@ -332,6 +372,18 @@ const WORKSPACE_FALLBACK_ROOT: &str = "/home/wirebot/focusa";
 #[derive(Deserialize)]
 struct OntologyWorldQuery {
     frame_id: Option<String>,
+    #[serde(default)]
+    summary_only: bool,
+    #[serde(default)]
+    include_full_payload: bool,
+    #[serde(default)]
+    include_action_catalog: bool,
+    #[serde(default)]
+    include_working_sets: bool,
+    limit_objects: Option<usize>,
+    limit_links: Option<usize>,
+    #[serde(default)]
+    force_full_payload: bool,
 }
 
 #[derive(Deserialize)]
@@ -339,6 +391,133 @@ struct SliceQuery {
     frame_id: Option<String>,
     #[serde(default = "default_slice_type")]
     slice_type: String,
+}
+
+#[derive(Deserialize)]
+struct AdjacencyQuery {
+    frame_id: Option<String>,
+    target_ref: Option<String>,
+    limit: Option<usize>,
+}
+
+#[derive(Deserialize)]
+struct WorkingSetQuery {
+    frame_id: Option<String>,
+    ask: Option<String>,
+    target_ref: Option<String>,
+    limit: Option<usize>,
+    #[serde(default = "default_slice_type")]
+    slice_type: String,
+    #[serde(default)]
+    include_reasons: bool,
+}
+
+#[derive(Deserialize)]
+struct OntologyContextRequest {
+    current_ask: Option<String>,
+    frame_id: Option<String>,
+    workpoint_id: Option<String>,
+    #[serde(default)]
+    target_refs: Vec<String>,
+    budget_tokens: Option<usize>,
+    view_profile: Option<String>,
+    #[serde(default = "default_slice_type")]
+    slice_type: String,
+}
+
+#[derive(Deserialize)]
+struct AffordancesQuery {
+    frame_id: Option<String>,
+    target_ref: Option<String>,
+    action_intent: Option<String>,
+    scope: Option<String>,
+    limit: Option<usize>,
+}
+
+#[derive(Deserialize)]
+struct RetrievalGovernorRequest {
+    current_ask: Option<String>,
+    frame_id: Option<String>,
+    workpoint_id: Option<String>,
+    #[serde(default)]
+    target_refs: Vec<String>,
+    budget_tokens: Option<usize>,
+    #[serde(default)]
+    operator_steering_detected: bool,
+    #[serde(default)]
+    include_metacog: bool,
+}
+
+#[derive(Deserialize)]
+struct ToolResultProposalRequest {
+    tool_name: String,
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    ok: Option<bool>,
+    #[serde(default)]
+    target_refs: Vec<String>,
+    #[serde(default)]
+    evidence_refs: Vec<String>,
+    #[serde(default)]
+    workpoint_id: Option<String>,
+    #[serde(default)]
+    action_intent: Option<String>,
+    #[serde(default)]
+    summary: Option<String>,
+    #[serde(default)]
+    error: Option<String>,
+    #[serde(default)]
+    emit_proposals: bool,
+}
+
+#[derive(Deserialize)]
+struct ExecutionCriticRequest {
+    intended_action: Option<String>,
+    #[serde(default)]
+    target_refs: Vec<String>,
+    #[serde(default)]
+    verification_hooks: Vec<String>,
+    tool_result: ToolResultProposalRequest,
+    workpoint_next_action: Option<String>,
+    #[serde(default)]
+    operator_priority: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ReflectionSynthesizerRequest {
+    #[serde(default)]
+    traces: Vec<Value>,
+    #[serde(default)]
+    evals: Vec<Value>,
+    #[serde(default)]
+    critic_outputs: Vec<Value>,
+    #[serde(default)]
+    evidence_refs: Vec<String>,
+    #[serde(default)]
+    scope_tags: Vec<String>,
+    #[serde(default)]
+    limit: Option<usize>,
+    #[serde(default)]
+    promote: bool,
+}
+
+#[derive(Deserialize)]
+struct MemoryPipelineRequest {
+    #[serde(default)]
+    episodic_events: Vec<Value>,
+    #[serde(default)]
+    evidence_refs: Vec<String>,
+    #[serde(default)]
+    synthesis_artifacts: Vec<Value>,
+    #[serde(default)]
+    eval_results: Vec<Value>,
+    #[serde(default)]
+    repeated_validation_count: Option<usize>,
+    #[serde(default)]
+    lesson_age_days: Option<u64>,
+    #[serde(default)]
+    limit: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -364,7 +543,10 @@ fn normalize_slice_type(slice_type: &str) -> &str {
     }
 }
 
-fn infer_slice_type_from_operator_context<'a>(focusa: &'a FocusaState, requested: &'a str) -> &'a str {
+fn infer_slice_type_from_operator_context<'a>(
+    focusa: &'a FocusaState,
+    requested: &'a str,
+) -> &'a str {
     let normalized = normalize_slice_type(requested);
     if normalized != "active_mission" {
         return normalized;
@@ -613,11 +795,15 @@ fn action_target_types(action_type: &str) -> &'static [&'static str] {
         "infer_interaction_and_state" => &["interaction", "ui_state", "binding", "validation_rule"],
         "derive_implementation_semantics" => &["component", "binding", "validation_rule", "page"],
         "derive_component_tree" => &["page", "region", "component", "content_slot"],
-        "derive_plumbing_requirements" => &["interaction", "ui_state", "binding", "validation_rule"],
+        "derive_plumbing_requirements" => {
+            &["interaction", "ui_state", "binding", "validation_rule"]
+        }
         "map_tokens_to_surfaces" => &["token", "layout_rule", "component", "region"],
         "map_states_to_views" => &["ui_state", "interaction", "component", "page"],
         "map_bindings_and_validation" => &["binding", "validation_rule", "component", "ui_state"],
-        "synthesize_completion_checklist" => &["verification", "acceptance_criterion", "task", "artifact"],
+        "synthesize_completion_checklist" => {
+            &["verification", "acceptance_criterion", "task", "artifact"]
+        }
         "determine_current_ask" => &["current_ask", "query_scope"],
         "build_query_scope" => &["query_scope", "current_ask"],
         "select_relevant_context" => &[
@@ -1604,6 +1790,10 @@ fn classify_file_type(path: &Path) -> &'static str {
         .unwrap_or(false)
     {
         "manifest"
+    } else if rel.ends_with(".md")
+        && (rel.to_ascii_lowercase().contains("spec") || rel.contains("docs/"))
+    {
+        "spec_doc"
     } else if rel.contains("route") {
         "route_source"
     } else {
@@ -1704,6 +1894,43 @@ fn parse_symbols(content: &str, language: &str) -> Vec<(String, String)> {
     out
 }
 
+fn parse_route_bindings(content: &str) -> Vec<(String, String, Option<String>)> {
+    let mut out = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(idx) = trimmed.find(".route(\"") {
+            let after = &trimmed[idx + 8..];
+            if let Some(end_quote) = after.find('"') {
+                let route = &after[..end_quote];
+                let method = if trimmed.contains("post(") {
+                    "post"
+                } else if trimmed.contains("patch(") {
+                    "patch"
+                } else if trimmed.contains("put(") {
+                    "put"
+                } else if trimmed.contains("delete(") {
+                    "delete"
+                } else {
+                    "get"
+                };
+                let handler = trimmed
+                    .split_once(&format!("{method}("))
+                    .and_then(|(_, rest)| rest.split(')').next())
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty() && !value.starts_with('"'))
+                    .map(|value| value.trim_start_matches("move ||").trim().to_string());
+                if route.starts_with('/') {
+                    out.push((method.to_string(), route.to_string(), handler));
+                }
+            }
+        }
+        if out.len() >= MAX_DISCOVERED_ENDPOINTS {
+            break;
+        }
+    }
+    out
+}
+
 fn parse_endpoints(content: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for line in content.lines() {
@@ -1791,16 +2018,17 @@ fn parse_import_targets(content: &str, language: &str) -> Vec<String> {
                         }
                     }
                 } else if trimmed.starts_with("import ")
-                    && let Some(start) = trimmed.find('"').or_else(|| trimmed.find('\'')) {
-                        let quote = trimmed.as_bytes()[start] as char;
-                        let inner = &trimmed[start + 1..];
-                        if let Some(end) = inner.find(quote) {
-                            let target = inner[..end].trim();
-                            if !target.is_empty() {
-                                out.insert(target.to_string());
-                            }
+                    && let Some(start) = trimmed.find('"').or_else(|| trimmed.find('\''))
+                {
+                    let quote = trimmed.as_bytes()[start] as char;
+                    let inner = &trimmed[start + 1..];
+                    if let Some(end) = inner.find(quote) {
+                        let target = inner[..end].trim();
+                        if !target.is_empty() {
+                            out.insert(target.to_string());
                         }
                     }
+                }
             }
             "python" => {
                 if let Some(rest) = trimmed.strip_prefix("import ") {
@@ -1847,7 +2075,10 @@ fn parse_call_targets(content: &str, language: &str) -> Vec<String> {
                     .next()
                     .map(|c| c.is_alphabetic() || c == '_')
                     .unwrap_or(false)
-                && !matches!(candidate, "if" | "for" | "while" | "match" | "loop" | "return")
+                && !matches!(
+                    candidate,
+                    "if" | "for" | "while" | "match" | "loop" | "return"
+                )
             {
                 let normalized = if language == "python" {
                     candidate.to_string()
@@ -2061,25 +2292,121 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
             }));
         }
 
+        if rel.contains("tool-contract") || rel.contains("tool_contract") {
+            let contract_id = stable_id("tool_contract", &rel);
+            objects.push(json!({
+                "id": contract_id,
+                "object_type": "tool_contract",
+                "path": rel,
+                "status": "verified",
+                "membership_class": "deterministic",
+                "provenance_class": "parser_derived",
+                "fresh": true,
+            }));
+            links.push(json!({
+                "type": "targets_schema",
+                "source_id": contract_id,
+                "target_id": package_id,
+                "evidence": "tool contract file scan",
+                "status": "candidate",
+            }));
+        }
+
+        if file_type == "spec_doc" {
+            let spec_id = stable_id("spec", &rel);
+            objects.push(json!({
+                "id": spec_id,
+                "object_type": "specification",
+                "path": rel,
+                "status": "verified",
+                "membership_class": "deterministic",
+                "provenance_class": "parser_derived",
+                "fresh": true,
+            }));
+            links.push(json!({
+                "type": "declared_in",
+                "source_id": spec_id,
+                "target_id": file_id,
+                "evidence": "docs/spec file scan",
+                "status": "verified",
+            }));
+            links.push(json!({
+                "type": "constrains",
+                "source_id": spec_id,
+                "target_id": package_id,
+                "evidence": "docs/spec -> package heuristic",
+                "status": "candidate",
+            }));
+        }
+
         if file_type == "manifest"
-            && let Some(content) = read_text(&path) {
-                let manifest_package_id = if rel.ends_with("Cargo.toml") {
-                    let cargo_name = parse_cargo_name(&content).unwrap_or_else(|| {
-                        Path::new(&rel)
-                            .parent()
-                            .and_then(|p| p.file_name())
-                            .and_then(|s| s.to_str())
-                            .unwrap_or("workspace")
-                            .to_string()
-                    });
-                    let pkg_id = stable_id("package", &format!("cargo:{}:{}", rel, cargo_name));
+            && let Some(content) = read_text(&path)
+        {
+            let manifest_package_id = if rel.ends_with("Cargo.toml") {
+                let cargo_name = parse_cargo_name(&content).unwrap_or_else(|| {
+                    Path::new(&rel)
+                        .parent()
+                        .and_then(|p| p.file_name())
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("workspace")
+                        .to_string()
+                });
+                let pkg_id = stable_id("package", &format!("cargo:{}:{}", rel, cargo_name));
+                if !package_ids.contains(&pkg_id) {
+                    package_ids.push(pkg_id.clone());
+                    objects.push(json!({
+                        "id": pkg_id,
+                        "object_type": "package",
+                        "name": cargo_name,
+                        "package_type": "cargo",
+                        "path": rel,
+                        "status": "verified",
+                        "membership_class": "deterministic",
+                        "provenance_class": "parser_derived",
+                        "fresh": true,
+                    }));
+                }
+                for (dep, version) in parse_cargo_dependencies(&content).into_iter().take(32) {
+                    let dep_id = stable_id("dependency", &format!("cargo:{}", dep));
+                    if dependency_ids.insert(dep_id.clone()) {
+                        objects.push(json!({
+                            "id": dep_id,
+                            "object_type": "dependency",
+                            "name": dep,
+                            "version": version,
+                            "dependency_kind": "cargo",
+                            "status": "verified",
+                            "membership_class": "deterministic",
+                            "provenance_class": "parser_derived",
+                            "fresh": true,
+                        }));
+                    }
+                    links.push(json!({
+                        "type": "depends_on",
+                        "source_id": pkg_id,
+                        "target_id": dep_id,
+                        "evidence": "Cargo.toml [dependencies]",
+                        "status": "verified",
+                    }));
+                    links.push(json!({
+                        "type": "declared_in",
+                        "source_id": dep_id,
+                        "target_id": file_id,
+                        "evidence": "Cargo.toml [dependencies]",
+                        "status": "verified",
+                    }));
+                }
+                pkg_id
+            } else if rel.ends_with("package.json") {
+                if let Some((pkg_name, deps)) = parse_package_json(&content) {
+                    let pkg_id = stable_id("package", &format!("npm:{}:{}", rel, pkg_name));
                     if !package_ids.contains(&pkg_id) {
                         package_ids.push(pkg_id.clone());
                         objects.push(json!({
                             "id": pkg_id,
                             "object_type": "package",
-                            "name": cargo_name,
-                            "package_type": "cargo",
+                            "name": pkg_name,
+                            "package_type": "npm",
                             "path": rel,
                             "status": "verified",
                             "membership_class": "deterministic",
@@ -2087,15 +2414,15 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                             "fresh": true,
                         }));
                     }
-                    for (dep, version) in parse_cargo_dependencies(&content).into_iter().take(32) {
-                        let dep_id = stable_id("dependency", &format!("cargo:{}", dep));
+                    for (dep, version) in deps.into_iter().take(32) {
+                        let dep_id = stable_id("dependency", &format!("npm:{}", dep));
                         if dependency_ids.insert(dep_id.clone()) {
                             objects.push(json!({
                                 "id": dep_id,
                                 "object_type": "dependency",
                                 "name": dep,
                                 "version": version,
-                                "dependency_kind": "cargo",
+                                "dependency_kind": "npm",
                                 "status": "verified",
                                 "membership_class": "deterministic",
                                 "provenance_class": "parser_derived",
@@ -2106,81 +2433,33 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                             "type": "depends_on",
                             "source_id": pkg_id,
                             "target_id": dep_id,
-                            "evidence": "Cargo.toml [dependencies]",
+                            "evidence": "package.json dependencies",
                             "status": "verified",
                         }));
                         links.push(json!({
                             "type": "declared_in",
                             "source_id": dep_id,
                             "target_id": file_id,
-                            "evidence": "Cargo.toml [dependencies]",
+                            "evidence": "package.json dependencies",
                             "status": "verified",
                         }));
                     }
                     pkg_id
-                } else if rel.ends_with("package.json") {
-                    if let Some((pkg_name, deps)) = parse_package_json(&content) {
-                        let pkg_id = stable_id("package", &format!("npm:{}:{}", rel, pkg_name));
-                        if !package_ids.contains(&pkg_id) {
-                            package_ids.push(pkg_id.clone());
-                            objects.push(json!({
-                                "id": pkg_id,
-                                "object_type": "package",
-                                "name": pkg_name,
-                                "package_type": "npm",
-                                "path": rel,
-                                "status": "verified",
-                                "membership_class": "deterministic",
-                                "provenance_class": "parser_derived",
-                                "fresh": true,
-                            }));
-                        }
-                        for (dep, version) in deps.into_iter().take(32) {
-                            let dep_id = stable_id("dependency", &format!("npm:{}", dep));
-                            if dependency_ids.insert(dep_id.clone()) {
-                                objects.push(json!({
-                                    "id": dep_id,
-                                    "object_type": "dependency",
-                                    "name": dep,
-                                    "version": version,
-                                    "dependency_kind": "npm",
-                                    "status": "verified",
-                                    "membership_class": "deterministic",
-                                    "provenance_class": "parser_derived",
-                                    "fresh": true,
-                                }));
-                            }
-                            links.push(json!({
-                                "type": "depends_on",
-                                "source_id": pkg_id,
-                                "target_id": dep_id,
-                                "evidence": "package.json dependencies",
-                                "status": "verified",
-                            }));
-                            links.push(json!({
-                                "type": "declared_in",
-                                "source_id": dep_id,
-                                "target_id": file_id,
-                                "evidence": "package.json dependencies",
-                                "status": "verified",
-                            }));
-                        }
-                        pkg_id
-                    } else {
-                        package_id.clone()
-                    }
                 } else {
                     package_id.clone()
-                };
+                }
+            } else {
+                package_id.clone()
+            };
 
-                links.push(json!({
-                    "type": "contains",
-                    "source_id": repo_id,
-                    "target_id": manifest_package_id,
-                    "evidence": "manifest discovery",
-                    "status": "verified",
-                }));
-            }
+            links.push(json!({
+                "type": "contains",
+                "source_id": repo_id,
+                "target_id": manifest_package_id,
+                "evidence": "manifest discovery",
+                "status": "verified",
+            }));
+        }
 
         if file_type == "test" {
             let test_id = stable_id("test", &rel);
@@ -2329,7 +2608,15 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                     "evidence": "route source path",
                     "status": "verified",
                 }));
-                for (method, endpoint_path) in parse_endpoints(&content) {
+                for (method, endpoint_path, handler) in parse_route_bindings(&content)
+                    .into_iter()
+                    .chain(
+                        parse_endpoints(&content)
+                            .into_iter()
+                            .map(|(method, path)| (method, path, None)),
+                    )
+                    .take(MAX_DISCOVERED_ENDPOINTS)
+                {
                     let endpoint_id =
                         stable_id("endpoint", &format!("{}:{}", method, endpoint_path));
                     objects.push(json!({
@@ -2350,6 +2637,27 @@ fn workspace_projection(focusa: &FocusaState) -> WorkspaceProjection {
                         "evidence": "route source scan",
                         "status": "verified",
                     }));
+                    if let Some(handler) = handler {
+                        let handler_id = stable_id("symbol", &format!("{}:{}", rel, handler));
+                        objects.push(json!({
+                            "id": handler_id,
+                            "object_type": "symbol",
+                            "file_id": file_id,
+                            "symbol_name": handler,
+                            "symbol_kind": "route_handler",
+                            "status": "verified",
+                            "membership_class": "deterministic",
+                            "provenance_class": "parser_derived",
+                            "fresh": true,
+                        }));
+                        links.push(json!({
+                            "type": "binds_to",
+                            "source_id": endpoint_id,
+                            "target_id": handler_id,
+                            "evidence": "route handler scan",
+                            "status": "verified",
+                        }));
+                    }
                 }
             }
         }
@@ -2896,20 +3204,21 @@ fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Works
 
     let page_id = frame.map(|f| stable_id("page", &f.id.to_string()));
     if let Some(frame_ref) = frame
-        && let Some(ref id) = page_id {
-            object_ids.insert(id.clone());
-            objects.push(json!({
-                "id": id,
-                "object_type": "page",
-                "name": frame_ref.title,
-                "page_kind": "focus_frame",
-                "primary_goal": frame_ref.goal,
-                "status": "active",
-                "membership_class": "deterministic",
-                "provenance_class": "runtime_observed",
-                "fresh": true,
-            }));
-        }
+        && let Some(ref id) = page_id
+    {
+        object_ids.insert(id.clone());
+        objects.push(json!({
+            "id": id,
+            "object_type": "page",
+            "name": frame_ref.title,
+            "page_kind": "focus_frame",
+            "primary_goal": frame_ref.goal,
+            "status": "active",
+            "membership_class": "deterministic",
+            "provenance_class": "runtime_observed",
+            "fresh": true,
+        }));
+    }
 
     for handle in visual_handles {
         let label = handle.label.to_ascii_lowercase();
@@ -3059,7 +3368,8 @@ fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Works
                 } else {
                     "default"
                 };
-                let variant_id = stable_id("variant", &format!("{}:{}", component_id, variant_kind));
+                let variant_id =
+                    stable_id("variant", &format!("{}:{}", component_id, variant_kind));
                 if object_ids.insert(variant_id.clone()) {
                     objects.push(json!({
                         "id": variant_id,
@@ -3099,7 +3409,11 @@ fn visual_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Works
                 links.push(json!({"type":"inherits_token","source_id":component_id,"target_id":token_id,"evidence":"reference_index.handles.label","status":"verified"}));
             }
 
-            if label.contains("grid") || label.contains("layout") || label.contains("container") || label.contains("alignment") {
+            if label.contains("grid")
+                || label.contains("layout")
+                || label.contains("container")
+                || label.contains("alignment")
+            {
                 let layout_id = stable_id("layout_rule", &handle.id.to_string());
                 if object_ids.insert(layout_id.clone()) {
                     objects.push(json!({
@@ -3224,17 +3538,19 @@ fn affordance_execution_projection(
 
     let mut objects = Vec::new();
     let mut links = Vec::new();
-    let mut push_link = |link_type: &str, source_id: &str, target_id: &str, evidence: &str, status: &str| {
-        links.push(json!({
-            "type": link_type,
-            "source_id": source_id,
-            "target_id": target_id,
-            "evidence": evidence,
-            "status": status,
-        }));
-    };
+    let mut push_link =
+        |link_type: &str, source_id: &str, target_id: &str, evidence: &str, status: &str| {
+            links.push(json!({
+                "type": link_type,
+                "source_id": source_id,
+                "target_id": target_id,
+                "evidence": evidence,
+                "status": status,
+            }));
+        };
 
-    let execution_context_id = stable_id("execution_context", &format!("workspace:{}", workspace_id));
+    let execution_context_id =
+        stable_id("execution_context", &format!("workspace:{}", workspace_id));
     objects.push(json!({
         "id": execution_context_id.clone(),
         "object_type": "execution_context",
@@ -3247,7 +3563,10 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let workspace_boundary_id = stable_id("authority_boundary", &format!("workspace:{}", root.display()));
+    let workspace_boundary_id = stable_id(
+        "authority_boundary",
+        &format!("workspace:{}", root.display()),
+    );
     objects.push(json!({
         "id": workspace_boundary_id.clone(),
         "object_type": "authority_boundary",
@@ -3258,7 +3577,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let workspace_read_permission_id = stable_id("permission", &format!("workspace-read:{}", root.display()));
+    let workspace_read_permission_id =
+        stable_id("permission", &format!("workspace-read:{}", root.display()));
     objects.push(json!({
         "id": workspace_read_permission_id.clone(),
         "object_type": "permission",
@@ -3269,7 +3589,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let workspace_write_permission_id = stable_id("permission", &format!("workspace-write:{}", root.display()));
+    let workspace_write_permission_id =
+        stable_id("permission", &format!("workspace-write:{}", root.display()));
     objects.push(json!({
         "id": workspace_write_permission_id.clone(),
         "object_type": "permission",
@@ -3280,7 +3601,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let destructive_confirmation_precondition_id = stable_id("precondition", "destructive_confirmation_required");
+    let destructive_confirmation_precondition_id =
+        stable_id("precondition", "destructive_confirmation_required");
     objects.push(json!({
         "id": destructive_confirmation_precondition_id.clone(),
         "object_type": "precondition",
@@ -3302,7 +3624,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let local_exec_resource_id = stable_id("resource", &format!("local-execution:{}", root.display()));
+    let local_exec_resource_id =
+        stable_id("resource", &format!("local-execution:{}", root.display()));
     objects.push(json!({
         "id": local_exec_resource_id.clone(),
         "object_type": "resource",
@@ -3381,7 +3704,11 @@ fn affordance_execution_projection(
 
     let workspace_mutation_reversibility_id = stable_id(
         "reversibility_profile",
-        if has_git_dir { "workspace_mutation_vcs_backed" } else { "workspace_mutation_manual_recovery" },
+        if has_git_dir {
+            "workspace_mutation_vcs_backed"
+        } else {
+            "workspace_mutation_manual_recovery"
+        },
     );
     objects.push(json!({
         "id": workspace_mutation_reversibility_id.clone(),
@@ -3441,7 +3768,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let git_repo_precondition_id = stable_id("precondition", &format!("git-repo:{}", root.display()));
+    let git_repo_precondition_id =
+        stable_id("precondition", &format!("git-repo:{}", root.display()));
     objects.push(json!({
         "id": git_repo_precondition_id.clone(),
         "object_type": "precondition",
@@ -3452,7 +3780,10 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let cargo_manifest_precondition_id = stable_id("precondition", &format!("cargo-manifest:{}", root.display()));
+    let cargo_manifest_precondition_id = stable_id(
+        "precondition",
+        &format!("cargo-manifest:{}", root.display()),
+    );
     objects.push(json!({
         "id": cargo_manifest_precondition_id.clone(),
         "object_type": "precondition",
@@ -3500,7 +3831,10 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let inspect_workspace_capability_id = stable_id("capability", &format!("inspect-workspace:{}", root.display()));
+    let inspect_workspace_capability_id = stable_id(
+        "capability",
+        &format!("inspect-workspace:{}", root.display()),
+    );
     objects.push(json!({
         "id": inspect_workspace_capability_id.clone(),
         "object_type": "capability",
@@ -3511,7 +3845,10 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let modify_workspace_capability_id = stable_id("capability", &format!("modify-workspace:{}", root.display()));
+    let modify_workspace_capability_id = stable_id(
+        "capability",
+        &format!("modify-workspace:{}", root.display()),
+    );
     objects.push(json!({
         "id": modify_workspace_capability_id.clone(),
         "object_type": "capability",
@@ -3522,7 +3859,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let inspect_git_capability_id = stable_id("capability", &format!("inspect-git:{}", root.display()));
+    let inspect_git_capability_id =
+        stable_id("capability", &format!("inspect-git:{}", root.display()));
     objects.push(json!({
         "id": inspect_git_capability_id.clone(),
         "object_type": "capability",
@@ -3533,7 +3871,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let build_rust_capability_id = stable_id("capability", &format!("build-rust:{}", root.display()));
+    let build_rust_capability_id =
+        stable_id("capability", &format!("build-rust:{}", root.display()));
     objects.push(json!({
         "id": build_rust_capability_id.clone(),
         "object_type": "capability",
@@ -3555,7 +3894,10 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let inspect_workspace_affordance_id = stable_id("affordance", &format!("inspect-workspace:{}", root.display()));
+    let inspect_workspace_affordance_id = stable_id(
+        "affordance",
+        &format!("inspect-workspace:{}", root.display()),
+    );
     objects.push(json!({
         "id": inspect_workspace_affordance_id.clone(),
         "object_type": "affordance",
@@ -3566,7 +3908,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let edit_workspace_affordance_id = stable_id("affordance", &format!("edit-workspace:{}", root.display()));
+    let edit_workspace_affordance_id =
+        stable_id("affordance", &format!("edit-workspace:{}", root.display()));
     objects.push(json!({
         "id": edit_workspace_affordance_id.clone(),
         "object_type": "affordance",
@@ -3577,7 +3920,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let inspect_git_affordance_id = stable_id("affordance", &format!("inspect-git:{}", root.display()));
+    let inspect_git_affordance_id =
+        stable_id("affordance", &format!("inspect-git:{}", root.display()));
     objects.push(json!({
         "id": inspect_git_affordance_id.clone(),
         "object_type": "affordance",
@@ -3588,7 +3932,8 @@ fn affordance_execution_projection(
         "fresh": true,
     }));
 
-    let build_rust_affordance_id = stable_id("affordance", &format!("build-rust:{}", root.display()));
+    let build_rust_affordance_id =
+        stable_id("affordance", &format!("build-rust:{}", root.display()));
     objects.push(json!({
         "id": build_rust_affordance_id.clone(),
         "object_type": "affordance",
@@ -3614,88 +3959,516 @@ fn affordance_execution_projection(
         );
     }
 
-    push_link("enabled_by", &query_focusa_capability_id, &focusa_api_surface_id, "local daemon API", "verified");
-    push_link("available_in_context", &query_focusa_capability_id, &execution_context_id, "local daemon runtime", "verified");
-    push_link("consumes_resource", &query_focusa_capability_id, &local_exec_resource_id, "runtime query budget", "verified");
-    push_link("consumes_resource", &inspect_focusa_affordance_id, &interactive_cost_id, "interactive query cost", "verified");
-    push_link("consumes_resource", &inspect_focusa_affordance_id, &interactive_latency_id, "interactive query latency", "verified");
-    push_link("has_reliability", &focusa_api_surface_id, &local_reliability_id, "local daemon surface", "verified");
-    push_link("has_reliability", &inspect_focusa_affordance_id, &local_reliability_id, "local daemon surface", "verified");
-    push_link("has_reversibility", &query_focusa_capability_id, &read_only_reversibility_id, "read-only runtime query", "verified");
-    push_link("has_reversibility", &inspect_focusa_affordance_id, &read_only_reversibility_id, "read-only runtime query", "verified");
+    push_link(
+        "enabled_by",
+        &query_focusa_capability_id,
+        &focusa_api_surface_id,
+        "local daemon API",
+        "verified",
+    );
+    push_link(
+        "available_in_context",
+        &query_focusa_capability_id,
+        &execution_context_id,
+        "local daemon runtime",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &query_focusa_capability_id,
+        &local_exec_resource_id,
+        "runtime query budget",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_focusa_affordance_id,
+        &interactive_cost_id,
+        "interactive query cost",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_focusa_affordance_id,
+        &interactive_latency_id,
+        "interactive query latency",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &focusa_api_surface_id,
+        &local_reliability_id,
+        "local daemon surface",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &inspect_focusa_affordance_id,
+        &local_reliability_id,
+        "local daemon surface",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &query_focusa_capability_id,
+        &read_only_reversibility_id,
+        "read-only runtime query",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &inspect_focusa_affordance_id,
+        &read_only_reversibility_id,
+        "read-only runtime query",
+        "verified",
+    );
 
-    push_link("enabled_by", &inspect_workspace_capability_id, &workspace_fs_surface_id, "workspace filesystem surface", "verified");
-    push_link("requires_permission", &inspect_workspace_capability_id, &workspace_read_permission_id, "workspace read required", "verified");
-    push_link("bounded_by_authority", &inspect_workspace_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
-    push_link("available_in_context", &inspect_workspace_capability_id, &execution_context_id, "workspace runtime", "verified");
-    push_link("consumes_resource", &inspect_workspace_affordance_id, &workspace_resource_id, "workspace inspection", "verified");
-    push_link("consumes_resource", &inspect_workspace_affordance_id, &interactive_cost_id, "interactive inspection cost", "verified");
-    push_link("consumes_resource", &inspect_workspace_affordance_id, &interactive_latency_id, "interactive inspection latency", "verified");
-    push_link("has_reliability", &workspace_fs_surface_id, &local_reliability_id, "local filesystem surface", "verified");
-    push_link("has_reliability", &inspect_workspace_affordance_id, &local_reliability_id, "local filesystem surface", "verified");
-    push_link("has_reversibility", &inspect_workspace_capability_id, &read_only_reversibility_id, "read-only workspace inspection", "verified");
-    push_link("has_reversibility", &inspect_workspace_affordance_id, &read_only_reversibility_id, "read-only workspace inspection", "verified");
+    push_link(
+        "enabled_by",
+        &inspect_workspace_capability_id,
+        &workspace_fs_surface_id,
+        "workspace filesystem surface",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &inspect_workspace_capability_id,
+        &workspace_read_permission_id,
+        "workspace read required",
+        "verified",
+    );
+    push_link(
+        "bounded_by_authority",
+        &inspect_workspace_capability_id,
+        &workspace_boundary_id,
+        "workspace authority boundary",
+        "verified",
+    );
+    push_link(
+        "available_in_context",
+        &inspect_workspace_capability_id,
+        &execution_context_id,
+        "workspace runtime",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_workspace_affordance_id,
+        &workspace_resource_id,
+        "workspace inspection",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_workspace_affordance_id,
+        &interactive_cost_id,
+        "interactive inspection cost",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_workspace_affordance_id,
+        &interactive_latency_id,
+        "interactive inspection latency",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &workspace_fs_surface_id,
+        &local_reliability_id,
+        "local filesystem surface",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &inspect_workspace_affordance_id,
+        &local_reliability_id,
+        "local filesystem surface",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &inspect_workspace_capability_id,
+        &read_only_reversibility_id,
+        "read-only workspace inspection",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &inspect_workspace_affordance_id,
+        &read_only_reversibility_id,
+        "read-only workspace inspection",
+        "verified",
+    );
 
-    push_link("enabled_by", &modify_workspace_capability_id, &workspace_fs_surface_id, "workspace filesystem surface", "verified");
-    push_link("requires_permission", &modify_workspace_capability_id, &workspace_write_permission_id, "workspace write required", "verified");
-    push_link("bounded_by_authority", &modify_workspace_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
-    push_link("available_in_context", &modify_workspace_capability_id, &execution_context_id, "workspace runtime", "verified");
-    push_link("consumes_resource", &edit_workspace_affordance_id, &workspace_resource_id, "workspace mutation", "verified");
-    push_link("consumes_resource", &edit_workspace_affordance_id, &interactive_cost_id, "interactive edit cost", "verified");
-    push_link("consumes_resource", &edit_workspace_affordance_id, &interactive_latency_id, "interactive edit latency", "verified");
-    push_link("has_reliability", &edit_workspace_affordance_id, &local_reliability_id, "local filesystem surface", "verified");
-    push_link("has_reversibility", &modify_workspace_capability_id, &workspace_mutation_reversibility_id, "workspace mutation reversibility", "verified");
-    push_link("has_reversibility", &edit_workspace_affordance_id, &workspace_mutation_reversibility_id, "workspace mutation reversibility", "verified");
+    push_link(
+        "enabled_by",
+        &modify_workspace_capability_id,
+        &workspace_fs_surface_id,
+        "workspace filesystem surface",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &modify_workspace_capability_id,
+        &workspace_write_permission_id,
+        "workspace write required",
+        "verified",
+    );
+    push_link(
+        "bounded_by_authority",
+        &modify_workspace_capability_id,
+        &workspace_boundary_id,
+        "workspace authority boundary",
+        "verified",
+    );
+    push_link(
+        "available_in_context",
+        &modify_workspace_capability_id,
+        &execution_context_id,
+        "workspace runtime",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &edit_workspace_affordance_id,
+        &workspace_resource_id,
+        "workspace mutation",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &edit_workspace_affordance_id,
+        &interactive_cost_id,
+        "interactive edit cost",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &edit_workspace_affordance_id,
+        &interactive_latency_id,
+        "interactive edit latency",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &edit_workspace_affordance_id,
+        &local_reliability_id,
+        "local filesystem surface",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &modify_workspace_capability_id,
+        &workspace_mutation_reversibility_id,
+        "workspace mutation reversibility",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &edit_workspace_affordance_id,
+        &workspace_mutation_reversibility_id,
+        "workspace mutation reversibility",
+        "verified",
+    );
 
-    push_link("enabled_by", &inspect_git_capability_id, &git_cli_surface_id, "git CLI surface", "verified");
-    push_link("depends_on", &inspect_git_capability_id, &git_repo_precondition_id, "git repo required", "verified");
-    push_link("depends_on", &inspect_git_capability_id, &git_binary_dependency_id, "git CLI binary required", "verified");
-    push_link("requires_permission", &inspect_git_capability_id, &workspace_read_permission_id, "workspace read required", "verified");
-    push_link("bounded_by_authority", &inspect_git_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
-    push_link("available_in_context", &inspect_git_capability_id, &execution_context_id, "workspace runtime", "verified");
-    push_link("consumes_resource", &inspect_git_affordance_id, &workspace_resource_id, "git inspection", "verified");
-    push_link("consumes_resource", &inspect_git_affordance_id, &interactive_cost_id, "interactive git cost", "verified");
-    push_link("consumes_resource", &inspect_git_affordance_id, &interactive_latency_id, "interactive git latency", "verified");
-    push_link("has_reliability", &git_cli_surface_id, &local_reliability_id, "local CLI surface", "verified");
-    push_link("has_reliability", &inspect_git_affordance_id, &local_reliability_id, "local CLI surface", "verified");
-    push_link("has_reversibility", &inspect_git_capability_id, &read_only_reversibility_id, "read-only git inspection", "verified");
-    push_link("has_reversibility", &inspect_git_affordance_id, &read_only_reversibility_id, "read-only git inspection", "verified");
+    push_link(
+        "enabled_by",
+        &inspect_git_capability_id,
+        &git_cli_surface_id,
+        "git CLI surface",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &inspect_git_capability_id,
+        &git_repo_precondition_id,
+        "git repo required",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &inspect_git_capability_id,
+        &git_binary_dependency_id,
+        "git CLI binary required",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &inspect_git_capability_id,
+        &workspace_read_permission_id,
+        "workspace read required",
+        "verified",
+    );
+    push_link(
+        "bounded_by_authority",
+        &inspect_git_capability_id,
+        &workspace_boundary_id,
+        "workspace authority boundary",
+        "verified",
+    );
+    push_link(
+        "available_in_context",
+        &inspect_git_capability_id,
+        &execution_context_id,
+        "workspace runtime",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_git_affordance_id,
+        &workspace_resource_id,
+        "git inspection",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_git_affordance_id,
+        &interactive_cost_id,
+        "interactive git cost",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &inspect_git_affordance_id,
+        &interactive_latency_id,
+        "interactive git latency",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &git_cli_surface_id,
+        &local_reliability_id,
+        "local CLI surface",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &inspect_git_affordance_id,
+        &local_reliability_id,
+        "local CLI surface",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &inspect_git_capability_id,
+        &read_only_reversibility_id,
+        "read-only git inspection",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &inspect_git_affordance_id,
+        &read_only_reversibility_id,
+        "read-only git inspection",
+        "verified",
+    );
 
-    push_link("enabled_by", &build_rust_capability_id, &cargo_cli_surface_id, "cargo CLI surface", "verified");
-    push_link("depends_on", &build_rust_capability_id, &cargo_manifest_precondition_id, "Cargo manifest required", "verified");
-    push_link("depends_on", &build_rust_capability_id, &cargo_binary_dependency_id, "cargo CLI binary required", "verified");
-    push_link("requires_permission", &build_rust_capability_id, &workspace_read_permission_id, "workspace read required", "verified");
-    push_link("bounded_by_authority", &build_rust_capability_id, &workspace_boundary_id, "workspace authority boundary", "verified");
-    push_link("available_in_context", &build_rust_capability_id, &execution_context_id, "workspace runtime", "verified");
-    push_link("consumes_resource", &build_rust_affordance_id, &local_exec_resource_id, "local build execution", "verified");
-    push_link("consumes_resource", &build_rust_affordance_id, &build_cost_id, "local build cost", "verified");
-    push_link("consumes_resource", &build_rust_affordance_id, &build_latency_id, "local build latency", "verified");
-    push_link("has_reliability", &cargo_cli_surface_id, &local_reliability_id, "local CLI surface", "verified");
-    push_link("has_reliability", &build_rust_affordance_id, &local_reliability_id, "local CLI surface", "verified");
-    push_link("has_reversibility", &build_rust_capability_id, &workspace_mutation_reversibility_id, "local build may write workspace artifacts", "verified");
-    push_link("has_reversibility", &build_rust_affordance_id, &workspace_mutation_reversibility_id, "local build may write workspace artifacts", "verified");
+    push_link(
+        "enabled_by",
+        &build_rust_capability_id,
+        &cargo_cli_surface_id,
+        "cargo CLI surface",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &build_rust_capability_id,
+        &cargo_manifest_precondition_id,
+        "Cargo manifest required",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &build_rust_capability_id,
+        &cargo_binary_dependency_id,
+        "cargo CLI binary required",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &build_rust_capability_id,
+        &workspace_read_permission_id,
+        "workspace read required",
+        "verified",
+    );
+    push_link(
+        "bounded_by_authority",
+        &build_rust_capability_id,
+        &workspace_boundary_id,
+        "workspace authority boundary",
+        "verified",
+    );
+    push_link(
+        "available_in_context",
+        &build_rust_capability_id,
+        &execution_context_id,
+        "workspace runtime",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &build_rust_affordance_id,
+        &local_exec_resource_id,
+        "local build execution",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &build_rust_affordance_id,
+        &build_cost_id,
+        "local build cost",
+        "verified",
+    );
+    push_link(
+        "consumes_resource",
+        &build_rust_affordance_id,
+        &build_latency_id,
+        "local build latency",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &cargo_cli_surface_id,
+        &local_reliability_id,
+        "local CLI surface",
+        "verified",
+    );
+    push_link(
+        "has_reliability",
+        &build_rust_affordance_id,
+        &local_reliability_id,
+        "local CLI surface",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &build_rust_capability_id,
+        &workspace_mutation_reversibility_id,
+        "local build may write workspace artifacts",
+        "verified",
+    );
+    push_link(
+        "has_reversibility",
+        &build_rust_affordance_id,
+        &workspace_mutation_reversibility_id,
+        "local build may write workspace artifacts",
+        "verified",
+    );
 
     for (affordance_id, capability_id, tool_surface_id) in [
-        (&inspect_focusa_affordance_id, &query_focusa_capability_id, &focusa_api_surface_id),
-        (&inspect_workspace_affordance_id, &inspect_workspace_capability_id, &workspace_fs_surface_id),
-        (&edit_workspace_affordance_id, &modify_workspace_capability_id, &workspace_fs_surface_id),
-        (&inspect_git_affordance_id, &inspect_git_capability_id, &git_cli_surface_id),
-        (&build_rust_affordance_id, &build_rust_capability_id, &cargo_cli_surface_id),
+        (
+            &inspect_focusa_affordance_id,
+            &query_focusa_capability_id,
+            &focusa_api_surface_id,
+        ),
+        (
+            &inspect_workspace_affordance_id,
+            &inspect_workspace_capability_id,
+            &workspace_fs_surface_id,
+        ),
+        (
+            &edit_workspace_affordance_id,
+            &modify_workspace_capability_id,
+            &workspace_fs_surface_id,
+        ),
+        (
+            &inspect_git_affordance_id,
+            &inspect_git_capability_id,
+            &git_cli_surface_id,
+        ),
+        (
+            &build_rust_affordance_id,
+            &build_rust_capability_id,
+            &cargo_cli_surface_id,
+        ),
     ] {
-        push_link("enabled_by", affordance_id, capability_id, "capability enables affordance", "verified");
-        push_link("enabled_by", affordance_id, tool_surface_id, "tool surface enables affordance", "verified");
-        push_link("available_in_context", affordance_id, &execution_context_id, "workspace runtime", "verified");
-        push_link("bounded_by_authority", affordance_id, &workspace_boundary_id, "workspace authority boundary", "verified");
+        push_link(
+            "enabled_by",
+            affordance_id,
+            capability_id,
+            "capability enables affordance",
+            "verified",
+        );
+        push_link(
+            "enabled_by",
+            affordance_id,
+            tool_surface_id,
+            "tool surface enables affordance",
+            "verified",
+        );
+        push_link(
+            "available_in_context",
+            affordance_id,
+            &execution_context_id,
+            "workspace runtime",
+            "verified",
+        );
+        push_link(
+            "bounded_by_authority",
+            affordance_id,
+            &workspace_boundary_id,
+            "workspace authority boundary",
+            "verified",
+        );
     }
 
-    push_link("requires_permission", &inspect_workspace_affordance_id, &workspace_read_permission_id, "workspace read required", "verified");
-    push_link("requires_permission", &edit_workspace_affordance_id, &workspace_write_permission_id, "workspace write required", "verified");
-    push_link("requires_permission", &inspect_git_affordance_id, &workspace_read_permission_id, "workspace read required", "verified");
-    push_link("requires_permission", &build_rust_affordance_id, &workspace_read_permission_id, "workspace read required", "verified");
-    push_link("depends_on", &inspect_git_affordance_id, &git_repo_precondition_id, "git repo required", "verified");
-    push_link("depends_on", &inspect_git_affordance_id, &git_binary_dependency_id, "git CLI binary required", "verified");
-    push_link("depends_on", &build_rust_affordance_id, &cargo_manifest_precondition_id, "Cargo manifest required", "verified");
-    push_link("depends_on", &build_rust_affordance_id, &cargo_binary_dependency_id, "cargo CLI binary required", "verified");
+    push_link(
+        "requires_permission",
+        &inspect_workspace_affordance_id,
+        &workspace_read_permission_id,
+        "workspace read required",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &edit_workspace_affordance_id,
+        &workspace_write_permission_id,
+        "workspace write required",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &inspect_git_affordance_id,
+        &workspace_read_permission_id,
+        "workspace read required",
+        "verified",
+    );
+    push_link(
+        "requires_permission",
+        &build_rust_affordance_id,
+        &workspace_read_permission_id,
+        "workspace read required",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &inspect_git_affordance_id,
+        &git_repo_precondition_id,
+        "git repo required",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &inspect_git_affordance_id,
+        &git_binary_dependency_id,
+        "git CLI binary required",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &build_rust_affordance_id,
+        &cargo_manifest_precondition_id,
+        "Cargo manifest required",
+        "verified",
+    );
+    push_link(
+        "depends_on",
+        &build_rust_affordance_id,
+        &cargo_binary_dependency_id,
+        "cargo CLI binary required",
+        "verified",
+    );
 
     if let Some(task_target) = query_task_target.as_ref() {
         for source_id in [
@@ -3882,12 +4655,15 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
         links.push(json!({"type":"has_capability_profile","source_id":actor_instance_id,"target_id":capability_profile_id,"evidence":"work_loop.active_worker","status":"verified"}));
     }
 
-    let permission_profile_id = stable_id("permission_profile", &format!(
-        "{}:{}:{}",
-        focusa.work_loop.policy.allow_destructive_actions,
-        focusa.work_loop.policy.require_operator_for_governance,
-        focusa.work_loop.policy.require_operator_for_scope_change
-    ));
+    let permission_profile_id = stable_id(
+        "permission_profile",
+        &format!(
+            "{}:{}:{}",
+            focusa.work_loop.policy.allow_destructive_actions,
+            focusa.work_loop.policy.require_operator_for_governance,
+            focusa.work_loop.policy.require_operator_for_scope_change
+        ),
+    );
     objects.push(json!({
         "id": permission_profile_id,
         "object_type": "permission_profile",
@@ -3920,16 +4696,25 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
 
     if focusa.work_loop.pause_flags.operator_override_active
         || focusa.work_loop.pause_flags.governance_decision_pending
-        || focusa.work_loop.pause_flags.destructive_confirmation_required
+        || focusa
+            .work_loop
+            .pause_flags
+            .destructive_confirmation_required
         || focusa.work_loop.policy.require_operator_for_scope_change
         || focusa.work_loop.policy.require_operator_for_governance
     {
-        let boundary_id = stable_id("handoff_boundary", &format!(
-            "{}:{}:{}",
-            focusa.work_loop.pause_flags.operator_override_active,
-            focusa.work_loop.pause_flags.governance_decision_pending,
-            focusa.work_loop.pause_flags.destructive_confirmation_required
-        ));
+        let boundary_id = stable_id(
+            "handoff_boundary",
+            &format!(
+                "{}:{}:{}",
+                focusa.work_loop.pause_flags.operator_override_active,
+                focusa.work_loop.pause_flags.governance_decision_pending,
+                focusa
+                    .work_loop
+                    .pause_flags
+                    .destructive_confirmation_required
+            ),
+        );
         objects.push(json!({
             "id": boundary_id,
             "object_type": "handoff_boundary",
@@ -3960,7 +4745,10 @@ fn identity_projection(focusa: &FocusaState) -> WorkspaceProjection {
     let identity_state_kind = if focusa.work_loop.pause_flags.operator_override_active {
         "awaiting_operator"
     } else if focusa.work_loop.pause_flags.governance_decision_pending
-        || focusa.work_loop.pause_flags.destructive_confirmation_required
+        || focusa
+            .work_loop
+            .pause_flags
+            .destructive_confirmation_required
     {
         "handoff_required"
     } else if focusa.work_loop.enabled {
@@ -4115,7 +4903,9 @@ fn governance_projection(focusa: &FocusaState) -> WorkspaceProjection {
             }
         }
 
-        if let (Some(source_id), Some(target_id)) = (proposal.source_id.as_ref(), proposal.target_id.as_ref()) {
+        if let (Some(source_id), Some(target_id)) =
+            (proposal.source_id.as_ref(), proposal.target_id.as_ref())
+        {
             let link_type = match object_type.as_str() {
                 "compatibility_profile" => "compatible_with",
                 "migration_plan" => "migrated_by",
@@ -4188,15 +4978,15 @@ fn reference_resolution_projection(focusa: &FocusaState) -> WorkspaceProjection 
         let alias_id = stable_id("reference_alias", &handle.id.to_string());
         if object_ids.insert(alias_id.clone()) {
             objects.push(json!({
-            "id": alias_id,
-            "object_type": "reference_alias",
-            "alias_kind": "handle_label_alias",
-            "alias_text": handle.label,
-            "status": "verified",
-            "membership_class": "verified",
-            "provenance_class": "runtime_observed",
-            "fresh": true,
-        }));
+                "id": alias_id,
+                "object_type": "reference_alias",
+                "alias_kind": "handle_label_alias",
+                "alias_text": handle.label,
+                "status": "verified",
+                "membership_class": "verified",
+                "provenance_class": "runtime_observed",
+                "fresh": true,
+            }));
         }
         links.push(json!({
             "type": "derived_from",
@@ -4209,14 +4999,14 @@ fn reference_resolution_projection(focusa: &FocusaState) -> WorkspaceProjection 
         let candidate_id = stable_id("resolution_candidate", &handle.id.to_string());
         if object_ids.insert(candidate_id.clone()) {
             objects.push(json!({
-            "id": candidate_id,
-            "object_type": "resolution_candidate",
-            "candidate_kind": "handle_to_entity_candidate",
-            "status": "verified",
-            "membership_class": "verified",
-            "provenance_class": "runtime_observed",
-            "fresh": true,
-        }));
+                "id": candidate_id,
+                "object_type": "resolution_candidate",
+                "candidate_kind": "handle_to_entity_candidate",
+                "status": "verified",
+                "membership_class": "verified",
+                "provenance_class": "runtime_observed",
+                "fresh": true,
+            }));
         }
         links.push(json!({
             "type": "derived_from",
@@ -4229,14 +5019,14 @@ fn reference_resolution_projection(focusa: &FocusaState) -> WorkspaceProjection 
         let decision_id = stable_id("resolution_decision", &handle.id.to_string());
         if object_ids.insert(decision_id.clone()) {
             objects.push(json!({
-            "id": decision_id,
-            "object_type": "resolution_decision",
-            "decision_kind": "deterministic_handle_resolution",
-            "status": "verified",
-            "membership_class": "deterministic",
-            "provenance_class": "runtime_observed",
-            "fresh": true,
-        }));
+                "id": decision_id,
+                "object_type": "resolution_decision",
+                "decision_kind": "deterministic_handle_resolution",
+                "status": "verified",
+                "membership_class": "deterministic",
+                "provenance_class": "runtime_observed",
+                "fresh": true,
+            }));
         }
         links.push(json!({
             "type": "verifies",
@@ -4248,8 +5038,14 @@ fn reference_resolution_projection(focusa: &FocusaState) -> WorkspaceProjection 
     }
 
     for proposal in focusa.ontology.proposals.iter().take(64) {
-        if proposal.proposal_kind.to_ascii_lowercase().contains("supersed")
-            || proposal.target_class.to_ascii_lowercase().contains("supersed")
+        if proposal
+            .proposal_kind
+            .to_ascii_lowercase()
+            .contains("supersed")
+            || proposal
+                .target_class
+                .to_ascii_lowercase()
+                .contains("supersed")
         {
             let record_id = stable_id("supersession_record", &proposal.proposal_id.to_string());
             if object_ids.insert(record_id.clone()) {
@@ -4399,8 +5195,9 @@ fn dedupe_objects(objects: Vec<Value>) -> Vec<Value> {
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
                 let incoming_status = object.get("status").and_then(|v| v.as_str()).unwrap_or("");
-                let incoming_preferred = matches!(incoming_status, "canonical" | "verified" | "active")
-                    && !matches!(existing_status, "canonical" | "verified" | "active");
+                let incoming_preferred =
+                    matches!(incoming_status, "canonical" | "verified" | "active")
+                        && !matches!(existing_status, "canonical" | "verified" | "active");
                 if incoming_preferred {
                     *existing = object;
                 }
@@ -4442,34 +5239,46 @@ fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> Workspac
     let reference_resolution = reference_resolution_projection(focusa);
     let projection_view = projection_view_semantics_projection(focusa);
 
-    let objects = dedupe_objects(
-        [
-            mission.objects,
-            workspace.objects,
-            canonical.objects,
-            visual.objects,
-            affordance_execution.objects,
-            identity.objects,
-            governance.objects,
-            reference_resolution.objects,
-            projection_view.objects,
-        ]
-        .concat(),
-    );
-    let links = dedupe_links(
-        [
-            mission.links,
-            workspace.links,
-            canonical.links,
-            visual.links,
-            affordance_execution.links,
-            identity.links,
-            governance.links,
-            reference_resolution.links,
-            projection_view.links,
-        ]
-        .concat(),
-    );
+    let total_object_capacity = mission.objects.len()
+        + workspace.objects.len()
+        + canonical.objects.len()
+        + visual.objects.len()
+        + affordance_execution.objects.len()
+        + identity.objects.len()
+        + governance.objects.len()
+        + reference_resolution.objects.len()
+        + projection_view.objects.len();
+    let total_link_capacity = mission.links.len()
+        + workspace.links.len()
+        + canonical.links.len()
+        + visual.links.len()
+        + affordance_execution.links.len()
+        + identity.links.len()
+        + governance.links.len()
+        + reference_resolution.links.len()
+        + projection_view.links.len();
+    let mut raw_objects = Vec::with_capacity(total_object_capacity);
+    raw_objects.extend(mission.objects);
+    raw_objects.extend(workspace.objects);
+    raw_objects.extend(canonical.objects);
+    raw_objects.extend(visual.objects);
+    raw_objects.extend(affordance_execution.objects);
+    raw_objects.extend(identity.objects);
+    raw_objects.extend(governance.objects);
+    raw_objects.extend(reference_resolution.objects);
+    raw_objects.extend(projection_view.objects);
+    let mut raw_links = Vec::with_capacity(total_link_capacity);
+    raw_links.extend(mission.links);
+    raw_links.extend(workspace.links);
+    raw_links.extend(canonical.links);
+    raw_links.extend(visual.links);
+    raw_links.extend(affordance_execution.links);
+    raw_links.extend(identity.links);
+    raw_links.extend(governance.links);
+    raw_links.extend(reference_resolution.links);
+    raw_links.extend(projection_view.links);
+    let objects = dedupe_objects(raw_objects);
+    let links = dedupe_links(raw_links);
 
     WorkspaceProjection { objects, links }
 }
@@ -4670,6 +5479,1252 @@ pub fn active_mission_slice_summary(
     ))
 }
 
+fn uncertainty_label(value: &Value) -> &'static str {
+    let degraded = value
+        .get("degraded")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if degraded {
+        return "degraded";
+    }
+    let status = value.get("status").and_then(|v| v.as_str()).unwrap_or("");
+    if matches!(status, "stale" | "deprecated" | "superseded") {
+        return "stale";
+    }
+    if matches!(status, "blocked" | "failed") {
+        return "blocked_or_failed";
+    }
+    if matches!(status, "verified" | "canonical") {
+        return "verified";
+    }
+    if value.get("evidence_ref").is_some()
+        || value.get("verification_id").is_some()
+        || value.get("provenance").is_some()
+    {
+        return "evidence_linked";
+    }
+    if matches!(status, "speculative" | "candidate" | "proposed") {
+        return "speculative";
+    }
+    "projection_only"
+}
+
+fn compact_link(link: &Value) -> Value {
+    json!({
+        "type": link.get("type").cloned().unwrap_or(Value::Null),
+        "source_id": link.get("source_id").cloned().unwrap_or(Value::Null),
+        "target_id": link.get("target_id").cloned().unwrap_or(Value::Null),
+        "evidence_ref": link.get("evidence_ref").cloned().unwrap_or(Value::Null),
+        "status": link.get("status").cloned().unwrap_or(Value::Null),
+        "uncertainty": uncertainty_label(link),
+    })
+}
+
+fn link_strength_score(link: &Value) -> i64 {
+    let status_bonus = match link
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("candidate")
+    {
+        "verified" | "canonical" => 8,
+        "active" => 5,
+        "proposed" | "candidate" => 2,
+        "failed" | "blocked" => 4,
+        _ => 1,
+    };
+    let type_bonus = match link
+        .get("type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("related_to")
+    {
+        "tested_by" | "verifies" | "implements" | "binds_to" => 7,
+        "blocks" | "constrains" | "conflicts_with" => 6,
+        "belongs_to_working_set" | "commits_to" | "drives_completion_of" => 5,
+        _ => 2,
+    };
+    status_bonus + type_bonus
+}
+
+fn link_reason(link: &Value) -> String {
+    let link_type = link
+        .get("type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("related_to");
+    let source = link
+        .get("source_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let target = link
+        .get("target_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    format!("{source} --{link_type}--> {target}")
+}
+
+fn adjacency_index_payload(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    target_ref: Option<&str>,
+    limit: usize,
+) -> Value {
+    let projection = combined_projection(focusa, frame_id);
+    let capped_limit = limit.clamp(1, 100);
+    let mut incoming: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    let mut outgoing: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    for link in &projection.links {
+        if let (Some(source), Some(target)) = (
+            link.get("source_id").and_then(|v| v.as_str()),
+            link.get("target_id").and_then(|v| v.as_str()),
+        ) {
+            outgoing
+                .entry(source.to_string())
+                .or_default()
+                .push(compact_link(link));
+            incoming
+                .entry(target.to_string())
+                .or_default()
+                .push(compact_link(link));
+        }
+    }
+
+    let mut nodes = Vec::new();
+    for object in &projection.objects {
+        let id = object
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        if let Some(target_ref) = target_ref
+            && id != target_ref
+        {
+            continue;
+        }
+        let object_incoming = incoming.get(id).cloned().unwrap_or_default();
+        let object_outgoing = outgoing.get(id).cloned().unwrap_or_default();
+        nodes.push(json!({
+            "id": id,
+            "object_type": object.get("object_type").cloned().unwrap_or(Value::Null),
+            "status": object.get("status").cloned().unwrap_or(Value::Null),
+            "membership_class": object.get("membership_class").cloned().unwrap_or(Value::Null),
+            "incoming_count": object_incoming.len(),
+            "outgoing_count": object_outgoing.len(),
+            "incoming": object_incoming.into_iter().take(capped_limit).collect::<Vec<_>>(),
+            "outgoing": object_outgoing.into_iter().take(capped_limit).collect::<Vec<_>>(),
+            "uncertainty": uncertainty_label(object),
+        }));
+        if target_ref.is_none() && nodes.len() >= capped_limit {
+            break;
+        }
+    }
+
+    json!({
+        "status": "ok",
+        "source": "ontology_combined_projection",
+        "source_state_version": focusa.version,
+        "object_count": projection.objects.len(),
+        "link_count": projection.links.len(),
+        "returned": nodes.len(),
+        "limit": capped_limit,
+        "target_ref": target_ref,
+        "nodes": nodes,
+        "canonical_truth_mutation": false,
+        "stale": false,
+        "degraded": false,
+    })
+}
+
+fn slice_object_relevance_score(object_type: &str, slice_type: &str) -> i64 {
+    match slice_type {
+        "debugging" => match object_type {
+            "failure" => 50,
+            "verification" => 45,
+            "file" => 35,
+            "test" => 30,
+            "risk" => 25,
+            _ => 0,
+        },
+        "refactor" => match object_type {
+            "module" => 45,
+            "file" => 40,
+            "symbol" => 35,
+            "test" => 25,
+            _ => 0,
+        },
+        "regression" => match object_type {
+            "test" => 45,
+            "failure" => 40,
+            "verification" => 35,
+            "file" => 25,
+            _ => 0,
+        },
+        "architecture" => match object_type {
+            "decision" => 45,
+            "constraint" => 40,
+            "module" => 35,
+            "route" => 30,
+            "schema" => 25,
+            _ => 0,
+        },
+        _ => match object_type {
+            "goal" => 45,
+            "task" => 40,
+            "active_focus" => 35,
+            "decision" => 30,
+            "constraint" => 25,
+            _ => 0,
+        },
+    }
+}
+
+fn working_set_payload(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    ask: Option<&str>,
+    target_ref: Option<&str>,
+    slice_type: &str,
+    limit: usize,
+    include_reasons: bool,
+) -> Value {
+    let projection = combined_projection(focusa, frame_id);
+    let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
+    let capped_limit = limit.clamp(1, 50);
+    let mut scored = Vec::new();
+    let ask_lc = ask.unwrap_or_default().to_ascii_lowercase();
+    for object in &projection.objects {
+        let id = object
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        let object_type = object
+            .get("object_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("object");
+        if let Some(target_ref) = target_ref
+            && id != target_ref
+        {
+            continue;
+        }
+        let mut score = slice_object_relevance_score(object_type, resolved_slice_type);
+        if !ask_lc.is_empty()
+            && (id.to_ascii_lowercase().contains(&ask_lc)
+                || object_type.to_ascii_lowercase().contains(&ask_lc))
+        {
+            score += 75;
+        }
+        let related_links = projection
+            .links
+            .iter()
+            .filter(|link| {
+                link.get("source_id").and_then(|v| v.as_str()) == Some(id)
+                    || link.get("target_id").and_then(|v| v.as_str()) == Some(id)
+            })
+            .take(6)
+            .cloned()
+            .collect::<Vec<_>>();
+        let link_strength: i64 = related_links.iter().map(link_strength_score).sum();
+        score += related_links.len() as i64 + link_strength;
+        if score <= 0 && target_ref.is_none() {
+            continue;
+        }
+        let reasons = if include_reasons {
+            related_links
+                .iter()
+                .map(|link| {
+                    format!(
+                        "{} [strength={}]",
+                        link_reason(link),
+                        link_strength_score(link)
+                    )
+                })
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        scored.push((
+            score,
+            id.to_string(),
+            json!({
+                "id": id,
+                "object_type": object_type,
+                "status": object.get("status").cloned().unwrap_or(Value::Null),
+                "membership_class": object.get("membership_class").cloned().unwrap_or(Value::Null),
+                "score": score,
+                "reason_count": reasons.len(),
+                "reasons": reasons,
+                "related_link_count": related_links.len(),
+                "link_strength_score": link_strength,
+                "link_path_reason": reasons.first().cloned().unwrap_or_else(|| "slice relevance".to_string()),
+                "rehydrate": {"route":"/v1/ontology/adjacency", "target_ref": id},
+                "uncertainty": uncertainty_label(object),
+            }),
+        ));
+    }
+    scored.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    let total_candidates = scored.len();
+    let members = scored
+        .into_iter()
+        .take(capped_limit)
+        .map(|(_, _, value)| value)
+        .collect::<Vec<_>>();
+
+    json!({
+        "status": "ok",
+        "source": "ontology_working_set_projection",
+        "slice_type": resolved_slice_type,
+        "requested_slice_type": slice_type,
+        "source_state_version": focusa.version,
+        "target_ref": target_ref,
+        "ask_present": ask.map(|value| !value.trim().is_empty()).unwrap_or(false),
+        "total_candidates": total_candidates,
+        "returned": members.len(),
+        "limit": capped_limit,
+        "truncated": total_candidates > members.len(),
+        "members": members,
+        "canonical_truth_mutation": false,
+        "stale": false,
+        "degraded": false,
+    })
+}
+
+fn compact_action_candidate(name: &str) -> Value {
+    let contract = action_contract(name);
+    json!({
+        "name": name,
+        "verification_hooks": contract.get("verification_hooks").cloned().unwrap_or(Value::Null),
+        "preconditions": contract.get("preconditions").cloned().unwrap_or(Value::Null),
+        "side_effects": contract.get("side_effects").cloned().unwrap_or(Value::Null),
+        "ontology_delta_expected": contract
+            .get("expected_ontology_deltas")
+            .and_then(|v| v.as_array())
+            .map(|items| !items.is_empty())
+            .unwrap_or(false),
+    })
+}
+
+fn context_action_candidates(current_ask: Option<&str>, limit: usize) -> Vec<Value> {
+    let ask = current_ask.unwrap_or_default().to_ascii_lowercase();
+    let preferred: Vec<&str> = if ask.contains("test") || ask.contains("verify") {
+        vec!["verify_invariant", "add_test", "verify_progress"]
+    } else if ask.contains("debug") || ask.contains("fail") || ask.contains("bug") {
+        vec!["verify_invariant", "resolve_risk", "record_scope_failure"]
+    } else if ask.contains("ontology") || ask.contains("context") {
+        vec![
+            "select_relevant_context",
+            "build_projection",
+            "verify_projection_fidelity",
+        ]
+    } else {
+        vec![
+            "refresh_working_set",
+            "select_relevant_context",
+            "verify_progress",
+        ]
+    };
+    preferred
+        .into_iter()
+        .filter(|name| ACTION_TYPES.contains(name))
+        .take(limit)
+        .map(compact_action_candidate)
+        .collect()
+}
+
+fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest) -> Value {
+    let budget_tokens = body.budget_tokens.unwrap_or(500).clamp(100, 4_000);
+    let member_limit = (budget_tokens / 80).clamp(3, 20);
+    let first_target = body.target_refs.first().map(String::as_str);
+    let working_set = working_set_payload(
+        focusa,
+        body.frame_id.as_deref(),
+        body.current_ask.as_deref(),
+        first_target,
+        &body.slice_type,
+        member_limit,
+        true,
+    );
+    let members = working_set
+        .get("members")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let active_object_set = members
+        .iter()
+        .map(|member| {
+            json!({
+                "id": member.get("id").cloned().unwrap_or(Value::Null),
+                "object_type": member.get("object_type").cloned().unwrap_or(Value::Null),
+                "uncertainty": member.get("uncertainty").cloned().unwrap_or(Value::Null),
+                "score": member.get("score").cloned().unwrap_or(Value::Null),
+            })
+        })
+        .collect::<Vec<_>>();
+    let link_paths = members
+        .iter()
+        .flat_map(|member| {
+            member
+                .get("reasons")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default()
+        })
+        .take(12)
+        .collect::<Vec<_>>();
+    let uncertainty_flags: BTreeSet<String> = members
+        .iter()
+        .filter_map(|member| member.get("uncertainty").and_then(|v| v.as_str()))
+        .map(|value| value.to_string())
+        .collect();
+    let evidence_handles = focusa
+        .reference_index
+        .handles
+        .iter()
+        .rev()
+        .take(8)
+        .map(|handle| {
+            json!({
+                "id": handle.id,
+                "kind": handle.kind,
+                "label": handle.label,
+                "pinned": handle.pinned,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "status": "ok",
+        "source": "ontology_prompt_safe_context",
+        "source_state_version": focusa.version,
+        "view_profile": body.view_profile.as_deref().unwrap_or("pi_operator_view"),
+        "budget_tokens": budget_tokens,
+        "workpoint_id": body.workpoint_id,
+        "target_refs": body.target_refs,
+        "active_object_set": active_object_set,
+        "relevant_link_paths": link_paths,
+        "valid_next_actions": context_action_candidates(body.current_ask.as_deref(), 5),
+        "blocked_affordances": [],
+        "evidence_handles": evidence_handles,
+        "uncertainty_flags": uncertainty_flags.into_iter().collect::<Vec<_>>(),
+        "working_set": working_set,
+        "canonical_truth_mutation": false,
+        "stale": false,
+        "degraded": false,
+        "rehydrate": {"routes":["/v1/ontology/working-set", "/v1/ontology/adjacency", "/v1/ecs/rehydrate/{handle_id}"]}
+    })
+}
+
+fn graph_community_summaries_payload(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    limit: usize,
+) -> Value {
+    let projection = combined_projection(focusa, frame_id);
+    let capped_limit = limit.clamp(1, 20);
+    let mut by_type: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
+    for object in &projection.objects {
+        let object_type = object
+            .get("object_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("object")
+            .to_string();
+        by_type.entry(object_type).or_default().push(object);
+    }
+    let mut summaries = Vec::new();
+    for (community_type, objects) in by_type.into_iter() {
+        let all_object_ids = objects
+            .iter()
+            .filter_map(|object| object.get("id").and_then(|v| v.as_str()))
+            .collect::<BTreeSet<_>>();
+        let object_ids = all_object_ids.iter().copied().take(8).collect::<Vec<_>>();
+        let evidence_links = projection
+            .links
+            .iter()
+            .filter(|link| {
+                let source = link.get("source_id").and_then(|v| v.as_str()).unwrap_or_default();
+                let target = link.get("target_id").and_then(|v| v.as_str()).unwrap_or_default();
+                all_object_ids.contains(source) || all_object_ids.contains(target)
+            })
+            .take(8)
+            .map(|link| json!({
+                "path": link_reason(link),
+                "strength": link_strength_score(link),
+                "evidence": link.get("evidence").or_else(|| link.get("evidence_ref")).cloned().unwrap_or(Value::Null),
+                "uncertainty": uncertainty_label(link),
+            }))
+            .collect::<Vec<_>>();
+        let community_score: i64 = evidence_links
+            .iter()
+            .map(|link| link.get("strength").and_then(|v| v.as_i64()).unwrap_or(0))
+            .sum::<i64>()
+            + object_ids.len() as i64;
+        summaries.push(json!({
+            "community_id": stable_id("community", &community_type),
+            "community_type": community_type,
+            "object_count": objects.len(),
+            "sample_object_ids": object_ids,
+            "community_score": community_score,
+            "summary": format!("{} projected ontology objects with {} evidence-linked paths", objects.len(), evidence_links.len()),
+            "evidence_links": evidence_links,
+            "rehydrate": {"route":"/v1/ontology/working-set", "slice_type":"active_mission"},
+            "canonical_truth_mutation": false,
+        }));
+    }
+    summaries.sort_by(|a, b| {
+        b.get("community_score")
+            .and_then(|v| v.as_i64())
+            .cmp(&a.get("community_score").and_then(|v| v.as_i64()))
+    });
+    let total_communities = summaries.len();
+    summaries.truncate(capped_limit);
+    json!({
+        "status": "ok",
+        "source": "ontology_graph_community_projection",
+        "source_state_version": focusa.version,
+        "total_communities": total_communities,
+        "returned": summaries.len(),
+        "limit": capped_limit,
+        "communities": summaries,
+        "canonical_truth_mutation": false,
+        "stale": false,
+        "degraded": false,
+    })
+}
+
+fn affordances_payload(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    target_ref: Option<&str>,
+    action_intent: Option<&str>,
+    scope: Option<&str>,
+    limit: usize,
+) -> Value {
+    let frame = selected_frame(focusa, frame_id);
+    let projection = affordance_execution_projection(focusa, frame);
+    let capped_limit = limit.clamp(1, 50);
+    let mut feasible = Vec::new();
+    let mut blocked = Vec::new();
+    for object in projection
+        .objects
+        .iter()
+        .filter(|object| object.get("object_type").and_then(|v| v.as_str()) == Some("affordance"))
+    {
+        let id = object
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        if let Some(target_ref) = target_ref
+            && !id.contains(target_ref)
+        {
+            continue;
+        }
+        let status = object
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("active");
+        let candidate = json!({
+            "id": id,
+            "status": status,
+            "affordance_kind": object.get("affordance_kind").cloned().unwrap_or(Value::Null),
+            "target_ref": target_ref,
+            "action_intent": action_intent,
+            "scope": scope.unwrap_or("current"),
+            "preconditions": object.get("preconditions").cloned().unwrap_or(Value::Null),
+            "authority_boundary": object.get("authority_boundary").cloned().unwrap_or(Value::Null),
+            "estimated_latency": object.get("estimated_latency").cloned().unwrap_or(Value::Null),
+            "reversibility": object.get("reversibility").cloned().unwrap_or(Value::Null),
+            "reliability": object.get("reliability").cloned().unwrap_or(Value::Null),
+            "uncertainty": uncertainty_label(object),
+            "rehydrate": {"route":"/v1/ontology/adjacency", "target_ref": id},
+        });
+        if matches!(status, "blocked" | "failed" | "unavailable") {
+            blocked.push(candidate);
+        } else {
+            feasible.push(candidate);
+        }
+    }
+    feasible.truncate(capped_limit);
+    blocked.truncate(capped_limit);
+
+    json!({
+        "status": "ok",
+        "source": "ontology_affordance_execution_projection",
+        "source_state_version": focusa.version,
+        "target_ref": target_ref,
+        "action_intent": action_intent,
+        "scope": scope.unwrap_or("current"),
+        "feasible_actions": feasible,
+        "blocked_actions": blocked,
+        "valid_next_actions": context_action_candidates(action_intent, 5),
+        "verification_hooks_required": true,
+        "canonical_truth_mutation": false,
+        "stale": false,
+        "degraded": false,
+    })
+}
+
+fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequest) -> Value {
+    let ask = body.current_ask.as_deref().unwrap_or_default();
+    let ask_lc = ask.to_ascii_lowercase();
+    let budget_tokens = body.budget_tokens.unwrap_or(800).clamp(100, 8_000);
+    let include_workpoint = body.workpoint_id.is_some() && !body.operator_steering_detected;
+    let include_affordances = ask_lc.contains("implement")
+        || ask_lc.contains("action")
+        || ask_lc.contains("route")
+        || ask_lc.contains("tool");
+    let include_metacog = body.include_metacog
+        || ask_lc.contains("learn")
+        || ask_lc.contains("remember")
+        || ask_lc.contains("pattern");
+    let context_body = OntologyContextRequest {
+        current_ask: body.current_ask.clone(),
+        frame_id: body.frame_id.clone(),
+        workpoint_id: body.workpoint_id.clone(),
+        target_refs: body.target_refs.clone(),
+        budget_tokens: Some((budget_tokens / 2).max(100)),
+        view_profile: Some("pi_operator_view".to_string()),
+        slice_type: "active_mission".to_string(),
+    };
+    let ontology_context = ontology_context_payload(focusa, &context_body);
+    let first_target = body.target_refs.first().map(String::as_str);
+    let affordances = include_affordances.then(|| {
+        affordances_payload(
+            focusa,
+            body.frame_id.as_deref(),
+            first_target,
+            body.current_ask.as_deref(),
+            Some("current"),
+            8,
+        )
+    });
+    let mut retrieval_plan = vec![json!({
+        "substrate": "ontology_context",
+        "reason": "prompt-safe active object/link/action projection",
+        "budget_tokens": budget_tokens / 2,
+    })];
+    if include_workpoint {
+        retrieval_plan.push(json!({
+            "substrate": "workpoint",
+            "reason": "active continuation anchor remains relevant",
+            "workpoint_id": body.workpoint_id,
+        }));
+    }
+    if include_affordances {
+        retrieval_plan.push(json!({
+            "substrate": "ontology_affordances",
+            "reason": "ask appears action/tool/implementation oriented",
+        }));
+    }
+    if include_metacog {
+        retrieval_plan.push(json!({
+            "substrate": "metacognition",
+            "reason": "ask implies reusable learning or pattern retrieval",
+        }));
+    }
+    if !body.target_refs.is_empty() {
+        retrieval_plan.push(json!({
+            "substrate": "exact_target_refs",
+            "reason": "operator or tool supplied explicit target refs",
+            "target_refs": body.target_refs,
+        }));
+    }
+
+    json!({
+        "status": "ok",
+        "source": "ontology_retrieval_governor",
+        "source_state_version": focusa.version,
+        "current_ask_present": !ask.trim().is_empty(),
+        "operator_steering_detected": body.operator_steering_detected,
+        "budget_tokens": budget_tokens,
+        "retrieval_plan": retrieval_plan,
+        "excluded_context_reason": if body.operator_steering_detected { "operator_steering" } else { "none" },
+        "hybrid_ranker": {
+            "signals": ["exact_refs", "ontology_graph", "working_set_score", "evidence_handles", "freshness", "uncertainty", "operator_steering"],
+            "canonical_truth_mutation": false
+        },
+        "ontology_context": ontology_context,
+        "affordances": affordances.unwrap_or(Value::Null),
+        "degraded": false,
+        "stale": false,
+    })
+}
+
+fn safe_ref_id(raw: &str) -> String {
+    raw.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, ':' | '/' | '.' | '_' | '-') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+        .chars()
+        .take(180)
+        .collect()
+}
+
+fn infer_tool_object_type(tool_name: &str) -> &'static str {
+    if tool_name.contains("read") || tool_name.contains("edit") || tool_name.contains("write") {
+        "file"
+    } else if tool_name.contains("bash")
+        || tool_name.contains("cargo")
+        || tool_name.contains("test")
+    {
+        "test"
+    } else if tool_name.contains("workpoint") {
+        "workpoint"
+    } else if tool_name.contains("metacog") {
+        "memory_signal"
+    } else {
+        "tool_surface"
+    }
+}
+
+fn tool_result_candidate_deltas(body: &ToolResultProposalRequest) -> Vec<Value> {
+    let status = body
+        .status
+        .as_deref()
+        .unwrap_or(if body.ok.unwrap_or(false) {
+            "completed"
+        } else {
+            "observed"
+        });
+    let tool_ref = format!("tool:{}", safe_ref_id(&body.tool_name));
+    let mut deltas = vec![json!({
+        "delta_kind": "ontology_object_upsert_proposed",
+        "object_type": "tool_surface",
+        "object_id": tool_ref,
+        "source": "tool_result_envelope",
+        "status": "proposed",
+        "summary": body.summary,
+        "error": body.error
+    })];
+
+    for target in body.target_refs.iter().take(8) {
+        let target_id = safe_ref_id(target);
+        deltas.push(json!({
+            "delta_kind": "ontology_object_upsert_proposed",
+            "object_type": infer_tool_object_type(&body.tool_name),
+            "object_id": target_id,
+            "source": "tool_result_target",
+            "status": "proposed"
+        }));
+        deltas.push(json!({
+            "delta_kind": "ontology_link_upsert_proposed",
+            "link_type": "supports_execution_of",
+            "source_id": tool_ref,
+            "target_id": target_id,
+            "source": "tool_result_action_target",
+            "status": "proposed"
+        }));
+        if status == "failed" || status == "error" || status == "blocked" {
+            deltas.push(json!({
+                "delta_kind": "ontology_status_change_proposed",
+                "subject": target_id,
+                "to_status": "failed",
+                "source": "tool_result_failure",
+                "status": "proposed"
+            }));
+        }
+    }
+
+    for evidence in body.evidence_refs.iter().take(8) {
+        let evidence_id = safe_ref_id(evidence);
+        deltas.push(json!({
+            "delta_kind": "ontology_object_upsert_proposed",
+            "object_type": "evidence",
+            "object_id": evidence_id,
+            "source": "tool_result_evidence",
+            "status": "proposed"
+        }));
+        for target in body.target_refs.iter().take(4) {
+            deltas.push(json!({
+                "delta_kind": "ontology_link_upsert_proposed",
+                "link_type": "verifies",
+                "source_id": evidence_id,
+                "target_id": safe_ref_id(target),
+                "source": "tool_result_evidence_target",
+                "status": "proposed"
+            }));
+        }
+    }
+
+    if let Some(workpoint_id) = &body.workpoint_id {
+        let workpoint_ref = format!("workpoint:{}", safe_ref_id(workpoint_id));
+        deltas.push(json!({
+            "delta_kind": "ontology_object_upsert_proposed",
+            "object_type": "workpoint",
+            "object_id": workpoint_ref,
+            "source": "tool_result_workpoint",
+            "status": "proposed"
+        }));
+        if let Some(intent) = &body.action_intent {
+            deltas.push(json!({
+                "delta_kind": "ontology_link_upsert_proposed",
+                "link_type": "commits_to",
+                "source_id": workpoint_ref,
+                "target_id": format!("action_intent:{}", safe_ref_id(intent)),
+                "source": "tool_result_workpoint_intent",
+                "status": "proposed"
+            }));
+        }
+    }
+
+    deltas.truncate(40);
+    deltas
+}
+
+fn events_from_tool_result_deltas(proposal_id: Uuid, deltas: &[Value]) -> Vec<FocusaEvent> {
+    deltas
+        .iter()
+        .filter_map(
+            |delta| match delta.get("delta_kind").and_then(|v| v.as_str()) {
+                Some("ontology_object_upsert_proposed") => {
+                    Some(FocusaEvent::OntologyObjectUpsertProposed {
+                        proposal_id,
+                        object_type: delta
+                            .get("object_type")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("tool_surface")
+                            .to_string(),
+                        object_id: delta
+                            .get("object_id")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                        source: delta
+                            .get("source")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("tool_result_envelope")
+                            .to_string(),
+                    })
+                }
+                Some("ontology_link_upsert_proposed") => {
+                    Some(FocusaEvent::OntologyLinkUpsertProposed {
+                        proposal_id,
+                        link_type: delta
+                            .get("link_type")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("derived_from")
+                            .to_string(),
+                        source_id: delta
+                            .get("source_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("tool:unknown")
+                            .to_string(),
+                        target_id: delta
+                            .get("target_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("target:unknown")
+                            .to_string(),
+                        source: delta
+                            .get("source")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("tool_result_envelope")
+                            .to_string(),
+                    })
+                }
+                Some("ontology_status_change_proposed") => {
+                    Some(FocusaEvent::OntologyStatusChangeProposed {
+                        proposal_id,
+                        subject: delta
+                            .get("subject")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("target:unknown")
+                            .to_string(),
+                        from_status: None,
+                        to_status: delta
+                            .get("to_status")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("failed")
+                            .to_string(),
+                        source: delta
+                            .get("source")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("tool_result_envelope")
+                            .to_string(),
+                    })
+                }
+                _ => None,
+            },
+        )
+        .collect()
+}
+
+fn execution_critic_payload(body: &ExecutionCriticRequest) -> Value {
+    let intended = body
+        .intended_action
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let next = body
+        .workpoint_next_action
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let tool_status =
+        body.tool_result
+            .status
+            .as_deref()
+            .unwrap_or(if body.tool_result.ok.unwrap_or(false) {
+                "completed"
+            } else {
+                "observed"
+            });
+    let failed = matches!(
+        tool_status,
+        "failed" | "error" | "blocked" | "validation_rejected"
+    );
+    let target_missing = body.target_refs.is_empty() && body.tool_result.target_refs.is_empty();
+    let verification_missing =
+        body.verification_hooks.is_empty() && body.tool_result.evidence_refs.is_empty();
+    let aligned = !failed
+        && !target_missing
+        && (!verification_missing || intended.contains("inspect") || intended.contains("read"))
+        && (next.is_empty()
+            || intended.is_empty()
+            || next.contains(&intended)
+            || intended.contains(&next));
+    let critic_outcome = if aligned {
+        "alignment_no_op"
+    } else if failed {
+        "bounded_failure_proposal"
+    } else {
+        "recovery_suggestion"
+    };
+    let candidate_deltas = tool_result_candidate_deltas(&body.tool_result);
+    json!({
+        "status": "ok",
+        "source": "ontology_execution_critic",
+        "critic_outcome": critic_outcome,
+        "aligned": aligned,
+        "operator_priority_preserved": true,
+        "reducer_authority_preserved": true,
+        "canonical_truth_mutation": false,
+        "signals": {
+            "tool_status": tool_status,
+            "failed": failed,
+            "target_missing": target_missing,
+            "verification_missing": verification_missing,
+            "operator_priority": body.operator_priority,
+        },
+        "recovery_suggestion": if aligned { Value::Null } else { json!({
+            "next_action": if failed { "inspect failure, adjust target or command, then re-run verification" } else { "attach target refs/evidence refs before promotion" },
+            "safe_retry": !failed,
+            "workpoint_next_action": body.workpoint_next_action,
+        })},
+        "failure_artifact": if failed { json!({
+            "kind": "tool_result_failure",
+            "tool": body.tool_result.tool_name,
+            "error": body.tool_result.error,
+            "affected_targets": body.target_refs,
+        }) } else { Value::Null },
+        "candidate_ontology_deltas": candidate_deltas,
+        "evidence_refs": body.tool_result.evidence_refs,
+    })
+}
+
+async fn execution_critic(Json(body): Json<ExecutionCriticRequest>) -> Json<Value> {
+    Json(execution_critic_payload(&body))
+}
+
+fn bounded_text(value: &Value, max_chars: usize) -> String {
+    value
+        .as_str()
+        .map(ToString::to_string)
+        .unwrap_or_else(|| value.to_string())
+        .chars()
+        .take(max_chars)
+        .collect()
+}
+
+fn reflection_synthesizer_payload(body: &ReflectionSynthesizerRequest) -> Value {
+    let capped_limit = body.limit.unwrap_or(8).clamp(1, 20);
+    let noisy = body.traces.len() + body.evals.len() + body.critic_outputs.len() == 0
+        || body.evidence_refs.is_empty();
+    let failure_count = body
+        .critic_outputs
+        .iter()
+        .filter(|item| {
+            item.get("critic_outcome").and_then(|v| v.as_str()) == Some("bounded_failure_proposal")
+                || item
+                    .get("signals")
+                    .and_then(|v| v.get("failed"))
+                    .and_then(|v| v.as_bool())
+                    == Some(true)
+        })
+        .count();
+    let alignment_count = body
+        .critic_outputs
+        .iter()
+        .filter(|item| item.get("aligned").and_then(|v| v.as_bool()) == Some(true))
+        .count();
+    let mut artifacts = Vec::new();
+    if failure_count > 0 {
+        artifacts.push(json!({
+            "artifact_kind": "failure_class_proposal",
+            "title": "tool/result misalignment or failed verification",
+            "summary": format!("{} critic output(s) indicated bounded failures", failure_count),
+            "evidence_refs": body.evidence_refs.iter().take(6).cloned().collect::<Vec<_>>(),
+            "scope_tags": body.scope_tags,
+            "promotion_state": "proposed",
+            "promotion_gate": "requires evaluation evidence before metacog promotion",
+        }));
+        artifacts.push(json!({
+            "artifact_kind": "procedural_playbook_proposal",
+            "title": "recover failed tool result before continuing",
+            "steps": ["inspect failure artifact", "bind target refs", "run verification hook", "record evidence ref", "retry only when side effects are understood"],
+            "evidence_refs": body.evidence_refs.iter().take(6).cloned().collect::<Vec<_>>(),
+            "promotion_state": "proposed",
+        }));
+    }
+    if alignment_count > 0 {
+        artifacts.push(json!({
+            "artifact_kind": "metacog_signal_proposal",
+            "title": "execution alignment pattern",
+            "summary": format!("{} critic output(s) were aligned no-ops", alignment_count),
+            "evidence_refs": body.evidence_refs.iter().take(6).cloned().collect::<Vec<_>>(),
+            "promotion_state": "proposed",
+        }));
+    }
+    for eval in body.evals.iter().take(capped_limit) {
+        artifacts.push(json!({
+            "artifact_kind": "prediction_calibration_proposal",
+            "title": "evaluation-derived calibration sample",
+            "summary": bounded_text(eval, 220),
+            "evidence_refs": body.evidence_refs.iter().take(4).cloned().collect::<Vec<_>>(),
+            "promotion_state": "proposed",
+        }));
+    }
+    if artifacts.is_empty() && !noisy {
+        artifacts.push(json!({
+            "artifact_kind": "rejected_alternative_proposal",
+            "title": "insufficient repeated signal for promotion",
+            "summary": "trace/eval evidence present but no reusable pattern exceeded synthesis thresholds",
+            "evidence_refs": body.evidence_refs.iter().take(4).cloned().collect::<Vec<_>>(),
+            "promotion_state": "rejected_noise",
+        }));
+    }
+    artifacts.truncate(capped_limit);
+    json!({
+        "status": "ok",
+        "source": "ontology_secondary_reflection_synthesizer",
+        "canonical_truth_mutation": false,
+        "promoted": false,
+        "promotion_blocked_reason": if body.promote { "promotion requires explicit evidence/evaluation gate outside synthesizer" } else { "proposal_only" },
+        "noise_rejected": noisy,
+        "quality_gate": {
+            "requires_evidence_refs": true,
+            "requires_eval_before_promotion": true,
+            "min_failure_or_alignment_signal": 1,
+        },
+        "synthesized_count": artifacts.len(),
+        "synthesized_artifacts": artifacts,
+        "rehydrate": {"routes": ["/v1/metacognition/retrieve", "/v1/predictions/recent", "/v1/ontology/execution-critic"]},
+    })
+}
+
+async fn reflection_synthesizer(Json(body): Json<ReflectionSynthesizerRequest>) -> Json<Value> {
+    Json(reflection_synthesizer_payload(&body))
+}
+
+fn eval_gate_passed(eval_results: &[Value]) -> bool {
+    eval_results.iter().any(|item| {
+        item.get("result").and_then(|v| v.as_str()) == Some("improved")
+            || item.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0) >= 0.7
+            || item.get("promote_learning").and_then(|v| v.as_bool()) == Some(true)
+    })
+}
+
+fn memory_pipeline_payload(body: &MemoryPipelineRequest) -> Value {
+    let capped_limit = body.limit.unwrap_or(10).clamp(1, 25);
+    let evidence_present = !body.evidence_refs.is_empty();
+    let eval_passed = eval_gate_passed(&body.eval_results);
+    let repeated = body.repeated_validation_count.unwrap_or(0);
+    let stale = body.lesson_age_days.unwrap_or(0) > 30;
+    let weak = !evidence_present || (!eval_passed && repeated == 0);
+    let semantic_ready = evidence_present && eval_passed;
+    let procedural_ready = semantic_ready && repeated >= 2;
+    let mut stages = vec![
+        json!({
+            "stage": "episodic_event_capture",
+            "status": if body.episodic_events.is_empty() { "missing" } else { "proposed" },
+            "artifact_count": body.episodic_events.len(),
+            "rehydrate": {"route":"/v1/events/recent"},
+        }),
+        json!({
+            "stage": "evidence_handle_link",
+            "status": if evidence_present { "proposed" } else { "blocked" },
+            "evidence_refs": body.evidence_refs.iter().take(8).cloned().collect::<Vec<_>>(),
+            "promotion_gate": "evidence required",
+        }),
+        json!({
+            "stage": "secondary_summary_proposal",
+            "status": if body.synthesis_artifacts.is_empty() { "missing" } else { "proposed" },
+            "artifact_count": body.synthesis_artifacts.len(),
+            "rehydrate": {"route":"/v1/ontology/reflection-synthesizer"},
+        }),
+        json!({
+            "stage": "evaluator_check",
+            "status": if eval_passed { "passed" } else { "blocked" },
+            "eval_count": body.eval_results.len(),
+            "promotion_gate": "eval result or calibration score required",
+        }),
+        json!({
+            "stage": "semantic_metacog_learning",
+            "status": if semantic_ready { "proposed" } else { "blocked" },
+            "candidate": if semantic_ready { json!({"kind":"semantic_learning", "source":"secondary_synthesis", "evidence_refs": body.evidence_refs.iter().take(6).cloned().collect::<Vec<_>>()}) } else { Value::Null },
+            "canonical_truth_mutation": false,
+        }),
+        json!({
+            "stage": "procedural_playbook_hint",
+            "status": if procedural_ready { "proposed" } else { "blocked" },
+            "candidate": if procedural_ready { json!({"kind":"procedural_playbook", "source":"repeated_validated_learning", "tool_contract_hint": true}) } else { Value::Null },
+            "promotion_gate": "repeated validated semantic learning required",
+        }),
+        json!({
+            "stage": "decay_or_archive",
+            "status": if stale || weak { "archive_weak_lesson_proposed" } else { "retained" },
+            "reason": if stale { "stale_lesson" } else if weak { "weak_or_missing_evidence" } else { "active_signal" },
+        }),
+    ];
+    stages.truncate(capped_limit);
+    json!({
+        "status": "ok",
+        "source": "ontology_memory_promotion_pipeline",
+        "canonical_truth_mutation": false,
+        "pipeline_state": if procedural_ready { "procedural_candidate_ready" } else if semantic_ready { "semantic_candidate_ready" } else if weak { "blocked_or_archival_candidate" } else { "episodic_candidate" },
+        "promotion_gates": {
+            "evidence_present": evidence_present,
+            "eval_passed": eval_passed,
+            "repeated_validation_count": repeated,
+            "procedural_threshold": 2,
+        },
+        "linked_artifacts": {
+            "events": body.episodic_events.len(),
+            "evidence_refs": body.evidence_refs.iter().take(8).cloned().collect::<Vec<_>>(),
+            "synthesis_artifacts": body.synthesis_artifacts.iter().take(8).cloned().collect::<Vec<_>>(),
+            "eval_results": body.eval_results.iter().take(8).cloned().collect::<Vec<_>>(),
+        },
+        "stages": stages,
+    })
+}
+
+async fn memory_pipeline(Json(body): Json<MemoryPipelineRequest>) -> Json<Value> {
+    Json(memory_pipeline_payload(&body))
+}
+
+fn intelligence_dashboard_payload(focusa: &FocusaState) -> Value {
+    let projection = combined_projection(focusa, None);
+    let evidence_linked = projection
+        .links
+        .iter()
+        .filter(|link| link.get("evidence").is_some() || link.get("evidence_ref").is_some())
+        .count();
+    let stale_objects = projection
+        .objects
+        .iter()
+        .filter(|object| object.get("status").and_then(|v| v.as_str()) == Some("stale"))
+        .count();
+    let failure_objects = projection
+        .objects
+        .iter()
+        .filter(|object| {
+            matches!(
+                object.get("object_type").and_then(|v| v.as_str()),
+                Some("failure" | "risk")
+            )
+        })
+        .count();
+    let verified_links = projection
+        .links
+        .iter()
+        .filter(|link| link.get("status").and_then(|v| v.as_str()) == Some("verified"))
+        .count();
+    let total_links = projection.links.len().max(1);
+    let eval_fixtures = vec![
+        "compaction_recovery",
+        "ontology_context",
+        "affordances",
+        "uncertainty_labels",
+        "secondary_critic",
+        "metacog_reuse",
+        "code_docs_test_linkage",
+        "operator_steering",
+    ];
+    json!({
+        "status": "ok",
+        "source": "ontology_intelligence_dashboard",
+        "source_state_version": focusa.version,
+        "canonical_truth_mutation": false,
+        "metrics": {
+            "retrieval_hit_rate": (verified_links as f64 / total_links as f64),
+            "irrelevant_stale_context_rate": (stale_objects as f64 / projection.objects.len().max(1) as f64),
+            "drift_prevented": focusa.workpoint.drift_events.len(),
+            "tool_calls_saved": projection.links.iter().filter(|link| link.get("type").and_then(|v| v.as_str()) == Some("available_in_context")).count(),
+            "failed_tool_calls_predicted": failure_objects,
+            "workpoint_resume_success": focusa.workpoint.resume_events.len(),
+            "evidence_linked_answer_rate": (evidence_linked as f64 / total_links as f64),
+            "task_completion_delta": projection.objects.iter().filter(|object| object.get("status").and_then(|v| v.as_str()) == Some("completed")).count(),
+            "latency_rss_overhead_status": "bounded_projection_only"
+        },
+        "fixed_eval_suite": {
+            "fixture_count": eval_fixtures.len(),
+            "fixtures": eval_fixtures,
+            "release_gate": "all_fixed_eval_fixtures_required_for_doc78_claims",
+            "regression_policy": "fail_ci_on_metric_contract_break"
+        },
+        "proof_routes": [
+            "/v1/ontology/context",
+            "/v1/ontology/affordances",
+            "/v1/ontology/retrieval-governor",
+            "/v1/ontology/execution-critic",
+            "/v1/ontology/reflection-synthesizer",
+            "/v1/ontology/memory-pipeline"
+        ],
+    })
+}
+
+async fn intelligence_dashboard(State(state): State<Arc<AppState>>) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(intelligence_dashboard_payload(&focusa))
+}
+
+async fn tool_result_proposals(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<ToolResultProposalRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if body.tool_name.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "tool_name is required"})),
+        ));
+    }
+    let proposal_id = Uuid::now_v7();
+    let deltas = tool_result_candidate_deltas(&body);
+    let events = events_from_tool_result_deltas(proposal_id, &deltas);
+    if body.emit_proposals {
+        for event in events {
+            state
+                .command_tx
+                .send(Action::EmitEvent { event })
+                .await
+                .map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"error": "failed to dispatch tool-result ontology proposal"})),
+                    )
+                })?;
+        }
+    }
+    Ok(Json(json!({
+        "status": "ok",
+        "proposal_id": proposal_id,
+        "canonical_truth_mutation": false,
+        "emitted": body.emit_proposals,
+        "candidate_delta_count": deltas.len(),
+        "candidate_deltas": deltas,
+        "reducer_route": "/v1/ontology/actions",
+        "promotion_policy": "candidate_only_unless_emit_proposals_true_then_reducer_records_proposed_status"
+    })))
+}
+
 fn parse_or_new_proposal_id(raw: Option<&str>) -> Uuid {
     raw.and_then(|v| Uuid::parse_str(v).ok())
         .unwrap_or_else(Uuid::now_v7)
@@ -4720,26 +6775,26 @@ fn proposed_events_from_action(
             if matches!(
                 action_type,
                 "mark_blocked" | "restore_progress" | "verify_progress" | "complete_task"
-            )
-                && let Some(subject) = subject_id.clone() {
-                    let to_status = match action_type {
-                        "mark_blocked" => "blocked",
-                        "restore_progress" => "active",
-                        "verify_progress" => "verified",
-                        "complete_task" => "completed",
-                        _ => "active",
-                    };
-                    events.push(FocusaEvent::OntologyStatusChangeProposed {
-                        proposal_id,
-                        subject,
-                        from_status: payload
-                            .get("from_status")
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.to_string()),
-                        to_status: to_status.to_string(),
-                        source: source.to_string(),
-                    });
-                }
+            ) && let Some(subject) = subject_id.clone()
+            {
+                let to_status = match action_type {
+                    "mark_blocked" => "blocked",
+                    "restore_progress" => "active",
+                    "verify_progress" => "verified",
+                    "complete_task" => "completed",
+                    _ => "active",
+                };
+                events.push(FocusaEvent::OntologyStatusChangeProposed {
+                    proposal_id,
+                    subject,
+                    from_status: payload
+                        .get("from_status")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
+                    to_status: to_status.to_string(),
+                    source: source.to_string(),
+                });
+            }
 
             if action_type == "refresh_working_set" {
                 events.push(FocusaEvent::OntologyWorkingSetMembershipProposed {
@@ -4773,7 +6828,9 @@ fn proposed_events_from_action(
                 source: source.to_string(),
             });
         }
-        "determine_current_ask" | "build_query_scope" | "verify_answer_scope"
+        "determine_current_ask"
+        | "build_query_scope"
+        | "verify_answer_scope"
         | "record_scope_failure" => {
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
                 proposal_id,
@@ -4813,8 +6870,11 @@ fn proposed_events_from_action(
                 source: source.to_string(),
             });
         }
-        "detect_aliases" | "build_resolution_candidates" | "resolve_identity"
-        | "verify_resolution" | "record_supersession" => {
+        "detect_aliases"
+        | "build_resolution_candidates"
+        | "resolve_identity"
+        | "verify_resolution"
+        | "record_supersession" => {
             let canonical_object_id = if action_type == "resolve_identity" {
                 payload
                     .get("canonical_id")
@@ -4868,7 +6928,9 @@ fn proposed_events_from_action(
                 source: source.to_string(),
             });
         }
-        "build_projection" | "compress_projection" | "verify_projection_fidelity"
+        "build_projection"
+        | "compress_projection"
+        | "verify_projection_fidelity"
         | "switch_view_profile" => {
             let view_object_id = if action_type == "switch_view_profile" {
                 payload
@@ -4908,8 +6970,12 @@ fn proposed_events_from_action(
                 source: source.to_string(),
             });
         }
-        "create_version" | "declare_compatibility" | "build_migration_plan"
-        | "execute_migration" | "deprecate_schema_element" | "review_governance_change"
+        "create_version"
+        | "declare_compatibility"
+        | "build_migration_plan"
+        | "execute_migration"
+        | "deprecate_schema_element"
+        | "review_governance_change"
         | "verify_post_migration_conformance" => {
             let governance_object_id = match action_type {
                 "create_version" => payload
@@ -4995,9 +7061,13 @@ fn proposed_events_from_action(
                 source: source.to_string(),
             });
         }
-        "establish_identity" | "load_role_profile" | "verify_capability_profile"
-        | "verify_permission_profile" | "assign_responsibility"
-        | "determine_handoff_boundary" | "restore_identity_continuity" => {
+        "establish_identity"
+        | "load_role_profile"
+        | "verify_capability_profile"
+        | "verify_permission_profile"
+        | "assign_responsibility"
+        | "determine_handoff_boundary"
+        | "restore_identity_continuity" => {
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
                 proposal_id,
                 object_type: payload
@@ -5031,7 +7101,12 @@ fn proposed_events_from_action(
                 .get("object_id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
-                .or_else(|| payload.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()));
+                .or_else(|| {
+                    payload
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                });
 
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
                 proposal_id,
@@ -5254,47 +7329,101 @@ async fn contracts() -> Json<Value> {
     }))
 }
 
+fn ontology_world_default_object_limit() -> usize {
+    env_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 256)
+}
+
+fn ontology_world_full_object_limit() -> usize {
+    env_limit("FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT", 10_000)
+        .max(ontology_world_default_object_limit())
+}
+
+fn ontology_world_default_link_limit() -> usize {
+    env_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512)
+}
+
+fn ontology_world_full_link_limit() -> usize {
+    env_limit("FOCUSA_ONTOLOGY_WORLD_FULL_LINK_LIMIT", 20_000)
+        .max(ontology_world_default_link_limit())
+}
+
+fn action_catalog_projection() -> Vec<Value> {
+    ACTION_CATALOG_PROJECTION.clone()
+}
+
 async fn world(
     Query(query): Query<OntologyWorldQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<Value> {
     let focusa = state.focusa.read().await;
     let projection = combined_projection(&focusa, query.frame_id.as_deref());
-    let action_catalog: Vec<Value> = ACTION_TYPES
-        .iter()
-        .map(|name| {
-            let contract = action_contract(name);
-            let verification_hooks = contract
-                .get("verification_hooks")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
-            let runtime_execution_supported = contract
-                .get("tool_mappings")
-                .and_then(Value::as_array)
-                .map(|mappings| !mappings.is_empty())
-                .unwrap_or(false);
-            let reducer_visible = contract
-                .get("expected_ontology_deltas")
-                .and_then(Value::as_array)
-                .map(|deltas| !deltas.is_empty())
-                .unwrap_or(false);
-            json!({
-                "name": name,
-                "constraint_checked": true,
-                "reducer_visible": reducer_visible,
-                "verification_hooks": verification_hooks,
-                "runtime_execution_supported": runtime_execution_supported,
-                "catalog_role": "contract_projection_reference"
-            })
+    let object_total = projection.objects.len();
+    let link_total = projection.links.len();
+    let full_payload_blocked =
+        full_payload_blocked_by_pressure(query.include_full_payload, query.force_full_payload);
+    let effective_include_full_payload = query.include_full_payload && !full_payload_blocked;
+    let effective_summary_only = query.summary_only || full_payload_blocked;
+    let pressure = pressure_status();
+    let object_options = BoundedReadOptions {
+        requested_limit: query.limit_objects,
+        include_full_payload: effective_include_full_payload,
+        summary_only: effective_summary_only,
+        cursor: None,
+        default_limit: ontology_world_default_object_limit(),
+        full_limit: ontology_world_full_object_limit(),
+    };
+    let link_options = BoundedReadOptions {
+        requested_limit: query.limit_links,
+        include_full_payload: effective_include_full_payload,
+        summary_only: effective_summary_only,
+        cursor: None,
+        default_limit: ontology_world_default_link_limit(),
+        full_limit: ontology_world_full_link_limit(),
+    };
+    let object_limit = object_options.resolved_limit();
+    let link_limit = link_options.resolved_limit();
+    let objects = if effective_summary_only {
+        Vec::new()
+    } else {
+        projection
+            .objects
+            .into_iter()
+            .take(object_limit)
+            .collect::<Vec<_>>()
+    };
+    let links = if effective_summary_only {
+        Vec::new()
+    } else {
+        projection
+            .links
+            .into_iter()
+            .take(link_limit)
+            .collect::<Vec<_>>()
+    };
+    let object_bounds = bounded_metadata(object_total, objects.len(), object_options);
+    let link_bounds = bounded_metadata(link_total, links.len(), link_options);
+    let action_catalog = query
+        .include_action_catalog
+        .then(action_catalog_projection)
+        .unwrap_or_default();
+    let action_catalog_returned = action_catalog.len();
+    let working_sets = if query.include_working_sets {
+        json!({
+            "active_mission_set": slice_payload(&focusa, query.frame_id.as_deref(), "active_mission"),
+            "debugging_set": slice_payload(&focusa, query.frame_id.as_deref(), "debugging"),
+            "refactor_set": slice_payload(&focusa, query.frame_id.as_deref(), "refactor"),
+            "regression_set": slice_payload(&focusa, query.frame_id.as_deref(), "regression"),
+            "architecture_set": slice_payload(&focusa, query.frame_id.as_deref(), "architecture"),
         })
-        .collect();
+    } else {
+        json!({})
+    };
 
     Json(json!({
-        "object_count": projection.objects.len(),
-        "link_count": projection.links.len(),
-        "objects": projection.objects,
-        "links": projection.links,
+        "object_count": object_total,
+        "link_count": link_total,
+        "objects": objects,
+        "links": links,
         "canonical_ontology": {
             "proposal_count": focusa.ontology.proposals.len(),
             "verification_count": focusa.ontology.verifications.len(),
@@ -5302,13 +7431,42 @@ async fn world(
             "delta_count": focusa.ontology.delta_log.len()
         },
         "action_catalog": action_catalog,
-        "working_sets": {
-            "active_mission_set": slice_payload(&focusa, query.frame_id.as_deref(), "active_mission"),
-            "debugging_set": slice_payload(&focusa, query.frame_id.as_deref(), "debugging"),
-            "refactor_set": slice_payload(&focusa, query.frame_id.as_deref(), "refactor"),
-            "regression_set": slice_payload(&focusa, query.frame_id.as_deref(), "regression"),
-            "architecture_set": slice_payload(&focusa, query.frame_id.as_deref(), "architecture"),
-        }
+        "working_sets": working_sets,
+        "bounds": {
+            "objects": object_bounds,
+            "links": link_bounds,
+            "action_catalog": {
+                "total": ACTION_TYPES.len(),
+                "returned": action_catalog_returned,
+                "truncated": !query.include_action_catalog,
+                "include_action_catalog": query.include_action_catalog,
+                "rehydrate": if query.include_action_catalog { Value::Null } else { json!({"parameter":"include_action_catalog","value":"true"}) }
+            },
+            "working_sets": {
+                "total": SLICE_TYPES.len(),
+                "returned": if query.include_working_sets { SLICE_TYPES.len() } else { 0 },
+                "truncated": !query.include_working_sets,
+                "include_working_sets": query.include_working_sets,
+                "rehydrate": if query.include_working_sets { Value::Null } else { json!({"parameter":"include_working_sets","value":"true"}) }
+            }
+        },
+        "projection_profile": {
+            "summary_only": effective_summary_only,
+            "include_full_payload": effective_include_full_payload,
+            "requested_summary_only": query.summary_only,
+            "requested_include_full_payload": query.include_full_payload,
+            "force_full_payload": query.force_full_payload,
+            "canonical_truth_mutation": false,
+            "invariants": [
+                "canonical_and_projection_are_distinct",
+                "bounded_defaults_do_not_strip_canonical_ontology",
+                "full_payload_requires_explicit_opt_in",
+                "omitted_categories_include_rehydrate_parameters"
+            ]
+        },
+        "pressure": pressure,
+        "degraded": full_payload_blocked,
+        "full_payload_blocked_by_pressure": full_payload_blocked
     }))
 }
 
@@ -5324,11 +7482,85 @@ async fn slices(
     ))
 }
 
+async fn adjacency(
+    Query(query): Query<AdjacencyQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(adjacency_index_payload(
+        &focusa,
+        query.frame_id.as_deref(),
+        query.target_ref.as_deref(),
+        query.limit.unwrap_or(25),
+    ))
+}
+
+async fn working_set(
+    Query(query): Query<WorkingSetQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(working_set_payload(
+        &focusa,
+        query.frame_id.as_deref(),
+        query.ask.as_deref(),
+        query.target_ref.as_deref(),
+        &query.slice_type,
+        query.limit.unwrap_or(12),
+        query.include_reasons,
+    ))
+}
+
+async fn context(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<OntologyContextRequest>,
+) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(ontology_context_payload(&focusa, &body))
+}
+
+async fn graph_communities(
+    Query(query): Query<WorkingSetQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(graph_community_summaries_payload(
+        &focusa,
+        query.frame_id.as_deref(),
+        query.limit.unwrap_or(10),
+    ))
+}
+
+async fn affordances(
+    Query(query): Query<AffordancesQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(affordances_payload(
+        &focusa,
+        query.frame_id.as_deref(),
+        query.target_ref.as_deref(),
+        query.action_intent.as_deref(),
+        query.scope.as_deref(),
+        query.limit.unwrap_or(20),
+    ))
+}
+
+async fn retrieval_governor(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<RetrievalGovernorRequest>,
+) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(retrieval_governor_payload(&focusa, &body))
+}
+
 async fn tool_contracts() -> Json<Value> {
     let registry: Value = serde_json::from_str(include_str!(
         "../../../../docs/current/focusa-tool-contracts.json"
     ))
-    .unwrap_or_else(|err| json!({"error":"invalid tool contract registry","details":err.to_string()}));
+    .unwrap_or_else(
+        |err| json!({"error":"invalid tool contract registry","details":err.to_string()}),
+    );
     Json(registry)
 }
 
@@ -5338,6 +7570,26 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/ontology/contracts", get(contracts))
         .route("/v1/ontology/world", get(world))
         .route("/v1/ontology/slices", get(slices))
+        .route("/v1/ontology/adjacency", get(adjacency))
+        .route("/v1/ontology/working-set", get(working_set))
+        .route("/v1/ontology/communities", get(graph_communities))
+        .route("/v1/ontology/context", post(context))
+        .route("/v1/ontology/affordances", get(affordances))
+        .route("/v1/ontology/retrieval-governor", post(retrieval_governor))
+        .route(
+            "/v1/ontology/tool-result-proposals",
+            post(tool_result_proposals),
+        )
+        .route("/v1/ontology/execution-critic", post(execution_critic))
+        .route(
+            "/v1/ontology/reflection-synthesizer",
+            post(reflection_synthesizer),
+        )
+        .route("/v1/ontology/memory-pipeline", post(memory_pipeline))
+        .route(
+            "/v1/ontology/intelligence-dashboard",
+            get(intelligence_dashboard),
+        )
         .route("/v1/ontology/tool-contracts", get(tool_contracts))
         .route("/v1/ontology/actions", post(execute_ontology_action))
 }
@@ -5352,14 +7604,10 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     fn fixture_workspace(test_name: &str, with_git: bool, with_cargo: bool) -> PathBuf {
-        let root = std::env::temp_dir().join(format!(
-            "focusa-ontology-{}-{}",
-            test_name,
-            Uuid::now_v7()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("focusa-ontology-{}-{}", test_name, Uuid::now_v7()));
         fs::create_dir_all(root.join("src")).expect("create fixture workspace");
-        fs::write(root.join("src/lib.rs"), "pub fn fixture() {}\n")
-            .expect("write fixture source");
+        fs::write(root.join("src/lib.rs"), "pub fn fixture() {}\n").expect("write fixture source");
         if with_git {
             fs::create_dir_all(root.join(".git")).expect("create .git dir");
         }
@@ -5417,8 +7665,171 @@ mod tests {
         projection
             .objects
             .iter()
-            .filter(|object| object.get("object_type").and_then(|v| v.as_str()) == Some(object_type))
+            .filter(|object| {
+                object.get("object_type").and_then(|v| v.as_str()) == Some(object_type)
+            })
             .count()
+    }
+
+    fn json_array_contains(payload: &Value, key: &str, expected: &str) -> bool {
+        payload
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|items| items.iter().any(|item| item.as_str() == Some(expected)))
+            .unwrap_or(false)
+    }
+
+    #[test]
+    fn action_catalog_projection_is_cached_and_complete() {
+        let first = action_catalog_projection();
+        let second = action_catalog_projection();
+        assert_eq!(first.len(), ACTION_TYPES.len());
+        assert_eq!(first, second);
+        assert!(first.iter().all(|entry| {
+            entry.get("cache_role").and_then(|v| v.as_str())
+                == Some("static_action_catalog_projection")
+        }));
+    }
+
+    #[test]
+    fn ontology_primitive_contracts_preserve_core_semantic_classes() {
+        let Json(payload) = primitive_contracts();
+        let object_types = payload
+            .get("object_types")
+            .and_then(|v| v.as_array())
+            .expect("object_types array");
+        let type_names: BTreeSet<&str> = object_types
+            .iter()
+            .filter_map(|object| object.get("type_name").and_then(|v| v.as_str()))
+            .collect();
+
+        for required in [
+            "repo",
+            "file",
+            "route",
+            "task",
+            "decision",
+            "constraint",
+            "goal",
+            "active_focus",
+            "patch",
+            "verification",
+            "artifact",
+            "projection",
+            "view_profile",
+            "ontology_version",
+            "governance_decision",
+            "agent_identity",
+            "workpoint_scope_binding",
+        ] {
+            assert!(
+                type_names.contains(required),
+                "ontology object type {required} must remain represented"
+            );
+        }
+
+        for status in ["active", "blocked", "verified", "stale", "canonical"] {
+            assert!(
+                json_array_contains(&payload, "status_vocabulary", status),
+                "status {status} must remain in ontology status vocabulary"
+            );
+        }
+        for provenance in [
+            "parser_derived",
+            "tool_derived",
+            "user_asserted",
+            "model_inferred",
+            "reducer_promoted",
+            "verification_confirmed",
+        ] {
+            assert!(
+                json_array_contains(&payload, "provenance_classes", provenance),
+                "provenance class {provenance} must remain represented"
+            );
+        }
+    }
+
+    #[test]
+    fn ontology_link_and_action_contracts_preserve_reducer_authority() {
+        let Json(payload) = primitive_contracts();
+        let link_types = payload
+            .get("link_types")
+            .and_then(|v| v.as_array())
+            .expect("link_types array");
+        for required_link in [
+            "depends_on",
+            "tested_by",
+            "verifies",
+            "derived_from",
+            "belongs_to_working_set",
+            "approved_by_governance",
+            "governed_by_identity",
+        ] {
+            let link = link_types
+                .iter()
+                .find(|link| link.get("name").and_then(|v| v.as_str()) == Some(required_link))
+                .unwrap_or_else(|| panic!("link {required_link} must remain represented"));
+            assert_eq!(
+                link.get("evidence_policy").and_then(|v| v.as_str()),
+                Some("required")
+            );
+            assert_eq!(
+                link.get("promotion_policy").and_then(|v| v.as_str()),
+                Some("reducer_only")
+            );
+        }
+
+        let action_types = payload
+            .get("action_types")
+            .and_then(|v| v.as_array())
+            .expect("action_types array");
+        for required_action in [
+            "verify_invariant",
+            "refresh_working_set",
+            "detect_affordances",
+            "select_relevant_context",
+            "build_projection",
+            "verify_projection_fidelity",
+            "review_governance_change",
+        ] {
+            assert!(
+                action_types.iter().any(|action| {
+                    action.get("name").and_then(|v| v.as_str()) == Some(required_action)
+                }),
+                "action {required_action} must remain represented"
+            );
+        }
+    }
+
+    #[test]
+    fn ontology_slice_contract_preserves_projection_not_canonical_truth_boundary() {
+        let focusa = FocusaState::default();
+        let payload = slice_payload(&focusa, None, "architecture");
+        assert_eq!(
+            payload.get("source").and_then(|v| v.as_str()),
+            Some("ontology_world_projection")
+        );
+        assert_eq!(
+            payload
+                .get("projection_profile")
+                .and_then(|v| v.get("canonical_truth_mutation"))
+                .and_then(|v| v.as_bool()),
+            Some(false)
+        );
+        let invariants = payload
+            .get("projection_profile")
+            .and_then(|v| v.get("invariants"))
+            .and_then(|v| v.as_array())
+            .expect("slice invariants");
+        assert!(
+            invariants
+                .iter()
+                .any(|v| v.as_str() == Some("canonical_and_projection_are_distinct"))
+        );
+        assert!(
+            payload.get("bounds").is_some(),
+            "slice must expose bounds for omitted detail"
+        );
     }
 
     #[test]
@@ -5818,6 +8229,480 @@ mod tests {
     }
 
     #[test]
+    fn uncertainty_label_prioritizes_degraded_verified_evidence_and_projection() {
+        assert_eq!(
+            uncertainty_label(&json!({"degraded": true, "status":"verified"})),
+            "degraded"
+        );
+        assert_eq!(uncertainty_label(&json!({"status":"verified"})), "verified");
+        assert_eq!(
+            uncertainty_label(&json!({"evidence_ref":"proof:1"})),
+            "evidence_linked"
+        );
+        assert_eq!(
+            uncertainty_label(&json!({"status":"proposed"})),
+            "speculative"
+        );
+        assert_eq!(uncertainty_label(&json!({"status":"stale"})), "stale");
+        assert_eq!(
+            uncertainty_label(&json!({"id":"object:a"})),
+            "projection_only"
+        );
+    }
+
+    #[test]
+    fn adjacency_index_surfaces_incoming_outgoing_counts_without_mutation() {
+        let mut focusa = FocusaState::default();
+        focusa.version = 42;
+        focusa.ontology.objects.push(json!({
+            "id": "file:a",
+            "object_type": "file",
+            "status": "active",
+            "membership_class": "verified"
+        }));
+        focusa.ontology.objects.push(json!({
+            "id": "test:a",
+            "object_type": "test",
+            "status": "verified",
+            "membership_class": "verified"
+        }));
+        focusa.ontology.links.push(json!({
+            "type": "tested_by",
+            "source_id": "file:a",
+            "target_id": "test:a",
+            "status": "verified",
+            "evidence_ref": "test:fixture"
+        }));
+
+        let payload = adjacency_index_payload(&focusa, None, Some("file:a"), 10);
+        assert_eq!(payload["source_state_version"].as_u64(), Some(42));
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        let node = payload["nodes"].as_array().unwrap().first().unwrap();
+        assert_eq!(node["id"].as_str(), Some("file:a"));
+        assert_eq!(node["outgoing_count"].as_u64(), Some(1));
+        assert_eq!(node["incoming_count"].as_u64(), Some(0));
+        assert_eq!(node["outgoing"][0]["type"].as_str(), Some("tested_by"));
+        assert_eq!(
+            node["outgoing"][0]["uncertainty"].as_str(),
+            Some("verified")
+        );
+        assert_eq!(node["uncertainty"].as_str(), Some("projection_only"));
+    }
+
+    #[test]
+    fn working_set_payload_returns_scored_members_and_rehydrate_paths() {
+        let mut focusa = FocusaState::default();
+        focusa.version = 7;
+        focusa.ontology.objects.push(json!({
+            "id": "failure:a",
+            "object_type": "failure",
+            "status": "active",
+            "membership_class": "deterministic"
+        }));
+        focusa.ontology.objects.push(json!({
+            "id": "test:a",
+            "object_type": "test",
+            "status": "verified",
+            "membership_class": "verified"
+        }));
+        focusa.ontology.links.push(json!({
+            "type": "tested_by",
+            "source_id": "failure:a",
+            "target_id": "test:a",
+            "status": "verified"
+        }));
+
+        let payload =
+            working_set_payload(&focusa, None, Some("failure"), None, "debugging", 10, true);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_working_set_projection")
+        );
+        assert_eq!(payload["source_state_version"].as_u64(), Some(7));
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        let members = payload["members"].as_array().unwrap();
+        assert!(
+            members
+                .iter()
+                .any(|member| member["id"].as_str() == Some("failure:a"))
+        );
+        let failure = members
+            .iter()
+            .find(|member| member["id"].as_str() == Some("failure:a"))
+            .unwrap();
+        assert_eq!(
+            failure["rehydrate"]["route"].as_str(),
+            Some("/v1/ontology/adjacency")
+        );
+        assert_eq!(failure["uncertainty"].as_str(), Some("projection_only"));
+        assert!(failure["reason_count"].as_u64().unwrap_or(0) > 0);
+        assert!(failure["link_strength_score"].as_i64().unwrap_or(0) > 0);
+        assert!(
+            failure["link_path_reason"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("strength=")
+        );
+    }
+
+    #[test]
+    fn graph_community_summaries_are_evidence_backed_projections() {
+        let mut focusa = FocusaState::default();
+        focusa.version = 12;
+        focusa
+            .ontology
+            .objects
+            .push(json!({"id":"file:a","object_type":"file","status":"verified"}));
+        focusa
+            .ontology
+            .objects
+            .push(json!({"id":"test:a","object_type":"test","status":"verified"}));
+        focusa.ontology.links.push(json!({"type":"tested_by","source_id":"file:a","target_id":"test:a","status":"verified","evidence":"fixture"}));
+        let payload = graph_community_summaries_payload(&focusa, None, 5);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_graph_community_projection")
+        );
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        let communities = payload["communities"].as_array().unwrap();
+        assert!(communities.iter().any(|community| {
+            community["evidence_links"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .any(|link| {
+                    link["path"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .contains("tested_by")
+                })
+        }));
+    }
+
+    #[test]
+    fn ontology_context_payload_is_prompt_safe_and_non_mutating() {
+        let mut focusa = FocusaState::default();
+        focusa.version = 9;
+        focusa.ontology.objects.push(json!({
+            "id": "task:a",
+            "object_type": "task",
+            "status": "active",
+            "membership_class": "deterministic"
+        }));
+        let body = OntologyContextRequest {
+            current_ask: Some("verify ontology context".to_string()),
+            frame_id: None,
+            workpoint_id: Some("wp:1".to_string()),
+            target_refs: vec![],
+            budget_tokens: Some(300),
+            view_profile: Some("pi_operator_view".to_string()),
+            slice_type: "active_mission".to_string(),
+        };
+        let payload = ontology_context_payload(&focusa, &body);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_prompt_safe_context")
+        );
+        assert_eq!(payload["source_state_version"].as_u64(), Some(9));
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        assert!(payload["active_object_set"].as_array().is_some());
+        assert!(
+            payload["valid_next_actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|action| {
+                    action.get("name").and_then(|v| v.as_str()) == Some("verify_invariant")
+                })
+        );
+        assert!(payload["rehydrate"]["routes"].as_array().is_some());
+    }
+
+    #[test]
+    fn affordances_payload_surfaces_feasible_actions_without_mutation() {
+        let root = fixture_workspace("affordance-route", true, true);
+        let mut focusa = focusa_with_workspace(&root);
+        focusa.version = 11;
+        let payload = affordances_payload(&focusa, None, None, Some("verify"), Some("current"), 10);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_affordance_execution_projection")
+        );
+        assert_eq!(payload["source_state_version"].as_u64(), Some(11));
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        assert!(payload["feasible_actions"].as_array().is_some());
+        assert!(
+            payload["valid_next_actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|action| {
+                    action.get("name").and_then(|v| v.as_str()) == Some("verify_invariant")
+                })
+        );
+    }
+
+    #[test]
+    fn retrieval_governor_selects_minimal_substrates_and_respects_steering() {
+        let mut focusa = FocusaState::default();
+        focusa.version = 13;
+        let body = RetrievalGovernorRequest {
+            current_ask: Some("implement ontology route".to_string()),
+            frame_id: None,
+            workpoint_id: Some("wp:1".to_string()),
+            target_refs: vec!["file:a".to_string()],
+            budget_tokens: Some(600),
+            operator_steering_detected: true,
+            include_metacog: false,
+        };
+        let payload = retrieval_governor_payload(&focusa, &body);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_retrieval_governor")
+        );
+        assert_eq!(payload["source_state_version"].as_u64(), Some(13));
+        assert_eq!(
+            payload["excluded_context_reason"].as_str(),
+            Some("operator_steering")
+        );
+        let plan = payload["retrieval_plan"].as_array().unwrap();
+        assert!(
+            plan.iter()
+                .any(|item| item["substrate"].as_str() == Some("ontology_context"))
+        );
+        assert!(
+            plan.iter()
+                .any(|item| item["substrate"].as_str() == Some("ontology_affordances"))
+        );
+        assert!(
+            !plan
+                .iter()
+                .any(|item| item["substrate"].as_str() == Some("workpoint"))
+        );
+        assert_eq!(
+            payload["hybrid_ranker"]["canonical_truth_mutation"].as_bool(),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn tool_result_candidate_deltas_connect_targets_evidence_and_failures_without_mutation() {
+        let body = ToolResultProposalRequest {
+            tool_name: "bash".to_string(),
+            status: Some("failed".to_string()),
+            ok: Some(false),
+            target_refs: vec!["crates/focusa-api/src/routes/ontology.rs".to_string()],
+            evidence_refs: vec!["cargo test -p focusa-api".to_string()],
+            workpoint_id: Some("wp-1".to_string()),
+            action_intent: Some("verify route".to_string()),
+            summary: Some("test failed".to_string()),
+            error: Some("compile error".to_string()),
+            emit_proposals: false,
+        };
+        let deltas = tool_result_candidate_deltas(&body);
+        assert!(deltas.iter().any(|delta| delta["delta_kind"].as_str()
+            == Some("ontology_link_upsert_proposed")
+            && delta["link_type"].as_str() == Some("verifies")));
+        assert!(deltas.iter().any(|delta| delta["delta_kind"].as_str()
+            == Some("ontology_status_change_proposed")
+            && delta["to_status"].as_str() == Some("failed")));
+        assert!(
+            deltas
+                .iter()
+                .any(|delta| delta["object_type"].as_str() == Some("workpoint"))
+        );
+        let events = events_from_tool_result_deltas(Uuid::now_v7(), &deltas);
+        assert!(!events.is_empty());
+    }
+
+    #[test]
+    fn execution_critic_emits_failure_artifact_without_canonical_mutation() {
+        let body = ExecutionCriticRequest {
+            intended_action: Some("verify route".to_string()),
+            target_refs: vec!["crates/focusa-api/src/routes/ontology.rs".to_string()],
+            verification_hooks: vec!["cargo test".to_string()],
+            tool_result: ToolResultProposalRequest {
+                tool_name: "bash".to_string(),
+                status: Some("failed".to_string()),
+                ok: Some(false),
+                target_refs: vec!["crates/focusa-api/src/routes/ontology.rs".to_string()],
+                evidence_refs: vec!["cargo test".to_string()],
+                workpoint_id: Some("wp-1".to_string()),
+                action_intent: Some("verify route".to_string()),
+                summary: Some("compile failed".to_string()),
+                error: Some("compile failed".to_string()),
+                emit_proposals: false,
+            },
+            workpoint_next_action: Some("verify route".to_string()),
+            operator_priority: Some("continue".to_string()),
+        };
+        let payload = execution_critic_payload(&body);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_execution_critic")
+        );
+        assert_eq!(
+            payload["critic_outcome"].as_str(),
+            Some("bounded_failure_proposal")
+        );
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        assert!(
+            payload["candidate_ontology_deltas"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(
+                    |delta| delta["delta_kind"].as_str() == Some("ontology_status_change_proposed")
+                )
+        );
+    }
+
+    #[test]
+    fn reflection_synthesizer_proposes_artifacts_and_rejects_noise_without_promotion() {
+        let noisy = ReflectionSynthesizerRequest {
+            traces: vec![],
+            evals: vec![],
+            critic_outputs: vec![],
+            evidence_refs: vec![],
+            scope_tags: vec![],
+            limit: Some(5),
+            promote: true,
+        };
+        let noisy_payload = reflection_synthesizer_payload(&noisy);
+        assert_eq!(noisy_payload["noise_rejected"].as_bool(), Some(true));
+        assert_eq!(noisy_payload["promoted"].as_bool(), Some(false));
+        assert_eq!(
+            noisy_payload["canonical_truth_mutation"].as_bool(),
+            Some(false)
+        );
+
+        let useful = ReflectionSynthesizerRequest {
+            traces: vec![json!({"event":"tool_result"})],
+            evals: vec![json!({"prediction_type":"next_action_success","score":0.7})],
+            critic_outputs: vec![
+                json!({"critic_outcome":"bounded_failure_proposal","signals":{"failed":true}}),
+            ],
+            evidence_refs: vec!["cargo test -p focusa-api".to_string()],
+            scope_tags: vec!["ontology".to_string()],
+            limit: Some(8),
+            promote: false,
+        };
+        let payload = reflection_synthesizer_payload(&useful);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_secondary_reflection_synthesizer")
+        );
+        assert_eq!(payload["noise_rejected"].as_bool(), Some(false));
+        let artifacts = payload["synthesized_artifacts"].as_array().unwrap();
+        assert!(
+            artifacts.iter().any(
+                |artifact| artifact["artifact_kind"].as_str() == Some("failure_class_proposal")
+            )
+        );
+        assert!(
+            artifacts
+                .iter()
+                .all(|artifact| artifact["promotion_state"].as_str().is_some())
+        );
+    }
+
+    #[test]
+    fn memory_pipeline_links_artifacts_and_gates_semantic_procedural_promotion() {
+        let blocked = MemoryPipelineRequest {
+            episodic_events: vec![json!({"event":"tool_result"})],
+            evidence_refs: vec![],
+            synthesis_artifacts: vec![json!({"artifact_kind":"metacog_signal_proposal"})],
+            eval_results: vec![],
+            repeated_validation_count: Some(0),
+            lesson_age_days: Some(40),
+            limit: Some(10),
+        };
+        let blocked_payload = memory_pipeline_payload(&blocked);
+        assert_eq!(
+            blocked_payload["canonical_truth_mutation"].as_bool(),
+            Some(false)
+        );
+        assert_eq!(
+            blocked_payload["pipeline_state"].as_str(),
+            Some("blocked_or_archival_candidate")
+        );
+        assert!(
+            blocked_payload["stages"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|stage| stage["status"].as_str() == Some("archive_weak_lesson_proposed"))
+        );
+
+        let promoted = MemoryPipelineRequest {
+            episodic_events: vec![json!({"event":"tool_result"})],
+            evidence_refs: vec!["test:proof".to_string()],
+            synthesis_artifacts: vec![json!({"artifact_kind":"procedural_playbook_proposal"})],
+            eval_results: vec![json!({"result":"improved","promote_learning":true})],
+            repeated_validation_count: Some(2),
+            lesson_age_days: Some(1),
+            limit: Some(10),
+        };
+        let payload = memory_pipeline_payload(&promoted);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_memory_promotion_pipeline")
+        );
+        assert_eq!(
+            payload["pipeline_state"].as_str(),
+            Some("procedural_candidate_ready")
+        );
+        assert!(
+            payload["stages"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(
+                    |stage| stage["stage"].as_str() == Some("procedural_playbook_hint")
+                        && stage["status"].as_str() == Some("proposed")
+                )
+        );
+    }
+
+    #[test]
+    fn intelligence_dashboard_surfaces_doc78_metrics_and_fixed_eval_suite() {
+        let mut focusa = FocusaState::default();
+        focusa.version = 21;
+        focusa
+            .ontology
+            .objects
+            .push(json!({"id":"task:a","object_type":"task","status":"completed"}));
+        focusa
+            .ontology
+            .objects
+            .push(json!({"id":"risk:a","object_type":"risk","status":"active"}));
+        focusa.ontology.links.push(json!({"type":"verifies","source_id":"evidence:a","target_id":"task:a","status":"verified","evidence":"test"}));
+        let payload = intelligence_dashboard_payload(&focusa);
+        assert_eq!(
+            payload["source"].as_str(),
+            Some("ontology_intelligence_dashboard")
+        );
+        assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
+        assert!(
+            payload["metrics"]["evidence_linked_answer_rate"]
+                .as_f64()
+                .unwrap_or(0.0)
+                > 0.0
+        );
+        let fixtures = payload["fixed_eval_suite"]["fixtures"].as_array().unwrap();
+        assert!(
+            fixtures
+                .iter()
+                .any(|item| item.as_str() == Some("secondary_critic"))
+        );
+        assert!(
+            fixtures
+                .iter()
+                .any(|item| item.as_str() == Some("operator_steering"))
+        );
+    }
+
+    #[test]
     fn projection_profile_is_stable_for_same_slice_type() {
         let focusa = FocusaState::default();
         let payload_a = slice_payload(&focusa, None, "regression");
@@ -5849,18 +8734,32 @@ mod tests {
         fs::create_dir_all(root.join("src/routes")).expect("create routes dir");
         fs::create_dir_all(root.join("tests")).expect("create tests dir");
         fs::create_dir_all(root.join("migrations")).expect("create migrations dir");
+        fs::create_dir_all(root.join("docs")).expect("create docs dir");
         fs::write(
             root.join("src/routes/api.rs"),
             "use axum::{routing::get, Router};\npub fn router() -> Router { Router::new().route(\"/fixture\", get(handler)) }\nasync fn handler() {}\n",
         )
         .expect("write route fixture");
-        fs::write(root.join("tests/fixture_test.rs"), "#[test]\nfn fixture_works() { assert!(true); }\n")
-            .expect("write test fixture");
+        fs::write(
+            root.join("tests/fixture_test.rs"),
+            "#[test]\nfn fixture_works() { assert!(true); }\n",
+        )
+        .expect("write test fixture");
         fs::write(
             root.join("migrations/001_init.sql"),
             "create table widgets(id integer primary key);\n",
         )
         .expect("write migration fixture");
+        fs::write(
+            root.join("docs/spec-fixture.md"),
+            "# Fixture spec\nCovers route fixture.\n",
+        )
+        .expect("write spec fixture");
+        fs::write(
+            root.join("src/tool-contracts.ts"),
+            "export const contract = {};\n",
+        )
+        .expect("write tool contract fixture");
 
         let focusa = focusa_with_workspace(&root);
         let projection = workspace_projection(&focusa);
@@ -5873,6 +8772,38 @@ mod tests {
         assert!(projection_count(&projection, "endpoint") >= 1);
         assert!(projection_count(&projection, "migration") >= 1);
         assert!(projection_count(&projection, "test") >= 1);
+        assert!(projection_count(&projection, "specification") >= 1);
+        assert!(projection_count(&projection, "tool_contract") >= 1);
+        assert!(
+            projection
+                .links
+                .iter()
+                .any(
+                    |link| link.get("type").and_then(|v| v.as_str()) == Some("binds_to")
+                        && link.get("evidence").and_then(|v| v.as_str())
+                            == Some("route handler scan")
+                )
+        );
+        assert!(
+            projection
+                .links
+                .iter()
+                .any(
+                    |link| link.get("type").and_then(|v| v.as_str()) == Some("constrains")
+                        && link.get("evidence").and_then(|v| v.as_str())
+                            == Some("docs/spec -> package heuristic")
+                )
+        );
+        assert!(
+            projection
+                .links
+                .iter()
+                .any(
+                    |link| link.get("type").and_then(|v| v.as_str()) == Some("targets_schema")
+                        && link.get("evidence").and_then(|v| v.as_str())
+                            == Some("tool contract file scan")
+                )
+        );
     }
 
     #[test]
@@ -5881,10 +8812,14 @@ mod tests {
         let focusa = focusa_with_workspace(&root);
         let projection = affordance_execution_projection(&focusa, None);
 
-        let execution_context_id =
-            stable_id("execution_context", &format!("workspace:{}", root.display()));
-        let inspect_workspace_affordance_id =
-            stable_id("affordance", &format!("inspect-workspace:{}", root.display()));
+        let execution_context_id = stable_id(
+            "execution_context",
+            &format!("workspace:{}", root.display()),
+        );
+        let inspect_workspace_affordance_id = stable_id(
+            "affordance",
+            &format!("inspect-workspace:{}", root.display()),
+        );
         let edit_workspace_affordance_id =
             stable_id("affordance", &format!("edit-workspace:{}", root.display()));
         let workspace_fs_surface_id = stable_id("tool_surface", "workspace_filesystem");
@@ -5957,8 +8892,10 @@ mod tests {
 
         let build_rust_affordance_id =
             stable_id("affordance", &format!("build-rust:{}", root.display()));
-        let cargo_manifest_precondition_id =
-            stable_id("precondition", &format!("cargo-manifest:{}", root.display()));
+        let cargo_manifest_precondition_id = stable_id(
+            "precondition",
+            &format!("cargo-manifest:{}", root.display()),
+        );
 
         assert!(projection_has_object(
             &projection,

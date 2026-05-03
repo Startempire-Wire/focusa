@@ -9,16 +9,19 @@ use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use chrono::Utc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct SnapshotRecord {
     snapshot_id: String,
     clt_node_id: String,
@@ -118,6 +121,30 @@ fn snapshot_dir(state: &AppState) -> PathBuf {
 
 fn snapshot_record_path(state: &AppState, snapshot_id: &str) -> PathBuf {
     snapshot_dir(state).join(format!("{snapshot_id}.json"))
+}
+
+fn snapshot_index_path(state: &AppState) -> PathBuf {
+    snapshot_dir(state).join("snapshot-index.json")
+}
+
+fn persist_snapshot_index(state: &AppState, records: impl IntoIterator<Item = SnapshotRecord>) {
+    let mut items = records.into_iter().collect::<Vec<_>>();
+    items.sort_by_key(|rec| std::cmp::Reverse(rec.created_at));
+    items.truncate(snapshot_store_config().max_snapshots.min(2048));
+    let path = snapshot_index_path(state);
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(bytes) = serde_json::to_vec_pretty(&items) {
+        let _ = fs::write(path, bytes);
+    }
+}
+
+fn load_snapshot_index(state: &AppState) -> Vec<SnapshotRecord> {
+    fs::read(snapshot_index_path(state))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Vec<SnapshotRecord>>(&bytes).ok())
+        .unwrap_or_default()
 }
 
 fn persist_snapshot_record(state: &AppState, rec: &SnapshotRecord) {
@@ -229,7 +256,9 @@ async fn create_snapshot(
     let checksum = compute_checksum(s.version, s.clt.head_id.as_deref(), &clt_node_id);
     let created_at = Utc::now();
 
-    let storage_path = snapshot_record_path(&state, &snapshot_id).display().to_string();
+    let storage_path = snapshot_record_path(&state, &snapshot_id)
+        .display()
+        .to_string();
     let rec = SnapshotRecord {
         snapshot_id: snapshot_id.clone(),
         clt_node_id: clt_node_id.clone(),
@@ -248,6 +277,7 @@ async fn create_snapshot(
     let mut store = snapshot_store().lock().expect("snapshot store poisoned");
     store.insert(snapshot_id.clone(), rec);
     prune_snapshot_store(&mut store, Utc::now(), snapshot_store_config());
+    persist_snapshot_index(&state, store.values().cloned());
 
     Ok(Json(json!({
         "status": "ok",
@@ -292,10 +322,11 @@ async fn restore_snapshot(
     let record = {
         let mut store = snapshot_store().lock().expect("snapshot store poisoned");
         if !store.contains_key(&body.snapshot_id)
-            && let Some(mut disk_record) = load_snapshot_record(&state, &body.snapshot_id) {
-                disk_record.accessed_at = Utc::now();
-                store.insert(body.snapshot_id.clone(), disk_record);
-            }
+            && let Some(mut disk_record) = load_snapshot_record(&state, &body.snapshot_id)
+        {
+            disk_record.accessed_at = Utc::now();
+            store.insert(body.snapshot_id.clone(), disk_record);
+        }
 
         let Some(record) = store.get_mut(&body.snapshot_id) else {
             return Err((
@@ -309,7 +340,9 @@ async fn restore_snapshot(
         };
         record.accessed_at = Utc::now();
         persist_snapshot_record(&state, record);
-        record.clone()
+        let cloned = record.clone();
+        persist_snapshot_index(&state, store.values().cloned());
+        cloned
     };
 
     let s = state.focusa.read().await;
@@ -356,8 +389,13 @@ async fn recent_snapshots(
             by_id.insert(rec.snapshot_id.clone(), rec.clone());
         }
     }
-    for rec in load_all_snapshot_records(&state) {
+    for rec in load_snapshot_index(&state) {
         by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
+    }
+    if by_id.is_empty() {
+        for rec in load_all_snapshot_records(&state) {
+            by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
+        }
     }
 
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
@@ -367,6 +405,7 @@ async fn recent_snapshots(
 
     Ok(Json(json!({
         "status": "ok",
+        "source": "snapshot_hot_index",
         "total": items.len(),
         "snapshots": items.into_iter().map(|rec| json!({
             "snapshot_id": rec.snapshot_id,
@@ -396,15 +435,17 @@ async fn diff_snapshots(
         let mut store = snapshot_store().lock().expect("snapshot store poisoned");
 
         if !store.contains_key(&body.from_snapshot_id)
-            && let Some(mut rec) = load_snapshot_record(&state, &body.from_snapshot_id) {
-                rec.accessed_at = Utc::now();
-                store.insert(body.from_snapshot_id.clone(), rec);
-            }
+            && let Some(mut rec) = load_snapshot_record(&state, &body.from_snapshot_id)
+        {
+            rec.accessed_at = Utc::now();
+            store.insert(body.from_snapshot_id.clone(), rec);
+        }
         if !store.contains_key(&body.to_snapshot_id)
-            && let Some(mut rec) = load_snapshot_record(&state, &body.to_snapshot_id) {
-                rec.accessed_at = Utc::now();
-                store.insert(body.to_snapshot_id.clone(), rec);
-            }
+            && let Some(mut rec) = load_snapshot_record(&state, &body.to_snapshot_id)
+        {
+            rec.accessed_at = Utc::now();
+            store.insert(body.to_snapshot_id.clone(), rec);
+        }
 
         let Some(from) = store.get_mut(&body.from_snapshot_id) else {
             return Err((
@@ -435,6 +476,7 @@ async fn diff_snapshots(
         let to_cloned = to.clone();
 
         prune_snapshot_store(&mut store, Utc::now(), snapshot_store_config());
+        persist_snapshot_index(&state, store.values().cloned());
         (from_cloned, to_cloned)
     };
 
@@ -471,7 +513,11 @@ mod tests {
     use super::*;
     use chrono::{Duration, TimeZone};
 
-    fn rec(id: &str, created_at: chrono::DateTime<chrono::Utc>, accessed_at: chrono::DateTime<chrono::Utc>) -> SnapshotRecord {
+    fn rec(
+        id: &str,
+        created_at: chrono::DateTime<chrono::Utc>,
+        accessed_at: chrono::DateTime<chrono::Utc>,
+    ) -> SnapshotRecord {
         SnapshotRecord {
             snapshot_id: id.to_string(),
             clt_node_id: format!("clt-{id}"),
@@ -488,8 +534,22 @@ mod tests {
     fn prune_snapshot_store_removes_expired_entries() {
         let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
         let mut store = HashMap::new();
-        store.insert("old".to_string(), rec("old", now - Duration::minutes(400), now - Duration::minutes(400)));
-        store.insert("new".to_string(), rec("new", now - Duration::minutes(20), now - Duration::minutes(10)));
+        store.insert(
+            "old".to_string(),
+            rec(
+                "old",
+                now - Duration::minutes(400),
+                now - Duration::minutes(400),
+            ),
+        );
+        store.insert(
+            "new".to_string(),
+            rec(
+                "new",
+                now - Duration::minutes(20),
+                now - Duration::minutes(10),
+            ),
+        );
 
         prune_snapshot_store(
             &mut store,
@@ -508,9 +568,22 @@ mod tests {
     fn prune_snapshot_store_uses_lru_when_over_capacity() {
         let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
         let mut store = HashMap::new();
-        store.insert("a".to_string(), rec("a", now - Duration::minutes(20), now - Duration::minutes(20)));
-        store.insert("b".to_string(), rec("b", now - Duration::minutes(20), now - Duration::minutes(5)));
-        store.insert("c".to_string(), rec("c", now - Duration::minutes(20), now - Duration::minutes(1)));
+        store.insert(
+            "a".to_string(),
+            rec(
+                "a",
+                now - Duration::minutes(20),
+                now - Duration::minutes(20),
+            ),
+        );
+        store.insert(
+            "b".to_string(),
+            rec("b", now - Duration::minutes(20), now - Duration::minutes(5)),
+        );
+        store.insert(
+            "c".to_string(),
+            rec("c", now - Duration::minutes(20), now - Duration::minutes(1)),
+        );
 
         prune_snapshot_store(
             &mut store,

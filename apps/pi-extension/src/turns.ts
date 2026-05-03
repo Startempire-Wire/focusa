@@ -13,6 +13,35 @@ import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
 
+let traceBatch: any[] = [];
+let traceBatchFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function queueTraceTelemetry(event: Record<string, any>): void {
+  traceBatch.push(event);
+  if (traceBatch.length >= 100) {
+    flushTraceTelemetryBatch();
+    return;
+  }
+  if (!traceBatchFlushTimer) {
+    traceBatchFlushTimer = setTimeout(flushTraceTelemetryBatch, 0);
+  }
+}
+
+function flushTraceTelemetryBatch(): void {
+  if (traceBatchFlushTimer) {
+    clearTimeout(traceBatchFlushTimer);
+    traceBatchFlushTimer = null;
+  }
+  const events = traceBatch.splice(0, 100);
+  if (!events.length) return;
+  focusaPost("/telemetry/trace/batch", {
+    batch_id: `pi-trace-batch-${S.turnCount}-${Date.now()}`,
+    surface: "pi",
+    event_count: events.length,
+    events,
+  });
+}
+
 
 async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
   if (!S.focusaAvailable) return;
@@ -220,6 +249,33 @@ export function registerTurns(pi: ExtensionAPI) {
       governingPriors: activeGoverningPriors,
     });
     const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
+    let ontologyContext: any = null;
+    if (S.focusaAvailable && includeAuxContext) {
+      try {
+        ontologyContext = await focusaFetch("/ontology/retrieval-governor", {
+          method: "POST",
+          body: JSON.stringify({
+            current_ask: S.currentAsk?.text || askText,
+            frame_id: S.activeFrameId,
+            workpoint_id: S.activeWorkpointPacket?.workpoint_id || S.activeWorkpointPacket?.workpoint?.workpoint_id,
+            target_refs: canonicalReferenceAliases.slice(0, 6),
+            budget_tokens: Math.min(maxTokens, 800),
+            operator_steering_detected: isOperatorSteeringInput(askText, S.currentAsk?.kind || "unknown"),
+          }),
+        });
+      } catch {
+        ontologyContext = null;
+      }
+    }
+    const ontologyObjectLines = Array.isArray(ontologyContext?.ontology_context?.active_object_set)
+      ? ontologyContext.ontology_context.active_object_set.slice(0, 6).map((item: any) => `${item.object_type || "object"}:${item.id || "unknown"} (${item.uncertainty || "unknown"})`)
+      : [];
+    const ontologyActionLines = Array.isArray(ontologyContext?.ontology_context?.valid_next_actions)
+      ? ontologyContext.ontology_context.valid_next_actions.slice(0, 4).map((item: any) => String(item.name || "unknown_action"))
+      : [];
+    const ontologyUncertaintyLines = Array.isArray(ontologyContext?.ontology_context?.uncertainty_flags)
+      ? ontologyContext.ontology_context.uncertainty_flags.slice(0, 6).map((item: any) => String(item))
+      : [];
 
     const sectionEntries = [
       { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
@@ -233,6 +289,9 @@ export function registerTurns(pi: ExtensionAPI) {
       { key: "projection_boundary", text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}` , include: true, selectedCount: 1, excludedCount: 0, priority: 13, relevanceScore: 90 },
       { key: "canonical_sources", text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles reference_index`, include: true, selectedCount: 4, excludedCount: 0, priority: 14, relevanceScore: 90 },
       buildSliceSection("canonical_references", "REFERENCE_ALIASES", canonicalReferenceAliases, canonicalReferenceAliases.length > 0, (values) => fmt("REFERENCE_ALIASES", values), 0, 15, 85),
+      buildSliceSection("ontology_active_objects", "ONTOLOGY_ACTIVE_OBJECTS", ontologyObjectLines, ontologyObjectLines.length > 0, (values) => fmt("ONTOLOGY_ACTIVE_OBJECTS", values), 0, 16, 92),
+      buildSliceSection("ontology_next_actions", "ONTOLOGY_NEXT_ACTIONS", ontologyActionLines, ontologyActionLines.length > 0, (values) => fmt("ONTOLOGY_NEXT_ACTIONS", values), 0, 17, 88),
+      buildSliceSection("ontology_uncertainty", "ONTOLOGY_UNCERTAINTY", ontologyUncertaintyLines, ontologyUncertaintyLines.length > 0, (values) => fmt("ONTOLOGY_UNCERTAINTY", values), 0, 18, 80),
       buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
       buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
       buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
@@ -339,33 +398,33 @@ export function registerTurns(pi: ExtensionAPI) {
         view_profile: viewProfile,
       };
       if (lastUserText) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "operator_subject",
           ...common,
           operator_subject_preview: lastUserText,
         });
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "active_subject_after_routing",
           ...common,
           active_subject_after_routing: lastUserText,
         });
       }
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "prior_mission_reused",
         ...common,
         prior_mission_reused: priorMissionReused,
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "focus_slice_size",
         ...common,
         focus_slice_size: lines.length,
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "focus_slice_relevance_score",
         ...common,
         focus_slice_relevance_score: focusSliceRelevanceScore,
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "mission_frame_context",
         ...common,
         projection_boundary: {
@@ -389,13 +448,13 @@ export function registerTurns(pi: ExtensionAPI) {
         },
         resolved_reference_count: canonicalReferenceAliases.length,
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "relevant_context_selected",
         ...common,
         relevant_context_labels: relevantContextLabels,
         selected_counts: Object.fromEntries(scopedEntries.map((entry) => [entry.key, entry.selectedCount || 0])),
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "governing_priors_applied",
         ...common,
         governing_priors: activeGoverningPriors,
@@ -406,7 +465,7 @@ export function registerTurns(pi: ExtensionAPI) {
         },
       });
       if (relevantWorkingSet.items.length) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "working_set_used",
           ...common,
           working_set_used: relevantWorkingSet.items,
@@ -416,7 +475,7 @@ export function registerTurns(pi: ExtensionAPI) {
         });
       }
       if (relevantVerifiedDeltas.items.length) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "verification_result",
           ...common,
           verification_surface: "verified_deltas",
@@ -428,7 +487,7 @@ export function registerTurns(pi: ExtensionAPI) {
         });
       }
       if (excludedContext.length) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "irrelevant_context_excluded",
           ...common,
           exclusion_reason: exclusionReason,
@@ -436,7 +495,7 @@ export function registerTurns(pi: ExtensionAPI) {
         });
       }
       if (!missionIncluded && (scopeKind === "fresh_question" || scopeKind === "correction" || excludedContext.length > 0)) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "subject_hijack_prevented",
           ...common,
           subject_hijack_prevented: true,
@@ -514,23 +573,23 @@ export function registerTurns(pi: ExtensionAPI) {
         query_scope_kind: S.queryScope.scopeKind,
         carryover_policy: S.queryScope.carryoverPolicy,
       };
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "operator_subject",
         ...common,
         operator_subject_preview: S.currentAsk.text.slice(0, 200),
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "current_ask_determined",
         ...common,
         current_ask_text_preview: S.currentAsk.text.slice(0, 200),
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "query_scope_built",
         ...common,
         query_scope_kind: S.queryScope.scopeKind,
         carryover_policy: S.queryScope.carryoverPolicy,
       });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "steering_detected",
         ...common,
         steering_detected: steeringDetected,
@@ -550,7 +609,7 @@ export function registerTurns(pi: ExtensionAPI) {
       // Correction is steering signal, not canonical failure.
       // Keep as telemetry/trust update to avoid stale Known Failures contamination.
       if (S.focusaAvailable) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "operator_correction_detected",
           turn_id: `pi-turn-${S.turnCount}`,
           frame_id: S.activeFrameId,
@@ -596,7 +655,7 @@ export function registerTurns(pi: ExtensionAPI) {
             preview: assistantOutput.slice(0, 280),
           },
         });
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "visible_output_leak_detected",
           turn_id: `pi-turn-${S.turnCount}`,
           frame_id: S.activeFrameId,
@@ -621,7 +680,7 @@ export function registerTurns(pi: ExtensionAPI) {
         carryover_policy: S.queryScope?.carryoverPolicy || "allow_if_relevant",
       };
       if (scopeFailures.length === 0) {
-        focusaPost("/telemetry/trace", {
+        queueTraceTelemetry({
           event_type: "scope_verified",
           ...scopeTraceBase,
           verified: true,
@@ -630,7 +689,7 @@ export function registerTurns(pi: ExtensionAPI) {
       } else {
         for (const failure of scopeFailures) {
           if (failure.kind === "scope_contamination") {
-            focusaPost("/telemetry/trace", {
+            queueTraceTelemetry({
               event_type: "scope_contamination_detected",
               ...scopeTraceBase,
               failure_kind: failure.kind,
@@ -638,7 +697,7 @@ export function registerTurns(pi: ExtensionAPI) {
               reason: failure.reason,
             });
           } else if (failure.kind === "wrong_question_answered") {
-            focusaPost("/telemetry/trace", {
+            queueTraceTelemetry({
               event_type: "wrong_question_detected",
               ...scopeTraceBase,
               failure_kind: failure.kind,
@@ -646,7 +705,7 @@ export function registerTurns(pi: ExtensionAPI) {
               reason: failure.reason,
             });
           } else if (failure.kind === "answer_broadening") {
-            focusaPost("/telemetry/trace", {
+            queueTraceTelemetry({
               event_type: "answer_broadening_detected",
               ...scopeTraceBase,
               failure_kind: failure.kind,
@@ -655,7 +714,7 @@ export function registerTurns(pi: ExtensionAPI) {
             });
           }
 
-          focusaPost("/telemetry/trace", {
+          queueTraceTelemetry({
             event_type: "scope_failure_recorded",
             ...scopeTraceBase,
             failure_kind: failure.kind,
@@ -679,7 +738,7 @@ export function registerTurns(pi: ExtensionAPI) {
             emit: true,
           }),
         }).then((drift: any) => {
-          focusaPost("/telemetry/trace", {
+          queueTraceTelemetry({
             event_type: drift?.drift_detected ? "workpoint_drift_detected" : "workpoint_drift_checked",
             turn_id: `pi-turn-${S.turnCount}`,
             frame_id: S.activeFrameId,
@@ -690,7 +749,7 @@ export function registerTurns(pi: ExtensionAPI) {
             next_step_hint: drift?.next_step_hint,
           });
         }).catch(() => {
-          focusaPost("/telemetry/trace", {
+          queueTraceTelemetry({
             event_type: "workpoint_drift_check_unavailable",
             turn_id: `pi-turn-${S.turnCount}`,
             frame_id: S.activeFrameId,
@@ -720,7 +779,7 @@ export function registerTurns(pi: ExtensionAPI) {
     // §33.4: Flush batched tool usage
     if (S.focusaAvailable && S.toolUsageBatch.length) {
       focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: S.toolUsageBatch });
-      focusaPost("/telemetry/trace", {
+      queueTraceTelemetry({
         event_type: "tools_invoked",
         turn_id: `pi-turn-${S.turnCount}`,
         frame_id: S.activeFrameId,
@@ -859,6 +918,25 @@ export function registerTurns(pi: ExtensionAPI) {
 
     if (isError && /compil|tsc|typecheck|build|lint/i.test(toolName + " " + content.slice(0, 200))) {
       S.compilationErrors.push(Date.now());
+    }
+
+    if (S.focusaAvailable) {
+      const targetRefs = [ev.params?.path, ev.input?.path, ev.params?.url, ev.input?.url]
+        .map((value: any) => String(value || "").trim())
+        .filter(Boolean)
+        .slice(0, 8);
+      focusaPost("/ontology/tool-result-proposals", {
+        tool_name: toolName || "unknown_tool",
+        status: isError ? "failed" : "completed",
+        ok: !isError,
+        target_refs: targetRefs,
+        evidence_refs: [],
+        workpoint_id: S.activeWorkpointPacket?.workpoint_id || S.activeWorkpointPacket?.workpoint?.workpoint_id || null,
+        action_intent: S.currentAsk?.text || null,
+        summary: content.slice(0, 500),
+        error: isError ? content.slice(0, 500) : null,
+        emit_proposals: false,
+      });
     }
 
     // §7.4 + §33.3: ECS externalization — check BOTH thresholds, REPLACE content

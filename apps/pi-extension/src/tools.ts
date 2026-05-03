@@ -206,6 +206,7 @@ interface FocusaToolResultV1 {
   side_effects: string[];
   evidence_refs: string[];
   next_tools: string[];
+  ontology_candidate_delta_refs?: string[];
   error?: { field?: string; code?: string; message?: string; allowed_values?: string[] } | null;
   raw?: unknown;
 }
@@ -224,6 +225,7 @@ function focusaToolResult(params: {
   side_effects?: string[];
   evidence_refs?: string[];
   next_tools?: string[];
+  ontology_candidate_delta_refs?: string[];
   error?: FocusaToolResultV1["error"];
   raw?: unknown;
 }): FocusaToolResultV1 {
@@ -246,6 +248,7 @@ function focusaToolResult(params: {
     side_effects: params.side_effects ?? [],
     evidence_refs: params.evidence_refs ?? [],
     next_tools: params.next_tools ?? [],
+    ontology_candidate_delta_refs: params.ontology_candidate_delta_refs ?? [],
     error: params.error ?? null,
     raw: params.raw,
   };
@@ -265,6 +268,23 @@ function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidenc
     .filter(Boolean)
     .slice(0, 8);
   return { workpoint_id: workpointId, evidence_refs: evidenceRefs, summary: S.activeWorkpointSummary || undefined };
+}
+
+function ontologyCandidateDeltaRefs(tool: string, result: any, status: FocusaToolStatus): string[] {
+  const details = (result?.details || {}) as Record<string, any>;
+  const refs = new Set<string>();
+  const add = (kind: string, value: unknown) => {
+    const text = String(value || "").trim();
+    if (text) refs.add(`${kind}:${text}`.slice(0, 220));
+  };
+  add("tool", tool);
+  add("status", status);
+  for (const key of ["target_ref", "targetRef", "file", "path", "endpoint", "workpoint_id"]) add("target", details[key]);
+  for (const ref of Array.isArray(details.evidence_refs) ? details.evidence_refs : []) add("evidence", ref);
+  const text = String(result?.content?.[0]?.text || details.summary || "");
+  const handle = text.match(/\[HANDLE:([^\]]+)\]/)?.[1];
+  add("evidence", handle);
+  return Array.from(refs).slice(0, 12);
 }
 
 function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
@@ -304,6 +324,7 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
     side_effects: readOnly ? [] : [family],
     evidence_refs: activeWorkpoint.evidence_refs,
     next_tools: status === "offline" ? [] : family === "workpoint" ? ["focusa_workpoint_resume"] : [],
+    ontology_candidate_delta_refs: ontologyCandidateDeltaRefs(tool, result, status),
     error: validationRejected || blocked || offline ? { code: status, message: text.slice(0, 240) } : null,
     raw: details.response ?? details,
   });

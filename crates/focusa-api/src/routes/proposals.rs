@@ -705,7 +705,10 @@ async fn resolve_proposals(
     let outcome =
         focusa_core::pre::resolution::resolve_proposals(&pending, &snapshot, &config, window_start);
     let outcome = match outcome {
-        focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired { proposals, reason } => {
+        focusa_core::pre::resolution::ResolutionOutcome::ClarificationRequired {
+            proposals,
+            reason,
+        } => {
             if let Some(winner) = deterministic_tiebreak_winner(&proposals) {
                 focusa_core::pre::resolution::ResolutionOutcome::Accepted {
                     score: winner.score,
@@ -770,9 +773,10 @@ async fn resolve_proposals(
                     | ProposalKind::ProjectionViewMutation
                     | ProposalKind::OntologyGovernanceMutation
                     | ProposalKind::IdentityModelMutation
-                    | ProposalKind::VisualModelMutation => {
-                        (derived_ontology_applied_kind(winner.kind, &winner.payload), Vec::new())
-                    }
+                    | ProposalKind::VisualModelMutation => (
+                        derived_ontology_applied_kind(winner.kind, &winner.payload),
+                        Vec::new(),
+                    ),
                 };
 
             events_to_emit.append(&mut domain_events);
@@ -925,21 +929,18 @@ async fn resolve_proposals(
                         let source_id = payload.get("source_id").and_then(|v| v.as_str());
                         let target_id = payload.get("target_id").and_then(|v| v.as_str());
                         match (object_id, source_id, target_id) {
-                            (Some(object_id), _, _) => s
-                                .ontology
-                                .objects
-                                .iter()
-                                .any(|o| o.get("id").and_then(|v| v.as_str()) == Some(object_id)),
-                            (None, Some(source_id), Some(target_id)) => s
-                                .ontology
-                                .links
-                                .iter()
-                                .any(|l| {
-                                    l.get("source_id").and_then(|v| v.as_str())
-                                        == Some(source_id)
+                            (Some(object_id), _, _) => {
+                                s.ontology.objects.iter().any(|o| {
+                                    o.get("id").and_then(|v| v.as_str()) == Some(object_id)
+                                })
+                            }
+                            (None, Some(source_id), Some(target_id)) => {
+                                s.ontology.links.iter().any(|l| {
+                                    l.get("source_id").and_then(|v| v.as_str()) == Some(source_id)
                                         && l.get("target_id").and_then(|v| v.as_str())
                                             == Some(target_id)
-                                }),
+                                })
+                            }
                             _ => true,
                         }
                     }

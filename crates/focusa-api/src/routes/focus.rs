@@ -45,8 +45,7 @@ fn resolve_scoped_frame<'a>(
     }
 
     stack.frames.iter().rev().find_map(|frame| {
-        (frame.status == FrameStatus::Active
-            && frame.tags.iter().any(|tag| tag == key))
+        (frame.status == FrameStatus::Active && frame.tags.iter().any(|tag| tag == key))
             .then_some((frame, "session_key"))
     })
 }
@@ -637,7 +636,8 @@ mod tests {
             version: 2,
         };
 
-        let (resolved, matched_by) = resolve_scoped_frame(&stack, Some(a), Some("pi-1")).expect("frame");
+        let (resolved, matched_by) =
+            resolve_scoped_frame(&stack, Some(a), Some("pi-1")).expect("frame");
         assert_eq!(resolved.id, a);
         assert_eq!(matched_by, "frame_id");
     }
@@ -659,7 +659,8 @@ mod tests {
             version: 3,
         };
 
-        let (resolved, matched_by) = resolve_scoped_frame(&stack, None, Some("pi-1")).expect("frame");
+        let (resolved, matched_by) =
+            resolve_scoped_frame(&stack, None, Some("pi-1")).expect("frame");
         assert_eq!(resolved.id, c);
         assert_eq!(matched_by, "session_key");
     }

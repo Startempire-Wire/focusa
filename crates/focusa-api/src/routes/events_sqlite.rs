@@ -19,6 +19,9 @@ use std::sync::Arc;
 struct RecentParams {
     #[serde(default = "default_limit")]
     limit: usize,
+    cursor: Option<String>,
+    since: Option<String>,
+    event_type: Option<String>,
 }
 
 fn default_limit() -> usize {
@@ -40,7 +43,25 @@ async fn recent(
         }
     };
 
-    let mut stmt = match conn.prepare("SELECT payload_json FROM events ORDER BY ts DESC LIMIT ?1") {
+    let limit = params.limit.clamp(1, 500);
+    let mut sql = "SELECT ts, payload_json FROM events".to_string();
+    let mut clauses = Vec::new();
+    if params.cursor.is_some() {
+        clauses.push("ts < ?".to_string());
+    }
+    if params.since.is_some() {
+        clauses.push("ts >= ?".to_string());
+    }
+    if params.event_type.is_some() {
+        clauses.push("payload_json LIKE ?".to_string());
+    }
+    if !clauses.is_empty() {
+        sql.push_str(" WHERE ");
+        sql.push_str(&clauses.join(" AND "));
+    }
+    sql.push_str(" ORDER BY ts DESC LIMIT ?");
+
+    let mut stmt = match conn.prepare(&sql) {
         Ok(s) => s,
         Err(e) => {
             return Json(
@@ -49,11 +70,25 @@ async fn recent(
         }
     };
 
+    let mut values: Vec<rusqlite::types::Value> = Vec::new();
+    if let Some(cursor) = &params.cursor {
+        values.push(cursor.clone().into());
+    }
+    if let Some(since) = &params.since {
+        values.push(since.clone().into());
+    }
+    if let Some(event_type) = &params.event_type {
+        values.push(format!("%\"{}\"%", event_type).into());
+    }
+    values.push((limit as i64).into());
+
     let rows = stmt
-        .query_map([params.limit as i64], |row| row.get::<_, String>(0))
+        .query_map(rusqlite::params_from_iter(values), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
         .and_then(|iter| iter.collect::<Result<Vec<_>, _>>());
 
-    let payloads = match rows {
+    let rows = match rows {
         Ok(v) => v,
         Err(e) => {
             return Json(
@@ -63,7 +98,8 @@ async fn recent(
     };
 
     let mut events: Vec<Value> = Vec::new();
-    for p in payloads.into_iter().rev() {
+    let next_cursor = rows.last().map(|(ts, _)| ts.clone());
+    for (_, p) in rows.into_iter().rev() {
         if let Ok(v) = serde_json::from_str::<Value>(&p) {
             events.push(v);
         }
@@ -77,6 +113,13 @@ async fn recent(
         "events": events,
         "total": total,
         "returned": events.len(),
+        "next_cursor": next_cursor,
+        "filters": {
+            "cursor": params.cursor,
+            "since": params.since,
+            "event_type": params.event_type,
+        },
+        "tail_strategy": "sqlite_reverse_ts_bounded",
     }))
 }
 

@@ -103,9 +103,10 @@ fn read_lock_pid(path: &Path) -> Option<u32> {
     let content = fs::read_to_string(path).ok()?;
     for line in content.lines() {
         if let Some(rest) = line.strip_prefix("pid=")
-            && let Ok(pid) = rest.trim().parse::<u32>() {
-                return Some(pid);
-            }
+            && let Ok(pid) = rest.trim().parse::<u32>()
+        {
+            return Some(pid);
+        }
     }
     None
 }
@@ -192,7 +193,6 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,7 +200,10 @@ mod tests {
     #[test]
     fn expand_home_dir_expands_tilde_prefix() {
         let home = Path::new("/home/wirebot");
-        assert_eq!(expand_home_dir("~", Some(home)), PathBuf::from("/home/wirebot"));
+        assert_eq!(
+            expand_home_dir("~", Some(home)),
+            PathBuf::from("/home/wirebot")
+        );
         assert_eq!(
             expand_home_dir("~/.focusa", Some(home)),
             PathBuf::from("/home/wirebot/.focusa")
@@ -209,7 +212,10 @@ mod tests {
 
     #[test]
     fn expand_home_dir_preserves_literal_path_without_home() {
-        assert_eq!(expand_home_dir("~/.focusa", None), PathBuf::from("~/.focusa"));
+        assert_eq!(
+            expand_home_dir("~/.focusa", None),
+            PathBuf::from("~/.focusa")
+        );
         assert_eq!(
             expand_home_dir("/tmp/focusa", Some(Path::new("/home/wirebot"))),
             PathBuf::from("/tmp/focusa")

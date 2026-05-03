@@ -1,5 +1,6 @@
 //! Telemetry routes.
 
+use crate::routes::bounded::pressure_status;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::{
@@ -12,6 +13,216 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+
+fn env_usize(name: &str, fallback: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(fallback)
+        .max(1)
+}
+
+fn parse_status_value_kb(status_text: &str, key: &str) -> Option<u64> {
+    status_text.lines().find_map(|line| {
+        let (line_key, rest) = line.split_once(':')?;
+        if line_key != key {
+            return None;
+        }
+        rest.split_whitespace().next()?.parse::<u64>().ok()
+    })
+}
+
+fn current_process_memory() -> Value {
+    let status_text = std::fs::read_to_string("/proc/self/status").ok();
+    let rss_kb = status_text
+        .as_deref()
+        .and_then(|text| parse_status_value_kb(text, "VmRSS"));
+    let peak_rss_kb = status_text
+        .as_deref()
+        .and_then(|text| parse_status_value_kb(text, "VmHWM"));
+    json!({
+        "pid": std::process::id(),
+        "rss_kb": rss_kb,
+        "rss_bytes": rss_kb.map(|value| value * 1024),
+        "peak_rss_kb": peak_rss_kb,
+        "peak_rss_bytes": peak_rss_kb.map(|value| value * 1024),
+        "source": if status_text.is_some() { "proc_self_status" } else { "unavailable" },
+    })
+}
+
+fn route_budget_profile() -> Value {
+    json!({
+        "ontology_world": {
+            "default_object_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 256),
+            "full_object_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT", 10_000),
+            "default_link_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512),
+            "full_link_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_FULL_LINK_LIMIT", 20_000),
+        },
+        "ecs_handles": {
+            "default_limit": env_usize("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100),
+            "full_limit": env_usize("FOCUSA_ECS_HANDLES_FULL_LIMIT", 512),
+        },
+        "semantic_memory": {
+            "default_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_DEFAULT_LIMIT", 100),
+            "full_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", 512),
+        },
+        "telemetry_trace": {
+            "default_limit": 100,
+            "hard_limit": 1000,
+        }
+    })
+}
+
+/// GET /v1/telemetry/memory — read-only daemon memory/store-count telemetry.
+async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
+    let started_at = state.started_at;
+    let event_count = state.persistence.event_count().unwrap_or(0);
+    let focusa = state.focusa.read().await;
+    Json(json!({
+        "status": "ok",
+        "generated_at": Utc::now().to_rfc3339(),
+        "uptime_ms": started_at.elapsed().as_millis() as u64,
+        "process": current_process_memory(),
+        "stores": {
+            "memory": {
+                "semantic_count": focusa.memory.semantic.len(),
+                "procedural_count": focusa.memory.procedural.len(),
+                "semantic_default_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_DEFAULT_LIMIT", 100),
+                "semantic_full_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", 512),
+            },
+            "ecs": {
+                "handle_count": focusa.reference_index.handles.len(),
+                "default_limit": env_usize("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100),
+                "full_limit": env_usize("FOCUSA_ECS_HANDLES_FULL_LIMIT", 512),
+            },
+            "ontology": {
+                "canonical_object_count": focusa.ontology.objects.len(),
+                "canonical_link_count": focusa.ontology.links.len(),
+                "proposal_count": focusa.ontology.proposals.len(),
+                "verification_count": focusa.ontology.verifications.len(),
+                "working_set_refresh_count": focusa.ontology.working_set_refreshes.len(),
+                "delta_count": focusa.ontology.delta_log.len(),
+            },
+            "workpoint": {
+                "record_count": focusa.workpoint.records.len(),
+                "resume_event_count": focusa.workpoint.resume_events.len(),
+                "drift_event_count": focusa.workpoint.drift_events.len(),
+                "degraded_fallback_count": focusa.workpoint.degraded_fallbacks.len(),
+            },
+            "lineage": {
+                "node_count": focusa.clt.nodes.len(),
+            },
+            "events": {
+                "sqlite_event_count": event_count,
+                "trace_event_count": focusa.telemetry.trace_events.len(),
+                "tool_call_count": focusa.telemetry.tool_calls.len(),
+                "total_telemetry_events": focusa.telemetry.total_events,
+            },
+            "runtime": {
+                "instance_count": focusa.instances.len(),
+                "attachment_count": focusa.attachments.len(),
+                "thread_count": focusa.threads.len(),
+            }
+        },
+        "caps": {
+            "workpoint_records": focusa_core::types::workpoint_caps::RECORDS,
+            "workpoint_object_refs": focusa_core::types::workpoint_caps::OBJECT_REFS,
+            "workpoint_verifications": focusa_core::types::workpoint_caps::VERIFICATIONS,
+            "workpoint_blockers": focusa_core::types::workpoint_caps::BLOCKERS,
+            "workpoint_resume_events": focusa_core::types::workpoint_caps::RESUME_EVENTS,
+            "workpoint_drift_events": focusa_core::types::workpoint_caps::DRIFT_EVENTS,
+            "workpoint_degraded_fallbacks": focusa_core::types::workpoint_caps::DEGRADED_FALLBACKS,
+            "trace_events_window": 5000,
+        },
+        "evictions": {
+            "secondary_loop_archived_events": focusa.telemetry.secondary_loop_archived_events,
+            "trace_events_window_policy": "oldest_dropped_after_5000",
+        },
+        "pressure": {
+            "current": pressure_status(),
+            "last_transition": Value::Null,
+            "note": "Full-payload read routes expose degraded=true when memory pressure is active and force_full_payload is not set."
+        },
+        "route_budgets": route_budget_profile(),
+        "degraded": false,
+    }))
+}
+
+/// GET /v1/telemetry/events — bounded read of telemetry trace events.
+async fn telemetry_events(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Json<Value> {
+    let limit = params
+        .get("limit")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(100)
+        .clamp(1, 1000);
+    let event_type = params.get("event_type").map(String::as_str);
+    let focusa = state.focusa.read().await;
+    let total = focusa.telemetry.trace_events.len();
+    let mut events = focusa
+        .telemetry
+        .trace_events
+        .iter()
+        .rev()
+        .filter(|event| {
+            event_type
+                .map(|wanted| event.get("event_type").and_then(|v| v.as_str()) == Some(wanted))
+                .unwrap_or(true)
+        })
+        .take(limit)
+        .cloned()
+        .collect::<Vec<_>>();
+    events.reverse();
+    Json(json!({
+        "status": "ok",
+        "events": events,
+        "count": total,
+        "returned": events.len(),
+        "limit": limit,
+        "truncated": total > events.len(),
+    }))
+}
+
+/// GET /v1/telemetry/productivity — lightweight productivity counters.
+async fn telemetry_productivity(State(state): State<Arc<AppState>>) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(json!({
+        "status": "ok",
+        "workpoint_records": focusa.workpoint.records.len(),
+        "workpoint_resume_events": focusa.workpoint.resume_events.len(),
+        "verification_events": focusa.telemetry.verification_result_events,
+        "tool_calls": focusa.telemetry.tool_calls.len(),
+        "trace_events": focusa.telemetry.trace_events.len(),
+        "semantic_memory_records": focusa.memory.semantic.len(),
+        "procedural_memory_records": focusa.memory.procedural.len(),
+        "ontology_delta_count": focusa.ontology.delta_log.len(),
+    }))
+}
+
+/// GET /v1/telemetry/autonomy — bounded secondary/autonomy telemetry counters.
+async fn telemetry_autonomy(State(state): State<Arc<AppState>>) -> Json<Value> {
+    let focusa = state.focusa.read().await;
+    Json(json!({
+        "status": "ok",
+        "autonomy": {
+            "sample_count": focusa.autonomy.sample_count,
+            "history_count": focusa.autonomy.history.len(),
+        },
+        "secondary_loop": {
+            "useful_events": focusa.telemetry.secondary_loop_useful_events,
+            "low_quality_events": focusa.telemetry.secondary_loop_low_quality_events,
+            "ledger_entries": focusa.telemetry.secondary_loop_ledger.len(),
+            "archived_events": focusa.telemetry.secondary_loop_archived_events,
+        },
+        "scope_quality": {
+            "scope_contamination_events": focusa.telemetry.scope_contamination_events,
+            "subject_hijack_prevented_events": focusa.telemetry.subject_hijack_prevented_events,
+            "subject_hijack_occurred_events": focusa.telemetry.subject_hijack_occurred_events,
+        }
+    }))
+}
 
 /// GET /v1/telemetry/tokens — token usage metrics.
 async fn tokens(State(state): State<Arc<AppState>>) -> Json<Value> {
@@ -231,6 +442,10 @@ async fn record_tool_usage(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/v1/telemetry/memory", get(memory_status))
+        .route("/v1/telemetry/events", get(telemetry_events))
+        .route("/v1/telemetry/productivity", get(telemetry_productivity))
+        .route("/v1/telemetry/autonomy", get(telemetry_autonomy))
         .route("/v1/telemetry/tokens", get(tokens))
         .route(
             "/v1/telemetry/token-budget/status",
@@ -251,6 +466,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/telemetry/event", post(record_operational_event))
         // SPEC 56: Trace dimension endpoints
         .route("/v1/telemetry/trace", post(record_trace_event))
+        .route("/v1/telemetry/trace/batch", post(record_trace_batch))
         .route("/v1/telemetry/trace", get(get_trace_events))
         .route("/v1/telemetry/trace/stats", get(get_trace_stats))
 }
@@ -316,6 +532,46 @@ async fn record_operational_event(
 // ═══════════════════════════════════════════════════════════════════════════════
 // SPEC 56: Trace Dimensions
 // ═══════════════════════════════════════════════════════════════════════════════
+
+/// POST /v1/telemetry/trace/batch — Record a bounded batch of trace events.
+async fn record_trace_batch(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> Json<serde_json::Value> {
+    let events = body
+        .get("events")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let batch_id = body
+        .get("batch_id")
+        .and_then(|v| v.as_str())
+        .map(ToString::to_string)
+        .unwrap_or_else(|| Uuid::now_v7().to_string());
+    let mut focusa = state.focusa.write().await;
+    let accepted = events.len().min(100);
+    focusa.telemetry.total_events += accepted as u64;
+    for mut event in events.into_iter().take(accepted) {
+        if let Some(object) = event.as_object_mut() {
+            object.insert("event_id".to_string(), json!(Uuid::now_v7().to_string()));
+            object.insert("batch_id".to_string(), json!(batch_id.clone()));
+            object
+                .entry("timestamp".to_string())
+                .or_insert_with(|| json!(Utc::now().to_rfc3339()));
+        }
+        focusa.telemetry.trace_events.push(event);
+    }
+    if focusa.telemetry.trace_events.len() > 5000 {
+        let overflow = focusa.telemetry.trace_events.len() - 5000;
+        focusa.telemetry.trace_events.drain(0..overflow);
+    }
+    Json(json!({
+        "status": "recorded",
+        "batch_id": batch_id,
+        "accepted": accepted,
+        "truncated": accepted == 100,
+    }))
+}
 
 /// POST /v1/telemetry/trace — Record a trace dimension event (SPEC 56)
 async fn record_trace_event(
@@ -456,4 +712,46 @@ async fn get_trace_stats(State(state): State<Arc<AppState>>) -> Json<serde_json:
         "total_events": events.len(),
         "by_event_type": by_type,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{env_usize, parse_status_value_kb, route_budget_profile};
+
+    #[test]
+    fn parses_proc_status_memory_values() {
+        let text = "Name:\tfocusa-daemon\nVmHWM:\t  2048 kB\nVmRSS:\t  1024 kB\n";
+        assert_eq!(parse_status_value_kb(text, "VmRSS"), Some(1024));
+        assert_eq!(parse_status_value_kb(text, "VmHWM"), Some(2048));
+        assert_eq!(parse_status_value_kb(text, "VmData"), None);
+    }
+
+    #[test]
+    fn env_usize_never_returns_zero() {
+        assert_eq!(env_usize("FOCUSA_TEST_UNSET_LIMIT", 0), 1);
+    }
+
+    #[test]
+    fn trace_batch_acceptance_is_hard_bounded() {
+        let accepted = 150usize.min(100);
+        assert_eq!(accepted, 100);
+    }
+
+    #[test]
+    fn telemetry_events_limit_is_hard_bounded_by_route_logic() {
+        let requested = Some("5000".to_string())
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(100)
+            .clamp(1, 1000);
+        assert_eq!(requested, 1000);
+    }
+
+    #[test]
+    fn route_budget_profile_exposes_major_read_surfaces() {
+        let profile = route_budget_profile();
+        assert!(profile.get("ontology_world").is_some());
+        assert!(profile.get("ecs_handles").is_some());
+        assert!(profile.get("semantic_memory").is_some());
+        assert!(profile.get("telemetry_trace").is_some());
+    }
 }

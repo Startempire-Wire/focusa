@@ -9,9 +9,12 @@
 
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
-use axum::extract::{Query, State};
+use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -52,11 +55,33 @@ struct AdjustmentRecord {
     storage_path: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CaptureIndexEntry {
+    capture_id: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+    kind: String,
+    tags: Vec<String>,
+    summary: String,
+    confidence: Option<f64>,
+    strategy_class: Option<String>,
+    storage_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct MetacogEvictionEvent {
+    collection: String,
+    evicted_count: usize,
+    reason: String,
+    occurred_at: chrono::DateTime<chrono::Utc>,
+}
+
 #[derive(Debug, Default)]
 struct MetaStore {
     captures: Vec<CaptureRecord>,
     reflections: Vec<ReflectionRecord>,
     adjustments: Vec<AdjustmentRecord>,
+    capture_hot_index: Vec<CaptureIndexEntry>,
+    eviction_events: Vec<MetacogEvictionEvent>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -97,23 +122,126 @@ fn metacog_store_config() -> MetaStoreConfig {
     }
 }
 
-fn retain_recent<T>(items: &mut Vec<T>, max_len: usize, cutoff: chrono::DateTime<chrono::Utc>, created_at: impl Fn(&T) -> chrono::DateTime<chrono::Utc>) {
+fn retain_recent<T>(
+    items: &mut Vec<T>,
+    max_len: usize,
+    cutoff: chrono::DateTime<chrono::Utc>,
+    created_at: impl Fn(&T) -> chrono::DateTime<chrono::Utc>,
+) -> usize {
+    let before_ttl = items.len();
     items.retain(|item| created_at(item) >= cutoff);
-    if items.len() > max_len {
+    let ttl_removed = before_ttl.saturating_sub(items.len());
+    let cap_removed = if items.len() > max_len {
         let overflow = items.len() - max_len;
         items.drain(0..overflow);
+        overflow
+    } else {
+        0
+    };
+    ttl_removed + cap_removed
+}
+
+fn summarize_content(content: &str) -> String {
+    content.chars().take(240).collect()
+}
+
+fn tags_for_capture(capture: &CaptureRecord) -> Vec<String> {
+    let mut tags = vec![capture.kind.to_ascii_lowercase()];
+    if let Some(strategy) = &capture.strategy_class {
+        tags.push(strategy.to_ascii_lowercase());
+    }
+    for word in capture
+        .content
+        .split(|c: char| !c.is_alphanumeric() && c != '_' && c != '-')
+        .filter(|w| w.len() >= 3)
+        .take(8)
+    {
+        let tag = word.to_ascii_lowercase();
+        if !tags.contains(&tag) {
+            tags.push(tag);
+        }
+    }
+    tags
+}
+
+fn capture_index_entry(capture: &CaptureRecord) -> CaptureIndexEntry {
+    CaptureIndexEntry {
+        capture_id: capture.capture_id.clone(),
+        created_at: capture.created_at,
+        kind: capture.kind.clone(),
+        tags: tags_for_capture(capture),
+        summary: summarize_content(&capture.content),
+        confidence: capture.confidence,
+        strategy_class: capture.strategy_class.clone(),
+        storage_path: capture.storage_path.clone(),
     }
 }
 
-fn prune_metacog_store(store: &mut MetaStore, now: chrono::DateTime<chrono::Utc>, cfg: MetaStoreConfig) {
+fn rebuild_capture_hot_index(
+    captures: &[CaptureRecord],
+    cfg: MetaStoreConfig,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Vec<CaptureIndexEntry> {
     let cutoff = now - chrono::Duration::minutes(cfg.ttl_minutes);
-    retain_recent(&mut store.captures, cfg.max_captures, cutoff, |r| r.created_at);
-    retain_recent(&mut store.reflections, cfg.max_reflections, cutoff, |r| r.created_at);
-    retain_recent(&mut store.adjustments, cfg.max_adjustments, cutoff, |r| r.created_at);
+    let mut items = captures
+        .iter()
+        .filter(|capture| capture.created_at >= cutoff)
+        .map(capture_index_entry)
+        .collect::<Vec<_>>();
+    items.sort_by_key(|entry| Reverse(entry.created_at));
+    items.truncate(cfg.max_captures);
+    items
+}
+
+fn record_eviction(
+    store: &mut MetaStore,
+    collection: &str,
+    evicted_count: usize,
+    reason: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) {
+    if evicted_count == 0 {
+        return;
+    }
+    store.eviction_events.push(MetacogEvictionEvent {
+        collection: collection.to_string(),
+        evicted_count,
+        reason: reason.to_string(),
+        occurred_at: now,
+    });
+    if store.eviction_events.len() > 100 {
+        let overflow = store.eviction_events.len() - 100;
+        store.eviction_events.drain(0..overflow);
+    }
+}
+
+fn prune_metacog_store(
+    store: &mut MetaStore,
+    now: chrono::DateTime<chrono::Utc>,
+    cfg: MetaStoreConfig,
+) {
+    let cutoff = now - chrono::Duration::minutes(cfg.ttl_minutes);
+    let capture_evicted = retain_recent(&mut store.captures, cfg.max_captures, cutoff, |r| {
+        r.created_at
+    });
+    let reflection_evicted =
+        retain_recent(&mut store.reflections, cfg.max_reflections, cutoff, |r| {
+            r.created_at
+        });
+    let adjustment_evicted =
+        retain_recent(&mut store.adjustments, cfg.max_adjustments, cutoff, |r| {
+            r.created_at
+        });
+    store.capture_hot_index = rebuild_capture_hot_index(&store.captures, cfg, now);
+    record_eviction(store, "captures", capture_evicted, "ttl_or_cap", now);
+    record_eviction(store, "reflections", reflection_evicted, "ttl_or_cap", now);
+    record_eviction(store, "adjustments", adjustment_evicted, "ttl_or_cap", now);
 }
 
 fn metacog_base_dir(state: &AppState) -> PathBuf {
-    Path::new(&state.config.data_dir).join("runtime").join("metacognition")
+    Path::new(&state.config.data_dir)
+        .join("runtime")
+        .join("metacognition")
 }
 
 fn metacog_category_dir(state: &AppState, category: &str) -> PathBuf {
@@ -257,7 +385,10 @@ async fn capture(
         ));
     }
 
-    let capture_id = format!("cap-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default());
+    let capture_id = format!(
+        "cap-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
     let storage_path = metacog_record_path(&state, "captures", &capture_id)
         .display()
         .to_string();
@@ -298,12 +429,16 @@ struct RetrieveBody {
     k: usize,
     #[serde(default)]
     cursor: Option<String>,
-    #[serde(default)]
+    #[serde(default = "default_summary_only")]
     summary_only: bool,
 }
 
 fn default_k() -> usize {
     5
+}
+
+fn default_summary_only() -> bool {
+    true
 }
 
 fn retrieve_max_k() -> usize {
@@ -328,8 +463,12 @@ async fn retrieve(
         .map(|t| t.to_lowercase())
         .collect::<Vec<_>>();
 
+    let cfg = metacog_store_config();
     let in_memory_captures = {
-        let s = store().lock().expect("metacog store poisoned");
+        let mut s = store().lock().expect("metacog store poisoned");
+        if s.capture_hot_index.is_empty() && !s.captures.is_empty() {
+            s.capture_hot_index = rebuild_capture_hot_index(&s.captures, cfg, Utc::now());
+        }
         s.captures.clone()
     };
 
@@ -340,25 +479,35 @@ async fn retrieve(
     for c in in_memory_captures {
         by_id.insert(c.capture_id.clone(), c);
     }
+    let hot_index = rebuild_capture_hot_index(
+        &by_id.values().cloned().collect::<Vec<_>>(),
+        cfg,
+        Utc::now(),
+    );
 
-    let mut ranked = by_id
-        .values()
-        .map(|c| {
-            let content = c.content.to_lowercase();
+    let mut ranked = hot_index
+        .iter()
+        .map(|entry| {
+            let haystack = format!(
+                "{} {} {}",
+                entry.summary.to_ascii_lowercase(),
+                entry.kind.to_ascii_lowercase(),
+                entry.tags.join(" ")
+            );
             let mut score = 0_i64;
-            if !ask.is_empty() && content.contains(&ask) {
+            if !ask.is_empty() && haystack.contains(&ask) {
                 score += 2;
             }
             for tag in &tags {
-                if content.contains(tag) {
+                if haystack.contains(tag) {
                     score += 1;
                 }
             }
-            (score, c)
+            (score, entry)
         })
         .collect::<Vec<_>>();
 
-    ranked.sort_by_key(|(score, _)| Reverse(*score));
+    ranked.sort_by_key(|(score, entry)| (Reverse(*score), Reverse(entry.created_at)));
 
     let cursor_offset = body
         .cursor
@@ -377,22 +526,29 @@ async fn retrieve(
     let candidates = page
         .iter()
         .enumerate()
-        .map(|(idx, (score, c))| {
+        .map(|(idx, (score, entry))| {
+            let full_record = by_id.get(&entry.capture_id);
             let summary = if body.summary_only {
-                c.content.chars().take(240).collect::<String>()
+                entry.summary.clone()
             } else {
-                c.content.clone()
+                full_record
+                    .map(|record| record.content.clone())
+                    .unwrap_or_else(|| entry.summary.clone())
             };
 
             json!({
-                "capture_id": c.capture_id,
-                "kind": c.kind,
+                "capture_id": entry.capture_id,
+                "kind": entry.kind,
                 "summary": summary,
+                "summary_only": body.summary_only,
                 "score": score,
                 "rank": cursor_offset + idx + 1,
-                "confidence": c.confidence,
-                "has_rationale": c.rationale.is_some(),
-                "strategy_class": c.strategy_class,
+                "confidence": entry.confidence,
+                "has_rationale": full_record.and_then(|record| record.rationale.as_ref()).is_some(),
+                "strategy_class": entry.strategy_class,
+                "tags": entry.tags,
+                "storage_path": entry.storage_path,
+                "rehydrate": {"route": "/v1/metacognition/captures", "capture_id": entry.capture_id},
                 "evidence_refs": []
             })
         })
@@ -409,7 +565,14 @@ async fn retrieve(
         "next_cursor": next_cursor,
         "page_size": page_size,
         "total_candidates": total,
-        "ranked_by": "keyword_similarity",
+        "ranked_by": "hot_index_keyword_similarity",
+        "index": {
+            "kind": "capture_hot_index",
+            "summary_only_default": true,
+            "indexed_items": hot_index.len(),
+            "cap": cfg.max_captures,
+            "ttl_minutes": cfg.ttl_minutes
+        },
         "retrieval_budget": {
             "tokens_used": 0,
             "latency_ms": 0,
@@ -443,7 +606,10 @@ async fn reflect(
         ));
     }
 
-    let reflection_id = format!("refl-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default());
+    let reflection_id = format!(
+        "refl-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
     let strategy_updates = if body.failure_classes.is_empty() {
         vec!["increase verification checkpoints".to_string()]
     } else {
@@ -514,7 +680,10 @@ async fn adjust(
         ));
     }
 
-    let adjustment_id = format!("adj-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default());
+    let adjustment_id = format!(
+        "adj-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
     let storage_path = metacog_record_path(&state, "adjustments", &adjustment_id)
         .display()
         .to_string();
@@ -592,6 +761,79 @@ struct RecentMetacogQuery {
     limit: Option<usize>,
 }
 
+async fn metacog_status(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    require_scope(&headers, &state, "metacognition:read")?;
+    let cfg = metacog_store_config();
+    let disk_captures = load_capture_records_from_disk(&state);
+    let mut s = store().lock().expect("metacog store poisoned");
+    let mut by_id: HashMap<String, CaptureRecord> = HashMap::new();
+    for rec in disk_captures {
+        by_id.insert(rec.capture_id.clone(), rec);
+    }
+    for rec in &s.captures {
+        by_id.insert(rec.capture_id.clone(), rec.clone());
+    }
+    s.capture_hot_index = rebuild_capture_hot_index(
+        &by_id.values().cloned().collect::<Vec<_>>(),
+        cfg,
+        Utc::now(),
+    );
+    Ok(Json(json!({
+        "status": "ok",
+        "caps": {
+            "max_captures": cfg.max_captures,
+            "max_reflections": cfg.max_reflections,
+            "max_adjustments": cfg.max_adjustments,
+            "ttl_minutes": cfg.ttl_minutes,
+            "retrieve_max_k": retrieve_max_k()
+        },
+        "hot_index": {
+            "captures_indexed": s.capture_hot_index.len(),
+            "summary_chars": 240,
+            "full_content_rehydrate_route": "/v1/metacognition/captures/{capture_id}"
+        },
+        "eviction_telemetry": s.eviction_events.iter().rev().take(10).cloned().collect::<Vec<_>>(),
+    })))
+}
+
+async fn get_capture(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    AxumPath(capture_id): AxumPath<String>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    require_scope(&headers, &state, "metacognition:read")?;
+    let in_mem = {
+        let s = store().lock().expect("metacog store poisoned");
+        s.captures
+            .iter()
+            .find(|rec| rec.capture_id == capture_id)
+            .cloned()
+    };
+    let rec = in_mem.or_else(|| {
+        let path = metacog_record_path(&state, "captures", &capture_id);
+        fs::read(path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<CaptureRecord>(&bytes).ok())
+    });
+    let Some(rec) = rec else {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "status": "error",
+                "code": "CAPTURE_NOT_FOUND",
+                "reason": "capture_id does not exist"
+            })),
+        ));
+    };
+    Ok(Json(json!({
+        "status": "ok",
+        "capture": rec,
+    })))
+}
+
 async fn recent_reflections(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -665,12 +907,20 @@ async fn recent_adjustments(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/v1/metacognition/status", get(metacog_status))
         .route("/v1/metacognition/capture", post(capture))
+        .route("/v1/metacognition/captures/{capture_id}", get(get_capture))
         .route("/v1/metacognition/retrieve", post(retrieve))
         .route("/v1/metacognition/reflect", post(reflect))
-        .route("/v1/metacognition/reflections/recent", get(recent_reflections))
+        .route(
+            "/v1/metacognition/reflections/recent",
+            get(recent_reflections),
+        )
         .route("/v1/metacognition/adjust", post(adjust))
-        .route("/v1/metacognition/adjustments/recent", get(recent_adjustments))
+        .route(
+            "/v1/metacognition/adjustments/recent",
+            get(recent_adjustments),
+        )
         .route("/v1/metacognition/evaluate", post(evaluate))
 }
 
@@ -718,8 +968,12 @@ mod tests {
     fn prune_metacog_store_applies_ttl() {
         let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
         let mut store = MetaStore::default();
-        store.captures.push(capture("old", now - Duration::minutes(200)));
-        store.captures.push(capture("new", now - Duration::minutes(10)));
+        store
+            .captures
+            .push(capture("old", now - Duration::minutes(200)));
+        store
+            .captures
+            .push(capture("new", now - Duration::minutes(10)));
 
         prune_metacog_store(
             &mut store,
@@ -734,21 +988,59 @@ mod tests {
 
         assert_eq!(store.captures.len(), 1);
         assert_eq!(store.captures[0].capture_id, "new");
+        assert_eq!(store.capture_hot_index.len(), 1);
+        assert_eq!(store.eviction_events[0].collection, "captures");
+    }
+
+    #[test]
+    fn capture_hot_index_is_summary_bounded_and_recent_first() {
+        let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
+        let mut old = capture("old", now - Duration::minutes(4));
+        old.content = "old ".repeat(100);
+        let mut new = capture("new", now - Duration::minutes(1));
+        new.content = "new learning signal with retrieval governor".to_string();
+        let index = rebuild_capture_hot_index(
+            &[old, new],
+            MetaStoreConfig {
+                max_captures: 10,
+                max_reflections: 10,
+                max_adjustments: 10,
+                ttl_minutes: 60,
+            },
+            now,
+        );
+        assert_eq!(index[0].capture_id, "new");
+        assert!(index[1].summary.chars().count() <= 240);
+        assert!(index[0].tags.contains(&"retrieval".to_string()));
     }
 
     #[test]
     fn prune_metacog_store_applies_caps_per_collection() {
         let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
         let mut store = MetaStore::default();
-        store.captures.push(capture("c1", now - Duration::minutes(4)));
-        store.captures.push(capture("c2", now - Duration::minutes(3)));
-        store.captures.push(capture("c3", now - Duration::minutes(2)));
+        store
+            .captures
+            .push(capture("c1", now - Duration::minutes(4)));
+        store
+            .captures
+            .push(capture("c2", now - Duration::minutes(3)));
+        store
+            .captures
+            .push(capture("c3", now - Duration::minutes(2)));
 
-        store.reflections.push(reflection("r1", now - Duration::minutes(4)));
-        store.reflections.push(reflection("r2", now - Duration::minutes(3)));
+        store
+            .reflections
+            .push(reflection("r1", now - Duration::minutes(4)));
+        store
+            .reflections
+            .push(reflection("r2", now - Duration::minutes(3)));
 
-        store.adjustments.push(adjustment("a1", now - Duration::minutes(4)));
-        store.adjustments.push(adjustment("a2", now - Duration::minutes(3)));
+        store
+            .adjustments
+            .push(adjustment("a1", now - Duration::minutes(4)));
+        store
+            .adjustments
+            .push(adjustment("a2", now - Duration::minutes(3)));
 
         prune_metacog_store(
             &mut store,

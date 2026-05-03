@@ -2,6 +2,7 @@ pub mod ascc;
 pub mod attachments;
 pub mod autonomy;
 pub mod awareness;
+pub mod bounded;
 pub mod capabilities;
 pub mod capabilities_extra;
 pub mod clt;

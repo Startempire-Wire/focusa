@@ -253,6 +253,35 @@ async fn state_diff(
 struct SessionScopedQuery {
     #[serde(default)]
     session_id: Option<String>,
+    #[serde(default)]
+    max_nodes: Option<usize>,
+    #[serde(default)]
+    include_full_payload: bool,
+}
+
+fn lineage_default_max_nodes() -> usize {
+    std::env::var("FOCUSA_LINEAGE_DEFAULT_MAX_NODES")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(200)
+        .max(1)
+}
+
+fn lineage_full_max_nodes() -> usize {
+    std::env::var("FOCUSA_LINEAGE_FULL_MAX_NODES")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(2000)
+        .max(lineage_default_max_nodes())
+}
+
+fn lineage_node_cap(q: &SessionScopedQuery) -> usize {
+    let ceiling = if q.include_full_payload {
+        lineage_full_max_nodes()
+    } else {
+        lineage_default_max_nodes()
+    };
+    q.max_nodes.unwrap_or(ceiling).clamp(1, ceiling)
 }
 
 async fn lineage_head(
@@ -275,9 +304,14 @@ async fn lineage_tree(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
     let s = state.focusa.read().await;
-    let nodes: Vec<_> = s.clt.nodes.to_vec();
+    let total = s.clt.nodes.len();
+    let cap = lineage_node_cap(&q);
+    let truncated = total > cap;
+    let nodes: Vec<_> = s.clt.nodes.iter().take(cap).cloned().collect();
     let head = s.clt.head_id.clone();
-    let root = nodes
+    let root = s
+        .clt
+        .nodes
         .iter()
         .find(|node| node.parent_id.is_none())
         .map(|node| node.node_id.clone())
@@ -288,7 +322,10 @@ async fn lineage_tree(
         "root": root,
         "head": head,
         "nodes": nodes,
-        "total": s.clt.nodes.len(),
+        "total": total,
+        "returned": nodes.len(),
+        "truncated": truncated,
+        "max_nodes": cap,
     })))
 }
 
@@ -313,7 +350,12 @@ async fn lineage_path(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
     let s = state.focusa.read().await;
-    let index: HashMap<&str, _> = s.clt.nodes.iter().map(|n| (n.node_id.as_str(), n)).collect();
+    let index: HashMap<&str, _> = s
+        .clt
+        .nodes
+        .iter()
+        .map(|n| (n.node_id.as_str(), n))
+        .collect();
     let mut seen = HashSet::new();
     let mut out = Vec::new();
     let mut current = Some(clt_node_id);
@@ -351,15 +393,28 @@ async fn lineage_children(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
     let s = state.focusa.read().await;
-    let children: Vec<_> = s
+    let all_children = s
         .clt
         .nodes
         .iter()
-        .filter(|n| n.parent_id.as_deref() == Some(clt_node_id.as_str()))
-        .cloned()
-        .collect();
+        .filter(|n| n.parent_id.as_deref() == Some(clt_node_id.as_str()));
+    let cap = lineage_default_max_nodes();
+    let mut children = Vec::new();
+    let mut total = 0_usize;
+    for child in all_children {
+        total += 1;
+        if children.len() < cap {
+            children.push(child.clone());
+        }
+    }
 
-    Ok(Json(json!({"children": children, "total": children.len()})))
+    Ok(Json(json!({
+        "children": children,
+        "total": total,
+        "returned": children.len(),
+        "truncated": total > children.len(),
+        "max_nodes": cap,
+    })))
 }
 
 async fn lineage_summaries(
@@ -369,18 +424,28 @@ async fn lineage_summaries(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
     let s = state.focusa.read().await;
-    let summaries: Vec<_> = s
+    let cap = lineage_node_cap(&q);
+    let mut summaries = Vec::new();
+    let mut total = 0_usize;
+    for node in s
         .clt
         .nodes
         .iter()
         .filter(|n| n.node_type == CltNodeType::Summary)
-        .cloned()
-        .collect();
+    {
+        total += 1;
+        if summaries.len() < cap {
+            summaries.push(node.clone());
+        }
+    }
 
     Ok(Json(json!({
         "session_id": q.session_id,
         "summaries": summaries,
-        "total": summaries.len(),
+        "total": total,
+        "returned": summaries.len(),
+        "truncated": total > summaries.len(),
+        "max_nodes": cap,
     })))
 }
 

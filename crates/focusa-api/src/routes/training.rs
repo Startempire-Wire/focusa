@@ -81,11 +81,19 @@ fn parse_ts(raw: Option<&str>) -> Option<DateTime<Utc>> {
         .map(|dt| dt.with_timezone(&Utc))
 }
 
-fn within_window(ts: DateTime<Utc>, since: Option<DateTime<Utc>>, until: Option<DateTime<Utc>>) -> bool {
-    if let Some(s) = since && ts < s {
+fn within_window(
+    ts: DateTime<Utc>,
+    since: Option<DateTime<Utc>>,
+    until: Option<DateTime<Utc>>,
+) -> bool {
+    if let Some(s) = since
+        && ts < s
+    {
         return false;
     }
-    if let Some(u) = until && ts > u {
+    if let Some(u) = until
+        && ts > u
+    {
         return false;
     }
     true
@@ -259,15 +267,12 @@ async fn export_run(
         ));
     }
 
-    let events = state
-        .persistence
-        .recent_events(20_000)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"status": "error", "error": "event_read_failed", "reason": e.to_string()})),
-            )
-        })?;
+    let events = state.persistence.recent_events(20_000).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"status": "error", "error": "event_read_failed", "reason": e.to_string()})),
+        )
+    })?;
 
     let (rows, mut exclusions) = collect_turn_rows(events, &body.filters);
 

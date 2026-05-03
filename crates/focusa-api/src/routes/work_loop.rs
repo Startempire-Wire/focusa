@@ -1117,10 +1117,12 @@ fn next_work_risk_class_for_status(wl: &focusa_core::types::WorkLoopState) -> &'
 }
 
 fn active_workpoint_summary_for_status(s: &focusa_core::types::FocusaState) -> Value {
-    let active = s
-        .workpoint
-        .active_workpoint_id
-        .and_then(|id| s.workpoint.records.iter().find(|record| record.workpoint_id == id));
+    let active = s.workpoint.active_workpoint_id.and_then(|id| {
+        s.workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == id)
+    });
 
     json!({
         "active_workpoint_id": s.workpoint.active_workpoint_id,
@@ -1824,11 +1826,9 @@ async fn status(
             &replay_config,
         )
         .map_err(|error| error.to_string());
-    let workpoint_replay_summary = focusa_core::replay::workpoint_summary_from_replay(
-        &state.persistence,
-        &replay_config,
-    )
-    .map_err(|error| error.to_string());
+    let workpoint_replay_summary =
+        focusa_core::replay::workpoint_summary_from_replay(&state.persistence, &replay_config)
+            .map_err(|error| error.to_string());
     let secondary_loop_replay_consumer =
         secondary_loop_replay_consumer_payload_for_status(wl, &secondary_loop_replay_summary);
     let secondary_loop_continuity_gate = secondary_loop_continuity_gate_for_status(
@@ -2963,24 +2963,27 @@ mod tests {
         let mut state = focusa_core::types::FocusaState::default();
         let workpoint_id = Uuid::now_v7();
         state.workpoint.active_workpoint_id = Some(workpoint_id);
-        state.workpoint.records.push(focusa_core::types::WorkpointRecord {
-            workpoint_id,
-            work_item_id: Some("focusa-a2w2.3".to_string()),
-            session_id: Some("pi-session".to_string()),
-            status: focusa_core::types::WorkpointStatus::Active,
-            checkpoint_reason: focusa_core::types::WorkpointCheckpointReason::BeforeCompact,
-            confidence: focusa_core::types::WorkpointConfidence::Verified,
-            canonical: true,
-            mission: Some("Preserve continuation across compaction".to_string()),
-            next_slice: Some("Project active workpoint into status payload".to_string()),
-            action_intent: Some(focusa_core::types::WorkpointActionIntentRecord {
-                action_type: "resume_workpoint".to_string(),
-                target_ref: Some("focusa-a2w2.3".to_string()),
-                verification_hooks: vec!["status includes active_workpoint".to_string()],
-                status: Some("ready".to_string()),
-            }),
-            ..focusa_core::types::WorkpointRecord::default()
-        });
+        state
+            .workpoint
+            .records
+            .push(focusa_core::types::WorkpointRecord {
+                workpoint_id,
+                work_item_id: Some("focusa-a2w2.3".to_string()),
+                session_id: Some("pi-session".to_string()),
+                status: focusa_core::types::WorkpointStatus::Active,
+                checkpoint_reason: focusa_core::types::WorkpointCheckpointReason::BeforeCompact,
+                confidence: focusa_core::types::WorkpointConfidence::Verified,
+                canonical: true,
+                mission: Some("Preserve continuation across compaction".to_string()),
+                next_slice: Some("Project active workpoint into status payload".to_string()),
+                action_intent: Some(focusa_core::types::WorkpointActionIntentRecord {
+                    action_type: "resume_workpoint".to_string(),
+                    target_ref: Some("focusa-a2w2.3".to_string()),
+                    verification_hooks: vec!["status includes active_workpoint".to_string()],
+                    status: Some("ready".to_string()),
+                }),
+                ..focusa_core::types::WorkpointRecord::default()
+            });
 
         let summary = active_workpoint_summary_for_status(&state);
         assert_eq!(
@@ -3003,14 +3006,17 @@ mod tests {
         let mut state = focusa_core::types::FocusaState::default();
         let workpoint_id = Uuid::now_v7();
         state.workpoint.active_workpoint_id = Some(workpoint_id);
-        state.workpoint.records.push(focusa_core::types::WorkpointRecord {
-            workpoint_id,
-            work_item_id: Some("focusa-a2w2.3".to_string()),
-            status: focusa_core::types::WorkpointStatus::Active,
-            canonical: true,
-            next_slice: Some("Resume from typed packet".to_string()),
-            ..focusa_core::types::WorkpointRecord::default()
-        });
+        state
+            .workpoint
+            .records
+            .push(focusa_core::types::WorkpointRecord {
+                workpoint_id,
+                work_item_id: Some("focusa-a2w2.3".to_string()),
+                status: focusa_core::types::WorkpointStatus::Active,
+                canonical: true,
+                next_slice: Some("Resume from typed packet".to_string()),
+                ..focusa_core::types::WorkpointRecord::default()
+            });
         let payload = resume_payload_for_status(&state, &state.work_loop);
         assert_eq!(
             payload

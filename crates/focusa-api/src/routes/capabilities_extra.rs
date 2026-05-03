@@ -2,6 +2,7 @@
 //!
 //! Implements cache/metrics/intuition/contribute/export/autonomy/gate/constitution extras.
 
+use crate::routes::bounded::{BoundedReadOptions, bounded_metadata, env_limit};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
@@ -531,21 +532,82 @@ async fn state_explain(
     })))
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct SalientReferencesQuery {
+    limit: Option<usize>,
+    #[serde(default)]
+    summary_only: bool,
+    #[serde(default)]
+    include_full_payload: bool,
+}
+
+fn references_default_limit() -> usize {
+    env_limit("FOCUSA_REFERENCES_SALIENT_DEFAULT_LIMIT", 50)
+}
+
+fn references_full_limit() -> usize {
+    env_limit("FOCUSA_REFERENCES_SALIENT_FULL_LIMIT", 512).max(references_default_limit())
+}
+
+fn handle_summary(handle: &focusa_core::types::HandleRef) -> Value {
+    json!({
+        "id": handle.id,
+        "kind": handle.kind,
+        "label": handle.label,
+        "created_at": handle.created_at,
+        "pinned": handle.pinned,
+    })
+}
+
 /// GET /v1/references/salient — docs/34 §3.5 focusa.get_salient_references
 async fn references_salient(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
+    Query(query): Query<SalientReferencesQuery>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "references:read")?;
     let s = state.focusa.read().await;
     let session_id = s.session.as_ref().map(|sess| sess.session_id);
-    let salient: Vec<&focusa_core::types::HandleRef> = s
+    let total_salient = s
         .reference_index
         .handles
         .iter()
         .filter(|h| h.pinned || h.session_id == session_id)
+        .count();
+    let options = BoundedReadOptions {
+        requested_limit: query.limit,
+        include_full_payload: query.include_full_payload,
+        summary_only: query.summary_only,
+        cursor: None,
+        default_limit: references_default_limit(),
+        full_limit: references_full_limit(),
+    };
+    let resolved_limit = options.resolved_limit();
+    let salient: Vec<_> = s
+        .reference_index
+        .handles
+        .iter()
+        .filter(|h| h.pinned || h.session_id == session_id)
+        .rev()
+        .take(resolved_limit)
         .collect();
-    Ok(Json(json!({ "references": salient })))
+    let references = if query.summary_only {
+        salient
+            .iter()
+            .map(|handle| handle_summary(handle))
+            .collect::<Vec<_>>()
+    } else {
+        salient
+            .iter()
+            .map(|handle| json!(handle))
+            .collect::<Vec<_>>()
+    };
+    let bounds = bounded_metadata(total_salient, references.len(), options);
+    Ok(Json(json!({
+        "references": references,
+        "count": total_salient,
+        "bounds": bounds,
+    })))
 }
 
 /// GET /v1/references/trace — docs/34 §5.2 focusa.trace_reference_usage

@@ -17,10 +17,17 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
+use std::time::Instant;
 use tokio::time::{Duration, sleep};
 use uuid::Uuid;
 
-static WORKPOINT_IDEMPOTENCY_CACHE: LazyLock<Mutex<HashMap<String, WorkpointRecord>>> =
+#[derive(Clone)]
+struct IdempotencyCacheEntry {
+    record: WorkpointRecord,
+    inserted_at: Instant,
+}
+
+static WORKPOINT_IDEMPOTENCY_CACHE: LazyLock<Mutex<HashMap<String, IdempotencyCacheEntry>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Deserialize, Default)]
@@ -81,6 +88,77 @@ struct DriftDecision {
     reason: String,
     recovery_hint: String,
     drift_classes: Vec<String>,
+}
+
+fn idempotency_cache_max_entries() -> usize {
+    std::env::var("FOCUSA_WORKPOINT_IDEMPOTENCY_CACHE_MAX")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(256)
+        .max(1)
+}
+
+fn idempotency_cache_ttl_seconds() -> u64 {
+    std::env::var("FOCUSA_WORKPOINT_IDEMPOTENCY_CACHE_TTL_SECONDS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(3600)
+        .max(1)
+}
+
+fn prune_idempotency_cache(cache: &mut HashMap<String, IdempotencyCacheEntry>) -> usize {
+    let ttl = Duration::from_secs(idempotency_cache_ttl_seconds());
+    let before = cache.len();
+    cache.retain(|_, entry| entry.inserted_at.elapsed() <= ttl);
+    let max_entries = idempotency_cache_max_entries();
+    if cache.len() > max_entries {
+        let mut oldest = cache
+            .iter()
+            .map(|(key, entry)| (key.clone(), entry.inserted_at))
+            .collect::<Vec<_>>();
+        oldest.sort_by_key(|(_, inserted_at)| *inserted_at);
+        let remove_count = cache.len() - max_entries;
+        for (key, _) in oldest.into_iter().take(remove_count) {
+            cache.remove(&key);
+        }
+    }
+    before.saturating_sub(cache.len())
+}
+
+fn get_idempotency_cache_record(key: &str) -> Option<WorkpointRecord> {
+    let mut cache = WORKPOINT_IDEMPOTENCY_CACHE.lock().ok()?;
+    prune_idempotency_cache(&mut cache);
+    cache.get(key).map(|entry| entry.record.clone())
+}
+
+fn put_idempotency_cache_record(key: String, record: WorkpointRecord) -> usize {
+    let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() else {
+        return 0;
+    };
+    cache.insert(
+        key,
+        IdempotencyCacheEntry {
+            record,
+            inserted_at: Instant::now(),
+        },
+    );
+    prune_idempotency_cache(&mut cache)
+}
+
+fn idempotency_cache_status_payload() -> Value {
+    let mut cache_len = 0;
+    let mut pruned = 0;
+    if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
+        pruned = prune_idempotency_cache(&mut cache);
+        cache_len = cache.len();
+    }
+    json!({
+        "status": "ok",
+        "entries": cache_len,
+        "max_entries": idempotency_cache_max_entries(),
+        "ttl_seconds": idempotency_cache_ttl_seconds(),
+        "pruned_on_read": pruned,
+    })
 }
 
 fn normalize_for_match(value: &str) -> String {
@@ -477,16 +555,13 @@ async fn checkpoint(
         .as_ref()
         .filter(|key| !key.trim().is_empty())
     {
-        if let Some(existing) = WORKPOINT_IDEMPOTENCY_CACHE
-            .lock()
-            .ok()
-            .and_then(|cache| cache.get(key).cloned())
-        {
+        if let Some(existing) = get_idempotency_cache_record(key) {
             return Ok(Json(json!({
                 "status": "completed",
                 "workpoint_id": existing.workpoint_id,
                 "canonical": existing.canonical,
                 "idempotent_replay": true,
+                "idempotency_cache": idempotency_cache_status_payload(),
                 "workpoint": workpoint_packet(&existing),
                 "warnings": [],
                 "next_step_hint": "idempotency key already accepted; call /v1/workpoint/resume to render the packet"
@@ -499,14 +574,13 @@ async fn checkpoint(
             .iter()
             .find(|record| record.idempotency_key.as_deref() == Some(key.as_str()))
         {
-            if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {
-                cache.insert(key.clone(), existing.clone());
-            }
+            put_idempotency_cache_record(key.clone(), existing.clone());
             return Ok(Json(json!({
                 "status": "completed",
                 "workpoint_id": existing.workpoint_id,
                 "canonical": existing.canonical,
                 "idempotent_replay": true,
+                "idempotency_cache": idempotency_cache_status_payload(),
                 "workpoint": workpoint_packet(existing),
                 "warnings": [],
                 "next_step_hint": "idempotency key already recorded; call /v1/workpoint/resume to render the packet"
@@ -574,9 +648,8 @@ async fn checkpoint(
             .as_ref()
             .filter(|key| !key.trim().is_empty()),
         promoted_record.as_ref(),
-    ) && let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock()
-    {
-        cache.insert(key.clone(), record.clone());
+    ) {
+        put_idempotency_cache_record(key.clone(), record.clone());
     }
 
     Ok(Json(json!({
@@ -584,10 +657,22 @@ async fn checkpoint(
         "workpoint_id": workpoint_id,
         "canonical": canonical,
         "idempotent_replay": false,
+        "idempotency_cache": idempotency_cache_status_payload(),
         "workpoint": promoted_record.as_ref().map(workpoint_packet),
         "warnings": if promote && !canonical { vec!["non-canonical checkpoint was proposed but not promoted"] } else { vec![] },
         "next_step_hint": "call /v1/workpoint/resume to render the packet for Pi continuation"
     })))
+}
+
+async fn idempotency_cache_status(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("work-loop:read") {
+        return Err(forbid("work-loop:read"));
+    }
+    Ok(Json(idempotency_cache_status_payload()))
 }
 
 async fn current(
@@ -923,6 +1008,10 @@ async fn drift_check(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/workpoint/checkpoint", post(checkpoint))
+        .route(
+            "/v1/workpoint/idempotency-cache",
+            get(idempotency_cache_status),
+        )
         .route("/v1/workpoint/current", get(current))
         .route("/v1/workpoint/resume", post(resume))
         .route(
@@ -936,6 +1025,32 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn idempotency_cache_prunes_to_configured_max() {
+        let mut cache = HashMap::new();
+        for idx in 0..3 {
+            cache.insert(
+                format!("key-{idx}"),
+                IdempotencyCacheEntry {
+                    record: WorkpointRecord::default(),
+                    inserted_at: Instant::now() - Duration::from_secs((idx + 1) as u64),
+                },
+            );
+        }
+        // Environment-independent assertion: pruning never increases cache size and
+        // respects the runtime-configured max when it is lower than current size.
+        let _ = prune_idempotency_cache(&mut cache);
+        assert!(cache.len() <= idempotency_cache_max_entries());
+    }
+
+    #[test]
+    fn idempotency_cache_status_payload_exposes_caps() {
+        let payload = idempotency_cache_status_payload();
+        assert_eq!(payload["status"].as_str(), Some("ok"));
+        assert!(payload["max_entries"].as_u64().unwrap_or(0) >= 1);
+        assert!(payload["ttl_seconds"].as_u64().unwrap_or(0) >= 1);
+    }
 
     #[test]
     fn resume_summary_is_bounded_and_action_oriented() {

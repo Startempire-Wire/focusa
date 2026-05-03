@@ -5,6 +5,10 @@
 //! GET  /v1/memory/procedural           — list procedural rules
 //! POST /v1/memory/procedural/reinforce — reinforce a rule
 
+use crate::routes::bounded::{
+    BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
+    pressure_status,
+};
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -17,6 +21,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
+const DEFAULT_SEMANTIC_LIMIT: usize = 100;
 const MAX_SEMANTIC_LIMIT: usize = 512;
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -24,10 +29,25 @@ struct SemanticQuery {
     limit: Option<usize>,
     #[serde(default)]
     summary_only: bool,
+    #[serde(default)]
+    include_full_payload: bool,
+    #[serde(default)]
+    force_full_payload: bool,
+}
+
+fn semantic_default_limit() -> usize {
+    env_limit(
+        "FOCUSA_MEMORY_SEMANTIC_DEFAULT_LIMIT",
+        DEFAULT_SEMANTIC_LIMIT,
+    )
+}
+
+fn semantic_full_limit() -> usize {
+    env_limit("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", MAX_SEMANTIC_LIMIT).max(semantic_default_limit())
 }
 
 fn limit_tail<T: Clone>(items: &[T], limit: Option<usize>) -> Vec<T> {
-    match limit.map(|value| value.min(MAX_SEMANTIC_LIMIT)) {
+    match limit.map(|value| value.min(semantic_full_limit())) {
         Some(0) => Vec::new(),
         Some(n) => items
             .iter()
@@ -56,13 +76,37 @@ fn semantic_summary(records: &[SemanticRecord]) -> Vec<serde_json::Value> {
         .collect()
 }
 
-async fn semantic(Query(query): Query<SemanticQuery>, State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+async fn semantic(
+    Query(query): Query<SemanticQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
     let total = focusa.memory.semantic.len();
-    let semantic = limit_tail(&focusa.memory.semantic, query.limit);
+    let default_limit = semantic_default_limit();
+    let full_limit = semantic_full_limit();
+    let full_payload_blocked =
+        full_payload_blocked_by_pressure(query.include_full_payload, query.force_full_payload);
+    let effective_include_full_payload = query.include_full_payload && !full_payload_blocked;
+    let effective_summary_only = query.summary_only || full_payload_blocked;
+    let pressure = pressure_status();
+    let options = BoundedReadOptions {
+        requested_limit: query.limit,
+        include_full_payload: effective_include_full_payload,
+        summary_only: effective_summary_only,
+        cursor: None,
+        default_limit,
+        full_limit,
+    };
+    let resolved_limit = options.resolved_limit();
+    let semantic = limit_tail(&focusa.memory.semantic, Some(resolved_limit));
+    let bounds = bounded_metadata(total, semantic.len(), options);
     Json(json!({
-        "semantic": if query.summary_only { json!(semantic_summary(&semantic)) } else { json!(semantic) },
+        "semantic": if effective_summary_only { json!(semantic_summary(&semantic)) } else { json!(semantic) },
         "count": total,
+        "bounds": bounds,
+        "pressure": pressure,
+        "degraded": full_payload_blocked,
+        "full_payload_blocked_by_pressure": full_payload_blocked,
     }))
 }
 
@@ -152,7 +196,11 @@ mod tests {
 
     #[test]
     fn limit_tail_keeps_most_recent_records() {
-        let items = vec![record("a", "1", false), record("b", "2", true), record("c", "3", false)];
+        let items = vec![
+            record("a", "1", false),
+            record("b", "2", true),
+            record("c", "3", false),
+        ];
         let limited = limit_tail(&items, Some(2));
         assert_eq!(limited.len(), 2);
         assert_eq!(limited[0].key, "b");

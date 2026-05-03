@@ -6,6 +6,10 @@
 //! GET  /v1/ecs/content/:handle_id   — get artifact content
 //! POST /v1/ecs/rehydrate/:handle_id — rehydrate with token limit
 
+use crate::routes::bounded::{
+    BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
+    pressure_status,
+};
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -18,6 +22,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
+const DEFAULT_HANDLES_LIMIT: usize = 100;
 const MAX_HANDLES_LIMIT: usize = 512;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -85,10 +90,22 @@ struct ListHandlesQuery {
     limit: Option<usize>,
     #[serde(default)]
     summary_only: bool,
+    #[serde(default)]
+    include_full_payload: bool,
+    #[serde(default)]
+    force_full_payload: bool,
+}
+
+fn handles_default_limit() -> usize {
+    env_limit("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", DEFAULT_HANDLES_LIMIT)
+}
+
+fn handles_full_limit() -> usize {
+    env_limit("FOCUSA_ECS_HANDLES_FULL_LIMIT", MAX_HANDLES_LIMIT).max(handles_default_limit())
 }
 
 fn limit_handles(handles: &[HandleRef], limit: Option<usize>) -> Vec<HandleRef> {
-    match limit.map(|value| value.min(MAX_HANDLES_LIMIT)) {
+    match limit.map(|value| value.min(handles_full_limit())) {
         Some(0) => Vec::new(),
         Some(n) => handles
             .iter()
@@ -125,10 +142,31 @@ async fn list_handles(
 ) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
     let total = focusa.reference_index.handles.len();
-    let handles = limit_handles(&focusa.reference_index.handles, query.limit);
+    let default_limit = handles_default_limit();
+    let full_limit = handles_full_limit();
+    let full_payload_blocked =
+        full_payload_blocked_by_pressure(query.include_full_payload, query.force_full_payload);
+    let effective_include_full_payload = query.include_full_payload && !full_payload_blocked;
+    let effective_summary_only = query.summary_only || full_payload_blocked;
+    let pressure = pressure_status();
+    let options = BoundedReadOptions {
+        requested_limit: query.limit,
+        include_full_payload: effective_include_full_payload,
+        summary_only: effective_summary_only,
+        cursor: None,
+        default_limit,
+        full_limit,
+    };
+    let resolved_limit = options.resolved_limit();
+    let handles = limit_handles(&focusa.reference_index.handles, Some(resolved_limit));
+    let bounds = bounded_metadata(total, handles.len(), options);
     Json(json!({
-        "handles": if query.summary_only { json!(handle_summaries(&handles)) } else { json!(handles) },
+        "handles": if effective_summary_only { json!(handle_summaries(&handles)) } else { json!(handles) },
         "count": total,
+        "bounds": bounds,
+        "pressure": pressure,
+        "degraded": full_payload_blocked,
+        "full_payload_blocked_by_pressure": full_payload_blocked,
     }))
 }
 
