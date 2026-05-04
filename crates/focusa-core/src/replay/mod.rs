@@ -182,9 +182,7 @@ pub fn secondary_loop_comparative_summary_from_replay(
             }
         };
 
-        if payload
-            .get("type")
-            .and_then(serde_json::Value::as_str)
+        if payload.get("type").and_then(serde_json::Value::as_str)
             != Some("ContinuousSecondaryLoopOutcomeRecorded")
         {
             continue;
@@ -476,9 +474,15 @@ mod tests {
         .unwrap();
 
         assert!(result.errors.is_empty());
-        assert_eq!(result.final_state.workpoint.active_workpoint_id, Some(workpoint_id));
+        assert_eq!(
+            result.final_state.workpoint.active_workpoint_id,
+            Some(workpoint_id)
+        );
         assert_eq!(result.final_state.workpoint.records.len(), 1);
-        assert_eq!(result.final_state.workpoint.records[0].status, WorkpointStatus::Active);
+        assert_eq!(
+            result.final_state.workpoint.records[0].status,
+            WorkpointStatus::Active
+        );
     }
 
     #[test]

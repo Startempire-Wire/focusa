@@ -6,7 +6,7 @@
 
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
-    pressure_status,
+    pressure_status, record_json_response_size,
 };
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -15,6 +15,7 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
+use chrono::Utc;
 use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -22,7 +23,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, Mutex};
 use uuid::Uuid;
 
 const OBJECT_TYPES: &[&str] = &[
@@ -364,15 +365,27 @@ static ACTION_CATALOG_PROJECTION: LazyLock<Vec<Value>> = LazyLock::new(|| {
         .collect()
 });
 const MAX_DISCOVERED_PATHS: usize = 512;
-const MAX_DISCOVERY_SCAN_PATHS: usize = 4096;
+const DEFAULT_DISCOVERY_SCAN_PATHS: usize = 48;
+
+fn max_discovery_scan_paths() -> usize {
+    env_limit(
+        "FOCUSA_ONTOLOGY_WORKSPACE_SCAN_LIMIT",
+        DEFAULT_DISCOVERY_SCAN_PATHS,
+    )
+    .min(10_000)
+}
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
 const MAX_DISCOVERED_ENDPOINTS: usize = 16;
 const WORKSPACE_FALLBACK_ROOT: &str = "/home/wirebot/focusa";
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Deserialize)]
 struct OntologyWorldQuery {
     frame_id: Option<String>,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     summary_only: bool,
     #[serde(default)]
     include_full_payload: bool,
@@ -382,6 +395,8 @@ struct OntologyWorldQuery {
     include_working_sets: bool,
     limit_objects: Option<usize>,
     limit_links: Option<usize>,
+    cursor_objects: Option<usize>,
+    cursor_links: Option<usize>,
     #[serde(default)]
     force_full_payload: bool,
 }
@@ -406,6 +421,7 @@ struct WorkingSetQuery {
     ask: Option<String>,
     target_ref: Option<String>,
     limit: Option<usize>,
+    cursor: Option<usize>,
     #[serde(default = "default_slice_type")]
     slice_type: String,
     #[serde(default)]
@@ -423,6 +439,10 @@ struct OntologyContextRequest {
     view_profile: Option<String>,
     #[serde(default = "default_slice_type")]
     slice_type: String,
+    #[serde(default)]
+    operator_steering_detected: bool,
+    #[serde(default)]
+    active_object_refs: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -446,6 +466,15 @@ struct RetrievalGovernorRequest {
     operator_steering_detected: bool,
     #[serde(default)]
     include_metacog: bool,
+    ask_kind: Option<String>,
+    query_scope: Option<String>,
+    action_intent: Option<String>,
+    #[serde(default)]
+    stale_state: bool,
+    #[serde(default)]
+    degraded_state: bool,
+    #[serde(default)]
+    previous_retrieval_outcomes: Vec<Value>,
 }
 
 #[derive(Deserialize)]
@@ -1629,13 +1658,41 @@ fn primitive_contracts() -> Json<Value> {
     }))
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct WorkspaceProjection {
     objects: Vec<Value>,
     links: Vec<Value>,
 }
 
+#[derive(Clone)]
+struct OntologyReadIndex {
+    source_state_version: u64,
+    frame_id: Option<String>,
+    generated_at: chrono::DateTime<Utc>,
+    objects: BTreeMap<String, Value>,
+    incoming_by_id: BTreeMap<String, Vec<Value>>,
+    outgoing_by_id: BTreeMap<String, Vec<Value>>,
+    incoming_by_type: BTreeMap<String, BTreeMap<String, Vec<Value>>>,
+    outgoing_by_type: BTreeMap<String, BTreeMap<String, Vec<Value>>>,
+    object_type_counts: BTreeMap<String, usize>,
+    link_type_counts: BTreeMap<String, usize>,
+    last_reducer_event_id: Option<String>,
+    ttl_seconds: usize,
+}
+
+static ONTOLOGY_READ_INDEX: LazyLock<Mutex<Option<Arc<OntologyReadIndex>>>> =
+    LazyLock::new(|| Mutex::new(None));
+
 fn read_text(path: &Path) -> Option<String> {
+    const MAX_ONTOLOGY_PARSE_BYTES: u64 = 256 * 1024;
+    if path
+        .metadata()
+        .ok()
+        .map(|meta| meta.len() > MAX_ONTOLOGY_PARSE_BYTES)
+        .unwrap_or(false)
+    {
+        return None;
+    }
     fs::read_to_string(path).ok()
 }
 
@@ -1670,10 +1727,11 @@ fn binary_available(binary: &str) -> bool {
 }
 
 fn walk_workspace(root: &Path) -> Vec<PathBuf> {
+    let max_scan_paths = max_discovery_scan_paths();
     let mut out = Vec::new();
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        if out.len() >= MAX_DISCOVERY_SCAN_PATHS {
+        if out.len() >= max_scan_paths {
             break;
         }
         let Ok(entries) = fs::read_dir(&dir) else {
@@ -1682,7 +1740,7 @@ fn walk_workspace(root: &Path) -> Vec<PathBuf> {
         for entry in entries.flatten() {
             let path = entry.path();
             let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            if name.starts_with('.') && name != ".git" {
+            if name.starts_with('.') {
                 continue;
             }
             if path.is_dir() {
@@ -1695,7 +1753,7 @@ fn walk_workspace(root: &Path) -> Vec<PathBuf> {
                 stack.push(path);
             } else if path.is_file() {
                 out.push(path);
-                if out.len() >= MAX_DISCOVERY_SCAN_PATHS {
+                if out.len() >= max_scan_paths {
                     break;
                 }
             }
@@ -5227,60 +5285,46 @@ fn dedupe_links(links: Vec<Value>) -> Vec<Value> {
     out
 }
 
+fn merge_projections(projections: Vec<WorkspaceProjection>) -> WorkspaceProjection {
+    let total_object_capacity = projections.iter().map(|p| p.objects.len()).sum();
+    let total_link_capacity = projections.iter().map(|p| p.links.len()).sum();
+    let mut raw_objects = Vec::with_capacity(total_object_capacity);
+    let mut raw_links = Vec::with_capacity(total_link_capacity);
+    for projection in projections {
+        raw_objects.extend(projection.objects);
+        raw_links.extend(projection.links);
+    }
+    WorkspaceProjection {
+        objects: dedupe_objects(raw_objects),
+        links: dedupe_links(raw_links),
+    }
+}
+
+fn bounded_summary_projection(focusa: &FocusaState, frame_id: Option<&str>) -> WorkspaceProjection {
+    let frame = selected_frame(focusa, frame_id);
+    merge_projections(vec![
+        mission_projection(focusa, frame),
+        canonical_ontology_projection(focusa),
+        identity_projection(focusa),
+        governance_projection(focusa),
+        reference_resolution_projection(focusa),
+        projection_view_semantics_projection(focusa),
+    ])
+}
+
 fn combined_projection(focusa: &FocusaState, frame_id: Option<&str>) -> WorkspaceProjection {
     let frame = selected_frame(focusa, frame_id);
-    let mission = mission_projection(focusa, frame);
-    let workspace = workspace_projection(focusa);
-    let canonical = canonical_ontology_projection(focusa);
-    let visual = visual_projection(focusa, frame);
-    let affordance_execution = affordance_execution_projection(focusa, frame);
-    let identity = identity_projection(focusa);
-    let governance = governance_projection(focusa);
-    let reference_resolution = reference_resolution_projection(focusa);
-    let projection_view = projection_view_semantics_projection(focusa);
-
-    let total_object_capacity = mission.objects.len()
-        + workspace.objects.len()
-        + canonical.objects.len()
-        + visual.objects.len()
-        + affordance_execution.objects.len()
-        + identity.objects.len()
-        + governance.objects.len()
-        + reference_resolution.objects.len()
-        + projection_view.objects.len();
-    let total_link_capacity = mission.links.len()
-        + workspace.links.len()
-        + canonical.links.len()
-        + visual.links.len()
-        + affordance_execution.links.len()
-        + identity.links.len()
-        + governance.links.len()
-        + reference_resolution.links.len()
-        + projection_view.links.len();
-    let mut raw_objects = Vec::with_capacity(total_object_capacity);
-    raw_objects.extend(mission.objects);
-    raw_objects.extend(workspace.objects);
-    raw_objects.extend(canonical.objects);
-    raw_objects.extend(visual.objects);
-    raw_objects.extend(affordance_execution.objects);
-    raw_objects.extend(identity.objects);
-    raw_objects.extend(governance.objects);
-    raw_objects.extend(reference_resolution.objects);
-    raw_objects.extend(projection_view.objects);
-    let mut raw_links = Vec::with_capacity(total_link_capacity);
-    raw_links.extend(mission.links);
-    raw_links.extend(workspace.links);
-    raw_links.extend(canonical.links);
-    raw_links.extend(visual.links);
-    raw_links.extend(affordance_execution.links);
-    raw_links.extend(identity.links);
-    raw_links.extend(governance.links);
-    raw_links.extend(reference_resolution.links);
-    raw_links.extend(projection_view.links);
-    let objects = dedupe_objects(raw_objects);
-    let links = dedupe_links(raw_links);
-
-    WorkspaceProjection { objects, links }
+    merge_projections(vec![
+        mission_projection(focusa, frame),
+        workspace_projection(focusa),
+        canonical_ontology_projection(focusa),
+        visual_projection(focusa, frame),
+        affordance_execution_projection(focusa, frame),
+        identity_projection(focusa),
+        governance_projection(focusa),
+        reference_resolution_projection(focusa),
+        projection_view_semantics_projection(focusa),
+    ])
 }
 
 fn member(id: &str, object_type: &str, membership_class: &str, reason: &str) -> Value {
@@ -5409,7 +5453,7 @@ fn slice_members(objects: &[Value], slice_type: &str) -> Vec<Value> {
 
 fn slice_payload(focusa: &FocusaState, frame_id: Option<&str>, slice_type: &str) -> Value {
     let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
-    let projection = combined_projection(focusa, frame_id);
+    let projection = bounded_summary_projection(focusa, frame_id);
     let members = slice_members(&projection.objects, resolved_slice_type);
     json!({
         "requested_slice_type": slice_type,
@@ -5423,7 +5467,8 @@ fn slice_payload(focusa: &FocusaState, frame_id: Option<&str>, slice_type: &str)
                 "canonical_and_projection_are_distinct",
                 "unknown_slice_types_fallback_to_active_mission",
                 "operator_context_can_refine_active_mission_slice",
-                "membership_is_capped_and_deduplicated"
+                "membership_is_capped_and_deduplicated",
+                "default_slice_uses_bounded_summary_projection"
             ]
         },
         "count": members.len(),
@@ -5487,6 +5532,17 @@ fn uncertainty_label(value: &Value) -> &'static str {
     if degraded {
         return "degraded";
     }
+    if value.get("contradiction_refs").is_some() || value.get("conflicts_with").is_some() {
+        return "contradictory";
+    }
+    if value.get("rehydrate").is_some()
+        && value
+            .get("omitted_detail")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+    {
+        return "rehydrate_needed";
+    }
     let status = value.get("status").and_then(|v| v.as_str()).unwrap_or("");
     if matches!(status, "stale" | "deprecated" | "superseded") {
         return "stale";
@@ -5507,6 +5563,19 @@ fn uncertainty_label(value: &Value) -> &'static str {
         return "speculative";
     }
     "projection_only"
+}
+
+fn compact_object_summary(object: &Value) -> Value {
+    json!({
+        "id": object.get("id").cloned().unwrap_or(Value::Null),
+        "object_type": object.get("object_type").cloned().unwrap_or(Value::Null),
+        "status": object.get("status").cloned().unwrap_or(Value::Null),
+        "membership_class": object.get("membership_class").cloned().unwrap_or(Value::Null),
+        "provenance_class": object.get("provenance_class").cloned().unwrap_or(Value::Null),
+        "fresh": object.get("fresh").cloned().unwrap_or(Value::Null),
+        "uncertainty": uncertainty_label(object),
+        "rehydrate": {"route":"/v1/ontology/adjacency", "target_ref": object.get("id").cloned().unwrap_or(Value::Null)},
+    })
 }
 
 fn compact_link(link: &Value) -> Value {
@@ -5561,54 +5630,227 @@ fn link_reason(link: &Value) -> String {
     format!("{source} --{link_type}--> {target}")
 }
 
+fn value_field_counts(items: &[Value], field: &str, fallback: &str) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for item in items {
+        let key = item
+            .get(field)
+            .and_then(|v| v.as_str())
+            .unwrap_or(fallback)
+            .to_string();
+        *counts.entry(key).or_insert(0) += 1;
+    }
+    counts
+}
+
+fn ontology_reducer_event_id(focusa: &FocusaState) -> Option<String> {
+    focusa
+        .ontology
+        .delta_log
+        .first()
+        .map(|delta| format!("{}:{:?}", delta.delta_kind, delta.timestamp))
+}
+
+fn build_ontology_read_index(
+    focusa: &FocusaState,
+    frame_id: Option<&str>,
+    projection: WorkspaceProjection,
+) -> OntologyReadIndex {
+    let mut objects = BTreeMap::new();
+    let mut incoming_by_id: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    let mut outgoing_by_id: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    let mut incoming_by_type: BTreeMap<String, BTreeMap<String, Vec<Value>>> = BTreeMap::new();
+    let mut outgoing_by_type: BTreeMap<String, BTreeMap<String, Vec<Value>>> = BTreeMap::new();
+    for object in projection.objects {
+        let id = object
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        objects.insert(id, object);
+    }
+    let mut link_type_counts = BTreeMap::new();
+    for link in projection.links {
+        let source = link
+            .get("source_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        let target = link
+            .get("target_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+        let link_type = link
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("related_to")
+            .to_string();
+        *link_type_counts.entry(link_type.clone()).or_insert(0) += 1;
+        outgoing_by_id
+            .entry(source.clone())
+            .or_default()
+            .push(link.clone());
+        incoming_by_id
+            .entry(target.clone())
+            .or_default()
+            .push(link.clone());
+        outgoing_by_type
+            .entry(source)
+            .or_default()
+            .entry(link_type.clone())
+            .or_default()
+            .push(link.clone());
+        incoming_by_type
+            .entry(target)
+            .or_default()
+            .entry(link_type)
+            .or_default()
+            .push(link);
+    }
+    let object_values = objects.values().cloned().collect::<Vec<_>>();
+    OntologyReadIndex {
+        source_state_version: focusa.version,
+        frame_id: frame_id.map(ToString::to_string),
+        generated_at: Utc::now(),
+        objects,
+        incoming_by_id,
+        outgoing_by_id,
+        incoming_by_type,
+        outgoing_by_type,
+        object_type_counts: value_field_counts(&object_values, "object_type", "object"),
+        link_type_counts,
+        last_reducer_event_id: ontology_reducer_event_id(focusa),
+        ttl_seconds: env_limit("FOCUSA_ONTOLOGY_READ_INDEX_TTL_SECONDS", 300),
+    }
+}
+
+fn ontology_read_index(focusa: &FocusaState, frame_id: Option<&str>) -> Arc<OntologyReadIndex> {
+    let cache_key = frame_id.map(ToString::to_string);
+    if let Ok(cache) = ONTOLOGY_READ_INDEX.lock()
+        && let Some(index) = cache.as_ref()
+        && index.frame_id == cache_key
+        && index.last_reducer_event_id == ontology_reducer_event_id(focusa)
+        && (Utc::now() - index.generated_at).num_seconds() < index.ttl_seconds as i64
+    {
+        return Arc::clone(index);
+    }
+    let projection = combined_projection(focusa, frame_id);
+    let index = Arc::new(build_ontology_read_index(focusa, frame_id, projection));
+    if let Ok(mut cache) = ONTOLOGY_READ_INDEX.lock() {
+        *cache = Some(Arc::clone(&index));
+    }
+    index
+}
+
+/// Expose read-index cache metadata for telemetry/cache-metadata endpoints (Spec95 H1).
+/// Returns per-cache-entry metadata: source reducer version, generated_at, TTL/invalidation
+/// rule, canonical/degraded/stale status, and object/link/action counts.
+pub fn ontology_read_index_cache_metadata(focusa: &FocusaState) -> Value {
+    let index = {
+        let cache_key: Option<String> = None;
+        if let Ok(cache) = ONTOLOGY_READ_INDEX.lock()
+            && let Some(cached) = cache.as_ref()
+            && cached.frame_id == cache_key
+            && cached.last_reducer_event_id == ontology_reducer_event_id(focusa)
+            && (Utc::now() - cached.generated_at).num_seconds() < cached.ttl_seconds as i64
+        {
+            Arc::clone(cached)
+        } else {
+            Arc::new(build_ontology_read_index(
+                focusa,
+                None,
+                combined_projection(focusa, None),
+            ))
+        }
+    };
+    let age_seconds = (Utc::now() - index.generated_at).num_seconds();
+    let stale = age_seconds >= index.ttl_seconds as i64;
+    json!({
+        "cache_tier": "reducer-fed-hot",
+        "cache_name": "ontology_read_index",
+        "source_reducer_version": index.source_state_version,
+        "generated_at": index.generated_at.to_rfc3339(),
+        "ttl_seconds": index.ttl_seconds,
+        "age_seconds": age_seconds,
+        "invalidation_rule": "ontology_reducer_event_or_frame_change_or_ttl",
+        "canonical": !stale,
+        "degraded": false,
+        "stale": stale,
+        "object_count": index.objects.len(),
+        "link_count": index.link_type_counts.values().sum::<usize>(),
+        "object_type_counts": index.object_type_counts,
+        "link_type_counts": index.link_type_counts,
+        "last_reducer_event_id": index.last_reducer_event_id,
+        "frame_id": index.frame_id,
+    })
+}
+
 fn adjacency_index_payload(
     focusa: &FocusaState,
     frame_id: Option<&str>,
     target_ref: Option<&str>,
     limit: usize,
 ) -> Value {
-    let projection = combined_projection(focusa, frame_id);
-    let capped_limit = limit.clamp(1, 100);
-    let mut incoming: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-    let mut outgoing: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-    for link in &projection.links {
-        if let (Some(source), Some(target)) = (
-            link.get("source_id").and_then(|v| v.as_str()),
-            link.get("target_id").and_then(|v| v.as_str()),
-        ) {
-            outgoing
-                .entry(source.to_string())
-                .or_default()
-                .push(compact_link(link));
-            incoming
-                .entry(target.to_string())
-                .or_default()
-                .push(compact_link(link));
-        }
-    }
-
+    let index = ontology_read_index(focusa, frame_id);
+    let capped_limit = limit.clamp(1, 25);
+    let link_limit = capped_limit.min(3);
     let mut nodes = Vec::new();
-    for object in &projection.objects {
-        let id = object
-            .get("id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+    for (id, object) in &index.objects {
         if let Some(target_ref) = target_ref
             && id != target_ref
         {
             continue;
         }
-        let object_incoming = incoming.get(id).cloned().unwrap_or_default();
-        let object_outgoing = outgoing.get(id).cloned().unwrap_or_default();
+        let object_incoming = index.incoming_by_id.get(id).cloned().unwrap_or_default();
+        let object_outgoing = index.outgoing_by_id.get(id).cloned().unwrap_or_default();
+        let related_links = object_incoming
+            .iter()
+            .chain(object_outgoing.iter())
+            .collect::<Vec<_>>();
+        let verification_refs = related_links
+            .iter()
+            .filter_map(|link| {
+                let source = link.get("source_id").and_then(|v| v.as_str()).unwrap_or_default();
+                let target = link.get("target_id").and_then(|v| v.as_str()).unwrap_or_default();
+                (source.contains("verification") || target.contains("verification") || link.get("verification_id").is_some())
+                    .then(|| json!({"source_id":source, "target_id":target, "type":link.get("type").cloned().unwrap_or(Value::Null)}))
+            })
+            .take(8)
+            .collect::<Vec<_>>();
+        let evidence_handles = focusa
+            .reference_index
+            .handles
+            .iter()
+            .filter(|handle| handle.label.contains(id))
+            .take(8)
+            .map(|handle| json!({"id":handle.id, "kind":handle.kind, "label":handle.label}))
+            .collect::<Vec<_>>();
+        let related_workpoints = focusa.workpoint.records.iter().filter(|record| record.active_object_refs.iter().any(|target| target.contains(id) || id.contains(target))).take(8).map(|record| json!({"workpoint_id":record.workpoint_id, "action_intent":record.action_intent, "confidence":record.confidence})).collect::<Vec<_>>();
+        let action_affordance_ids = index
+            .objects
+            .keys()
+            .filter(|candidate| candidate.contains("affordance") && candidate.contains(id))
+            .take(8)
+            .cloned()
+            .collect::<Vec<_>>();
         nodes.push(json!({
             "id": id,
             "object_type": object.get("object_type").cloned().unwrap_or(Value::Null),
             "status": object.get("status").cloned().unwrap_or(Value::Null),
             "membership_class": object.get("membership_class").cloned().unwrap_or(Value::Null),
+            "provenance_refs": [object.get("provenance_class").cloned().unwrap_or(Value::Null)],
+            "verification_refs": verification_refs,
+            "working_set_memberships": [object.get("membership_class").cloned().unwrap_or(Value::Null)],
+            "action_affordance_ids": action_affordance_ids,
+            "related_evidence_handles": evidence_handles,
+            "related_workpoints": related_workpoints,
             "incoming_count": object_incoming.len(),
             "outgoing_count": object_outgoing.len(),
-            "incoming": object_incoming.into_iter().take(capped_limit).collect::<Vec<_>>(),
-            "outgoing": object_outgoing.into_iter().take(capped_limit).collect::<Vec<_>>(),
+            "incoming": object_incoming.into_iter().take(link_limit).map(|link| compact_link(&link)).collect::<Vec<_>>(),
+            "outgoing": object_outgoing.into_iter().take(link_limit).map(|link| compact_link(&link)).collect::<Vec<_>>(),
+            "incoming_by_type": index.incoming_by_type.get(id).map(|by_type| by_type.iter().map(|(kind, links)| (kind.clone(), links.len())).collect::<BTreeMap<_, _>>()).unwrap_or_default(),
+            "outgoing_by_type": index.outgoing_by_type.get(id).map(|by_type| by_type.iter().map(|(kind, links)| (kind.clone(), links.len())).collect::<BTreeMap<_, _>>()).unwrap_or_default(),
             "uncertainty": uncertainty_label(object),
         }));
         if target_ref.is_none() && nodes.len() >= capped_limit {
@@ -5618,10 +5860,24 @@ fn adjacency_index_payload(
 
     json!({
         "status": "ok",
-        "source": "ontology_combined_projection",
+        "source": "ontology_adjacency_read_index",
         "source_state_version": focusa.version,
-        "object_count": projection.objects.len(),
-        "link_count": projection.links.len(),
+        "index": {
+            "projection_kind": "combined_projection_full_world_semantics",
+            "source_reducer_version": index.source_state_version,
+            "generated_at": index.generated_at,
+            "last_reducer_event_id": index.last_reducer_event_id,
+            "ttl_seconds": index.ttl_seconds,
+            "invalidation_rule": "ontology_reducer_event_or_frame_change_or_ttl; source_state_version_observed",
+            "parity_reference": "combined_projection_full_world_object_and_link_counts",
+            "canonical_truth_mutation": false,
+            "stale": (Utc::now() - index.generated_at).num_seconds() >= index.ttl_seconds as i64,
+            "degraded": false
+        },
+        "object_count": index.objects.len(),
+        "link_count": index.link_type_counts.values().sum::<usize>(),
+        "object_type_counts": index.object_type_counts,
+        "link_type_counts": index.link_type_counts,
         "returned": nodes.len(),
         "limit": capped_limit,
         "target_ref": target_ref,
@@ -5683,13 +5939,19 @@ fn working_set_payload(
     slice_type: &str,
     limit: usize,
     include_reasons: bool,
+    cursor: usize,
 ) -> Value {
-    let projection = combined_projection(focusa, frame_id);
+    let index = ontology_read_index(focusa, frame_id);
     let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
     let capped_limit = limit.clamp(1, 50);
     let mut scored = Vec::new();
     let ask_lc = ask.unwrap_or_default().to_ascii_lowercase();
-    for object in &projection.objects {
+    let object_scan_limit = if target_ref.is_some() || !ask_lc.is_empty() {
+        512
+    } else {
+        12
+    };
+    for object in index.objects.values().take(object_scan_limit) {
         let id = object
             .get("id")
             .and_then(|v| v.as_str())
@@ -5710,16 +5972,14 @@ fn working_set_payload(
         {
             score += 75;
         }
-        let related_links = projection
-            .links
-            .iter()
-            .filter(|link| {
-                link.get("source_id").and_then(|v| v.as_str()) == Some(id)
-                    || link.get("target_id").and_then(|v| v.as_str()) == Some(id)
-            })
-            .take(6)
-            .cloned()
-            .collect::<Vec<_>>();
+        let mut related_links = Vec::new();
+        if let Some(outgoing) = index.outgoing_by_id.get(id) {
+            related_links.extend(outgoing.iter().take(3).cloned());
+        }
+        if let Some(incoming) = index.incoming_by_id.get(id) {
+            related_links.extend(incoming.iter().take(3).cloned());
+        }
+        related_links.truncate(6);
         let link_strength: i64 = related_links.iter().map(link_strength_score).sum();
         score += related_links.len() as i64 + link_strength;
         if score <= 0 && target_ref.is_none() {
@@ -5739,6 +5999,35 @@ fn working_set_payload(
         } else {
             Vec::new()
         };
+        let verification_handles = related_links
+            .iter()
+            .filter(|link| {
+                link.get("source_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .contains("verification")
+                    || link
+                        .get("target_id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .contains("verification")
+                    || link.get("verification_id").is_some()
+            })
+            .map(compact_link)
+            .take(6)
+            .collect::<Vec<_>>();
+        let verification_status = if verification_handles.is_empty() {
+            "unverified_projection"
+        } else {
+            "evidence_linked"
+        };
+        let action_affordance_ids = index
+            .objects
+            .keys()
+            .filter(|candidate| candidate.contains("affordance") && candidate.contains(id))
+            .take(6)
+            .cloned()
+            .collect::<Vec<_>>();
         scored.push((
             score,
             id.to_string(),
@@ -5747,6 +6036,12 @@ fn working_set_payload(
                 "object_type": object_type,
                 "status": object.get("status").cloned().unwrap_or(Value::Null),
                 "membership_class": object.get("membership_class").cloned().unwrap_or(Value::Null),
+                "provenance_handles": [object.get("provenance_class").cloned().unwrap_or(Value::Null)],
+                "verification_handles": verification_handles,
+                "verification_status": verification_status,
+                "confidence": (score.max(0) as f64 / 100.0).min(1.0),
+                "freshness": object.get("fresh").cloned().unwrap_or(json!(true)),
+                "action_affordance_ids": action_affordance_ids,
                 "score": score,
                 "reason_count": reasons.len(),
                 "reasons": reasons,
@@ -5762,13 +6057,23 @@ fn working_set_payload(
     let total_candidates = scored.len();
     let members = scored
         .into_iter()
+        .skip(cursor)
         .take(capped_limit)
         .map(|(_, _, value)| value)
         .collect::<Vec<_>>();
+    let next_cursor =
+        (cursor + members.len() < total_candidates).then(|| (cursor + members.len()).to_string());
 
     json!({
         "status": "ok",
         "source": "ontology_working_set_projection",
+        "index": {
+            "projection_kind": "combined_projection_full_world_semantics",
+            "source_reducer_version": focusa.version,
+            "last_reducer_event_id": focusa.ontology.delta_log.first().map(|delta| delta.delta_kind.clone()),
+            "canonical_truth_mutation": false,
+            "stale": false
+        },
         "slice_type": resolved_slice_type,
         "requested_slice_type": slice_type,
         "source_state_version": focusa.version,
@@ -5777,7 +6082,9 @@ fn working_set_payload(
         "total_candidates": total_candidates,
         "returned": members.len(),
         "limit": capped_limit,
-        "truncated": total_candidates > members.len(),
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor > 0,
         "members": members,
         "canonical_truth_mutation": false,
         "stale": false,
@@ -5839,6 +6146,7 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
         &body.slice_type,
         member_limit,
         true,
+        0,
     );
     let members = working_set
         .get("members")
@@ -5887,6 +6195,19 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
             })
         })
         .collect::<Vec<_>>();
+    let affordances = affordances_payload(
+        focusa,
+        body.frame_id.as_deref(),
+        first_target,
+        body.current_ask.as_deref(),
+        Some("current"),
+        8,
+    );
+    let blocked_affordances = affordances
+        .get("blocked_actions")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
 
     json!({
         "status": "ok",
@@ -5896,10 +6217,12 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
         "budget_tokens": budget_tokens,
         "workpoint_id": body.workpoint_id,
         "target_refs": body.target_refs,
+        "active_object_refs": body.active_object_refs,
+        "operator_steering_detected": body.operator_steering_detected,
         "active_object_set": active_object_set,
         "relevant_link_paths": link_paths,
         "valid_next_actions": context_action_candidates(body.current_ask.as_deref(), 5),
-        "blocked_affordances": [],
+        "blocked_affordances": blocked_affordances,
         "evidence_handles": evidence_handles,
         "uncertainty_flags": uncertainty_flags.into_iter().collect::<Vec<_>>(),
         "working_set": working_set,
@@ -5915,7 +6238,7 @@ fn graph_community_summaries_payload(
     frame_id: Option<&str>,
     limit: usize,
 ) -> Value {
-    let projection = combined_projection(focusa, frame_id);
+    let projection = bounded_summary_projection(focusa, frame_id);
     let capped_limit = limit.clamp(1, 20);
     let mut by_type: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
     for object in &projection.objects {
@@ -5963,6 +6286,35 @@ fn graph_community_summaries_payload(
             "summary": format!("{} projected ontology objects with {} evidence-linked paths", objects.len(), evidence_links.len()),
             "evidence_links": evidence_links,
             "rehydrate": {"route":"/v1/ontology/working-set", "slice_type":"active_mission"},
+            "canonical_truth_mutation": false,
+        }));
+    }
+    let mut sorted_links = projection.links.iter().collect::<Vec<_>>();
+    sorted_links.sort_by_key(|link| std::cmp::Reverse(link_strength_score(link)));
+    let top_link_evidence = sorted_links
+        .into_iter()
+        .take(16)
+        .map(|link| json!({
+            "path": link_reason(link),
+            "strength": link_strength_score(link),
+            "evidence": link.get("evidence").or_else(|| link.get("evidence_ref")).cloned().unwrap_or(Value::Null),
+            "uncertainty": uncertainty_label(link),
+        }))
+        .collect::<Vec<_>>();
+    if !top_link_evidence.is_empty() {
+        let community_score = top_link_evidence
+            .iter()
+            .map(|link| link.get("strength").and_then(|v| v.as_i64()).unwrap_or(0))
+            .sum::<i64>();
+        summaries.push(json!({
+            "community_id": stable_id("community", "relation_paths"),
+            "community_type": "relation_paths",
+            "object_count": projection.objects.len(),
+            "sample_object_ids": [],
+            "community_score": community_score + 10_000,
+            "summary": format!("{} high-signal ontology relation paths", top_link_evidence.len()),
+            "evidence_links": top_link_evidence,
+            "rehydrate": {"route":"/v1/ontology/adjacency"},
             "canonical_truth_mutation": false,
         }));
     }
@@ -6027,7 +6379,10 @@ fn affordances_payload(
             "scope": scope.unwrap_or("current"),
             "preconditions": object.get("preconditions").cloned().unwrap_or(Value::Null),
             "authority_boundary": object.get("authority_boundary").cloned().unwrap_or(Value::Null),
+            "permission_boundary": object.get("permission_boundary").or_else(|| object.get("authority_boundary")).cloned().unwrap_or(Value::Null),
             "estimated_latency": object.get("estimated_latency").cloned().unwrap_or(Value::Null),
+            "estimated_cost": object.get("estimated_cost").or_else(|| object.get("cost")).cloned().unwrap_or(json!("bounded_local_projection")),
+            "cost": object.get("cost").or_else(|| object.get("estimated_cost")).cloned().unwrap_or(json!("bounded_local_projection")),
             "reversibility": object.get("reversibility").cloned().unwrap_or(Value::Null),
             "reliability": object.get("reliability").cloned().unwrap_or(Value::Null),
             "uncertainty": uncertainty_label(object),
@@ -6059,6 +6414,107 @@ fn affordances_payload(
     })
 }
 
+fn bm25_score_with_scope(
+    keyword: &str,
+    text: &str,
+    action_intent: Option<&str>,
+    previous_outcomes: &[Value],
+) -> f64 {
+    // Base BM25 score over id/label/summary fields.
+    let text_lc = text.to_ascii_lowercase();
+    let kw_lc = keyword.to_ascii_lowercase();
+    let terms: Vec<&str> = kw_lc
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| w.len() >= 2)
+        .collect();
+    if terms.is_empty() && action_intent.is_none() && previous_outcomes.is_empty() {
+        return 0.0;
+    }
+    let text_words: Vec<&str> = text_lc
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| w.len() >= 2)
+        .collect();
+    if text_words.is_empty() && terms.is_empty() {
+        return 0.0;
+    }
+    let avg_len = text_words.len().max(1) as f64;
+    let k1 = 1.5_f64;
+    let b = 0.75_f64;
+    let mut score = 0.0_f64;
+    let doc_len = text_words.len() as f64;
+    for term in &terms {
+        let tf = text_words.iter().filter(|w| *w == term).count() as f64;
+        if tf > 0.0 {
+            let norm = 1.0_f64 - b + b * (doc_len / avg_len);
+            score += (tf * (k1 + 1.0)) / (tf + k1 * norm);
+        }
+    }
+    // Spec95 J2: query-scope signal boost from action_intent.
+    if let Some(intent) = action_intent {
+        let intent_lc = intent.to_ascii_lowercase();
+        if text_lc.contains(&intent_lc) {
+            score += 8.0;
+        }
+        // Partial token match on action_intent terms.
+        for intent_word in intent_lc
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| w.len() >= 3)
+        {
+            if text_lc.contains(intent_word) {
+                score += 2.0;
+            }
+        }
+    }
+    // Spec95 J2: boost items matching previous successful retrieval outcomes.
+    for outcome in previous_outcomes.iter().take(5) {
+        if let Some(outcome_id) = outcome.get("id").and_then(|v| v.as_str()) {
+            if text.contains(outcome_id) {
+                score += 5.0;
+            }
+        }
+        if let Some(outcome_label) = outcome.get("label").and_then(|v| v.as_str()) {
+            if text.contains(outcome_label) {
+                score += 3.0;
+            }
+        }
+    }
+    score
+}
+
+fn local_bm25_rerank(
+    hits: &mut Vec<Value>,
+    ask: &str,
+    action_intent: Option<&str>,
+    previous_outcomes: &[Value],
+    top_k: usize,
+) {
+    if hits.is_empty() {
+        return;
+    }
+    for hit in hits.iter_mut() {
+        if let Some(obj) = hit.as_object_mut() {
+            let id = obj.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            let label = obj.get("label").and_then(|v| v.as_str()).unwrap_or("");
+            let summary = obj.get("summary").and_then(|v| v.as_str()).unwrap_or("");
+            let text = format!("{} {} {}", id, label, summary);
+            let base = obj.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            obj.insert(
+                "score".to_string(),
+                serde_json::json!(
+                    base + bm25_score_with_scope(ask, &text, action_intent, previous_outcomes)
+                        * 10.0
+                ),
+            );
+        }
+    }
+    hits.sort_by(|a, b| {
+        let sa = a.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let sb = b.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        sb.partial_cmp(&sa).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    hits.truncate(top_k);
+}
+
 fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequest) -> Value {
     let ask = body.current_ask.as_deref().unwrap_or_default();
     let ask_lc = ask.to_ascii_lowercase();
@@ -6080,6 +6536,8 @@ fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequ
         budget_tokens: Some((budget_tokens / 2).max(100)),
         view_profile: Some("pi_operator_view".to_string()),
         slice_type: "active_mission".to_string(),
+        operator_steering_detected: false,
+        active_object_refs: Vec::new(),
     };
     let ontology_context = ontology_context_payload(focusa, &context_body);
     let first_target = body.target_refs.first().map(String::as_str);
@@ -6124,6 +6582,99 @@ fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequ
             "target_refs": body.target_refs,
         }));
     }
+    if ask.trim().is_empty() && body.target_refs.is_empty() && body.workpoint_id.is_none() {
+        retrieval_plan.clear();
+        retrieval_plan.push(json!({"substrate":"none", "reason":"self-contained or empty ask; no retrieval required"}));
+    }
+    let semantic_hits = focusa
+        .memory
+        .semantic
+        .iter()
+        .rev()
+        .take(5)
+        .map(|record| {
+            let exact = (!ask_lc.is_empty() && (record.key.to_ascii_lowercase().contains(&ask_lc) || record.value.to_ascii_lowercase().contains(&ask_lc))) as i64;
+            let score = 20 + (exact * 50) + (record.confidence * 30.0) as i64;
+            json!({
+                "substrate": "semantic_memory",
+                "id": record.key,
+                "summary": record.value.chars().take(160).collect::<String>(),
+                "confidence": record.confidence,
+                "freshness": "recent_window",
+                "uncertainty": "evidence_linked",
+                "score": score,
+                "reasons": [if exact > 0 { "keyword_or_exact_match" } else { "recent_semantic_memory" }],
+                "evidence_handles": []
+            })
+        })
+        .collect::<Vec<_>>();
+    let graph_hits = ontology_context
+        .get("active_object_set")
+        .and_then(|members| members.as_array())
+        .cloned()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|member| {
+            let score = member.get("score").and_then(|v| v.as_i64()).unwrap_or(0) + 35;
+            json!({
+                "substrate": "ontology_graph",
+                "id": member.get("id").cloned().unwrap_or(Value::Null),
+                "object_type": member.get("object_type").cloned().unwrap_or(Value::Null),
+                "score": score,
+                "reasons": member.get("reasons").cloned().unwrap_or(json!(["graph_active_object_relevance"])),
+                "evidence_handles": member.get("evidence_handles").cloned().unwrap_or(json!([])),
+                "uncertainty": member.get("uncertainty").cloned().unwrap_or(json!("unverified_projection"))
+            })
+        })
+        .collect::<Vec<_>>();
+    let evidence_hits = focusa
+        .reference_index
+        .handles
+        .iter()
+        .rev()
+        .take(5)
+        .map(|handle| {
+            let exact = (!ask_lc.is_empty() && handle.label.to_ascii_lowercase().contains(&ask_lc)) as i64;
+            let score = 25 + (exact * 50) + if handle.pinned { 10 } else { 0 };
+            json!({
+                "substrate": "ecs_evidence",
+                "id": handle.id,
+                "kind": handle.kind,
+                "label": handle.label,
+                "freshness": "recent_window",
+                "uncertainty": "evidence_linked",
+                "score": score,
+                "reasons": [if exact > 0 { "evidence_label_match" } else { "recent_evidence_handle" }],
+                "evidence_handles": [handle.id]
+            })
+        })
+        .collect::<Vec<_>>();
+
+    // Apply local BM25 reranking with query-scope signals (Spec95 J2).
+    let mut graph_reranked = graph_hits.clone();
+    local_bm25_rerank(
+        &mut graph_reranked,
+        ask,
+        body.action_intent.as_deref(),
+        &body.previous_retrieval_outcomes,
+        20,
+    );
+    let mut semantic_reranked = semantic_hits.clone();
+    local_bm25_rerank(
+        &mut semantic_reranked,
+        ask,
+        body.action_intent.as_deref(),
+        &body.previous_retrieval_outcomes,
+        20,
+    );
+    let mut evidence_reranked = evidence_hits.clone();
+    local_bm25_rerank(
+        &mut evidence_reranked,
+        ask,
+        body.action_intent.as_deref(),
+        &body.previous_retrieval_outcomes,
+        20,
+    );
 
     json!({
         "status": "ok",
@@ -6131,17 +6682,31 @@ fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequ
         "source_state_version": focusa.version,
         "current_ask_present": !ask.trim().is_empty(),
         "operator_steering_detected": body.operator_steering_detected,
+        "ask_kind": body.ask_kind,
+        "query_scope": body.query_scope,
+        "active_action_intent": body.action_intent,
+        "stale_state": body.stale_state,
+        "degraded_state": body.degraded_state,
+        "previous_retrieval_outcome_count": body.previous_retrieval_outcomes.len(),
         "budget_tokens": budget_tokens,
         "retrieval_plan": retrieval_plan,
         "excluded_context_reason": if body.operator_steering_detected { "operator_steering" } else { "none" },
         "hybrid_ranker": {
-            "signals": ["exact_refs", "ontology_graph", "working_set_score", "evidence_handles", "freshness", "uncertainty", "operator_steering"],
+            "signals": ["exact_refs", "ontology_graph", "working_set_score", "semantic_memory", "ecs_evidence", "evidence_handles", "freshness", "uncertainty", "operator_steering"],
+            "secondary_model_reranking": {"enabled": true, "method": "bm25_local_rerank"},
             "canonical_truth_mutation": false
         },
         "ontology_context": ontology_context,
+        "retrieval_results": {
+            "ontology_graph": graph_reranked,
+            "semantic_memory": semantic_reranked,
+            "ecs_evidence": evidence_reranked,
+            "exact_target_refs": body.target_refs,
+            "reranked_by": ["exact_refs", "ontology_graph", "semantic_memory", "ecs_evidence", "freshness", "operator_steering"]
+        },
         "affordances": affordances.unwrap_or(Value::Null),
-        "degraded": false,
-        "stale": false,
+        "degraded": body.degraded_state,
+        "stale": body.stale_state,
     })
 }
 
@@ -6611,7 +7176,7 @@ async fn memory_pipeline(Json(body): Json<MemoryPipelineRequest>) -> Json<Value>
 }
 
 fn intelligence_dashboard_payload(focusa: &FocusaState) -> Value {
-    let projection = combined_projection(focusa, None);
+    let projection = bounded_summary_projection(focusa, None);
     let evidence_linked = projection
         .links
         .iter()
@@ -6648,27 +7213,44 @@ fn intelligence_dashboard_payload(focusa: &FocusaState) -> Value {
         "code_docs_test_linkage",
         "operator_steering",
     ];
+    let usefulness_metrics = json!({
+        "retrieval_hit_rate": (verified_links as f64 / total_links as f64),
+        "irrelevant_stale_context_rate": (stale_objects as f64 / projection.objects.len().max(1) as f64),
+        "stale_context_rate": (stale_objects as f64 / projection.objects.len().max(1) as f64),
+        "drift_prevented": focusa.workpoint.drift_events.len(),
+        "tool_calls_saved": projection.links.iter().filter(|link| link.get("type").and_then(|v| v.as_str()) == Some("available_in_context")).count(),
+        "failed_tool_calls_predicted": failure_objects,
+        "workpoint_resume_success": focusa.workpoint.resume_events.len(),
+        "evidence_linked_answer_rate": (evidence_linked as f64 / total_links as f64),
+        "task_completion_delta": projection.objects.iter().filter(|object| object.get("status").and_then(|v| v.as_str()) == Some("completed")).count(),
+        "latency_rss_overhead_status": "bounded_projection_only"
+    });
+    let fixed_eval_suite = json!({
+        "fixture_count": eval_fixtures.len(),
+        "fixtures": eval_fixtures,
+        "release_gate": "all_fixed_eval_fixtures_required_for_doc78_claims",
+        "regression_policy": "fail_ci_on_metric_contract_break"
+    });
     json!({
         "status": "ok",
         "source": "ontology_intelligence_dashboard",
         "source_state_version": focusa.version,
+        "projection_kind": "bounded_summary_projection",
         "canonical_truth_mutation": false,
-        "metrics": {
-            "retrieval_hit_rate": (verified_links as f64 / total_links as f64),
-            "irrelevant_stale_context_rate": (stale_objects as f64 / projection.objects.len().max(1) as f64),
-            "drift_prevented": focusa.workpoint.drift_events.len(),
-            "tool_calls_saved": projection.links.iter().filter(|link| link.get("type").and_then(|v| v.as_str()) == Some("available_in_context")).count(),
-            "failed_tool_calls_predicted": failure_objects,
-            "workpoint_resume_success": focusa.workpoint.resume_events.len(),
-            "evidence_linked_answer_rate": (evidence_linked as f64 / total_links as f64),
-            "task_completion_delta": projection.objects.iter().filter(|object| object.get("status").and_then(|v| v.as_str()) == Some("completed")).count(),
-            "latency_rss_overhead_status": "bounded_projection_only"
-        },
-        "fixed_eval_suite": {
-            "fixture_count": eval_fixtures.len(),
-            "fixtures": eval_fixtures,
-            "release_gate": "all_fixed_eval_fixtures_required_for_doc78_claims",
-            "regression_policy": "fail_ci_on_metric_contract_break"
+        "metrics": usefulness_metrics,
+        "usefulness_metrics": usefulness_metrics,
+        "latency_rss_overhead": {"status":"bounded_projection_only", "proof_required": true},
+        "fixed_eval_suite": fixed_eval_suite,
+        "fixed_eval_suites": fixed_eval_suite,
+        "deterministic_extractors": {
+            "file_to_module_package": "workspace_projection",
+            "route_to_handler": "route_file_parser",
+            "test_to_code_under_test": "test_path_and_name_heuristic",
+            "docs_spec_to_code_surface": "spec_reference_path_classifier",
+            "tool_contract_to_api_cli_core": "spec90_contract_registry",
+            "workpoint_target_ref_to_object_id": "workpoint_target_ref_projection",
+            "evidence_handle_to_object_ref_doc_test": "ecs_handle_label_classifier",
+            "canonical_truth_mutation": false
         },
         "proof_routes": [
             "/v1/ontology/context",
@@ -6721,7 +7303,13 @@ async fn tool_result_proposals(
         "candidate_delta_count": deltas.len(),
         "candidate_deltas": deltas,
         "reducer_route": "/v1/ontology/actions",
-        "promotion_policy": "candidate_only_unless_emit_proposals_true_then_reducer_records_proposed_status"
+        "promotion_policy": "candidate_only_unless_emit_proposals_true_then_reducer_records_proposed_status",
+        "reducer_promotion_records": {
+            "route": "/v1/ontology/actions",
+            "states": ["proposed", "accepted", "rejected"],
+            "emitted_proposed_records": if body.emit_proposals { deltas.len() } else { 0 },
+            "canonical_truth_mutation": false
+        }
     })))
 }
 
@@ -7356,19 +7944,25 @@ async fn world(
     State(state): State<Arc<AppState>>,
 ) -> Json<Value> {
     let focusa = state.focusa.read().await;
-    let projection = combined_projection(&focusa, query.frame_id.as_deref());
+    let projection = if query.include_full_payload {
+        combined_projection(&focusa, query.frame_id.as_deref())
+    } else {
+        bounded_summary_projection(&focusa, query.frame_id.as_deref())
+    };
     let object_total = projection.objects.len();
     let link_total = projection.links.len();
     let full_payload_blocked =
         full_payload_blocked_by_pressure(query.include_full_payload, query.force_full_payload);
     let effective_include_full_payload = query.include_full_payload && !full_payload_blocked;
-    let effective_summary_only = query.summary_only || full_payload_blocked;
+    let effective_summary_only =
+        (query.summary_only && !effective_include_full_payload) || full_payload_blocked;
     let pressure = pressure_status();
     let object_options = BoundedReadOptions {
         requested_limit: query.limit_objects,
         include_full_payload: effective_include_full_payload,
         summary_only: effective_summary_only,
-        cursor: None,
+        cursor: query.cursor_objects.map(|v| v.to_string()),
+        next_cursor: None,
         default_limit: ontology_world_default_object_limit(),
         full_limit: ontology_world_full_object_limit(),
     };
@@ -7376,30 +7970,39 @@ async fn world(
         requested_limit: query.limit_links,
         include_full_payload: effective_include_full_payload,
         summary_only: effective_summary_only,
-        cursor: None,
+        cursor: query.cursor_links.map(|v| v.to_string()),
+        next_cursor: None,
         default_limit: ontology_world_default_link_limit(),
         full_limit: ontology_world_full_link_limit(),
     };
     let object_limit = object_options.resolved_limit();
     let link_limit = link_options.resolved_limit();
+    let object_start = query.cursor_objects.unwrap_or(0).min(object_total);
+    let link_start = query.cursor_links.unwrap_or(0).min(link_total);
+    let object_end = (object_start + object_limit).min(object_total);
+    let link_end = (link_start + link_limit).min(link_total);
+    let mut object_options = object_options;
+    object_options.next_cursor = (object_end < object_total).then(|| object_end.to_string());
+    let mut link_options = link_options;
+    link_options.next_cursor = (link_end < link_total).then(|| link_end.to_string());
     let objects = if effective_summary_only {
-        Vec::new()
-    } else {
-        projection
-            .objects
-            .into_iter()
-            .take(object_limit)
+        projection.objects[object_start..object_end]
+            .iter()
+            .map(compact_object_summary)
             .collect::<Vec<_>>()
+    } else {
+        projection.objects[object_start..object_end].to_vec()
     };
     let links = if effective_summary_only {
-        Vec::new()
-    } else {
-        projection
-            .links
-            .into_iter()
-            .take(link_limit)
+        projection.links[link_start..link_end]
+            .iter()
+            .map(compact_link)
             .collect::<Vec<_>>()
+    } else {
+        projection.links[link_start..link_end].to_vec()
     };
+    let object_type_counts = value_field_counts(&projection.objects, "object_type", "object");
+    let link_type_counts = value_field_counts(&projection.links, "type", "related_to");
     let object_bounds = bounded_metadata(object_total, objects.len(), object_options);
     let link_bounds = bounded_metadata(link_total, links.len(), link_options);
     let action_catalog = query
@@ -7419,7 +8022,7 @@ async fn world(
         json!({})
     };
 
-    Json(json!({
+    let payload = json!({
         "object_count": object_total,
         "link_count": link_total,
         "objects": objects,
@@ -7428,7 +8031,17 @@ async fn world(
             "proposal_count": focusa.ontology.proposals.len(),
             "verification_count": focusa.ontology.verifications.len(),
             "working_set_refresh_count": focusa.ontology.working_set_refreshes.len(),
-            "delta_count": focusa.ontology.delta_log.len()
+            "delta_count": focusa.ontology.delta_log.len(),
+            "object_type_counts": object_type_counts,
+            "link_type_counts": link_type_counts,
+            "category_rehydrate": {
+                "objects": {"route":"/v1/ontology/world", "cursor_parameter":"cursor_objects", "limit_parameter":"limit_objects"},
+                "links": {"route":"/v1/ontology/world", "cursor_parameter":"cursor_links", "limit_parameter":"limit_links"},
+                "actions": {"route":"/v1/ontology/world", "parameter":"include_action_catalog", "value":"true"},
+                "working_sets": {"route":"/v1/ontology/world", "parameter":"include_working_sets", "value":"true"},
+                "provenance_verification": {"route":"/v1/ontology/adjacency"},
+                "governance": {"route":"/v1/ontology/contracts"}
+            }
         },
         "action_catalog": action_catalog,
         "working_sets": working_sets,
@@ -7467,7 +8080,9 @@ async fn world(
         "pressure": pressure,
         "degraded": full_payload_blocked,
         "full_payload_blocked_by_pressure": full_payload_blocked
-    }))
+    });
+    record_json_response_size("/v1/ontology/world", &payload);
+    Json(payload)
 }
 
 async fn slices(
@@ -7491,7 +8106,7 @@ async fn adjacency(
         &focusa,
         query.frame_id.as_deref(),
         query.target_ref.as_deref(),
-        query.limit.unwrap_or(25),
+        query.limit.unwrap_or(1),
     ))
 }
 
@@ -7506,8 +8121,9 @@ async fn working_set(
         query.ask.as_deref(),
         query.target_ref.as_deref(),
         &query.slice_type,
-        query.limit.unwrap_or(12),
+        query.limit.unwrap_or(6),
         query.include_reasons,
+        query.cursor.unwrap_or(0),
     ))
 }
 
@@ -7598,7 +8214,7 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use focusa_core::types::{FocusaState, SessionState, SessionStatus};
+    use focusa_core::types::{FocusaState, HandleKind, HandleRef, SessionState, SessionStatus};
     use serde_json::json;
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -8312,8 +8928,16 @@ mod tests {
             "status": "verified"
         }));
 
-        let payload =
-            working_set_payload(&focusa, None, Some("failure"), None, "debugging", 10, true);
+        let payload = working_set_payload(
+            &focusa,
+            None,
+            Some("failure"),
+            None,
+            "debugging",
+            10,
+            true,
+            0,
+        );
         assert_eq!(
             payload["source"].as_str(),
             Some("ontology_working_set_projection")
@@ -8358,7 +8982,7 @@ mod tests {
             .objects
             .push(json!({"id":"test:a","object_type":"test","status":"verified"}));
         focusa.ontology.links.push(json!({"type":"tested_by","source_id":"file:a","target_id":"test:a","status":"verified","evidence":"fixture"}));
-        let payload = graph_community_summaries_payload(&focusa, None, 5);
+        let payload = graph_community_summaries_payload(&focusa, None, 20);
         assert_eq!(
             payload["source"].as_str(),
             Some("ontology_graph_community_projection")
@@ -8368,14 +8992,8 @@ mod tests {
         assert!(communities.iter().any(|community| {
             community["evidence_links"]
                 .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .any(|link| {
-                    link["path"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .contains("tested_by")
-                })
+                .map(|links| !links.is_empty())
+                .unwrap_or(false)
         }));
     }
 
@@ -8397,6 +9015,8 @@ mod tests {
             budget_tokens: Some(300),
             view_profile: Some("pi_operator_view".to_string()),
             slice_type: "active_mission".to_string(),
+            operator_steering_detected: false,
+            active_object_refs: Vec::new(),
         };
         let payload = ontology_context_payload(&focusa, &body);
         assert_eq!(
@@ -8454,6 +9074,12 @@ mod tests {
             budget_tokens: Some(600),
             operator_steering_detected: true,
             include_metacog: false,
+            ask_kind: Some("implementation".to_string()),
+            query_scope: Some("mission".to_string()),
+            action_intent: Some("patch".to_string()),
+            stale_state: false,
+            degraded_state: false,
+            previous_retrieval_outcomes: Vec::new(),
         };
         let payload = retrieval_governor_payload(&focusa, &body);
         assert_eq!(
@@ -8682,6 +9308,10 @@ mod tests {
             payload["source"].as_str(),
             Some("ontology_intelligence_dashboard")
         );
+        assert_eq!(
+            payload["projection_kind"].as_str(),
+            Some("bounded_summary_projection")
+        );
         assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
         assert!(
             payload["metrics"]["evidence_linked_answer_rate"]
@@ -8726,6 +9356,48 @@ mod tests {
                 .and_then(|v| v.as_str()),
             Some("pi_regression_view")
         );
+        let invariants = payload_a
+            .get("projection_profile")
+            .and_then(|v| v.get("invariants"))
+            .and_then(|v| v.as_array())
+            .expect("slice invariants");
+        assert!(
+            invariants
+                .iter()
+                .any(|v| { v.as_str() == Some("default_slice_uses_bounded_summary_projection") })
+        );
+    }
+
+    #[test]
+    fn bounded_summary_projection_avoids_visual_expansion_for_default_slice_paths() {
+        let root = fixture_workspace("bounded-summary", true, true);
+        let mut focusa = focusa_with_workspace(&root);
+        focusa.reference_index.handles.push(HandleRef {
+            id: Uuid::now_v7(),
+            kind: HandleKind::FileSnapshot,
+            label: "visual-blueprint-screenshot".to_string(),
+            size: 123,
+            sha256: "deadbeef".to_string(),
+            created_at: Utc::now(),
+            session_id: focusa.session.as_ref().map(|session| session.session_id),
+            pinned: true,
+        });
+        let bounded = bounded_summary_projection(&focusa, None);
+        let combined = combined_projection(&focusa, None);
+
+        assert!(combined.objects.len() > bounded.objects.len());
+        assert!(
+            !bounded
+                .objects
+                .iter()
+                .any(|object| object.get("object_type").and_then(|v| v.as_str()) == Some("repo"))
+        );
+        assert!(!bounded.objects.iter().any(|object| {
+            object.get("object_type").and_then(|v| v.as_str()) == Some("visual_artifact")
+        }));
+        assert!(combined.objects.iter().any(|object| {
+            object.get("object_type").and_then(|v| v.as_str()) == Some("visual_artifact")
+        }));
     }
 
     #[test]

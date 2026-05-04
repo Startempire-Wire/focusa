@@ -14,30 +14,23 @@ import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
 
 let traceBatch: any[] = [];
-let traceBatchFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function queueTraceTelemetry(event: Record<string, any>): void {
   traceBatch.push(event);
-  if (traceBatch.length >= 100) {
-    flushTraceTelemetryBatch();
-    return;
-  }
-  if (!traceBatchFlushTimer) {
-    traceBatchFlushTimer = setTimeout(flushTraceTelemetryBatch, 0);
-  }
 }
 
-function flushTraceTelemetryBatch(): void {
-  if (traceBatchFlushTimer) {
-    clearTimeout(traceBatchFlushTimer);
-    traceBatchFlushTimer = null;
-  }
+function flushTraceTelemetryBatch(reason = "turn_end"): void {
+  const totalQueued = traceBatch.length;
   const events = traceBatch.splice(0, 100);
   if (!events.length) return;
   focusaPost("/telemetry/trace/batch", {
     batch_id: `pi-trace-batch-${S.turnCount}-${Date.now()}`,
     surface: "pi",
     event_count: events.length,
+    total_queued: totalQueued,
+    truncated: totalQueued > events.length,
+    omitted: Math.max(totalQueued - events.length, 0),
+    flush_reason: reason,
     events,
   });
 }
@@ -252,7 +245,7 @@ export function registerTurns(pi: ExtensionAPI) {
     let ontologyContext: any = null;
     if (S.focusaAvailable && includeAuxContext) {
       try {
-        ontologyContext = await focusaFetch("/ontology/retrieval-governor", {
+        ontologyContext = await focusaFetch("/ontology/context", {
           method: "POST",
           body: JSON.stringify({
             current_ask: S.currentAsk?.text || askText,
@@ -261,20 +254,31 @@ export function registerTurns(pi: ExtensionAPI) {
             target_refs: canonicalReferenceAliases.slice(0, 6),
             budget_tokens: Math.min(maxTokens, 800),
             operator_steering_detected: isOperatorSteeringInput(askText, S.currentAsk?.kind || "unknown"),
+            active_object_refs: [],
           }),
         });
       } catch {
         ontologyContext = null;
       }
     }
-    const ontologyObjectLines = Array.isArray(ontologyContext?.ontology_context?.active_object_set)
-      ? ontologyContext.ontology_context.active_object_set.slice(0, 6).map((item: any) => `${item.object_type || "object"}:${item.id || "unknown"} (${item.uncertainty || "unknown"})`)
+    const ontologyPayload = ontologyContext?.ontology_context || ontologyContext;
+    const ontologyObjectLines = Array.isArray(ontologyPayload?.active_object_set)
+      ? ontologyPayload.active_object_set.slice(0, 6).map((item: any) => `${item.object_type || "object"}:${item.id || "unknown"} (${item.uncertainty || "unknown"})`)
       : [];
-    const ontologyActionLines = Array.isArray(ontologyContext?.ontology_context?.valid_next_actions)
-      ? ontologyContext.ontology_context.valid_next_actions.slice(0, 4).map((item: any) => String(item.name || "unknown_action"))
+    const ontologyLinkLines = Array.isArray(ontologyPayload?.relevant_link_paths)
+      ? ontologyPayload.relevant_link_paths.slice(0, 6).map((item: any) => String(item.path || item))
       : [];
-    const ontologyUncertaintyLines = Array.isArray(ontologyContext?.ontology_context?.uncertainty_flags)
-      ? ontologyContext.ontology_context.uncertainty_flags.slice(0, 6).map((item: any) => String(item))
+    const ontologyActionLines = Array.isArray(ontologyPayload?.valid_next_actions)
+      ? ontologyPayload.valid_next_actions.slice(0, 4).map((item: any) => String(item.name || "unknown_action"))
+      : [];
+    const ontologyBlockedLines = Array.isArray(ontologyPayload?.blocked_affordances)
+      ? ontologyPayload.blocked_affordances.slice(0, 4).map((item: any) => String(item.name || item.id || item))
+      : [];
+    const ontologyEvidenceLines = Array.isArray(ontologyPayload?.evidence_handles)
+      ? ontologyPayload.evidence_handles.slice(0, 4).map((item: any) => `${item.kind || "evidence"}:${item.label || item.id || "unknown"}`)
+      : [];
+    const ontologyUncertaintyLines = Array.isArray(ontologyPayload?.uncertainty_flags)
+      ? ontologyPayload.uncertainty_flags.slice(0, 6).map((item: any) => String(item))
       : [];
 
     const sectionEntries = [
@@ -289,9 +293,12 @@ export function registerTurns(pi: ExtensionAPI) {
       { key: "projection_boundary", text: `PROJECTION_BOUNDARY: token_budget=${maxTokens} carryover=${S.queryScope?.carryoverPolicy || "allow_if_relevant"} mission=${missionIncluded ? "included" : "suppressed"}` , include: true, selectedCount: 1, excludedCount: 0, priority: 13, relevanceScore: 90 },
       { key: "canonical_sources", text: `CANONICAL_SOURCES: focus_state semantic_memory ecs_handles reference_index`, include: true, selectedCount: 4, excludedCount: 0, priority: 14, relevanceScore: 90 },
       buildSliceSection("canonical_references", "REFERENCE_ALIASES", canonicalReferenceAliases, canonicalReferenceAliases.length > 0, (values) => fmt("REFERENCE_ALIASES", values), 0, 15, 85),
-      buildSliceSection("ontology_active_objects", "ONTOLOGY_ACTIVE_OBJECTS", ontologyObjectLines, ontologyObjectLines.length > 0, (values) => fmt("ONTOLOGY_ACTIVE_OBJECTS", values), 0, 16, 92),
-      buildSliceSection("ontology_next_actions", "ONTOLOGY_NEXT_ACTIONS", ontologyActionLines, ontologyActionLines.length > 0, (values) => fmt("ONTOLOGY_NEXT_ACTIONS", values), 0, 17, 88),
-      buildSliceSection("ontology_uncertainty", "ONTOLOGY_UNCERTAINTY", ontologyUncertaintyLines, ontologyUncertaintyLines.length > 0, (values) => fmt("ONTOLOGY_UNCERTAINTY", values), 0, 18, 80),
+      buildSliceSection("ontology_active_objects", "ACTIVE_OBJECT_SET", ontologyObjectLines, ontologyObjectLines.length > 0, (values) => fmt("ACTIVE_OBJECT_SET", values), 0, 16, 92),
+      buildSliceSection("ontology_link_paths", "RELEVANT_LINK_PATHS", ontologyLinkLines, ontologyLinkLines.length > 0, (values) => fmt("RELEVANT_LINK_PATHS", values), 0, 17, 90),
+      buildSliceSection("ontology_next_actions", "VALID_NEXT_ACTIONS", ontologyActionLines, ontologyActionLines.length > 0, (values) => fmt("VALID_NEXT_ACTIONS", values), 0, 18, 88),
+      buildSliceSection("ontology_blocked_affordances", "BLOCKED_AFFORDANCES", ontologyBlockedLines, ontologyBlockedLines.length > 0, (values) => fmt("BLOCKED_AFFORDANCES", values), 0, 19, 82),
+      buildSliceSection("ontology_evidence_handles", "EVIDENCE_HANDLES", ontologyEvidenceLines, ontologyEvidenceLines.length > 0, (values) => fmt("EVIDENCE_HANDLES", values), 0, 20, 84),
+      buildSliceSection("ontology_uncertainty", "UNCERTAINTY_FLAGS", ontologyUncertaintyLines, ontologyUncertaintyLines.length > 0, (values) => fmt("UNCERTAINTY_FLAGS", values), 0, 21, 80),
       buildSliceSection("working_set", "WORKING_SET", relevantWorkingSet.items, relevantWorkingSet.items.length > 0, (values) => fmt("WORKING_SET", values), relevantWorkingSet.excluded.length, 20, selectionRelevanceScore(relevantWorkingSet)),
       buildSliceSection("constraints", "CONSTRAINTS", relevantConstraints.items, relevantConstraints.items.length > 0, (values) => fmt("CONSTRAINTS", values), relevantConstraints.excluded.length, 20, selectionRelevanceScore(relevantConstraints)),
       buildSliceSection("decisions", "DECISIONS", relevantDecisions.items, relevantDecisions.items.length > 0, (values) => fmt("DECISIONS", values), relevantDecisions.excluded.length, 20, selectionRelevanceScore(relevantDecisions)),
@@ -825,6 +832,8 @@ export function registerTurns(pi: ExtensionAPI) {
         }).catch(() => null);
       }
     }
+
+    flushTraceTelemetryBatch("turn_end");
 
     // §20: Compaction tier check
     await checkCompactionTier(ctx);

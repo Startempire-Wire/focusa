@@ -4,7 +4,13 @@
 //! Route handlers own domain-specific selection/rehydration; this module owns
 //! consistent limit resolution and metadata envelopes.
 
+use chrono::Utc;
 use serde::Serialize;
+use std::collections::BTreeMap;
+use std::sync::{LazyLock, Mutex};
+
+static TEST_PRESSURE_THRESHOLD_KB: LazyLock<Mutex<Option<u64>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct RehydrateHint {
@@ -22,6 +28,31 @@ pub struct PressureStatus {
     pub threshold_kb: Option<u64>,
     pub mode: &'static str,
 }
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct PressureTransition {
+    pub transitioned_at: String,
+    pub from_status: &'static str,
+    pub to_status: &'static str,
+    pub rss_kb: Option<u64>,
+    pub threshold_kb: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ResponseSizeHistogram {
+    pub route: String,
+    pub samples: usize,
+    pub min_bytes: usize,
+    pub p50_bytes: usize,
+    pub p95_bytes: usize,
+    pub max_bytes: usize,
+}
+
+static PRESSURE_TRANSITION: LazyLock<Mutex<Option<PressureTransition>>> =
+    LazyLock::new(|| Mutex::new(None));
+static PRESSURE_LAST_ACTIVE: LazyLock<Mutex<Option<bool>>> = LazyLock::new(|| Mutex::new(None));
+static RESPONSE_SIZE_SAMPLES: LazyLock<Mutex<BTreeMap<String, Vec<usize>>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct BoundedReadMetadata {
@@ -46,6 +77,7 @@ pub struct BoundedReadOptions {
     pub include_full_payload: bool,
     pub summary_only: bool,
     pub cursor: Option<String>,
+    pub next_cursor: Option<String>,
     pub default_limit: usize,
     pub full_limit: usize,
 }
@@ -87,17 +119,29 @@ pub fn current_rss_kb() -> Option<u64> {
         .and_then(|text| parse_status_value_kb(&text, "VmRSS"))
 }
 
+pub fn set_test_pressure_threshold(threshold_kb: Option<u64>) {
+    if let Ok(mut threshold) = TEST_PRESSURE_THRESHOLD_KB.lock() {
+        *threshold = threshold_kb;
+    }
+}
+
 pub fn pressure_status() -> PressureStatus {
-    let threshold_kb = std::env::var("FOCUSA_MEMORY_PRESSURE_RSS_KB")
+    let threshold_kb = TEST_PRESSURE_THRESHOLD_KB
+        .lock()
         .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .filter(|value| *value > 0);
+        .and_then(|threshold| *threshold)
+        .or_else(|| {
+            std::env::var("FOCUSA_MEMORY_PRESSURE_RSS_KB")
+                .ok()
+                .and_then(|value| value.parse::<u64>().ok())
+                .filter(|value| *value > 0)
+        });
     let rss_kb = current_rss_kb();
     let active = threshold_kb
         .zip(rss_kb)
         .map(|(threshold, rss)| rss >= threshold)
         .unwrap_or(false);
-    PressureStatus {
+    let status = PressureStatus {
         status: if active { "pressure" } else { "ok" },
         active,
         configured: threshold_kb.is_some(),
@@ -108,6 +152,80 @@ pub fn pressure_status() -> PressureStatus {
         } else {
             "normal"
         },
+    };
+    if let Ok(mut last_active) = PRESSURE_LAST_ACTIVE.lock() {
+        let should_record = match *last_active {
+            Some(previous) => previous != active,
+            None => active && threshold_kb.is_some(),
+        };
+        if should_record {
+            let from_status = last_active
+                .map(|previous| if previous { "pressure" } else { "ok" })
+                .unwrap_or("unknown");
+            if let Ok(mut transition) = PRESSURE_TRANSITION.lock() {
+                *transition = Some(PressureTransition {
+                    transitioned_at: Utc::now().to_rfc3339(),
+                    from_status,
+                    to_status: status.status,
+                    rss_kb,
+                    threshold_kb,
+                });
+            }
+        }
+        *last_active = Some(active);
+    }
+    status
+}
+
+pub fn last_pressure_transition() -> Option<PressureTransition> {
+    PRESSURE_TRANSITION
+        .lock()
+        .ok()
+        .and_then(|value| value.clone())
+}
+
+pub fn record_response_size(route: &str, bytes: usize) {
+    if let Ok(mut samples) = RESPONSE_SIZE_SAMPLES.lock() {
+        let route_samples = samples.entry(route.to_string()).or_default();
+        route_samples.push(bytes);
+        if route_samples.len() > 512 {
+            let overflow = route_samples.len() - 512;
+            route_samples.drain(0..overflow);
+        }
+    }
+}
+
+pub fn response_size_histograms() -> Vec<ResponseSizeHistogram> {
+    RESPONSE_SIZE_SAMPLES
+        .lock()
+        .map(|samples| {
+            samples
+                .iter()
+                .filter_map(|(route, values)| {
+                    if values.is_empty() {
+                        return None;
+                    }
+                    let mut sorted = values.clone();
+                    sorted.sort_unstable();
+                    let p50 = sorted[sorted.len() / 2];
+                    let p95 = sorted[((sorted.len() * 95).div_ceil(100)).saturating_sub(1)];
+                    Some(ResponseSizeHistogram {
+                        route: route.clone(),
+                        samples: sorted.len(),
+                        min_bytes: *sorted.first().unwrap_or(&0),
+                        p50_bytes: p50,
+                        p95_bytes: p95,
+                        max_bytes: *sorted.last().unwrap_or(&0),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+pub fn record_json_response_size(route: &str, value: &serde_json::Value) {
+    if let Ok(bytes) = serde_json::to_vec(value) {
+        record_response_size(route, bytes.len());
     }
 }
 
@@ -138,7 +256,7 @@ pub fn bounded_metadata(
         include_full_payload: options.include_full_payload,
         summary_only: options.summary_only,
         cursor: options.cursor,
-        next_cursor: None,
+        next_cursor: options.next_cursor,
         rehydrate: truncated.then_some(RehydrateHint {
             mode: "full_payload_opt_in",
             parameter: "include_full_payload",
@@ -158,6 +276,7 @@ mod tests {
             include_full_payload: false,
             summary_only: true,
             cursor: None,
+            next_cursor: None,
             default_limit: 100,
             full_limit: 1000,
         };
@@ -171,6 +290,7 @@ mod tests {
             include_full_payload: true,
             summary_only: false,
             cursor: None,
+            next_cursor: None,
             default_limit: 100,
             full_limit: 1000,
         };
@@ -202,6 +322,7 @@ mod tests {
                 include_full_payload: false,
                 summary_only: true,
                 cursor: Some("0".to_string()),
+                next_cursor: Some("3".to_string()),
                 default_limit: 5,
                 full_limit: 50,
             },

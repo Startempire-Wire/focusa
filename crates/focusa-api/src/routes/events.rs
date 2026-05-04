@@ -9,7 +9,8 @@ use axum::extract::{Path as AxumPath, Query, State};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::{Json, Router, routing::get};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
+use std::collections::VecDeque;
 use std::convert::Infallible;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -19,13 +20,64 @@ use std::sync::Arc;
 struct RecentParams {
     #[serde(default = "default_limit")]
     limit: usize,
+    #[serde(default)]
+    cursor: Option<usize>,
+    #[serde(default)]
+    event_type: Option<String>,
 }
 
 fn default_limit() -> usize {
     20
 }
 
-/// Read the last N events from the JSONL event log.
+fn event_type_matches(event: &Value, event_type: Option<&str>) -> bool {
+    event_type
+        .map(|wanted| event.get("event_type").and_then(|v| v.as_str()) == Some(wanted))
+        .unwrap_or(true)
+}
+
+fn bounded_recent_events_from_reader<R: BufRead>(
+    reader: R,
+    limit: usize,
+    cursor: Option<usize>,
+    event_type: Option<&str>,
+) -> (Vec<Value>, usize, Option<usize>) {
+    let limit = limit.clamp(1, 1000);
+    let mut total_matching = 0usize;
+    let mut page = Vec::with_capacity(limit);
+    let mut tail = VecDeque::with_capacity(limit);
+    for line in reader.lines().map_while(Result::ok) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let Ok(event) = serde_json::from_str::<Value>(&line) else {
+            continue;
+        };
+        if !event_type_matches(&event, event_type) {
+            continue;
+        }
+        let index = total_matching;
+        total_matching += 1;
+        if let Some(cursor) = cursor {
+            if index >= cursor && page.len() < limit {
+                page.push(event);
+            }
+        } else {
+            if tail.len() == limit {
+                tail.pop_front();
+            }
+            tail.push_back(event);
+        }
+    }
+    if let Some(cursor) = cursor {
+        let next_cursor = (cursor + page.len() < total_matching).then_some(cursor + page.len());
+        (page, total_matching, next_cursor)
+    } else {
+        (tail.into_iter().collect(), total_matching, None)
+    }
+}
+
+/// Read a bounded tail page from the JSONL event log without materializing the full log.
 async fn recent(
     State(state): State<Arc<AppState>>,
     Query(params): Query<RecentParams>,
@@ -46,27 +98,32 @@ async fn recent(
     };
 
     let reader = BufReader::new(file);
-    let mut entries: Vec<Value> = Vec::new();
-
-    for line in reader.lines() {
-        match line {
-            Ok(l) if !l.trim().is_empty() => {
-                if let Ok(v) = serde_json::from_str::<Value>(&l) {
-                    entries.push(v);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    let total = entries.len();
-    let start = entries.len().saturating_sub(params.limit);
-    let recent = &entries[start..];
+    let requested_limit = params.limit.clamp(1, 1000);
+    let cursor = params.cursor;
+    let (events, total, next_cursor) = bounded_recent_events_from_reader(
+        reader,
+        requested_limit,
+        cursor,
+        params.event_type.as_deref(),
+    );
 
     Json(json!({
-        "events": recent,
+        "events": events,
         "total": total,
-        "returned": recent.len(),
+        "returned": events.len(),
+        "limit": requested_limit,
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor.unwrap_or(0) > 0 || total > events.len(),
+        "bounds": {
+            "total": total,
+            "returned": events.len(),
+            "limit": requested_limit,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
+            "truncated": next_cursor.is_some() || cursor.unwrap_or(0) > 0 || total > events.len(),
+            "filter_event_type": params.event_type,
+        }
     }))
 }
 
@@ -179,4 +236,42 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/events/recent", get(recent))
         .route("/v1/events/stream", get(stream))
         .route("/v1/events/{event_id}", get(get_event))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bounded_recent_events_from_reader;
+    use std::io::Cursor;
+
+    #[test]
+    fn recent_events_tail_is_bounded_without_full_materialization() {
+        let jsonl = (0..5)
+            .map(|i| format!(r#"{{"event_type":"turn","n":{i}}}"#))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let (events, total, next_cursor) =
+            bounded_recent_events_from_reader(Cursor::new(jsonl), 2, None, None);
+        assert_eq!(total, 5);
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0]["n"].as_i64(), Some(3));
+        assert_eq!(events[1]["n"].as_i64(), Some(4));
+        assert_eq!(next_cursor, None);
+    }
+
+    #[test]
+    fn recent_events_cursor_pages_with_filter() {
+        let jsonl = [
+            r#"{"event_type":"a","n":0}"#,
+            r#"{"event_type":"b","n":1}"#,
+            r#"{"event_type":"a","n":2}"#,
+            r#"{"event_type":"a","n":3}"#,
+        ]
+        .join("\n");
+        let (events, total, next_cursor) =
+            bounded_recent_events_from_reader(Cursor::new(jsonl), 1, Some(1), Some("a"));
+        assert_eq!(total, 3);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["n"].as_i64(), Some(2));
+        assert_eq!(next_cursor, Some(2));
+    }
 }

@@ -8,7 +8,7 @@
 
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
-    pressure_status,
+    pressure_status, record_json_response_size,
 };
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
@@ -88,12 +88,17 @@ async fn store_artifact(
 #[derive(Debug, Clone, Deserialize, Default)]
 struct ListHandlesQuery {
     limit: Option<usize>,
-    #[serde(default)]
+    cursor: Option<usize>,
+    #[serde(default = "default_true")]
     summary_only: bool,
     #[serde(default)]
     include_full_payload: bool,
     #[serde(default)]
     force_full_payload: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn handles_default_limit() -> usize {
@@ -104,20 +109,23 @@ fn handles_full_limit() -> usize {
     env_limit("FOCUSA_ECS_HANDLES_FULL_LIMIT", MAX_HANDLES_LIMIT).max(handles_default_limit())
 }
 
-fn limit_handles(handles: &[HandleRef], limit: Option<usize>) -> Vec<HandleRef> {
-    match limit.map(|value| value.min(handles_full_limit())) {
-        Some(0) => Vec::new(),
-        Some(n) => handles
-            .iter()
-            .rev()
-            .take(n)
-            .cloned()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect(),
-        None => handles.to_vec(),
-    }
+fn limit_handles(
+    handles: &[HandleRef],
+    cursor: usize,
+    limit: usize,
+) -> (Vec<HandleRef>, Option<String>) {
+    let total = handles.len();
+    let start = cursor.min(total);
+    let end = (start + limit).min(total);
+    let out = handles
+        .iter()
+        .rev()
+        .skip(start)
+        .take(end.saturating_sub(start))
+        .cloned()
+        .collect::<Vec<_>>();
+    let next_cursor = (end < total).then(|| end.to_string());
+    (out, next_cursor)
 }
 
 fn handle_summaries(handles: &[HandleRef]) -> Vec<serde_json::Value> {
@@ -147,27 +155,36 @@ async fn list_handles(
     let full_payload_blocked =
         full_payload_blocked_by_pressure(query.include_full_payload, query.force_full_payload);
     let effective_include_full_payload = query.include_full_payload && !full_payload_blocked;
-    let effective_summary_only = query.summary_only || full_payload_blocked;
+    let effective_summary_only =
+        (query.summary_only && !effective_include_full_payload) || full_payload_blocked;
     let pressure = pressure_status();
-    let options = BoundedReadOptions {
+    let mut options = BoundedReadOptions {
         requested_limit: query.limit,
         include_full_payload: effective_include_full_payload,
         summary_only: effective_summary_only,
-        cursor: None,
+        cursor: query.cursor.map(|v| v.to_string()),
+        next_cursor: None,
         default_limit,
         full_limit,
     };
     let resolved_limit = options.resolved_limit();
-    let handles = limit_handles(&focusa.reference_index.handles, Some(resolved_limit));
+    let (handles, next_cursor) = limit_handles(
+        &focusa.reference_index.handles,
+        query.cursor.unwrap_or(0),
+        resolved_limit,
+    );
+    options.next_cursor = next_cursor;
     let bounds = bounded_metadata(total, handles.len(), options);
-    Json(json!({
+    let payload = json!({
         "handles": if effective_summary_only { json!(handle_summaries(&handles)) } else { json!(handles) },
         "count": total,
         "bounds": bounds,
         "pressure": pressure,
         "degraded": full_payload_blocked,
         "full_payload_blocked_by_pressure": full_payload_blocked,
-    }))
+    });
+    record_json_response_size("/v1/ecs/handles", &payload);
+    Json(payload)
 }
 
 async fn resolve_handle(
@@ -315,16 +332,17 @@ mod tests {
     }
 
     #[test]
-    fn limit_handles_keeps_most_recent_entries() {
+    fn limit_handles_returns_cursor_window() {
         let items = vec![
             handle("old", HandleKind::Log, false),
             handle("mid", HandleKind::Diff, true),
             handle("new", HandleKind::Text, false),
         ];
-        let limited = limit_handles(&items, Some(2));
+        let (limited, next_cursor) = limit_handles(&items, 1, 2);
         assert_eq!(limited.len(), 2);
         assert_eq!(limited[0].label, "mid");
-        assert_eq!(limited[1].label, "new");
+        assert_eq!(limited[1].label, "old");
+        assert_eq!(next_cursor, None);
     }
 
     #[test]

@@ -193,31 +193,8 @@ fn load_snapshot_record(state: &AppState, snapshot_id: &str) -> Option<SnapshotR
     })
 }
 
-fn load_all_snapshot_records(state: &AppState) -> Vec<SnapshotRecord> {
-    let mut out = Vec::new();
-    let dir = snapshot_dir(state);
-    let Ok(entries) = fs::read_dir(dir) else {
-        return out;
-    };
-
-    for entry in entries.flatten() {
-        let Ok(bytes) = fs::read(entry.path()) else {
-            continue;
-        };
-        let Ok(v) = serde_json::from_slice::<Value>(&bytes) else {
-            continue;
-        };
-        let Some(snapshot_id) = v.get("snapshot_id").and_then(|x| x.as_str()) else {
-            continue;
-        };
-        if let Some(rec) = load_snapshot_record(state, snapshot_id) {
-            out.push(rec);
-        }
-    }
-
-    out.sort_by_key(|r| std::cmp::Reverse(r.created_at));
-    out
-}
+// Snapshot records are loaded from the persistent index file.
+// Directory scan removed per Spec94 E1: index must be pre-populated.
 
 #[derive(Debug, Deserialize)]
 struct SnapshotCreateBody {
@@ -392,13 +369,9 @@ async fn recent_snapshots(
     for rec in load_snapshot_index(&state) {
         by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
     }
-    if by_id.is_empty() {
-        for rec in load_all_snapshot_records(&state) {
-            by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
-        }
-    }
 
     let limit = query.limit.unwrap_or(5).clamp(1, 20);
+    let total = by_id.len();
     let mut items = by_id.into_values().collect::<Vec<_>>();
     items.sort_by_key(|r| std::cmp::Reverse(r.created_at));
     items.truncate(limit);
@@ -406,7 +379,10 @@ async fn recent_snapshots(
     Ok(Json(json!({
         "status": "ok",
         "source": "snapshot_hot_index",
-        "total": items.len(),
+        "total": total,
+        "returned": items.len(),
+        "limit": limit,
+        "truncated": total > items.len(),
         "snapshots": items.into_iter().map(|rec| json!({
             "snapshot_id": rec.snapshot_id,
             "clt_node_id": rec.clt_node_id,

@@ -6,6 +6,7 @@
 //! NOTE: SSE streaming should be implemented via in-process broadcast channel,
 //! not file tailing. This module only covers read APIs for now.
 
+use crate::routes::bounded::record_json_response_size;
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
 use axum::{Json, Router, routing::get};
@@ -44,6 +45,7 @@ async fn recent(
     };
 
     let limit = params.limit.clamp(1, 500);
+    let query_limit = limit + 1;
     let mut sql = "SELECT ts, payload_json FROM events".to_string();
     let mut clauses = Vec::new();
     if params.cursor.is_some() {
@@ -80,7 +82,7 @@ async fn recent(
     if let Some(event_type) = &params.event_type {
         values.push(format!("%\"{}\"%", event_type).into());
     }
-    values.push((limit as i64).into());
+    values.push((query_limit as i64).into());
 
     let rows = stmt
         .query_map(rusqlite::params_from_iter(values), |row| {
@@ -97,9 +99,16 @@ async fn recent(
         }
     };
 
+    let has_more = rows.len() > limit;
+    let mut page_rows = rows;
+    if has_more {
+        page_rows.truncate(limit);
+    }
+    let next_cursor = has_more
+        .then(|| page_rows.last().map(|(ts, _)| ts.clone()))
+        .flatten();
     let mut events: Vec<Value> = Vec::new();
-    let next_cursor = rows.last().map(|(ts, _)| ts.clone());
-    for (_, p) in rows.into_iter().rev() {
+    for (_, p) in page_rows.into_iter().rev() {
         if let Ok(v) = serde_json::from_str::<Value>(&p) {
             events.push(v);
         }
@@ -109,18 +118,36 @@ async fn recent(
         .query_row("SELECT COUNT(1) FROM events", [], |r| r.get(0))
         .unwrap_or(0);
 
-    Json(json!({
+    let cursor_filter = params.cursor.clone();
+    let since_filter = params.since.clone();
+    let event_type_filter = params.event_type.clone();
+    let next_cursor_for_bounds = next_cursor.clone();
+    let next_cursor_for_rehydrate = next_cursor.clone();
+    let payload = json!({
         "events": events,
         "total": total,
         "returned": events.len(),
+        "limit": limit,
         "next_cursor": next_cursor,
+        "truncated": has_more,
+        "bounds": {
+            "total": total,
+            "returned": events.len(),
+            "limit": limit,
+            "cursor": cursor_filter,
+            "next_cursor": next_cursor_for_bounds,
+            "truncated": has_more,
+            "rehydrate": {"route":"/v1/events/recent", "cursor": next_cursor_for_rehydrate}
+        },
         "filters": {
             "cursor": params.cursor,
-            "since": params.since,
-            "event_type": params.event_type,
+            "since": since_filter,
+            "event_type": event_type_filter,
         },
         "tail_strategy": "sqlite_reverse_ts_bounded",
-    }))
+    });
+    record_json_response_size("/v1/events/recent", &payload);
+    Json(payload)
 }
 
 async fn get_event(

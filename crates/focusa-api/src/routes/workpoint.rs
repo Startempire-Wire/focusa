@@ -145,7 +145,7 @@ fn put_idempotency_cache_record(key: String, record: WorkpointRecord) -> usize {
     prune_idempotency_cache(&mut cache)
 }
 
-fn idempotency_cache_status_payload() -> Value {
+pub(crate) fn idempotency_cache_status_payload() -> Value {
     let mut cache_len = 0;
     let mut pruned = 0;
     if let Ok(mut cache) = WORKPOINT_IDEMPOTENCY_CACHE.lock() {

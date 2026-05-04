@@ -401,7 +401,9 @@ impl SqlitePersistence {
                     rusqlite::Error::InvalidColumnType(1, "ts".into(), rusqlite::types::Type::Text)
                 })?
                 .with_timezone(&Utc);
-            let session_id = r.get::<_, Option<String>>(2)?.and_then(|sid| sid.parse().ok());
+            let session_id = r
+                .get::<_, Option<String>>(2)?
+                .and_then(|sid| sid.parse().ok());
             let payload_json: String = r.get(3)?;
             Ok(RawEventLogRow {
                 event_id,

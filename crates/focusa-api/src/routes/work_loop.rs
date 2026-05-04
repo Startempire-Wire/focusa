@@ -1,8 +1,9 @@
 //! Continuous work loop control/status routes.
 
+use crate::routes::bounded::record_json_response_size;
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::{
     Json, Router,
@@ -26,6 +27,12 @@ const WRITER_HEADER: &str = "x-focusa-writer-id";
 const APPROVAL_HEADER: &str = "x-focusa-approval";
 const PROJECT_ROOT: &str = "/home/wirebot/focusa";
 const PI_RPC_BIN: &str = "/opt/cpanel/ea-nodejs20/bin/pi";
+
+#[derive(Debug, Deserialize)]
+struct WorkLoopStatusQuery {
+    #[serde(default)]
+    summary_only: bool,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct EnableWorkLoopRequest {
@@ -1780,6 +1787,7 @@ fn secondary_loop_closure_bundle_for_status(
 }
 
 async fn status(
+    Query(query): Query<WorkLoopStatusQuery>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -1791,6 +1799,35 @@ async fn status(
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
     let active_writer = state.active_writer.read().await.clone();
+    if query.summary_only {
+        let transport_health = transport_health_for_status(wl);
+        let budget_remaining = budget_remaining_for_status(wl);
+        let resume_payload = resume_payload_for_status(&s, wl);
+        let payload = json!({
+            "enabled": wl.enabled,
+            "status": wl.status,
+            "project_status": if wl.enabled { "active" } else { "idle" },
+            "current_task": wl.current_task,
+            "last_completed_task_id": wl.last_completed_task_id,
+            "decision_context": wl.decision_context,
+            "active_writer": active_writer,
+            "transport_health": transport_health,
+            "budget_remaining": budget_remaining,
+            "resume_payload": resume_payload,
+            "active_workpoint": active_workpoint_summary_for_status(&s),
+            "bounds": {
+                "summary_only": true,
+                "truncated": true,
+                "omitted_categories": [
+                    "policy", "run", "blocker_package", "secondary_loop_eval_artifacts",
+                    "secondary_loop_replay_consumer", "worktree", "governance"
+                ],
+                "rehydrate": {"route":"/v1/work-loop/status", "summary_only":"false"}
+            }
+        });
+        record_json_response_size("/v1/work-loop/status", &payload);
+        return Ok(Json(payload));
+    }
     let driver_snapshot = {
         let guard = state.pi_rpc_session.lock().await;
         guard.as_ref().map(|session| {
@@ -1855,7 +1892,7 @@ async fn status(
         });
     let pending_proposals = focusa_core::pre::pending_count(&s.pre);
     let next_work_risk_class = next_work_risk_class_for_status(wl);
-    Ok(Json(json!({
+    let payload = json!({
         "enabled": wl.enabled,
         "status": wl.status,
         "project_status": if wl.enabled {
@@ -1971,7 +2008,9 @@ async fn status(
             "operator_override_supersedes_loop": true,
         },
         "worktree": worktree,
-    })))
+    });
+    record_json_response_size("/v1/work-loop/status", &payload);
+    Ok(Json(payload))
 }
 
 async fn closure_replay_evidence(

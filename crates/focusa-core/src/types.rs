@@ -1995,6 +1995,21 @@ pub struct FocusaConfig {
     /// Seconds before a frame is considered long-running.
     /// Default: 1800 (30 minutes)
     pub long_running_frame_secs: Option<i64>,
+    /// Maximum retained metacognition captures.
+    /// Default: 1000
+    pub metacog_max_captures: usize,
+    /// Maximum retained metacognition reflections.
+    /// Default: 500
+    pub metacog_max_reflections: usize,
+    /// Maximum retained metacognition adjustments.
+    /// Default: 500
+    pub metacog_max_adjustments: usize,
+    /// Metacognition TTL in minutes.
+    /// Default: 10080 (7 days)
+    pub metacog_ttl_minutes: i64,
+    /// Maximum metacognition retrieval candidates.
+    /// Default: 50
+    pub metacog_retrieve_max_k: usize,
 }
 
 impl Default for FocusaConfig {
@@ -2019,6 +2034,11 @@ impl Default for FocusaConfig {
             auth_token: None,
             inactivity_threshold_secs: Some(300),
             long_running_frame_secs: Some(1800),
+            metacog_max_captures: 1000,
+            metacog_max_reflections: 500,
+            metacog_max_adjustments: 500,
+            metacog_ttl_minutes: 7 * 24 * 60,
+            metacog_retrieve_max_k: 50,
         }
     }
 }

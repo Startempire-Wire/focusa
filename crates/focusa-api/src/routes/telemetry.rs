@@ -1,8 +1,14 @@
 //! Telemetry routes.
 
-use crate::routes::bounded::pressure_status;
+use crate::routes::bounded::{
+    last_pressure_transition, pressure_status, record_json_response_size, response_size_histograms,
+    set_test_pressure_threshold,
+};
+use crate::routes::ontology::ontology_read_index_cache_metadata;
+use crate::routes::workpoint::idempotency_cache_status_payload;
 use crate::server::AppState;
 use axum::extract::{Query, State};
+use axum::http::StatusCode;
 use axum::{
     Json, Router,
     routing::{get, post},
@@ -12,6 +18,11 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::Arc;
+
+#[derive(Deserialize)]
+struct DebugPressureQuery {
+    threshold_kb: Option<u64>,
+}
 use uuid::Uuid;
 
 fn env_usize(name: &str, fallback: usize) -> usize {
@@ -57,6 +68,7 @@ fn route_budget_profile() -> Value {
             "full_object_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT", 10_000),
             "default_link_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512),
             "full_link_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_FULL_LINK_LIMIT", 20_000),
+            "workspace_scan_limit": env_usize("FOCUSA_ONTOLOGY_WORKSPACE_SCAN_LIMIT", 128),
         },
         "ecs_handles": {
             "default_limit": env_usize("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100),
@@ -74,11 +86,11 @@ fn route_budget_profile() -> Value {
 }
 
 /// GET /v1/telemetry/memory — read-only daemon memory/store-count telemetry.
-async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
+async fn memory_payload(state: &AppState) -> Value {
     let started_at = state.started_at;
     let event_count = state.persistence.event_count().unwrap_or(0);
     let focusa = state.focusa.read().await;
-    Json(json!({
+    let payload = json!({
         "status": "ok",
         "generated_at": Utc::now().to_rfc3339(),
         "uptime_ms": started_at.elapsed().as_millis() as u64,
@@ -108,6 +120,7 @@ async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
                 "resume_event_count": focusa.workpoint.resume_events.len(),
                 "drift_event_count": focusa.workpoint.drift_events.len(),
                 "degraded_fallback_count": focusa.workpoint.degraded_fallbacks.len(),
+                "idempotency_cache": idempotency_cache_status_payload(),
             },
             "lineage": {
                 "node_count": focusa.clt.nodes.len(),
@@ -140,12 +153,35 @@ async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
         },
         "pressure": {
             "current": pressure_status(),
-            "last_transition": Value::Null,
+            "last_transition": last_pressure_transition(),
             "note": "Full-payload read routes expose degraded=true when memory pressure is active and force_full_payload is not set."
         },
         "route_budgets": route_budget_profile(),
+        "response_size_histograms": response_size_histograms(),
         "degraded": false,
-    }))
+    });
+    record_json_response_size("/v1/telemetry/memory", &payload);
+    payload
+}
+
+async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
+    Json(memory_payload(&state).await)
+}
+
+async fn debug_set_pressure_threshold(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<DebugPressureQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if !cfg!(debug_assertions)
+        && std::env::var("FOCUSA_ENABLE_TEST_ROUTES").ok().as_deref() != Some("1")
+    {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({"error":"debug route disabled"})),
+        ));
+    }
+    set_test_pressure_threshold(query.threshold_kb);
+    Ok(Json(memory_payload(&state).await))
 }
 
 /// GET /v1/telemetry/events — bounded read of telemetry trace events.
@@ -158,6 +194,10 @@ async fn telemetry_events(
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(100)
         .clamp(1, 1000);
+    let cursor = params
+        .get("cursor")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(0);
     let event_type = params.get("event_type").map(String::as_str);
     let focusa = state.focusa.read().await;
     let total = focusa.telemetry.trace_events.len();
@@ -171,24 +211,37 @@ async fn telemetry_events(
                 .map(|wanted| event.get("event_type").and_then(|v| v.as_str()) == Some(wanted))
                 .unwrap_or(true)
         })
+        .skip(cursor)
         .take(limit)
         .cloned()
         .collect::<Vec<_>>();
     events.reverse();
-    Json(json!({
+    let payload = json!({
         "status": "ok",
         "events": events,
         "count": total,
         "returned": events.len(),
         "limit": limit,
-        "truncated": total > events.len(),
-    }))
+        "cursor": cursor,
+        "next_cursor": (cursor + events.len() < total).then(|| (cursor + events.len()).to_string()),
+        "truncated": cursor + events.len() < total,
+        "bounds": {
+            "total": total,
+            "returned": events.len(),
+            "limit": limit,
+            "cursor": cursor,
+            "next_cursor": (cursor + events.len() < total).then(|| (cursor + events.len()).to_string()),
+            "truncated": cursor + events.len() < total
+        },
+    });
+    record_json_response_size("/v1/telemetry/events", &payload);
+    Json(payload)
 }
 
 /// GET /v1/telemetry/productivity — lightweight productivity counters.
 async fn telemetry_productivity(State(state): State<Arc<AppState>>) -> Json<Value> {
     let focusa = state.focusa.read().await;
-    Json(json!({
+    let payload = json!({
         "status": "ok",
         "workpoint_records": focusa.workpoint.records.len(),
         "workpoint_resume_events": focusa.workpoint.resume_events.len(),
@@ -198,13 +251,16 @@ async fn telemetry_productivity(State(state): State<Arc<AppState>>) -> Json<Valu
         "semantic_memory_records": focusa.memory.semantic.len(),
         "procedural_memory_records": focusa.memory.procedural.len(),
         "ontology_delta_count": focusa.ontology.delta_log.len(),
-    }))
+        "bounds": {"summary_only": true, "truncated": false, "returned": 1, "total": 1},
+    });
+    record_json_response_size("/v1/telemetry/productivity", &payload);
+    Json(payload)
 }
 
 /// GET /v1/telemetry/autonomy — bounded secondary/autonomy telemetry counters.
 async fn telemetry_autonomy(State(state): State<Arc<AppState>>) -> Json<Value> {
     let focusa = state.focusa.read().await;
-    Json(json!({
+    let payload = json!({
         "status": "ok",
         "autonomy": {
             "sample_count": focusa.autonomy.sample_count,
@@ -220,19 +276,24 @@ async fn telemetry_autonomy(State(state): State<Arc<AppState>>) -> Json<Value> {
             "scope_contamination_events": focusa.telemetry.scope_contamination_events,
             "subject_hijack_prevented_events": focusa.telemetry.subject_hijack_prevented_events,
             "subject_hijack_occurred_events": focusa.telemetry.subject_hijack_occurred_events,
-        }
-    }))
+        },
+        "bounds": {"summary_only": true, "truncated": false, "returned": 1, "total": 1}
+    });
+    record_json_response_size("/v1/telemetry/autonomy", &payload);
+    Json(payload)
 }
 
 /// GET /v1/telemetry/tokens — token usage metrics.
 async fn tokens(State(state): State<Arc<AppState>>) -> Json<Value> {
     let s = state.focusa.read().await;
-    Json(json!({
+    let payload = json!({
         "total_events": s.telemetry.total_events,
         "total_prompt_tokens": s.telemetry.total_prompt_tokens,
         "total_completion_tokens": s.telemetry.total_completion_tokens,
         "tokens_per_task": s.telemetry.tokens_per_task,
-    }))
+    });
+    record_json_response_size("/v1/telemetry/tokens", &payload);
+    Json(payload)
 }
 
 /// GET /v1/telemetry/token-budget/status — Spec92 token budget telemetry summary.
@@ -306,7 +367,9 @@ async fn record_token_budget(
     }))
 }
 
-/// GET /v1/telemetry/cache-metadata/status — Spec92 cache metadata summary.
+/// GET /v1/telemetry/cache-metadata/status — Spec95 H1 / Spec92 cache metadata summary.
+/// Exposes per-cache-entry TTL/invalidation metadata for the ontology read index,
+/// plus existing Spec92 cache metadata records.
 async fn cache_metadata_status(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -317,6 +380,8 @@ async fn cache_metadata_status(
         .unwrap_or(20)
         .min(100);
     let s = state.focusa.read().await;
+    // Spec95 H1: per-cache-entry metadata for the ontology read index.
+    let read_index_meta = ontology_read_index_cache_metadata(&s);
     let mut records: Vec<Value> = s
         .telemetry
         .trace_events
@@ -340,15 +405,45 @@ async fn cache_metadata_status(
                 .unwrap_or(false)
         })
         .count();
+    let object_type_counts = read_index_meta
+        .get("object_type_counts")
+        .and_then(|v| v.as_object())
+        .map(|m| m.len())
+        .unwrap_or(0);
+    let link_type_counts = read_index_meta
+        .get("link_type_counts")
+        .and_then(|v| v.as_object())
+        .map(|m| m.len())
+        .unwrap_or(0);
     Json(json!({
         "status": "ok",
-        "summary": format!("cache metadata records: {}, eligible: {}", records.len(), eligible_count),
-        "record_count": records.len(),
-        "eligible_count": eligible_count,
-        "latest": latest,
-        "records": records,
-        "next_action": if records.is_empty() { "run a provider turn to collect cache metadata" } else { "continue; review repeated_prefix_hash before cache-policy tuning" },
-        "commands": ["focusa cache doctor", "focusa --json cache doctor --limit 10"],
+        // Spec95 H1 cache entry metadata for the ontology read index.
+        "ontology_read_index": {
+            "cache_tier": read_index_meta.get("cache_tier"),
+            "source_reducer_version": read_index_meta.get("source_reducer_version"),
+            "generated_at": read_index_meta.get("generated_at"),
+            "ttl_seconds": read_index_meta.get("ttl_seconds"),
+            "age_seconds": read_index_meta.get("age_seconds"),
+            "invalidation_rule": read_index_meta.get("invalidation_rule"),
+            "canonical": read_index_meta.get("canonical"),
+            "degraded": read_index_meta.get("degraded"),
+            "stale": read_index_meta.get("stale"),
+            "object_count": read_index_meta.get("object_count"),
+            "link_count": read_index_meta.get("link_count"),
+            "object_type_count": object_type_counts,
+            "link_type_count": link_type_counts,
+            "last_reducer_event_id": read_index_meta.get("last_reducer_event_id"),
+            "frame_id": read_index_meta.get("frame_id"),
+        },
+        "spec92_cache_metadata": {
+            "summary": format!("cache metadata records: {}, eligible: {}", records.len(), eligible_count),
+            "record_count": records.len(),
+            "eligible_count": eligible_count,
+            "latest": latest,
+            "records": records,
+            "next_action": if records.is_empty() { "run a provider turn to collect cache metadata" } else { "continue; review repeated_prefix_hash before cache-policy tuning" },
+            "commands": ["focusa cache doctor", "focusa --json cache doctor --limit 10"],
+        },
     }))
 }
 
@@ -405,10 +500,12 @@ async fn tool_usage(State(state): State<Arc<AppState>>) -> Json<Value> {
                 *acc.entry(name.clone()).or_insert(0) += 1;
                 acc
             });
-    Json(json!({
+    let payload = json!({
         "total_calls": s.telemetry.tool_calls.len(),
         "tool_summary": summary,
-    }))
+    });
+    record_json_response_size("/v1/telemetry/tools", &payload);
+    Json(payload)
 }
 
 /// POST /v1/telemetry/tool-usage — receive tool call batch from extension.
@@ -443,6 +540,10 @@ async fn record_tool_usage(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/telemetry/memory", get(memory_status))
+        .route(
+            "/v1/debug/set-pressure-threshold",
+            get(debug_set_pressure_threshold),
+        )
         .route("/v1/telemetry/events", get(telemetry_events))
         .route("/v1/telemetry/productivity", get(telemetry_productivity))
         .route("/v1/telemetry/autonomy", get(telemetry_autonomy))

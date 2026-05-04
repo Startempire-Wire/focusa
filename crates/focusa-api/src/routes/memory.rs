@@ -7,7 +7,7 @@
 
 use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
-    pressure_status,
+    pressure_status, record_json_response_size,
 };
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -27,12 +27,17 @@ const MAX_SEMANTIC_LIMIT: usize = 512;
 #[derive(Debug, Clone, Deserialize, Default)]
 struct SemanticQuery {
     limit: Option<usize>,
-    #[serde(default)]
+    cursor: Option<usize>,
+    #[serde(default = "default_true")]
     summary_only: bool,
     #[serde(default)]
     include_full_payload: bool,
     #[serde(default)]
     force_full_payload: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn semantic_default_limit() -> usize {
@@ -46,20 +51,19 @@ fn semantic_full_limit() -> usize {
     env_limit("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", MAX_SEMANTIC_LIMIT).max(semantic_default_limit())
 }
 
-fn limit_tail<T: Clone>(items: &[T], limit: Option<usize>) -> Vec<T> {
-    match limit.map(|value| value.min(semantic_full_limit())) {
-        Some(0) => Vec::new(),
-        Some(n) => items
-            .iter()
-            .rev()
-            .take(n)
-            .cloned()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect(),
-        None => items.to_vec(),
-    }
+fn limit_page<T: Clone>(items: &[T], cursor: usize, limit: usize) -> (Vec<T>, Option<String>) {
+    let total = items.len();
+    let start = cursor.min(total);
+    let end = (start + limit).min(total);
+    let out = items
+        .iter()
+        .rev()
+        .skip(start)
+        .take(end.saturating_sub(start))
+        .cloned()
+        .collect::<Vec<_>>();
+    let next_cursor = (end < total).then(|| end.to_string());
+    (out, next_cursor)
 }
 
 fn semantic_summary(records: &[SemanticRecord]) -> Vec<serde_json::Value> {
@@ -87,27 +91,36 @@ async fn semantic(
     let full_payload_blocked =
         full_payload_blocked_by_pressure(query.include_full_payload, query.force_full_payload);
     let effective_include_full_payload = query.include_full_payload && !full_payload_blocked;
-    let effective_summary_only = query.summary_only || full_payload_blocked;
+    let effective_summary_only =
+        (query.summary_only && !effective_include_full_payload) || full_payload_blocked;
     let pressure = pressure_status();
-    let options = BoundedReadOptions {
+    let mut options = BoundedReadOptions {
         requested_limit: query.limit,
         include_full_payload: effective_include_full_payload,
         summary_only: effective_summary_only,
-        cursor: None,
+        cursor: query.cursor.map(|v| v.to_string()),
+        next_cursor: None,
         default_limit,
         full_limit,
     };
     let resolved_limit = options.resolved_limit();
-    let semantic = limit_tail(&focusa.memory.semantic, Some(resolved_limit));
+    let (semantic, next_cursor) = limit_page(
+        &focusa.memory.semantic,
+        query.cursor.unwrap_or(0),
+        resolved_limit,
+    );
+    options.next_cursor = next_cursor;
     let bounds = bounded_metadata(total, semantic.len(), options);
-    Json(json!({
+    let payload = json!({
         "semantic": if effective_summary_only { json!(semantic_summary(&semantic)) } else { json!(semantic) },
         "count": total,
         "bounds": bounds,
         "pressure": pressure,
         "degraded": full_payload_blocked,
         "full_payload_blocked_by_pressure": full_payload_blocked,
-    }))
+    });
+    record_json_response_size("/v1/memory/semantic", &payload);
+    Json(payload)
 }
 
 #[derive(Deserialize)]
@@ -176,7 +189,7 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{limit_tail, semantic_summary};
+    use super::{limit_page, semantic_summary};
     use chrono::Utc;
     use focusa_core::types::{MemorySource, SemanticRecord};
 
@@ -195,16 +208,17 @@ mod tests {
     }
 
     #[test]
-    fn limit_tail_keeps_most_recent_records() {
+    fn limit_page_returns_cursor_window() {
         let items = vec![
             record("a", "1", false),
             record("b", "2", true),
             record("c", "3", false),
         ];
-        let limited = limit_tail(&items, Some(2));
+        let (limited, next_cursor) = limit_page(&items, 1, 2);
         assert_eq!(limited.len(), 2);
         assert_eq!(limited[0].key, "b");
-        assert_eq!(limited[1].key, "c");
+        assert_eq!(limited[1].key, "a");
+        assert_eq!(next_cursor, None);
     }
 
     #[test]

@@ -2900,7 +2900,9 @@ Return:
             if id.is_empty() {
                 return false;
             }
-            if let Some(skip) = skip_work_item_id && id == skip {
+            if let Some(skip) = skip_work_item_id
+                && id == skip
+            {
                 return false;
             }
             true

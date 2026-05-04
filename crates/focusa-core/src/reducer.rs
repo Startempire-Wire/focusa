@@ -94,10 +94,16 @@ fn truncate_front<T>(items: &mut Vec<T>, cap: usize) {
 
 fn bound_workpoint_record(record: &mut WorkpointRecord) {
     truncate_front(&mut record.active_object_refs, workpoint_caps::OBJECT_REFS);
-    truncate_front(&mut record.verification_records, workpoint_caps::VERIFICATIONS);
+    truncate_front(
+        &mut record.verification_records,
+        workpoint_caps::VERIFICATIONS,
+    );
     truncate_front(&mut record.blockers, workpoint_caps::BLOCKERS);
     if let Some(intent) = &mut record.action_intent {
-        truncate_front(&mut intent.verification_hooks, workpoint_caps::VERIFICATIONS);
+        truncate_front(
+            &mut intent.verification_hooks,
+            workpoint_caps::VERIFICATIONS,
+        );
     }
 }
 
@@ -113,7 +119,11 @@ fn find_workpoint_mut(
         .ok_or_else(|| ReducerError::InvalidEvent(format!("Workpoint {} not found", workpoint_id)))
 }
 
-fn upsert_workpoint_record(state: &mut FocusaState, mut record: WorkpointRecord, now: chrono::DateTime<Utc>) {
+fn upsert_workpoint_record(
+    state: &mut FocusaState,
+    mut record: WorkpointRecord,
+    now: chrono::DateTime<Utc>,
+) {
     bound_workpoint_record(&mut record);
     if record.created_at.is_none() {
         record.created_at = Some(now);
@@ -1425,16 +1435,11 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" => {
                         if let Some(object_id) = proposal.object_id.as_ref() {
-                            if let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
-                            {
-                                object["status"] = serde_json::Value::String("promoted".to_string());
+                            if let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            }) {
+                                object["status"] =
+                                    serde_json::Value::String("promoted".to_string());
                                 object["provenance_class"] =
                                     serde_json::Value::String("reducer_promoted".to_string());
                                 object["promoted_by"] =
@@ -1483,14 +1488,9 @@ pub fn reduce_with_meta(
                     }
                     "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["provenance_class"] =
@@ -1499,14 +1499,9 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("active".to_string());
                             object["membership_class"] =
@@ -1519,14 +1514,9 @@ pub fn reduce_with_meta(
                 match applied_kind.as_str() {
                     "execute_migration" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("migrated".to_string());
                             object["migration_state"] =
@@ -1536,14 +1526,9 @@ pub fn reduce_with_meta(
                     }
                     "resolve_identity" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("canonical".to_string());
                             object["entity_class"] =
@@ -1624,8 +1609,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("candidate".to_string());
+                            object["status"] = serde_json::Value::String("candidate".to_string());
                             object["risk_state"] =
                                 serde_json::Value::String("identified".to_string());
                         }
@@ -1656,8 +1640,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["progress_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -1679,8 +1662,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("completed".to_string());
+                            object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
                                 serde_json::Value::String("closed".to_string());
                         }
@@ -1691,8 +1673,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("completed".to_string());
+                            object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
                                 serde_json::Value::String("closed".to_string());
                         }
@@ -1703,8 +1684,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("candidate".to_string());
+                            object["status"] = serde_json::Value::String("candidate".to_string());
                             object["affordance_state"] =
                                 serde_json::Value::String("detected".to_string());
                         }
@@ -1715,8 +1695,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["permission_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -1727,8 +1706,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["precondition_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -1739,8 +1717,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["dependency_state"] =
                                 serde_json::Value::String("evaluated".to_string());
                         }
@@ -1751,8 +1728,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
                                 serde_json::Value::String("estimated".to_string());
                         }
@@ -1763,8 +1739,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
                                 serde_json::Value::String("estimated".to_string());
                         }
@@ -1775,8 +1750,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
                                 serde_json::Value::String("estimated".to_string());
                         }
@@ -1787,8 +1761,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["estimation_state"] =
                                 serde_json::Value::String("estimated".to_string());
                         }
@@ -1799,8 +1772,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["execution_path_state"] =
                                 serde_json::Value::String("selected".to_string());
                         }
@@ -1811,8 +1783,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["authority_state"] =
                                 serde_json::Value::String("escalated".to_string());
                         }
@@ -1823,8 +1794,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("blocked".to_string());
+                            object["status"] = serde_json::Value::String("blocked".to_string());
                             object["availability_state"] =
                                 serde_json::Value::String("unavailable".to_string());
                         }
@@ -1835,8 +1805,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["ask_state"] =
                                 serde_json::Value::String("determined".to_string());
                         }
@@ -1847,10 +1816,8 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
-                            object["scope_state"] =
-                                serde_json::Value::String("built".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
+                            object["scope_state"] = serde_json::Value::String("built".to_string());
                         }
                     }
                     "select_relevant_context" => {
@@ -1859,8 +1826,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["selection_state"] =
                                 serde_json::Value::String("selected".to_string());
                         }
@@ -1871,8 +1837,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("stale".to_string());
+                            object["status"] = serde_json::Value::String("stale".to_string());
                             object["selection_state"] =
                                 serde_json::Value::String("pruned".to_string());
                         }
@@ -1883,8 +1848,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["scope_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -1895,10 +1859,8 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("failed".to_string());
-                            object["scope_state"] =
-                                serde_json::Value::String("failed".to_string());
+                            object["status"] = serde_json::Value::String("failed".to_string());
+                            object["scope_state"] = serde_json::Value::String("failed".to_string());
                         }
                     }
                     "establish_identity" => {
@@ -1907,8 +1869,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["identity_state"] =
                                 serde_json::Value::String("established".to_string());
                         }
@@ -1919,10 +1880,8 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
-                            object["role_state"] =
-                                serde_json::Value::String("loaded".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
+                            object["role_state"] = serde_json::Value::String("loaded".to_string());
                         }
                     }
                     "verify_capability_profile" => {
@@ -1931,8 +1890,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["capability_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -1943,8 +1901,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["permission_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -1955,8 +1912,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["responsibility_state"] =
                                 serde_json::Value::String("assigned".to_string());
                         }
@@ -1967,8 +1923,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["handoff_state"] =
                                 serde_json::Value::String("bounded".to_string());
                         }
@@ -1979,8 +1934,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["continuity_state"] =
                                 serde_json::Value::String("restored".to_string());
                         }
@@ -1991,8 +1945,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["intention_state"] =
                                 serde_json::Value::String("formed".to_string());
                         }
@@ -2003,8 +1956,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["commitment_state"] =
                                 serde_json::Value::String("promoted".to_string());
                         }
@@ -2015,8 +1967,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("blocked".to_string());
+                            object["status"] = serde_json::Value::String("blocked".to_string());
                             object["inhibition_state"] =
                                 serde_json::Value::String("applied".to_string());
                         }
@@ -2027,8 +1978,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["switch_state"] =
                                 serde_json::Value::String("evaluated".to_string());
                         }
@@ -2039,8 +1989,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["commitment_state"] =
                                 serde_json::Value::String("maintained".to_string());
                         }
@@ -2051,8 +2000,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("retired".to_string());
+                            object["status"] = serde_json::Value::String("retired".to_string());
                             object["abandonment_state"] =
                                 serde_json::Value::String("authorized".to_string());
                         }
@@ -2063,8 +2011,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("completed".to_string());
+                            object["status"] = serde_json::Value::String("completed".to_string());
                             object["completion_state"] =
                                 serde_json::Value::String("pushed".to_string());
                         }
@@ -2075,8 +2022,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("blocked".to_string());
+                            object["status"] = serde_json::Value::String("blocked".to_string());
                             object["conflict_state"] =
                                 serde_json::Value::String("recorded".to_string());
                         }
@@ -2087,8 +2033,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("candidate".to_string());
+                            object["status"] = serde_json::Value::String("candidate".to_string());
                             object["alias_state"] =
                                 serde_json::Value::String("detected".to_string());
                         }
@@ -2099,8 +2044,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("candidate".to_string());
+                            object["status"] = serde_json::Value::String("candidate".to_string());
                             object["resolution_state"] =
                                 serde_json::Value::String("candidates_built".to_string());
                         }
@@ -2111,8 +2055,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["resolution_state"] =
                                 serde_json::Value::String("verified".to_string());
                         }
@@ -2123,8 +2066,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["projection_state"] =
                                 serde_json::Value::String("built".to_string());
                         }
@@ -2135,8 +2077,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["projection_state"] =
                                 serde_json::Value::String("compressed".to_string());
                         }
@@ -2147,8 +2088,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("verified".to_string());
+                            object["status"] = serde_json::Value::String("verified".to_string());
                             object["projection_state"] =
                                 serde_json::Value::String("fidelity_verified".to_string());
                         }
@@ -2159,8 +2099,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["retention_state"] =
                                 serde_json::Value::String("evaluated".to_string());
                         }
@@ -2171,8 +2110,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("stale".to_string());
+                            object["status"] = serde_json::Value::String("stale".to_string());
                             object["retention_state"] =
                                 serde_json::Value::String("decayed".to_string());
                         }
@@ -2183,8 +2121,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("retired".to_string());
+                            object["status"] = serde_json::Value::String("retired".to_string());
                             object["archive_state"] =
                                 serde_json::Value::String("archived".to_string());
                         }
@@ -2195,8 +2132,7 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("stale".to_string());
+                            object["status"] = serde_json::Value::String("stale".to_string());
                             object["context_state"] =
                                 serde_json::Value::String("pruned".to_string());
                         }
@@ -2207,39 +2143,27 @@ pub fn reduce_with_meta(
                                 o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
                             })
                         {
-                            object["status"] =
-                                serde_json::Value::String("active".to_string());
+                            object["status"] = serde_json::Value::String("active".to_string());
                             object["archive_state"] =
                                 serde_json::Value::String("restored".to_string());
                         }
                     }
                     "record_supersession" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
-                            object["status"] =
-                                serde_json::Value::String("superseded".to_string());
+                            object["status"] = serde_json::Value::String("superseded".to_string());
                             object["supersession_state"] =
                                 serde_json::Value::String("recorded".to_string());
                         }
                     }
                     "create_version" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] =
                                 serde_json::Value::String("experimental".to_string());
@@ -2249,14 +2173,9 @@ pub fn reduce_with_meta(
                     }
                     "declare_compatibility" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("declared".to_string());
                             object["compatibility_state"] =
@@ -2265,14 +2184,9 @@ pub fn reduce_with_meta(
                     }
                     "build_migration_plan" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("planned".to_string());
                             object["migration_state"] =
@@ -2281,14 +2195,9 @@ pub fn reduce_with_meta(
                     }
                     "deprecate_schema_element" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("retired".to_string());
                             object["lifecycle"] =
@@ -2297,14 +2206,9 @@ pub fn reduce_with_meta(
                     }
                     "review_governance_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("approved".to_string());
                             object["governance_state"] =
@@ -2313,14 +2217,9 @@ pub fn reduce_with_meta(
                     }
                     "verify_post_migration_conformance" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("verified".to_string());
                             object["conformance_state"] =
@@ -2360,14 +2259,9 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -2391,14 +2285,9 @@ pub fn reduce_with_meta(
                     }
                     "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -2406,14 +2295,9 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
                             object["status"] = serde_json::Value::String("rejected".to_string());
                             object["rejection_reason"] = serde_json::Value::String(reason.clone());
@@ -2465,17 +2349,14 @@ pub fn reduce_with_meta(
                 match proposal.proposal_kind.as_str() {
                     "object_upsert" | "status_change" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
-                            object["status"] = serde_json::Value::String(verified_status.to_string());
-                            object["verification"] = serde_json::Value::String(verification.clone());
+                            object["status"] =
+                                serde_json::Value::String(verified_status.to_string());
+                            object["verification"] =
+                                serde_json::Value::String(verification.clone());
                         }
                     }
                     "link_upsert" => {
@@ -2496,17 +2377,14 @@ pub fn reduce_with_meta(
                     }
                     "working_set_membership" => {
                         if let Some(object_id) = proposal.object_id.as_ref()
-                            && let Some(object) = state
-                                .ontology
-                                .objects
-                                .iter_mut()
-                                .find(|o| {
-                                    o.get("id").and_then(|v| v.as_str())
-                                        == Some(object_id.as_str())
-                                })
+                            && let Some(object) = state.ontology.objects.iter_mut().find(|o| {
+                                o.get("id").and_then(|v| v.as_str()) == Some(object_id.as_str())
+                            })
                         {
-                            object["status"] = serde_json::Value::String(verified_status.to_string());
-                            object["verification"] = serde_json::Value::String(verification.clone());
+                            object["status"] =
+                                serde_json::Value::String(verified_status.to_string());
+                            object["verification"] =
+                                serde_json::Value::String(verification.clone());
                         }
                     }
                     _ => {}
@@ -2622,7 +2500,10 @@ pub fn reduce_with_meta(
             }
             state.workpoint.active_workpoint_id = Some(workpoint_id);
         }
-        FocusaEvent::WorkpointCheckpointRejected { workpoint_id, reason } => {
+        FocusaEvent::WorkpointCheckpointRejected {
+            workpoint_id,
+            reason,
+        } => {
             let now = Utc::now();
             let record = find_workpoint_mut(&mut state, workpoint_id)?;
             record.status = WorkpointStatus::Rejected;
@@ -2659,13 +2540,19 @@ pub fn reduce_with_meta(
             mode,
             rendered_summary,
         } => {
-            state.workpoint.resume_events.push(WorkpointResumeRenderRecord {
-                workpoint_id,
-                mode,
-                rendered_summary,
-                rendered_at: Some(Utc::now()),
-            });
-            truncate_front(&mut state.workpoint.resume_events, workpoint_caps::RESUME_EVENTS);
+            state
+                .workpoint
+                .resume_events
+                .push(WorkpointResumeRenderRecord {
+                    workpoint_id,
+                    mode,
+                    rendered_summary,
+                    rendered_at: Some(Utc::now()),
+                });
+            truncate_front(
+                &mut state.workpoint.resume_events,
+                workpoint_caps::RESUME_EVENTS,
+            );
         }
         FocusaEvent::WorkpointDriftDetected {
             workpoint_id,
@@ -2680,19 +2567,31 @@ pub fn reduce_with_meta(
                 recovery_hint,
                 detected_at: Some(Utc::now()),
             });
-            truncate_front(&mut state.workpoint.drift_events, workpoint_caps::DRIFT_EVENTS);
+            truncate_front(
+                &mut state.workpoint.drift_events,
+                workpoint_caps::DRIFT_EVENTS,
+            );
         }
-        FocusaEvent::WorkpointEvidenceLinked { workpoint_id, mut verification } => {
+        FocusaEvent::WorkpointEvidenceLinked {
+            workpoint_id,
+            mut verification,
+        } => {
             let now = Utc::now();
             let record = find_workpoint_mut(&mut state, workpoint_id)?;
             if !record.canonical || record.status == WorkpointStatus::DegradedFallback {
-                return Err(ReducerError::InvalidEvent(format!("Cannot link canonical evidence to non-canonical workpoint {}", workpoint_id)));
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Cannot link canonical evidence to non-canonical workpoint {}",
+                    workpoint_id
+                )));
             }
             if verification.verified_at.is_none() {
                 verification.verified_at = Some(now);
             }
             record.verification_records.push(verification);
-            truncate_front(&mut record.verification_records, workpoint_caps::VERIFICATIONS);
+            truncate_front(
+                &mut record.verification_records,
+                workpoint_caps::VERIFICATIONS,
+            );
             record.updated_at = Some(now);
         }
         FocusaEvent::WorkpointDegradedFallbackRecorded {
@@ -2743,7 +2642,10 @@ pub fn reduce_with_meta(
         } => {
             let record = find_workpoint_mut(&mut state, workpoint_id)?;
             record.verification_records.push(verification);
-            truncate_front(&mut record.verification_records, workpoint_caps::VERIFICATIONS);
+            truncate_front(
+                &mut record.verification_records,
+                workpoint_caps::VERIFICATIONS,
+            );
             record.updated_at = Some(Utc::now());
         }
 
@@ -3117,7 +3019,9 @@ mod tests {
             action_intent: Some(WorkpointActionIntentRecord {
                 action_type: "checkpoint_workpoint".to_string(),
                 target_ref: Some(work_item_id.to_string()),
-                verification_hooks: vec!["cargo test -p focusa-core reducer::tests::test_workpoint".to_string()],
+                verification_hooks: vec![
+                    "cargo test -p focusa-core reducer::tests::test_workpoint".to_string(),
+                ],
                 status: Some("ready".to_string()),
             }),
             ..WorkpointRecord::default()
@@ -3179,9 +3083,12 @@ mod tests {
         let second = workpoint_record("focusa-a2w2.2");
         let second_id = second.workpoint_id;
 
-        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: first })
-            .unwrap()
-            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: first },
+        )
+        .unwrap()
+        .new_state;
         let state = reduce(
             state,
             FocusaEvent::WorkpointCheckpointPromoted {
@@ -3192,9 +3099,12 @@ mod tests {
         )
         .unwrap()
         .new_state;
-        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: second })
-            .unwrap()
-            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: second },
+        )
+        .unwrap()
+        .new_state;
         let state = reduce(
             state,
             FocusaEvent::WorkpointCheckpointPromoted {
@@ -3221,9 +3131,12 @@ mod tests {
         let state = fresh_state();
         let record = workpoint_record("focusa-a2w2.2");
         let workpoint_id = record.workpoint_id;
-        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: record })
-            .unwrap()
-            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
+        )
+        .unwrap()
+        .new_state;
         let state = reduce(
             state,
             FocusaEvent::WorkpointCheckpointRejected {
@@ -3233,15 +3146,17 @@ mod tests {
         )
         .unwrap()
         .new_state;
-        assert!(reduce(
-            state,
-            FocusaEvent::WorkpointCheckpointPromoted {
-                workpoint_id,
-                confidence: WorkpointConfidence::High,
-                reason: "should fail".to_string(),
-            },
-        )
-        .is_err());
+        assert!(
+            reduce(
+                state,
+                FocusaEvent::WorkpointCheckpointPromoted {
+                    workpoint_id,
+                    confidence: WorkpointConfidence::High,
+                    reason: "should fail".to_string(),
+                },
+            )
+            .is_err()
+        );
 
         let fallback_id = Uuid::now_v7();
         let state = reduce(
@@ -3254,15 +3169,17 @@ mod tests {
         )
         .unwrap()
         .new_state;
-        assert!(reduce(
-            state,
-            FocusaEvent::WorkpointCheckpointPromoted {
-                workpoint_id: fallback_id,
-                confidence: WorkpointConfidence::High,
-                reason: "should fail".to_string(),
-            },
-        )
-        .is_err());
+        assert!(
+            reduce(
+                state,
+                FocusaEvent::WorkpointCheckpointPromoted {
+                    workpoint_id: fallback_id,
+                    confidence: WorkpointConfidence::High,
+                    reason: "should fail".to_string(),
+                },
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -3288,9 +3205,12 @@ mod tests {
             })
             .collect();
 
-        let state = reduce(state, FocusaEvent::WorkpointCheckpointProposed { workpoint: record })
-            .unwrap()
-            .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
+        )
+        .unwrap()
+        .new_state;
         let stored = state
             .workpoint
             .records
@@ -3298,7 +3218,10 @@ mod tests {
             .find(|w| w.workpoint_id == workpoint_id)
             .unwrap();
         assert_eq!(stored.active_object_refs.len(), workpoint_caps::OBJECT_REFS);
-        assert_eq!(stored.verification_records.len(), workpoint_caps::VERIFICATIONS);
+        assert_eq!(
+            stored.verification_records.len(),
+            workpoint_caps::VERIFICATIONS
+        );
         assert_eq!(stored.blockers.len(), workpoint_caps::BLOCKERS);
     }
 
@@ -4068,7 +3991,10 @@ mod tests {
             .iter()
             .find(|o| o.get("id").and_then(|v| v.as_str()) == Some("decision:proposed-1"))
             .expect("proposed object should be present");
-        assert_eq!(object.get("status").and_then(|v| v.as_str()), Some("proposed"));
+        assert_eq!(
+            object.get("status").and_then(|v| v.as_str()),
+            Some("proposed")
+        );
     }
 
     #[test]
@@ -4103,6 +4029,9 @@ mod tests {
             .iter()
             .find(|o| o.get("id").and_then(|v| v.as_str()) == Some("decision:failed-1"))
             .expect("verified object should remain present");
-        assert_eq!(object.get("status").and_then(|v| v.as_str()), Some("failed"));
+        assert_eq!(
+            object.get("status").and_then(|v| v.as_str()),
+            Some("failed")
+        );
     }
 }

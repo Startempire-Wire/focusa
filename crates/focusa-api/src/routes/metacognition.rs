@@ -64,6 +64,8 @@ struct CaptureIndexEntry {
     summary: String,
     confidence: Option<f64>,
     strategy_class: Option<String>,
+    #[serde(default)]
+    has_rationale: bool,
     storage_path: String,
 }
 
@@ -92,26 +94,27 @@ struct MetaStoreConfig {
     ttl_minutes: i64,
 }
 
-fn metacog_store_config() -> MetaStoreConfig {
+fn metacog_store_config(config: &focusa_core::types::FocusaConfig) -> MetaStoreConfig {
+    // Env vars override FocusaConfig values (allows testing and legacy compat).
     let max_captures = std::env::var("FOCUSA_METACOG_MAX_CAPTURES")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(1000)
+        .unwrap_or(config.metacog_max_captures)
         .max(1);
     let max_reflections = std::env::var("FOCUSA_METACOG_MAX_REFLECTIONS")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(500)
+        .unwrap_or(config.metacog_max_reflections)
         .max(1);
     let max_adjustments = std::env::var("FOCUSA_METACOG_MAX_ADJUSTMENTS")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(500)
+        .unwrap_or(config.metacog_max_adjustments)
         .max(1);
     let ttl_minutes = std::env::var("FOCUSA_METACOG_TTL_MINUTES")
         .ok()
         .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(7 * 24 * 60)
+        .unwrap_or(config.metacog_ttl_minutes)
         .max(1);
 
     MetaStoreConfig {
@@ -173,6 +176,7 @@ fn capture_index_entry(capture: &CaptureRecord) -> CaptureIndexEntry {
         summary: summarize_content(&capture.content),
         confidence: capture.confidence,
         strategy_class: capture.strategy_class.clone(),
+        has_rationale: capture.rationale.is_some(),
         storage_path: capture.storage_path.clone(),
     }
 }
@@ -252,6 +256,10 @@ fn metacog_record_path(state: &AppState, category: &str, id: &str) -> PathBuf {
     metacog_category_dir(state, category).join(format!("{id}.json"))
 }
 
+fn metacog_capture_index_path(state: &AppState) -> PathBuf {
+    metacog_base_dir(state).join("capture-hot-index.jsonl")
+}
+
 fn persist_json_record(path: &Path, payload: &Value) {
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
@@ -259,6 +267,49 @@ fn persist_json_record(path: &Path, payload: &Value) {
     if let Ok(bytes) = serde_json::to_vec_pretty(payload) {
         let _ = fs::write(path, bytes);
     }
+}
+
+fn append_capture_index_entry(state: &AppState, entry: &CaptureIndexEntry) {
+    let path = metacog_capture_index_path(state);
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(line) = serde_json::to_string(entry) {
+        use std::io::Write;
+        if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
+            let _ = writeln!(file, "{line}");
+        }
+    }
+}
+
+fn load_capture_index_from_disk(
+    state: &AppState,
+    cfg: MetaStoreConfig,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Vec<CaptureIndexEntry> {
+    let path = metacog_capture_index_path(state);
+    let Ok(text) = fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    let cutoff = now - chrono::Duration::minutes(cfg.ttl_minutes);
+    let mut by_id = HashMap::new();
+    for line in text.lines() {
+        let Ok(entry) = serde_json::from_str::<CaptureIndexEntry>(line) else {
+            continue;
+        };
+        if entry.created_at >= cutoff {
+            by_id.insert(entry.capture_id.clone(), entry);
+        }
+    }
+    let mut entries = by_id.into_values().collect::<Vec<_>>();
+    entries.sort_by_key(|entry| Reverse(entry.created_at));
+    entries.truncate(cfg.max_captures);
+    entries
+}
+
+fn load_capture_record_from_path(path: &str) -> Option<CaptureRecord> {
+    let bytes = fs::read(path).ok()?;
+    serde_json::from_slice::<CaptureRecord>(&bytes).ok()
 }
 
 fn load_capture_records_from_disk(state: &AppState) -> Vec<CaptureRecord> {
@@ -408,9 +459,13 @@ async fn capture(
         &json!(rec),
     );
 
+    let index_entry = capture_index_entry(&rec);
+    append_capture_index_entry(&state, &index_entry);
+
     let mut s = store().lock().expect("metacog store poisoned");
     s.captures.push(rec);
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config());
+    s.capture_hot_index.push(index_entry);
+    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
     Ok(Json(json!({
         "capture_id": capture_id,
@@ -463,27 +518,35 @@ async fn retrieve(
         .map(|t| t.to_lowercase())
         .collect::<Vec<_>>();
 
-    let cfg = metacog_store_config();
-    let in_memory_captures = {
+    let cfg = metacog_store_config(&state.config);
+    let now = Utc::now();
+    let (in_memory_records, in_memory_index) = {
         let mut s = store().lock().expect("metacog store poisoned");
         if s.capture_hot_index.is_empty() && !s.captures.is_empty() {
-            s.capture_hot_index = rebuild_capture_hot_index(&s.captures, cfg, Utc::now());
+            s.capture_hot_index = rebuild_capture_hot_index(&s.captures, cfg, now);
         }
-        s.captures.clone()
+        let records = if body.summary_only {
+            Vec::new()
+        } else {
+            s.captures.clone()
+        };
+        (records, s.capture_hot_index.clone())
     };
 
     let mut by_id = HashMap::new();
-    for c in load_capture_records_from_disk(&state) {
-        by_id.insert(c.capture_id.clone(), c);
+    let mut index_by_id = HashMap::new();
+    for entry in load_capture_index_from_disk(&state, cfg, now) {
+        index_by_id.insert(entry.capture_id.clone(), entry);
     }
-    for c in in_memory_captures {
-        by_id.insert(c.capture_id.clone(), c);
+    for entry in in_memory_index {
+        index_by_id.insert(entry.capture_id.clone(), entry);
     }
-    let hot_index = rebuild_capture_hot_index(
-        &by_id.values().cloned().collect::<Vec<_>>(),
-        cfg,
-        Utc::now(),
-    );
+    for capture in in_memory_records {
+        by_id.insert(capture.capture_id.clone(), capture);
+    }
+    let mut hot_index = index_by_id.into_values().collect::<Vec<_>>();
+    hot_index.sort_by_key(|entry| Reverse(entry.created_at));
+    hot_index.truncate(cfg.max_captures);
 
     let mut ranked = hot_index
         .iter()
@@ -527,11 +590,18 @@ async fn retrieve(
         .iter()
         .enumerate()
         .map(|(idx, (score, entry))| {
-            let full_record = by_id.get(&entry.capture_id);
+            let full_record = if body.summary_only {
+                None
+            } else {
+                by_id.get(&entry.capture_id).cloned().or_else(|| {
+                    load_capture_record_from_path(&entry.storage_path)
+                })
+            };
             let summary = if body.summary_only {
                 entry.summary.clone()
             } else {
                 full_record
+                    .as_ref()
                     .map(|record| record.content.clone())
                     .unwrap_or_else(|| entry.summary.clone())
             };
@@ -544,7 +614,7 @@ async fn retrieve(
                 "score": score,
                 "rank": cursor_offset + idx + 1,
                 "confidence": entry.confidence,
-                "has_rationale": full_record.and_then(|record| record.rationale.as_ref()).is_some(),
+                "has_rationale": full_record.as_ref().map(|record| record.rationale.is_some()).unwrap_or(entry.has_rationale),
                 "strategy_class": entry.strategy_class,
                 "tags": entry.tags,
                 "storage_path": entry.storage_path,
@@ -639,7 +709,7 @@ async fn reflect(
 
     let mut s = store().lock().expect("metacog store poisoned");
     s.reflections.push(rec.clone());
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config());
+    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
     Ok(Json(json!({
         "reflection_id": reflection_id,
@@ -700,7 +770,7 @@ async fn adjust(
     );
     let mut s = store().lock().expect("metacog store poisoned");
     s.adjustments.push(rec.clone());
-    prune_metacog_store(&mut s, Utc::now(), metacog_store_config());
+    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
     Ok(Json(json!({
         "adjustment_id": adjustment_id,
@@ -766,7 +836,7 @@ async fn metacog_status(
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
-    let cfg = metacog_store_config();
+    let cfg = metacog_store_config(&state.config);
     let disk_captures = load_capture_records_from_disk(&state);
     let mut s = store().lock().expect("metacog store poisoned");
     let mut by_id: HashMap<String, CaptureRecord> = HashMap::new();

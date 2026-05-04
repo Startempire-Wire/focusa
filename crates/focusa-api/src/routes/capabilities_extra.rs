@@ -2,7 +2,9 @@
 //!
 //! Implements cache/metrics/intuition/contribute/export/autonomy/gate/constitution extras.
 
-use crate::routes::bounded::{BoundedReadOptions, bounded_metadata, env_limit};
+use crate::routes::bounded::{
+    BoundedReadOptions, bounded_metadata, env_limit, record_json_response_size,
+};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
@@ -535,10 +537,15 @@ async fn state_explain(
 #[derive(Debug, Deserialize, Default)]
 struct SalientReferencesQuery {
     limit: Option<usize>,
-    #[serde(default)]
+    cursor: Option<usize>,
+    #[serde(default = "default_true")]
     summary_only: bool,
     #[serde(default)]
     include_full_payload: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn references_default_limit() -> usize {
@@ -574,24 +581,30 @@ async fn references_salient(
         .iter()
         .filter(|h| h.pinned || h.session_id == session_id)
         .count();
-    let options = BoundedReadOptions {
+    let effective_summary_only = query.summary_only && !query.include_full_payload;
+    let mut options = BoundedReadOptions {
         requested_limit: query.limit,
         include_full_payload: query.include_full_payload,
-        summary_only: query.summary_only,
-        cursor: None,
+        summary_only: effective_summary_only,
+        cursor: query.cursor.map(|v| v.to_string()),
+        next_cursor: None,
         default_limit: references_default_limit(),
         full_limit: references_full_limit(),
     };
     let resolved_limit = options.resolved_limit();
-    let salient: Vec<_> = s
+    let cursor = query.cursor.unwrap_or(0);
+    let salient = s
         .reference_index
         .handles
         .iter()
-        .filter(|h| h.pinned || h.session_id == session_id)
         .rev()
+        .filter(|h| h.pinned || h.session_id == session_id)
+        .skip(cursor)
         .take(resolved_limit)
-        .collect();
-    let references = if query.summary_only {
+        .collect::<Vec<_>>();
+    let end = cursor + salient.len();
+    options.next_cursor = (end < total_salient).then(|| end.to_string());
+    let references = if effective_summary_only {
         salient
             .iter()
             .map(|handle| handle_summary(handle))
@@ -603,11 +616,13 @@ async fn references_salient(
             .collect::<Vec<_>>()
     };
     let bounds = bounded_metadata(total_salient, references.len(), options);
-    Ok(Json(json!({
+    let payload = json!({
         "references": references,
         "count": total_salient,
         "bounds": bounds,
-    })))
+    });
+    record_json_response_size("/v1/references/salient", &payload);
+    Ok(Json(payload))
 }
 
 /// GET /v1/references/trace — docs/34 §5.2 focusa.trace_reference_usage
