@@ -39,13 +39,13 @@ Focusa should complement agents, not replace them. Agents do the work; Focusa ke
 
 | Gap | Why it matters | Needed next |
 |---|---|---|
-| Trajectory tools incomplete | Agents need one obvious first call and follow-up lifecycle tools. | Finish `define_goal`, `assess`, `propose_workpoint`, `checkpoint`, `resume`. |
-| Focus Slice injection not trajectory-first | Models should not have to remember to call trajectory manually. | Pi Focus Slice now injects bounded ProjectIdentity + Trajectory summary per project; remaining work is cross-agent adapter parity and golden eval proof. |
+| Trajectory tools need product hardening | API/Pi/CLI surfaces now cover view, define_goal, assess, propose_workpoint, checkpoint, resume, and DOD proof contracts; UX must stay obvious. | Keep one first-call path (`trajectory view`) and add demo flows showing the follow-up lifecycle. |
+| Focus Slice injection is Pi-first | Pi now injects bounded ProjectIdentity, Trajectory, ResourceMode, and TOOL_AFFORDANCES; other adapters need equivalent cards. | Port the compact trajectory/affordance card to Claude Code, OpenCode, Letta, CLI, and MCP entrypoints. |
 | Cross-agent adapters uneven | Pi is best-supported; generic agents need thin, dead-simple entrypoints. | Ship adapter cards/prompts for Claude Code, OpenCode, Letta, CLI, MCP. |
 | Onboarding/install still expert-oriented | Go-to frameworks win with fast setup and clear mental model. | One-command local install, sample project, quickstart, demo flow. |
-| Golden evals missing | Need proof Focusa reduces drift and improves completion across agents. | Add with/without trajectory evals for compaction, project mismatch, long tasks. |
-| Persistent per-project trajectory lifecycle incomplete | Current view composes state; durable goal supersession needs reducer-backed metadata. | Add reducer events and storage for accepted trajectory checkpoints. |
-| Low-memory mode still early | Companion must be reliable under constrained dev environments. | Enforce caps/caches/store budgets and SLO tests. |
+| Golden eval corpus needs expansion | Spec96 golden/static/runtime/stress proofs now exist; more real-world with/without trajectory evals would sharpen GTM claims. | Add longer compaction, project mismatch, long-task, and cross-agent eval scenarios. |
+| Persistent per-project trajectory lifecycle needs metrics | Reducer-backed goal/checkpoint/state-delta/DOD records now exist; lifecycle quality metrics are still early. | Add rollups for evidence-linked completion, drift reduction, and operator-assistance rate. |
+| Low-memory reliability needs ongoing SLOs | LowMem route, Focus Slice, traverse, Workpoint, and surgical-agent stress proofs pass. | Keep latency/health SLO tests in release gates and monitor Beads/daemon storage bloat. |
 | Product message needs sharp wedge | “Cognitive runtime” is accurate but abstract. | Lead with per-project trajectory intelligence and agent continuity. |
 
 ## GTM message
