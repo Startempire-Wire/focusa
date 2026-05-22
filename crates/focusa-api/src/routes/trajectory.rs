@@ -814,45 +814,45 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         persisted_trajectory.and_then(|record| record.current_state.as_deref());
     let persisted_short_term_goal =
         persisted_trajectory.and_then(|record| record.short_term_goal.as_deref());
-    let workpoint_mission = workpoint.and_then(|record| record.mission.as_deref());
     let workpoint_next = workpoint.and_then(|record| record.next_slice.as_deref());
     let workpoint_action = workpoint
         .and_then(|record| record.action_intent.as_ref())
         .map(|intent| intent.action_type.as_str());
 
-    let long_term_goal = first_nonempty(&[
-        persisted_long_term_goal,
-        fs_intent,
-        frame_goal,
-        workpoint_mission,
-        frame_title,
-    ]);
-    let desired_end_state = first_nonempty(&[
-        persisted_desired_end_state,
-        frame_goal,
-        fs_intent,
-        workpoint_mission,
-    ]);
-    let current_state = first_nonempty(&[
-        persisted_current_state,
-        fs_current,
-        workpoint_mission,
-        frame_title,
-    ]);
+    // Spec96: Workpoint/frame text may shape short-term goals and candidates,
+    // but must not silently become the project long-term goal or desired end
+    // state. Those require persisted Trajectory state or Focus State intent.
+    let long_term_goal = first_nonempty(&[persisted_long_term_goal, fs_intent]);
+    let desired_end_state = first_nonempty(&[persisted_desired_end_state, fs_intent]);
+    let current_state = first_nonempty(&[persisted_current_state, fs_current]);
     let short_term_goal = first_nonempty(&[
         persisted_short_term_goal,
         workpoint_next,
         workpoint_action,
+        frame_goal,
+        frame_title,
         fs_current,
     ]);
-    let active_gap = if desired_end_state.is_some() && current_state.is_some() {
-        first_nonempty(&[workpoint_next, workpoint_action]).map(|gap| bounded(&gap, 240))
-    } else {
-        Some("Trajectory gap unclear until desired end state and current verified state are both present".to_string())
+    let active_gap = match (desired_end_state.as_deref(), current_state.as_deref()) {
+        (Some(desired), Some(current)) if desired == current => None,
+        (Some(_), Some(_)) => first_nonempty(&[workpoint_next, workpoint_action])
+            .map(|gap| bounded(&gap, 240))
+            .or_else(|| Some("Current verified state differs from desired end state".to_string())),
+        _ => Some("Trajectory gap unclear until desired end state and current verified state are both present".to_string()),
     };
-    let mid_level_goal =
-        first_nonempty(&[short_term_goal.as_deref(), workpoint_action, fs_current]);
-    let low_level_goal = first_nonempty(&[workpoint_next, active_gap.as_deref(), frame_title]);
+    let mid_level_goal = first_nonempty(&[
+        short_term_goal.as_deref(),
+        workpoint_action,
+        frame_goal,
+        frame_title,
+        fs_current,
+    ]);
+    let low_level_goal = first_nonempty(&[
+        workpoint_next,
+        workpoint_action,
+        active_gap.as_deref(),
+        frame_title,
+    ]);
     let similarity_group = trajectory_similarity_group_payload(
         &project_root,
         long_term_goal.as_deref(),
@@ -1675,9 +1675,29 @@ mod tests {
         });
     }
 
+    fn add_defined_trajectory(state: &mut FocusaState, project_root: &str, continuity_id: &str) {
+        let body = TrajectoryDefineGoalRequest {
+            long_term_goal: "Ship the project north star".to_string(),
+            desired_end_state: "Project desired end state verified".to_string(),
+            short_term_goal: Some("Use scoped short-term work".to_string()),
+            current_state: Some("Project current state verified".to_string()),
+            goal_source: Some("operator".to_string()),
+            project_root: Some(project_root.to_string()),
+            continuity_id: Some(continuity_id.to_string()),
+            operator_confirmed: Some(true),
+            ..TrajectoryDefineGoalRequest::default()
+        };
+        let payload = define_goal_payload(state, &body);
+        let record =
+            trajectory_record_from_define_payload(&payload, &body).expect("valid test trajectory");
+        state.trajectory.active_trajectory_id = Some(record.trajectory_id.clone());
+        state.trajectory.records.push(record);
+    }
+
     #[test]
     fn trajectory_view_is_project_scoped_and_bounded() {
-        let state = state_with_workpoint("/repo/focusa");
+        let mut state = state_with_workpoint("/repo/focusa");
+        add_defined_trajectory(&mut state, "/repo/focusa", "cont-a");
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
@@ -1700,6 +1720,27 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_view_does_not_promote_workpoint_to_long_term_goal() {
+        let state = state_with_workpoint("/repo/focusa");
+        let payload = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                session_id: None,
+                mode: None,
+            },
+        );
+        assert_eq!(payload["status"].as_str(), Some("not_found"));
+        assert_eq!(payload["trajectory"]["long_term_goal"].as_str(), None);
+        assert_eq!(payload["trajectory"]["desired_end_state"].as_str(), None);
+        assert_eq!(
+            payload["trajectory"]["short_term_goal"].as_str(),
+            Some("Implement hot-path trajectory view")
+        );
+    }
+
+    #[test]
     fn trajectory_view_prefers_scoped_workpoint_over_stale_global_active() {
         let mut state = state_with_workpoint("/repo/focusa");
         let scoped_id = Uuid::now_v7();
@@ -1717,6 +1758,7 @@ mod tests {
             next_slice: Some("Keep trajectory view canonical".to_string()),
             ..WorkpointRecord::default()
         });
+        add_defined_trajectory(&mut state, "/repo/focusa", "cont-b");
 
         let payload = trajectory_view_payload(
             &state,
@@ -1837,7 +1879,8 @@ mod tests {
 
     #[test]
     fn trajectory_view_treats_session_id_as_metadata_and_missing_continuity_as_not_found() {
-        let state = state_with_workpoint("/repo/focusa");
+        let mut state = state_with_workpoint("/repo/focusa");
+        add_defined_trajectory(&mut state, "/repo/focusa", "cont-a");
         let session_changed = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
