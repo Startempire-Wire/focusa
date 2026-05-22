@@ -416,7 +416,7 @@ function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailu
   const base = formatPushDeltaFailure(reason);
   const detail = apiReason ? ` Detail: ${apiReason}` : "";
   if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until /focusa-status confirms a scoped frame.${detail}`;
-  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Refresh scoped frame and retry; this is not daemon-wide failure.${detail}`;
+  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Scoped frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint for the verified project, and do not retry unchanged.${detail}`;
   if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded. Retry when Focusa is reachable.${detail}`;
   if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded. Distill wording or use scratchpad.${detail}`;
   return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail}`;
@@ -426,6 +426,77 @@ function namedSlotFallback(slotLabel: string, kind: string, reason: PushDeltaFai
   const fallback = mirrorFailedFocusWrite(kind, reason, payload, { api_reason: apiReason });
   const fallbackText = fallback.saved ? ` Saved to scratchpad fallback (turn ${fallback.turn}).` : " Scratchpad fallback also failed.";
   return { text: `${formatNonCriticalWriteFailure(slotLabel, reason, apiReason)}${fallbackText}`, saved: fallback.saved, turn: fallback.turn };
+}
+
+function conciseObjectiveSuggestion(payload: string): string {
+  const text = String(payload || "")
+    .replace(/^\s*status\s*:\s*/i, "")
+    .replace(/\b(lowmem focusa active|focusa active|builds? only via [^.;]+|deploy wrapper)\b/ig, "")
+    .replace(/\b(next action|blocker)\s*:[^.;]+/ig, "")
+    .replace(/[`*_#>\[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const clause = text
+    .split(/[.;]\s+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .find(part => !/\b(script|wrapper|status|blocker|next action)\b/i.test(part)) || text;
+  return (clause || "Continue current operator-directed objective").slice(0, 120);
+}
+
+function namedSlotValidationFallback(slotLabel: string, kind: string, payload: string, reason?: string): { text: string; saved: boolean; turn: number; suggestion?: string } {
+  const fallback = mirrorFailedFocusWrite(kind, "validation_rejected", payload, { validator_reason: reason });
+  const fallbackText = fallback.saved ? ` Original saved to scratchpad fallback (turn ${fallback.turn}).` : " Scratchpad fallback also failed.";
+  const suggestion = kind === "current_focus" ? conciseObjectiveSuggestion(payload) : undefined;
+  const suggestionText = suggestion ? ` Suggested current_focus: "${suggestion}".` : "";
+  return {
+    text: `${reason || "Rejected by Focus State slot validator."}${fallbackText}${suggestionText}`,
+    saved: fallback.saved,
+    turn: fallback.turn,
+    suggestion,
+  };
+}
+
+function projectIdentityVerifiedInPayload(body: any): boolean {
+  const project = body?.project_identity || body?.resume_packet?.project_identity || {};
+  const api = project?.project_identity_api || body?.project_identity_api || {};
+  return project?.status === "verified" || project?.quorum_status === "verified" || api?.status === "verified" || body?.verification?.verified === true;
+}
+
+function scopeRecoveryContext(body: any, projectRoot: string, continuityId?: string, source = "focusa"): { text: string; details: Record<string, any> } | null {
+  const status = String(body?.status || "");
+  const canonical = body?.canonical === true;
+  const project = body?.project_identity || body?.resume_packet?.project_identity || {};
+  const trajectory = body?.trajectory || body?.resume_packet?.trajectory || {};
+  const projectStatus = String(project?.status || project?.project_identity_api?.status || "unknown");
+  const definitionStatus = String(trajectory?.definition_status || trajectory?.definition || "unknown");
+  const failureClass = String(body?.failure_class || body?.details?.tool_result_v1?.failure_class || "");
+  const needsRecovery = status === "degraded" || status === "not_found" || canonical === false || projectStatus === "mismatch" || definitionStatus === "conflicted" || failureClass === "scope_mismatch";
+  if (!needsRecovery) return null;
+  const safeRoot = isProjectRootAuthoritySafe(projectRoot);
+  const verifiedProject = projectIdentityVerifiedInPayload(body) || safeRoot;
+  const cont = continuityId ? ` continuity_id=${continuityId}` : "";
+  return {
+    text: `scope recovery → ${verifiedProject ? "verified project, but " : ""}no canonical Focusa packet for project_root=${projectRoot}${cont}; operator steering is authority; create focusa_workpoint_checkpoint for this mission, then retry resume. Store verbose/build/process rules in focusa_scratch, not current_focus.`,
+    details: {
+      source,
+      project_root: projectRoot,
+      continuity_id: continuityId || null,
+      status,
+      canonical,
+      project_status: projectStatus,
+      definition_status: definitionStatus,
+      failure_class: failureClass || null,
+      operator_steering_is_authority: true,
+      safe_next_tools: ["focusa_workpoint_checkpoint", "focusa_scratch", "focusa_project_verify", "focusa_workpoint_resume"],
+    },
+  };
+}
+
+function allowsWorkpointBootstrapFromClarity(body: any, projectRoot: string, actionLabel: string): boolean {
+  if (actionLabel !== "workpoint checkpoint") return false;
+  if (!isProjectRootAuthoritySafe(projectRoot)) return false;
+  return projectIdentityVerifiedInPayload(body);
 }
 
 // Push delta to Focusa — validates ALL slot values before write.
@@ -721,7 +792,10 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { intent } = params as { intent: string };
       const v = validateNamedSlot(intent, 500, "intent");
-      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid intent." }], details: { valid: false, intent } };
+      if (!v.valid) {
+        const fallback = namedSlotValidationFallback("intent", "intent", intent.trim(), v.reason);
+        return { content: [{ type: "text", text: fallback.text }], details: { valid: false, intent, reason: "validation_rejected", scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      }
       const result = await pushDelta({ intent: intent.trim() });
       if (result.ok) return { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } };
       const fallback = namedSlotFallback("intent", "intent", result.reason, intent.trim(), result.api_reason);
@@ -742,7 +816,10 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { focus } = params as { focus: string };
       const v = validateNamedSlot(focus, 300, "current_focus");
-      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid current focus." }], details: { valid: false, focus } };
+      if (!v.valid) {
+        const fallback = namedSlotValidationFallback("current focus", "current_focus", focus.trim(), v.reason);
+        return { content: [{ type: "text", text: fallback.text }], details: { valid: false, focus, reason: "validation_rejected", scratch_saved: fallback.saved, scratch_turn: fallback.turn, suggested_current_focus: fallback.suggestion } } as any;
+      }
       const result = await pushDelta({ current_focus: focus.trim() });
       if (result.ok) return { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } };
       const fallback = namedSlotFallback("current focus", "current_focus", result.reason, focus.trim(), result.api_reason);
@@ -762,7 +839,10 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { step } = params as { step: string };
       const v = validateNamedSlot(step, 160, "next_step");
-      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid next step." }], details: { valid: false, step } };
+      if (!v.valid) {
+        const fallback = namedSlotValidationFallback("next step", "next_step", step.trim(), v.reason);
+        return { content: [{ type: "text", text: fallback.text }], details: { valid: false, step, reason: "validation_rejected", scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      }
       const result = await pushDelta({ next_steps: [step.trim()] });
       if (result.ok) return { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } };
       const fallback = namedSlotFallback("next step", "next_step", result.reason, step.trim(), result.api_reason);
@@ -781,7 +861,10 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { question } = params as { question: string };
       const v = validateNamedSlot(question, 180, "open_question");
-      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid open question." }], details: { valid: false, question } };
+      if (!v.valid) {
+        const fallback = namedSlotValidationFallback("open question", "open_question", question.trim(), v.reason);
+        return { content: [{ type: "text", text: fallback.text }], details: { valid: false, question, reason: "validation_rejected", scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      }
       const result = await pushDelta({ open_questions: [question.trim()] });
       if (result.ok) return { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } };
       const fallback = namedSlotFallback("open question", "open_question", result.reason, question.trim(), result.api_reason);
@@ -801,7 +884,10 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { result } = params as { result: string };
       const v = validateNamedSlot(result, 180, "recent_result");
-      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid recent result." }], details: { valid: false, result } };
+      if (!v.valid) {
+        const fallback = namedSlotValidationFallback("recent result", "recent_result", result.trim(), v.reason);
+        return { content: [{ type: "text", text: fallback.text }], details: { valid: false, result, reason: "validation_rejected", scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      }
       const writeResult = await pushDelta({ recent_results: [result.trim()] });
       if (writeResult.ok) return { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } };
       const fallback = namedSlotFallback("recent result", "recent_result", writeResult.reason, result.trim(), writeResult.api_reason);
@@ -821,7 +907,10 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const { note } = params as { note: string };
       const v = validateNamedSlot(note, 180, "note");
-      if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid note." }], details: { valid: false, note } };
+      if (!v.valid) {
+        const fallback = namedSlotValidationFallback("note", "note", note.trim(), v.reason);
+        return { content: [{ type: "text", text: fallback.text }], details: { valid: false, note, reason: "validation_rejected", scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      }
       const result = await pushDelta({ notes: [note.trim()] });
       if (result.ok) return { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } };
       const fallback = namedSlotFallback("note", "note", result.reason, note.trim(), result.api_reason);
@@ -977,10 +1066,18 @@ export function registerTools(pi: ExtensionAPI) {
       return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate unavailable (${explainWorkLoopResult(result, "trajectory unavailable")})`, details: { ...details, failure_class: result.body?.failure_class || "daemon_unavailable" } };
     }
     if (projectStatus === "mismatch" || status === "conflicted") {
-      return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate conflicted; verify project identity and trajectory before canonical mutation.`, details: { ...details, failure_class: "scope_mismatch" } };
+      const recovery = scopeRecoveryContext(body, projectRoot, S.continuityId, "trajectory_clarity_gate");
+      if (allowsWorkpointBootstrapFromClarity(body, projectRoot, actionLabel)) {
+        return { ok: true, text: recovery?.text, details: { ...details, failure_class: "scope_mismatch", bootstrap_allowed: true, precondition_warning: "trajectory conflicted because existing Focusa context is for another continuity; checkpointing current operator mission is allowed", scope_recovery_context: recovery?.details || null } };
+      }
+      return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate conflicted; verify project identity and trajectory before canonical mutation.${recovery ? ` ${recovery.text}` : ""}`, details: { ...details, failure_class: "scope_mismatch", scope_recovery_context: recovery?.details || null } };
     }
     if (opts.blockOperatorInput !== false && (status === "unclear" || action === "operator_input")) {
-      return { ok: false, text: `${actionLabel} blocked → trajectory unclear; define or confirm trajectory before canonical mutation.`, details: { ...details, failure_class: "validation_rejected" } };
+      const recovery = scopeRecoveryContext(body, projectRoot, S.continuityId, "trajectory_clarity_gate");
+      if (allowsWorkpointBootstrapFromClarity(body, projectRoot, actionLabel)) {
+        return { ok: true, text: recovery?.text, details: { ...details, failure_class: "validation_rejected", bootstrap_allowed: true, precondition_warning: "trajectory unclear; checkpointing explicit operator mission is allowed to establish Workpoint continuity", scope_recovery_context: recovery?.details || null } };
+      }
+      return { ok: false, text: `${actionLabel} blocked → trajectory unclear; define or confirm trajectory before canonical mutation.${recovery ? ` ${recovery.text}` : ""}`, details: { ...details, failure_class: "validation_rejected", scope_recovery_context: recovery?.details || null } };
     }
     return { ok: true, details };
   }
@@ -1637,8 +1734,9 @@ export function registerTools(pi: ExtensionAPI) {
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
       const sufficiency = body.intelligence_view?.context_sufficiency || {};
+      const recovery = scopeRecoveryContext(body, String(p.project_root || S.sessionCwd || process.cwd()), String(p.continuity_id || S.continuityId || ""), "trajectory_view");
       const text = result.ok
-        ? `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} action=${String(sufficiency.recommended_action || "unknown")}`
+        ? [`trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} action=${String(sufficiency.recommended_action || "unknown")}`, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok && body.status !== "degraded" && body.status !== "not_found", status: result.ok ? String(body.status || "completed") : String(result.status), canonical: body.canonical === true, degraded: body.degraded === true, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_workpoint_resume", "focusa_active_object_resolve"] };
       return {
@@ -1652,6 +1750,7 @@ export function registerTools(pi: ExtensionAPI) {
           project_identity: project,
           trajectory,
           intelligence_view: body.intelligence_view || null,
+          scope_recovery_context: recovery?.details || null,
           tool_result_v1: toolResult,
           failure_class: toolResult.failure_class || null,
           evidence_refs: toolResult.evidence_refs || [],
@@ -1997,16 +2096,17 @@ export function registerTools(pi: ExtensionAPI) {
         body: JSON.stringify(payload),
       });
       const rejected = res.body?.status === "rejected_scope_mismatch";
+      const recovery = scopeRecoveryContext(res.body || {}, projectRoot, payload.continuity_id, "workpoint_resume");
       const text = res.ok && !rejected
-        ? `workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim()
+        ? [`workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim(), recovery?.text].filter(Boolean).join("\n")
         : rejected
-          ? `workpoint resume rejected: project_root mismatch. Ignore packet; follow latest operator instruction and current repo.`
-          : `workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`;
+          ? [`workpoint resume rejected: project_root mismatch. Ignore packet; follow latest operator instruction and current repo.`, recovery?.text].filter(Boolean).join("\n")
+          : [`workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`, recovery?.text].filter(Boolean).join("\n");
       const v2 = res.body?.resume_packet_v2 || null;
       const toolResult = res.body?.details?.tool_result_v1 || v2?.details?.tool_result_v1 || { ok: res.ok && !rejected, status: res.ok ? String(res.body?.status || "completed") : String(res.status), canonical: res.body?.canonical === true, degraded: res.body?.degraded === true || rejected, failure_class: res.body?.failure_class || (rejected ? "scope_mismatch" : null), retry: { safe: res.ok && !rejected, posture: res.ok && !rejected ? "safe_retry" : "do_not_retry_unchanged" }, side_effects: [], evidence_refs: [], next_tools: res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"] };
       return {
         content: [{ type: "text", text }],
-        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical: res.body?.canonical === true, degraded: res.body?.degraded === true, failure_class: toolResult.failure_class || null, resume_packet_v2: v2, rendered_summary: res.body?.rendered_summary || "", tool_result_v1: toolResult, next_tools: toolResult.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"], request: payload, response: res.body },
+        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical: res.body?.canonical === true, degraded: res.body?.degraded === true, failure_class: toolResult.failure_class || null, scope_recovery_context: recovery?.details || null, resume_packet_v2: v2, rendered_summary: res.body?.rendered_summary || "", tool_result_v1: toolResult, next_tools: toolResult.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"], request: payload, response: res.body },
       };
     },
   });
