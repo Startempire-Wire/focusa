@@ -33,7 +33,7 @@
 19. §37.4 Keyboard shortcuts — EXISTS: ctrl+shift+f (status), ctrl+shift+w (WBM)
 20. §37.5 CLI flags — EXISTS: registerFlag('wbm'), registerFlag('no-focusa')
 21. §37.6 Custom message renderer — EXISTS: registerMessageRenderer('focusa-state')
-22. §35.8 Session name from frame — EXISTS: pi.setSessionName(active.title)
+22. §35.8 Pi session display name ownership — IMPLEMENTED: Focusa caches frame title/goal but never calls pi.setSessionName automatically
 23. §34.2H Prompt template — IMPLEMENTED: .pi/prompts/focusa-context.md
 24. §38.2 /wbm HTTP fallback — EXISTS: wbExec() with fallbackUrl/fallbackBody
 

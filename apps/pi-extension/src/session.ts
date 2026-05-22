@@ -1,7 +1,7 @@
 // Session lifecycle events — ONE handler per event type (merged)
 // Spec: §11 (outage audit + backoff), §30 (SSE metacog), §34.2A (instance),
 //        §35.1 (auto-frame), §36.4 (resume), §36.5 (fork/tree), §37.5 (flags),
-//        §35.8 (session name), §37.9 (Context Core), §37.10 (cross-surface SSE),
+//        §35.8 (session display ownership), §37.9 (Context Core), §37.10 (cross-surface SSE),
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -268,14 +268,12 @@ export function registerSession(pi: ExtensionAPI) {
       await refreshTrajectoryClarityLifecycle("session_start_low_confidence", ctx.cwd);
     }
 
-    // §35.8: Session name sync from Pi's scoped focus frame, never global active frame
+    // §35.8: Pi owns the session display name (/name, session selector).
+    // Focusa may cache its scoped frame title for context/status, but must not call the Pi session naming API.
     const data = await getFocusState().catch(() => null);
     if (data?.frame?.title) {
       S.activeFrameTitle = data.frame.title;
       S.activeFrameGoal = data.frame.goal || S.activeFrameGoal;
-      pi.setSessionName(data.frame.title);
-    } else if (S.activeFrameTitle) {
-      pi.setSessionName(S.activeFrameTitle);
     }
 
     // §37.9: Context Core activity signal + wb me --set pi_active
@@ -298,7 +296,6 @@ export function registerSession(pi: ExtensionAPI) {
         footerSyncInFlight = true;
         try {
           await getFocusState().catch(() => null);
-          if (S.activeFrameTitle) pi.setSessionName(S.activeFrameTitle);
         } finally {
           footerSyncInFlight = false;
         }

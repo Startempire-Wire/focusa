@@ -705,7 +705,6 @@ export function registerTurns(pi: ExtensionAPI) {
     if (S.focusaAvailable && S.activeFrameId) {
       await rescopePiFrameFromCurrentAsk((_ctx as any)?.cwd, "pi-post-input-rescope").catch(() => null);
       await getFocusState().catch(() => null);
-      if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
     }
 
     if (S.focusaAvailable) {

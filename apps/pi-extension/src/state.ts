@@ -973,7 +973,6 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
   S.activeFrameId = frame.id || S.activeFrameId;
   S.activeFrameTitle = frame.title || S.activeFrameTitle || "";
   S.activeFrameGoal = frame.goal || S.activeFrameGoal || "";
-  if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
   S.lastFocusSnapshot = {
     decisions: Array.isArray(fs?.decisions) ? fs.decisions : [],
     constraints: Array.isArray(fs?.constraints) ? fs.constraints : [],
@@ -1123,7 +1122,6 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
     });
     if (r?.frame_id) {
       S.activeFrameId = r.frame_id;
-      if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
       return r.frame_id;
     }
 
@@ -1140,7 +1138,6 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
         S.activeFrameId = match.id;
         S.activeFrameTitle = match.title || title;
         S.activeFrameGoal = match.goal || goal;
-        if (S.activeFrameTitle) S.pi?.setSessionName(S.activeFrameTitle);
         return match.id;
       }
     }

@@ -79,3 +79,24 @@ Validation:
 - `apps/pi-extension npx tsc --noEmit` — pass.
 - `tests/spec96_utility_card_session_isolation_static_test.sh` — pass.
 - `tests/spec96_broad_root_scope_isolation_static_test.sh` — pass.
+
+## Emergency follow-up 3: Pi session display name ownership
+
+Operator reported `Pi Task:` replacing the Pi session name. Pi docs confirm `pi.setSessionName(name)` sets the session display name shown in the session selector, and `/name <name>` is the user-facing session naming command (`docs/extensions.md`, `docs/sessions.md`). Focusa frame titles are context metadata, not Pi session names.
+
+Fix:
+
+- Removed all automatic `pi.setSessionName(...)` calls from Focusa Pi extension source (`apps/pi-extension/src/state.ts`, `apps/pi-extension/src/session.ts`, `apps/pi-extension/src/turns.ts`).
+- `session_start` now caches scoped Focusa frame title/goal for Focusa context only and explicitly documents Pi session display ownership (`apps/pi-extension/src/session.ts:271`).
+- Updated §35.8 from "Session name from focus frame" to "Pi session display name ownership" (`docs/44-pi-focusa-integration-spec.md:1704`).
+- Updated Pi extension contract to require no `setSessionName` usage in app source while preserving scoped frame metadata (`tests/pi_extension_contract_test.sh:260`).
+
+Validation:
+
+- `apps/pi-extension npx tsc --noEmit` — pass.
+- `tests/spec96_utility_card_session_isolation_static_test.sh` — pass.
+- `tests/spec96_broad_root_scope_isolation_static_test.sh` — pass.
+- `node scripts/validate-focusa-tool-contracts.mjs` — pass, 58/58.
+- `git diff --check` — pass.
+- Focused static proof: `rg -n "setSessionName" apps/pi-extension/src` returns no matches.
+- `tests/pi_extension_contract_test.sh` static/app sections pass, but full strict run currently has one unrelated daemon seed failure: `/v1/focus/push` rejected with `session_inactive`/`closed` after `/v1/session/start`.

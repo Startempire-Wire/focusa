@@ -1701,22 +1701,19 @@ pi.on("input", async (event, ctx) => {
 });
 ```
 
-### 35.8 SESSION NAME FROM FOCUS FRAME (LOW)
+### 35.8 PI SESSION DISPLAY NAME OWNERSHIP (LOW)
+
+Pi owns human-readable session display names via `/name` and the session selector. Focusa may cache its scoped frame title/goal for context, status, and evidence, but it must not call `pi.setSessionName()` automatically because that replaces the user's Pi session name and can make unrelated sessions appear to inherit another session's `Pi Task:` label.
 
 ```typescript
-// When Focusa frame is active, set Pi session name to match
-async function syncSessionName() {
-  const stack = await fetchFocusaStack();
-  if (stack?.active_frame_id) {
-    const frame = stack.stack?.frames?.find(f => f.id === stack.active_frame_id);
-    if (frame?.title) {
-      pi.setSessionName(`🧠 ${frame.title}`);
-    }
-  }
-}
+// Correct: cache Focusa frame title for Focusa context only.
+const frame = await fetchScopedFocusaFrame();
+S.activeFrameTitle = frame?.title || "";
+S.activeFrameGoal = frame?.goal || "";
+// No pi.setSessionName() here. Users choose display names with /name.
 ```
 
-Users see meaningful names in `/resume` instead of first-message snippets.
+Users who want a meaningful `/resume` label should use Pi's `/name <name>` command; Focusa must not override that display field.
 
 ### 35.9 /WBM CONFIG — SCOREBOARD TOKEN (LOW)
 

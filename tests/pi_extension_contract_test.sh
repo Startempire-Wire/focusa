@@ -57,10 +57,10 @@ else
 fi
 
 if rg -n 'focusa-wbm-state" \|\| e\.customType === "focusa-state"' "$SESSION_FILE" >/dev/null 2>&1 \
-  && rg -n 'if \(e\.data\.sessionId\) S\.sessionFrameKey = e\.data\.sessionId' "$SESSION_FILE" >/dev/null 2>&1; then
-  log_pass "Pi session restore accepts resumable WBM state and restores session key"
+  && rg -n 'String\(e\.data\.sessionId \|\| ""\) === eventSessionId' "$SESSION_FILE" >/dev/null 2>&1; then
+  log_pass "Pi session restore accepts only same-session resumable Focusa/WBM state"
 else
-  log_fail "Pi session restore missing resumable WBM state support"
+  log_fail "Pi session restore missing same-session resumable WBM state support"
 fi
 
 log_info "Health + seeded state"
@@ -260,10 +260,11 @@ else
   log_fail "Persisted renderer missing authoritative snapshot content"
 fi
 
-if rg -n 'S\.activeFrameId|S\.activeFrameTitle|S\.activeFrameGoal|pi\.setSessionName' "$SESSION_TS" >/dev/null 2>&1; then
-  log_pass "Session sync uses Pi scoped frame metadata rather than global frame fallback"
+if rg -n 'S\.activeFrameId|S\.activeFrameTitle|S\.activeFrameGoal' "$SESSION_TS" >/dev/null 2>&1 \
+  && ! rg -n 'setSessionName' "apps/pi-extension/src" >/dev/null 2>&1; then
+  log_pass "Session sync keeps Focusa frame metadata without overriding Pi session names"
 else
-  log_fail "Session sync still appears to rely on global frame fallback"
+  log_fail "Session sync can override Pi session display names or lacks scoped frame metadata"
 fi
 
 if rg -n 'reason: "pi_session_shutdown"|reason: "pi_session_switch"' "$SESSION_TS" >/dev/null 2>&1; then
