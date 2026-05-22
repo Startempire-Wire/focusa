@@ -1,6 +1,6 @@
 //! Continuous work loop control/status routes.
 
-use crate::routes::bounded::record_json_response_size;
+use crate::routes::bounded::{record_json_response_size, resource_mode_status};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -2069,12 +2069,50 @@ async fn status_deep(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    status(
-        Query(WorkLoopStatusQuery { summary_only: false }),
-        State(state),
-        headers,
-    )
-    .await
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("work-loop:read") {
+        return Err(forbid("work-loop:read"));
+    }
+
+    let active_writer = state.active_writer.read().await.clone();
+    let mut payload = {
+        let s = state.focusa.read().await;
+        let wl = &s.work_loop;
+        json!({
+            "route_tier": "cold",
+            "summary_only": false,
+            "cold_omitted": [],
+            "enabled": wl.enabled,
+            "status": wl.status,
+            "project_status": if wl.enabled { "active" } else { "idle" },
+            "authorship_mode": wl.authorship_mode,
+            "policy": wl.policy,
+            "run": wl.run,
+            "current_task": wl.current_task,
+            "last_completed_task_id": wl.last_completed_task_id,
+            "last_blocker_class": wl.last_blocker_class,
+            "last_blocker_reason": wl.last_blocker_reason,
+            "last_continue_reason": wl.last_continue_reason,
+            "decision_context": wl.decision_context,
+            "active_writer": active_writer,
+            "active_workpoint": active_workpoint_summary_for_status(&s),
+            "deep_status_route": "/v1/work-loop/status/deep",
+            "resource_mode": resource_mode_status(),
+            "bounds": {
+                "summary_only": false,
+                "cold_diagnostics": true,
+                "hot_safe": true,
+                "note": "Deep route copies Focusa state before awaiting cold diagnostics so hot health/status readers are not held hostage."
+            }
+        })
+    };
+
+    let worktree = worktree_status_snapshot().await;
+    if let Some(obj) = payload.as_object_mut() {
+        obj.insert("worktree".into(), worktree);
+    }
+    record_json_response_size("/v1/work-loop/status/deep", &payload);
+    Ok(Json(payload))
 }
 
 async fn closure_replay_evidence(

@@ -171,24 +171,38 @@ async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
     });
 
     if include_deep {
-        let last_event_ts = state.persistence.latest_event_timestamp().ok().flatten();
-        let persisted_event_count = state.persistence.event_count().ok();
-        let daemon_pids = focusa_daemon_pids();
-        let duplicate_daemon_count =
-            daemon_pids.iter().filter(|&&p| p != current_pid).count() as u64;
-        if let Some(obj) = payload.as_object_mut() {
-            obj.insert("last_event_ts".into(), json!(last_event_ts));
-            obj.insert("persisted_event_count".into(), json!(persisted_event_count));
-            obj.insert(
-                "runtime_process".into(),
-                json!({
-                    "current_pid": current_pid,
-                    "daemon_pids": daemon_pids,
-                    "daemon_count": daemon_pids.len(),
-                    "duplicate_daemon_count": duplicate_daemon_count,
-                    "single_daemon_ok": duplicate_daemon_count == 0,
-                }),
-            );
+        let persistence = state.persistence.clone();
+        let deep_diagnostics = tokio::task::spawn_blocking(move || {
+            let last_event_ts = persistence.latest_event_timestamp().ok().flatten();
+            let persisted_event_count = persistence.event_count().ok();
+            let daemon_pids = focusa_daemon_pids();
+            (last_event_ts, persisted_event_count, daemon_pids)
+        })
+        .await
+        .ok();
+
+        if let Some((last_event_ts, persisted_event_count, daemon_pids)) = deep_diagnostics {
+            let duplicate_daemon_count =
+                daemon_pids.iter().filter(|&&p| p != current_pid).count() as u64;
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("last_event_ts".into(), json!(last_event_ts));
+                obj.insert("persisted_event_count".into(), json!(persisted_event_count));
+                obj.insert(
+                    "runtime_process".into(),
+                    json!({
+                        "current_pid": current_pid,
+                        "daemon_pids": daemon_pids,
+                        "daemon_count": daemon_pids.len(),
+                        "duplicate_daemon_count": duplicate_daemon_count,
+                        "single_daemon_ok": duplicate_daemon_count == 0,
+                    }),
+                );
+            }
+        } else if let Some(obj) = payload.as_object_mut() {
+            obj.insert("deep_status_degraded".into(), json!(true));
+            obj.insert("failure_class".into(), json!("cold_path_timeout"));
+            obj.insert("last_event_ts".into(), Value::Null);
+            obj.insert("persisted_event_count".into(), Value::Null);
         }
     }
 
