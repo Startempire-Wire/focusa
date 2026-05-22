@@ -200,6 +200,57 @@ const CONTEXT_SEMANTIC_LIMIT = 64;
 const CONTEXT_ECS_HANDLES_LIMIT = 128;
 const HEALTHCHECK_STATUS_FALLBACK_PATH = "/status?summary_only=true";
 
+export function resetPiSessionScopedState(reason = "session_boundary"): void {
+  S.turnCount = 0;
+  S.seenFirstBeforeAgentStart = false;
+  S.activeFrameId = null;
+  S.activeFramePromise = null;
+  S.activeFrameTitle = "";
+  S.activeFrameGoal = "";
+  S.continuityId = "";
+  S.activeWorkpointPacket = null;
+  S.activeWorkpointSummary = "";
+  S.lastTrajectoryClarity = null;
+  S.currentAsk = null;
+  S.queryScope = null;
+  S.excludedContext = null;
+  S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
+  S.localDecisions = [];
+  S.localConstraints = [];
+  S.localFailures = [];
+  S.lastCompactTime = 0;
+  S.compactsThisHour = 0;
+  S.turnsSinceCompact = 0;
+  S.compactHourStart = Date.now();
+  S.currentTier = "";
+  S.currentContextPct = null;
+  S.lastStreamLen = 0;
+  S.compactResumePending = false;
+  S.lastCompactResumeKey = "";
+  S.lastCompactResumeAt = 0;
+  S.lastCompactDecision = "";
+  S.toolUsageBatch = [];
+  S.spec92HookTelemetry = [];
+  S.spec92TokenTelemetry = [];
+  S.spec92ToolStartTimes = {};
+  S.compilationErrors = [];
+  S.fileEditCounts = {};
+  S.longSessionSignaled = false;
+  S.cataloguedDecisions = [];
+  S.cataloguedFacts = [];
+  S.totalCompactions = 0;
+  S.forkSuggested = false;
+  S.focusStateCache = { key: "", at: 0, data: null, inflight: null };
+  S.semanticMemoryCache = { at: 0, data: null, inflight: null };
+  S.ecsHandlesCache = { at: 0, data: null, inflight: null };
+  S.lastPersistAt = 0;
+  S.lastPersistHash = "";
+  S.wbmEnabled = false;
+  S.wbmDeep = false;
+  S.wbmNoCatalogue = false;
+  focusaPost("/telemetry/trace", { event_type: "pi_session_scoped_state_reset", payload: { reason, session_id: S.sessionFrameKey, cwd: S.sessionCwd } });
+}
+
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
   const timeout = S.cfg?.focusaApiTimeoutMs || 5000;

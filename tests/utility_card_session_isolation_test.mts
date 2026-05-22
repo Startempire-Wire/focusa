@@ -1,5 +1,5 @@
 import { buildFocusaUtilityCard } from "../apps/pi-extension/src/awareness.ts";
-import { S, adoptPersistedContinuityForSession, ensurePiFrame } from "../apps/pi-extension/src/state.ts";
+import { S, adoptPersistedContinuityForSession, ensurePiFrame, resetPiSessionScopedState } from "../apps/pi-extension/src/state.ts";
 
 function assert(cond: any, msg: string) {
   if (!cond) throw new Error(msg);
@@ -50,6 +50,23 @@ const unsafeCwdCard = buildFocusaUtilityCard("visible");
 assert(!unsafeCwdCard.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Utility Card adopted global active Workpoint");
 assert(!unsafeCwdCard.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity id");
 assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no scoped Workpoint");
+
+Object.assign(S, {
+  sessionFrameKey: "different-session",
+  sessionCwd: "/tmp/project-b",
+  currentAsk: { text: "Pi Task: SPEC96 FROM OTHER SESSION", kind: "instruction", sourceTurnId: "old", updatedAt: Date.now() },
+  activeFrameTitle: "Pi Task: SPEC96 FROM OTHER SESSION",
+  activeFrameGoal: "SPEC96 FROM OTHER SESSION",
+  activeWorkpointPacket: { mission: "SPEC96 FROM OTHER SESSION", project_root: "/tmp/project-b", continuity_id: "old-continuity", canonical: true, status: "active" },
+  activeWorkpointSummary: "SPEC96 FROM OTHER SESSION",
+  focusStateCache: { key: "old", at: Date.now(), data: { frame: {}, fs: {}, stack: {} }, inflight: null },
+});
+resetPiSessionScopedState("runtime_cross_session_reset_proof");
+const resetCard = buildFocusaUtilityCard("visible");
+assert(!resetCard.includes("SPEC96 FROM OTHER SESSION"), "session reset leaked Pi Task/title from another session");
+assert(S.currentAsk === null, "session reset retained currentAsk");
+assert(S.activeFrameTitle === "" && S.activeFrameGoal === "", "session reset retained frame title/goal");
+assert(S.focusStateCache.data === null, "session reset retained focus cache");
 
 Object.assign(S, {
   focusaAvailable: true,

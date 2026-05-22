@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -195,16 +195,10 @@ export function registerSession(pi: ExtensionAPI) {
   pi.on("session_start", async (event, ctx) => {
     S.pi = pi;
     S.sessionStartTime = Date.now();
-    S.turnCount = 0;
-    S.seenFirstBeforeAgentStart = false; // Reset: inject directive on first before_agent_start only
-    S.lastCompactDecision = "";
-    S.compactResumePending = false;
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.sessionFrameKey = eventSessionId;
-    S.continuityId = "";
-    S.activeWorkpointPacket = null;
-    S.activeWorkpointSummary = "";
     S.sessionCwd = ctx.cwd;
+    resetPiSessionScopedState("session_start");
 
     // §37.5: Check CLI flags FIRST
     if (pi.getFlag("--no-focusa")) {
@@ -224,7 +218,7 @@ export function registerSession(pi: ExtensionAPI) {
     const entries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
-      if ((e.customType === "focusa-wbm-state" || e.customType === "focusa-state") && e.data) {
+      if ((e.customType === "focusa-wbm-state" || e.customType === "focusa-state") && e.data && String(e.data.sessionId || "") === eventSessionId) {
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
         S.localDecisions = e.data.decisions || [];
@@ -422,23 +416,15 @@ export function registerSession(pi: ExtensionAPI) {
 
   // ── session_switch (§37.7) ────────────────────────────────────────────────
   pi.on("session_switch", async (event, ctx) => {
-    S.localDecisions = []; S.localConstraints = []; S.localFailures = [];
-    S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
-    S.turnCount = 0; S.cataloguedDecisions = []; S.cataloguedFacts = [];
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.sessionFrameKey = eventSessionId;
-    S.continuityId = "";
-    S.activeWorkpointPacket = null;
-    S.activeWorkpointSummary = "";
     S.sessionCwd = ctx.cwd;
-    S.activeFrameTitle = ""; S.activeFrameGoal = "";
-    S.fileEditCounts = {}; S.compilationErrors = []; S.longSessionSignaled = false;
-    S.totalCompactions = 0; S.lastCompactResumeKey = ""; S.lastCompactResumeAt = 0; S.wbmNoCatalogue = false;
+    resetPiSessionScopedState("session_switch");
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
     S.forkSuggested = false;
     for (let i = switchEntries.length - 1; i >= 0; i--) {
-      if ((switchEntries[i].customType === "focusa-wbm-state" || switchEntries[i].customType === "focusa-state") && switchEntries[i].data) {
+      if ((switchEntries[i].customType === "focusa-wbm-state" || switchEntries[i].customType === "focusa-state") && switchEntries[i].data && String(switchEntries[i].data.sessionId || "") === eventSessionId) {
         const d = switchEntries[i].data;
         S.localDecisions = d.decisions || [];
         S.localConstraints = d.constraints || [];

@@ -22,10 +22,10 @@ else
   exit 1
 fi
 
-if rg -n 'S\.continuityId = ""|adoptPersistedContinuityForSession\(.*eventSessionId|persistedSessionId !== eventSessionId' "$SESSION" "$STATE" >/dev/null; then
-  echo "✓ PASS: session start/switch reset continuity and adopt persisted state only by session id"
+if rg -n 'resetPiSessionScopedState\("session_start"\)|resetPiSessionScopedState\("session_switch"\)|String\(e\.data\.sessionId \|\| ""\) === eventSessionId|String\(switchEntries\[i\]\.data\.sessionId \|\| ""\) === eventSessionId|persistedSessionId !== eventSessionId' "$SESSION" "$STATE" >/dev/null; then
+  echo "✓ PASS: session start/switch reset scoped state and restore persisted data only by session id"
 else
-  echo "✗ FAIL: session continuity reset/adoption guard missing" >&2
+  echo "✗ FAIL: session scoped reset/adoption guard missing" >&2
   exit 1
 fi
 

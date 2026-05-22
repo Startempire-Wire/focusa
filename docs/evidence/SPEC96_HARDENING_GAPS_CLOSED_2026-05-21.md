@@ -62,3 +62,20 @@ Validation:
 - `tests/spec96_compaction_resume_injection_v2_static_test.sh` — pass.
 - `tests/spec96_scope_recovery_feedback_static_test.sh` — pass.
 - `node scripts/validate-focusa-tool-contracts.mjs` — pass, 58/58.
+
+## Emergency follow-up 2: Pi Task/session title cross-session leak
+
+Operator observed the `Pi Task` from this session appearing in another Pi session. Root cause: `session_start` and `session_switch` reset only selected fields, then restored `focusa-state` entries before checking `entry.data.sessionId`; frame title/goal/current ask could be copied from a different Pi session even though Workpoint adoption was later rejected.
+
+Fix:
+
+- Added `resetPiSessionScopedState()` to clear all session-scoped singleton state at every `session_start` and `session_switch`: current ask, frame title/goal, Workpoint packet/summary, continuity id, caches, compaction fields, local shadows, telemetry rings, and WBM flags (`apps/pi-extension/src/state.ts:203`).
+- `session_start` and `session_switch` now call the reset before any persisted entry restore (`apps/pi-extension/src/session.ts:195`, `apps/pi-extension/src/session.ts:416`).
+- Persisted `focusa-state` / `focusa-wbm-state` is restored only when `entry.data.sessionId === eventSessionId`; otherwise even frame title/current ask are ignored (`apps/pi-extension/src/session.ts:218`, `apps/pi-extension/src/session.ts:426`).
+- Runtime isolation proof now seeds a fake `Pi Task: SPEC96 FROM OTHER SESSION`, runs the session reset, and asserts Utility Card/currentAsk/frame cache do not leak it (`tests/utility_card_session_isolation_test.mts:54`).
+
+Validation:
+
+- `apps/pi-extension npx tsc --noEmit` — pass.
+- `tests/spec96_utility_card_session_isolation_static_test.sh` — pass.
+- `tests/spec96_broad_root_scope_isolation_static_test.sh` — pass.
