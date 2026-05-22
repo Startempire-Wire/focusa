@@ -1,0 +1,8 @@
+archive_file=/root/focusa-beads-archives/20260522-150308/beads.db.precompact.zst
+archive_sha256=dc1ed8e40f376df1184feab6ff3226cc647260418e58e82a2003455dd80cc46e
+integrity_check=ok
+events=25317
+archived_fields=42110
+old_bytes_removed=3188366093
+new_bytes_removed=3170530577
+compact_event_payload_bytes=10361499
