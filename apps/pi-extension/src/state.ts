@@ -1128,13 +1128,22 @@ export function normalizeWorkpointResumePacketEnvelope(packet: any): any | null 
   return normalized;
 }
 
-export async function buildFocusaSessionIdentity(projectRootInput?: string, resumeSource: "session_start" | "session_switch" | "compaction" | "model_switch" | "fork" | "manual" | "unknown" = "manual"): Promise<Record<string, unknown>> {
+export async function buildFocusaSessionIdentity(
+  projectRootInput?: string,
+  resumeSource: "session_start" | "session_switch" | "compaction" | "model_switch" | "fork" | "manual" | "unknown" = "manual",
+  overrides: { continuityId?: string; sessionId?: string } = {},
+): Promise<Record<string, unknown>> {
   const projectRoot = normalizeProjectRoot(projectRootInput || S.sessionCwd || process.cwd());
   const safe = isProjectRootAuthoritySafe(projectRoot);
+  const ambientCwd = normalizeProjectRoot(S.sessionCwd || process.cwd());
+  const ambientInsideProject = ambientCwd === projectRoot || ambientCwd.startsWith(`${projectRoot}/`);
+  const cwdForIdentity = safe && !ambientInsideProject ? projectRoot : ambientCwd;
+  const sessionId = String(overrides.sessionId || S.sessionFrameKey || "").trim();
+  const continuityId = String(overrides.continuityId || ensureContinuityId(projectRoot || process.cwd()) || "").trim();
   let projectIdentity: any = null;
   if (safe) {
     const query = new URLSearchParams();
-    query.set("cwd", S.sessionCwd || projectRoot);
+    query.set("cwd", cwdForIdentity);
     query.set("project_root", projectRoot);
     const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
     projectIdentity = response?.project_identity || null;
@@ -1143,12 +1152,12 @@ export async function buildFocusaSessionIdentity(projectRootInput?: string, resu
   return {
     schema: "focusa.session_identity.v1",
     project_identity: projectIdentity,
-    pi_session_id: S.sessionFrameKey || undefined,
-    session_frame_key: S.sessionFrameKey || "unknown-session",
-    session_incarnation_id: `${S.sessionFrameKey || "unknown"}:${process.pid}:${S.sessionStartTime}`,
-    continuity_id: ensureContinuityId(projectRoot || process.cwd()),
+    pi_session_id: sessionId || undefined,
+    session_frame_key: sessionId || "unknown-session",
+    session_incarnation_id: `${sessionId || "unknown"}:${process.pid}:${S.sessionStartTime}`,
+    continuity_id: continuityId || undefined,
     project_root: projectRoot,
-    cwd: S.sessionCwd || process.cwd(),
+    cwd: cwdForIdentity,
     workspace_id: rootParts[rootParts.length - 1] || "workspace",
     process_id: process.pid,
     started_at: new Date(S.sessionStartTime).toISOString(),

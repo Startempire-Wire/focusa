@@ -23,6 +23,7 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;
+use tokio::sync::mpsc::error::TrySendError;
 use tokio::time::{Duration, sleep};
 use uuid::Uuid;
 
@@ -946,6 +947,39 @@ async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
+    if lowmem_caps_active() {
+        return state
+            .command_tx
+            .try_send(Action::EmitEvent { event })
+            .map_err(|error| match error {
+                TrySendError::Full(_) => (
+                    StatusCode::ACCEPTED,
+                    Json(json!({
+                        "status": "pending",
+                        "canonical": false,
+                        "degraded": true,
+                        "failure_class": "resource_exhausted",
+                        "retry_posture": "safe_retry",
+                        "retry": {"safe": true, "posture": "safe_retry", "reason": "daemon command channel is saturated under LowMem"},
+                        "side_effects": [],
+                        "resource_mode": resource_mode_status(),
+                        "next_tools": ["focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"],
+                        "next_step_hint": "retry after LowMem command backlog drains; evidence payload was not enqueued"
+                    })),
+                ),
+                TrySendError::Closed(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "status": "rejected",
+                        "canonical": false,
+                        "failure_class": "daemon_unavailable",
+                        "error": "dispatch failed: daemon command channel closed",
+                        "next_step_hint": "retry after daemon command channel recovers"
+                    })),
+                ),
+            });
+    }
+
     state
         .command_tx
         .send(Action::EmitEvent { event })
@@ -956,6 +990,7 @@ async fn dispatch_event(
                 Json(json!({
                     "status": "rejected",
                     "canonical": false,
+                    "failure_class": "daemon_unavailable",
                     "error": format!("dispatch failed: {error}"),
                     "next_step_hint": "retry after daemon command channel recovers"
                 })),

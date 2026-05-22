@@ -7,6 +7,10 @@
 
 Capture a bounded evidence ref/result and optionally link it to the active Workpoint.
 
+## Scope semantics
+
+After compaction/model switch, pass `project_root`, `continuity_id`, and optionally `workpoint_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad. This prevents evidence from being checked against stale `/root` session scope.
+
 ## When to use
 
 Use `focusa_evidence_capture` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
@@ -18,7 +22,7 @@ Do not use `focusa_evidence_capture` to dump unbounded logs, bypass operator ste
 ## Example usage
 
 ```text
-focusa_evidence_capture target_ref="README.md" result="Tool docs linked" evidence_ref="README.md:Documentation map" attach_to_workpoint=true
+focusa_evidence_capture target_ref="README.md" result="Tool docs linked" evidence_ref="README.md:Documentation map" project_root="/home/wirebot/focusa" continuity_id="spec96-lowmem-surgical" attach_to_workpoint=true
 ```
 
 ## Expected result

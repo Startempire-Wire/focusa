@@ -7,6 +7,10 @@
 
 Attach a stable evidence reference or verification result to the active canonical Workpoint.
 
+## Scope semantics
+
+After compaction/model switch, pass `project_root` and `continuity_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad (for example `/root`). The tool builds a `FocusaSessionIdentity` from that explicit scope before trajectory clarity and evidence-link calls.
+
 ## When to use
 
 Use `focusa_workpoint_link_evidence` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.
@@ -18,7 +22,7 @@ Do not use `focusa_workpoint_link_evidence` to dump unbounded logs, bypass opera
 ## Example usage
 
 ```text
-focusa_workpoint_link_evidence target_ref="docs/focusa-tools" result="43 one-tool docs generated" evidence_ref="docs/focusa-tools/tools/focusa_workpoint_link_evidence.md"
+focusa_workpoint_link_evidence target_ref="docs/focusa-tools" result="43 one-tool docs generated" evidence_ref="docs/focusa-tools/tools/focusa_workpoint_link_evidence.md" project_root="/home/wirebot/focusa" continuity_id="spec96-lowmem-surgical"
 ```
 
 ## Expected result

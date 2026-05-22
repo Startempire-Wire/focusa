@@ -12,6 +12,13 @@ else
   exit 1
 fi
 
+if rg -n 'lowmem_caps_active\(\).*try_send\(Action::EmitEvent|failure_class": "resource_exhausted"|daemon command channel is saturated under LowMem' "$WORKPOINT" >/dev/null; then
+  echo "✓ PASS: LowMem Workpoint dispatch uses nonblocking backpressure envelope"
+else
+  echo "✗ FAIL: LowMem Workpoint dispatch can block on daemon command channel" >&2
+  exit 1
+fi
+
 if rg -n 'failure_class": "read_model_lag"|"retry_posture": "safe_retry"|"next_tools": \["focusa_workpoint_resume", "focusa_traverse", "focusa_resource_mode"\]' "$WORKPOINT" >/dev/null; then
   echo "✓ PASS: pending evidence link returns read_model_lag with retry/next-tool guidance"
 else

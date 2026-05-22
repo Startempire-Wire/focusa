@@ -1039,11 +1039,13 @@ export function registerTools(pi: ExtensionAPI) {
   }
 
 
-  async function enforceTrajectoryClarityPrecondition(projectRoot: string, actionLabel: string, opts: { blockOperatorInput?: boolean } = {}): Promise<{ ok: boolean; text?: string; details: Record<string, any> }> {
+  async function enforceTrajectoryClarityPrecondition(projectRoot: string, actionLabel: string, opts: { blockOperatorInput?: boolean; continuityId?: string; sessionId?: string } = {}): Promise<{ ok: boolean; text?: string; details: Record<string, any> }> {
     const query = new URLSearchParams();
     query.set("project_root", projectRoot);
-    if (S.sessionFrameKey) query.set("session_id", S.sessionFrameKey);
-    if (S.continuityId) query.set("continuity_id", S.continuityId);
+    const sessionId = String(opts.sessionId || S.sessionFrameKey || "").trim();
+    const continuityId = String(opts.continuityId || S.continuityId || ensureContinuityId(projectRoot) || "").trim();
+    if (sessionId) query.set("session_id", sessionId);
+    if (continuityId) query.set("continuity_id", continuityId);
     query.set("mode", "summary");
     const result = await focusaFetchDetailed(`/trajectory/view?${query.toString()}`, { method: "GET" });
     const body = result.body || {};
@@ -1066,14 +1068,14 @@ export function registerTools(pi: ExtensionAPI) {
       return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate unavailable (${explainWorkLoopResult(result, "trajectory unavailable")})`, details: { ...details, failure_class: result.body?.failure_class || "daemon_unavailable" } };
     }
     if (projectStatus === "mismatch" || status === "conflicted") {
-      const recovery = scopeRecoveryContext(body, projectRoot, S.continuityId, "trajectory_clarity_gate");
+      const recovery = scopeRecoveryContext(body, projectRoot, continuityId, "trajectory_clarity_gate");
       if (allowsWorkpointBootstrapFromClarity(body, projectRoot, actionLabel)) {
         return { ok: true, text: recovery?.text, details: { ...details, failure_class: "scope_mismatch", bootstrap_allowed: true, precondition_warning: "trajectory conflicted because existing Focusa context is for another continuity; checkpointing current operator mission is allowed", scope_recovery_context: recovery?.details || null } };
       }
       return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate conflicted; verify project identity and trajectory before canonical mutation.${recovery ? ` ${recovery.text}` : ""}`, details: { ...details, failure_class: "scope_mismatch", scope_recovery_context: recovery?.details || null } };
     }
     if (opts.blockOperatorInput !== false && (status === "unclear" || action === "operator_input")) {
-      const recovery = scopeRecoveryContext(body, projectRoot, S.continuityId, "trajectory_clarity_gate");
+      const recovery = scopeRecoveryContext(body, projectRoot, continuityId, "trajectory_clarity_gate");
       if (allowsWorkpointBootstrapFromClarity(body, projectRoot, actionLabel)) {
         return { ok: true, text: recovery?.text, details: { ...details, failure_class: "validation_rejected", bootstrap_allowed: true, precondition_warning: "trajectory unclear; checkpointing explicit operator mission is allowed to establish Workpoint continuity", scope_recovery_context: recovery?.details || null } };
       }
@@ -1784,7 +1786,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = p.project_root || S.sessionCwd || process.cwd();
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual") };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       const candidate = b.trajectory_candidate || {};
@@ -1809,7 +1811,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = p.project_root || S.sessionCwd || process.cwd();
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual") };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/assess", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       const text = result.ok ? `trajectory assess → gaps=${Array.isArray(b.gaps) ? b.gaps.length : 0} action=${String(b.recommended_action || "unknown")} canonical=${b.canonical === true}` : `trajectory assess blocked → ${explainWorkLoopResult(result, "assess failed")}`;
@@ -1834,7 +1836,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = p.project_root || S.sessionCwd || process.cwd();
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual") };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/propose-workpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       const candidate = b.workpoint_candidate || {};
@@ -1860,7 +1862,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = p.project_root || S.sessionCwd || process.cwd();
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction") };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/checkpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       const text = result.ok ? `trajectory checkpoint → status=${String(b.status || "unknown")} persisted=${b.persisted === true} canonical=${b.canonical === true}` : `trajectory checkpoint blocked → ${explainWorkLoopResult(result, "checkpoint failed")}`;
@@ -1883,7 +1885,7 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = p.project_root || S.sessionCwd || process.cwd();
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch") };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       const packet = b.resume_packet || {};
@@ -1921,6 +1923,10 @@ export function registerTools(pi: ExtensionAPI) {
       target_ref: Type.String({ description: "Object/file/test/endpoint/work item proven by this evidence." }),
       result: Type.String({ description: "Bounded result summary." }),
       evidence_ref: Type.String({ description: "Stable evidence handle/path/test id." }),
+      workpoint_id: Type.Optional(Type.String({ description: "Specific Workpoint id; omit to use active Workpoint." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; use after compaction if Pi cwd is broad like /root." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi continuity id." })),
       attach_to_workpoint: Type.Optional(Type.Boolean({ description: "Defaults true." })),
     }),
     async execute(_id, params) {
@@ -1928,13 +1934,13 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.attach_to_workpoint === false) {
         return { content: [{ type: "text", text: `evidence capture → captured ref=${p.evidence_ref} attach_to_workpoint=false` }], details: { ok: true, status: "completed", evidence_ref: p.evidence_ref } } as any;
       }
-      const projectRoot = S.sessionCwd || process.cwd();
-      const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "evidence capture", { blockOperatorInput: false });
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "evidence capture", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "evidence capture blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
         headers: { "x-focusa-writer-id": await preferredWriterId() },
-        body: JSON.stringify({ target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual"), trajectory_clarity_precondition: clarity.details }),
+        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }), trajectory_clarity_precondition: clarity.details }),
       });
       const text = res.ok ? `evidence capture → linked ${p.evidence_ref}` : `evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`;
       return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, response: res.body } } as any;
@@ -1980,15 +1986,15 @@ export function registerTools(pi: ExtensionAPI) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into a specific project/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
       }
-      const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, p.checkpoint_reason === "before_compact" ? "compaction" : "manual");
-      const clarity = p.canonical === false ? { ok: true, details: { skipped: true, reason: "noncanonical_workpoint" } } : await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint checkpoint", { blockOperatorInput: true });
+      const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, p.checkpoint_reason === "before_compact" ? "compaction" : "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
+      const clarity = p.canonical === false ? { ok: true, details: { skipped: true, reason: "noncanonical_workpoint" } } : await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint checkpoint", { blockOperatorInput: true, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint checkpoint blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const payload: any = {
         mission: p.mission,
         next_slice: [p.next_action, ...doNotDrift.map((d: string) => `DO_NOT_DRIFT: ${d}`)].filter(Boolean).join("\n"),
         work_item_id: p.work_item_id,
         continuity_id: p.continuity_id || ensureContinuityId(projectRoot),
-        session_id: S.sessionFrameKey,
+        session_id: p.session_id || S.sessionFrameKey,
         project_root: projectRoot,
         session_identity: sessionIdentity,
         trajectory_clarity_precondition: clarity.details,
@@ -2038,6 +2044,9 @@ export function registerTools(pi: ExtensionAPI) {
       target_ref: Type.String({ description: "Object/file/test/endpoint/work item the evidence verifies." }),
       result: Type.String({ description: "Bounded verification result summary." }),
       evidence_ref: Type.Optional(Type.String({ description: "Stable evidence handle, file path, test id, or artifact ref." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; use after compaction if Pi cwd is broad like /root." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi continuity id." })),
       attach_to_workpoint: Type.Optional(Type.Boolean({ description: "Defaults true; false returns blocked/no-op guidance without linking." })),
     }),
     async execute(_id, params) {
@@ -2049,13 +2058,13 @@ export function registerTools(pi: ExtensionAPI) {
           details: { ok: true, status: "no_op", reason: "attach_to_workpoint=false" },
         } as any;
       }
-      const projectRoot = S.sessionCwd || process.cwd();
-      const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint evidence link", { blockOperatorInput: false });
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint evidence link", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint evidence link blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
         headers: { "x-focusa-writer-id": await preferredWriterId() },
-        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual"), trajectory_clarity_precondition: clarity.details }),
+        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }), trajectory_clarity_precondition: clarity.details }),
       });
       const text = res.ok
         ? `workpoint evidence link → status=${String(res.body?.status || "accepted")} id=${String(res.body?.workpoint_id || "none")}`
@@ -2075,6 +2084,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       workpoint_id: Type.Optional(Type.String({ description: "Specific workpoint id; omit to use active workpoint." })),
       continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi session continuity id." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
       mode: Type.Optional(Type.String({ description: "compact_prompt|full_json|operator_summary" })),
       project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; defaults to Pi session cwd when that cwd is safe." })),
     }),
@@ -2084,13 +2094,13 @@ export function registerTools(pi: ExtensionAPI) {
       "If canonical=false, state degraded status and avoid treating it as canonical truth.",
     ],
     async execute(_id, params) {
-      const p = params as { workpoint_id?: string; continuity_id?: string; mode?: string; project_root?: string };
+      const p = params as { workpoint_id?: string; continuity_id?: string; session_id?: string; mode?: string; project_root?: string };
       const projectRoot = p.project_root || S.sessionCwd || process.cwd();
       if (!isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint resume blocked → unsafe project_root (${reason}); ignore stale packets and follow latest operator instruction.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason, next_tools: ["focusa_project_identity", "focusa_tool_doctor"] } } as any;
       }
-      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", continuity_id: p.continuity_id || ensureContinuityId(projectRoot), session_id: S.sessionFrameKey, project_root: projectRoot, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch") };
+      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", continuity_id: p.continuity_id || ensureContinuityId(projectRoot), session_id: p.session_id || S.sessionFrameKey, project_root: projectRoot, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const res = await focusaFetchDetailed("/workpoint/resume", {
         method: "POST",
         body: JSON.stringify(payload),

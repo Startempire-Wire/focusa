@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLS="$ROOT_DIR/apps/pi-extension/src/tools.ts"
+STATE="$ROOT_DIR/apps/pi-extension/src/state.ts"
 
 pass() { echo "✓ PASS: $1"; }
 fail() { echo "✗ FAIL: $1" >&2; exit 1; }
@@ -29,6 +30,15 @@ if rg -n "Scoped frame/continuity is stale; use latest operator instruction, che
   pass "Stale frame write failures explain continuity recovery instead of generic retry"
 else
   fail "Stale frame write feedback lacks continuity recovery guidance"
+fi
+
+if rg -n 'project_root: Type.Optional\(Type.String\(\{ description: "Explicit safe project/repo root; use after compaction if Pi cwd is broad like /root\."' "$TOOLS" >/dev/null \
+  && rg -n 'enforceTrajectoryClarityPrecondition\(projectRoot, "workpoint evidence link", \{ blockOperatorInput: false, continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
+  && rg -n 'buildFocusaSessionIdentity\(projectRoot, "manual", \{ continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
+  && rg -n 'cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd' "$STATE" >/dev/null; then
+  pass "Evidence tools carry explicit project/continuity scope through clarity gate and session identity"
+else
+  fail "Evidence tools still depend on ambient Pi cwd/continuity after compaction"
 fi
 
 echo "SPEC96 scope recovery feedback static test: PASS"
