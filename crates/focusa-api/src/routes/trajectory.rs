@@ -348,6 +348,75 @@ fn active_persisted_trajectory<'a>(
         })
 }
 
+fn trajectory_definition_of_done_record(
+    body: &TrajectoryDefineGoalRequest,
+    desired_end_state: &str,
+) -> TrajectoryDefinitionOfDoneRecord {
+    let verified_evidence_refs = top_strings(
+        body.supersession_evidence_refs.as_deref().unwrap_or(&[]),
+        8,
+        180,
+    );
+    let required_evidence_refs = {
+        let refs = top_strings(
+            body.required_evidence_refs.as_deref().unwrap_or(&[]),
+            8,
+            180,
+        );
+        if refs.is_empty() {
+            if verified_evidence_refs.is_empty() {
+                vec!["evidence proving desired end state".to_string()]
+            } else {
+                verified_evidence_refs.clone()
+            }
+        } else {
+            refs
+        }
+    };
+    let required_checks = {
+        let checks = top_strings(body.required_checks.as_deref().unwrap_or(&[]), 8, 180);
+        if checks.is_empty() {
+            vec!["verify desired end state with linked evidence".to_string()]
+        } else {
+            checks
+        }
+    };
+    let acceptance_risks = {
+        let risks = top_strings(body.acceptance_risks.as_deref().unwrap_or(&[]), 8, 180);
+        if risks.is_empty() {
+            vec![
+                "current state is stale or unverified".to_string(),
+                "scope mismatch hides incomplete work".to_string(),
+            ]
+        } else {
+            risks
+        }
+    };
+    let not_done_if = {
+        let traps = top_strings(body.not_done_if.as_deref().unwrap_or(&[]), 8, 180);
+        if traps.is_empty() {
+            vec![
+                "desired end state lacks linked evidence".to_string(),
+                "required checks have not run".to_string(),
+                "project_root or continuity_id mismatch remains unresolved".to_string(),
+            ]
+        } else {
+            traps
+        }
+    };
+    TrajectoryDefinitionOfDoneRecord {
+        criteria: vec![bounded(desired_end_state, 240)],
+        evidence_required: vec!["evidence proving desired end state".to_string()],
+        verified_evidence_refs,
+        status: "defined".to_string(),
+        desired_end_state: Some(bounded(desired_end_state, 240)),
+        required_evidence_refs,
+        required_checks,
+        acceptance_risks,
+        not_done_if,
+    }
+}
+
 fn trajectory_record_from_define_payload(
     payload: &Value,
     body: &TrajectoryDefineGoalRequest,
@@ -420,54 +489,7 @@ fn trajectory_record_from_define_payload(
         });
     }
     let milestone_id = format!("{trajectory_id}:milestone:active");
-    let verified_evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
-    let required_evidence_refs = {
-        let refs = top_strings(
-            body.required_evidence_refs.as_deref().unwrap_or(&[]),
-            8,
-            180,
-        );
-        if refs.is_empty() {
-            if verified_evidence_refs.is_empty() {
-                vec!["evidence proving desired end state".to_string()]
-            } else {
-                verified_evidence_refs.clone()
-            }
-        } else {
-            refs
-        }
-    };
-    let required_checks = {
-        let checks = top_strings(body.required_checks.as_deref().unwrap_or(&[]), 8, 180);
-        if checks.is_empty() {
-            vec!["verify desired end state with linked evidence".to_string()]
-        } else {
-            checks
-        }
-    };
-    let acceptance_risks = {
-        let risks = top_strings(body.acceptance_risks.as_deref().unwrap_or(&[]), 8, 180);
-        if risks.is_empty() {
-            vec![
-                "current state is stale or unverified".to_string(),
-                "scope mismatch hides incomplete work".to_string(),
-            ]
-        } else {
-            risks
-        }
-    };
-    let not_done_if = {
-        let traps = top_strings(body.not_done_if.as_deref().unwrap_or(&[]), 8, 180);
-        if traps.is_empty() {
-            vec![
-                "desired end state lacks linked evidence".to_string(),
-                "required checks have not run".to_string(),
-                "project_root or continuity_id mismatch remains unresolved".to_string(),
-            ]
-        } else {
-            traps
-        }
-    };
+    let definition_of_done = trajectory_definition_of_done_record(body, &desired_end_state);
     Some(TrajectoryProjectionRecord {
         trajectory_id: trajectory_id.clone(),
         session_identity: body.session_identity.clone(),
@@ -505,17 +527,7 @@ fn trajectory_record_from_define_payload(
             "goal_source": source,
             "supersession_evidence_refs": body.supersession_evidence_refs.clone().unwrap_or_default(),
         }),
-        definition_of_done: Some(TrajectoryDefinitionOfDoneRecord {
-            criteria: vec![desired_end_state.clone()],
-            evidence_required: vec!["evidence proving desired end state".to_string()],
-            verified_evidence_refs,
-            status: "defined".to_string(),
-            desired_end_state: Some(desired_end_state),
-            required_evidence_refs,
-            required_checks,
-            acceptance_risks,
-            not_done_if,
-        }),
+        definition_of_done: Some(definition_of_done),
         supersedes_trajectory_id: body.supersedes_trajectory_id.clone(),
         canonical: true,
         ..TrajectoryProjectionRecord::default()
@@ -1298,6 +1310,7 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
             "operator_confirmed": body.operator_confirmed.unwrap_or_else(|| body.goal_source.as_deref().unwrap_or("operator") == "operator"),
             "supersedes_trajectory_id": body.supersedes_trajectory_id,
             "supersession_evidence_refs": body.supersession_evidence_refs.clone().unwrap_or_default().into_iter().take(8).collect::<Vec<_>>(),
+            "definition_of_done": serde_json::to_value(trajectory_definition_of_done_record(body, &body.desired_end_state)).unwrap_or(Value::Null),
             "root_goal_change_allowed": root_goal_change_allowed,
             "provenance": "operator_or_tool_supplied_projection_candidate",
             "lifecycle": {
@@ -2254,6 +2267,13 @@ mod tests {
         assert_eq!(
             accepted["trajectory_candidate"]["root_goal_change_allowed"].as_bool(),
             Some(true)
+        );
+        assert_eq!(
+            accepted["trajectory_candidate"]["definition_of_done"]["required_evidence_refs"]
+                .as_array()
+                .unwrap()[0]
+                .as_str(),
+            Some("evidence:operator-confirmed-doc")
         );
     }
 
