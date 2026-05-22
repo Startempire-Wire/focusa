@@ -1736,9 +1736,16 @@ export function registerTools(pi: ExtensionAPI) {
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
       const sufficiency = body.intelligence_view?.context_sufficiency || {};
-      const recovery = scopeRecoveryContext(body, String(p.project_root || S.sessionCwd || process.cwd()), String(p.continuity_id || S.continuityId || ""), "trajectory_view");
+      const projectMismatches = Array.isArray(project.mismatches) ? project.mismatches : [];
+      const trajectoryUnset = body.status === "not_found" && String(project.status || "") === "verified" && projectMismatches.length === 0;
+      const recovery = trajectoryUnset ? null : scopeRecoveryContext(body, String(p.project_root || S.sessionCwd || process.cwd()), String(p.continuity_id || S.continuityId || ""), "trajectory_view");
+      const trajectoryText = trajectoryUnset
+        ? `trajectory view → NOT SET for project=${String(project.project_root || p.project_root || S.sessionCwd || process.cwd())}; definition=unclear; next=focusa_trajectory_define_goal`
+        : body.canonical === true
+          ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} action=${String(sufficiency.recommended_action || "proceed")}`
+          : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} action=${String(sufficiency.recommended_action || "unknown")}`;
       const text = result.ok
-        ? [`trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} action=${String(sufficiency.recommended_action || "unknown")}`, recovery?.text].filter(Boolean).join("\n")
+        ? [trajectoryText, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok && body.status !== "degraded" && body.status !== "not_found", status: result.ok ? String(body.status || "completed") : String(result.status), canonical: body.canonical === true, degraded: body.degraded === true, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_workpoint_resume", "focusa_active_object_resolve"] };
       return {
