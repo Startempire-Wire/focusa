@@ -83,9 +83,43 @@ For agents that cannot call HTTP directly, wrap with CLI commands:
 
 ```bash
 focusa doctor --json
-focusa workpoint resume --json
+focusa project identity --project-root "$PWD" --json
+focusa trajectory view --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --mode summary --json
+focusa workpoint resume --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
 focusa predict record ... --json
 focusa predict evaluate ... --json
+```
+
+## Adapter trajectory cards
+
+Use these thin cards when an agent cannot load the full Pi extension. Each card keeps the same authority order: ProjectIdentity → Trajectory → Workpoint → Evidence.
+
+### Claude Code adapter card
+
+```text
+Before acting in this repo, call or paste:
+1. focusa project identity --project-root "$PWD" --json
+2. focusa trajectory view --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --mode summary --json
+3. focusa workpoint resume --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
+Treat project_root+continuity_id as the identity gate. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Capture proof with focusa evidence capture/link after tests or file/API verification.
+```
+
+### OpenCode adapter card
+
+```text
+Inject /v1/awareness/card into the system/developer prompt, then fetch /v1/project/identity and /v1/trajectory/view for the workspace before tool use. If status is degraded, run /v1/doctor and avoid broad-root carryover.
+```
+
+### Letta adapter card
+
+```text
+Letta may keep local narrative continuity, but Focusa remains project trajectory authority. Store the compact awareness card in the active memory block only as a routing hint; durable project facts must be promoted to Workpoint evidence, Wiki/Mem0, or project docs.
+```
+
+### CLI/MCP adapter card
+
+```text
+Expose these as first-class commands/tools: focusa_project_identity, focusa_trajectory_view, focusa_workpoint_resume, focusa_evidence_capture, focusa_tool_doctor, focusa_traverse. MCP wrappers should preserve continuity_id and project_root on every call.
 ```
 
 ## Wirebot-specific requirements
