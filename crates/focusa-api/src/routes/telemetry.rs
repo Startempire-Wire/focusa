@@ -1,8 +1,9 @@
 //! Telemetry routes.
 
 use crate::routes::bounded::{
-    last_pressure_transition, pressure_status, record_json_response_size, response_size_histograms,
-    set_test_pressure_threshold,
+    budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
+    last_pressure_transition, lowmem_retention_policy, pressure_status, record_json_response_size,
+    response_size_histograms, set_test_pressure_threshold, telemetry_trace_retention_limit,
 };
 use crate::routes::ontology::ontology_read_index_cache_metadata;
 use crate::routes::workpoint::idempotency_cache_status_payload;
@@ -62,27 +63,45 @@ fn current_process_memory() -> Value {
 }
 
 fn route_budget_profile() -> Value {
+    let ontology_object_default =
+        budgeted_default_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 256);
+    let ontology_link_default =
+        budgeted_default_limit("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512);
+    let ecs_default = budgeted_default_limit("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100);
+    let semantic_default = budgeted_default_limit("FOCUSA_MEMORY_SEMANTIC_DEFAULT_LIMIT", 100);
+    let telemetry_default = budgeted_default_limit("FOCUSA_TELEMETRY_EVENTS_DEFAULT_LIMIT", 100);
     json!({
         "ontology_world": {
-            "default_object_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT", 256),
-            "full_object_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT", 10_000),
-            "default_link_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT", 512),
-            "full_link_limit": env_usize("FOCUSA_ONTOLOGY_WORLD_FULL_LINK_LIMIT", 20_000),
-            "workspace_scan_limit": env_usize("FOCUSA_ONTOLOGY_WORKSPACE_SCAN_LIMIT", 128),
+            "default_object_limit": ontology_object_default,
+            "full_object_limit": budgeted_hard_limit("FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT", 10_000, ontology_object_default),
+            "default_link_limit": ontology_link_default,
+            "full_link_limit": budgeted_hard_limit("FOCUSA_ONTOLOGY_WORLD_FULL_LINK_LIMIT", 20_000, ontology_link_default),
+            "workspace_scan_limit": budgeted_hard_limit("FOCUSA_ONTOLOGY_WORKSPACE_SCAN_LIMIT", 128, ontology_object_default),
         },
         "ecs_handles": {
-            "default_limit": env_usize("FOCUSA_ECS_HANDLES_DEFAULT_LIMIT", 100),
-            "full_limit": env_usize("FOCUSA_ECS_HANDLES_FULL_LIMIT", 512),
+            "default_limit": ecs_default,
+            "full_limit": budgeted_hard_limit("FOCUSA_ECS_HANDLES_FULL_LIMIT", 512, ecs_default),
         },
         "semantic_memory": {
-            "default_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_DEFAULT_LIMIT", 100),
-            "full_limit": env_usize("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", 512),
+            "default_limit": semantic_default,
+            "full_limit": budgeted_hard_limit("FOCUSA_MEMORY_SEMANTIC_FULL_LIMIT", 512, semantic_default),
         },
         "telemetry_trace": {
-            "default_limit": 100,
-            "hard_limit": 1000,
+            "default_limit": telemetry_default,
+            "hard_limit": budgeted_hard_limit("FOCUSA_TELEMETRY_EVENTS_HARD_LIMIT", 1000, telemetry_default),
         }
     })
+}
+
+fn prune_trace_events_for_lowmem(focusa: &mut focusa_core::types::FocusaState) -> usize {
+    let limit = telemetry_trace_retention_limit();
+    if focusa.telemetry.trace_events.len() > limit {
+        let overflow = focusa.telemetry.trace_events.len() - limit;
+        focusa.telemetry.trace_events.drain(0..overflow);
+        overflow
+    } else {
+        0
+    }
 }
 
 /// GET /v1/telemetry/memory — read-only daemon memory/store-count telemetry.
@@ -157,6 +176,7 @@ async fn memory_payload(state: &AppState) -> Value {
             "note": "Full-payload read routes expose degraded=true when memory pressure is active and force_full_payload is not set."
         },
         "route_budgets": route_budget_profile(),
+        "retention_policy": lowmem_retention_policy(),
         "response_size_histograms": response_size_histograms(),
         "degraded": false,
     });
@@ -189,11 +209,13 @@ async fn telemetry_events(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Json<Value> {
-    let limit = params
-        .get("limit")
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(100)
-        .clamp(1, 1000);
+    let default_limit = budgeted_default_limit("FOCUSA_TELEMETRY_EVENTS_DEFAULT_LIMIT", 100);
+    let hard_limit = budgeted_hard_limit("FOCUSA_TELEMETRY_EVENTS_HARD_LIMIT", 1000, default_limit);
+    let limit = budgeted_requested_limit(
+        params.get("limit").and_then(|v| v.parse::<usize>().ok()),
+        default_limit,
+        hard_limit,
+    );
     let cursor = params
         .get("cursor")
         .and_then(|v| v.parse::<usize>().ok())
@@ -356,10 +378,9 @@ async fn record_token_budget(
         "turn_id": body.get("turn_id").cloned().unwrap_or(Value::Null),
         "payload": body,
     }));
-    if focusa.telemetry.trace_events.len() > 5000 {
-        let overflow = focusa.telemetry.trace_events.len() - 5000;
-        focusa.telemetry.trace_events.drain(0..overflow);
-    }
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
     Json(json!({
         "status": "recorded",
         "event_type": "spec92_token_budget",
@@ -461,10 +482,9 @@ async fn record_cache_metadata(
         "turn_id": body.get("turn_id").cloned().unwrap_or(Value::Null),
         "payload": body,
     }));
-    if focusa.telemetry.trace_events.len() > 5000 {
-        let overflow = focusa.telemetry.trace_events.len() - 5000;
-        focusa.telemetry.trace_events.drain(0..overflow);
-    }
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
     Json(json!({
         "status": "recorded",
         "event_type": "spec92_cache_metadata",
@@ -532,6 +552,9 @@ async fn record_tool_usage(
             "tools": body.tools,
         },
     }));
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
     Ok(Json(
         json!({"status": "accepted", "recorded": recorded, "turn_id": turn_id, "tools": tools}),
     ))
@@ -594,6 +617,9 @@ async fn record_activity_event(
         "timestamp": Utc::now().to_rfc3339(),
         "payload": body,
     }));
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
 
     Json(serde_json::json!({
         "status": "recorded",
@@ -622,6 +648,9 @@ async fn record_operational_event(
         "timestamp": Utc::now().to_rfc3339(),
         "payload": body,
     }));
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
 
     Json(serde_json::json!({
         "status": "recorded",
@@ -662,10 +691,9 @@ async fn record_trace_batch(
         }
         focusa.telemetry.trace_events.push(event);
     }
-    if focusa.telemetry.trace_events.len() > 5000 {
-        let overflow = focusa.telemetry.trace_events.len() - 5000;
-        focusa.telemetry.trace_events.drain(0..overflow);
-    }
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
     Json(json!({
         "status": "recorded",
         "batch_id": batch_id,
@@ -726,6 +754,9 @@ async fn record_trace_event(
         "turn_id": body.get("turn_id").cloned().unwrap_or(serde_json::Value::Null),
         "payload": body,
     }));
+    let _pruned = prune_trace_events_for_lowmem(&mut focusa);
+    drop(focusa);
+    state.mark_external_mutation();
 
     Json(serde_json::json!({
         "status": "recorded",
@@ -741,12 +772,19 @@ async fn get_trace_events(
     let focusa = state.focusa.read().await;
     let events = &focusa.telemetry.trace_events;
 
-    let limit = params
-        .get("limit")
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(100)
-        .min(1000);
+    let default_limit = budgeted_default_limit("FOCUSA_TELEMETRY_TRACE_DEFAULT_LIMIT", 100);
+    let hard_limit = budgeted_hard_limit("FOCUSA_TELEMETRY_TRACE_HARD_LIMIT", 1000, default_limit);
+    let limit = budgeted_requested_limit(
+        params.get("limit").and_then(|v| v.parse::<usize>().ok()),
+        default_limit,
+        hard_limit,
+    );
 
+    let cursor = params
+        .get("cursor")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(0)
+        .min(events.len());
     let event_type_filter = params.get("event_type").map(String::as_str);
     let turn_id_filter = params.get("turn_id").map(String::as_str);
     let turn_id_prefix_filter = params.get("turn_id_prefix").map(String::as_str);
@@ -785,15 +823,22 @@ async fn get_trace_events(
                 })
                 .unwrap_or(true)
         })
+        .skip(cursor)
         .take(limit)
         .cloned()
         .collect();
     let count = filtered.len();
+    let next_cursor = (cursor + count < events.len()).then(|| (cursor + count).to_string());
 
     Json(serde_json::json!({
         "events": filtered,
         "count": count,
+        "returned": count,
         "limit": limit,
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor > 0,
+        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
     }))
 }
 
@@ -818,6 +863,10 @@ async fn get_trace_stats(State(state): State<Arc<AppState>>) -> Json<serde_json:
 #[cfg(test)]
 mod tests {
     use super::{env_usize, parse_status_value_kb, route_budget_profile};
+    use crate::routes::bounded::{
+        budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
+        lowmem_retention_policy,
+    };
 
     #[test]
     fn parses_proc_status_memory_values() {
@@ -840,11 +889,20 @@ mod tests {
 
     #[test]
     fn telemetry_events_limit_is_hard_bounded_by_route_logic() {
-        let requested = Some("5000".to_string())
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(100)
-            .clamp(1, 1000);
-        assert_eq!(requested, 1000);
+        let default_limit = budgeted_default_limit("FOCUSA_TELEMETRY_EVENTS_DEFAULT_LIMIT", 100);
+        let hard_limit =
+            budgeted_hard_limit("FOCUSA_TELEMETRY_EVENTS_HARD_LIMIT", 1000, default_limit);
+        let requested = budgeted_requested_limit(Some(5000), default_limit, hard_limit);
+        assert_eq!(requested, hard_limit);
+        assert!(requested <= 1000);
+    }
+
+    #[test]
+    fn retention_policy_exposes_importance_pruning_order() {
+        let policy = lowmem_retention_policy();
+        assert_eq!(policy.retain_order.first(), Some(&"liveness"));
+        assert!(policy.retain_order.contains(&"workpoint"));
+        assert!(policy.evict_first.contains(&"raw_telemetry_trace_events"));
     }
 
     #[test]

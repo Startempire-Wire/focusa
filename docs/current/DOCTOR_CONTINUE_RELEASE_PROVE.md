@@ -85,4 +85,4 @@ focusa cleanup --safe --dry-run
 focusa cleanup --safe
 ```
 
-`focusa cleanup --safe` moves known generated residue to `/home/wirebot/.trash/focusa-clean-*` and preserves `.beads/`, `data/`, and `target/`.
+`focusa cleanup --safe` moves known generated residue to `${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-*` and preserves `.beads/`, `data/`, and `target/`.

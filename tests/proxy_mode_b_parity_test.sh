@@ -5,9 +5,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CARGO_BIN="${CARGO_BIN:-cargo}"
 if ! command -v "$CARGO_BIN" >/dev/null 2>&1; then
-  if [ -x "/root/.cargo/bin/cargo" ]; then
-    CARGO_BIN="/root/.cargo/bin/cargo"
-  fi
+  echo "cargo binary not found: $CARGO_BIN" >&2
+  exit 1
 fi
 HOME_DIR="${HOME:-$(cd ~ && pwd)}"
 CARGO_HOME="${CARGO_HOME:-${HOME_DIR}/.cargo}"

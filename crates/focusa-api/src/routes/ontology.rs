@@ -376,7 +376,6 @@ fn max_discovery_scan_paths() -> usize {
 }
 const MAX_DISCOVERED_SYMBOLS: usize = 24;
 const MAX_DISCOVERED_ENDPOINTS: usize = 16;
-const WORKSPACE_FALLBACK_ROOT: &str = "/home/wirebot/focusa";
 
 fn default_true() -> bool {
     true
@@ -1707,12 +1706,10 @@ fn selected_workspace_root(focusa: &FocusaState) -> Option<PathBuf> {
         return Some(PathBuf::from(workspace_id));
     }
 
-    let fallback = PathBuf::from(WORKSPACE_FALLBACK_ROOT);
-    if fallback.exists() && fallback.is_dir() {
-        Some(fallback)
-    } else {
-        None
-    }
+    env::var_os("FOCUSA_PROJECT_ROOT")
+        .map(PathBuf::from)
+        .or_else(|| env::current_dir().ok())
+        .filter(|fallback| fallback.exists() && fallback.is_dir())
 }
 
 fn binary_available(binary: &str) -> bool {
@@ -3141,7 +3138,17 @@ fn mission_projection(focusa: &FocusaState, frame: Option<&FrameRecord>) -> Work
             .session
             .as_ref()
             .and_then(|s| s.workspace_id.clone())
-            .unwrap_or_else(|| WORKSPACE_FALLBACK_ROOT.to_string());
+            .or_else(|| {
+                env::var("FOCUSA_PROJECT_ROOT")
+                    .ok()
+                    .filter(|value| !value.trim().is_empty())
+            })
+            .or_else(|| {
+                env::current_dir()
+                    .ok()
+                    .map(|path| path.to_string_lossy().to_string())
+            })
+            .unwrap_or_else(|| "workspace".to_string());
         objects.push(json!({
             "id": stable_id("artifact", &workspace_ref),
             "object_type": "artifact",
@@ -5881,6 +5888,18 @@ fn adjacency_index_payload(
         "returned": nodes.len(),
         "limit": capped_limit,
         "target_ref": target_ref,
+        "selector": "adjacency",
+        "field_projection": ["id", "object_type", "status", "membership_class", "verification_refs", "related_evidence_handles", "related_workpoints", "incoming_count", "outgoing_count", "uncertainty"],
+        "do_not_use": ["full_ontology_graph", "broad_object_link_serialization"],
+        "rehydrate_refs": nodes.iter().filter_map(|node| node.get("id").and_then(Value::as_str).map(|id| json!({"route":"/v1/ontology/adjacency", "target_ref": id}))).take(8).collect::<Vec<_>>(),
+        "traversal_metadata": {
+            "surface": "ontology",
+            "selector": "adjacency",
+            "limit": capped_limit,
+            "returned": nodes.len(),
+            "summary_only": true,
+            "cold_full_payload_opt_in": false,
+        },
         "nodes": nodes,
         "canonical_truth_mutation": false,
         "stale": false,
@@ -5931,16 +5950,26 @@ fn slice_object_relevance_score(object_type: &str, slice_type: &str) -> i64 {
     }
 }
 
-fn working_set_payload(
-    focusa: &FocusaState,
-    frame_id: Option<&str>,
-    ask: Option<&str>,
-    target_ref: Option<&str>,
-    slice_type: &str,
+struct WorkingSetPayloadParams<'a> {
+    frame_id: Option<&'a str>,
+    ask: Option<&'a str>,
+    target_ref: Option<&'a str>,
+    slice_type: &'a str,
     limit: usize,
     include_reasons: bool,
     cursor: usize,
-) -> Value {
+}
+
+fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>) -> Value {
+    let WorkingSetPayloadParams {
+        frame_id,
+        ask,
+        target_ref,
+        slice_type,
+        limit,
+        include_reasons,
+        cursor,
+    } = params;
     let index = ontology_read_index(focusa, frame_id);
     let resolved_slice_type = infer_slice_type_from_operator_context(focusa, slice_type);
     let capped_limit = limit.clamp(1, 50);
@@ -6085,6 +6114,21 @@ fn working_set_payload(
         "cursor": cursor,
         "next_cursor": next_cursor,
         "truncated": next_cursor.is_some() || cursor > 0,
+        "selector": "working_set",
+        "field_projection": ["id", "object_type", "status", "membership_class", "verification_status", "confidence", "score", "rehydrate", "uncertainty"],
+        "do_not_use": ["full_ontology_graph", "all_object_links", "unbounded_context_recall"],
+        "rehydrate_refs": members.iter().filter_map(|member| member.get("rehydrate").cloned()).take(8).collect::<Vec<_>>(),
+        "traversal_metadata": {
+            "surface": "ontology",
+            "selector": "working_set",
+            "cursor": cursor,
+            "limit": capped_limit,
+            "next_cursor": next_cursor,
+            "returned": members.len(),
+            "total_candidates": total_candidates,
+            "summary_only": true,
+            "cold_full_payload_opt_in": false,
+        },
         "members": members,
         "canonical_truth_mutation": false,
         "stale": false,
@@ -6134,19 +6178,129 @@ fn context_action_candidates(current_ask: Option<&str>, limit: usize) -> Vec<Val
         .collect()
 }
 
+fn ontology_identity_axes_payload(
+    focusa: &FocusaState,
+    requested_workpoint_id: Option<&str>,
+) -> Value {
+    let active_workpoint = focusa.workpoint.active_workpoint_id.and_then(|id| {
+        focusa
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == id)
+    });
+    let selected_workpoint = requested_workpoint_id
+        .and_then(|requested| {
+            focusa
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id.to_string() == requested)
+        })
+        .or(active_workpoint);
+    let project_root = selected_workpoint
+        .and_then(|record| record.project_root.clone())
+        .or_else(|| {
+            focusa
+                .session
+                .as_ref()
+                .and_then(|session| session.project_root.clone())
+        });
+    let continuity_id = selected_workpoint
+        .and_then(|record| record.continuity_id.clone())
+        .or_else(|| {
+            focusa
+                .session
+                .as_ref()
+                .and_then(|session| session.continuity_id.clone())
+        });
+    let temporal_session_id = selected_workpoint
+        .and_then(|record| record.session_id.clone())
+        .or_else(|| {
+            focusa
+                .session
+                .as_ref()
+                .map(|session| session.session_id.to_string())
+        });
+    let daemon_session_id = focusa
+        .session
+        .as_ref()
+        .map(|session| session.session_id.to_string());
+    let workpoint_card = selected_workpoint.map(|record| {
+        json!({
+            "workpoint_id": record.workpoint_id,
+            "work_item_id": record.work_item_id,
+            "canonical": record.canonical,
+            "status": record.status,
+            "mission": record.mission.as_deref().map(|value| value.chars().take(240).collect::<String>()),
+            "next_slice": record.next_slice.as_deref().map(|value| value.chars().take(240).collect::<String>()),
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "session_id": record.session_id,
+            "rehydrate": {"tool":"focusa_workpoint_resume", "workpoint_id": record.workpoint_id},
+        })
+    });
+    json!({
+        "projection_kind": "ontology_identity_axes_v1",
+        "authority_gate": "project_root_plus_continuity_id",
+        "advisory_only": true,
+        "identity_axes": {
+            "project": {
+                "project_root": project_root,
+                "authority_role": "scope_boundary",
+                "rehydrate": {"tool":"focusa_trajectory_view"},
+            },
+            "logical_workstream": {
+                "continuity_id": continuity_id,
+                "authority_role": "logical_session_boundary",
+                "must_match_for_same_root_resume": true,
+            },
+            "daemon_session": {
+                "daemon_session_id": daemon_session_id,
+                "process_id": std::process::id(),
+                "authority_role": "runtime_instance_metadata",
+            },
+            "adapter_session": {
+                "session_id": temporal_session_id,
+                "authority_role": "temporal_metadata_only",
+            },
+            "workpoint_continuation_card": workpoint_card,
+        },
+        "aliases": [
+            {"label":"project_root", "maps_to":"identity_axes.project.project_root", "authority":"scope_boundary"},
+            {"label":"continuity_id", "maps_to":"identity_axes.logical_workstream.continuity_id", "authority":"logical_session_boundary"},
+            {"label":"daemon_session_id", "maps_to":"identity_axes.daemon_session.daemon_session_id", "authority":"runtime_metadata"},
+            {"label":"session_id", "maps_to":"identity_axes.adapter_session.session_id", "authority":"temporal_metadata_only"},
+            {"label":"workpoint_id", "maps_to":"identity_axes.workpoint_continuation_card.workpoint_id", "authority":"continuation_card_id"}
+        ],
+        "do_not_use": [
+            "session_id_as_authority_gate",
+            "daemon_session_id_as_project_identity",
+            "ontology_similarity_as_resume_authority"
+        ],
+        "rehydrate_refs": [
+            {"tool":"focusa_workpoint_resume", "reason":"canonical continuation card"},
+            {"tool":"focusa_trajectory_view", "reason":"project north-star orientation"},
+            {"tool":"focusa_traverse", "surface":"ontology", "selector":"active_context"}
+        ],
+    })
+}
+
 fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest) -> Value {
     let budget_tokens = body.budget_tokens.unwrap_or(500).clamp(100, 4_000);
     let member_limit = (budget_tokens / 80).clamp(3, 20);
     let first_target = body.target_refs.first().map(String::as_str);
     let working_set = working_set_payload(
         focusa,
-        body.frame_id.as_deref(),
-        body.current_ask.as_deref(),
-        first_target,
-        &body.slice_type,
-        member_limit,
-        true,
-        0,
+        WorkingSetPayloadParams {
+            frame_id: body.frame_id.as_deref(),
+            ask: body.current_ask.as_deref(),
+            target_ref: first_target,
+            slice_type: &body.slice_type,
+            limit: member_limit,
+            include_reasons: true,
+            cursor: 0,
+        },
     );
     let members = working_set
         .get("members")
@@ -6219,6 +6373,11 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
         "target_refs": body.target_refs,
         "active_object_refs": body.active_object_refs,
         "operator_steering_detected": body.operator_steering_detected,
+        "context_posture": "surgical_summary_only",
+        "identity_axes": ontology_identity_axes_payload(focusa, body.workpoint_id.as_deref()),
+        "selector": "active_context",
+        "field_projection": ["active_object_set", "relevant_link_paths", "valid_next_actions", "blocked_affordances", "evidence_handles", "uncertainty_flags"],
+        "do_not_use": ["full_ontology_graph", "broad_object_link_serialization", "unbounded_working_set"],
         "active_object_set": active_object_set,
         "relevant_link_paths": link_paths,
         "valid_next_actions": context_action_candidates(body.current_ask.as_deref(), 5),
@@ -6226,6 +6385,14 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
         "evidence_handles": evidence_handles,
         "uncertainty_flags": uncertainty_flags.into_iter().collect::<Vec<_>>(),
         "working_set": working_set,
+        "traversal_metadata": {
+            "surface": "ontology",
+            "selector": "active_context",
+            "limit": member_limit,
+            "returned": active_object_set.len(),
+            "summary_only": true,
+            "rehydrate_routes": ["/v1/ontology/working-set", "/v1/ontology/adjacency", "/v1/ecs/rehydrate/{handle_id}"],
+        },
         "canonical_truth_mutation": false,
         "stale": false,
         "degraded": false,
@@ -6467,15 +6634,15 @@ fn bm25_score_with_scope(
     }
     // Spec95 J2: boost items matching previous successful retrieval outcomes.
     for outcome in previous_outcomes.iter().take(5) {
-        if let Some(outcome_id) = outcome.get("id").and_then(|v| v.as_str()) {
-            if text.contains(outcome_id) {
-                score += 5.0;
-            }
+        if let Some(outcome_id) = outcome.get("id").and_then(|v| v.as_str())
+            && text.contains(outcome_id)
+        {
+            score += 5.0;
         }
-        if let Some(outcome_label) = outcome.get("label").and_then(|v| v.as_str()) {
-            if text.contains(outcome_label) {
-                score += 3.0;
-            }
+        if let Some(outcome_label) = outcome.get("label").and_then(|v| v.as_str())
+            && text.contains(outcome_label)
+        {
+            score += 3.0;
         }
     }
     score
@@ -8117,13 +8284,15 @@ async fn working_set(
     let focusa = state.focusa.read().await;
     Json(working_set_payload(
         &focusa,
-        query.frame_id.as_deref(),
-        query.ask.as_deref(),
-        query.target_ref.as_deref(),
-        &query.slice_type,
-        query.limit.unwrap_or(6),
-        query.include_reasons,
-        query.cursor.unwrap_or(0),
+        WorkingSetPayloadParams {
+            frame_id: query.frame_id.as_deref(),
+            ask: query.ask.as_deref(),
+            target_ref: query.target_ref.as_deref(),
+            slice_type: &query.slice_type,
+            limit: query.limit.unwrap_or(6),
+            include_reasons: query.include_reasons,
+            cursor: query.cursor.unwrap_or(0),
+        },
     ))
 }
 
@@ -8244,6 +8413,8 @@ mod tests {
             created_at: Utc::now(),
             adapter_id: Some("test".to_string()),
             workspace_id: Some(root.to_string_lossy().to_string()),
+            project_root: Some(root.to_string_lossy().to_string()),
+            continuity_id: Some("test-continuity".to_string()),
             status: SessionStatus::Active,
         });
         focusa
@@ -8930,13 +9101,15 @@ mod tests {
 
         let payload = working_set_payload(
             &focusa,
-            None,
-            Some("failure"),
-            None,
-            "debugging",
-            10,
-            true,
-            0,
+            WorkingSetPayloadParams {
+                frame_id: None,
+                ask: Some("failure"),
+                target_ref: None,
+                slice_type: "debugging",
+                limit: 10,
+                include_reasons: true,
+                cursor: 0,
+            },
         );
         assert_eq!(
             payload["source"].as_str(),

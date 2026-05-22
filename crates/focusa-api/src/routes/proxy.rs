@@ -109,6 +109,8 @@ async fn ensure_session(state: &Arc<AppState>) {
         .send(Action::StartSession {
             adapter_id: Some("proxy".into()),
             workspace_id: None,
+            project_root: None,
+            continuity_id: None,
             instance_id: None,
         })
         .await;
@@ -633,6 +635,7 @@ async fn chat_completions(
         let mut focusa = state.focusa.write().await;
         focusa_core::memory::semantic::resolve_contradictions(&mut focusa.memory);
         drop(focusa);
+        state.mark_external_mutation();
     }
 
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
@@ -647,6 +650,7 @@ async fn chat_completions(
             && turn.turn_id == turn_id
         {
             turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
+            state.mark_external_mutation();
         }
         drop(focusa);
 
@@ -1010,6 +1014,7 @@ async fn messages_proxy(
             && turn.turn_id == turn_id
         {
             turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
+            state.mark_external_mutation();
         }
         drop(focusa);
 

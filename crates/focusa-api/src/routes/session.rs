@@ -6,8 +6,9 @@
 //! POST /v1/session/resume — restore a previous session
 //! POST /v1/session/close — close current session
 
+use crate::routes::bounded::resource_mode_status;
 use crate::server::AppState;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::{
     Json, Router,
@@ -15,11 +16,30 @@ use axum::{
 };
 use focusa_core::types::{Action, SessionStatus};
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 use std::fs;
 use std::sync::Arc;
 
-async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+#[derive(Debug, Deserialize, Default)]
+struct StatusQuery {
+    #[serde(default)]
+    summary_only: bool,
+    #[serde(default)]
+    deep: bool,
+}
+
+async fn status(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<StatusQuery>,
+) -> Json<Value> {
+    Json(status_payload(&state, query.deep && !query.summary_only).await)
+}
+
+async fn status_deep(State(state): State<Arc<AppState>>) -> Json<Value> {
+    Json(status_payload(&state, true).await)
+}
+
+async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
     let (
         session,
         stack_depth,
@@ -98,12 +118,7 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         )
     };
 
-    let last_event_ts = state.persistence.latest_event_timestamp().ok().flatten();
-    let persisted_event_count = state.persistence.event_count().ok();
-
-    let daemon_pids = focusa_daemon_pids();
     let current_pid = std::process::id();
-    let duplicate_daemon_count = daemon_pids.iter().filter(|&&p| p != current_pid).count() as u64;
     let supervisor_perf = &state.supervisor_perf;
     let memory_budget_mb = std::env::var("FOCUSA_MEMORY_BUDGET_MB")
         .ok()
@@ -115,24 +130,28 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         .map(|kb| kb > memory_budget_mb.saturating_mul(1024))
         .unwrap_or(false);
 
-    Json(json!({
+    let mut payload = json!({
+        "status": "ok",
+        "route_tier": if include_deep { "cold" } else { "hot" },
+        "summary_only": !include_deep,
+        "resource_mode": resource_mode_status(),
+        "deep_status_route": "/v1/status/deep",
+        "cold_omitted": if include_deep { Vec::<&str>::new() } else { vec!["last_event_ts", "persisted_event_count", "runtime_process.daemon_pids"] },
         "session": session,
         "session_allows_focus_mutation": session.as_ref().map(|s| s.status == SessionStatus::Active).unwrap_or(false),
         "stack_depth": stack_depth,
         "active_frame_id": active_frame_id,
         "active_frame": active_frame_summary,
         "worker_status": worker_status,
-        "last_event_ts": last_event_ts,
         "prompt_stats": prompt_stats,
         "telemetry": telemetry,
-        "persisted_event_count": persisted_event_count,
         "version": version,
         "runtime_process": {
             "current_pid": current_pid,
-            "daemon_pids": daemon_pids,
-            "daemon_count": daemon_pids.len(),
-            "duplicate_daemon_count": duplicate_daemon_count,
-            "single_daemon_ok": duplicate_daemon_count == 0,
+            "daemon_pids": Value::Null,
+            "daemon_count": Value::Null,
+            "duplicate_daemon_count": Value::Null,
+            "single_daemon_ok": Value::Null,
         },
         "runtime_memory": {
             "rss_kb": rss_kb,
@@ -147,8 +166,33 @@ async fn status(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             "dispatch_attempts": supervisor_perf.dispatch_attempts.load(std::sync::atomic::Ordering::Relaxed),
             "dispatch_skipped_disallowed": supervisor_perf.dispatch_skipped_disallowed.load(std::sync::atomic::Ordering::Relaxed),
             "dispatch_recovery_restarts": supervisor_perf.dispatch_recovery_restarts.load(std::sync::atomic::Ordering::Relaxed),
+            "background_throttled_ticks": supervisor_perf.background_throttled_ticks.load(std::sync::atomic::Ordering::Relaxed),
         }
-    }))
+    });
+
+    if include_deep {
+        let last_event_ts = state.persistence.latest_event_timestamp().ok().flatten();
+        let persisted_event_count = state.persistence.event_count().ok();
+        let daemon_pids = focusa_daemon_pids();
+        let duplicate_daemon_count =
+            daemon_pids.iter().filter(|&&p| p != current_pid).count() as u64;
+        if let Some(obj) = payload.as_object_mut() {
+            obj.insert("last_event_ts".into(), json!(last_event_ts));
+            obj.insert("persisted_event_count".into(), json!(persisted_event_count));
+            obj.insert(
+                "runtime_process".into(),
+                json!({
+                    "current_pid": current_pid,
+                    "daemon_pids": daemon_pids,
+                    "daemon_count": daemon_pids.len(),
+                    "duplicate_daemon_count": duplicate_daemon_count,
+                    "single_daemon_ok": duplicate_daemon_count == 0,
+                }),
+            );
+        }
+    }
+
+    payload
 }
 
 fn current_rss_kb() -> Option<u64> {
@@ -210,6 +254,8 @@ async fn state_dump(State(state): State<Arc<AppState>>) -> Json<serde_json::Valu
 struct StartSessionBody {
     adapter_id: Option<String>,
     workspace_id: Option<String>,
+    project_root: Option<String>,
+    continuity_id: Option<String>,
     instance_id: Option<String>,
 }
 
@@ -222,6 +268,8 @@ async fn start_session(
         .send(Action::StartSession {
             adapter_id: body.adapter_id,
             workspace_id: body.workspace_id,
+            project_root: body.project_root,
+            continuity_id: body.continuity_id,
             instance_id: body
                 .instance_id
                 .and_then(|s| uuid::Uuid::parse_str(&s).ok()),
@@ -292,6 +340,7 @@ async fn close_session(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/status", get(status))
+        .route("/v1/status/deep", get(status_deep))
         .route("/v1/state/dump", get(state_dump))
         .route("/v1/session/start", post(start_session))
         .route("/v1/session/resume", post(resume_session))

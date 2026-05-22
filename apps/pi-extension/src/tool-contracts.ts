@@ -6,7 +6,10 @@ export type FocusaToolFamily =
   | "work_loop"
   | "metacognition"
   | "tree_lineage"
-  | "diagnostics_hygiene";
+  | "diagnostics_hygiene"
+  | "trajectory"
+  | "project_identity"
+  | "traversal";
 
 export type FocusaToolParityStatus = "full" | "domain" | "pi_only" | "local_only" | "degraded_known";
 
@@ -28,7 +31,191 @@ export interface FocusaToolContract {
   live_check: string;
 }
 
+export interface FocusaToolAffordance {
+  name: string;
+  family: FocusaToolFamily;
+  purpose: string;
+  when_to_use: string[];
+  when_not_to_use: string[];
+  default_inputs: string[];
+  side_effects: string;
+  safety: string[];
+  failure_classes: string[];
+  recovery: string[];
+  example: string;
+  expected_result: string;
+  likely_next_tools: string[];
+}
+
+export interface FocusSliceToolAffordanceOptions {
+  resourceModeActive: boolean;
+  hasTrajectory: boolean;
+  hasWorkpoint: boolean;
+  hasOntologyAmbiguity: boolean;
+}
+
 export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
+  {
+    "name": "focusa_project_identity",
+    "label": "Project Identity",
+    "purpose": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator scope signals before trusting scoped context.",
+    "family": "project_identity",
+    "ontology_action": "project.identity",
+    "ontology_objects": ["ProjectIdentity"],
+    "api_routes": ["GET /v1/project/identity"],
+    "cli_commands": ["focusa project identity"],
+    "core_surface": "Spec96 ProjectIdentity quorum and scope safety",
+    "doc_path": "docs/focusa-tools/tools/focusa_project_identity.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/project/identity safe probe and quorum status"
+  },
+  {
+    "name": "focusa_project_verify",
+    "label": "Project Verify",
+    "purpose": "Verify expected project identity fields and surface scope mismatches without mutating Focusa state.",
+    "family": "project_identity",
+    "ontology_action": "project.verify",
+    "ontology_objects": ["ProjectIdentity"],
+    "api_routes": ["POST /v1/project/verify"],
+    "cli_commands": ["focusa project verify"],
+    "core_surface": "Spec96 ProjectIdentity quorum and scope safety",
+    "doc_path": "docs/focusa-tools/tools/focusa_project_verify.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics"
+  },
+  {
+    "name": "focusa_trajectory_view",
+    "label": "Trajectory View",
+    "purpose": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, and next Workpoint candidate.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.view",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
+    "api_routes": ["GET /v1/trajectory/view"],
+    "cli_commands": ["focusa trajectory view"],
+    "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+    "doc_path": "docs/focusa-tools/tools/focusa_trajectory_view.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and ProjectIdentity status"
+  },
+
+  {
+    "name": "focusa_trajectory_define_goal",
+    "label": "Trajectory Define Goal",
+    "purpose": "Create an advisory per-project Trajectory goal candidate without changing task or execution authority.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.define_goal",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
+    "api_routes": ["POST /v1/trajectory/define-goal"],
+    "cli_commands": ["focusa trajectory define-goal"],
+    "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+    "doc_path": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "advisory_projection",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+  },
+
+  {
+    "name": "focusa_trajectory_assess",
+    "label": "Trajectory Assess",
+    "purpose": "Assess project current state against desired Trajectory end state and return gaps/recommended action.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.assess",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
+    "api_routes": ["POST /v1/trajectory/assess"],
+    "cli_commands": ["focusa trajectory assess"],
+    "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+    "doc_path": "docs/focusa-tools/tools/focusa_trajectory_assess.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+  },
+
+  {
+    "name": "focusa_trajectory_propose_workpoint",
+    "label": "Trajectory Propose Workpoint",
+    "purpose": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.propose_workpoint",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
+    "api_routes": ["POST /v1/trajectory/propose-workpoint"],
+    "cli_commands": ["focusa trajectory propose-workpoint"],
+    "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+    "doc_path": "docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "advisory_projection",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+  },
+
+  {
+    "name": "focusa_trajectory_checkpoint",
+    "label": "Trajectory Checkpoint",
+    "purpose": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.checkpoint",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
+    "api_routes": ["POST /v1/trajectory/checkpoint"],
+    "cli_commands": ["focusa trajectory checkpoint"],
+    "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+    "doc_path": "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "advisory_checkpoint",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+  },
+
+  {
+    "name": "focusa_trajectory_resume",
+    "label": "Trajectory Resume",
+    "purpose": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.resume",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
+    "api_routes": ["POST /v1/trajectory/resume"],
+    "cli_commands": ["focusa trajectory resume"],
+    "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+    "doc_path": "docs/focusa-tools/tools/focusa_trajectory_resume.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+  },
+
+
+  {
+    "name": "focusa_traverse",
+    "label": "Focusa Traverse",
+    "purpose": "Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards.",
+    "family": "traversal",
+    "ontology_action": "traverse.read",
+    "ontology_objects": ["TraversalSurface", "LineageTree", "OntologyState", "WorkpointRecord", "ReferenceIndex"],
+    "api_routes": ["POST /v1/traverse", "POST /v1/traverse/verify-tags"],
+    "cli_commands": [],
+    "core_surface": "Spec96 surgical traversal facade",
+    "doc_path": "docs/focusa-tools/tools/focusa_traverse.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["api_domain_only"],
+    "live_check": "contract_static plus /v1/traverse lineage smoke test"
+  },
+
   {
     "name": "focusa_predict_record",
     "label": "Record Prediction",
@@ -119,7 +306,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "local_scratchpad_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_decide",
@@ -142,7 +329,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_constraint",
@@ -165,7 +352,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_failure",
@@ -188,7 +375,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_intent",
@@ -211,7 +398,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_current_focus",
@@ -234,7 +421,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_next_step",
@@ -257,12 +444,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_open_question",
     "label": "Record Open Question",
-    "purpose": "Record an open question that needs to be answered (max 200 chars).",
+    "purpose": "Record an open question that needs to be answered (max 180 chars).",
     "family": "focus_state",
     "ontology_action": "focus_state.open.question",
     "ontology_objects": [
@@ -280,12 +467,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_recent_result",
     "label": "Record Recent Result",
-    "purpose": "Record a completed result, output, or reference (max 300 chars).",
+    "purpose": "Record a completed result, output, or reference (max 180 chars).",
     "family": "focus_state",
     "ontology_action": "focus_state.recent.result",
     "ontology_objects": [
@@ -303,12 +490,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_note",
     "label": "Record Note",
-    "purpose": "Miscellaneous note (max 200 chars). Bounded at 20, oldest decay first.",
+    "purpose": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.",
     "family": "focus_state",
     "ontology_action": "focus_state.note",
     "ontology_objects": [
@@ -326,7 +513,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_work_loop_writer_status",
@@ -338,7 +525,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "WorkLoopState"
     ],
     "api_routes": [
-      "GET /v1/work-loop/status"
+      "GET /v1/work-loop/status?summary_only=true"
     ],
     "cli_commands": [],
     "core_surface": "Work-loop state/writer controller",
@@ -349,7 +536,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_work_loop_status",
@@ -361,7 +548,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "WorkLoopState"
     ],
     "api_routes": [
-      "GET /v1/work-loop/status"
+      "GET /v1/work-loop/status?summary_only=true"
     ],
     "cli_commands": [],
     "core_surface": "Work-loop state/writer controller",
@@ -372,7 +559,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_work_loop_control",
@@ -393,12 +580,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "core_surface": "Work-loop state/writer controller",
     "doc_path": "docs/focusa-tools/tools/focusa_work_loop_control.md",
     "result_envelope": "tool_result_v1",
-    "side_effect_profile": "read_only",
+    "side_effect_profile": "control_state",
     "parity_status": "domain",
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_work_loop_context",
@@ -416,12 +603,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "core_surface": "Work-loop state/writer controller",
     "doc_path": "docs/focusa-tools/tools/focusa_work_loop_context.md",
     "result_envelope": "tool_result_v1",
-    "side_effect_profile": "read_only",
+    "side_effect_profile": "write_context",
     "parity_status": "domain",
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_work_loop_checkpoint",
@@ -444,7 +631,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_work_loop_select_next",
@@ -462,12 +649,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "core_surface": "Work-loop state/writer controller",
     "doc_path": "docs/focusa-tools/tools/focusa_work_loop_select_next.md",
     "result_envelope": "tool_result_v1",
-    "side_effect_profile": "read_only",
+    "side_effect_profile": "select_next_work",
     "parity_status": "domain",
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_state_hygiene_doctor",
@@ -480,7 +667,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     ],
     "api_routes": [],
     "cli_commands": [],
-    "core_surface": "Local diagnostic/hygiene orchestration",
+    "core_surface": "Local diagnostic/hygiene composition",
     "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_doctor.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
@@ -489,7 +676,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "approval_placeholder",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_state_hygiene_plan",
@@ -502,7 +689,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     ],
     "api_routes": [],
     "cli_commands": [],
-    "core_surface": "Local diagnostic/hygiene orchestration",
+    "core_surface": "Local diagnostic/hygiene composition",
     "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_plan.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
@@ -511,7 +698,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "approval_placeholder",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_state_hygiene_apply",
@@ -524,7 +711,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     ],
     "api_routes": [],
     "cli_commands": [],
-    "core_surface": "Local diagnostic/hygiene orchestration",
+    "core_surface": "Local diagnostic/hygiene composition",
     "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
@@ -533,7 +720,36 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "approval_placeholder",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+  },
+
+  {
+    "name": "focusa_silent_sessions",
+    "label": "Focusa Silent Sessions",
+    "purpose": "List, start, reopen, tail, send input to, or safely kill tmux-backed Focusa SilentSessions running in the background.",
+    "family": "work_loop",
+    "ontology_action": "work_loop.silent_session.control",
+    "ontology_objects": [
+      "SilentSession",
+      "WorkLoopStatus",
+      "ResourceMode"
+    ],
+    "api_routes": [],
+    "cli_commands": [
+      "tmux list-sessions",
+      "tmux new-session",
+      "tmux attach-session",
+      "tmux kill-session"
+    ],
+    "core_surface": "Pi-local tmux SilentSession controller",
+    "doc_path": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "process_control",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_only"
+    ],
+    "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags"
   },
   {
     "name": "focusa_tool_doctor",
@@ -547,10 +763,10 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/health",
       "GET /v1/workpoint/current",
-      "GET /v1/work-loop/status"
+      "GET /v1/work-loop/status?summary_only=true"
     ],
     "cli_commands": [],
-    "core_surface": "Local diagnostic/hygiene orchestration",
+    "core_surface": "Local diagnostic/hygiene composition",
     "doc_path": "docs/focusa-tools/tools/focusa_tool_doctor.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "diagnostic",
@@ -558,7 +774,36 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+  },
+
+  {
+    "name": "focusa_resource_mode",
+    "label": "Focusa Resource Mode",
+    "purpose": "Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "diagnostics_hygiene.resource_mode.control",
+    "ontology_objects": [
+      "ToolContract",
+      "ResourceMode",
+      "LowMemBudget"
+    ],
+    "api_routes": [
+      "GET /v1/resource/mode",
+      "POST /v1/resource/mode"
+    ],
+    "cli_commands": [
+      "focusa resource mode"
+    ],
+    "core_surface": "Spec96 LowMem ResourceMode runtime policy",
+    "doc_path": "docs/focusa-tools/tools/focusa_resource_mode.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "control_state",
+    "parity_status": "domain",
+    "exemptions": [
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test"
   },
   {
     "name": "focusa_active_object_resolve",
@@ -582,7 +827,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_evidence_capture",
@@ -606,7 +851,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "evidence_link",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_workpoint_checkpoint",
@@ -630,7 +875,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "checkpoint",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_workpoint_link_evidence",
@@ -654,7 +899,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "evidence_link",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_workpoint_resume",
@@ -678,7 +923,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_head",
@@ -703,7 +948,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_path",
@@ -728,7 +973,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_snapshot_state",
@@ -753,7 +998,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "pi_session_snapshot_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_restore_state",
@@ -778,7 +1023,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "pi_session_snapshot_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_diff_context",
@@ -803,7 +1048,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "pi_session_snapshot_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_capture",
@@ -826,7 +1071,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_retrieve",
@@ -849,7 +1094,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_reflect",
@@ -872,7 +1117,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_plan_adjust",
@@ -895,7 +1140,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_evaluate_outcome",
@@ -918,7 +1163,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_recent_snapshots",
@@ -943,7 +1188,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "pi_session_snapshot_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_tree_snapshot_compare_latest",
@@ -968,7 +1213,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [
       "pi_session_snapshot_only"
     ],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_recent_reflections",
@@ -988,10 +1233,10 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
     "result_envelope": "tool_result_v1",
-    "side_effect_profile": "write_state",
+    "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_recent_adjustments",
@@ -1011,10 +1256,10 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
     "result_envelope": "tool_result_v1",
-    "side_effect_profile": "write_state",
+    "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_loop_run",
@@ -1041,7 +1286,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "write_state",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_metacog_doctor",
@@ -1065,7 +1310,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_lineage_tree",
@@ -1090,7 +1335,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
     "name": "focusa_li_tree_extract",
@@ -1115,7 +1360,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   }
 ];
 
@@ -1129,4 +1374,112 @@ export function focusaToolContractSummary() {
 
 export function findFocusaToolContract(name: string) {
   return FOCUSA_TOOL_CONTRACTS.find((contract) => contract.name === name);
+}
+
+
+const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
+  focus_state: ["focusa_workpoint_resume", "focusa_evidence_capture", "focusa_tool_doctor"],
+  workpoint: ["focusa_trajectory_view", "focusa_traverse", "focusa_evidence_capture"],
+  work_loop: ["focusa_work_loop_writer_status", "focusa_work_loop_status", "focusa_tool_doctor"],
+  metacognition: ["focusa_metacog_retrieve", "focusa_metacog_reflect", "focusa_workpoint_resume"],
+  tree_lineage: ["focusa_tree_head", "focusa_tree_path", "focusa_traverse"],
+  diagnostics_hygiene: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_resume"],
+  trajectory: ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint", "focusa_workpoint_checkpoint"],
+  project_identity: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
+  traversal: ["focusa_traverse", "focusa_trajectory_view", "focusa_workpoint_resume"],
+};
+
+const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
+  focus_state: ["bounded text fields", "active scoped Focus Frame"],
+  workpoint: ["project_root", "continuity_id", "mode=compact_prompt|summary"],
+  work_loop: ["preflight=true before control", "active writer status"],
+  metacognition: ["current_ask", "scope_tags", "evidence_refs when available"],
+  tree_lineage: ["clt_node_id or current head", "snapshot ids for diff/restore"],
+  diagnostics_hygiene: ["scope/status action", "preflight for control actions"],
+  trajectory: ["project_root", "continuity_id", "mode=summary"],
+  project_identity: ["cwd", "project_root", "expected project id when verifying"],
+  traversal: ["surface", "selector", "limit", "fields", "tags"],
+};
+
+const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
+  focus_state: ["raw transcript dumping", "source-of-truth replacement for Workpoint continuation"],
+  workpoint: ["broad roots such as /root", "parallel memory outside the active project+continuity scope"],
+  work_loop: ["control mutations without writer/preflight authority", "fresh direct questions that do not continue work"],
+  metacognition: ["journaling raw logs", "unverified lessons without evidence"],
+  tree_lineage: ["treating lineage as current project authority", "restore without explicit rollback intent"],
+  diagnostics_hygiene: ["hiding failures behind null/unknown", "silent deletion or cleanup"],
+  trajectory: ["overriding Workpoint/operator authority", "merging sessions on goal similarity alone"],
+  project_identity: ["assuming unsafe broad cwd is canonical", "skipping verify after scope mismatch"],
+  traversal: ["full payloads by default", "unbounded history/tree/ontology reads"],
+};
+
+function invocationFor(contract: FocusaToolContract): string {
+  if (contract.cli_commands?.length) return contract.cli_commands[0];
+  return `${contract.name} { ... }`;
+}
+
+function mutabilityFor(sideEffectProfile: string): string[] {
+  const lower = sideEffectProfile.toLowerCase();
+  if (lower.includes("write") || lower.includes("control") || lower.includes("mutation")) return ["mutation or control path; require explicit intent and inspect side_effects"];
+  if (lower.includes("advisory")) return ["advisory projection only; does not choose or execute work"];
+  return ["read-only or summary-first path; still inspect canonical/degraded status"];
+}
+
+export function buildFocusaToolAffordanceCatalog(contracts: FocusaToolContract[] = FOCUSA_TOOL_CONTRACTS): FocusaToolAffordance[] {
+  return contracts.map((contract) => ({
+    name: contract.name,
+    family: contract.family,
+    purpose: contract.purpose,
+    when_to_use: [contract.purpose, `Use for ${contract.core_surface}.`],
+    when_not_to_use: FAMILY_WHEN_NOT_TO_USE[contract.family] || ["when another narrower tool is explicitly indicated"],
+    default_inputs: FAMILY_DEFAULT_INPUTS[contract.family] || ["bounded tool parameters only"],
+    side_effects: contract.side_effect_profile,
+    safety: [
+      "Inspect details.tool_result_v1.status, canonical/degraded, retry posture, side_effects, evidence_refs, and next_tools.",
+      ...mutabilityFor(contract.side_effect_profile),
+    ],
+    failure_classes: ["scope_mismatch", "resource_exhausted", "cold_path_timeout", "hot_path_timeout", "daemon_unavailable", "read_model_lag", "validation_rejected"],
+    recovery: [
+      "scope_mismatch -> focusa_project_verify or checkpoint in the correct project_root+continuity_id scope",
+      "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+      "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture",
+    ],
+    example: invocationFor(contract),
+    expected_result: `Visible summary plus ${contract.result_envelope} details; docs: ${contract.doc_path}`,
+    likely_next_tools: FAMILY_NEXT_TOOLS[contract.family] || ["focusa_tool_doctor"],
+  }));
+}
+
+function affordanceLine(name: string, fallback: string): string {
+  const contract = findFocusaToolContract(name);
+  return `${name} — ${fallback || contract?.purpose || "use the documented Focusa tool contract"}`;
+}
+
+export function selectFocusSliceToolAffordances(options: FocusSliceToolAffordanceOptions): { best_next: string[]; recovery: string[]; do_not_use: string[]; catalog_version: string } {
+  const bestNext = [
+    affordanceLine("focusa_project_identity", "verify project scope before trusting carryover packets"),
+    options.hasTrajectory
+      ? affordanceLine("focusa_trajectory_view", "refresh goal/state/gap/why-next orientation")
+      : affordanceLine("focusa_trajectory_view", "build advisory goal/state/gap orientation when available"),
+    options.hasWorkpoint
+      ? affordanceLine("focusa_workpoint_resume", "recover canonical continuation packet after compaction/model switch")
+      : affordanceLine("focusa_workpoint_checkpoint", "create typed continuation before risky/long work"),
+    affordanceLine("focusa_traverse", "fetch narrow lineage/ontology/evidence/tool-registry slices instead of full payloads"),
+    ...(options.hasOntologyAmbiguity ? [affordanceLine("focusa_active_object_resolve", "resolve ambiguous target refs before acting")] : []),
+    ...(options.resourceModeActive ? [affordanceLine("focusa_resource_mode", "inspect LowMem/emergency posture and budgets")] : []),
+  ];
+  return {
+    best_next: bestNext.slice(0, 6),
+    recovery: [
+      "scope_mismatch -> focusa_project_verify; focusa_workpoint_checkpoint",
+      "resource_exhausted|cold_path_timeout -> focusa_resource_mode; focusa_traverse narrow slice",
+      "canonical=false|degraded=true -> focusa_tool_doctor; focusa_workpoint_resume",
+    ],
+    do_not_use: [
+      "focusa_work_loop_control unless mutating continuous loop is intended",
+      "full lineage tree / full ontology graph / deep work-loop status by default",
+      "transcript tail as authority",
+    ],
+    catalog_version: "spec96.tool_affordance_catalog.v1",
+  };
 }

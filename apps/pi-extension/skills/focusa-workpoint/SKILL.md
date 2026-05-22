@@ -25,5 +25,8 @@ Use when preserving or recovering Focusa Workpoint continuity: checkpoint/resume
 
 - Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as recovery states, not success.
 - Use Workpoint resume/checkpoint around compaction, context overflow, model switch, fork, or risky release work.
+- Healthy Workpoint continuity makes generic `/fork`/`/new` context-pressure warnings redundant; treat them as recovery prompts only when Focusa is degraded.
+- Workpoint continuity is gated by `project_root + continuity_id`; temporal Pi `session_id` changes after compaction/model switch/fork are metadata only.
+- Trajectory/goals/work-item/frame tags are alignment evidence, not identity gates.
 - Use writer-status/preflight before mutating work-loop state.
 - Do not describe Focusa as complete or frozen; use current snapshot/version language.

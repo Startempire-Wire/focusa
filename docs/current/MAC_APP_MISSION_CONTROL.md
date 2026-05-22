@@ -8,7 +8,7 @@ The Mac menubar app includes a **Mission** tab backed by live Focusa APIs.
 
 - Daemon health — `/v1/health`
 - Workpoint — `/v1/workpoint/current`
-- Work-loop — `/v1/work-loop/status`
+- Work-loop — `/v1/work-loop/status?summary_only=true`
 - Tool contracts — `/v1/ontology/tool-contracts`
 - Token budget — `/v1/telemetry/token-budget/status?limit=5`
 - Cache metadata — `/v1/telemetry/cache-metadata/status?limit=5`
@@ -18,7 +18,7 @@ The Mac menubar app includes a **Mission** tab backed by live Focusa APIs.
 ## Validation
 
 ```bash
-cd /home/wirebot/focusa/apps/menubar
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/menubar
 bun install
 bun run check
 bun run build

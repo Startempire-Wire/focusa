@@ -7,7 +7,7 @@ Copy/paste commands for agent-first Focusa operation.
 ## Starting work
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 focusa doctor
 focusa status --agent
 bd ready
@@ -86,7 +86,7 @@ journalctl -u focusa-daemon -n 80 --no-pager
 ## Mac app stale
 
 ```bash
-cd /home/wirebot/focusa/apps/menubar
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/menubar
 bun install
 ./node_modules/.bin/svelte-kit sync
 bun run check

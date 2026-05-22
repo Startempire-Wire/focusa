@@ -16,6 +16,7 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -25,8 +26,30 @@ use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
 const APPROVAL_HEADER: &str = "x-focusa-approval";
-const PROJECT_ROOT: &str = "/home/wirebot/focusa";
-const PI_RPC_BIN: &str = "/opt/cpanel/ea-nodejs20/bin/pi";
+fn project_root() -> PathBuf {
+    std::env::var_os("FOCUSA_PROJECT_ROOT")
+        .map(PathBuf::from)
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
+fn project_root_string() -> String {
+    project_root().to_string_lossy().to_string()
+}
+
+fn git_safe_directory_arg() -> String {
+    format!("safe.directory={}", project_root_string())
+}
+
+fn pi_rpc_bin() -> String {
+    std::env::var("FOCUSA_PI_BIN").unwrap_or_else(|_| "pi".to_string())
+}
+
+fn pi_rpc_node_bin_dir() -> Option<String> {
+    std::env::var("FOCUSA_NODE_BIN_DIR")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+}
 
 #[derive(Debug, Deserialize)]
 struct WorkLoopStatusQuery {
@@ -219,14 +242,10 @@ async fn ensure_claimed_writer_matches_for_context(
 }
 
 async fn worktree_status_snapshot() -> Value {
+    let safe_dir = git_safe_directory_arg();
     let top = match Command::new("git")
-        .args([
-            "-c",
-            "safe.directory=/home/wirebot/focusa",
-            "rev-parse",
-            "--show-toplevel",
-        ])
-        .current_dir(PROJECT_ROOT)
+        .args(["-c", safe_dir.as_str(), "rev-parse", "--show-toplevel"])
+        .current_dir(project_root())
         .output()
         .await
     {
@@ -236,7 +255,7 @@ async fn worktree_status_snapshot() -> Value {
                 "git_available": true,
                 "in_worktree": false,
                 "clean": false,
-                "repo_root_hint": PROJECT_ROOT,
+                "repo_root_hint": project_root_string(),
                 "error": String::from_utf8_lossy(&top.stderr).trim().to_string(),
             });
         }
@@ -252,12 +271,7 @@ async fn worktree_status_snapshot() -> Value {
 
     let repo_root = String::from_utf8_lossy(&top.stdout).trim().to_string();
     let status = match Command::new("git")
-        .args([
-            "-c",
-            "safe.directory=/home/wirebot/focusa",
-            "status",
-            "--porcelain",
-        ])
+        .args(["-c", safe_dir.as_str(), "status", "--porcelain"])
         .current_dir(&repo_root)
         .output()
         .await
@@ -289,12 +303,7 @@ async fn worktree_status_snapshot() -> Value {
         .map(str::to_string)
         .collect::<Vec<_>>();
     let diff_stat = Command::new("git")
-        .args([
-            "-c",
-            "safe.directory=/home/wirebot/focusa",
-            "diff",
-            "--stat",
-        ])
+        .args(["-c", safe_dir.as_str(), "diff", "--stat"])
         .current_dir(&repo_root)
         .output()
         .await
@@ -325,7 +334,7 @@ async fn alternate_ready_work_snapshot(
 
     let output = match Command::new("bd")
         .args(["show", parent_work_item_id, "--json"])
-        .current_dir(PROJECT_ROOT)
+        .current_dir(project_root())
         .output()
         .await
     {
@@ -660,7 +669,7 @@ async fn defer_work_item_for_alternate_switch(work_item_id: &str, reason: &str) 
             "--append-notes",
             &note,
         ])
-        .current_dir(PROJECT_ROOT)
+        .current_dir(project_root())
         .output()
         .await;
 }
@@ -784,7 +793,7 @@ async fn maybe_select_global_ready_work_item(
 
     let all_items_output = Command::new("bd")
         .args(["list", "--all", "--limit", "0", "--json"])
-        .current_dir(PROJECT_ROOT)
+        .current_dir(project_root())
         .output()
         .await
         .map_err(|e| bad_request(format!("failed to run bd list --all --json: {e}")))?;
@@ -815,7 +824,7 @@ async fn maybe_select_global_ready_work_item(
     } else {
         let output = Command::new("bd")
             .args(["ready", "--json"])
-            .current_dir(PROJECT_ROOT)
+            .current_dir(project_root())
             .output()
             .await
             .map_err(|e| bad_request(format!("failed to run bd ready --json: {e}")))?;
@@ -1786,6 +1795,39 @@ fn secondary_loop_closure_bundle_for_status(
     })
 }
 
+async fn health(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let permissions = permission_context(&headers, state.config.auth_token.is_some());
+    if !permissions.allows("work-loop:read") {
+        return Err(forbid("work-loop:read"));
+    }
+
+    let s = state.focusa.read().await;
+    let wl = &s.work_loop;
+    let active_writer = state.active_writer.read().await.clone();
+    let payload = json!({
+        "status": "ok",
+        "route_tier": "hot",
+        "summary_only": true,
+        "enabled": wl.enabled,
+        "work_loop_status": wl.status,
+        "project_status": if wl.enabled { "active" } else { "idle" },
+        "current_task_id": wl.current_task.as_ref().map(|task| task.work_item_id.clone()),
+        "last_completed_task_id": wl.last_completed_task_id,
+        "active_writer": active_writer,
+        "deep_status_route": "/v1/work-loop/status/deep",
+        "cold_omitted": [
+            "policy", "run", "blocker_package", "secondary_loop_eval_artifacts",
+            "secondary_loop_replay_consumer", "worktree", "governance"
+        ],
+        "next_tools": ["focusa_work_loop_status", "focusa_work_loop_writer_status"],
+    });
+    record_json_response_size("/v1/work-loop/health", &payload);
+    Ok(Json(payload))
+}
+
 async fn status(
     Query(query): Query<WorkLoopStatusQuery>,
     State(state): State<Arc<AppState>>,
@@ -1804,6 +1846,13 @@ async fn status(
         let budget_remaining = budget_remaining_for_status(wl);
         let resume_payload = resume_payload_for_status(&s, wl);
         let payload = json!({
+            "route_tier": "hot",
+            "summary_only": true,
+            "deep_status_route": "/v1/work-loop/status/deep",
+            "cold_omitted": [
+                "policy", "run", "blocker_package", "secondary_loop_eval_artifacts",
+                "secondary_loop_replay_consumer", "worktree", "governance"
+            ],
             "enabled": wl.enabled,
             "status": wl.status,
             "project_status": if wl.enabled { "active" } else { "idle" },
@@ -1893,6 +1942,9 @@ async fn status(
     let pending_proposals = focusa_core::pre::pending_count(&s.pre);
     let next_work_risk_class = next_work_risk_class_for_status(wl);
     let payload = json!({
+        "route_tier": "cold",
+        "summary_only": false,
+        "cold_omitted": [],
         "enabled": wl.enabled,
         "status": wl.status,
         "project_status": if wl.enabled {
@@ -2011,6 +2063,18 @@ async fn status(
     });
     record_json_response_size("/v1/work-loop/status", &payload);
     Ok(Json(payload))
+}
+
+async fn status_deep(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    status(
+        Query(WorkLoopStatusQuery { summary_only: false }),
+        State(state),
+        headers,
+    )
+    .await
 }
 
 async fn closure_replay_evidence(
@@ -2301,15 +2365,18 @@ async fn start_pi_driver(
     }
 
     let session_id = format!("pi-rpc-{}", Uuid::now_v7());
-    let mut cmd = Command::new(PI_RPC_BIN);
+    let mut cmd = Command::new(pi_rpc_bin());
     let base_path = std::env::var("PATH").unwrap_or_default();
-    let node_bin_dir = "/opt/cpanel/ea-nodejs20/bin";
-    let merged_path = if base_path.split(':').any(|segment| segment == node_bin_dir) {
-        base_path
-    } else if base_path.is_empty() {
-        node_bin_dir.to_string()
+    let merged_path = if let Some(node_bin_dir) = pi_rpc_node_bin_dir() {
+        if base_path.split(':').any(|segment| segment == node_bin_dir) {
+            base_path
+        } else if base_path.is_empty() {
+            node_bin_dir
+        } else {
+            format!("{node_bin_dir}:{base_path}")
+        }
     } else {
-        format!("{node_bin_dir}:{base_path}")
+        base_path
     };
 
     cmd.env("PATH", merged_path)
@@ -2900,7 +2967,9 @@ async fn stop(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/work-loop", get(status))
+        .route("/v1/work-loop/health", get(health))
         .route("/v1/work-loop/status", get(status))
+        .route("/v1/work-loop/status/deep", get(status_deep))
         .route(
             "/v1/work-loop/replay/closure-evidence",
             get(closure_replay_evidence),

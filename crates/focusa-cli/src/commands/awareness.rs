@@ -18,9 +18,12 @@ pub enum AwarenessCmd {
         /// Operator id, e.g. verious.smith.
         #[arg(long)]
         operator_id: Option<String>,
-        /// Harness/session id for scoped Workpoint lookup.
+        /// Harness/session id for scoped Workpoint lookup (temporal metadata).
         #[arg(long)]
         session_id: Option<String>,
+        /// Stable logical session/workstream id for scoped Workpoint lookup.
+        #[arg(long)]
+        continuity_id: Option<String>,
         /// Project/workspace root for scoped Workpoint lookup.
         #[arg(long)]
         project_root: Option<String>,
@@ -55,6 +58,7 @@ pub async fn run(cmd: AwarenessCmd, json_mode: bool) -> anyhow::Result<()> {
             agent_id,
             operator_id,
             session_id,
+            continuity_id,
             project_root,
         } => {
             let mut qs = Vec::new();
@@ -63,6 +67,7 @@ pub async fn run(cmd: AwarenessCmd, json_mode: bool) -> anyhow::Result<()> {
             push_query(&mut qs, "agent_id", agent_id.as_deref());
             push_query(&mut qs, "operator_id", operator_id.as_deref());
             push_query(&mut qs, "session_id", session_id.as_deref());
+            push_query(&mut qs, "continuity_id", continuity_id.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
             let path = format!("/v1/awareness/card?{}", qs.join("&"));
             let resp: Value = api.get(&path).await?;

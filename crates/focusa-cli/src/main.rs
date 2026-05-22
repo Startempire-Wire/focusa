@@ -167,6 +167,23 @@ enum Commands {
     #[command(subcommand)]
     Cache(commands::cache::CacheCmd),
 
+
+    /// Project identity discovery and verification (Spec96).
+    #[command(subcommand)]
+    Project(commands::project::ProjectCmd),
+
+    /// ResourceMode / LowMem control (Spec96).
+    #[command(subcommand)]
+    Resource(commands::resource::ResourceCmd),
+
+    /// Per-project Trajectory Projection (Spec96).
+    #[command(subcommand)]
+    Trajectory(commands::trajectory::TrajectoryCmd),
+
+    /// Bounded surgical traversal across Focusa surfaces (Spec96).
+    #[command(subcommand)]
+    Traverse(commands::traverse::TraverseCmd),
+
     /// Spec88 Workpoint continuity operations.
     #[command(subcommand)]
     Workpoint(commands::workpoint::WorkpointCmd),
@@ -287,7 +304,7 @@ async fn main() -> anyhow::Result<()> {
                 let workpoint = api.get("/v1/workpoint/current").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
                 );
-                let work_loop = api.get("/v1/work-loop/status").await.unwrap_or_else(
+                let work_loop = api.get("/v1/work-loop/status?summary_only=true").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
                 );
                 let token_budget = api
@@ -309,7 +326,7 @@ async fn main() -> anyhow::Result<()> {
                     "why": "Spec92 requires a direct agent-first status view for current runtime/workflow state.",
                     "commands": ["focusa status --agent", "focusa continue", "focusa doctor"],
                     "recovery": ["focusa start", "journalctl -u focusa-daemon -n 80 --no-pager"],
-                    "evidence_refs": ["/v1/status", "/v1/workpoint/current", "/v1/work-loop/status"],
+                    "evidence_refs": ["/v1/status", "/v1/workpoint/current", "/v1/work-loop/status?summary_only=true"],
                     "docs": ["docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
                     "warnings": [],
                     "details": {"status": resp, "workpoint": workpoint, "work_loop": work_loop, "token_budget": token_budget, "cache": cache},
@@ -339,7 +356,7 @@ async fn main() -> anyhow::Result<()> {
                     );
                     println!("Command: focusa continue");
                     println!("Recovery: focusa doctor && systemctl status focusa-daemon");
-                    println!("Evidence: /v1/status, /v1/workpoint/current, /v1/work-loop/status");
+                    println!("Evidence: /v1/status, /v1/workpoint/current, /v1/work-loop/status?summary_only=true");
                     println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
                 }
             } else if cli.json {
@@ -439,6 +456,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Export(cmd) => commands::export::run(cmd, cli.json).await,
         Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await,
         Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await,
+        Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,
+        Commands::Resource(cmd) => commands::resource::run(cmd, cli.json).await,
+        Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,
+        Commands::Traverse(cmd) => commands::traverse::run(cmd, cli.json).await,
         Commands::Workpoint(cmd) => commands::workpoint::run(cmd, cli.json).await,
         Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,
         Commands::Wrap { command } => commands::wrap::run(command).await,

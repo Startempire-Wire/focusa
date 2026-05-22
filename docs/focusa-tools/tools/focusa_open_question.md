@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Record an open question that needs to be answered (max 200 chars).
+Record an open question that needs to be answered (max 180 chars).
 
 ## When to use
 
@@ -23,7 +23,7 @@ focusa_open_question question="Should future docs versions use v0.9.x-dev tags u
 
 ## Expected result
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
 ## Recovery notes
 

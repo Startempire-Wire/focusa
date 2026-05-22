@@ -41,7 +41,7 @@ if [[ "${FOCUSA_MAGIC_DISABLE:-}" == "1" ]]; then
     # Second try: if not found, check known harness locations
     if [[ -z "$real_harness" ]]; then
         case "$harness_name" in
-            pi)    real_harness="/opt/cpanel/ea-nodejs20/bin/pi" ;;
+            pi)    real_harness="${FOCUSA_PI_BIN:-}" ;;
             claude) real_harness="" ;;  # Not installed
             letta)  real_harness="" ;;  # Not installed
             opencode) real_harness="" ;;  # Not installed

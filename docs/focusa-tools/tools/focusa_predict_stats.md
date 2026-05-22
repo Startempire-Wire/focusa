@@ -10,6 +10,10 @@ Use this tool to work with bounded, inspectable Focusa prediction records. Predi
 
 See [Predictive Power Guide](../../current/PREDICTIVE_POWER_GUIDE.md).
 
+## Expected result
+
+The tool should return a visible summary plus structured details. Inspect `details.tool_result_v1` for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`. Predictions are advisory signals only; they never choose work or override operator steering.
+
 ## Safety
 
 - No raw provider payloads.

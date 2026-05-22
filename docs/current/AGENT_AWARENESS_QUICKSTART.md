@@ -11,6 +11,8 @@ Focusa is an agent utility layer: working memory, continuation contracts, eviden
 5. **Evidence is first-class.** After tests, release proof, API proof, or file proof, call `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
 6. **Predictions are measurable.** Before risky or uncertain next action, call `focusa_predict_record`; after outcome, call `focusa_predict_evaluate`.
 7. **Compaction must be useful.** Sparse Focusa slots should use related Workpoint/current-ask/frame/local-shadow/session fallbacks, never random filler or bare `none`.
+8. **Identity has axes.** Project scope is `project_root`; logical session/workstream identity is `continuity_id`; Pi `session_id` is temporal metadata; trajectory/goals are corroborating evidence.
+9. **Context pressure is Focusa-aware.** Generic /fork, /new, and handoff warnings are operator-visible only when Focusa continuity is degraded or unavailable; healthy Workpoint continuity handles compaction internally.
 
 ## Minimal runtime loop
 
@@ -20,7 +22,7 @@ Before boundary:  focusa_workpoint_checkpoint.
 During work:      link evidence; maintain Focus State only for durable decisions/constraints/failures/results.
 Before risk:      focusa_predict_record.
 After outcome:    focusa_predict_evaluate and evidence link.
-After compaction: focusa_workpoint_resume; continue from canonical packet.
+After compaction: focusa_workpoint_resume; continue from canonical packet only when project_root and continuity_id match.
 ```
 
 ## Operator steering

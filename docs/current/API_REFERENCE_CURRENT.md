@@ -2,7 +2,7 @@
 
 Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. This is an inventory, not a full schema reference.
 
-**Current notable surfaces:** Workpoint scope guard, prediction loop, doctor/health, token/cache telemetry, work-loop, metacognition, tree/lineage, and tool contracts.
+**Current notable surfaces:** per-project Trajectory view, Workpoint scope guard, prediction loop, doctor/health, token/cache telemetry, work-loop, metacognition, tree/lineage, and tool contracts.
 
 ### ascc
 - `GET /v1/ascc/state`
@@ -244,6 +244,14 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `POST /v1/tokens/revoke`
 - `GET /v1/tokens/list`
 
+### trajectory
+- `GET /v1/trajectory/view`
+- `POST /v1/trajectory/define-goal`
+- `POST /v1/trajectory/assess`
+- `POST /v1/trajectory/propose-workpoint`
+- `POST /v1/trajectory/checkpoint`
+- `POST /v1/trajectory/resume`
+
 ### training
 - `GET /v1/export/status`
 - `POST /v1/export/run`
@@ -272,7 +280,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 
 ### work_loop
 - `GET /v1/work-loop`
-- `GET /v1/work-loop/status`
+- `GET /v1/work-loop/status` (agent tools default to `?summary_only=true` for bounded reads)
 - `GET /v1/work-loop/replay/closure-evidence`
 - `GET /v1/work-loop/replay/closure-bundle`
 - `POST /v1/work-loop/enable`

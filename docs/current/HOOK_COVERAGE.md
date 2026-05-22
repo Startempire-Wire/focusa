@@ -70,7 +70,7 @@ spec92.latest_token
 ## Validation commands
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 rg -n 'pi\.on\(' apps/pi-extension/src -g'*.ts'
 cd apps/pi-extension && ./node_modules/.bin/tsc --noEmit
 ```

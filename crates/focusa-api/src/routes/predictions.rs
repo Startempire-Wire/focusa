@@ -34,8 +34,18 @@ struct EvaluateBody {
 }
 
 fn store_path() -> PathBuf {
-    let home = std::env::var("FOCUSA_HOME").unwrap_or_else(|_| "/home/wirebot/focusa".to_string());
-    PathBuf::from(home).join("data/spec92_predictions.json")
+    if let Some(home) = std::env::var_os("FOCUSA_HOME") {
+        return PathBuf::from(home).join("data/spec92_predictions.json");
+    }
+    if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
+        return PathBuf::from(data_home).join("focusa/spec92_predictions.json");
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        return PathBuf::from(home).join(".local/share/focusa/spec92_predictions.json");
+    }
+    std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("data/spec92_predictions.json")
 }
 
 fn read_predictions() -> Vec<Value> {
@@ -98,6 +108,8 @@ async fn record(
     };
     let mut focusa = state.focusa.write().await;
     focusa.telemetry.total_events += 1;
+    drop(focusa);
+    state.mark_external_mutation();
     Json(json!({"status": status, "prediction": payload}))
 }
 

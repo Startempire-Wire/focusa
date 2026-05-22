@@ -7,11 +7,12 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary } from "./state.js";
-import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle } from "./state.js";
+import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
+import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
 
 let traceBatch: any[] = [];
 
@@ -38,6 +39,8 @@ function flushTraceTelemetryBatch(reason = "turn_end"): void {
 
 async function checkpointDiscontinuity(reason: string, extra: Record<string, any> = {}): Promise<void> {
   if (!S.focusaAvailable) return;
+  const root = S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) return;
   try {
     await focusaFetch("/workpoint/checkpoint", {
       method: "POST",
@@ -47,19 +50,28 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
         checkpoint_reason: reason,
         canonical: true,
         promote: true,
+        continuity_id: ensureContinuityId(root),
+        session_id: S.sessionFrameKey,
+        project_root: root,
         source_turn_id: `pi-turn-${S.turnCount}`,
         action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-session", verification_hooks: [reason], status: "ready" },
         ...extra,
       }),
     });
-    const packet = await focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify({ mode: "compact_prompt", session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }) });
+    const packet = await focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(root), session_id: S.sessionFrameKey, project_root: root }) });
     if (packet?.status === "rejected_scope_mismatch") {
       S.activeWorkpointPacket = null;
       S.activeWorkpointSummary = "";
       return;
     }
     if (packet?.status === "completed") {
-      S.activeWorkpointPacket = packet.resume_packet || packet;
+      const candidate = packet.resume_packet || packet;
+      if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
+        S.activeWorkpointPacket = null;
+        S.activeWorkpointSummary = "";
+        return;
+      }
+      S.activeWorkpointPacket = candidate;
       S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
     }
   } catch { /* best effort */ }
@@ -67,7 +79,7 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
 
 
 function formatWorkpointContextSections(): string[] {
-  const packet: any = S.activeWorkpointPacket;
+  const packet: any = getScopedWorkpointPacket();
   if (!packet) return [];
   const action = packet.action_intent || {};
   const evidence = Array.isArray(packet.verification_records) ? packet.verification_records : [];
@@ -95,6 +107,136 @@ function formatWorkpointContextSections(): string[] {
     `VERIFICATION_HOOKS:\n${(verificationHooks.length ? verificationHooks : ["(none)"]).map((x: string) => `  - ${x}`).join("\n")}`,
     `DRIFT_BOUNDARIES:\n${boundaryItems.map((x: string) => `  - ${x}`).join("\n")}`,
   ];
+}
+
+
+function boundedTrajectoryText(value: any, max = 180): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
+}
+
+function formatTrajectoryFocusSlice(view: any): string[] {
+  if (!view || typeof view !== "object") return [];
+  const project = view.project_identity || {};
+  const trajectory = view.trajectory || {};
+  const intelligence = view.intelligence_view || {};
+  const sufficiency = intelligence.context_sufficiency || {};
+  const candidate = intelligence.next_workpoint_candidate || {};
+  const continuityId = boundedTrajectoryText(S.continuityId, 120);
+  const identityParts = [
+    `status=${boundedTrajectoryText(project.status || view.status || "unknown", 40)}`,
+    `project_root=${boundedTrajectoryText(project.project_root || S.sessionCwd || process.cwd(), 160)}`,
+    continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)",
+    project.session_id ? `session_id=${boundedTrajectoryText(project.session_id, 120)}` : "",
+    project.confidence ? `confidence=${boundedTrajectoryText(project.confidence, 40)}` : "",
+  ].filter(Boolean);
+  const goals = [
+    trajectory.long_term_goal ? `high=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",
+    trajectory.mid_level_goal ? `mid=${boundedTrajectoryText(trajectory.mid_level_goal, 160)}` : "",
+    trajectory.low_level_goal ? `low=${boundedTrajectoryText(trajectory.low_level_goal, 160)}` : "",
+    trajectory.desired_end_state ? `desired=${boundedTrajectoryText(trajectory.desired_end_state, 180)}` : "",
+    trajectory.short_term_goal ? `short=${boundedTrajectoryText(trajectory.short_term_goal, 160)}` : "",
+  ].filter(Boolean).join("; ");
+  const similarityGroup = trajectory.similarity_group || intelligence.similarity_group || {};
+  const similarityBits = [
+    similarityGroup.high_level_group_key ? `high_key=${boundedTrajectoryText(similarityGroup.high_level_group_key, 80)}` : "",
+    similarityGroup.mid_level_group_key ? `mid_key=${boundedTrajectoryText(similarityGroup.mid_level_group_key, 80)}` : "",
+    similarityGroup.low_level_group_key ? `low_key=${boundedTrajectoryText(similarityGroup.low_level_group_key, 80)}` : "",
+    `advisory_only=${similarityGroup.advisory_only !== false}`,
+    "authority=project_root+continuity_id",
+    similarityGroup.must_not_merge_sessions ? "must_not_merge_sessions=true" : "",
+  ].filter(Boolean).join("; ");
+  const evidence = Array.isArray(trajectory.evidence_refs)
+    ? trajectory.evidence_refs.slice(0, 4).map((item: any) => boundedTrajectoryText(item.evidence_ref || item.result || item.target_ref, 120)).filter(Boolean)
+    : [];
+  const doNotUse = Array.isArray(intelligence.do_not_use)
+    ? intelligence.do_not_use.slice(0, 6).map((item: any) => boundedTrajectoryText(item, 100)).filter(Boolean)
+    : [];
+  const missingFacts = Array.isArray(sufficiency.missing_facts)
+    ? sufficiency.missing_facts.slice(0, 6).map((item: any) => boundedTrajectoryText(item, 80)).filter(Boolean)
+    : [];
+  const candidateBits = [
+    candidate.workpoint_id ? `id=${boundedTrajectoryText(candidate.workpoint_id, 80)}` : "",
+    candidate.work_item_id ? `work_item=${boundedTrajectoryText(candidate.work_item_id, 80)}` : "",
+    candidate.next_slice ? `next=${boundedTrajectoryText(candidate.next_slice, 180)}` : "",
+    "advisory_only=true",
+  ].filter(Boolean).join("; ");
+  const lines = [
+    `PROJECT_IDENTITY: ${identityParts.join(" ")}`,
+    goals ? `TRAJECTORY_GOALS: ${goals}` : "TRAJECTORY_GOALS: definition_status=unclear",
+    `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
+    `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,
+    `ACTIVE_GAP: ${boundedTrajectoryText(trajectory.active_gap, 220) || "unclear"}`,
+    `WORKPOINT_CANDIDATE: ${candidateBits || "none · advisory_only=true"}`,
+    evidence.length ? `TRAJECTORY_EVIDENCE: ${evidence.join("; ")}` : "TRAJECTORY_EVIDENCE: (none)",
+    doNotUse.length ? `TRAJECTORY_DO_NOT_USE: ${doNotUse.join("; ")}` : "TRAJECTORY_DO_NOT_USE: (none)",
+    `CONTEXT_SUFFICIENCY: score=${sufficiency.score ?? "unknown"} status=${boundedTrajectoryText(sufficiency.status || trajectory.definition_status || view.status || "unknown", 60)} missing=${missingFacts.join(", ") || "none"} recommended=${boundedTrajectoryText(sufficiency.recommended_action, 180) || "none"}`,
+  ];
+  if (view.canonical === false || view.degraded === true) {
+    lines.push("TRAJECTORY_WARNING: advisory degraded projection; verify before treating as canonical");
+  }
+  return lines;
+}
+
+
+async function getResourceModeFocusSliceLines(): Promise<string[]> {
+  if (!S.focusaAvailable) return [];
+  try {
+    const body = await focusaFetch("/resource/mode");
+    const mode = body?.resource_mode || body?.mode || {};
+    const budget = mode.budget || body?.budget || {};
+    const cold = Array.isArray(mode.cold_surfaces_deferred) ? mode.cold_surfaces_deferred : [];
+    const resourceMode = String(mode.mode || body?.mode || "normal");
+    if (resourceMode === "normal") return [];
+    return [
+      `RESOURCE_MODE: ${resourceMode}`,
+      `RESOURCE_REASON: ${mode.reason || body?.reason || "unknown"}`,
+      `LOWMEM_BUDGET: hot_timeout_ms=${budget.hot_route_timeout_ms ?? "unknown"} default_limit=${budget.max_items_default ?? "unknown"} payload_bytes=${budget.hot_payload_bytes ?? "unknown"}`,
+      "CONTEXT_POSTURE: surgical_summary_only",
+      "BEST_NEXT_TOOLS: focusa_trajectory_view(mode=summary); focusa_workpoint_resume(mode=compact_prompt); focusa_traverse(limit<=budget)",
+      `DO_NOT_USE_BY_DEFAULT: ${(cold.length ? cold : ["full_lineage_tree", "full_ontology_graph", "deep_work_loop_status", "replay_bundles"]).join(", ")}`,
+      `PRUNED_COUNTS: transition_omitted_count=${mode.transition_omitted_count ?? 0} rehydrate_ref_budget=${budget.max_rehydrate_refs ?? "unknown"}`,
+      "REHYDRATE_REFS: use focusa_traverse with surface/selector/anchor/fields instead of full payload reads",
+    ];
+  } catch {
+    return [];
+  }
+}
+
+function getToolAffordanceFocusSliceLines(options: {
+  resourceModeActive: boolean;
+  hasTrajectory: boolean;
+  hasWorkpoint: boolean;
+  hasOntologyAmbiguity: boolean;
+}): string[] {
+  const affordances = selectFocusSliceToolAffordances(options);
+  return [
+    "TOOL_AFFORDANCES:",
+    "  best_next:",
+    ...affordances.best_next.map((item) => `    - ${item}`),
+    "  recovery:",
+    ...affordances.recovery.map((item) => `    - ${item}`),
+    "  do_not_use:",
+    ...affordances.do_not_use.map((item) => `    - ${item}`),
+  ];
+}
+
+async function getTrajectoryFocusSliceLines(): Promise<string[]> {
+  if (!S.focusaAvailable) return [];
+  const root = S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) return [];
+  try {
+    const params = new URLSearchParams();
+    params.set("mode", "summary");
+    params.set("project_root", root);
+    if (S.sessionFrameKey) params.set("session_id", S.sessionFrameKey);
+    if (S.continuityId) params.set("continuity_id", S.continuityId);
+    const view = await focusaFetch(`/trajectory/view?${params.toString()}`);
+    return formatTrajectoryFocusSlice(view);
+  } catch {
+    return [];
+  }
 }
 
 function providerStatusSuggestsContextOverflow(status: number, headers: Record<string, string> = {}): boolean {
@@ -134,7 +276,8 @@ export function registerTurns(pi: ExtensionAPI) {
       "- The DECISIONS listed below were made earlier — do not contradict without explanation",
       "- If context was compacted, Focus State below is your source of truth",
     ].join("\n");
-    const workpointLaw = S.activeWorkpointPacket ? [
+    const scopedWorkpointForPrompt = getScopedWorkpointPacket();
+    const workpointLaw = scopedWorkpointForPrompt ? [
       "\n## Focusa Workpoint Continuity Law",
       "If a Focusa WorkpointResumePacket is present, treat it as the authoritative continuation anchor unless the operator explicitly steers elsewhere.",
       "Do not use raw transcript tail to override the active workpoint.",
@@ -250,7 +393,7 @@ export function registerTurns(pi: ExtensionAPI) {
           body: JSON.stringify({
             current_ask: S.currentAsk?.text || askText,
             frame_id: S.activeFrameId,
-            workpoint_id: S.activeWorkpointPacket?.workpoint_id || S.activeWorkpointPacket?.workpoint?.workpoint_id,
+            workpoint_id: getScopedWorkpointPacket()?.workpoint_id || getScopedWorkpointPacket()?.workpoint?.workpoint_id,
             target_refs: canonicalReferenceAliases.slice(0, 6),
             budget_tokens: Math.min(maxTokens, 800),
             operator_steering_detected: isOperatorSteeringInput(askText, S.currentAsk?.kind || "unknown"),
@@ -280,13 +423,24 @@ export function registerTurns(pi: ExtensionAPI) {
     const ontologyUncertaintyLines = Array.isArray(ontologyPayload?.uncertainty_flags)
       ? ontologyPayload.uncertainty_flags.slice(0, 6).map((item: any) => String(item))
       : [];
+    const trajectoryLines = await getTrajectoryFocusSliceLines();
+    const resourceModeLines = await getResourceModeFocusSliceLines();
+    const toolAffordanceLines = getToolAffordanceFocusSliceLines({
+      resourceModeActive: resourceModeLines.length > 0,
+      hasTrajectory: trajectoryLines.length > 0,
+      hasWorkpoint: Boolean(S.activeWorkpointPacket),
+      hasOntologyAmbiguity: ontologyObjectLines.length > 1 || ontologyUncertaintyLines.length > 0,
+    });
 
     const sectionEntries = [
       { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
       { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
       { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 2, relevanceScore: 100 },
       { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 3, relevanceScore: 100 },
-      buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(S.activeWorkpointPacket), (values) => values.join("\n"), 0, 4, 100),
+      buildSliceSection("resource_mode", "RESOURCE_MODE", resourceModeLines, resourceModeLines.length > 0, (values) => values.join("\n"), 0, 4, 100),
+      buildSliceSection("trajectory", "PROJECT_TRAJECTORY", trajectoryLines, trajectoryLines.length > 0, (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 100),
+      buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(S.activeWorkpointPacket), (values) => values.join("\n"), 0, 6, 100),
+      buildSliceSection("tool_affordances", "TOOL_AFFORDANCES", toolAffordanceLines, toolAffordanceLines.length > 0, (values) => values.join("\n"), 0, 7, 95),
       { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
       { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
       { key: "intent", text: `INTENT: ${fs.intent || "(none)"}`, include: missionIncluded && Boolean(fs.intent), selectedCount: fs.intent ? 1 : 0, excludedCount: 0, priority: 12, relevanceScore: missionIncluded ? 40 : 0 },
@@ -569,6 +723,9 @@ export function registerTurns(pi: ExtensionAPI) {
           operator_steering_detected: steeringDetected,
         }),
       }).catch(() => null);
+      if (steeringDetected) {
+        refreshTrajectoryClarityLifecycle("operator_steering", (_ctx as any)?.cwd || S.sessionCwd || process.cwd()).catch(() => null);
+      }
     }
 
     if (S.cfg?.emitMetrics) {
@@ -686,6 +843,9 @@ export function registerTurns(pi: ExtensionAPI) {
         scope_kind: S.queryScope?.scopeKind || "mission_carryover",
         carryover_policy: S.queryScope?.carryoverPolicy || "allow_if_relevant",
       };
+      if (scopeFailures.length || detectedLeakClasses.length) {
+        refreshTrajectoryClarityLifecycle("failure_or_degradation", S.sessionCwd || process.cwd()).catch(() => null);
+      }
       if (scopeFailures.length === 0) {
         queueTraceTelemetry({
           event_type: "scope_verified",
@@ -806,11 +966,7 @@ export function registerTurns(pi: ExtensionAPI) {
     if (snapshot.failures.length) w.push(`⚠️ ${snapshot.failures.length} failures`);
     if (S.wbmEnabled) w.push(S.wbmDeep ? "⚡ WBM deep" : "🤖 WBM on");
     if (S.currentTier && typeof S.currentContextPct === "number") {
-      const label = S.currentTier === "warn"
-        ? "monitor"
-        : S.currentTier === "auto"
-          ? "compacting"
-          : "critical · fork/new";
+      const label = contextTierLabel(S.currentTier);
       w.push(`📦 Context ${S.currentContextPct.toFixed(0)}% ${label}`);
     }
     // §10.4: Degraded-context badge

@@ -8,3 +8,5 @@ This is a navigation page. Each linked page documents exactly one tool with desc
 - [`focusa_work_loop_context`](tools/focusa_work_loop_context.md)
 - [`focusa_work_loop_checkpoint`](tools/focusa_work_loop_checkpoint.md)
 - [`focusa_work_loop_select_next`](tools/focusa_work_loop_select_next.md)
+
+Work-loop status tools use the bounded summary route by default; replay and deep diagnostics are cold paths and must be opt-in.

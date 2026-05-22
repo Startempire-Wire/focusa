@@ -15,15 +15,26 @@ Use `focusa_constraint` when its specific Focusa state or workflow surface is th
 
 Do not use `focusa_constraint` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
 
+## Phrasing discipline
+
+Constraints should read like stable boundaries, not task instructions. Prefer noun-phrase/declarative wording:
+
+- Good: `Workpoint identity uses project_root plus continuity_id; Pi session_id is temporal metadata.`
+- Good: `Public docs use current snapshot language while development continues.`
+- Avoid: `Need to fix Workpoint resume.`
+- Avoid: `Do not treat session changes as new sessions.`
+
+If validation rejects the write, put the full reasoning in `focusa_scratch`, retry once with shorter declarative wording, then continue without looping.
+
 ## Example usage
 
 ```text
-focusa_constraint constraint="Public docs must use current snapshot language while development continues." source="operator directive"
+focusa_constraint constraint="Public docs use current snapshot language while development continues." source="operator directive"
 ```
 
 ## Expected result
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
 ## Recovery notes
 

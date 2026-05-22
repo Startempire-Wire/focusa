@@ -3,7 +3,8 @@
 //! Implements cache/metrics/intuition/contribute/export/autonomy/gate/constitution extras.
 
 use crate::routes::bounded::{
-    BoundedReadOptions, bounded_metadata, env_limit, record_json_response_size,
+    BoundedReadOptions, bounded_metadata, budgeted_default_limit, budgeted_hard_limit,
+    record_json_response_size,
 };
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
@@ -549,11 +550,15 @@ fn default_true() -> bool {
 }
 
 fn references_default_limit() -> usize {
-    env_limit("FOCUSA_REFERENCES_SALIENT_DEFAULT_LIMIT", 50)
+    budgeted_default_limit("FOCUSA_REFERENCES_SALIENT_DEFAULT_LIMIT", 50)
 }
 
 fn references_full_limit() -> usize {
-    env_limit("FOCUSA_REFERENCES_SALIENT_FULL_LIMIT", 512).max(references_default_limit())
+    budgeted_hard_limit(
+        "FOCUSA_REFERENCES_SALIENT_FULL_LIMIT",
+        512,
+        references_default_limit(),
+    )
 }
 
 fn handle_summary(handle: &focusa_core::types::HandleRef) -> Value {

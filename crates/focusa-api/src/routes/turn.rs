@@ -265,6 +265,7 @@ async fn prompt_assemble(
         {
             turn.raw_user_input = Some(req.raw_user_input.clone());
             turn.assembled_prompt = Some(assembly.content.clone());
+            state.mark_external_mutation();
         }
     }
 
@@ -317,6 +318,7 @@ async fn turn_append(
         {
             let existing = turn.assembled_prompt.take().unwrap_or_default();
             turn.assembled_prompt = Some(format!("{}{}", existing, req.chunk));
+            state.mark_external_mutation();
         }
     }
 
@@ -531,6 +533,7 @@ mod tests {
             started_at: Instant::now(),
             pi_rpc_session: Arc::new(Mutex::new(None)),
             supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),
+            external_mutation_epoch: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         });
 
         (build_router(state), persistence)

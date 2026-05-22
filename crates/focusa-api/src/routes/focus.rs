@@ -25,36 +25,137 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize, Default)]
+struct FocusStackQuery {
+    limit: Option<usize>,
+    cursor: Option<usize>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
 struct ScopedFrameQuery {
     frame_id: Option<Uuid>,
     session_key: Option<String>,
+    continuity_id: Option<String>,
+    project_root: Option<String>,
+}
+
+fn normalize_project_root_authority(value: &str) -> String {
+    let trimmed = value.trim().trim_end_matches('/');
+    if trimmed.is_empty() { "".to_string() } else { trimmed.to_string() }
+}
+
+fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
+    let root = normalize_project_root_authority(value.unwrap_or(""));
+    if root.is_empty() {
+        return Some("missing_project_root");
+    }
+    match root.as_str() {
+        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => Some("unsafe_broad_project_root"),
+        _ if root.strip_prefix("/home/").is_some_and(|rest| !rest.contains('/')) => Some("unsafe_user_home_project_root"),
+        _ => None,
+    }
+}
+
+fn frame_matches_project_root(frame: &FrameRecord, project_root: Option<&str>) -> bool {
+    let Some(expected) = project_root.map(normalize_project_root_authority).filter(|value| !value.is_empty()) else {
+        return unsafe_project_root_reason(frame.project_root.as_deref()).is_none();
+    };
+    unsafe_project_root_reason(Some(&expected)).is_none()
+        && frame.project_root.as_deref().map(normalize_project_root_authority).as_deref() == Some(expected.as_str())
+}
+
+fn unsafe_scope_response(reason: &'static str, value: Option<&str>) -> serde_json::Value {
+    json!({
+        "status": "rejected_unsafe_project_root",
+        "canonical": false,
+        "failure_class": "scope_mismatch",
+        "unsafe_reason": reason,
+        "project_root": value,
+        "retry_posture": "do_not_retry_unchanged",
+        "safe_recovery": "use an exact project/repo root before creating or reading scoped Focus frames",
+    })
 }
 
 fn resolve_scoped_frame<'a>(
     stack: &'a FocusStackState,
     frame_id: Option<Uuid>,
     session_key: Option<&str>,
+    continuity_id: Option<&str>,
+    project_root: Option<&str>,
 ) -> Option<(&'a FrameRecord, &'static str)> {
     if let Some(frame) = frame_id.and_then(|id| stack.frames.iter().find(|f| f.id == id)) {
-        return Some((frame, "frame_id"));
+        return frame_matches_project_root(frame, project_root).then_some((frame, "frame_id"));
     }
 
-    let key = session_key?.trim();
+    let continuity = continuity_id.map(str::trim).unwrap_or_default();
+    if !continuity.is_empty()
+        && let Some(frame) = stack.frames.iter().rev().find(|frame| {
+            frame.status == FrameStatus::Active
+                && frame_matches_project_root(frame, project_root)
+                && (frame.continuity_id.as_deref().map(str::trim) == Some(continuity)
+                    || frame.tags.iter().any(|tag| {
+                        tag == continuity || tag == &format!("continuity_id:{continuity}")
+                    }))
+        })
+    {
+        return Some((frame, "continuity_id"));
+    }
+
+    let key = session_key.map(str::trim).unwrap_or_default();
     if key.is_empty() {
-        return None;
+        if project_root.map(str::trim).filter(|value| !value.is_empty()).is_some() {
+            return None;
+        }
+        return stack
+            .active_id
+            .and_then(|id| stack.frames.iter().find(|frame| frame.id == id && frame_matches_project_root(frame, None)))
+            .map(|frame| (frame, "active_frame"));
     }
 
     stack.frames.iter().rev().find_map(|frame| {
-        (frame.status == FrameStatus::Active && frame.tags.iter().any(|tag| tag == key))
+        (frame.status == FrameStatus::Active && frame_matches_project_root(frame, project_root) && frame.tags.iter().any(|tag| tag == key))
             .then_some((frame, "session_key"))
     })
 }
 
-async fn get_stack(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+async fn get_stack(
+    Query(query): Query<FocusStackQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
+    let total = focusa.focus_stack.frames.len();
+    let default_limit = 25usize;
+    let hard_limit = 200usize;
+    let limit = query.limit.unwrap_or(default_limit).clamp(1, hard_limit);
+    let cursor = query.cursor.unwrap_or(0).min(total);
+    let frames_window = focusa
+        .focus_stack
+        .frames
+        .iter()
+        .skip(cursor)
+        .take(limit)
+        .cloned()
+        .collect::<Vec<_>>();
+    let next_cursor =
+        (cursor + frames_window.len() < total).then(|| (cursor + frames_window.len()).to_string());
     Json(json!({
         "stack": focusa.focus_stack,
         "active_frame_id": focusa.focus_stack.active_id,
+        "frames_window": frames_window,
+        "traversal_metadata": {
+            "surface": "focus_stack",
+            "selector": "window",
+            "total": total,
+            "returned": frames_window.len(),
+            "limit": limit,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
+            "summary_only": true,
+            "cold_full_payload_opt_in": false,
+        },
+        "rehydrate_refs": [
+            {"route":"/v1/focus/frame/current", "reason":"active scoped frame"},
+            {"tool":"focusa_traverse", "surface":"focus_stack", "selector":"window"}
+        ]
     }))
 }
 
@@ -67,11 +168,14 @@ async fn get_scoped_frame(
         &focusa.focus_stack,
         query.frame_id,
         query.session_key.as_deref(),
+        query.continuity_id.as_deref(),
+        query.project_root.as_deref(),
     );
     Json(json!({
         "frame": resolved.map(|(frame, _)| frame),
         "matched_by": resolved.map(|(_, matched_by)| matched_by).unwrap_or("none"),
         "active_frame_id": focusa.focus_stack.active_id,
+        "requested_project_root": query.project_root,
     }))
 }
 
@@ -169,6 +273,10 @@ struct PushFrameBody {
     constraints: Vec<String>,
     #[serde(default)]
     tags: Vec<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
 }
 
 async fn push_frame(
@@ -179,6 +287,12 @@ async fn push_frame(
         let focusa = state.focusa.read().await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
             return Ok(Json(resp));
+        }
+    }
+
+    if let Some(project_root) = body.project_root.as_deref() {
+        if let Some(reason) = unsafe_project_root_reason(Some(project_root)) {
+            return Ok(Json(unsafe_scope_response(reason, Some(project_root))));
         }
     }
 
@@ -196,6 +310,8 @@ async fn push_frame(
             title: body.title.unwrap_or_default(),
             goal: body.goal.unwrap_or_default(),
             beads_issue_id,
+            project_root: body.project_root,
+            continuity_id: body.continuity_id,
             constraints: body.constraints,
             tags: body.tags,
         })
@@ -410,6 +526,61 @@ async fn update_delta(
             .cloned()
     };
 
+    if let Some(target_frame_id) = body.frame_id {
+        let focusa = state.focusa.read().await;
+        let active_frame_id = focusa.focus_stack.active_id;
+        let target = focusa
+            .focus_stack
+            .frames
+            .iter()
+            .find(|frame| frame.id == target_frame_id);
+        if let Some(frame) = target {
+            if let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref()) {
+                return Ok(Json(unsafe_scope_response(reason, frame.project_root.as_deref())));
+            }
+        }
+        if target.is_none() {
+            return Ok(Json(json!({
+                "status": "frame_unavailable",
+                "failure_class": "frame_unavailable",
+                "reason": "target_frame_id_not_found",
+                "target_frame_id": target_frame_id,
+                "active_frame_id": active_frame_id,
+                "retry_posture": "refresh_scoped_frame",
+                "safe_recovery": "call /v1/focus/frame/current with continuity_id or checkpoint a fresh Workpoint/Focus frame",
+                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true}}
+            })));
+        }
+        if active_frame_id.is_none() {
+            return Ok(Json(json!({
+                "status": "frame_unavailable",
+                "failure_class": "frame_unavailable",
+                "reason": "no_active_frame_for_focus_update",
+                "target_frame_id": target_frame_id,
+                "active_frame_id": active_frame_id,
+                "target_frame_status": target.map(|frame| frame.status),
+                "retry_posture": "recover_frame_then_retry",
+                "safe_recovery": "refresh the scoped Pi frame before writing Focus State; use scratchpad fallback if recovery fails",
+                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true}}
+            })));
+        }
+        if active_frame_id != Some(target_frame_id) {
+            return Ok(Json(json!({
+                "status": "rejected_scope_mismatch",
+                "failure_class": "scope_mismatch",
+                "reason": "target_frame_is_not_active",
+                "target_frame_id": target_frame_id,
+                "active_frame_id": active_frame_id,
+                "target_frame_status": target.map(|frame| frame.status),
+                "active_frame_status": active_frame_id.and_then(|id| focusa.focus_stack.frames.iter().find(|frame| frame.id == id).map(|frame| frame.status)),
+                "diagnostic_class": "stale_active_frame_or_read_model_lag",
+                "retry_posture": "refresh_scoped_frame",
+                "safe_recovery": "retry after getFocusState()/focus frame rescope; do not mark daemon unavailable",
+                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "scope_mismatch", "canonical": false, "degraded": true}}
+            })));
+        }
+    }
+
     // Per-slot validation with kind + capacity cap check
     if let Some(ref intent) = delta.intent
         && !validate_slot(intent, 500, "intent")
@@ -492,6 +663,9 @@ async fn update_delta(
                 return Ok(Json(json!({"status": "no_active_frame"})));
             }
         } else if let Some(active_id) = focusa.focus_stack.active_id {
+            if focusa.focus_stack.frames.iter().find(|frame| frame.id == active_id).and_then(|frame| unsafe_project_root_reason(frame.project_root.as_deref())).is_some() {
+                return Ok(Json(json!({"status": "no_active_frame", "failure_class": "frame_unavailable", "reason": "active_frame_has_unsafe_project_root"})));
+            }
             (active_id, !session_active)
         } else {
             return Ok(Json(json!({"status": "no_active_frame"})));
@@ -504,6 +678,8 @@ async fn update_delta(
             .send(Action::StartSession {
                 adapter_id: Some("focus-update".to_string()),
                 workspace_id: Some("auto-recovered-focus-write".to_string()),
+                project_root: None,
+                continuity_id: None,
                 instance_id: None,
             })
             .await
@@ -610,6 +786,11 @@ mod tests {
             title: title.to_string(),
             goal: title.to_string(),
             beads_issue_id: format!("issue-{title}"),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: tags
+                .iter()
+                .find(|tag| tag.starts_with("cont-"))
+                .map(|tag| tag.to_string()),
             tags: tags.iter().map(|x| x.to_string()).collect(),
             priority_hint: None,
             ascc_checkpoint_id: None,
@@ -619,6 +800,38 @@ mod tests {
             completed_at: None,
             completion_reason: None::<CompletionReason>,
         }
+    }
+
+    #[test]
+    fn resolve_scoped_frame_rejects_unsafe_global_active_when_project_requested() {
+        let active_id = Uuid::now_v7();
+        let mut unsafe_frame = frame(active_id, FrameStatus::Active, "unsafe", &["cont-root"]);
+        unsafe_frame.project_root = Some("/root".to_string());
+        let stack = FocusStackState {
+            root_id: Some(active_id),
+            active_id: Some(active_id),
+            frames: vec![unsafe_frame],
+            stack_path_cache: vec![active_id],
+            version: 1,
+        };
+        assert!(resolve_scoped_frame(&stack, None, None, None, Some("/workspace/focusa")).is_none());
+        assert!(resolve_scoped_frame(&stack, None, None, None, None).is_none());
+    }
+
+    #[test]
+    fn resolve_scoped_frame_matches_safe_project_and_continuity() {
+        let safe_id = Uuid::now_v7();
+        let mut safe_frame = frame(safe_id, FrameStatus::Active, "safe", &["cont-focusa"]);
+        safe_frame.project_root = Some("/workspace/focusa".to_string());
+        let stack = FocusStackState {
+            root_id: Some(safe_id),
+            active_id: Some(safe_id),
+            frames: vec![safe_frame],
+            stack_path_cache: vec![safe_id],
+            version: 1,
+        };
+        let resolved = resolve_scoped_frame(&stack, None, None, Some("cont-focusa"), Some("/workspace/focusa"));
+        assert_eq!(resolved.map(|(frame, by)| (frame.id, by)), Some((safe_id, "continuity_id")));
     }
 
     #[test]
@@ -637,9 +850,29 @@ mod tests {
         };
 
         let (resolved, matched_by) =
-            resolve_scoped_frame(&stack, Some(a), Some("pi-1")).expect("frame");
+            resolve_scoped_frame(&stack, Some(a), Some("pi-1"), None, None).expect("frame");
         assert_eq!(resolved.id, a);
         assert_eq!(matched_by, "frame_id");
+    }
+
+    #[test]
+    fn resolve_scoped_frame_without_scope_returns_active_frame() {
+        let a = Uuid::now_v7();
+        let b = Uuid::now_v7();
+        let stack = FocusStackState {
+            root_id: Some(a),
+            active_id: Some(b),
+            frames: vec![
+                frame(a, FrameStatus::Paused, "paused", &["pi-1"]),
+                frame(b, FrameStatus::Active, "active", &["pi-2"]),
+            ],
+            stack_path_cache: vec![a, b],
+            version: 2,
+        };
+
+        let (resolved, matched_by) = resolve_scoped_frame(&stack, None, None, None, None).expect("frame");
+        assert_eq!(resolved.id, b);
+        assert_eq!(matched_by, "active_frame");
     }
 
     #[test]
@@ -660,7 +893,7 @@ mod tests {
         };
 
         let (resolved, matched_by) =
-            resolve_scoped_frame(&stack, None, Some("pi-1")).expect("frame");
+            resolve_scoped_frame(&stack, None, Some("pi-1"), None, None).expect("frame");
         assert_eq!(resolved.id, c);
         assert_eq!(matched_by, "session_key");
     }

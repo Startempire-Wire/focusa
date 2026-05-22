@@ -7,6 +7,9 @@
 //! POST /v1/reflect/scheduler
 //! POST /v1/reflect/scheduler/tick
 
+use crate::routes::bounded::{
+    budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
+};
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -106,7 +109,11 @@ impl Default for SchedulerConfig {
 }
 
 fn default_limit() -> usize {
-    20
+    budgeted_default_limit("FOCUSA_REFLECT_HISTORY_DEFAULT_LIMIT", 20)
+}
+
+fn hard_limit() -> usize {
+    budgeted_hard_limit("FOCUSA_REFLECT_HISTORY_HARD_LIMIT", 200, default_limit())
 }
 
 fn parse_rfc3339_param(
@@ -848,7 +855,8 @@ async fn reflect_history(
             )
         })?;
 
-    let effective_limit = params.limit.clamp(1, 200);
+    let effective_limit =
+        budgeted_requested_limit(Some(params.limit), default_limit(), hard_limit());
 
     let rows = stmt
         .query_map([effective_limit as i64], |r| {
@@ -1281,6 +1289,7 @@ mod tests {
             started_at: Instant::now(),
             pi_rpc_session: Arc::new(Mutex::new(None)),
             supervisor_perf: Arc::new(crate::server::SupervisorPerfCounters::default()),
+            external_mutation_epoch: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         });
 
         build_router(state)

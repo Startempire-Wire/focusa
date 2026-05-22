@@ -30,12 +30,16 @@ Commands:
   constitution   Agent Constitution
   telemetry      Cognitive telemetry
   rfm            Reliability Focus Mode
-  release        Release proof orchestration
+  release        Release proof workflow
   proposals      Proposal Resolution Engine
   predict        Prediction loop commands
   reflect        Reflection loop overlay
   metacognition  Metacognition command domain
   ontology       Ontology projections and vocab surfaces
+  project        Project identity discovery and verification (Spec96)
+  resource       ResourceMode / LowMem control (Spec96)
+  trajectory     Per-project Trajectory Projection (Spec96)
+  traverse       Bounded surgical traversal across Focusa surfaces (Spec96)
   skills         Agent skills
   thread         Thread operations (docs/38)
   export         Export training datasets (docs/20-21)
@@ -59,18 +63,23 @@ Options:
 
 - `doctor` — full agent-first health/readiness check.
 - `continue` — governed continuous-work resume and state refresh.
-- `release prove` — safe release proof orchestration, including optional GitHub release verification.
+- `release prove` — safe release proof workflow, including optional GitHub release verification.
 - `cleanup --safe` — recoverable cleanup of generated residue.
 - `predict` — bounded prediction record/evaluate/recent/stats loop.
 - `tokens` and `cache` — token-budget and cache-metadata operational visibility.
+- `project` — Project identity discovery/verification parity for `/v1/project/*`.
+- `trajectory` — Trajectory view/define/assess/propose/checkpoint/resume parity for `/v1/trajectory/*`.
+- `traverse` — bounded surgical traversal and tag verification parity for `/v1/traverse`.
+- `resource` — ResourceMode/LowMem status and override parity for `/v1/resource/mode`.
 - `workpoint` — checkpoint/current/resume continuity operations.
+- `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 
 ## Common examples
 
 ```bash
 focusa status --agent
 focusa doctor --json
-focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith
+focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith --continuity-id cont-1
 focusa continue --json
 focusa release prove --tag v0.9.11-dev --fast --github --json
 focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence"
@@ -81,6 +90,14 @@ focusa tokens doctor
 focusa cache doctor
 focusa workpoint current --json
 focusa workpoint resume --json
+focusa project identity --project-root /home/wirebot/focusa --json
+focusa project verify --project-root /home/wirebot/focusa --project-id focusa --json
+focusa trajectory view --project-root /home/wirebot/focusa --mode summary --json
+focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --project-root /home/wirebot/focusa --json
+focusa traverse read --surface workpoints --selector current --limit 1 --json
+focusa traverse verify-tags --surface workpoints --tag focusa://workpoints/current/item/example --json
+focusa resource status --json
+focusa resource activate-lowmem --reason "operator requested LowMem" --json
 ```
 
 Use `--json` for machine-readable output where supported.

@@ -3,9 +3,10 @@ set -euo pipefail
 
 BASE="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 SLEEP_SECS="${WATCHDOG_SLEEP_SECS:-2}"
+REPO_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 pick_parent_epic() {
-  (cd /home/wirebot/focusa && bd list --type epic --status open --status in_progress 2>/dev/null | awk '{print $2}' | head -n1) || true
+  (cd "$REPO_ROOT" && bd list --type epic --status open --status in_progress 2>/dev/null | awk '{print $2}' | head -n1) || true
 }
 
 enable_continuous_unbounded() {
@@ -75,7 +76,7 @@ while true; do
     curl -sS -X POST "$BASE/v1/work-loop/driver/start" \
       -H 'Content-Type: application/json' \
       -H "x-focusa-writer-id: $writer" \
-      -d '{"cwd":"/home/wirebot/focusa"}' >/dev/null || true
+      -d "{"cwd":"$REPO_ROOT"}" >/dev/null || true
   fi
 
   if [[ "$status" == "paused" && "$last_blocker_reason" == *"max_turns budget exhausted"* ]]; then

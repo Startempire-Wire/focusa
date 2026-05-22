@@ -6,7 +6,10 @@
 //! NOTE: SSE streaming should be implemented via in-process broadcast channel,
 //! not file tailing. This module only covers read APIs for now.
 
-use crate::routes::bounded::record_json_response_size;
+use crate::routes::bounded::{
+    budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
+    record_json_response_size,
+};
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
 use axum::{Json, Router, routing::get};
@@ -26,7 +29,11 @@ struct RecentParams {
 }
 
 fn default_limit() -> usize {
-    20
+    budgeted_default_limit("FOCUSA_EVENTS_RECENT_DEFAULT_LIMIT", 20)
+}
+
+fn hard_limit() -> usize {
+    budgeted_hard_limit("FOCUSA_EVENTS_RECENT_HARD_LIMIT", 500, default_limit())
 }
 
 async fn recent(
@@ -44,7 +51,7 @@ async fn recent(
         }
     };
 
-    let limit = params.limit.clamp(1, 500);
+    let limit = budgeted_requested_limit(Some(params.limit), default_limit(), hard_limit());
     let query_limit = limit + 1;
     let mut sql = "SELECT ts, payload_json FROM events".to_string();
     let mut clauses = Vec::new();

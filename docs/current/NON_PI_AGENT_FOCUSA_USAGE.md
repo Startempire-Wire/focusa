@@ -26,7 +26,9 @@ Focusa is the local cognitive continuity/governance runtime.
 Use it for Workpoints, Focus State, evidence refs, predictions, metacognition, lineage, work-loop state, and recovery.
 If uncertain/degraded: run focusa doctor or call /v1/doctor.
 Before compaction/model switch/fork/risky continuation: checkpoint a Workpoint.
+On project start/resume: fetch /v1/trajectory/view for high/mid/low goals, active gap, evidence, and drift boundaries.
 After resume/reload: fetch Workpoint resume packet and follow it unless operator steers otherwise.
+Trajectory similarity is advisory only; same high-level sessions must_not_merge_sessions without project_root+continuity_id match.
 After proof/tests/API/file result: capture/link evidence.
 Before risky/uncertain next action: record prediction; after outcome: evaluate it.
 Operator steering wins.
@@ -69,10 +71,11 @@ Required plugin behavior:
 
 1. Health check Focusa.
 2. Fetch `/v1/workpoint/resume` with OpenClaw/Wirebot session/workspace scope.
-3. Fetch `/v1/doctor` or `/v1/focus/frame/current` when needed.
-4. Insert compact utility card and canonical Workpoint packet.
-5. On proof/test/release events, call evidence endpoints.
-6. On risky decisions, record/evaluate predictions.
+3. Fetch `/v1/trajectory/view` for project north-star orientation when choosing next work.
+4. Fetch `/v1/doctor` or `/v1/focus/frame/current` when needed.
+5. Insert compact utility card, trajectory view summary, and canonical Workpoint packet.
+6. On proof/test/release events, call evidence endpoints.
+7. On risky decisions, record/evaluate predictions.
 
 ### Mode C — CLI wrapper fallback
 
@@ -151,7 +154,7 @@ Configured production path:
 ```text
 /data/wirebot/users/verious/openclaw.json
 plugins.allow += focusa-awareness
-plugins.load.paths += /home/wirebot/focusa/apps/focusa-awareness
+plugins.load.paths += ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/focusa-awareness
 plugins.entries.focusa-awareness.enabled = true
 ```
 

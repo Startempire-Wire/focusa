@@ -39,7 +39,7 @@ Each Focusa Pi tool MUST have one canonical contract entry.
 Required fields:
 
 - `name` — exact Pi tool name, e.g. `focusa_workpoint_checkpoint`.
-- `family` — one of `focus_state`, `workpoint`, `work_loop`, `metacognition`, `tree_lineage`, `diagnostics_hygiene`.
+- `family` — one of `focus_state`, `workpoint`, `work_loop`, `metacognition`, `tree_lineage`, `diagnostics_hygiene`, `trajectory`.
 - `label` — human-facing label.
 - `purpose` — current-build purpose, no roadmap language.
 - `ontology_action` — canonical action id, e.g. `workpoint.checkpoint`.
@@ -58,7 +58,7 @@ Required fields:
 
 - `full` — Pi tool has direct ontology action, API route, CLI command, docs, and result envelope.
 - `domain` — Pi tool maps to a broader API/CLI domain but not a one-command exact equivalent.
-- `pi_only` — tool is intentionally Pi-local/orchestration-only.
+- `pi_only` — tool is intentionally Pi-local/composition-only.
 - `local_only` — tool writes local scratchpad/session state and does not mutate daemon state.
 - `degraded_known` — present but intentionally limited; contract must explain why.
 
@@ -110,10 +110,12 @@ Exemptions must be explicit. Valid exemptions:
 
 - `local_scratchpad_only`
 - `pi_session_only`
-- `doctor_orchestration_only`
+- `doctor_composition_only`
 - `domain_cli_only`
 - `api_domain_only`
 - `approval_placeholder`
+- `pi_session_snapshot_only`
+- `pi_only`
 
 ## 8. Result envelope requirements
 
@@ -122,6 +124,7 @@ Every Pi tool MUST return or be wrapped with a `tool_result_v1` detail object co
 - `ok`
 - `tool`
 - `status`
+- `failure_class`
 - `canonical`
 - `degraded`
 - `summary`

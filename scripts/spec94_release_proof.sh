@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${1:-$ROOT/target/spec94-release-proof}"
-CARGO_BIN="${CARGO_BIN:-/root/.cargo/bin/cargo}"
+CARGO_BIN="${CARGO_BIN:-cargo}"
 TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/focusa-target}"
 mkdir -p "$OUT_DIR"
 

@@ -85,7 +85,7 @@ JSON output MUST include:
 Current representative probes:
 
 - Workpoint: `GET /v1/workpoint/current`
-- Work-loop: `GET /v1/work-loop/status`
+- Work-loop: `GET /v1/work-loop/status?summary_only=true`
 - Tree/lineage: `GET /v1/lineage/head`
 - Metacognition: `GET /v1/metacognition/reflections/recent`
 - Focus State: `GET /v1/focus/frame/current`

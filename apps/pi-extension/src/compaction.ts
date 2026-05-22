@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -30,8 +30,9 @@ function packetField(packet: any, key: string): string {
 }
 
 function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
-  const packet = workpointPacket?.resume_packet || S.activeWorkpointPacket || {};
-  const rendered = String(workpointPacket?.rendered_summary || S.activeWorkpointSummary || "").trim();
+  const candidatePacket = normalizeWorkpointResumePacketEnvelope(workpointPacket) || getScopedWorkpointPacket() || {};
+  const packet = isWorkpointPacketScopedToCurrentSession(candidatePacket) ? candidatePacket : {};
+  const rendered = String(Object.keys(packet).length ? (packet?.rendered_summary || S.activeWorkpointSummary || "") : "").trim();
   const mission = packetField(packet, "mission") || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle;
   const nextSlice = packetField(packet, "next_slice") || S.currentAsk?.text || S.lastCompactDecision;
   const currentFocus = fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || mission;
@@ -57,10 +58,10 @@ function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
   if (!failures.length) failures.push("No active failure records in Focusa state.");
   if (!notes.length && rendered) notes.push(`Workpoint summary: ${rendered}`);
   const bullet = (items: string[]) => items.length ? items.slice(0, 12).map((x) => `- ${x}`).join("\n") : "- Not populated by Focusa; no safe related fallback available.";
-  const workpointSection = (rendered || Object.keys(packet).length) ? [
+  const v2Prompt = formatResumePacketV2ForPrompt(packet);
+  const workpointSection = v2Prompt ? [
     "# Workpoint Resume Packet",
-    rendered || `WORKPOINT ${packetField(packet, "workpoint_id") || "active"}: mission=${mission || "available"}`,
-    JSON.stringify(packet, null, 2).slice(0, 4000),
+    v2Prompt,
     "",
   ].join("\n") : "";
   return [
@@ -83,10 +84,16 @@ let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
   if (!S.focusaAvailable) return null;
+  const root = S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) {
+    S.activeWorkpointPacket = null;
+    S.activeWorkpointSummary = "";
+    return null;
+  }
   try {
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
-      body: JSON.stringify({ mode, session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
+      body: JSON.stringify({ mode, continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()), session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
     });
     if (packet && packet.status === "rejected_scope_mismatch") {
       S.activeWorkpointPacket = null;
@@ -94,8 +101,14 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
       return null;
     }
     if (packet && packet.status === "completed") {
-      S.activeWorkpointPacket = packet.resume_packet || packet;
-      S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+      const candidate = normalizeWorkpointResumePacketEnvelope(packet);
+      if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
+        S.activeWorkpointPacket = null;
+        S.activeWorkpointSummary = "";
+        return null;
+      }
+      S.activeWorkpointPacket = candidate;
+      S.activeWorkpointSummary = packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "";
       return packet;
     }
   } catch { /* best effort */ }
@@ -121,6 +134,8 @@ function recordLocalWorkpointFallback(reason: string): void {
 
 async function checkpointBeforeCompaction(): Promise<any | null> {
   if (!S.focusaAvailable) return null;
+  const root = S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) return null;
   const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || "Pi work before compaction";
   const nextSlice = S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || "Resume current task from typed Workpoint packet after compaction.";
   try {
@@ -133,6 +148,9 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
         checkpoint_reason: "before_compact",
         canonical: true,
         promote: true,
+        continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+        session_id: S.sessionFrameKey,
+        project_root: S.sessionCwd || process.cwd(),
         source_turn_id: `pi-turn-${S.turnCount}`,
         action_intent: {
           action_type: "resume_workpoint",
@@ -145,7 +163,24 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
   } catch { return null; }
 }
 
-function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number) {
+export function isFocusaContextContinuityHealthy(): boolean {
+  const cwd = S.sessionCwd || process.cwd();
+  const continuityId = S.continuityId || ensureContinuityId(cwd);
+  if (!isProjectRootAuthoritySafe(cwd)) return false;
+  const packet = getScopedWorkpointPacket();
+  const rawPacket = S.activeWorkpointPacket;
+  const noDegradedWorkpoint = !rawPacket || Boolean(packet);
+  return Boolean(S.focusaAvailable && String(continuityId || "").trim() && noDegradedWorkpoint);
+}
+
+export function contextTierLabel(tier: "" | "warn" | "auto" | "hard"): string {
+  if (tier === "warn") return "monitor";
+  if (tier === "auto") return "compacting";
+  if (tier === "hard") return isFocusaContextContinuityHealthy() ? "critical · Focusa continuity" : "critical · recovery needed";
+  return "";
+}
+
+function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: number, focusaContinuityReady = isFocusaContextContinuityHealthy()) {
   S.currentContextPct = typeof pct === "number" ? pct : null;
   const mode = S.cfg?.contextStatusMode || "actionable";
   if (mode === "off") {
@@ -162,10 +197,45 @@ function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: n
     return;
   }
   if (tier === "hard" && typeof pct === "number") {
-    ctx.ui.setStatus("focusa-ctx", `🚧 Context ${pct.toFixed(0)}% critical fork/new`);
+    const label = focusaContinuityReady ? "Focusa continuity" : "recovery needed";
+    ctx.ui.setStatus("focusa-ctx", `🚧 Context ${pct.toFixed(0)}% ${label}`);
     return;
   }
   ctx.ui.setStatus("focusa-ctx", "");
+}
+
+
+function formatResumePacketV2ForPrompt(packet: any): string {
+  const v2 = packet?.resume_packet_v2 || (packet?.schema_version === "focusa.workpoint_resume_packet.v2" ? packet : null);
+  if (!v2 || typeof v2 !== "object") return "";
+  const packetProjectRoot = normalizeProjectRoot(packet?.project_root || v2?.workpoint?.project_root);
+  const packetContinuityId = String(packet?.continuity_id || v2?.workpoint?.continuity_id || "").trim();
+  if (!isProjectRootAuthoritySafe(packetProjectRoot)) return "";
+  if (!packetContinuityId || (S.continuityId && packetContinuityId !== S.continuityId)) return "";
+  if (v2.canonical === false) return "";
+  const affordances = v2.tool_affordances || {};
+  const bestNext = Array.isArray(affordances.best_next) ? affordances.best_next : v2.next_tools || [];
+  const doNotUse = Array.isArray(affordances.do_not_use_by_default) ? affordances.do_not_use_by_default : [];
+  return [
+    "## WorkpointResumePacketV2",
+    `SCHEMA_VERSION: ${v2.schema_version || "focusa.workpoint_resume_packet.v2"}`,
+    `CANONICAL: ${v2.canonical !== false}`,
+    `FAILURE_CLASS: ${v2.failure_class || "none"}`,
+    v2.rendered_summary ? `RENDERED_SUMMARY: ${v2.rendered_summary}` : "",
+    "BEST_NEXT_TOOLS:",
+    ...(bestNext.length ? bestNext : ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse", "focusa_tool_doctor"]).map((tool: string) => `  - ${tool}`),
+    "DO_NOT_USE_BY_DEFAULT:",
+    ...(doNotUse.length ? doNotUse : ["transcript tail as authority", "full lineage tree", "full ontology graph", "deep work-loop status"]).map((item: string) => `  - ${item}`),
+    "RECOVERY_ORDER:",
+    "  - focusa_workpoint_resume",
+    "  - focusa_trajectory_view",
+    "  - focusa_traverse",
+    "  - focusa_active_object_resolve when object identity is ambiguous",
+    "  - focusa_tool_doctor when canonical=false, degraded=true, blocked, or stale",
+    "AUTHORITY_BOUNDARY: project_root + continuity_id; trajectory similarity is advisory grouping only.",
+    "STRUCTURED_PACKET_JSON:",
+    JSON.stringify(v2, null, 2).slice(0, 6000),
+  ].filter(Boolean).join("\n");
 }
 
 function submitCompactionResumeTurn(ctx: any, steerMessage: string): boolean {
@@ -217,6 +287,7 @@ export function registerCompaction(pi: ExtensionAPI) {
       });
     }
     await checkpointBeforeCompaction();
+    await refreshTrajectoryClarityLifecycle("before_compaction", S.sessionCwd || process.cwd());
     const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
 
     // Always persist to Pi session entries as backup
@@ -299,6 +370,8 @@ export function registerCompaction(pi: ExtensionAPI) {
     const compactResumeKey = String(compactionEntry.id || compactionEntry.uuid || compactionEntry.timestamp || `${S.sessionFrameKey || "session"}:compact:${compactOrdinal}`);
     const recentlySubmitted = S.lastCompactResumeKey === compactResumeKey || (Date.now() - S.lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
     if (!S.compactResumePending && !recentlySubmitted) {
+      await refreshWorkpointResumePacket("compact_prompt");
+      await refreshTrajectoryClarityLifecycle("after_compaction", S.sessionCwd || process.cwd());
       S.lastCompactResumeKey = compactResumeKey;
       S.lastCompactResumeAt = Date.now();
       persistState();
@@ -311,19 +384,17 @@ export function registerCompaction(pi: ExtensionAPI) {
       if (pi2) {
         queueMicrotask(() => {
           // lastDecision saved above, before localDecisions was cleared
-          const workpoint = S.activeWorkpointSummary || S.activeWorkpointPacket?.next_slice || "";
-          const directive = workpoint
-            ? `Resume from the WorkpointResumePacket below. Treat it as the canonical continuation contract unless the operator steers otherwise.`
-            : (S.localDecisions.length > 0 || S.lastCompactDecision
-              ? `Review the above decisions and constraints. Continue with the next logical step.`
-              : `Continue executing. Context was compacted — preserve all progress.`);
+          const scopedPacket = getScopedWorkpointPacket();
+          const v2Prompt = formatResumePacketV2ForPrompt(scopedPacket);
+          const directive = v2Prompt
+            ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Then use focusa_trajectory_view for orientation and focusa_traverse for bounded supporting slices. Never use transcript tail as authority.`
+            : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, or focusa_tool_doctor before trusting any carryover.`;
           const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
           const steerMessage = `# Compaction Complete${note}
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
-## WorkpointResumePacket
-${S.activeWorkpointSummary || (S.activeWorkpointPacket?.mission ? `WORKPOINT active: mission=${S.activeWorkpointPacket.mission}` : "No Workpoint packet recorded; continue from Last Active Focus and latest operator instruction.")}
-${S.activeWorkpointPacket ? JSON.stringify(S.activeWorkpointPacket, null, 2).slice(0, 4000) : ""}
+## WorkpointResumePacketV2
+${v2Prompt || `No scoped WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
 ## Directive
 ${directive}
 
@@ -332,7 +403,7 @@ ${directive}
 ## Focusa Tool Guidance
 When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
 - **Working notes** → focusa_scratch (all internal monologue welcome)
-- **Crystallized decision** → focusa_decide (ONE sentence, max 280 chars, architectural choice)
+- **Crystallized decision** → focusa_decide (ONE sentence, max 160 chars, architectural choice)
 - **Discovered requirement** → focusa_constraint (hard boundary from environment/architecture)
 - **Failure diagnosis** → focusa_failure (specific component + why it failed)
 - **Validation** fails if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), or exceeding char limits
@@ -388,19 +459,23 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     S.forkSuggested = false; // Reset after compaction frees space
   };
 
-  // §18: autoSuggestForkPct — check BEFORE tier branches so it fires at any tier
-  if (pct >= cfg.autoSuggestForkPct && !S.forkSuggested) {
+  const focusaContinuityReady = isFocusaContextContinuityHealthy();
+
+  // §18: autoSuggestForkPct — generic fork/new guidance is only actionable when Focusa continuity is degraded.
+  if (pct >= cfg.autoSuggestForkPct && !S.forkSuggested && !focusaContinuityReady) {
     S.forkSuggested = true;
-    ctx.ui.notify(`💡 Context at ${pct.toFixed(0)}% — consider /fork to preserve context quality`, "warning");
+    ctx.ui.notify(`💡 Context at ${pct.toFixed(0)}% — Focusa continuity degraded; consider /fork to preserve context quality`, "warning");
   }
 
   if (pct >= cfg.hardPct) {
     S.currentTier = "hard";
-    setContextStatus(ctx, "hard", pct);
-    ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — hard compacting. Consider /fork or /new.`, "warning");
-    // §18: Suggest handoff after N compactions
-    if (S.totalCompactions >= cfg.autoSuggestHandoffAfterNCompactions) {
-      ctx.ui.notify(`💡 ${S.totalCompactions} compactions — consider /fork or session handoff`, "warning");
+    setContextStatus(ctx, "hard", pct, focusaContinuityReady);
+    if (!focusaContinuityReady) {
+      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — Focusa continuity degraded; consider /fork or /new before fallback.`, "warning");
+      // §18: Suggest handoff after N compactions only when Workpoint continuity is not healthy.
+      if (S.totalCompactions >= cfg.autoSuggestHandoffAfterNCompactions) {
+        ctx.ui.notify(`💡 ${S.totalCompactions} compactions without healthy Workpoint continuity — consider /fork or session handoff`, "warning");
+      }
     }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {

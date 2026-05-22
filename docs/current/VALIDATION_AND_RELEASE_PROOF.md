@@ -5,7 +5,7 @@ Current build validation should distinguish script checks from real runtime proo
 ## Code checks
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 cargo test --workspace
 cargo clippy --workspace -- -D warnings
 ./scripts/ci/run-spec-gates.sh
@@ -16,14 +16,19 @@ cd apps/pi-extension && ./node_modules/.bin/tsc --noEmit
 ## Skill checks
 
 ```bash
-node --input-type=module - <<'NODE'
-import { loadSkillsFromDir } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
-for (const dir of ['/root/.pi/skills','/home/wirebot/focusa/apps/pi-extension/skills','/home/wirebot/focusa/.pi/skills']) {
-  const r = loadSkillsFromDir({ dir, source: 'user' });
-  console.log(dir, r.diagnostics);
-  if (r.diagnostics.length) process.exit(1);
-}
-NODE
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
+node scripts/validate-skill-hygiene.mjs
+```
+
+## Spec96 continuity/portability checks
+
+```bash
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
+tests/spec96_model_tool_instruction_static_test.sh
+tests/spec96_workpoint_post_compaction_resume_static_test.sh
+tests/spec96_silent_sessions_tool_static_test.sh
+tests/spec96_focusa_aware_context_pressure_static_test.sh
+tests/spec96_portable_identity_paths_static_test.sh
 ```
 
 ## Runtime proof
@@ -31,7 +36,7 @@ NODE
 A real release proof should verify the installed daemon/CLI, not only shell scripts:
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 cargo build --release --bins
 systemctl restart focusa-daemon
 sleep 2
@@ -47,7 +52,7 @@ focusa workpoint resume
 ## Mac app proof
 
 ```bash
-cd /home/wirebot/focusa/apps/menubar
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/menubar
 bun install
 bun run check
 bun run build
@@ -56,7 +61,7 @@ bun run build
 ## GitHub release proof
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 gh run list --limit 6 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
 gh release view v0.9.11-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
 ```
@@ -68,3 +73,8 @@ For current real proof see:
 - `docs/evidence/PRODUCTION_RELEASE_MAC_APP_GITHUB_FIX_2026-04-28.md`
 - `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
 - `docs/current/PRODUCTION_RELEASE_COMMANDS.md`
+
+
+## Spec96 trajectory agent eval
+
+Run `tests/spec96_trajectory_agent_golden_eval_test.sh` to verify Pi, CLI/API, and generic-agent trajectory prompts outperform without-trajectory baselines on mismatch, compaction, degraded, drift, assistance-reduction, and evidence-based DoD scenarios.

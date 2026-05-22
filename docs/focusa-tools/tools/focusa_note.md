@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Miscellaneous note (max 200 chars). Bounded at 20, oldest decay first.
+Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.
 
 ## When to use
 
@@ -23,7 +23,7 @@ focusa_note note="Prefer evidence refs over pasted logs."
 
 ## Expected result
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
 ## Recovery notes
 

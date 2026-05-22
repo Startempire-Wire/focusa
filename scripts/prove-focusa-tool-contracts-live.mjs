@@ -79,7 +79,7 @@ if (!apiRef.includes('/v1/ontology/tool-contracts')) fail('API reference missing
 if (safeFixturesMode) {
   const safeFixtureEndpoints = [
     { family: 'workpoint', representative_tools: ['focusa_workpoint_resume'], endpoint: '/v1/workpoint/current' },
-    { family: 'work_loop', representative_tools: ['focusa_work_loop_status'], endpoint: '/v1/work-loop/status' },
+    { family: 'work_loop', representative_tools: ['focusa_work_loop_status'], endpoint: '/v1/work-loop/status?summary_only=true' },
     { family: 'tree_lineage', representative_tools: ['focusa_tree_head', 'focusa_lineage_tree'], endpoint: '/v1/lineage/head' },
     { family: 'metacognition', representative_tools: ['focusa_metacog_recent_reflections'], endpoint: '/v1/metacognition/reflections/recent' },
     { family: 'focus_state', representative_tools: ['focusa_current_focus'], endpoint: '/v1/focus/frame/current' },

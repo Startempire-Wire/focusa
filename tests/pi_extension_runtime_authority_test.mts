@@ -110,8 +110,9 @@ async function main() {
   registerCompaction(pi as any);
   registerTurns(pi as any);
 
+  const testCwd = process.env.FOCUSA_TEST_PROJECT_ROOT || process.cwd();
   const mkCtx = () => ({
-    cwd: "/home/wirebot/focusa",
+    cwd: testCwd,
     ui: pi.ui,
     sessionManager: { getEntries: () => pi.entries },
   });

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PATH="/opt/cpanel/ea-nodejs20/bin:$PATH"
+if [[ -n "${FOCUSA_NODE_BIN_DIR:-}" ]]; then export PATH="${FOCUSA_NODE_BIN_DIR}:$PATH"; fi
+PI_BIN="${FOCUSA_PI_BIN:-pi}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_JSON="/tmp/spec83_perf_metrics.json"
 
@@ -12,7 +13,7 @@ run_pi() {
   local ofile="/tmp/spec83_${label}.out"
 
   /usr/bin/time -f "elapsed=%e user=%U sys=%S maxrss=%M" \
-    timeout 35 /usr/local/bin/pi --no-session --print --no-context-files --no-prompt-templates --no-skills "$@" -p "Reply with exactly: OK" \
+    timeout 35 "$PI_BIN" --no-session --print --no-context-files --no-prompt-templates --no-skills "$@" -p "Reply with exactly: OK" \
     >"$ofile" 2>"$tfile" || true
 
   python3 - "$label" "$tfile" <<'PY'
@@ -38,8 +39,8 @@ cd "$ROOT_DIR"
 
 # A/B/C benchmark modes
 none_json=$(run_pi none --no-extensions)
-focusa_json=$(run_pi focusa --no-extensions -e /home/wirebot/focusa/apps/pi-extension/src/index.ts)
-polling_json=$(FOCUSA_PI_BRIDGE_SYNC_MODE=polling FOCUSA_PI_BRIDGE_POLL_MS=5000 run_pi focusa_polling --no-extensions -e /home/wirebot/focusa/apps/pi-extension/src/index.ts)
+focusa_json=$(run_pi focusa --no-extensions -e ${ROOT_DIR}/apps/pi-extension/src/index.ts)
+polling_json=$(FOCUSA_PI_BRIDGE_SYNC_MODE=polling FOCUSA_PI_BRIDGE_POLL_MS=5000 run_pi focusa_polling --no-extensions -e ${ROOT_DIR}/apps/pi-extension/src/index.ts)
 
 status_lat_json=$(python3 - <<'PY'
 import subprocess, json

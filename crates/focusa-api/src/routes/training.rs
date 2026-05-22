@@ -351,6 +351,8 @@ async fn contribution_status(State(state): State<Arc<AppState>>) -> Json<Value> 
 async fn contribute_enable(State(state): State<Arc<AppState>>) -> Result<Json<Value>, StatusCode> {
     let mut s = state.focusa.write().await;
     s.contribution.enabled = true;
+    drop(s);
+    state.mark_external_mutation();
     Ok(Json(json!({ "status": "enabled" })))
 }
 
@@ -358,6 +360,8 @@ async fn contribute_enable(State(state): State<Arc<AppState>>) -> Result<Json<Va
 async fn contribute_pause(State(state): State<Arc<AppState>>) -> Result<Json<Value>, StatusCode> {
     let mut s = state.focusa.write().await;
     s.contribution.enabled = false;
+    drop(s);
+    state.mark_external_mutation();
     Ok(Json(json!({ "status": "paused" })))
 }
 
@@ -374,6 +378,8 @@ async fn contribute_approve(
     let mut s = state.focusa.write().await;
     training::approve_contribution(&mut s.contribution, body.item_id)
         .map_err(|e| (StatusCode::NOT_FOUND, Json(json!({ "error": e }))))?;
+    drop(s);
+    state.mark_external_mutation();
     Ok(Json(
         json!({ "status": "approved", "item_id": body.item_id }),
     ))
@@ -383,6 +389,8 @@ async fn contribute_approve(
 async fn contribute_submit(State(state): State<Arc<AppState>>) -> Json<Value> {
     let mut s = state.focusa.write().await;
     let count = training::submit_approved(&mut s.contribution);
+    drop(s);
+    state.mark_external_mutation();
     Json(json!({ "submitted": count }))
 }
 

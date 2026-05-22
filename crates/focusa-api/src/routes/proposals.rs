@@ -155,6 +155,16 @@ fn apply_focus_change_proposal(
             beads_issue_id,
             title,
             goal,
+            project_root: winner
+                .payload
+                .get("project_root")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            continuity_id: winner
+                .payload
+                .get("continuity_id")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             constraints,
             tags,
         },

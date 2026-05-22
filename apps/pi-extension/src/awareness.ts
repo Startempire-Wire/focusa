@@ -1,25 +1,30 @@
-import { S } from "./state.js";
+import { S, getScopedWorkpointPacket, normalizeProjectRoot } from "./state.js";
 
 function line(value: unknown): string {
   return String(value || "").trim();
 }
 
 export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): string {
-  const packet = S.activeWorkpointPacket || {};
-  const mission = line(packet.mission || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle);
-  const next = line(packet.next_slice || S.lastCompactDecision);
-  const projectRoot = line(packet.project_root || S.sessionCwd);
+  const scopedPacket = getScopedWorkpointPacket();
+  const mission = line(scopedPacket?.mission);
+  const next = line(scopedPacket?.next_slice);
+  const projectRoot = normalizeProjectRoot(S.sessionCwd || scopedPacket?.project_root);
+  const continuityId = line(S.continuityId || scopedPacket?.continuity_id);
   const status = S.focusaAvailable ? "available" : "offline/degraded";
   const prefix = mode === "visible" ? "# Focusa Utility Card" : "## Focusa Utility Card";
   return [
     prefix,
     `Status: ${status}`,
-    mission ? `Mission: ${mission}` : "Mission: use latest operator instruction and active repo/bead context.",
-    next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume if resuming or uncertain.",
+    scopedPacket ? "Scoped Workpoint: verified project_root + continuity_id match." : "Scoped Workpoint: none verified for this logical session; ignore stale scoped carryover.",
+    mission ? `Mission: ${mission}` : "Mission: use latest operator instruction only; no scoped Workpoint mission verified.",
+    next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming or uncertain.",
     projectRoot ? `Scope: project_root=${projectRoot}` : "Scope: bind work to current project root; reject cross-project resume packets.",
+    continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: require a stable continuity_id before trusting same-root session state.",
+    "Trajectory: use focusa_trajectory_view for high/mid/low goals and advisory similarity; never merge same-high-level sessions without project_root+continuity_id.",
     "",
     "Use Focusa as agent working memory and governance:",
     "- First when uncertain/degraded: focusa_tool_doctor.",
+    "- On project start/resume or unclear next action: focusa_trajectory_view, then Workpoint resume/checkpoint as needed.",
     "- Before compaction/model switch/fork/risky continuation: focusa_workpoint_checkpoint.",
     "- After compaction/reload/resume: focusa_workpoint_resume; do not trust transcript tail over Workpoint.",
     "- After proof/tests/API/file evidence: focusa_evidence_capture or focusa_workpoint_link_evidence.",

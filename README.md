@@ -434,6 +434,14 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 
 | Tool | Family | Doc |
 | --- | --- | --- |
+| `focusa_project_identity` | Project Identity | [`docs/focusa-tools/tools/focusa_project_identity.md`](docs/focusa-tools/tools/focusa_project_identity.md) |
+| `focusa_project_verify` | Project Identity | [`docs/focusa-tools/tools/focusa_project_verify.md`](docs/focusa-tools/tools/focusa_project_verify.md) |
+| `focusa_trajectory_view` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_view.md`](docs/focusa-tools/tools/focusa_trajectory_view.md) |
+| `focusa_trajectory_define_goal` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_define_goal.md`](docs/focusa-tools/tools/focusa_trajectory_define_goal.md) |
+| `focusa_trajectory_assess` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_assess.md`](docs/focusa-tools/tools/focusa_trajectory_assess.md) |
+| `focusa_trajectory_propose_workpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md`](docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md) |
+| `focusa_trajectory_checkpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_checkpoint.md`](docs/focusa-tools/tools/focusa_trajectory_checkpoint.md) |
+| `focusa_trajectory_resume` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_resume.md`](docs/focusa-tools/tools/focusa_trajectory_resume.md) |
 | `focusa_scratch` | Focus State | [`docs/focusa-tools/tools/focusa_scratch.md`](docs/focusa-tools/tools/focusa_scratch.md) |
 | `focusa_decide` | Focus State | [`docs/focusa-tools/tools/focusa_decide.md`](docs/focusa-tools/tools/focusa_decide.md) |
 | `focusa_constraint` | Focus State | [`docs/focusa-tools/tools/focusa_constraint.md`](docs/focusa-tools/tools/focusa_constraint.md) |
@@ -524,3 +532,14 @@ Part of the Startempire Wire ecosystem.
 - [Efficiency Guide](docs/current/EFFICIENCY_GUIDE.md)
 - [Hook Coverage](docs/current/HOOK_COVERAGE.md)
 - [Spec92 Full Rollout Proof](docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md)
+
+- [Trajectory Tool Index](docs/focusa-tools/trajectory.md)
+
+- [Trajectory GTM and Companion Gap Assessment](docs/current/TRAJECTORY_GTM_AND_GAPS.md)
+
+## Focusa Tools
+- [focusa_project_identity](docs/focusa-tools/tools/focusa_project_identity.md) — resolve ProjectIdentity quorum and scope.
+- [focusa_project_verify](docs/focusa-tools/tools/focusa_project_verify.md) — verify expected ProjectIdentity fields.
+- [focusa_resource_mode](docs/focusa-tools/tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
+- [focusa_traverse](docs/focusa-tools/tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.
+- [focusa_silent_sessions](docs/focusa-tools/tools/focusa_silent_sessions.md) — manage tmux-backed background SilentSessions.

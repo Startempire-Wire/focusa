@@ -5,7 +5,7 @@
 - Pi extension source: `apps/pi-extension/`
 - Project skill copies: `.pi/skills/`
 - Extension-packaged skill copies: `apps/pi-extension/skills/`
-- Installed runtime skill copies: `/root/.pi/skills/`
+- Installed runtime skill copies: `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`
 
 ## Main skill and companion skills
 
@@ -23,10 +23,10 @@
 Canonical extension-packaged skills path:
 
 ```text
-/home/wirebot/focusa/apps/pi-extension/skills
+${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/pi-extension/skills
 ```
 
-A stale reload path such as `~/apps/pi-extension/skills` resolves to `/root/apps/pi-extension/skills` in root-run Pi sessions. Do **not** symlink that path to the repo skill directory; that makes Pi load the same skill names twice and produces `[Skill conflicts]` collisions. Keep the stale compatibility directory present but empty, and keep canonical runtime skills in `/root/.pi/skills`.
+A stale reload path such as `~/apps/pi-extension/skills` resolves under the runtime user home and may duplicate the repo skill directory. Do **not** symlink that stale path to the repo skill directory; that makes Pi load the same skill names twice and produces `[Skill conflicts]` collisions. Keep any stale compatibility directory present but empty, and keep canonical runtime skills in `${PI_SKILLS_DIR:-$HOME/.pi/skills}`.
 
 Validate skill hygiene:
 
@@ -37,7 +37,7 @@ node scripts/validate-skill-hygiene.mjs
 ## Install dependencies for local validation
 
 ```bash
-cd /home/wirebot/focusa/apps/pi-extension
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/pi-extension
 npm install
 ./node_modules/.bin/tsc --noEmit
 ```
@@ -45,19 +45,14 @@ npm install
 ## Validate skills
 
 ```bash
-cd /home/wirebot/focusa
-node --input-type=module - <<'NODE'
-import { loadSkills } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
-const r = loadSkills({ cwd: process.cwd(), agentDir: '/root/.pi/agent', skillPaths: [], includeDefaults: true });
-console.log(r.skills.map(s => [s.name, s.filePath]));
-console.log(r.diagnostics);
-NODE
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
+node scripts/validate-skill-hygiene.mjs
 ```
 
 ## Tool contract validation
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 node scripts/validate-focusa-tool-contracts.mjs
 node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
 ```

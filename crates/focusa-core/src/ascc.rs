@@ -183,13 +183,10 @@ pub fn artifact_kind_str(kind: ArtifactLineKind) -> &'static str {
 
 // ─── File Persistence (G1-07 §Persistence) ─────────────────────────────────────
 
-/// Save a checkpoint to ~/.focusa/ascc/<frame_id>.json
-///
-/// Per G1-07: "Checkpoint per frame stored in: ~/.focusa/ascc/<frame_id>.json.
-/// MVP: only current checkpoint required."
+/// Save a checkpoint to the configured Focusa data directory under ascc/<frame_id>.json.
 pub fn save_checkpoint(data_dir: &str, checkpoint: &CheckpointRecord) -> std::io::Result<()> {
     let expanded = if data_dir.starts_with('~') {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
         data_dir.replacen('~', &home, 1)
     } else {
         data_dir.to_string()
@@ -201,13 +198,13 @@ pub fn save_checkpoint(data_dir: &str, checkpoint: &CheckpointRecord) -> std::io
     std::fs::write(path, json)
 }
 
-/// Load a checkpoint from ~/.focusa/ascc/<frame_id>.json
+/// Load a checkpoint from the configured Focusa data directory under ascc/<frame_id>.json.
 pub fn load_checkpoint(
     data_dir: &str,
     frame_id: uuid::Uuid,
 ) -> std::io::Result<Option<CheckpointRecord>> {
     let expanded = if data_dir.starts_with('~') {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
         data_dir.replacen('~', &home, 1)
     } else {
         data_dir.to_string()
@@ -310,7 +307,9 @@ mod tests {
             title: "Test".into(),
             goal: "Test goal".into(),
             beads_issue_id: "BEAD-1".into(),
-            tags: vec![],
+            project_root: Some("/repo/test".into()),
+            continuity_id: Some("cont-test".into()),
+            tags: vec!["continuity_id:cont-test".into()],
             priority_hint: None,
             ascc_checkpoint_id: None,
             stats: FrameStats::default(),
@@ -337,7 +336,9 @@ mod tests {
             title: "Test".into(),
             goal: "Test goal".into(),
             beads_issue_id: "BEAD-1".into(),
-            tags: vec![],
+            project_root: Some("/repo/test".into()),
+            continuity_id: Some("cont-test".into()),
+            tags: vec!["continuity_id:cont-test".into()],
             priority_hint: None,
             ascc_checkpoint_id: None,
             stats: FrameStats::default(),

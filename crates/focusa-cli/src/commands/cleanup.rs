@@ -35,7 +35,12 @@ const TMP_GLOBS: &[&str] = &[
 
 fn trash_root() -> PathBuf {
     let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-    PathBuf::from(format!("/home/wirebot/.trash/focusa-clean-{stamp}"))
+    let base = std::env::var_os("FOCUSA_TRASH_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("XDG_DATA_HOME").map(|p| PathBuf::from(p).join("Trash")))
+        .or_else(|| std::env::var_os("HOME").map(|p| PathBuf::from(p).join(".trash")))
+        .unwrap_or_else(std::env::temp_dir);
+    base.join(format!("focusa-clean-{stamp}"))
 }
 
 fn safe_target(path: &Path, root: &Path) -> PathBuf {
@@ -120,7 +125,7 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
         "next_action": if blocked == 0 { "Run focusa doctor or continue release proof" } else { "Inspect blocked cleanup action and rerun focusa cleanup --safe" },
         "why": "Spec92 cleanup must be recoverable and must preserve runtime-critical Focusa state.",
         "commands": ["focusa cleanup --safe --dry-run", "focusa cleanup --safe"],
-        "recovery": ["restore files from /home/wirebot/.trash/focusa-clean-*", "focusa doctor"],
+        "recovery": ["restore files from the reported trash_root", "focusa doctor"],
         "evidence_refs": ["docs/current/PRODUCTION_RELEASE_COMMANDS.md", "docs/current/DAEMON_RESILIENCE.md"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md"],
         "warnings": ["preserves .beads, data, and target"],
@@ -146,7 +151,7 @@ pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
             response["why"].as_str().unwrap_or("safe cleanup")
         );
         println!("Command: focusa cleanup --safe --dry-run");
-        println!("Recovery: restore files from /home/wirebot/.trash/focusa-clean-*");
+        println!("Recovery: restore files from the reported trash_root");
         println!("Evidence: docs/current/PRODUCTION_RELEASE_COMMANDS.md");
         println!("Docs: docs/92-agent-first-polish-hooks-efficiency-spec.md");
     }

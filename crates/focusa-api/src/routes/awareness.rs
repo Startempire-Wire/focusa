@@ -15,6 +15,7 @@ pub struct AwarenessCardQuery {
     pub agent_id: Option<String>,
     pub operator_id: Option<String>,
     pub session_id: Option<String>,
+    pub continuity_id: Option<String>,
     pub project_root: Option<String>,
 }
 
@@ -40,7 +41,13 @@ fn scoped_workpoint<'a>(
     query: &AwarenessCardQuery,
 ) -> Option<&'a WorkpointRecord> {
     let active = active_workpoint(focusa)?;
-    if let Some(expected) = clean(query.session_id.as_deref())
+    if let Some(expected) = clean(query.continuity_id.as_deref())
+        && active.continuity_id.as_deref().map(str::trim) != Some(expected.as_str())
+    {
+        return None;
+    }
+    if query.continuity_id.is_none()
+        && let Some(expected) = clean(query.session_id.as_deref())
         && active.session_id.as_deref().map(str::trim) != Some(expected.as_str())
     {
         return None;
@@ -78,6 +85,12 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
     let session = clean(query.session_id.as_deref())
         .or_else(|| record.and_then(|r| r.session_id.clone()))
         .unwrap_or_else(|| "unbound; use harness session id if available".to_string());
+    let continuity = clean(query.continuity_id.as_deref())
+        .or_else(|| record.and_then(|r| r.continuity_id.clone()))
+        .unwrap_or_else(|| {
+            "unbound; derive a stable logical workstream id before trusting same-root state"
+                .to_string()
+        });
     let canonical = record.map(|r| r.canonical).unwrap_or(false);
     [
         "# Focusa Utility Card".to_string(),
@@ -85,10 +98,12 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
         format!("Agent: adapter={adapter} workspace={workspace} agent={agent} operator={operator}"),
         format!("Mission: {mission}"),
         format!("Next anchor: {next}"),
-        format!("Scope: project_root={project_root}; session_id={session}"),
+        format!("Scope: project_root={project_root}; continuity_id={continuity}; session_id={session} (temporal metadata)"),
+        "Trajectory: call /v1/trajectory/view before choosing work; high/mid/low similarity is advisory only and must_not_merge_sessions=true.".to_string(),
         String::new(),
         "Use Focusa as agent working memory and governance:".to_string(),
         "- First when uncertain/degraded: call /v1/doctor or run `focusa doctor --json`.".to_string(),
+        "- On project start/resume: read /v1/trajectory/view for high/mid/low goals, gap, evidence, and drift boundaries.".to_string(),
         "- Before compaction/model switch/fork/risky continuation: checkpoint a scoped Workpoint.".to_string(),
         "- After compaction/reload/resume: fetch Workpoint resume; do not trust transcript tail over Workpoint.".to_string(),
         "- After proof/tests/API/file evidence: capture or link evidence to the active Workpoint.".to_string(),
@@ -114,6 +129,7 @@ async fn card(
         "agent_id": query.agent_id,
         "operator_id": query.operator_id,
         "session_id": query.session_id,
+        "continuity_id": query.continuity_id,
         "project_root": query.project_root,
         "workpoint_id": record.map(|r| r.workpoint_id),
         "workpoint_canonical": record.map(|r| r.canonical).unwrap_or(false),
@@ -139,6 +155,7 @@ mod tests {
                 agent_id: Some("wirebot".into()),
                 operator_id: Some("verious.smith".into()),
                 session_id: Some("session-1".into()),
+                continuity_id: Some("cont-1".into()),
                 project_root: Some("/data/wirebot/users/verious".into()),
             },
             None,
@@ -148,6 +165,8 @@ mod tests {
             "adapter=openclaw",
             "workspace=wirebot",
             "/v1/doctor",
+            "/v1/trajectory/view",
+            "must_not_merge_sessions=true",
             "checkpoint a scoped Workpoint",
             "fetch Workpoint resume",
             "capture or link evidence",

@@ -547,6 +547,8 @@ mod tests {
             session_id: Uuid::now_v7(),
             adapter_id: None,
             workspace_id: None,
+            project_root: Some("/repo/replay".to_string()),
+            continuity_id: Some("cont-replay".to_string()),
         };
 
         let result = reducer::reduce(state, event);
@@ -567,6 +569,8 @@ mod tests {
             session_id,
             adapter_id: None,
             workspace_id: None,
+            project_root: Some("/repo/replay".to_string()),
+            continuity_id: Some("cont-replay".to_string()),
         };
         state = reducer::reduce(state, event1).unwrap().new_state;
         assert_eq!(state.session.as_ref().unwrap().session_id, session_id);
@@ -594,8 +598,10 @@ mod tests {
             beads_issue_id: "TEST-001".into(),
             title: "Test Frame".into(),
             goal: "Test goal".into(),
+            project_root: Some("/repo/replay".to_string()),
+            continuity_id: Some("cont-replay".to_string()),
             constraints: vec![],
-            tags: vec![],
+            tags: vec!["continuity_id:cont-replay".to_string()],
         };
         state = reducer::reduce(state, event).unwrap().new_state;
 
@@ -608,8 +614,10 @@ mod tests {
             beads_issue_id: "TEST-CHILD".into(),
             title: "Child".into(),
             goal: "Child goal".into(),
+            project_root: Some("/repo/replay".to_string()),
+            continuity_id: Some("cont-replay".to_string()),
             constraints: vec![],
-            tags: vec![],
+            tags: vec!["continuity_id:cont-replay".to_string()],
         };
         state = reducer::reduce(state, child).unwrap().new_state;
 
@@ -668,8 +676,10 @@ mod tests {
                 beads_issue_id: format!("TEST-{}", i),
                 title: format!("Frame {}", i),
                 goal: "Nested test".into(),
+                project_root: Some("/repo/replay".to_string()),
+                continuity_id: Some("cont-replay".to_string()),
                 constraints: vec![],
-                tags: vec![],
+                tags: vec!["continuity_id:cont-replay".to_string()],
             };
             state = reducer::reduce(state, event).unwrap().new_state;
         }
@@ -780,6 +790,8 @@ mod tests {
                 session_id,
                 adapter_id: None,
                 workspace_id: None,
+                project_root: Some("/repo/replay".to_string()),
+                continuity_id: Some("cont-replay".to_string()),
             },
         )
         .unwrap()
@@ -796,8 +808,10 @@ mod tests {
                     beads_issue_id: format!("BEAD-{}", i),
                     title: format!("Frame {}", i),
                     goal: "Test".into(),
+                    project_root: Some("/repo/replay".to_string()),
+                    continuity_id: Some("cont-replay".to_string()),
                     constraints: vec![],
-                    tags: vec![],
+                    tags: vec!["continuity_id:cont-replay".to_string()],
                 },
             )
             .unwrap()

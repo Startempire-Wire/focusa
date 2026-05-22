@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Record a completed result, output, or reference (max 300 chars).
+Record a completed result, output, or reference (max 180 chars).
 
 ## When to use
 
@@ -23,7 +23,7 @@ focusa_recent_result result="Created focused skill docs and validated skill load
 
 ## Expected result
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
 ## Recovery notes
 

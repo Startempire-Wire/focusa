@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.
+Fetch a bounded Focusa lineage window for /tree-aware reasoning and LI addon workflows. Full tree access requires explicit cold opt-in.
 
 ## When to use
 
@@ -23,7 +23,7 @@ focusa_lineage_tree max_nodes=100
 
 ## Expected result
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
 ## Recovery notes
 

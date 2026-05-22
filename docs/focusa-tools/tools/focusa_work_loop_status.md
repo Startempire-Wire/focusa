@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Get current continuous work-loop state and budgets.
+Get current continuous work-loop state and budgets from the bounded summary route.
 
 ## When to use
 
@@ -23,10 +23,11 @@ focusa_work_loop_status
 
 ## Expected result
 
-The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
+The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
 ## Recovery notes
 
+- Hot/cold boundary: this tool defaults to `GET /v1/work-loop/status?summary_only=true` and does not fetch replay/deep diagnostics. Use `focusa_tool_doctor` or direct cold routes for diagnostic replay.
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
 - If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
 - If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.

@@ -18,7 +18,7 @@ else
   log_fail "Pi RPC driver routes missing"
 fi
 WRITER_ID=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-pi-driver"')
-START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d '{"cwd":"/home/wirebot/focusa"}')
+START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d "{"cwd":"${ROOT_DIR}"}")
 DRIVER_UNAVAILABLE=0
 if echo "$START" | jq -e '(.status == "accepted" and .adapter == "pi-rpc") or ((.error // "") | test("already active"))' >/dev/null 2>&1; then
   log_pass "Pi RPC driver start accepted or already active"

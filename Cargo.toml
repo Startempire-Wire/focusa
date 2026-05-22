@@ -54,3 +54,17 @@ hex = "0.4"
 
 # Internal crates
 focusa-core = { path = "crates/focusa-core" }
+
+# ── Performance profiles ──────────────────────────────────────────────
+# Release defaults: lto=false, codegen-units=16, panic=unwind
+# These overrides squeeze meaningful perf at acceptable compile cost.
+[profile.release]
+opt-level = 3
+lto = "thin"            # cross-crate inlining + dead-code elimination; ~20% speedup
+strip = true             # remove debug symbols (~2MB off binary, no runtime cost)
+panic = "abort"          # abort instead of unwind — smaller, faster, no unwinding tables
+
+# Dev builds: keep fast incremental compile
+[profile.dev]
+opt-level = 0
+split-debuginfo = "unpacked"  # faster debug builds on split-debuginfo platforms

@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 
 const configPath = process.env.OPENCLAW_CONFIG_PATH || '/data/wirebot/users/verious/openclaw.json';
 const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 const plugins = data.plugins || {};
 const failures = [];
-const pluginPath = '/home/wirebot/focusa/apps/focusa-awareness';
+const pluginPath = process.env.FOCUSA_AWARENESS_PLUGIN_PATH || path.join(process.cwd(), 'apps/focusa-awareness');
 if (!plugins.allow?.includes?.('focusa-awareness')) failures.push('plugins.allow missing focusa-awareness');
 if (!plugins.load?.paths?.includes?.(pluginPath)) failures.push(`plugins.load.paths missing ${pluginPath}`);
 const entry = plugins.entries?.['focusa-awareness'];

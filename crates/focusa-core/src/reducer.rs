@@ -141,6 +141,53 @@ fn upsert_workpoint_record(
         truncate_front(&mut state.workpoint.records, workpoint_caps::RECORDS);
     }
 }
+
+fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
+    truncate_front(&mut record.milestones, trajectory_caps::MILESTONES);
+    for milestone in &mut record.milestones {
+        truncate_front(&mut milestone.current_state_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+        truncate_front(&mut milestone.completion_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+    }
+    truncate_front(&mut record.goal_provenance, trajectory_caps::PROVENANCE);
+    truncate_front(&mut record.blockers, trajectory_caps::MILESTONES);
+    truncate_front(&mut record.open_questions, trajectory_caps::MILESTONES);
+    if let Some(dod) = &mut record.definition_of_done {
+        truncate_front(&mut dod.criteria, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.evidence_required, trajectory_caps::EVIDENCE_REFS);
+        truncate_front(&mut dod.verified_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+    }
+}
+
+fn same_trajectory_authority_scope(a: &TrajectoryProjectionRecord, b: &TrajectoryProjectionRecord) -> bool {
+    a.project_root.is_some()
+        && a.continuity_id.is_some()
+        && a.project_root == b.project_root
+        && a.continuity_id == b.continuity_id
+}
+
+fn upsert_trajectory_record(
+    state: &mut FocusaState,
+    mut record: TrajectoryProjectionRecord,
+    now: chrono::DateTime<Utc>,
+) {
+    bound_trajectory_record(&mut record);
+    if record.created_at.is_none() {
+        record.created_at = Some(now);
+    }
+    record.updated_at = Some(now);
+    if let Some(existing) = state
+        .trajectory
+        .records
+        .iter_mut()
+        .find(|item| item.trajectory_id == record.trajectory_id)
+    {
+        *existing = record;
+    } else {
+        state.trajectory.records.push(record);
+        truncate_front(&mut state.trajectory.records, trajectory_caps::RECORDS);
+    }
+}
+
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -265,6 +312,8 @@ pub fn reduce_with_meta(
             session_id,
             adapter_id,
             workspace_id,
+            project_root,
+            continuity_id,
         } => {
             if let Some(existing) = &state.session
                 && existing.status == SessionStatus::Active
@@ -278,6 +327,8 @@ pub fn reduce_with_meta(
                 created_at: Utc::now(),
                 adapter_id,
                 workspace_id,
+                project_root,
+                continuity_id,
                 status: SessionStatus::Active,
             });
         }
@@ -743,6 +794,8 @@ pub fn reduce_with_meta(
             beads_issue_id,
             title,
             goal,
+            project_root,
+            continuity_id,
             constraints,
             tags,
         } => {
@@ -762,15 +815,24 @@ pub fn reduce_with_meta(
                 )));
             }
 
-            // Pause current active frame.
-            if let Some(active_id) = stack.active_id
-                && let Some(frame) = stack.frames.iter_mut().find(|f| f.id == active_id)
+            // Pause only the current active frame in the same logical continuity scope.
+            // Other same-root sessions keep their own active frame; scoped reads use continuity_id.
+            let parent_id = stack
+                .frames
+                .iter()
+                .rev()
+                .find(|frame| {
+                    frame.status == FrameStatus::Active
+                        && frame.project_root == project_root
+                        && frame.continuity_id == continuity_id
+                })
+                .map(|frame| frame.id);
+            if let Some(parent_id) = parent_id
+                && let Some(frame) = stack.frames.iter_mut().find(|f| f.id == parent_id)
             {
                 frame.status = FrameStatus::Paused;
                 frame.updated_at = now;
             }
-
-            let parent_id = stack.active_id;
 
             stack.frames.push(FrameRecord {
                 id: frame_id,
@@ -781,6 +843,8 @@ pub fn reduce_with_meta(
                 title,
                 goal,
                 beads_issue_id,
+                project_root,
+                continuity_id,
                 tags,
                 priority_hint: None,
                 ascc_checkpoint_id: None,
@@ -2473,16 +2537,26 @@ pub fn reduce_with_meta(
                 promoted.confidence = confidence;
                 promoted.updated_at = Some(now);
                 let work_item_id = promoted.work_item_id.clone();
-                let session_id = promoted.session_id.clone();
+                let project_root = promoted.project_root.clone();
+                let continuity_id = promoted.continuity_id.clone();
+                let previous_active_id = state.workpoint.active_workpoint_id;
                 state
                     .workpoint
                     .records
                     .iter()
                     .filter(|w| {
-                        w.workpoint_id != workpoint_id
-                            && w.status == WorkpointStatus::Active
-                            && (work_item_id.is_none() || w.work_item_id == work_item_id)
-                            && (session_id.is_none() || w.session_id == session_id)
+                        if w.workpoint_id == workpoint_id || w.status != WorkpointStatus::Active {
+                            return false;
+                        }
+                        if let Some(ref continuity_id) = continuity_id {
+                            return w.continuity_id.as_ref() == Some(continuity_id)
+                                && (project_root.is_none() || w.project_root == project_root);
+                        }
+                        if let Some(ref work_item_id) = work_item_id {
+                            return w.work_item_id.as_ref() == Some(work_item_id)
+                                && (project_root.is_none() || w.project_root == project_root);
+                        }
+                        Some(w.workpoint_id) == previous_active_id
                     })
                     .map(|w| w.workpoint_id)
                     .collect()
@@ -2647,6 +2721,98 @@ pub fn reduce_with_meta(
                 workpoint_caps::VERIFICATIONS,
             );
             record.updated_at = Some(Utc::now());
+        }
+
+
+        // ─── Trajectory Projection (Spec96) ─────────────────────────────
+        FocusaEvent::TrajectoryGoalDefined { trajectory } => {
+            if trajectory.canonical
+                && (trajectory.trajectory_id.trim().is_empty()
+                    || trajectory.long_term_goal.trim().is_empty()
+                    || trajectory.desired_end_state.trim().is_empty())
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "Canonical trajectory requires id, long_term_goal, and desired_end_state".to_string(),
+                ));
+            }
+            let now = Utc::now();
+            let new_id = trajectory.trajectory_id.clone();
+            let supersedes = trajectory.supersedes_trajectory_id.clone();
+            let superseded_ids = state
+                .trajectory
+                .records
+                .iter()
+                .filter(|existing| {
+                    existing.trajectory_id != new_id
+                        && existing.canonical
+                        && (supersedes.as_deref() == Some(existing.trajectory_id.as_str())
+                            || same_trajectory_authority_scope(existing, &trajectory))
+                })
+                .map(|existing| existing.trajectory_id.clone())
+                .collect::<Vec<_>>();
+            for old_id in superseded_ids {
+                if let Some(existing) = state
+                    .trajectory
+                    .records
+                    .iter_mut()
+                    .find(|item| item.trajectory_id == old_id)
+                {
+                    existing.canonical = false;
+                    existing.root_goal_stability = TrajectoryRootGoalStability::Superseded;
+                    existing.updated_at = Some(now);
+                }
+            }
+            let canonical = trajectory.canonical;
+            upsert_trajectory_record(&mut state, trajectory, now);
+            if canonical {
+                state.trajectory.active_trajectory_id = Some(new_id);
+            }
+        }
+        FocusaEvent::TrajectoryCheckpointPersisted {
+            trajectory_id,
+            checkpoint,
+            summary,
+        } => {
+            let now = Utc::now();
+            state.trajectory.checkpoints.push(TrajectoryCheckpointRecord {
+                trajectory_id,
+                summary,
+                packet: checkpoint,
+                persisted_at: Some(now),
+            });
+            truncate_front(&mut state.trajectory.checkpoints, trajectory_caps::CHECKPOINTS);
+        }
+        FocusaEvent::TrajectoryStateDeltaRecorded {
+            trajectory_id,
+            current_state,
+            mut evidence_refs,
+            reason,
+        } => {
+            truncate_front(&mut evidence_refs, trajectory_caps::EVIDENCE_REFS);
+            let now = Utc::now();
+            if let Some(record) = state
+                .trajectory
+                .records
+                .iter_mut()
+                .find(|item| item.trajectory_id == trajectory_id)
+            {
+                if let Some(current_state) = current_state.clone() {
+                    record.current_state = Some(current_state);
+                }
+                if let Some(dod) = &mut record.definition_of_done {
+                    dod.verified_evidence_refs.extend(evidence_refs.clone());
+                    truncate_front(&mut dod.verified_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+                }
+                record.updated_at = Some(now);
+            }
+            state.trajectory.state_deltas.push(TrajectoryStateDeltaRecord {
+                trajectory_id,
+                current_state,
+                evidence_refs,
+                reason,
+                recorded_at: Some(now),
+            });
+            truncate_front(&mut state.trajectory.state_deltas, trajectory_caps::STATE_DELTAS);
         }
 
         // ─── Errors ──────────────────────────────────────────────────────
@@ -2862,19 +3028,24 @@ pub fn reduce_with_meta(
 
 /// Verify all 7 global invariants hold on the given state.
 pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
-    // INVARIANT 1: At most one active Focus Frame exists,
-    // and active_id must point to it (or both must be None).
-    let active_count = state
+    // INVARIANT 1: At most one active Focus Frame exists per logical scope.
+    // `active_id` is the most recently touched active frame, not the only active frame globally.
+    let active_frames: Vec<&FrameRecord> = state
         .focus_stack
         .frames
         .iter()
         .filter(|f| f.status == FrameStatus::Active)
-        .count();
-    if active_count > 1 {
-        return Err(ReducerError::InvariantViolation(format!(
-            "Multiple active Focus Frames: {} found",
-            active_count
-        )));
+        .collect();
+    let mut active_scopes: std::collections::HashSet<(Option<String>, Option<String>)> =
+        std::collections::HashSet::new();
+    for frame in &active_frames {
+        let key = (frame.project_root.clone(), frame.continuity_id.clone());
+        if !active_scopes.insert(key.clone()) {
+            return Err(ReducerError::InvariantViolation(format!(
+                "Multiple active Focus Frames for scope {:?}",
+                key
+            )));
+        }
     }
     match state.focus_stack.active_id {
         Some(aid) => match state.focus_stack.frames.iter().find(|f| f.id == aid) {
@@ -2893,10 +3064,10 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
             _ => {}
         },
         None => {
-            if active_count != 0 {
+            if !active_frames.is_empty() {
                 return Err(ReducerError::InvariantViolation(format!(
                     "active_id is None but {} frame(s) have Active status",
-                    active_count
+                    active_frames.len()
                 )));
             }
         }
@@ -2987,6 +3158,8 @@ mod tests {
             session_id: Uuid::now_v7(),
             adapter_id: None,
             workspace_id: None,
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test".to_string()),
         };
         reduce(state, event).unwrap().new_state
     }
@@ -2998,8 +3171,10 @@ mod tests {
             beads_issue_id: "BEAD-001".into(),
             title: title.into(),
             goal: format!("Goal for {}", title),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test".to_string()),
             constraints: vec![],
-            tags: vec![],
+            tags: vec!["continuity_id:cont-test".to_string()],
         };
         let state = reduce(state, event).unwrap().new_state;
         (state, frame_id)
@@ -3009,6 +3184,8 @@ mod tests {
         WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
             work_item_id: Some(work_item_id.to_string()),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test".to_string()),
             session_id: Some("pi-session".to_string()),
             status: WorkpointStatus::Proposed,
             checkpoint_reason: WorkpointCheckpointReason::Manual,
@@ -3246,6 +3423,8 @@ mod tests {
             session_id: Uuid::now_v7(),
             adapter_id: None,
             workspace_id: None,
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test-2".to_string()),
         };
         let result = reduce(state, event);
         assert!(result.is_err());
@@ -3387,8 +3566,10 @@ mod tests {
             beads_issue_id: "".into(),
             title: "Bad frame".into(),
             goal: "No beads".into(),
+            project_root: Some("/repo/test".into()),
+            continuity_id: Some("cont-test".into()),
             constraints: vec![],
-            tags: vec![],
+            tags: vec!["continuity_id:cont-test".into()],
         };
         let result = reduce(fresh_state(), event);
         assert!(result.is_err());
@@ -3403,6 +3584,8 @@ mod tests {
             beads_issue_id: "BEAD-001".into(),
             title: "First".into(),
             goal: "Goal".into(),
+            project_root: None,
+            continuity_id: None,
             constraints: vec![],
             tags: vec![],
         };
@@ -3414,11 +3597,78 @@ mod tests {
             beads_issue_id: "BEAD-002".into(),
             title: "Duplicate".into(),
             goal: "Goal".into(),
+            project_root: None,
+            continuity_id: None,
             constraints: vec![],
             tags: vec![],
         };
         let result = reduce(state, event);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn same_project_distinct_continuity_frames_remain_active_without_cross_pause() {
+        let state = fresh_state();
+        let frame_a = Uuid::now_v7();
+        let state = reduce(
+            state,
+            FocusaEvent::FocusFramePushed {
+                frame_id: frame_a,
+                beads_issue_id: "BEAD-A".into(),
+                title: "Session A".into(),
+                goal: "Short goal A".into(),
+                project_root: Some("/repo/focusa".into()),
+                continuity_id: Some("cont-a".into()),
+                constraints: vec![],
+                tags: vec!["continuity_id:cont-a".into()],
+            },
+        )
+        .unwrap()
+        .new_state;
+        let frame_b = Uuid::now_v7();
+        let state = reduce(
+            state,
+            FocusaEvent::FocusFramePushed {
+                frame_id: frame_b,
+                beads_issue_id: "BEAD-B".into(),
+                title: "Session B".into(),
+                goal: "Short goal B".into(),
+                project_root: Some("/repo/focusa".into()),
+                continuity_id: Some("cont-b".into()),
+                constraints: vec![],
+                tags: vec!["continuity_id:cont-b".into()],
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(
+            state
+                .focus_stack
+                .frames
+                .iter()
+                .filter(|frame| frame.status == FrameStatus::Active)
+                .count(),
+            2
+        );
+        assert_eq!(
+            state
+                .focus_stack
+                .frames
+                .iter()
+                .find(|frame| frame.id == frame_a)
+                .map(|frame| frame.status),
+            Some(FrameStatus::Active)
+        );
+        assert_eq!(
+            state
+                .focus_stack
+                .frames
+                .iter()
+                .find(|frame| frame.id == frame_b)
+                .map(|frame| frame.status),
+            Some(FrameStatus::Active)
+        );
+        check_invariants(&state).expect("one active frame per continuity scope");
     }
 
     #[test]
@@ -3728,7 +3978,9 @@ mod tests {
             title: "Rogue".into(),
             goal: "test".into(),
             beads_issue_id: "BEAD-001".into(),
-            tags: vec![],
+            project_root: Some("/repo/test".into()),
+            continuity_id: Some("cont-rogue".into()),
+            tags: vec!["continuity_id:cont-rogue".into()],
             priority_hint: None,
             ascc_checkpoint_id: None,
             stats: FrameStats::default(),
@@ -4034,4 +4286,119 @@ mod tests {
             Some("failed")
         );
     }
+
+    // ─── Trajectory Projection (Spec96) ───────────────────────────────
+
+    fn trajectory_record(id: &str, long_term_goal: &str) -> TrajectoryProjectionRecord {
+        TrajectoryProjectionRecord {
+            trajectory_id: id.to_string(),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test".to_string()),
+            root_long_term_goal: long_term_goal.to_string(),
+            long_term_goal: long_term_goal.to_string(),
+            desired_end_state: "Reducer-backed trajectory metadata is queryable".to_string(),
+            short_term_goal: Some("Implement trajectory reducer events".to_string()),
+            current_state: Some("Types are defined".to_string()),
+            root_goal_stability: TrajectoryRootGoalStability::Stable,
+            session_clarity_status: TrajectoryDefinitionStatus::Clear,
+            definition_status: TrajectoryDefinitionStatus::Clear,
+            confidence: TrajectoryConfidence::High,
+            goal_provenance: vec![TrajectoryGoalProvenanceRecord {
+                field: "long_term_goal".to_string(),
+                source: "operator".to_string(),
+                source_ref: Some("test".to_string()),
+                inferred: false,
+                confidence: TrajectoryConfidence::High,
+            }],
+            definition_of_done: Some(TrajectoryDefinitionOfDoneRecord {
+                criteria: vec!["trajectory persisted".to_string()],
+                evidence_required: vec!["reducer test".to_string()],
+                verified_evidence_refs: vec![],
+                status: "defined".to_string(),
+            }),
+            canonical: true,
+            ..TrajectoryProjectionRecord::default()
+        }
+    }
+
+    #[test]
+    fn test_trajectory_goal_defined_sets_active_and_supersedes_same_scope() {
+        let state = fresh_state();
+        let first = trajectory_record("trajectory:first", "Ship Focusa trajectory");
+        let second = trajectory_record("trajectory:second", "Ship Focusa trajectory v2");
+        let state = reduce(
+            state,
+            FocusaEvent::TrajectoryGoalDefined { trajectory: first },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(state.trajectory.active_trajectory_id.as_deref(), Some("trajectory:first"));
+        let state = reduce(
+            state,
+            FocusaEvent::TrajectoryGoalDefined { trajectory: second },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(state.trajectory.active_trajectory_id.as_deref(), Some("trajectory:second"));
+        let first = state
+            .trajectory
+            .records
+            .iter()
+            .find(|record| record.trajectory_id == "trajectory:first")
+            .unwrap();
+        assert!(!first.canonical);
+        assert_eq!(first.root_goal_stability, TrajectoryRootGoalStability::Superseded);
+    }
+
+    #[test]
+    fn test_trajectory_checkpoint_and_state_delta_are_queryable() {
+        let state = reduce(
+            fresh_state(),
+            FocusaEvent::TrajectoryGoalDefined {
+                trajectory: trajectory_record("trajectory:active", "Ship durable trajectory"),
+            },
+        )
+        .unwrap()
+        .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::TrajectoryCheckpointPersisted {
+                trajectory_id: "trajectory:active".to_string(),
+                checkpoint: serde_json::json!({"summary":"checkpoint"}),
+                summary: Some("checkpoint".to_string()),
+            },
+        )
+        .unwrap()
+        .new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::TrajectoryStateDeltaRecorded {
+                trajectory_id: "trajectory:active".to_string(),
+                current_state: Some("Reducer persisted trajectory delta".to_string()),
+                evidence_refs: vec!["tests:trajectory_reducer".to_string()],
+                reason: "verification".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(state.trajectory.checkpoints.len(), 1);
+        assert_eq!(state.trajectory.state_deltas.len(), 1);
+        let active = state
+            .trajectory
+            .records
+            .iter()
+            .find(|record| record.trajectory_id == "trajectory:active")
+            .unwrap();
+        assert_eq!(
+            active.current_state.as_deref(),
+            Some("Reducer persisted trajectory delta")
+        );
+        assert!(active
+            .definition_of_done
+            .as_ref()
+            .unwrap()
+            .verified_evidence_refs
+            .contains(&"tests:trajectory_reducer".to_string()));
+    }
+
 }

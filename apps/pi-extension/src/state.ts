@@ -95,6 +95,7 @@ export const S = {
   activeFrameGoal: "" as string,
   sessionFrameKey: "" as string,
   sessionCwd: "" as string,
+  continuityId: "" as string,
   wbmEnabled: false,
   wbmDeep: false,
   wbmNoCatalogue: false,       // §29 --no-catalogue flag
@@ -134,6 +135,7 @@ export const S = {
   // Spec88 Workpoint resume packet projected from Focusa.
   activeWorkpointPacket: null as any | null,
   activeWorkpointSummary: "" as string,
+  lastTrajectoryClarity: null as any | null,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
   // ECS handle registry: kind -> id -> { content, stored_at }
@@ -196,6 +198,7 @@ const FOCUS_STATE_CACHE_TTL_MS = 1_200;
 const AUX_CONTEXT_CACHE_TTL_MS = 3_000;
 const CONTEXT_SEMANTIC_LIMIT = 64;
 const CONTEXT_ECS_HANDLES_LIMIT = 128;
+const HEALTHCHECK_STATUS_FALLBACK_PATH = "/status?summary_only=true";
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
@@ -797,9 +800,20 @@ export async function kickstartFocusaDaemon(reason = "health_check"): Promise<bo
 
 export async function checkFocusa(): Promise<boolean> {
   const h = await focusaFetch("/health");
-  const status = h?.ok === true ? null : await focusaFetch("/status");
+  const status = h?.ok === true ? null : await focusaFetch(HEALTHCHECK_STATUS_FALLBACK_PATH);
+  const fallbackHotOk = status?.status === "ok" && status?.summary_only !== false;
   const wasAvailable = S.focusaAvailable;
-  S.focusaAvailable = h?.ok === true || status?.session != null || status?.runtime_process?.single_daemon_ok === true;
+  S.focusaAvailable = h?.ok === true || fallbackHotOk || status?.session != null;
+
+  if (S.focusaAvailable && h?.ok !== true && fallbackHotOk) {
+    focusaPost("/telemetry/ops", {
+      event: "healthcheck_hot_fallback_ok",
+      surface: "pi",
+      failed_route: "/v1/health",
+      fallback_route: `/v1${HEALTHCHECK_STATUS_FALLBACK_PATH}`,
+      route_tier: status?.route_tier || "hot",
+    });
+  }
 
   if (S.focusaAvailable) {
     S.healthFailCount = 0;
@@ -844,6 +858,8 @@ export function extractText(content: any): string {
 async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
   const scopedQs = new URLSearchParams();
   if (S.activeFrameId) scopedQs.set("frame_id", S.activeFrameId);
+  if (S.continuityId) scopedQs.set("continuity_id", S.continuityId);
+  if (isProjectRootAuthoritySafe(S.sessionCwd)) scopedQs.set("project_root", normalizeProjectRoot(S.sessionCwd));
   if (S.sessionFrameKey) scopedQs.set("session_key", S.sessionFrameKey);
   const scopedPath = scopedQs.size > 0 ? `/focus/frame/current?${scopedQs.toString()}` : null;
 
@@ -856,6 +872,14 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
   let stack = frame
     ? { stack: { active_id: scoped?.active_frame_id || null, frames: [frame] }, active_frame_id: scoped?.active_frame_id || null }
     : null;
+
+  // Explicit frame_id can become stale after frame rescope/compaction. If the
+  // scoped frame is no longer active, fall back to stack lookup so the session
+  // key can find the current active Pi frame before reads/writes.
+  if (frame && frame.status !== "active" && S.sessionFrameKey) {
+    frame = null;
+    stack = null;
+  }
 
   if (!frame) {
     stack = await focusaFetch("/focus/stack");
@@ -1013,6 +1037,15 @@ function derivePiFrameIntent(cwd: string): { projectName: string; title: string;
   };
 }
 
+export function ensureContinuityId(cwd?: string): string {
+  if (S.continuityId) return S.continuityId;
+  const root = String(cwd || S.sessionCwd || process.cwd()).split("/").filter(Boolean).pop() || "root";
+  let randomPart = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  try { randomPart = require("crypto").randomUUID(); } catch { /* fallback above */ }
+  S.continuityId = `focusa-cont-${root}-${randomPart}`.replace(/[^a-zA-Z0-9._:-]/g, "-").slice(0, 140);
+  return S.continuityId;
+}
+
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
   S.sessionCwd = cwd;
   const { projectName, title, goal } = derivePiFrameIntent(cwd);
@@ -1020,8 +1053,9 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
   S.activeFrameGoal = goal;
   const sessionKey = S.sessionFrameKey || `pi-${process.pid}-${Date.now()}`;
   S.sessionFrameKey = sessionKey;
-  const beadsIssueId = `pi-session-${projectName}-${sessionKey}`;
-  const tags = ["pi", projectName, source, sessionKey, "task-first-frame"]; 
+  const continuityId = ensureContinuityId(cwd);
+  const beadsIssueId = `pi-session-${projectName}-${continuityId}`;
+  const tags = ["pi", projectName, source, sessionKey, continuityId, `continuity_id:${continuityId}`, "task-first-frame"];
 
   try {
     const r = await focusaFetch("/focus/push", {
@@ -1030,6 +1064,8 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
         title,
         goal,
         beads_issue_id: beadsIssueId,
+        ...(isProjectRootAuthoritySafe(cwd) ? { project_root: cwd } : {}),
+        continuity_id: continuityId,
         constraints: [],
         tags,
       }),
@@ -1048,7 +1084,7 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
         f.title === title &&
         f.beads_issue_id === beadsIssueId &&
         Array.isArray(f.tags) &&
-        f.tags.includes(sessionKey));
+        (f.continuity_id === continuityId || f.tags.includes(continuityId) || f.tags.includes(`continuity_id:${continuityId}`)));
       if (match?.id) {
         S.activeFrameId = match.id;
         S.activeFrameTitle = match.title || title;
@@ -1061,13 +1097,193 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
   return null;
 }
 
+
+export function normalizeProjectRoot(value: unknown): string {
+  const normalized = String(value || "").trim().replace(/\/+$/, "");
+  return normalized === "" ? "" : normalized;
+}
+
+const UNSAFE_PROJECT_AUTHORITY_ROOTS = new Set(["/", "/root", "/home", "/tmp", "/var", "/usr", "/opt"]);
+
+export function projectRootAuthorityFailure(value: unknown): string | null {
+  const root = normalizeProjectRoot(value);
+  if (!root) return "missing_project_root";
+  if (UNSAFE_PROJECT_AUTHORITY_ROOTS.has(root)) return "unsafe_broad_project_root";
+  if (/^\/home\/[^/]+$/.test(root)) return "unsafe_user_home_project_root";
+  return null;
+}
+
+export function isProjectRootAuthoritySafe(value: unknown): boolean {
+  return projectRootAuthorityFailure(value) === null;
+}
+
+export function normalizeWorkpointResumePacketEnvelope(packet: any): any | null {
+  if (!packet || typeof packet !== "object") return null;
+  const base = packet.resume_packet && typeof packet.resume_packet === "object" ? packet.resume_packet : packet;
+  if (!base || typeof base !== "object") return null;
+  const normalized = { ...base };
+  if (packet.resume_packet_v2 && typeof packet.resume_packet_v2 === "object") normalized.resume_packet_v2 = packet.resume_packet_v2;
+  if (packet.rendered_summary && !normalized.rendered_summary) normalized.rendered_summary = packet.rendered_summary;
+  if (packet.schema_version && !normalized.envelope_schema_version) normalized.envelope_schema_version = packet.schema_version;
+  return normalized;
+}
+
+export async function buildFocusaSessionIdentity(projectRootInput?: string, resumeSource: "session_start" | "session_switch" | "compaction" | "model_switch" | "fork" | "manual" | "unknown" = "manual"): Promise<Record<string, unknown>> {
+  const projectRoot = normalizeProjectRoot(projectRootInput || S.sessionCwd || process.cwd());
+  const safe = isProjectRootAuthoritySafe(projectRoot);
+  let projectIdentity: any = null;
+  if (safe) {
+    const query = new URLSearchParams();
+    query.set("cwd", S.sessionCwd || projectRoot);
+    query.set("project_root", projectRoot);
+    const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
+    projectIdentity = response?.project_identity || null;
+  }
+  const rootParts = projectRoot.split("/").filter(Boolean);
+  return {
+    schema: "focusa.session_identity.v1",
+    project_identity: projectIdentity,
+    pi_session_id: S.sessionFrameKey || undefined,
+    session_frame_key: S.sessionFrameKey || "unknown-session",
+    session_incarnation_id: `${S.sessionFrameKey || "unknown"}:${process.pid}:${S.sessionStartTime}`,
+    continuity_id: ensureContinuityId(projectRoot || process.cwd()),
+    project_root: projectRoot,
+    cwd: S.sessionCwd || process.cwd(),
+    workspace_id: rootParts[rootParts.length - 1] || "workspace",
+    process_id: process.pid,
+    started_at: new Date(S.sessionStartTime).toISOString(),
+    resume_source: resumeSource,
+    canonical_scope: safe,
+    scope_failure: safe ? null : projectRootAuthorityFailure(projectRoot),
+  };
+}
+
+export async function refreshTrajectoryClarityLifecycle(reason: string, projectRootInput?: string): Promise<Record<string, unknown> | null> {
+  if (!S.focusaAvailable) return null;
+  const projectRoot = normalizeProjectRoot(projectRootInput || S.sessionCwd || process.cwd());
+  if (!isProjectRootAuthoritySafe(projectRoot)) {
+    S.lastTrajectoryClarity = {
+      reason,
+      status: "skipped_unsafe_project_root",
+      project_root: projectRoot,
+      scope_failure: projectRootAuthorityFailure(projectRoot),
+      refreshed_at: Date.now(),
+    };
+    return S.lastTrajectoryClarity;
+  }
+  const query = new URLSearchParams();
+  query.set("mode", "summary");
+  query.set("project_root", projectRoot);
+  if (S.sessionFrameKey) query.set("session_id", S.sessionFrameKey);
+  if (S.continuityId) query.set("continuity_id", S.continuityId);
+  try {
+    const view = await focusaFetch(`/trajectory/view?${query.toString()}`);
+    const clarity = view?.intelligence_view?.clarity_gate || {};
+    const snapshot = {
+      reason,
+      refreshed_at: Date.now(),
+      project_root: projectRoot,
+      continuity_id: S.continuityId || null,
+      session_id: S.sessionFrameKey || null,
+      status: String(clarity.status || view?.trajectory?.definition_status || "unknown"),
+      recommended_action: String(clarity.recommended_action || view?.intelligence_view?.context_sufficiency?.recommended_action || "unknown"),
+      canonical: view?.canonical === true,
+      degraded: view?.degraded === true,
+      project_identity_status: String(view?.project_identity?.status || "unknown"),
+      trajectory_id: view?.trajectory?.trajectory_id || null,
+      next_tools: view?.next_tools || ["focusa_trajectory_view", "focusa_project_verify", "focusa_workpoint_resume"],
+    };
+    S.lastTrajectoryClarity = snapshot;
+    focusaPost("/telemetry/activity", {
+      surface: "pi",
+      event: "trajectory_clarity_refreshed",
+      reason,
+      project_root: projectRoot,
+      status: snapshot.status,
+      recommended_action: snapshot.recommended_action,
+      canonical: snapshot.canonical,
+      degraded: snapshot.degraded,
+    });
+    return snapshot;
+  } catch {
+    S.lastTrajectoryClarity = {
+      reason,
+      status: "unavailable",
+      project_root: projectRoot,
+      refreshed_at: Date.now(),
+      next_tools: ["focusa_tool_doctor", "focusa_trajectory_view"],
+    };
+    return S.lastTrajectoryClarity;
+  }
+}
+
+export async function adoptSafeScopeFromActiveWorkpoint(reason = "scope_recovery"): Promise<boolean> {
+  try {
+    const current = await focusaFetch("/workpoint/current");
+    const packet = current?.workpoint || current?.resume_packet || null;
+    const root = normalizeProjectRoot(packet?.project_root);
+    const continuityId = String(packet?.continuity_id || "").trim();
+    if (current?.canonical === true && isProjectRootAuthoritySafe(root) && continuityId) {
+      S.sessionCwd = root;
+      S.continuityId = continuityId;
+      S.activeWorkpointPacket = packet;
+      S.activeWorkpointSummary = String(packet?.next_slice || current?.next_step_hint || "");
+      S.activeFrameId = null;
+      S.activeFrameTitle = "";
+      S.activeFrameGoal = "";
+      focusaPost("/telemetry/trace", { event_type: "pi_scope_recovered_from_active_workpoint", payload: { reason, project_root: root, continuity_id: continuityId } });
+      return true;
+    }
+  } catch { /* best effort */ }
+  return false;
+}
+
+export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
+  if (!packet || typeof packet !== "object") return false;
+  const currentProjectRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
+  const currentContinuityId = String(S.continuityId || "").trim();
+  const packetProjectRoot = normalizeProjectRoot(packet.project_root);
+  const packetContinuityId = String(packet.continuity_id || "").trim();
+  if (!currentProjectRoot || !currentContinuityId || !packetProjectRoot || !packetContinuityId) return false;
+  if (!isProjectRootAuthoritySafe(currentProjectRoot) || !isProjectRootAuthoritySafe(packetProjectRoot)) return false;
+  if (currentProjectRoot !== packetProjectRoot) return false;
+  if (currentContinuityId !== packetContinuityId) return false;
+  if (packet.canonical === false || packet.status === "partial" || packet.status === "rejected_scope_mismatch") return false;
+  return true;
+}
+
+export function getScopedWorkpointPacket(): any | null {
+  return isWorkpointPacketScopedToCurrentSession(S.activeWorkpointPacket) ? S.activeWorkpointPacket : null;
+}
+
+export function adoptPersistedContinuityForSession(data: any, eventSessionId: string, cwd: string): void {
+  const persistedSessionId = String(data?.sessionId || "").trim();
+  const persistedContinuityId = String(data?.continuityId || "").trim();
+  if (!persistedSessionId || persistedSessionId !== eventSessionId || !persistedContinuityId) {
+    S.activeWorkpointPacket = null;
+    S.activeWorkpointSummary = "";
+    return;
+  }
+  S.continuityId = persistedContinuityId;
+  const packet = data?.activeWorkpointPacket || null;
+  const packetProjectRoot = normalizeProjectRoot(packet?.project_root);
+  const packetContinuityId = String(packet?.continuity_id || "").trim();
+  if (packet && isProjectRootAuthoritySafe(cwd) && isProjectRootAuthoritySafe(packetProjectRoot) && packetProjectRoot === normalizeProjectRoot(cwd) && packetContinuityId === persistedContinuityId && packet.canonical !== false && packet.status !== "partial" && packet.status !== "rejected_scope_mismatch") {
+    S.activeWorkpointPacket = packet;
+    S.activeWorkpointSummary = String(data?.activeWorkpointSummary || "");
+  } else {
+    S.activeWorkpointPacket = null;
+    S.activeWorkpointSummary = "";
+  }
+}
+
 // ── Build compact instructions with local shadow (§33.10) ────────────────────
 export function buildCompactInstructions(prefix: string): string {
   const base = S.cfg?.compactInstructions || "Preserve intent, decisions, constraints, next_steps, failures.";
-  const workpoint = S.activeWorkpointPacket || {};
+  const workpoint = getScopedWorkpointPacket() || {};
   const mission = String(workpoint?.mission || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle || "").trim();
   const nextSlice = String(workpoint?.next_slice || S.lastCompactDecision || "").trim();
-  const projectRoot = String(workpoint?.project_root || S.sessionCwd || "").trim();
+  const projectRoot = String(workpoint?.project_root || (isProjectRootAuthoritySafe(S.sessionCwd) ? S.sessionCwd : "") || "").trim();
   const parts = [
     prefix,
     "\n" + base,
@@ -1114,10 +1330,15 @@ export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?
 
 // ── Persist Focusa state to Pi session (§33.7) ──────────────────────────────
 export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
-  if (!S.focusaAvailable || S.activeFrameId) return S.activeFrameId;
+  if (!S.focusaAvailable) return S.activeFrameId;
+  if (!isProjectRootAuthoritySafe(cwd || S.sessionCwd || process.cwd())) {
+    await adoptSafeScopeFromActiveWorkpoint("ensure_pi_frame_unsafe_cwd");
+  }
+  if (S.activeFrameId && isProjectRootAuthoritySafe(S.sessionCwd || cwd || process.cwd())) return S.activeFrameId;
   if (S.activeFramePromise) return await S.activeFramePromise;
 
   const resolvedCwd = cwd || S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(resolvedCwd)) return null;
   S.sessionCwd = resolvedCwd;
 
   S.activeFramePromise = (async () => {
@@ -1257,6 +1478,7 @@ export async function persistAuthoritativeState(): Promise<void> {
 export function persistState(): void {
   const payload = {
     sessionId: S.sessionFrameKey,
+    continuityId: S.continuityId,
     frameId: S.activeFrameId,
     frameTitle: trimPersistText(S.activeFrameTitle),
     frameGoal: trimPersistText(S.activeFrameGoal),
@@ -1272,8 +1494,8 @@ export function persistState(): void {
     authoritativeFailures: tailBounded(sanitizeFocusFailures(S.lastFocusSnapshot.failures), 20),
     intent: trimPersistText(S.lastFocusSnapshot.intent),
     currentFocus: trimPersistText(S.lastFocusSnapshot.currentFocus),
-    activeWorkpointPacket: S.activeWorkpointPacket,
-    activeWorkpointSummary: trimPersistText(S.activeWorkpointSummary),
+    activeWorkpointPacket: getScopedWorkpointPacket(),
+    activeWorkpointSummary: getScopedWorkpointPacket() ? trimPersistText(S.activeWorkpointSummary) : "",
     lastCompactResumeKey: S.lastCompactResumeKey,
     lastCompactResumeAt: S.lastCompactResumeAt,
     turnCount: S.turnCount,

@@ -14,8 +14,8 @@ If Pi reports `description is required`, the skill is missing YAML frontmatter. 
 
 ```bash
 node --input-type=module - <<'NODE'
-import { loadSkills } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
-const r = loadSkills({ cwd: process.cwd(), agentDir: '/root/.pi/agent', skillPaths: [], includeDefaults: true });
+import { loadSkills } from '<pi-install-dir>/dist/core/skills.js';
+const r = loadSkills({ cwd: process.cwd(), agentDir: '${PI_AGENT_DIR:-$HOME/.pi/agent}', skillPaths: [], includeDefaults: true });
 console.log(r.skills.map(s => [s.name, s.filePath]));
 console.log(r.diagnostics);
 NODE
@@ -36,7 +36,7 @@ If a result is `pending`, retry current/resume before relying on it.
 Writer conflicts are blocked states, not daemon failures.
 
 ```bash
-curl -sS http://127.0.0.1:8787/v1/work-loop/status | jq .
+curl -sS http://127.0.0.1:8787/v1/work-loop/status?summary_only=true | jq .
 ```
 
 Use `focusa_work_loop_writer_status` in Pi before mutating work-loop state.

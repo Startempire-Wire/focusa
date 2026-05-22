@@ -4,9 +4,9 @@
 
 set -e
 
-FOCUSA_BIN="/usr/local/bin"
-MAGIC_BIN="/root/.local/bin"
-SHIM_SOURCE="/home/wirebot/focusa/scripts/magic/focusa-magic.sh"
+FOCUSA_BIN="${FOCUSA_BIN_DIR:-$(dirname "$(command -v focusa 2>/dev/null || echo focusa)")}"
+MAGIC_BIN="${FOCUSA_MAGIC_BIN:-${HOME:-.}/.local/bin}"
+SHIM_SOURCE="${FOCUSA_MAGIC_SHIM_SOURCE:-$(cd "$(dirname "$0")" && pwd)/focusa-magic.sh}"
 
 echo "🔮 Focusa Magic Harness Auto-Registration"
 echo "=========================================="

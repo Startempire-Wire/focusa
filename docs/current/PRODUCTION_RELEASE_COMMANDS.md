@@ -1,11 +1,11 @@
 # Production Release Commands
 
-Current production release checklist for this repo. Commands assume the repo root is `/home/wirebot/focusa`.
+Current production release checklist for this repo. Commands assume the repo root is `${FOCUSA_PROJECT_ROOT:-<focusa-repo>}`.
 
 ## 1. Pre-flight
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 git status --short
 git log -1 --oneline
 ```
@@ -28,7 +28,7 @@ cargo clippy --workspace -- -D warnings
 ## 4. Mac menubar app gates
 
 ```bash
-cd /home/wirebot/focusa/apps/menubar
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/menubar
 bun install
 bun run check
 bun run build
@@ -37,7 +37,7 @@ bun run build
 ## 5. Production daemon build/restart
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 cargo build --release --bins
 systemctl restart focusa-daemon
 sleep 2
@@ -65,18 +65,18 @@ gh release view vX.Y.Z-dev --json name,tagName,isDraft,isPrerelease,url,assets |
 Use recoverable moves if `trash` is unavailable.
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 stamp=$(date +%Y%m%d-%H%M%S)
-mkdir -p /home/wirebot/.trash/focusa-clean-$stamp /root/claude_trash/focusa-clean-$stamp/tmp
+mkdir -p ${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-$stamp ${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-$stamp/tmp
 
 # Repo-local generated residue. Do not move `data/`, `.beads/`, or `target/` while production uses target/release/focusa-daemon.
 for p in .tmp apps/menubar/.svelte-kit apps/menubar/build apps/menubar/node_modules apps/pi-extension/node_modules; do
-  [ -e "$p" ] && mkdir -p "/home/wirebot/.trash/focusa-clean-$stamp/$(dirname "$p")" && mv "$p" "/home/wirebot/.trash/focusa-clean-$stamp/$p"
+  [ -e "$p" ] && mkdir -p "${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-$stamp/$(dirname "$p")" && mv "$p" "${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-$stamp/$p"
 done
 
 # Temporary proof/log residue.
-find /tmp -maxdepth 1 -type f \( -name 'specgates*' -o -name 'commit-*' -o -name '*guardian*' -o -name '*focusa*.json' -o -name '*focusa*.log' -o -name 'release-*' \) -exec mv {} "/root/claude_trash/focusa-clean-$stamp/tmp/" \;
-find /tmp -maxdepth 1 -type d \( -name 'focusa-ontology-*' -o -name 'focusa-cargo-*' \) -exec mv {} "/root/claude_trash/focusa-clean-$stamp/tmp/" \;
+find /tmp -maxdepth 1 -type f \( -name 'specgates*' -o -name 'commit-*' -o -name '*guardian*' -o -name '*focusa*.json' -o -name '*focusa*.log' -o -name 'release-*' \) -exec mv {} "${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-$stamp/tmp/" \;
+find /tmp -maxdepth 1 -type d \( -name 'focusa-ontology-*' -o -name 'focusa-cargo-*' \) -exec mv {} "${FOCUSA_TRASH_DIR:-$HOME/.trash}/focusa-clean-$stamp/tmp/" \;
 
 git status --short
 systemctl is-active focusa-daemon
@@ -86,11 +86,11 @@ curl -sS --max-time 5 http://127.0.0.1:8787/v1/health | jq .
 ## 8. Secret scan docs/scripts before release
 
 ```bash
-guardian scan /home/wirebot/focusa/README.md
-guardian scan /home/wirebot/focusa/docs
-guardian scan /home/wirebot/focusa/CHANGELOG.md
-guardian scan /home/wirebot/focusa/apps/menubar/src
-guardian scan /home/wirebot/focusa/scripts
+guardian scan ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/README.md
+guardian scan ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/docs
+guardian scan ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/CHANGELOG.md
+guardian scan ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/menubar/src
+guardian scan ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/scripts
 ```
 
 If `guardian` is unavailable, stop and document the blocker before release.

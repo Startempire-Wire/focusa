@@ -1,5 +1,6 @@
 //! GET /v1/health
 
+use crate::routes::bounded::resource_mode_status;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
@@ -15,6 +16,7 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
 }
 
 async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let resource_mode = resource_mode_status();
     let s = state.focusa.read().await;
     let token_records = s
         .telemetry
@@ -55,8 +57,20 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             "cache_metadata_records": cache_records,
             "tool_calls": s.telemetry.tool_calls.len(),
         },
+        "resource_mode": {
+            "mode": resource_mode.mode,
+            "reason": resource_mode.reason,
+            "forced": resource_mode.forced,
+            "pressure": resource_mode.pressure,
+            "budget": resource_mode.budget,
+            "latest_transition": resource_mode.latest_transition,
+            "transition_omitted_count": resource_mode.transition_omitted_count,
+            "hysteresis": resource_mode.hysteresis,
+            "tool_availability_policy": resource_mode.tool_availability_policy,
+            "cold_surfaces_deferred": resource_mode.cold_surfaces_deferred,
+        },
         "next_action": if token_records == 0 || cache_records == 0 { "run a Pi/provider turn, then re-run focusa doctor" } else { "continue normally; use focusa telemetry token-budget and focusa cache doctor for detail" },
-        "commands": ["focusa telemetry token-budget", "focusa cache doctor", "focusa work-loop status", "focusa workpoint current"],
+        "commands": ["focusa resource status", "focusa telemetry token-budget", "focusa cache doctor", "focusa work-loop status", "focusa workpoint current"],
     }))
 }
 

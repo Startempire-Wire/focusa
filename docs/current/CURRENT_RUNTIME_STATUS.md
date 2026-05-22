@@ -9,8 +9,8 @@
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
-- Pi extension under `apps/pi-extension` exposing 47 current `focusa_*` tools.
-- Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `/root/.pi/skills/`.
+- Pi extension under `apps/pi-extension` exposing 55 current `focusa_*` tools.
+- Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor.
 - Work-loop APIs and Pi tools for status, writer-status, control, context, checkpoint, and select-next.
@@ -19,7 +19,7 @@
 - State hygiene doctor/plan/apply surfaces; apply is approval-gated and non-destructive in the current build.
 - Agent-first polish surfaces: `focusa doctor`, `focusa status --agent`, `focusa continue`, `focusa release prove`, `focusa cleanup --safe`, token/cache doctors, hook telemetry, and error-empty recovery envelopes.
 - Prediction loop API/CLI/Pi tools for bounded record/recent/evaluate/stats workflows.
-- Workpoint session scope guard: checkpoint/resume packets carry `project_root`/`session_id` and reject cross-project resume packets with `rejected_scope_mismatch`.
+- Project/session isolation: frames and Workpoints carry `project_root + continuity_id`; cross-project and same-root/different-continuity packets reject, while temporal `session_id` changes preserve continuity only after hard gates match.
 - Pi replacement compaction uses intelligent related fallbacks instead of bare `none` fields.
 
 ## Current proof files
@@ -38,7 +38,7 @@
 ## Current verification commands
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 node scripts/validate-focusa-tool-contracts.mjs
 node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
 cargo clippy --workspace -- -D warnings

@@ -9,15 +9,27 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - [Tree Lineage](./tree-lineage.md)
 - [Diagnostics Hygiene](./diagnostics-hygiene.md)
 - [Predictive Power](./predictive-power.md)
+- [Trajectory](./trajectory.md)
+- [Project Identity](./project-identity.md)
 
 ## Current counts
 
-- 47 Pi tools documented with one page per tool.
+- 58 Pi tools documented with one page per tool.
 - Prediction tools are first-class (`record`, `recent`, `evaluate`, `stats`).
 - Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
+- Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success.
+- Trajectory tools are first-class per-project north-star tools: view, define_goal, assess, propose_workpoint, checkpoint, resume.
 
 ## All tools
 
+- [`focusa_project_identity`](tools/focusa_project_identity.md)
+- [`focusa_project_verify`](tools/focusa_project_verify.md)
+- [`focusa_trajectory_view`](tools/focusa_trajectory_view.md)
+- [`focusa_trajectory_resume`](tools/focusa_trajectory_resume.md)
+- [`focusa_trajectory_checkpoint`](tools/focusa_trajectory_checkpoint.md)
+- [`focusa_trajectory_propose_workpoint`](tools/focusa_trajectory_propose_workpoint.md)
+- [`focusa_trajectory_assess`](tools/focusa_trajectory_assess.md)
+- [`focusa_trajectory_define_goal`](tools/focusa_trajectory_define_goal.md)
 - [`focusa_scratch`](tools/focusa_scratch.md)
 - [`focusa_decide`](tools/focusa_decide.md)
 - [`focusa_constraint`](tools/focusa_constraint.md)
@@ -65,3 +77,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - [`focusa_predict_recent`](tools/focusa_predict_recent.md)
 - [`focusa_predict_evaluate`](tools/focusa_predict_evaluate.md)
 - [`focusa_predict_stats`](tools/focusa_predict_stats.md)
+
+- [`focusa_resource_mode`](tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
+- [`focusa_traverse`](tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.
+- [`focusa_silent_sessions`](tools/focusa_silent_sessions.md) — manage tmux-backed background SilentSessions.

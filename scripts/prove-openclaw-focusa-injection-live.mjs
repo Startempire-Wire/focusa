@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 
-const logPath = process.env.OPENCLAW_GATEWAY_LOG || '/home/wirebot/logs/openclaw-gateway.log';
+const logPath = process.env.OPENCLAW_GATEWAY_LOG || path.join(process.env.HOME || process.cwd(), 'logs/openclaw-gateway.log');
 const log = fs.readFileSync(logPath, 'utf8');
 const tail = log.slice(-250_000);
 const required = [

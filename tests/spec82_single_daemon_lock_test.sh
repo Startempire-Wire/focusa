@@ -47,11 +47,20 @@ fi
 echo "✓ PASS: first daemon started"
 
 status_json="$(curl -fsS "http://127.0.0.1:${PORT1}/v1/status")"
-if echo "$status_json" | jq -e '.runtime_process.current_pid and (.runtime_process.daemon_count|type=="number") and (.runtime_process.duplicate_daemon_count|type=="number") and (.runtime_process.single_daemon_ok|type=="boolean")' >/dev/null; then
-  echo "✓ PASS: status exposes runtime_process duplicate-detection fields"
+if echo "$status_json" | jq -e '.route_tier=="hot" and .summary_only==true and .runtime_process.current_pid and (.runtime_process.daemon_count == null) and (.runtime_process.duplicate_daemon_count == null) and (.runtime_process.single_daemon_ok == null) and (.cold_omitted | index("runtime_process.daemon_pids"))' >/dev/null; then
+  echo "✓ PASS: hot status omits duplicate-detection scan fields"
 else
-  echo "✗ FAIL: status missing runtime_process duplicate-detection fields" >&2
+  echo "✗ FAIL: hot status should omit duplicate-detection scan fields" >&2
   echo "$status_json" >&2
+  exit 1
+fi
+
+status_deep_json="$(curl -fsS "http://127.0.0.1:${PORT1}/v1/status/deep")"
+if echo "$status_deep_json" | jq -e '.route_tier=="cold" and .summary_only==false and .runtime_process.current_pid and (.runtime_process.daemon_count|type=="number") and (.runtime_process.duplicate_daemon_count|type=="number") and (.runtime_process.single_daemon_ok|type=="boolean")' >/dev/null; then
+  echo "✓ PASS: deep status exposes runtime_process duplicate-detection fields"
+else
+  echo "✗ FAIL: deep status missing runtime_process duplicate-detection fields" >&2
+  echo "$status_deep_json" >&2
   exit 1
 fi
 

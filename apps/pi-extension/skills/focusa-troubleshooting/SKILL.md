@@ -25,5 +25,9 @@ Use when Focusa is offline, degraded, stale, writer-conflicted, non-canonical, o
 
 - Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as recovery states, not success.
 - Use Workpoint resume/checkpoint around compaction, context overflow, model switch, fork, or risky release work.
+- Healthy Workpoint continuity makes generic `/fork`/`/new` context-pressure warnings redundant; treat them as recovery prompts only when Focusa is degraded.
+- Same-project post-compaction `session_id` drift is normal continuity metadata; `project_root` and `continuity_id` mismatches are isolation errors.
+- Multiple same-root sessions remain distinct through continuity_id; trajectory/goals are corroborating signals only.
+- If a Focus State write rejects validation, record the full note in `focusa_scratch`, retry once with declarative boundary phrasing, then continue.
 - Use writer-status/preflight before mutating work-loop state.
 - Do not describe Focusa as complete or frozen; use current snapshot/version language.

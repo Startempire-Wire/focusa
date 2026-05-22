@@ -35,7 +35,7 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
         "why": "Spec92 continue resumes bounded, governed work-loop execution without relying on transcript tail.",
         "commands": ["focusa continue", "focusa work-loop status", "focusa_workpoint_resume"],
         "recovery": ["focusa doctor", "focusa continue --enable --parent-work-item-id <id>", "journalctl -u focusa-daemon -n 80 --no-pager"],
-        "evidence_refs": ["/v1/work-loop/status", "/v1/workpoint/current"],
+        "evidence_refs": ["/v1/work-loop/status?summary_only=true", "/v1/workpoint/current"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md", "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
         "warnings": [],
         "details": details,
@@ -46,7 +46,7 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let headers = [("x-focusa-writer-id", args.writer_id.as_str())];
     let before_status = api
-        .get("/v1/work-loop/status")
+        .get("/v1/work-loop/status?summary_only=true")
         .await
         .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
     let workpoint = api
@@ -95,7 +95,7 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
     actions.push(json!({"action":"resume", "response": resume}));
 
     let after_status = api
-        .get("/v1/work-loop/status")
+        .get("/v1/work-loop/status?summary_only=true")
         .await
         .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
     let response = envelope(
@@ -135,7 +135,7 @@ pub async fn run(args: ContinueArgs, json_mode: bool) -> anyhow::Result<()> {
         );
         println!("Command: focusa work-loop status");
         println!("Recovery: focusa doctor && focusa continue --enable --parent-work-item-id <id>");
-        println!("Evidence: /v1/work-loop/status, /v1/workpoint/current");
+        println!("Evidence: /v1/work-loop/status?summary_only=true, /v1/workpoint/current");
         println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
     }
     Ok(())

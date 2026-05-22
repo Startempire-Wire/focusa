@@ -249,12 +249,24 @@ async fn state_diff(
     })))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct SessionScopedQuery {
     #[serde(default)]
     session_id: Option<String>,
     #[serde(default)]
     max_nodes: Option<usize>,
+    #[serde(default)]
+    limit: Option<usize>,
+    #[serde(default)]
+    cursor: Option<usize>,
+    #[serde(default)]
+    selector: Option<String>,
+    #[serde(default)]
+    anchor: Option<String>,
+    #[serde(default)]
+    depth: Option<usize>,
+    #[serde(default)]
+    radius: Option<usize>,
     #[serde(default)]
     include_full_payload: bool,
 }
@@ -263,7 +275,7 @@ fn lineage_default_max_nodes() -> usize {
     std::env::var("FOCUSA_LINEAGE_DEFAULT_MAX_NODES")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(200)
+        .unwrap_or(50)
         .max(1)
 }
 
@@ -281,7 +293,46 @@ fn lineage_node_cap(q: &SessionScopedQuery) -> usize {
     } else {
         lineage_default_max_nodes()
     };
-    q.max_nodes.unwrap_or(ceiling).clamp(1, ceiling)
+    q.limit.or(q.max_nodes).unwrap_or(ceiling).clamp(1, ceiling)
+}
+
+fn traversal_caps(limit: usize, depth: Option<usize>, radius: Option<usize>) -> Value {
+    json!({
+        "limit": limit,
+        "depth": depth.unwrap_or(1).clamp(1, 64),
+        "radius": radius.unwrap_or(1).clamp(1, 8),
+    })
+}
+
+struct TraversalMetadataArgs<'a> {
+    surface: &'a str,
+    selector: &'a str,
+    anchor: Option<&'a str>,
+    returned: usize,
+    total_known: usize,
+    cursor: Option<usize>,
+    next_cursor: Option<usize>,
+    limit: usize,
+    depth: Option<usize>,
+    radius: Option<usize>,
+    omitted: Vec<&'a str>,
+}
+
+fn traversal_metadata(args: TraversalMetadataArgs<'_>) -> Value {
+    json!({
+        "surface": args.surface,
+        "selector": args.selector,
+        "window_kind": args.selector,
+        "anchor": args.anchor,
+        "returned": args.returned,
+        "total_known": args.total_known,
+        "cursor": args.cursor,
+        "next_cursor": args.next_cursor,
+        "truncated": args.next_cursor.is_some() || args.returned < args.total_known,
+        "caps": traversal_caps(args.limit, args.depth, args.radius),
+        "omitted": args.omitted,
+        "rehydrate_refs": Vec::<String>::new(),
+    })
 }
 
 async fn lineage_head(
@@ -306,8 +357,8 @@ async fn lineage_tree(
     let s = state.focusa.read().await;
     let total = s.clt.nodes.len();
     let cap = lineage_node_cap(&q);
-    let truncated = total > cap;
-    let nodes: Vec<_> = s.clt.nodes.iter().take(cap).cloned().collect();
+    let cursor = q.cursor.unwrap_or(0).min(total);
+    let selector = q.selector.as_deref().unwrap_or("window");
     let head = s.clt.head_id.clone();
     let root = s
         .clt
@@ -316,6 +367,56 @@ async fn lineage_tree(
         .find(|node| node.parent_id.is_none())
         .map(|node| node.node_id.clone())
         .or_else(|| head.clone());
+    let anchor = q.anchor.as_deref().or(head.as_deref());
+
+    let nodes: Vec<_> = match selector {
+        "head" => s
+            .clt
+            .nodes
+            .iter()
+            .rev()
+            .filter(|node| Some(node.node_id.as_str()) == head.as_deref())
+            .take(cap)
+            .cloned()
+            .collect(),
+        "children" => s
+            .clt
+            .nodes
+            .iter()
+            .filter(|node| node.parent_id.as_deref() == anchor)
+            .skip(cursor)
+            .take(cap)
+            .cloned()
+            .collect(),
+        "summaries" => s
+            .clt
+            .nodes
+            .iter()
+            .filter(|node| node.node_type == CltNodeType::Summary)
+            .skip(cursor)
+            .take(cap)
+            .cloned()
+            .collect(),
+        _ => s.clt.nodes.iter().skip(cursor).take(cap).cloned().collect(),
+    };
+    let next_cursor = (cursor + nodes.len() < total).then_some(cursor + nodes.len());
+    let metadata = traversal_metadata(TraversalMetadataArgs {
+        surface: "lineage",
+        selector,
+        anchor,
+        returned: nodes.len(),
+        total_known: total,
+        cursor: Some(cursor),
+        next_cursor,
+        limit: cap,
+        depth: q.depth,
+        radius: q.radius,
+        omitted: if q.include_full_payload {
+            Vec::new()
+        } else {
+            vec!["full_payload"]
+        },
+    });
 
     Ok(Json(json!({
         "session_id": q.session_id,
@@ -324,8 +425,82 @@ async fn lineage_tree(
         "nodes": nodes,
         "total": total,
         "returned": nodes.len(),
-        "truncated": truncated,
+        "truncated": next_cursor.is_some(),
         "max_nodes": cap,
+        "next_cursor": next_cursor,
+        "window_kind": selector,
+        "full_payload_cold_opt_in": q.include_full_payload,
+        "traversal": metadata,
+    })))
+}
+
+async fn lineage_neighborhood(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(clt_node_id): Path<String>,
+    Query(q): Query<SessionScopedQuery>,
+) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
+    require_scope(&headers, &state, "lineage:read")?;
+    let s = state.focusa.read().await;
+    let cap = lineage_node_cap(&q);
+    let radius = q.radius.unwrap_or(1).clamp(1, 8);
+    let index: HashMap<&str, _> = s
+        .clt
+        .nodes
+        .iter()
+        .map(|n| (n.node_id.as_str(), n))
+        .collect();
+    let mut selected = Vec::new();
+    let mut seen = HashSet::new();
+
+    if let Some(anchor) = index.get(clt_node_id.as_str()) {
+        selected.push((*anchor).clone());
+        seen.insert(anchor.node_id.clone());
+        let mut current = anchor.parent_id.as_deref();
+        for _ in 0..radius {
+            let Some(id) = current else {
+                break;
+            };
+            let Some(node) = index.get(id) else {
+                break;
+            };
+            if seen.insert(node.node_id.clone()) {
+                selected.push((*node).clone());
+            }
+            current = node.parent_id.as_deref();
+        }
+        for child in s
+            .clt
+            .nodes
+            .iter()
+            .filter(|node| node.parent_id.as_deref() == Some(clt_node_id.as_str()))
+            .take(cap.saturating_sub(selected.len()))
+        {
+            if seen.insert(child.node_id.clone()) {
+                selected.push(child.clone());
+            }
+        }
+    }
+    selected.truncate(cap);
+    let metadata = traversal_metadata(TraversalMetadataArgs {
+        surface: "lineage",
+        selector: "neighborhood",
+        anchor: Some(clt_node_id.as_str()),
+        returned: selected.len(),
+        total_known: s.clt.nodes.len(),
+        cursor: None,
+        next_cursor: None,
+        limit: cap,
+        depth: q.depth,
+        radius: Some(radius),
+        omitted: vec!["full_tree"],
+    });
+    Ok(Json(json!({
+        "anchor": clt_node_id,
+        "nodes": selected,
+        "returned": metadata["returned"],
+        "truncated": metadata["truncated"],
+        "traversal": metadata,
     })))
 }
 
@@ -408,12 +583,26 @@ async fn lineage_children(
         }
     }
 
+    let next_cursor = (children.len() < total).then_some(children.len());
     Ok(Json(json!({
         "children": children,
         "total": total,
         "returned": children.len(),
         "truncated": total > children.len(),
         "max_nodes": cap,
+        "traversal": traversal_metadata(TraversalMetadataArgs {
+            surface: "lineage",
+            selector: "children",
+            anchor: Some(clt_node_id.as_str()),
+            returned: children.len(),
+            total_known: total,
+            cursor: Some(0),
+            next_cursor,
+            limit: cap,
+            depth: Some(1),
+            radius: Some(1),
+            omitted: vec!["full_tree"],
+        }),
     })))
 }
 
@@ -583,6 +772,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/lineage/head", get(lineage_head))
         .route("/v1/lineage/tree", get(lineage_tree))
         .route("/v1/lineage/node/{clt_node_id}", get(lineage_node))
+        .route(
+            "/v1/lineage/neighborhood/{clt_node_id}",
+            get(lineage_neighborhood),
+        )
         .route("/v1/lineage/path/{clt_node_id}", get(lineage_path))
         .route("/v1/lineage/children/{clt_node_id}", get(lineage_children))
         .route("/v1/lineage/summaries", get(lineage_summaries))
@@ -590,4 +783,74 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/references/search", get(reference_search))
         .route("/v1/references/{ref_id}", get(reference_by_id))
         .route("/v1/references/{ref_id}/meta", get(reference_meta))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use focusa_core::types::{CltMetadata, CltNode, CltPayload};
+
+    #[test]
+    fn traversal_metadata_reports_window_caps_and_cursor() {
+        let payload = traversal_metadata(TraversalMetadataArgs {
+            surface: "lineage",
+            selector: "window",
+            anchor: Some("node-1"),
+            returned: 5,
+            total_known: 20,
+            cursor: Some(0),
+            next_cursor: Some(5),
+            limit: 5,
+            depth: Some(2),
+            radius: Some(1),
+            omitted: vec!["full_tree"],
+        });
+        assert_eq!(payload["surface"].as_str(), Some("lineage"));
+        assert_eq!(payload["selector"].as_str(), Some("window"));
+        assert_eq!(payload["returned"].as_u64(), Some(5));
+        assert_eq!(payload["next_cursor"].as_u64(), Some(5));
+        assert_eq!(payload["truncated"].as_bool(), Some(true));
+        assert_eq!(payload["caps"]["limit"].as_u64(), Some(5));
+        assert!(
+            payload["omitted"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v.as_str() == Some("full_tree"))
+        );
+    }
+
+    #[test]
+    fn lineage_node_cap_defaults_to_surgical_window() {
+        let q = SessionScopedQuery::default();
+        assert!(lineage_node_cap(&q) <= 50);
+    }
+
+    #[test]
+    fn lineage_node_cap_respects_limit_under_default_ceiling() {
+        let q = SessionScopedQuery {
+            limit: Some(3),
+            ..SessionScopedQuery::default()
+        };
+        assert_eq!(lineage_node_cap(&q), 3);
+    }
+
+    #[test]
+    fn clt_nodes_can_be_summarized_without_payload_expansion() {
+        let node = CltNode {
+            node_id: "node-1".to_string(),
+            node_type: CltNodeType::Interaction,
+            parent_id: None,
+            created_at: Utc::now(),
+            session_id: None,
+            payload: CltPayload::Interaction {
+                role: "user".to_string(),
+                content_ref: Some("handle-1".to_string()),
+            },
+            metadata: CltMetadata::default(),
+        };
+        assert_eq!(node.node_id, "node-1");
+        assert_eq!(node.parent_id, None);
+    }
 }

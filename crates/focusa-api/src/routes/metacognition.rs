@@ -7,6 +7,9 @@
 //! - POST /v1/metacognition/adjust
 //! - POST /v1/metacognition/evaluate
 
+use crate::routes::bounded::{
+    budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
+};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
@@ -489,7 +492,7 @@ struct RetrieveBody {
 }
 
 fn default_k() -> usize {
-    5
+    budgeted_default_limit("FOCUSA_METACOG_RETRIEVE_DEFAULT_K", 5)
 }
 
 fn default_summary_only() -> bool {
@@ -497,11 +500,19 @@ fn default_summary_only() -> bool {
 }
 
 fn retrieve_max_k() -> usize {
-    std::env::var("FOCUSA_METACOG_RETRIEVE_MAX_K")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(20)
-        .max(1)
+    budgeted_hard_limit("FOCUSA_METACOG_RETRIEVE_MAX_K", 20, default_k())
+}
+
+fn recent_artifacts_default_limit() -> usize {
+    budgeted_default_limit("FOCUSA_METACOG_RECENT_DEFAULT_LIMIT", 5)
+}
+
+fn recent_artifacts_hard_limit() -> usize {
+    budgeted_hard_limit(
+        "FOCUSA_METACOG_RECENT_HARD_LIMIT",
+        20,
+        recent_artifacts_default_limit(),
+    )
 }
 
 async fn retrieve(
@@ -577,7 +588,7 @@ async fn retrieve(
         .as_deref()
         .and_then(|c| c.parse::<usize>().ok())
         .unwrap_or(0);
-    let page_size = body.k.max(1).min(retrieve_max_k());
+    let page_size = budgeted_requested_limit(Some(body.k), default_k(), retrieve_max_k());
 
     let total = ranked.len();
     let page = ranked
@@ -829,6 +840,7 @@ async fn evaluate(
 #[derive(Debug, Deserialize)]
 struct RecentMetacogQuery {
     limit: Option<usize>,
+    cursor: Option<usize>,
 }
 
 async fn metacog_status(
@@ -922,15 +934,33 @@ async fn recent_reflections(
         by_id.entry(rec.reflection_id.clone()).or_insert(rec);
     }
 
-    let limit = query.limit.unwrap_or(5).clamp(1, 20);
+    let limit = budgeted_requested_limit(
+        query.limit,
+        recent_artifacts_default_limit(),
+        recent_artifacts_hard_limit(),
+    );
+    let total = by_id.len();
+    let cursor = query.cursor.unwrap_or(0).min(total);
     let mut items = by_id.into_values().collect::<Vec<_>>();
     items.sort_by_key(|r| std::cmp::Reverse(r.created_at));
-    items.truncate(limit);
+    let window = items
+        .into_iter()
+        .skip(cursor)
+        .take(limit)
+        .collect::<Vec<_>>();
+    let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
 
     Ok(Json(json!({
         "status": "ok",
-        "total": items.len(),
-        "reflections": items.into_iter().map(|rec| json!({
+        "total": total,
+        "returned": window.len(),
+        "limit": limit,
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor > 0,
+        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
+        "rehydrate": {"route": "/v1/metacognition/captures/{capture_id}"},
+        "reflections": window.into_iter().map(|rec| json!({
             "reflection_id": rec.reflection_id,
             "created_at": rec.created_at,
             "turn_range": rec.turn_range,
@@ -958,15 +988,33 @@ async fn recent_adjustments(
         by_id.entry(rec.adjustment_id.clone()).or_insert(rec);
     }
 
-    let limit = query.limit.unwrap_or(5).clamp(1, 20);
+    let limit = budgeted_requested_limit(
+        query.limit,
+        recent_artifacts_default_limit(),
+        recent_artifacts_hard_limit(),
+    );
+    let total = by_id.len();
+    let cursor = query.cursor.unwrap_or(0).min(total);
     let mut items = by_id.into_values().collect::<Vec<_>>();
     items.sort_by_key(|r| std::cmp::Reverse(r.created_at));
-    items.truncate(limit);
+    let window = items
+        .into_iter()
+        .skip(cursor)
+        .take(limit)
+        .collect::<Vec<_>>();
+    let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
 
     Ok(Json(json!({
         "status": "ok",
-        "total": items.len(),
-        "adjustments": items.into_iter().map(|rec| json!({
+        "total": total,
+        "returned": window.len(),
+        "limit": limit,
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor > 0,
+        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
+        "rehydrate": {"route": "/v1/metacognition/captures/{capture_id}"},
+        "adjustments": window.into_iter().map(|rec| json!({
             "adjustment_id": rec.adjustment_id,
             "reflection_id": rec.reflection_id,
             "created_at": rec.created_at,

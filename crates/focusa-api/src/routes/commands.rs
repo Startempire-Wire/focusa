@@ -37,6 +37,10 @@ struct PushFramePayload {
     goal: String,
     beads_issue_id: String,
     #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
+    #[serde(default)]
     constraints: Vec<String>,
     #[serde(default)]
     tags: Vec<String>,
@@ -115,6 +119,10 @@ struct StartSessionPayload {
     adapter_id: Option<String>,
     #[serde(default)]
     workspace_id: Option<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
     #[serde(default)]
     instance_id: Option<Uuid>,
 }
@@ -355,6 +363,8 @@ fn map_command_to_action(
                 title: p.title,
                 goal: p.goal,
                 beads_issue_id: p.beads_issue_id,
+                project_root: p.project_root,
+                continuity_id: p.continuity_id,
                 constraints: p.constraints,
                 tags: p.tags,
             })
@@ -430,6 +440,8 @@ fn map_command_to_action(
             Ok(Action::StartSession {
                 adapter_id: p.adapter_id,
                 workspace_id: p.workspace_id,
+                project_root: p.project_root,
+                continuity_id: p.continuity_id,
                 instance_id: p.instance_id,
             })
         }

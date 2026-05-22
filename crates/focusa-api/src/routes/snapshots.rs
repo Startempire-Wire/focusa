@@ -5,6 +5,10 @@
 //! - POST /v1/focus/snapshots/restore
 //! - POST /v1/focus/snapshots/diff
 
+use crate::routes::bounded::{
+    BoundedReadOptions, bounded_metadata, budgeted_default_limit, budgeted_hard_limit,
+    budgeted_requested_limit,
+};
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -350,6 +354,7 @@ async fn restore_snapshot(
 #[derive(Debug, Deserialize)]
 struct RecentSnapshotsQuery {
     limit: Option<usize>,
+    cursor: Option<usize>,
 }
 
 async fn recent_snapshots(
@@ -370,20 +375,40 @@ async fn recent_snapshots(
         by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
     }
 
-    let limit = query.limit.unwrap_or(5).clamp(1, 20);
+    let default_limit = budgeted_default_limit("FOCUSA_SNAPSHOT_RECENT_DEFAULT_LIMIT", 5);
+    let hard_limit = budgeted_hard_limit("FOCUSA_SNAPSHOT_RECENT_HARD_LIMIT", 20, default_limit);
+    let limit = budgeted_requested_limit(query.limit, default_limit, hard_limit);
     let total = by_id.len();
+    let cursor = query.cursor.unwrap_or(0).min(total);
     let mut items = by_id.into_values().collect::<Vec<_>>();
     items.sort_by_key(|r| std::cmp::Reverse(r.created_at));
-    items.truncate(limit);
+    let window = items
+        .into_iter()
+        .skip(cursor)
+        .take(limit)
+        .collect::<Vec<_>>();
+    let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
 
     Ok(Json(json!({
         "status": "ok",
         "source": "snapshot_hot_index",
         "total": total,
-        "returned": items.len(),
+        "returned": window.len(),
         "limit": limit,
-        "truncated": total > items.len(),
-        "snapshots": items.into_iter().map(|rec| json!({
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor > 0,
+        "metadata": bounded_metadata(total, window.len(), BoundedReadOptions {
+            requested_limit: query.limit,
+            include_full_payload: false,
+            summary_only: true,
+            cursor: query.cursor.map(|value| value.to_string()),
+            next_cursor: next_cursor.clone(),
+            default_limit,
+            full_limit: hard_limit,
+        }),
+        "cold_full_payload_opt_in": false,
+        "snapshots": window.into_iter().map(|rec| json!({
             "snapshot_id": rec.snapshot_id,
             "clt_node_id": rec.clt_node_id,
             "created_at": rec.created_at,

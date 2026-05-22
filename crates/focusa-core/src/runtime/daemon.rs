@@ -52,6 +52,7 @@ use serde_json::Value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 use tokio::sync::{Mutex, RwLock, mpsc};
 use uuid::Uuid;
@@ -69,6 +70,9 @@ pub struct Daemon {
     shared_state: Arc<RwLock<FocusaState>>,
     /// Serializes canonical state writers across daemon actions and sync API routes.
     write_serial_lock: Arc<Mutex<()>>,
+    /// Monotonic signal for API routes that mutate shared state outside the daemon reducer.
+    external_mutation_epoch: Arc<AtomicU64>,
+    observed_external_mutation_epoch: u64,
     persistence: Persistence,
     ecs: ReferenceStore,
     intuition: IntuitionEngine,
@@ -95,6 +99,7 @@ impl Daemon {
         config: FocusaConfig,
         shared_state: Arc<RwLock<FocusaState>>,
         write_serial_lock: Arc<Mutex<()>>,
+        external_mutation_epoch: Arc<AtomicU64>,
     ) -> anyhow::Result<Self> {
         let persistence = Persistence::new(&config)?;
         let ecs_root = persistence.data_dir.join("ecs");
@@ -130,6 +135,8 @@ impl Daemon {
             current_thread_id: None,
             shared_state,
             write_serial_lock,
+            observed_external_mutation_epoch: external_mutation_epoch.load(Ordering::Acquire),
+            external_mutation_epoch,
             persistence,
             ecs,
             intuition,
@@ -3191,6 +3198,8 @@ Return:
             Action::StartSession {
                 adapter_id,
                 workspace_id,
+                project_root,
+                continuity_id,
                 instance_id,
             } => {
                 if instance_id.is_some() {
@@ -3200,6 +3209,8 @@ Return:
                     session_id: Uuid::now_v7(),
                     adapter_id,
                     workspace_id,
+                    project_root,
+                    continuity_id,
                 }])
             }
 
@@ -4322,6 +4333,8 @@ Return:
                 title,
                 goal,
                 beads_issue_id,
+                project_root,
+                continuity_id,
                 constraints,
                 mut tags,
             } => {
@@ -4347,6 +4360,8 @@ Return:
                     beads_issue_id,
                     title,
                     goal,
+                    project_root,
+                    continuity_id,
                     constraints,
                     tags,
                 }])
@@ -4677,35 +4692,25 @@ Return:
     }
 
     async fn reconcile_external_state(&mut self) {
-        let adopted = {
-            let shared = self.shared_state.read().await;
-            let should_adopt = if shared.version != self.state.version {
-                true
-            } else {
-                match (
-                    serde_json::to_vec(&*shared),
-                    serde_json::to_vec(&self.state),
-                ) {
-                    (Ok(shared_bytes), Ok(local_bytes)) => shared_bytes != local_bytes,
-                    _ => false,
-                }
-            };
+        let external_epoch = self.external_mutation_epoch.load(Ordering::Acquire);
+        if external_epoch == self.observed_external_mutation_epoch {
+            return;
+        }
 
-            if should_adopt {
-                Some(shared.clone())
-            } else {
-                None
-            }
+        let shared_state = {
+            let shared = self.shared_state.read().await;
+            shared.clone()
         };
 
-        if let Some(shared_state) = adopted {
-            tracing::info!(
-                local_version = self.state.version,
-                shared_version = shared_state.version,
-                "Adopting externally mutated shared state before daemon action"
-            );
-            self.state = shared_state;
-        }
+        tracing::info!(
+            local_version = self.state.version,
+            shared_version = shared_state.version,
+            previous_external_epoch = self.observed_external_mutation_epoch,
+            external_epoch,
+            "Adopting externally mutated shared state before daemon action"
+        );
+        self.state = shared_state;
+        self.observed_external_mutation_epoch = external_epoch;
     }
 
     /// Sync internal state to the shared handle for API readers.
@@ -5167,8 +5172,55 @@ mod tests {
 
         let shared_state = Arc::new(RwLock::new(FocusaState::default()));
         let write_serial_lock = Arc::new(Mutex::new(()));
+        let external_mutation_epoch = Arc::new(AtomicU64::new(0));
 
-        Daemon::new(config, shared_state, write_serial_lock).expect("init daemon")
+        Daemon::new(
+            config,
+            shared_state,
+            write_serial_lock,
+            external_mutation_epoch,
+        )
+        .expect("init daemon")
+    }
+
+    #[tokio::test]
+    async fn external_reconcile_requires_epoch_signal() {
+        let mut config = FocusaConfig::default();
+        let data_dir = std::env::temp_dir().join(format!("focusa-epoch-test-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&data_dir).expect("create temp data dir");
+        config.data_dir = data_dir.to_string_lossy().into_owned();
+
+        let shared_state = Arc::new(RwLock::new(FocusaState::default()));
+        let write_serial_lock = Arc::new(Mutex::new(()));
+        let external_mutation_epoch = Arc::new(AtomicU64::new(0));
+        let mut daemon = Daemon::new(
+            config,
+            Arc::clone(&shared_state),
+            write_serial_lock,
+            Arc::clone(&external_mutation_epoch),
+        )
+        .expect("init daemon");
+
+        let mut externally_mutated = FocusaState::default();
+        externally_mutated.version = 77;
+        {
+            let mut shared = shared_state.write().await;
+            *shared = externally_mutated;
+        }
+
+        daemon.reconcile_external_state().await;
+        assert_ne!(
+            daemon.state.version, 77,
+            "same epoch must not clone/adopt shared state"
+        );
+
+        external_mutation_epoch.fetch_add(1, Ordering::AcqRel);
+        daemon.reconcile_external_state().await;
+        assert_eq!(
+            daemon.state.version, 77,
+            "epoch change adopts external mutation"
+        );
+        assert_eq!(daemon.observed_external_mutation_epoch, 1);
     }
 
     fn sample_frame_with_consults(frame_id: FrameId) -> FrameRecord {
@@ -5185,7 +5237,9 @@ mod tests {
             title: "doc78 eval frame".to_string(),
             goal: "capture consulted constraints and decisions".to_string(),
             beads_issue_id: "focusa-o8vn".to_string(),
-            tags: vec![],
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-daemon-test".to_string()),
+            tags: vec!["continuity_id:cont-daemon-test".to_string()],
             priority_hint: None,
             ascc_checkpoint_id: None,
             stats: FrameStats::default(),

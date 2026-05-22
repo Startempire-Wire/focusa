@@ -86,11 +86,13 @@ function payloadSummary(payload: any): Record<string, unknown> {
 }
 
 function skillPaths(): string[] {
+  const homeSkills = process.env.PI_SKILLS_DIR
+    || (process.env.HOME ? `${process.env.HOME}/.pi/skills` : "");
   return [
     `${process.cwd()}/.pi/skills`,
     `${process.cwd()}/apps/pi-extension/skills`,
-    "/root/.pi/skills",
-  ];
+    homeSkills,
+  ].filter(Boolean);
 }
 
 export function registerPolishHooks(pi: ExtensionAPI) {

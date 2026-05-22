@@ -22,6 +22,7 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use tokio::sync::{Mutex, RwLock};
 
 fn expand_home_dir(path: &str, home: Option<&Path>) -> PathBuf {
@@ -145,12 +146,14 @@ async fn main() -> anyhow::Result<()> {
     // Event bus for SSE.
     let (events_tx, _events_rx) = tokio::sync::broadcast::channel::<String>(1024);
     let write_serial_lock = Arc::new(Mutex::new(()));
+    let external_mutation_epoch = Arc::new(AtomicU64::new(0));
 
     // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
     let mut daemon = Daemon::new(
         config.clone(),
         shared_state.clone(),
         write_serial_lock.clone(),
+        external_mutation_epoch.clone(),
     )?;
     daemon.attach_event_bus(focusa_core::runtime::event_bus::EventBus::new(
         events_tx.clone(),
@@ -177,6 +180,7 @@ async fn main() -> anyhow::Result<()> {
             config,
             persistence,
             write_serial_lock,
+            external_mutation_epoch,
         )
         .await
         {
@@ -199,25 +203,25 @@ mod tests {
 
     #[test]
     fn expand_home_dir_expands_tilde_prefix() {
-        let home = Path::new("/home/wirebot");
+        let home = Path::new("/home/focusa-user");
         assert_eq!(
             expand_home_dir("~", Some(home)),
-            PathBuf::from("/home/wirebot")
+            PathBuf::from("/home/focusa-user")
         );
         assert_eq!(
-            expand_home_dir("~/.focusa", Some(home)),
-            PathBuf::from("/home/wirebot/.focusa")
+            expand_home_dir("~/focusa-data", Some(home)),
+            home.join("focusa-data")
         );
     }
 
     #[test]
     fn expand_home_dir_preserves_literal_path_without_home() {
         assert_eq!(
-            expand_home_dir("~/.focusa", None),
-            PathBuf::from("~/.focusa")
+            expand_home_dir("~/focusa-data", None),
+            PathBuf::from("~/focusa-data")
         );
         assert_eq!(
-            expand_home_dir("/tmp/focusa", Some(Path::new("/home/wirebot"))),
+            expand_home_dir("/tmp/focusa", Some(Path::new("/home/focusa-user"))),
             PathBuf::from("/tmp/focusa")
         );
     }

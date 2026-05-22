@@ -8,6 +8,7 @@
 
 use crate::middleware;
 use crate::routes;
+use crate::routes::bounded::{observe_resource_mode_transition, resource_mode_status};
 use crate::routes::sse::EventBroadcaster;
 use axum::Router;
 use axum::middleware as axum_mw;
@@ -25,6 +26,93 @@ use tokio::process::{Child, ChildStdin};
 use tokio::sync::RwLock as TokioRwLock;
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 use uuid::Uuid;
+
+#[cfg(target_os = "linux")]
+unsafe extern "C" {
+    fn malloc_trim(pad: usize) -> std::os::raw::c_int;
+}
+
+fn allocator_trim_interval_secs() -> u64 {
+    std::env::var("FOCUSA_ALLOCATOR_TRIM_INTERVAL_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(30)
+}
+
+fn trim_allocator_once() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        // SAFETY: malloc_trim is a process-local glibc allocator maintenance call.
+        // It does not touch Rust-owned references; glibc serializes allocator internals.
+        unsafe { malloc_trim(0) != 0 }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
+async fn allocator_trim_loop() {
+    let interval_secs = allocator_trim_interval_secs();
+    if interval_secs == 0 {
+        tracing::info!("allocator trim loop disabled");
+        return;
+    }
+    let mut interval = tokio::time::interval(Duration::from_secs(interval_secs.max(5)));
+    loop {
+        interval.tick().await;
+        let trimmed = tokio::task::spawn_blocking(trim_allocator_once)
+            .await
+            .unwrap_or(false);
+        tracing::debug!(trimmed, "allocator trim tick");
+    }
+}
+
+fn resource_mode_monitor_interval_secs() -> u64 {
+    std::env::var("FOCUSA_RESOURCE_MODE_MONITOR_INTERVAL_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(15)
+}
+
+async fn resource_mode_monitor_loop(state: Arc<AppState>) {
+    let interval_secs = resource_mode_monitor_interval_secs();
+    if interval_secs == 0 {
+        tracing::info!("resource mode monitor disabled");
+        return;
+    }
+    let mut interval = tokio::time::interval(Duration::from_secs(interval_secs.max(5)));
+    loop {
+        interval.tick().await;
+        let active_session_id = {
+            let focusa = state.focusa.read().await;
+            focusa
+                .session
+                .as_ref()
+                .map(|session| session.session_id.to_string())
+        };
+        let status =
+            observe_resource_mode_transition("background_resource_monitor", active_session_id);
+        if let Some(transition) = status.latest_transition.as_ref() {
+            tracing::debug!(
+                transition_id = %transition.transition_id,
+                mode = %status.mode,
+                reason = %status.reason,
+                durability = %transition.durability,
+                "resource mode monitor observed transition"
+            );
+        }
+    }
+}
+
+fn lowmem_background_throttle() -> Option<(String, String)> {
+    let status = resource_mode_status();
+    if matches!(status.mode, "lowmem" | "emergency") && status.budget.background_concurrency == 0 {
+        Some((status.mode.to_string(), status.reason.to_string()))
+    } else {
+        None
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -71,6 +159,7 @@ pub struct SupervisorPerfCounters {
     pub dispatch_attempts: AtomicU64,
     pub dispatch_skipped_disallowed: AtomicU64,
     pub dispatch_recovery_restarts: AtomicU64,
+    pub background_throttled_ticks: AtomicU64,
 }
 
 /// Shared state between API server and daemon.
@@ -101,6 +190,14 @@ pub struct AppState {
     pub pi_rpc_session: Arc<Mutex<Option<PiRpcSession>>>,
     /// Lightweight performance/backpressure counters for supervisor loop.
     pub supervisor_perf: Arc<SupervisorPerfCounters>,
+    /// Monotonic signal for API routes that mutate shared state outside the daemon reducer.
+    pub external_mutation_epoch: Arc<AtomicU64>,
+}
+
+impl AppState {
+    pub fn mark_external_mutation(&self) -> u64 {
+        self.external_mutation_epoch.fetch_add(1, Ordering::AcqRel) + 1
+    }
 }
 
 /// Build the axum Router with all routes.
@@ -132,12 +229,16 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::trust::router())
         .merge(routes::threads::router())
         .merge(routes::proposals::router())
+        .merge(routes::project::router())
         .merge(routes::predictions::router())
         .merge(routes::rfm::router())
+        .merge(routes::resource::router())
         .merge(routes::reflection::router())
         .merge(routes::skills::router())
         .merge(routes::snapshots::router())
         .merge(routes::training::router())
+        .merge(routes::trajectory::router())
+        .merge(routes::traverse::router())
         .merge(routes::visual_workflow::router())
         .merge(routes::work_loop::router())
         .merge(routes::workpoint::router())
@@ -220,16 +321,25 @@ async fn reflection_scheduler_loop(base_url: String) {
                             .max(1);
 
                         if enabled {
-                            let tick_url = format!("{}/v1/reflect/scheduler/tick", base_url);
-                            let _ = client
-                                .post(&tick_url)
-                                .json(&serde_json::json!({}))
-                                .send()
-                                .await
-                                .map(|r| {
-                                    tracing::debug!(status = %r.status(), "reflection scheduler tick executed");
-                                });
-                            interval
+                            if let Some((mode, reason)) = lowmem_background_throttle() {
+                                tracing::debug!(
+                                    mode,
+                                    reason,
+                                    "reflection scheduler tick throttled by LowMem background policy"
+                                );
+                                interval.max(60)
+                            } else {
+                                let tick_url = format!("{}/v1/reflect/scheduler/tick", base_url);
+                                let _ = client
+                                    .post(&tick_url)
+                                    .json(&serde_json::json!({}))
+                                    .send()
+                                    .await
+                                    .map(|r| {
+                                        tracing::debug!(status = %r.status(), "reflection scheduler tick executed");
+                                    });
+                                interval
+                            }
                         } else {
                             30
                         }
@@ -242,6 +352,19 @@ async fn reflection_scheduler_loop(base_url: String) {
 
         tokio::time::sleep(Duration::from_secs(delay_secs)).await;
     }
+}
+
+fn supervisor_driver_cwd() -> String {
+    std::env::var("FOCUSA_WORK_LOOP_CWD")
+        .or_else(|_| std::env::var("FOCUSA_PROJECT_ROOT"))
+        .ok()
+        .filter(|cwd| !cwd.trim().is_empty())
+        .unwrap_or_else(|| {
+            std::env::current_dir()
+                .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                .to_string_lossy()
+                .to_string()
+        })
 }
 
 async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String) {
@@ -282,6 +405,20 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
 
         if !enabled {
             delay_ms = delay_ms.min(2_000);
+        }
+
+        if let Some((mode, reason)) = lowmem_background_throttle() {
+            state
+                .supervisor_perf
+                .background_throttled_ticks
+                .fetch_add(1, Ordering::Relaxed);
+            tracing::debug!(
+                mode,
+                reason,
+                "continuous work supervisor tick throttled by LowMem background policy"
+            );
+            tokio::time::sleep(Duration::from_millis(delay_ms.max(5_000))).await;
+            continue;
         }
 
         if should_auto_reenable_continuous(enabled, status, last_continue_reason.as_deref()) {
@@ -426,7 +563,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 let _ = client
                     .post(&driver_url)
                     .header("x-focusa-writer-id", &writer)
-                    .json(&serde_json::json!({"cwd":"/home/wirebot/focusa"}))
+                    .json(&serde_json::json!({"cwd": supervisor_driver_cwd()}))
                     .send()
                     .await;
             }
@@ -483,7 +620,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     let _ = client
                         .post(&driver_url)
                         .header("x-focusa-writer-id", &writer)
-                        .json(&serde_json::json!({"cwd":"/home/wirebot/focusa"}))
+                        .json(&serde_json::json!({"cwd": supervisor_driver_cwd()}))
                         .send()
                         .await;
 
@@ -514,6 +651,7 @@ pub async fn run(
     config: FocusaConfig,
     persistence: SqlitePersistence,
     write_serial_lock: Arc<Mutex<()>>,
+    external_mutation_epoch: Arc<AtomicU64>,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
 
@@ -533,6 +671,7 @@ pub async fn run(
         started_at: Instant::now(),
         pi_rpc_session: Arc::new(Mutex::new(None)),
         supervisor_perf: Arc::new(SupervisorPerfCounters::default()),
+        external_mutation_epoch,
     });
 
     let app = build_router(state.clone());
@@ -548,6 +687,15 @@ pub async fn run(
     let supervisor_state = state.clone();
     tokio::spawn(async move {
         continuous_work_supervisor_loop(supervisor_state, supervisor_url).await;
+    });
+
+    tokio::spawn(async move {
+        allocator_trim_loop().await;
+    });
+
+    let resource_monitor_state = state.clone();
+    tokio::spawn(async move {
+        resource_mode_monitor_loop(resource_monitor_state).await;
     });
 
     tracing::info!("Listening on {}", bind_addr);

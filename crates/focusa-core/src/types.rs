@@ -42,6 +42,56 @@ pub type CheckpointId = Uuid;
 /// Workpoint identifier for Spec88 continuity checkpoints.
 pub type WorkpointId = Uuid;
 
+// ─── Spec96 project/session identity envelopes ──────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ProjectIdentitySignalRecord {
+    pub source: String,
+    pub root: Option<String>,
+    pub confidence: Option<String>,
+    pub independent: bool,
+    #[serde(default)]
+    pub details: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ProjectIdentityRecord {
+    pub schema: Option<String>,
+    pub status: Option<String>,
+    pub project_id: Option<String>,
+    pub canonical_name: Option<String>,
+    pub project_root: String,
+    pub repo_remote: Option<String>,
+    pub beads_prefix: Option<String>,
+    pub workspace_kind: Option<String>,
+    pub fingerprint: Option<String>,
+    pub confidence: Option<String>,
+    #[serde(default)]
+    pub signals: Vec<ProjectIdentitySignalRecord>,
+    #[serde(default)]
+    pub mismatches: Vec<serde_json::Value>,
+    pub verified_at: Option<String>,
+    pub authority_boundary: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct FocusaSessionIdentity {
+    pub schema: Option<String>,
+    pub project_identity: Option<ProjectIdentityRecord>,
+    pub pi_session_id: Option<String>,
+    pub session_frame_key: String,
+    pub session_incarnation_id: String,
+    pub continuity_id: Option<String>,
+    pub project_root: String,
+    pub cwd: String,
+    pub workspace_id: String,
+    pub process_id: Option<u32>,
+    pub started_at: String,
+    pub resume_source: String,
+    pub canonical_scope: Option<bool>,
+    pub scope_failure: Option<String>,
+}
+
 // ─── Continuous Work Loop (spec 79) ─────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -556,6 +606,8 @@ pub struct WorkpointBlockerRecord {
 pub struct WorkpointRecord {
     pub workpoint_id: WorkpointId,
     pub work_item_id: Option<String>,
+    pub session_identity: Option<FocusaSessionIdentity>,
+    pub continuity_id: Option<String>,
     pub session_id: Option<String>,
     pub project_root: Option<String>,
     pub frame_id: Option<FrameId>,
@@ -585,6 +637,8 @@ impl Default for WorkpointRecord {
         Self {
             workpoint_id: Uuid::now_v7(),
             work_item_id: None,
+            session_identity: None,
+            continuity_id: None,
             session_id: None,
             project_root: None,
             frame_id: None,
@@ -646,6 +700,189 @@ pub struct WorkpointState {
     pub degraded_fallbacks: Vec<WorkpointDegradedFallbackRecord>,
 }
 
+
+// ─── Trajectory Projection (Spec96) ────────────────────────────────────────
+
+pub mod trajectory_caps {
+    pub const RECORDS: usize = 32;
+    pub const MILESTONES: usize = 32;
+    pub const PROVENANCE: usize = 32;
+    pub const EVIDENCE_REFS: usize = 32;
+    pub const STATE_DELTAS: usize = 64;
+    pub const CHECKPOINTS: usize = 24;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryDefinitionStatus {
+    Clear,
+    Provisional,
+    #[default]
+    Unclear,
+    Conflicted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryRootGoalStability {
+    #[default]
+    Stable,
+    Clarifying,
+    Superseded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryMilestoneStatus {
+    #[default]
+    NotStarted,
+    Active,
+    Blocked,
+    Verified,
+    Superseded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryConfidence {
+    Low,
+    #[default]
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryGoalProvenanceRecord {
+    pub field: String,
+    pub source: String,
+    pub source_ref: Option<String>,
+    pub inferred: bool,
+    pub confidence: TrajectoryConfidence,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryMilestoneRecord {
+    pub milestone_id: String,
+    pub title: String,
+    pub desired_state_delta: String,
+    #[serde(default)]
+    pub current_state_evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub completion_evidence_refs: Vec<String>,
+    pub status: TrajectoryMilestoneStatus,
+    #[serde(default)]
+    pub next_workpoint_candidate: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryDefinitionOfDoneRecord {
+    #[serde(default)]
+    pub criteria: Vec<String>,
+    #[serde(default)]
+    pub evidence_required: Vec<String>,
+    #[serde(default)]
+    pub verified_evidence_refs: Vec<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrajectoryProjectionRecord {
+    pub trajectory_id: String,
+    pub session_identity: Option<FocusaSessionIdentity>,
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub root_long_term_goal: String,
+    pub long_term_goal: String,
+    pub desired_end_state: String,
+    pub short_term_goal: Option<String>,
+    pub current_state: Option<String>,
+    pub root_goal_stability: TrajectoryRootGoalStability,
+    pub session_clarity_status: TrajectoryDefinitionStatus,
+    pub gap_summary: Option<String>,
+    #[serde(default)]
+    pub milestones: Vec<TrajectoryMilestoneRecord>,
+    pub active_milestone_id: Option<String>,
+    pub active_workpoint_id: Option<WorkpointId>,
+    #[serde(default)]
+    pub source_refs: serde_json::Value,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub open_questions: Vec<String>,
+    pub definition_status: TrajectoryDefinitionStatus,
+    pub confidence: TrajectoryConfidence,
+    #[serde(default)]
+    pub goal_provenance: Vec<TrajectoryGoalProvenanceRecord>,
+    pub definition_of_done: Option<TrajectoryDefinitionOfDoneRecord>,
+    pub supersedes_trajectory_id: Option<String>,
+    pub canonical: bool,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Default for TrajectoryProjectionRecord {
+    fn default() -> Self {
+        Self {
+            trajectory_id: String::new(),
+            session_identity: None,
+            project_root: None,
+            continuity_id: None,
+            root_long_term_goal: String::new(),
+            long_term_goal: String::new(),
+            desired_end_state: String::new(),
+            short_term_goal: None,
+            current_state: None,
+            root_goal_stability: TrajectoryRootGoalStability::Stable,
+            session_clarity_status: TrajectoryDefinitionStatus::Unclear,
+            gap_summary: None,
+            milestones: vec![],
+            active_milestone_id: None,
+            active_workpoint_id: None,
+            source_refs: serde_json::Value::Null,
+            blockers: vec![],
+            open_questions: vec![],
+            definition_status: TrajectoryDefinitionStatus::Unclear,
+            confidence: TrajectoryConfidence::Medium,
+            goal_provenance: vec![],
+            definition_of_done: None,
+            supersedes_trajectory_id: None,
+            canonical: false,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryCheckpointRecord {
+    pub trajectory_id: String,
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub packet: serde_json::Value,
+    pub persisted_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryStateDeltaRecord {
+    pub trajectory_id: String,
+    pub current_state: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub reason: String,
+    pub recorded_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryState {
+    pub active_trajectory_id: Option<String>,
+    #[serde(default)]
+    pub records: Vec<TrajectoryProjectionRecord>,
+    #[serde(default)]
+    pub checkpoints: Vec<TrajectoryCheckpointRecord>,
+    #[serde(default)]
+    pub state_deltas: Vec<TrajectoryStateDeltaRecord>,
+}
+
 /// The complete cognitive state of a Focusa instance.
 ///
 /// INVARIANT: Conversation history is NEVER part of FocusaState.
@@ -668,6 +905,8 @@ pub struct FocusaState {
     pub ontology: OntologyState,
     #[serde(default)]
     pub workpoint: WorkpointState,
+    #[serde(default)]
+    pub trajectory: TrajectoryState,
     pub contribution: ContributionState,
     /// Canonical continuous work loop state (spec 79).
     #[serde(default)]
@@ -711,6 +950,7 @@ impl FocusaState {
             pre: PreState::default(),
             ontology: OntologyState::default(),
             workpoint: WorkpointState::default(),
+            trajectory: TrajectoryState::default(),
             contribution: ContributionState::default(),
             work_loop: WorkLoopState::default(),
             instances: vec![],
@@ -737,6 +977,10 @@ pub struct SessionState {
     pub created_at: DateTime<Utc>,
     pub adapter_id: Option<String>,
     pub workspace_id: Option<String>,
+    #[serde(default)]
+    pub project_root: Option<String>,
+    #[serde(default)]
+    pub continuity_id: Option<String>,
     pub status: SessionStatus,
 }
 
@@ -778,6 +1022,10 @@ pub struct FrameRecord {
     pub goal: String,
     /// Beads issue ID (required).
     pub beads_issue_id: String,
+    #[serde(default)]
+    pub project_root: Option<String>,
+    #[serde(default)]
+    pub continuity_id: Option<String>,
     pub tags: Vec<String>,
     pub priority_hint: Option<String>,
     pub ascc_checkpoint_id: Option<String>,
@@ -1205,6 +1453,8 @@ pub enum FocusaEvent {
         session_id: SessionId,
         adapter_id: Option<String>,
         workspace_id: Option<String>,
+        project_root: Option<String>,
+        continuity_id: Option<String>,
     },
     SessionRestored {
         session_id: SessionId,
@@ -1346,6 +1596,8 @@ pub enum FocusaEvent {
         beads_issue_id: String,
         title: String,
         goal: String,
+        project_root: Option<String>,
+        continuity_id: Option<String>,
         constraints: Vec<String>,
         tags: Vec<String>,
     },
@@ -1606,6 +1858,25 @@ pub enum FocusaEvent {
         verification: WorkpointVerificationRecord,
     },
 
+    // ─── Trajectory Projection (Spec96) ─────────────────────────────────
+    #[serde(rename = "trajectory_goal_defined")]
+    TrajectoryGoalDefined {
+        trajectory: TrajectoryProjectionRecord,
+    },
+    #[serde(rename = "trajectory_checkpoint_persisted")]
+    TrajectoryCheckpointPersisted {
+        trajectory_id: String,
+        checkpoint: serde_json::Value,
+        summary: Option<String>,
+    },
+    #[serde(rename = "trajectory_state_delta_recorded")]
+    TrajectoryStateDeltaRecorded {
+        trajectory_id: String,
+        current_state: Option<String>,
+        evidence_refs: Vec<String>,
+        reason: String,
+    },
+
     // Errors
     InvariantViolation {
         invariant: String,
@@ -1738,6 +2009,8 @@ pub enum Action {
         title: String,
         goal: String,
         beads_issue_id: String,
+        project_root: Option<String>,
+        continuity_id: Option<String>,
         constraints: Vec<String>,
         tags: Vec<String>,
     },
@@ -1815,6 +2088,8 @@ pub enum Action {
     StartSession {
         adapter_id: Option<String>,
         workspace_id: Option<String>,
+        project_root: Option<String>,
+        continuity_id: Option<String>,
         instance_id: Option<Uuid>,
     },
     ResumeSession {
@@ -1955,10 +2230,29 @@ pub enum Action {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-/// Runtime configuration defaults from spec.
+pub fn default_focusa_data_dir() -> String {
+    std::env::var("FOCUSA_HOME")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            std::env::var("XDG_DATA_HOME")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| format!("{value}/focusa"))
+        })
+        .or_else(|| {
+            std::env::var("HOME")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| format!("{value}/.local/share/focusa"))
+        })
+        .unwrap_or_else(|| "./.focusa".to_string())
+}
+
+/// Runtime configuration defaults from environment-aware paths.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FocusaConfig {
-    /// Default: "~/.focusa/"
+    /// Default: FOCUSA_HOME, XDG_DATA_HOME/focusa, HOME/.local/share/focusa, or ./.focusa.
     pub data_dir: String,
     /// Default: 127.0.0.1:8787
     pub api_bind: String,
@@ -2015,7 +2309,7 @@ pub struct FocusaConfig {
 impl Default for FocusaConfig {
     fn default() -> Self {
         Self {
-            data_dir: "~/.focusa".to_string(),
+            data_dir: default_focusa_data_dir(),
             api_bind: "127.0.0.1:8787".to_string(),
             max_prompt_tokens: 6000,
             reserve_for_response: 2000,

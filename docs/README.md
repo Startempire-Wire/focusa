@@ -140,6 +140,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
 - [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.
 - [current/LIVE_TOOL_CONTRACT_PROOF.md](current/LIVE_TOOL_CONTRACT_PROOF.md) — live proof command and expected result.
+- [96-trajectory-projection-and-daemon-stability-spec.md](96-trajectory-projection-and-daemon-stability-spec.md) — Trajectory Projection, ProjectIdentity, hot/cold daemon stability, and tool failure taxonomy.
 
 ## Focused tool and skill docs
 

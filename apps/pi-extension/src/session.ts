@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -15,6 +15,7 @@ let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
   if (!S.focusaAvailable) return;
+  if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) return;
   const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
   const nextSlice = S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
   if (!mission && !nextSlice) return;
@@ -27,7 +28,9 @@ async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
       confidence: "low",
       canonical: true,
       promote: true,
+      continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
       session_id: S.sessionFrameKey,
+      project_root: S.sessionCwd || process.cwd(),
       source_turn_id: `pi-turn-${S.turnCount}`,
       action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || S.sessionFrameKey || "pi-session", verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"], status: "needs_refinement" },
     }),
@@ -36,10 +39,15 @@ async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
 
 async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
   if (!S.focusaAvailable) return;
+  if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) {
+    S.activeWorkpointPacket = null;
+    S.activeWorkpointSummary = "";
+    return;
+  }
   try {
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
-      body: JSON.stringify({ mode: "compact_prompt", session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
+      body: JSON.stringify({ mode: "compact_prompt", continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()), session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() }),
     });
     if (packet?.status === "rejected_scope_mismatch") {
       S.activeWorkpointPacket = null;
@@ -47,8 +55,14 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
       return;
     }
     if (packet?.status === "completed") {
-      S.activeWorkpointPacket = packet.resume_packet || packet;
-      S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+      const candidate = normalizeWorkpointResumePacketEnvelope(packet);
+      if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
+        S.activeWorkpointPacket = null;
+        S.activeWorkpointSummary = "";
+        return;
+      }
+      S.activeWorkpointPacket = candidate;
+      S.activeWorkpointSummary = packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "";
       focusaPost("/telemetry/trace", {
         event_type: "workpoint_resume_packet_loaded",
         payload: { reason, workpoint_id: packet.workpoint_id, canonical: packet.canonical },
@@ -92,11 +106,14 @@ async function ensureActiveFrame(ctx: any, sessionId?: string) {
 async function ensureFocusaSession(ctx: any) {
   const status = await focusaFetch("/status").catch(() => null);
   if (status?.session?.status === "active") return status.session;
+  const cwd = ctx.cwd || S.sessionCwd || "pi-workspace";
   return focusaFetch("/session/start", {
     method: "POST",
     body: JSON.stringify({
       adapter_id: "pi",
-      workspace_id: ctx.cwd || S.sessionCwd || "pi-workspace",
+      workspace_id: cwd,
+      project_root: cwd,
+      continuity_id: ensureContinuityId(cwd),
     }),
   });
 }
@@ -182,7 +199,9 @@ export function registerSession(pi: ExtensionAPI) {
     S.seenFirstBeforeAgentStart = false; // Reset: inject directive on first before_agent_start only
     S.lastCompactDecision = "";
     S.compactResumePending = false;
-    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.sessionFrameKey = eventSessionId;
+    S.continuityId = "";
     S.activeWorkpointPacket = null;
     S.activeWorkpointSummary = "";
     S.sessionCwd = ctx.cwd;
@@ -227,9 +246,7 @@ export function registerSession(pi: ExtensionAPI) {
           intent: e.data.intent || "",
           currentFocus: e.data.currentFocus || "",
         };
-        S.activeWorkpointPacket = e.data.activeWorkpointPacket || null;
-        S.activeWorkpointSummary = e.data.activeWorkpointSummary || "";
-        if (e.data.sessionId) S.sessionFrameKey = e.data.sessionId;
+        adoptPersistedContinuityForSession(e.data, eventSessionId, ctx.cwd);
         // Explicitly clear stale pollution — do NOT carry across sessions
         S.localConstraints = [];
         S.localFailures = [];
@@ -246,12 +263,15 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
 
+    ensureContinuityId(ctx.cwd);
     await ensureFocusaSession(ctx);
     await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
     await refreshSessionWorkpointPacket("session_start");
+    await refreshTrajectoryClarityLifecycle("session_start", ctx.cwd);
     if (!S.activeWorkpointPacket) {
       await ensureLowConfidenceWorkpoint("session_start");
       await refreshSessionWorkpointPacket("session_start_low_confidence");
+      await refreshTrajectoryClarityLifecycle("session_start_low_confidence", ctx.cwd);
     }
 
     // §35.8: Session name sync from Pi's scoped focus frame, never global active frame
@@ -405,7 +425,9 @@ export function registerSession(pi: ExtensionAPI) {
     S.localDecisions = []; S.localConstraints = []; S.localFailures = [];
     S.lastFocusSnapshot = { decisions: [], constraints: [], failures: [], intent: "", currentFocus: "" };
     S.turnCount = 0; S.cataloguedDecisions = []; S.cataloguedFacts = [];
-    S.sessionFrameKey = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
+    S.sessionFrameKey = eventSessionId;
+    S.continuityId = "";
     S.activeWorkpointPacket = null;
     S.activeWorkpointSummary = "";
     S.sessionCwd = ctx.cwd;
@@ -437,9 +459,7 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
-        S.activeWorkpointPacket = d.activeWorkpointPacket || null;
-        S.activeWorkpointSummary = d.activeWorkpointSummary || "";
-        if (d.sessionId) S.sessionFrameKey = d.sessionId;
+        adoptPersistedContinuityForSession(d, eventSessionId, ctx.cwd);
         break;
       }
     }
@@ -447,11 +467,13 @@ export function registerSession(pi: ExtensionAPI) {
     if (!S.wbmEnabled) S.activeFrameId = null;
     if (S.focusaAvailable) {
       await ensureFocusaSession(ctx);
-      await ensureActiveFrame(ctx, (event as any).sessionId || "unknown");
+      await ensureActiveFrame(ctx, eventSessionId || "unknown");
       await refreshSessionWorkpointPacket("session_switch");
+      await refreshTrajectoryClarityLifecycle("session_resume", ctx.cwd);
       if (!S.activeWorkpointPacket) {
         await ensureLowConfidenceWorkpoint("session_resume");
         await refreshSessionWorkpointPacket("session_switch_low_confidence");
+        await refreshTrajectoryClarityLifecycle("session_resume_low_confidence", ctx.cwd);
       }
     }
   });
@@ -467,11 +489,15 @@ export function registerSession(pi: ExtensionAPI) {
           checkpoint_reason: "fork",
           canonical: true,
           promote: true,
+          continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+          session_id: S.sessionFrameKey,
+          project_root: S.sessionCwd || process.cwd(),
           source_turn_id: `pi-turn-${S.turnCount}`,
           action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || "pi-fork", verification_hooks: ["fork refreshes workpoint"], status: "ready" },
         }),
       }).catch(() => null);
       await refreshSessionWorkpointPacket("fork");
+      await refreshTrajectoryClarityLifecycle("handoff_fork", S.sessionCwd || process.cwd());
     }
     await persistAuthoritativeState();
     if (S.focusaAvailable && S.activeFrameId) {

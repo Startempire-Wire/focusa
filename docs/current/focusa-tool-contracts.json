@@ -1,7 +1,253 @@
 {
   "version": "spec90.tool_contracts.v1",
-  "generated_at": "2026-04-29T05:31:01.168Z",
+  "generated_at": "2026-05-21T09:00:00.000Z",
   "contracts": [
+    {
+      "name": "focusa_project_identity",
+      "label": "Project Identity",
+      "purpose": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator scope signals before trusting scoped context.",
+      "family": "project_identity",
+      "ontology_action": "project.identity",
+      "ontology_objects": [
+        "ProjectIdentity"
+      ],
+      "api_routes": [
+        "GET /v1/project/identity"
+      ],
+      "cli_commands": [
+        "focusa project identity"
+      ],
+      "core_surface": "Spec96 ProjectIdentity quorum and scope safety",
+      "doc_path": "docs/focusa-tools/tools/focusa_project_identity.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/project/identity safe probe and quorum status"
+    },
+    {
+      "name": "focusa_project_verify",
+      "label": "Project Verify",
+      "purpose": "Verify expected project identity fields and surface scope mismatches without mutating Focusa state.",
+      "family": "project_identity",
+      "ontology_action": "project.verify",
+      "ontology_objects": [
+        "ProjectIdentity"
+      ],
+      "api_routes": [
+        "POST /v1/project/verify"
+      ],
+      "cli_commands": [
+        "focusa project verify"
+      ],
+      "core_surface": "Spec96 ProjectIdentity quorum and scope safety",
+      "doc_path": "docs/focusa-tools/tools/focusa_project_verify.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics"
+    },
+    {
+      "name": "focusa_trajectory_view",
+      "label": "Trajectory View",
+      "purpose": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, and next Workpoint candidate.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.view",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "WorkpointRecord",
+        "FocusState"
+      ],
+      "api_routes": [
+        "GET /v1/trajectory/view"
+      ],
+      "cli_commands": [
+        "focusa trajectory view"
+      ],
+      "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_trajectory_view.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and ProjectIdentity status"
+    },
+    {
+      "name": "focusa_trajectory_define_goal",
+      "label": "Trajectory Define Goal",
+      "purpose": "Create an advisory per-project Trajectory goal candidate without changing task or execution authority.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.define_goal",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "WorkpointRecord",
+        "FocusState"
+      ],
+      "api_routes": [
+        "POST /v1/trajectory/define-goal"
+      ],
+      "cli_commands": [
+        "focusa trajectory define-goal"
+      ],
+      "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "advisory_projection",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    },
+    {
+      "name": "focusa_trajectory_assess",
+      "label": "Trajectory Assess",
+      "purpose": "Assess project current state against desired Trajectory end state and return gaps/recommended action.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.assess",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "WorkpointRecord",
+        "FocusState"
+      ],
+      "api_routes": [
+        "POST /v1/trajectory/assess"
+      ],
+      "cli_commands": [
+        "focusa trajectory assess"
+      ],
+      "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_trajectory_assess.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    },
+    {
+      "name": "focusa_trajectory_propose_workpoint",
+      "label": "Trajectory Propose Workpoint",
+      "purpose": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.propose_workpoint",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "WorkpointRecord",
+        "FocusState"
+      ],
+      "api_routes": [
+        "POST /v1/trajectory/propose-workpoint"
+      ],
+      "cli_commands": [
+        "focusa trajectory propose-workpoint"
+      ],
+      "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "advisory_projection",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    },
+    {
+      "name": "focusa_trajectory_checkpoint",
+      "label": "Trajectory Checkpoint",
+      "purpose": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.checkpoint",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "WorkpointRecord",
+        "FocusState"
+      ],
+      "api_routes": [
+        "POST /v1/trajectory/checkpoint"
+      ],
+      "cli_commands": [
+        "focusa trajectory checkpoint"
+      ],
+      "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "advisory_checkpoint",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    },
+    {
+      "name": "focusa_trajectory_resume",
+      "label": "Trajectory Resume",
+      "purpose": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.resume",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "WorkpointRecord",
+        "FocusState"
+      ],
+      "api_routes": [
+        "POST /v1/trajectory/resume"
+      ],
+      "cli_commands": [
+        "focusa trajectory resume"
+      ],
+      "core_surface": "Spec96 per-project Trajectory Intelligence projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_trajectory_resume.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test"
+    },
+    {
+      "name": "focusa_traverse",
+      "label": "Focusa Traverse",
+      "purpose": "Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards.",
+      "family": "traversal",
+      "ontology_action": "traverse.read",
+      "ontology_objects": [
+        "TraversalSurface",
+        "LineageTree",
+        "OntologyState",
+        "WorkpointRecord",
+        "ReferenceIndex"
+      ],
+      "api_routes": [
+        "POST /v1/traverse",
+        "POST /v1/traverse/verify-tags"
+      ],
+      "cli_commands": [],
+      "core_surface": "Spec96 surgical traversal facade",
+      "doc_path": "docs/focusa-tools/tools/focusa_traverse.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "api_domain_only"
+      ],
+      "live_check": "contract_static plus /v1/traverse lineage smoke test"
+    },
     {
       "name": "focusa_predict_record",
       "label": "Record Prediction",
@@ -101,7 +347,7 @@
     {
       "name": "focusa_scratch",
       "label": "Scratchpad",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
       "family": "focus_state",
       "ontology_action": "focus_state.scratch",
       "ontology_objects": [
@@ -119,12 +365,12 @@
       "exemptions": [
         "local_scratchpad_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_decide",
       "label": "Record Decision",
-      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
+      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
       "family": "focus_state",
       "ontology_action": "focus_state.decide",
       "ontology_objects": [
@@ -142,12 +388,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_constraint",
       "label": "Record Constraint",
-      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
+      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
       "family": "focus_state",
       "ontology_action": "focus_state.constraint",
       "ontology_objects": [
@@ -165,7 +411,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_failure",
@@ -188,12 +434,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_intent",
       "label": "Set Intent",
-      "purpose": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
+      "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.intent",
       "ontology_objects": [
@@ -211,12 +457,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_current_focus",
       "label": "Set Current Focus",
-      "purpose": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
+      "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.current.focus",
       "ontology_objects": [
@@ -234,7 +480,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_next_step",
@@ -257,12 +503,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_open_question",
       "label": "Record Open Question",
-      "purpose": "Record an open question that needs to be answered (max 200 chars).",
+      "purpose": "Record an open question that needs to be answered (max 180 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.open.question",
       "ontology_objects": [
@@ -280,12 +526,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_recent_result",
       "label": "Record Recent Result",
-      "purpose": "Record a completed result, output, or reference (max 300 chars).",
+      "purpose": "Record a completed result, output, or reference (max 180 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.recent.result",
       "ontology_objects": [
@@ -303,12 +549,12 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_note",
       "label": "Record Note",
-      "purpose": "Miscellaneous note (max 200 chars). Bounded at 20, oldest decay first.",
+      "purpose": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.",
       "family": "focus_state",
       "ontology_action": "focus_state.note",
       "ontology_objects": [
@@ -326,7 +572,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_writer_status",
@@ -338,7 +584,7 @@
         "WorkLoopState"
       ],
       "api_routes": [
-        "GET /v1/work-loop/status"
+        "GET /v1/work-loop/status?summary_only=true"
       ],
       "cli_commands": [],
       "core_surface": "Work-loop state/writer controller",
@@ -349,7 +595,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_status",
@@ -361,7 +607,7 @@
         "WorkLoopState"
       ],
       "api_routes": [
-        "GET /v1/work-loop/status"
+        "GET /v1/work-loop/status?summary_only=true"
       ],
       "cli_commands": [],
       "core_surface": "Work-loop state/writer controller",
@@ -372,7 +618,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_control",
@@ -393,12 +639,12 @@
       "core_surface": "Work-loop state/writer controller",
       "doc_path": "docs/focusa-tools/tools/focusa_work_loop_control.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "read_only",
+      "side_effect_profile": "control_state",
       "parity_status": "domain",
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_context",
@@ -416,12 +662,12 @@
       "core_surface": "Work-loop state/writer controller",
       "doc_path": "docs/focusa-tools/tools/focusa_work_loop_context.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "read_only",
+      "side_effect_profile": "write_context",
       "parity_status": "domain",
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_checkpoint",
@@ -444,7 +690,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_work_loop_select_next",
@@ -462,12 +708,12 @@
       "core_surface": "Work-loop state/writer controller",
       "doc_path": "docs/focusa-tools/tools/focusa_work_loop_select_next.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "read_only",
+      "side_effect_profile": "select_next_work",
       "parity_status": "domain",
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_state_hygiene_doctor",
@@ -480,7 +726,7 @@
       ],
       "api_routes": [],
       "cli_commands": [],
-      "core_surface": "Local diagnostic/hygiene orchestration",
+      "core_surface": "Local diagnostic/hygiene composition",
       "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_doctor.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_only",
@@ -489,7 +735,7 @@
         "approval_placeholder",
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_state_hygiene_plan",
@@ -502,7 +748,7 @@
       ],
       "api_routes": [],
       "cli_commands": [],
-      "core_surface": "Local diagnostic/hygiene orchestration",
+      "core_surface": "Local diagnostic/hygiene composition",
       "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_plan.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_only",
@@ -511,7 +757,7 @@
         "approval_placeholder",
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_state_hygiene_apply",
@@ -524,7 +770,7 @@
       ],
       "api_routes": [],
       "cli_commands": [],
-      "core_surface": "Local diagnostic/hygiene orchestration",
+      "core_surface": "Local diagnostic/hygiene composition",
       "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_only",
@@ -533,7 +779,35 @@
         "approval_placeholder",
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    },
+    {
+      "name": "focusa_silent_sessions",
+      "label": "Focusa Silent Sessions",
+      "purpose": "List, start, reopen, tail, send input to, or safely kill tmux-backed Focusa SilentSessions running in the background.",
+      "family": "work_loop",
+      "ontology_action": "work_loop.silent_session.control",
+      "ontology_objects": [
+        "SilentSession",
+        "WorkLoopStatus",
+        "ResourceMode"
+      ],
+      "api_routes": [],
+      "cli_commands": [
+        "tmux list-sessions",
+        "tmux new-session",
+        "tmux attach-session",
+        "tmux kill-session"
+      ],
+      "core_surface": "Pi-local tmux SilentSession controller",
+      "doc_path": "docs/focusa-tools/tools/focusa_silent_sessions.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "process_control",
+      "parity_status": "pi_only",
+      "exemptions": [
+        "pi_only"
+      ],
+      "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags"
     },
     {
       "name": "focusa_tool_doctor",
@@ -547,10 +821,10 @@
       "api_routes": [
         "GET /v1/health",
         "GET /v1/workpoint/current",
-        "GET /v1/work-loop/status"
+        "GET /v1/work-loop/status?summary_only=true"
       ],
       "cli_commands": [],
-      "core_surface": "Local diagnostic/hygiene orchestration",
+      "core_surface": "Local diagnostic/hygiene composition",
       "doc_path": "docs/focusa-tools/tools/focusa_tool_doctor.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "diagnostic",
@@ -558,7 +832,35 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    },
+    {
+      "name": "focusa_resource_mode",
+      "label": "Focusa Resource Mode",
+      "purpose": "Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained.",
+      "family": "diagnostics_hygiene",
+      "ontology_action": "diagnostics_hygiene.resource_mode.control",
+      "ontology_objects": [
+        "ToolContract",
+        "ResourceMode",
+        "LowMemBudget"
+      ],
+      "api_routes": [
+        "GET /v1/resource/mode",
+        "POST /v1/resource/mode"
+      ],
+      "cli_commands": [
+        "focusa resource mode"
+      ],
+      "core_surface": "Spec96 LowMem ResourceMode runtime policy",
+      "doc_path": "docs/focusa-tools/tools/focusa_resource_mode.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "control_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test"
     },
     {
       "name": "focusa_active_object_resolve",
@@ -582,7 +884,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_evidence_capture",
@@ -606,7 +908,7 @@
       "side_effect_profile": "evidence_link",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_workpoint_checkpoint",
@@ -630,7 +932,7 @@
       "side_effect_profile": "checkpoint",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_workpoint_link_evidence",
@@ -654,7 +956,7 @@
       "side_effect_profile": "evidence_link",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_workpoint_resume",
@@ -678,7 +980,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_head",
@@ -703,7 +1005,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_path",
@@ -728,7 +1030,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_snapshot_state",
@@ -753,7 +1055,7 @@
       "exemptions": [
         "pi_session_snapshot_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_restore_state",
@@ -778,7 +1080,7 @@
       "exemptions": [
         "pi_session_snapshot_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_diff_context",
@@ -803,7 +1105,7 @@
       "exemptions": [
         "pi_session_snapshot_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_capture",
@@ -826,7 +1128,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_retrieve",
@@ -849,7 +1151,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_reflect",
@@ -872,7 +1174,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_plan_adjust",
@@ -895,7 +1197,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_evaluate_outcome",
@@ -918,7 +1220,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_recent_snapshots",
@@ -943,7 +1245,7 @@
       "exemptions": [
         "pi_session_snapshot_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_tree_snapshot_compare_latest",
@@ -968,7 +1270,7 @@
       "exemptions": [
         "pi_session_snapshot_only"
       ],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_recent_reflections",
@@ -988,10 +1290,10 @@
       "core_surface": "Metacognition store/retriever",
       "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "write_state",
+      "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_recent_adjustments",
@@ -1011,10 +1313,10 @@
       "core_surface": "Metacognition store/retriever",
       "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "write_state",
+      "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_loop_run",
@@ -1041,7 +1343,7 @@
       "side_effect_profile": "write_state",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_metacog_doctor",
@@ -1065,7 +1367,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_lineage_tree",
@@ -1090,7 +1392,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     },
     {
       "name": "focusa_li_tree_extract",
@@ -1115,7 +1417,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus focusa_tool_doctor runtime checks when daemon is available"
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
     }
   ]
 }

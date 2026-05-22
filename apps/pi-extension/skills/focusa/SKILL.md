@@ -26,21 +26,12 @@ If Pi reports:
   description is required
 ```
 
-then the installed `SKILL.md` is missing/has invalid frontmatter. Repair both copies:
+then the installed `SKILL.md` is missing/has invalid frontmatter. Repair the project source copy and the user runtime copy resolved from `PI_SKILLS_DIR` or `$HOME/.pi/skills`.
 
-- project source: `/home/wirebot/focusa/apps/pi-extension/skills/focusa/SKILL.md`
-- installed global: `/root/.pi/skills/focusa/SKILL.md`
-
-Validate with:
+Validate with the portable harness:
 
 ```bash
-node --input-type=module - <<'NODE'
-import { loadSkillsFromDir } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
-for (const dir of ['/root/.pi/skills','/home/wirebot/focusa/apps/pi-extension/skills']) {
-  const r = loadSkillsFromDir({ dir, source: 'user' });
-  console.log(JSON.stringify({ dir, skills: r.skills.map(s => s.name), diagnostics: r.diagnostics }, null, 2));
-}
-NODE
+node scripts/validate-skill-hygiene.mjs
 ```
 
 ## Companion skills
@@ -96,9 +87,10 @@ Use for compact cognitive state. Do not store raw transcripts here.
 
 Validation discipline:
 
-- Working notes never go into `focusa_decide`.
+- Working notes never go into `focusa_decide`; put reasoning, task lists, failed wording, and retries in `focusa_scratch`.
 - Decisions are architectural choices, not task lists or debug narratives.
-- Constraints are discovered requirements, not agent commitments.
+- Constraints are discovered requirements, not agent commitments. Phrase constraints as declarative architecture boundaries: `Workpoint continuity identity uses project_root plus continuity_id`, not `Need to fix...` or `Do not...`.
+- If a Focus State write tool rejects validation, treat that as a phrasing error: save the detailed note to scratchpad, retry once with compliant noun-phrase wording, then continue without looping.
 - Failures name the failing component and why.
 
 ## Workpoint family
@@ -110,6 +102,19 @@ Use for continuity across compaction/resume/model switch/fork/risky work.
 - `focusa_workpoint_link_evidence` — attach stable evidence refs/results to active canonical Workpoint.
 - `focusa_active_object_resolve` — resolve likely active objects; returns candidates, not invented truth.
 - `focusa_evidence_capture` — capture bounded evidence and optionally link to Workpoint.
+
+Identity and isolation rules:
+
+- `project_root` is the project scope boundary, not a unique session identity by itself.
+- `continuity_id` is the stable logical session/workstream identity; every same-root active session needs a distinct continuity_id.
+- `session_id` is temporal metadata across compaction/model switch/fork; it must not merge or split logical sessions.
+- Trajectory, work-item, frame tags, and goals are corroborating alignment signals only; they never override `project_root + continuity_id` hard gates.
+- Post-compaction agents should call `focusa_workpoint_resume`; a same-project packet resumes cleanly only when continuity_id also matches.
+
+Context pressure UX:
+
+- Generic `/fork`, `/new`, or session-handoff warnings are redundant when Focusa has healthy Workpoint continuity.
+- Treat context pressure as an internal compaction/checkpoint signal; surface operator-visible warnings only when Focusa continuity is degraded or unavailable.
 
 Real release behavior as of Spec89:
 
@@ -172,6 +177,14 @@ Use for safe cleanup planning, never silent deletion.
 
 No existing Focusa tools should be demoted; weak tools should be redesigned, clarified, merged upward, or hardened.
 
+## Trajectory, resource, and background-session utilities
+
+- `focusa_trajectory_view` / `focusa_trajectory_resume` — advisory project goal/state/gap orientation; corroborates Workpoint, never overrides identity gates.
+- `focusa_trajectory_define_goal` / `focusa_trajectory_assess` / `focusa_trajectory_propose_workpoint` / `focusa_trajectory_checkpoint` — manage project trajectory and propose next Workpoint candidates.
+- `focusa_resource_mode` — inspect or activate LowMem when resources are constrained; LowMem changes fidelity/budgets, not tool availability.
+- `focusa_traverse` — read-only bounded traversal across large Focusa surfaces; use instead of full tree/store/log payloads by default.
+- `focusa_silent_sessions` — list/reopen/start/tail/send/kill tmux-backed background Pi sessions; mutating process actions require approval and kill requires force.
+
 ## Tool-doctor and evidence entrypoints
 
 - `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action.
@@ -192,11 +205,11 @@ No existing Focusa tools should be demoted; weak tools should be redesigned, cla
 
 Every `focusa_*` Pi tool should preserve a visible text summary and add `details.tool_result_v1` with common fields:
 
-- `ok`, `status`, `canonical`, `degraded`
+- `ok`, `status`, `failure_class`, `canonical`, `degraded`
 - `summary`, `retry`, `side_effects`, `evidence_refs`, `next_tools`
 - `error`, `raw`
 
-Use `status`, `retry.posture`, `canonical/degraded`, and `next_tools` for recovery decisions instead of parsing prose.
+Use `status`, `failure_class`, `retry.posture`, `canonical/degraded`, and `next_tools` for recovery decisions instead of parsing prose.
 
 ## Real release evidence
 

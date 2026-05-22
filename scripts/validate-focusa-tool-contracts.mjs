@@ -72,9 +72,9 @@ const extraContracts = contractNames.filter((name) => !toolSet.has(name));
 if (missingContracts.length) fail('tools missing contracts', missingContracts);
 if (extraContracts.length) fail('contracts without registered tools', extraContracts);
 
-const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene']);
+const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal']);
 const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known']);
-const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_orchestration_only', 'domain_cli_only', 'api_domain_only', 'approval_placeholder', 'pi_session_snapshot_only', 'pi_only']);
+const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'approval_placeholder', 'pi_session_snapshot_only', 'pi_only']);
 
 const routeInventory = new Set([...fs.readdirSync(path.join(root, 'crates/focusa-api/src/routes'))
   .filter((file) => file.endsWith('.rs'))
@@ -101,7 +101,7 @@ for (const contract of contracts) {
     fail(`${prefix} missing CLI commands without exemption`);
   }
   for (const route of contract.api_routes || []) {
-    const routePath = route.replace(/^(GET|POST|PATCH|PUT|DELETE)\s+/, '');
+    const routePath = route.replace(/^(GET|POST|PATCH|PUT|DELETE)\s+/, '').split('?')[0];
     if (!routeInventory.has(routePath)) fail(`${prefix} API route not in route inventory`, route);
   }
   if (!readme.includes(contract.doc_path)) fail(`${prefix} README missing tool doc link`, contract.doc_path);

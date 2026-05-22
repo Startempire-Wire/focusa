@@ -2,7 +2,43 @@
 
 use crate::api_client::ApiClient;
 use serde_json::{Value, json};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+fn repo_root() -> PathBuf {
+    std::env::var_os("FOCUSA_PROJECT_ROOT")
+        .map(PathBuf::from)
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
+fn daemon_exe_path() -> PathBuf {
+    std::env::var_os("FOCUSA_DAEMON_BIN")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| repo_root().join("target/release/focusa-daemon"))
+}
+
+fn pi_skills_path() -> Option<PathBuf> {
+    std::env::var_os("PI_SKILLS_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".pi/skills")))
+}
+
+fn path_string(path: PathBuf) -> String {
+    path.to_string_lossy().to_string()
+}
+
+fn bin_check(name: &str, bin: &str) -> Value {
+    let exists = std::env::var_os("PATH")
+        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(bin).exists()))
+        .unwrap_or(false);
+    json!({
+        "name": name,
+        "status": if exists { "completed" } else { "blocked" },
+        "path": bin,
+        "what_failed": if exists { Value::Null } else { json!("required executable missing from PATH") },
+        "safe_recovery": if exists { Value::Null } else { json!(format!("install {bin} or add it to PATH")) },
+    })
+}
 
 fn fs_check(name: &str, path: &str) -> Value {
     let exists = Path::new(path).exists();
@@ -57,7 +93,7 @@ pub async fn run(json_mode: bool) -> anyhow::Result<()> {
     checks.push(api_check(&api, "API route inventory surface", "/v1/agents").await);
     checks.push(api_check(&api, "Spec90 tool contracts", "/v1/ontology/tool-contracts").await);
     checks.push(api_check(&api, "Workpoint canonicality", "/v1/workpoint/current").await);
-    checks.push(api_check(&api, "Work-loop writer state", "/v1/work-loop/status").await);
+    checks.push(api_check(&api, "Work-loop writer state", "/v1/work-loop/status?summary_only=true").await);
     checks.push(
         api_check(
             &api,
@@ -75,10 +111,7 @@ pub async fn run(json_mode: bool) -> anyhow::Result<()> {
         .await,
     );
 
-    checks.push(fs_check(
-        "daemon exe path",
-        "/home/wirebot/focusa/target/release/focusa-daemon",
-    ));
+    checks.push(fs_check("daemon exe path", &path_string(daemon_exe_path())));
     checks.push(fs_check(
         "Spec91 live proof harness",
         "scripts/prove-focusa-tool-contracts-live.mjs",
@@ -88,13 +121,15 @@ pub async fn run(json_mode: bool) -> anyhow::Result<()> {
         "scripts/validate-focusa-tool-contracts.mjs",
     ));
     checks.push(fs_check("Pi extension skills", "apps/pi-extension/skills"));
-    checks.push(fs_check("root Pi skills", "/root/.pi/skills"));
+    if let Some(path) = pi_skills_path() {
+        checks.push(fs_check("Pi user skills", &path_string(path)));
+    }
     checks.push(fs_check("Mac app package", "apps/menubar/package.json"));
     checks.push(fs_check(
         "release command docs",
         "docs/current/PRODUCTION_RELEASE_COMMANDS.md",
     ));
-    checks.push(fs_check("Guardian scanner", "/usr/local/bin/guardian"));
+    checks.push(bin_check("Guardian scanner", "guardian"));
 
     let worst = checks
         .iter()

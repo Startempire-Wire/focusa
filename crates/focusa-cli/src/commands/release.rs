@@ -46,7 +46,7 @@ fn run_gate(name: &str, command: &str) -> Value {
             "status": "blocked",
             "what_failed": "failed to spawn proof command",
             "likely_why": err.to_string(),
-            "safe_recovery": "run the command manually from /home/wirebot/focusa",
+            "safe_recovery": "run the command manually from the Focusa repository root",
             "severity": "blocked",
         }),
     }

@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -58,7 +58,7 @@ function deltaTargets(delta: { decisions?: string[]; constraints?: string[]; fai
     .map(([key]) => key);
 }
 
-function mirrorFailedFocusWrite(kind: "decision" | "constraint" | "failure", reason: PushDeltaFailureReason, payload: string, meta: Record<string, string | undefined>): { saved: boolean; turn: number } {
+function mirrorFailedFocusWrite(kind: string, reason: PushDeltaFailureReason, payload: string, meta: Record<string, string | undefined>): { saved: boolean; turn: number } {
   const note = JSON.stringify({
     type: "focusa_write_fallback",
     kind,
@@ -89,10 +89,10 @@ const SELF_REF_PATTERNS = /\b(I think|I tried|I'm working|I'm doing|working on|t
 const MULTI_SENTENCE = /\.\s+\w/;
 
 function validateDecision(decision: string): { valid: boolean; reason?: string } {
-  // §AsccSections: decisions = crystallized choices that guide future action
-  // Each <= 160 chars. Single sentence preferred.
-  if (decision.length > 280) {
-    return { valid: false, reason: "Too verbose — distill to ONE crystallized sentence (max 280 chars). Use scratchpad for elaboration." };
+  // §AsccSections: decisions = crystallized choices that guide future action.
+  // Keep the public validator aligned with pushDelta's canonical Focus State limit.
+  if (decision.length > 160) {
+    return { valid: false, reason: "Too verbose — distill to ONE crystallized sentence (max 160 chars). Use scratchpad for elaboration." };
   }
   if (TASK_PATTERNS.test(decision)) {
     return { valid: false, reason: "Sounds like a task list — decisions capture ARCHITECTURAL CHOICES, not implementation plans. Write task in scratchpad. Distill the decision." };
@@ -103,8 +103,8 @@ function validateDecision(decision: string): { valid: boolean; reason?: string }
   if (SELF_REF_PATTERNS.test(decision)) {
     return { valid: false, reason: "Sounds like stream-of-consciousness — decisions should be objective architectural statements. Distill from scratchpad notes." };
   }
-  if (MULTI_SENTENCE.test(decision) && decision.length > 160) {
-    return { valid: false, reason: "Multiple sentences + long — decisions should be ONE crystallized sentence. Per §AsccSections (<=160 chars)." };
+  if (MULTI_SENTENCE.test(decision)) {
+    return { valid: false, reason: "Multiple sentences — decisions should be ONE crystallized sentence. Per §AsccSections (<=160 chars)." };
   }
   return { valid: true };
 }
@@ -117,7 +117,7 @@ function validateConstraint(constraint: string, source?: string): { valid: boole
   if (constraint.length > 200) {
     return { valid: false, reason: "Too verbose — distill to one sentence (max 200 chars)." };
   }
-  if (TASK_PATTERNS.test(constraint)) {
+  if (!operatorDirective && TASK_PATTERNS.test(constraint)) {
     return { valid: false, reason: "Sounds like a self-imposed task — constraints are DISCOVERED REQUIREMENTS from environment/architecture. Not 'I will do X'." };
   }
   if (!operatorDirective && /\b(will|should|must|need to|going to)\b/i.test(constraint)) {
@@ -169,11 +169,11 @@ function validateNamedSlot(value: string, maxChars: number, kind: "intent" | "cu
   return { valid: true };
 }
 
-export type PushDeltaFailureReason = "offline" | "no_active_frame" | "validation_rejected" | "write_failed";
+export type PushDeltaFailureReason = "offline" | "no_active_frame" | "frame_unavailable" | "scope_mismatch" | "read_model_lag" | "validation_rejected" | "write_failed";
 
 export type PushDeltaResult =
   | { ok: true; duplicate_candidate?: boolean; idempotency_key?: string }
-  | { ok: false; reason: PushDeltaFailureReason; duplicate_candidate?: boolean; idempotency_key?: string };
+  | { ok: false; reason: PushDeltaFailureReason; api_reason?: string; duplicate_candidate?: boolean; idempotency_key?: string };
 
 const RECENT_COGNITIVE_WRITE_KEYS: string[] = [];
 
@@ -191,10 +191,27 @@ function duplicateCandidateForWrite(key: string): boolean {
 
 type FocusaToolStatus = "accepted" | "completed" | "no_op" | "blocked" | "validation_rejected" | "degraded" | "offline" | "error";
 type FocusaRetryPosture = "safe_retry" | "retry_with_idempotency_key" | "check_side_effects_first" | "do_not_retry_unchanged" | "operator_required";
+type FocusaFailureClass =
+  | "validation_rejected"
+  | "frame_unavailable"
+  | "daemon_unavailable"
+  | "stale_runtime_registry"
+  | "resource_exhausted"
+  | "null_response"
+  | "hot_path_timeout"
+  | "cold_path_timeout"
+  | "writer_conflict"
+  | "scope_mismatch"
+  | "approval_required"
+  | "permission_denied"
+  | "noncanonical_fallback"
+  | "read_model_lag"
+  | "unknown_ambiguous_completion";
 
 interface FocusaToolResultV1 {
   ok: boolean;
   status: FocusaToolStatus;
+  failure_class: FocusaFailureClass | null;
   canonical: boolean;
   degraded: boolean;
   summary: string;
@@ -211,10 +228,32 @@ interface FocusaToolResultV1 {
   raw?: unknown;
 }
 
+function inferFailureClass(status: FocusaToolStatus, summary: string, message?: string | null, canonical?: boolean, degraded?: boolean): FocusaFailureClass | null {
+  const text = `${summary} ${message || ""}`.toLowerCase();
+  if (text.includes("no active pi frame") || text.includes("no active frame") || text.includes("frame recovery")) return "frame_unavailable";
+  if (text.includes("payload_equal=false") || text.includes("live registry payload differs") || text.includes("stale daemon registry") || text.includes("stale runtime registry")) return "stale_runtime_registry";
+  if (text.includes("oom") || text.includes("out of memory") || text.includes("resource exhausted") || text.includes("killed process")) return "resource_exhausted";
+  if (text.includes("null response") || text.includes("response=null") || text.includes("body=null")) return "null_response";
+  if (status === "validation_rejected" || text.includes("validation_rejected") || text.includes("rejected")) return "validation_rejected";
+  if (status === "offline" || text.includes("daemon unavailable") || text.includes("focusa offline") || text.includes("connection refused")) return "daemon_unavailable";
+  if (text.includes("timeout") || text.includes("timed out") || text.includes("abort")) {
+    return /(cold|deep|replay|worktree|diagnostic)/.test(text) ? "cold_path_timeout" : "hot_path_timeout";
+  }
+  if (text.includes("claimed by another writer") || text.includes("writer_conflict") || text.includes("controlled by another session")) return "writer_conflict";
+  if (text.includes("project_root mismatch") || text.includes("scope mismatch") || text.includes("cross-project")) return "scope_mismatch";
+  if (text.includes("approval required") || text.includes("requires approved")) return "approval_required";
+  if (text.includes("permission denied") || text.includes("unauthorized") || text.includes("forbidden")) return "permission_denied";
+  if (text.includes("read model lag") || text.includes("pending") || text.includes("not yet visible")) return "read_model_lag";
+  if (degraded || canonical === false || text.includes("non-canonical") || text.includes("noncanonical")) return "noncanonical_fallback";
+  if (status === "blocked" || status === "error") return "unknown_ambiguous_completion";
+  return null;
+}
+
 function focusaToolResult(params: {
   ok: boolean;
   status: FocusaToolStatus;
   summary: string;
+  failure_class?: FocusaFailureClass | null;
   canonical?: boolean;
   degraded?: boolean;
   tool?: string;
@@ -230,12 +269,16 @@ function focusaToolResult(params: {
   raw?: unknown;
 }): FocusaToolResultV1 {
   const degraded = params.degraded ?? (params.status === "degraded" || params.status === "offline");
+  const canonical = params.canonical ?? (!degraded && params.ok);
+  const summary = params.summary.slice(0, 500);
+  const failureClass = params.failure_class ?? inferFailureClass(params.status, summary, params.error?.message, canonical, degraded);
   return {
     ok: params.ok,
     status: params.status,
-    canonical: params.canonical ?? (!degraded && params.ok),
+    failure_class: failureClass,
+    canonical,
     degraded,
-    summary: params.summary.slice(0, 500),
+    summary,
     tool: params.tool,
     family: params.family,
     endpoint: params.endpoint,
@@ -243,7 +286,7 @@ function focusaToolResult(params: {
     retry: {
       safe: params.retry?.safe ?? (params.status === "completed" || params.status === "no_op"),
       posture: params.retry?.posture ?? (params.ok ? "safe_retry" : "operator_required"),
-      reason: params.retry?.reason,
+      reason: params.retry?.reason ?? failureClass ?? undefined,
     },
     side_effects: params.side_effects ?? [],
     evidence_refs: params.evidence_refs ?? [],
@@ -304,11 +347,17 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
   const degraded = details.canonical === false || /degraded|NON-CANONICAL/.test(text);
   const status: FocusaToolStatus = validationRejected ? "validation_rejected" : offline ? "offline" : blocked ? "blocked" : degraded ? "degraded" : ok ? "completed" : "error";
   const readOnly = family === "lineage_intelligence" || tool.endsWith("_status") || tool.endsWith("_resume") || tool.endsWith("_head") || tool.endsWith("_path") || tool.includes("_retrieve") || tool.includes("_recent") || tool.includes("_doctor") || tool.includes("_diff_");
+  const detailsFailureClass = typeof details.failure_class === "string"
+    ? details.failure_class as FocusaFailureClass
+    : typeof (details.response as any)?.failure_class === "string"
+      ? (details.response as any).failure_class as FocusaFailureClass
+      : undefined;
   const activeWorkpoint = resolveActiveWorkpointContext();
   const resultWorkpointId = String(details.response?.workpoint_id || details.response?.active_workpoint_id || details.workpoint_id || activeWorkpoint.workpoint_id || "") || null;
   return focusaToolResult({
     ok,
     status,
+    failure_class: detailsFailureClass,
     canonical: !degraded && !offline,
     degraded,
     summary: text || `${tool} ${status}`,
@@ -349,7 +398,12 @@ function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
     case "offline":
       return "Focusa offline";
     case "no_active_frame":
-      return "No active Pi frame";
+    case "frame_unavailable":
+      return "No active/scoped Pi frame";
+    case "scope_mismatch":
+      return "Focus State scope mismatch";
+    case "read_model_lag":
+      return "Focusa read-model lag";
     case "validation_rejected":
       return "Focus State validation rejected the write";
     case "write_failed":
@@ -358,12 +412,20 @@ function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
   }
 }
 
-function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailureReason): string {
+function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailureReason, apiReason?: string): string {
   const base = formatPushDeltaFailure(reason);
-  if (reason === "no_active_frame") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; retry after /focusa-status.`;
-  if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded. Retry when Focusa is reachable.`;
-  if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded. Distill wording or use scratchpad.`;
-  return `⚠️ ${base} — ${slotLabel} NOT recorded.`;
+  const detail = apiReason ? ` Detail: ${apiReason}` : "";
+  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until /focusa-status confirms a scoped frame.${detail}`;
+  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Refresh scoped frame and retry; this is not daemon-wide failure.${detail}`;
+  if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded. Retry when Focusa is reachable.${detail}`;
+  if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded. Distill wording or use scratchpad.${detail}`;
+  return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail}`;
+}
+
+function namedSlotFallback(slotLabel: string, kind: string, reason: PushDeltaFailureReason, payload: string, apiReason?: string): { text: string; saved: boolean; turn: number } {
+  const fallback = mirrorFailedFocusWrite(kind, reason, payload, { api_reason: apiReason });
+  const fallbackText = fallback.saved ? ` Saved to scratchpad fallback (turn ${fallback.turn}).` : " Scratchpad fallback also failed.";
+  return { text: `${formatNonCriticalWriteFailure(slotLabel, reason, apiReason)}${fallbackText}`, saved: fallback.saved, turn: fallback.turn };
 }
 
 // Push delta to Focusa — validates ALL slot values before write.
@@ -402,7 +464,10 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
   }
 
   try {
-    const response = await focusaFetch("/focus/update", {
+    // Refresh frame identity before writes; stale paused Pi frames are a common
+    // source of reducer rejections and scratchpad fallbacks after rescope/compact.
+    await getFocusState().catch(() => null);
+    const postUpdate = () => focusaFetch("/focus/update", {
       method: "POST",
       body: JSON.stringify({
         frame_id: S.activeFrameId,
@@ -410,21 +475,34 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
         delta,
       }),
     });
-    if (!response || response.status === "write_failed") {
-      emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame });
-      return { ok: false, reason: "write_failed" };
+    let response = await postUpdate();
+    if (["no_active_frame", "frame_unavailable", "rejected_scope_mismatch"].includes(String(response?.status || ""))) {
+      emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: response?.status === "rejected_scope_mismatch" ? "scope_mismatch" : "stale_frame", stale_frame_id: S.activeFrameId, active_frame_id: response?.active_frame_id, target_frame_id: response?.target_frame_id, failure_class: response?.failure_class });
+      S.activeFrameId = null;
+      const frameId = await ensurePiFrame(undefined, undefined, "pi-stale-frame-recover");
+      recoveredFrame = recoveredFrame || !!frameId;
+      emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "stale_frame", recovered: !!frameId });
+      if (frameId) response = await postUpdate();
     }
-    if (response.status === "no_active_frame") {
-      emitWriteTelemetry("focusa_write_failed", { targets, reason: "no_active_frame", recovered_frame: recoveredFrame });
-      return { ok: false, reason: "no_active_frame" };
+    if (!response || response.status === "write_failed") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame, api_reason: response?.reason });
+      return { ok: false, reason: "write_failed", api_reason: response?.reason };
+    }
+    if (response.status === "no_active_frame" || response.status === "frame_unavailable") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "frame_unavailable", recovered_frame: recoveredFrame, api_reason: response.reason, active_frame_id: response.active_frame_id, target_frame_id: response.target_frame_id });
+      return { ok: false, reason: "frame_unavailable", api_reason: response.reason };
+    }
+    if (response.status === "rejected_scope_mismatch") {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "scope_mismatch", recovered_frame: recoveredFrame, api_reason: response.reason, active_frame_id: response.active_frame_id, target_frame_id: response.target_frame_id, diagnostic_class: response.diagnostic_class });
+      return { ok: false, reason: "scope_mismatch", api_reason: response.reason };
     }
     if (response.status === "rejected") {
-      emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected", recovered_frame: recoveredFrame });
-      return { ok: false, reason: "validation_rejected" };
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected", recovered_frame: recoveredFrame, api_reason: response.reason });
+      return { ok: false, reason: "validation_rejected", api_reason: response.reason };
     }
     if (response.status !== "accepted") {
-      emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame, status: response.status || "unknown" });
-      return { ok: false, reason: "write_failed" };
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "write_failed", recovered_frame: recoveredFrame, status: response.status || "unknown", api_reason: response.reason });
+      return { ok: false, reason: "write_failed", api_reason: response.reason || response.status || "unknown" };
     }
     S.focusaAvailable = true;
     emitWriteTelemetry("focusa_write_succeeded", { targets, recovered_frame: recoveredFrame, frame_id: response.frame_id || S.activeFrameId });
@@ -480,16 +558,16 @@ export function registerTools(pi: ExtensionAPI) {
   //   - NOT a task list ("Fix all", "Implement", "NEXT:")
   //   - NOT debugging metadata ("error", "failed", "DEBUG")
   //   - NOT stream-of-consciousness ("I think", "I tried")
-  //   - Max 280 chars (leniency over §AsccSections 160 char limit)
+  //   - Max 160 chars (canonical §AsccSections limit)
   //
   // Use focusa_scratch for all working notes first. Then distill ONE decision.
   pi.registerTool({
     name: "focusa_decide",
     label: "Record Decision",
-    description: "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
+    description: "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists.",
     promptSnippet: "Crystallized decision → Focus State. Working notes → focusa_scratch first.",
     parameters: Type.Object({
-      decision: Type.String({ description: "ONE crystallized architectural choice — what was decided and why (max 280 chars). NOT a task list or debugging note." }),
+      decision: Type.String({ description: "ONE crystallized architectural choice — what was decided and why (max 160 chars). NOT a task list or debugging note." }),
       rationale: Type.Optional(Type.String({ description: "Context: why this decision was made (max 200 chars). Summarize from scratchpad notes." })),
     }),
     promptGuidelines: [
@@ -497,7 +575,7 @@ export function registerTools(pi: ExtensionAPI) {
       "Step 2: Distill ONE crystallized sentence → decision field",
       "decision = what was decided (architectural choice, not implementation plan)",
       "rationale = why (1-2 sentences max)",
-      "VALIDATION FAILS if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), or > 280 chars",
+      "VALIDATION FAILS if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), multiple sentences, or > 160 chars",
       "Example VALID: 'Use two-file model: /tmp/pi-scratch/ for working notes, Focus State for operator-managed decisions only.'",
       "Example INVALID: 'Fix all pi-extension spec gaps in priority order...' (task list, not decision)",
     ],
@@ -554,7 +632,10 @@ export function registerTools(pi: ExtensionAPI) {
       "Constraints are DISCOVERED REQUIREMENTS, not self-imposed tasks.",
       "VALID: environment boundary, API limit, spec rule, architectural pattern, operator directive",
       "INVALID: 'I should X', 'Need to Y', implementation plans, agent commitments",
+      "Phrase as declarative architecture boundaries; avoid task/negation wording like 'Need to...' or 'Do not...'",
+      "If validation rejects, write the full note to focusa_scratch and retry once with noun-phrase boundary wording.",
       "Example VALID: 'Focus State cannot be cleared — /focus/update only accumulates. Stale entries require fresh frame push.'",
+      "Example VALID: 'Workpoint identity uses project_root plus continuity_id; Pi session_id is temporal metadata.'",
       "Example INVALID: 'Need to fix the scratchpad path' (self-imposed task)",
     ],
     async execute(_id, params) {
@@ -642,9 +723,9 @@ export function registerTools(pi: ExtensionAPI) {
       const v = validateNamedSlot(intent, 500, "intent");
       if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid intent." }], details: { valid: false, intent } };
       const result = await pushDelta({ intent: intent.trim() });
-      return result.ok
-        ? { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } }
-        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("intent", result.reason) }], details: { valid: false, intent } };
+      if (result.ok) return { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } };
+      const fallback = namedSlotFallback("intent", "intent", result.reason, intent.trim(), result.api_reason);
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, intent, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
     },
   });
 
@@ -663,9 +744,9 @@ export function registerTools(pi: ExtensionAPI) {
       const v = validateNamedSlot(focus, 300, "current_focus");
       if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid current focus." }], details: { valid: false, focus } };
       const result = await pushDelta({ current_focus: focus.trim() });
-      return result.ok
-        ? { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } }
-        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("current focus", result.reason) }], details: { valid: false, focus } };
+      if (result.ok) return { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } };
+      const fallback = namedSlotFallback("current focus", "current_focus", result.reason, focus.trim(), result.api_reason);
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, focus, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
     },
   });
 
@@ -683,9 +764,9 @@ export function registerTools(pi: ExtensionAPI) {
       const v = validateNamedSlot(step, 160, "next_step");
       if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid next step." }], details: { valid: false, step } };
       const result = await pushDelta({ next_steps: [step.trim()] });
-      return result.ok
-        ? { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } }
-        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("next step", result.reason) }], details: { valid: false, step } };
+      if (result.ok) return { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } };
+      const fallback = namedSlotFallback("next step", "next_step", result.reason, step.trim(), result.api_reason);
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, step, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
     },
   });
 
@@ -693,18 +774,18 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_open_question",
     label: "Record Open Question",
-    description: "Record an open question that needs to be answered (max 200 chars).",
+    description: "Record an open question that needs to be answered (max 180 chars).",
     parameters: Type.Object({
-      question: Type.String({ description: "Open question (max 200 chars)." }),
+      question: Type.String({ description: "Open question (max 180 chars)." }),
     }),
     async execute(_id, params) {
       const { question } = params as { question: string };
-      const v = validateNamedSlot(question, 200, "open_question");
+      const v = validateNamedSlot(question, 180, "open_question");
       if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid open question." }], details: { valid: false, question } };
       const result = await pushDelta({ open_questions: [question.trim()] });
-      return result.ok
-        ? { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } }
-        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("open question", result.reason) }], details: { valid: false, question } };
+      if (result.ok) return { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } };
+      const fallback = namedSlotFallback("open question", "open_question", result.reason, question.trim(), result.api_reason);
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, question, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
     },
   });
 
@@ -713,18 +794,18 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_recent_result",
     label: "Record Recent Result",
-    description: "Record a completed result, output, or reference (max 300 chars).",
+    description: "Record a completed result, output, or reference (max 180 chars).",
     parameters: Type.Object({
-      result: Type.String({ description: "Recent result (max 300 chars)." }),
+      result: Type.String({ description: "Recent result (max 180 chars)." }),
     }),
     async execute(_id, params) {
       const { result } = params as { result: string };
-      const v = validateNamedSlot(result, 300, "recent_result");
+      const v = validateNamedSlot(result, 180, "recent_result");
       if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid recent result." }], details: { valid: false, result } };
       const writeResult = await pushDelta({ recent_results: [result.trim()] });
-      return writeResult.ok
-        ? { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } }
-        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("recent result", writeResult.reason) }], details: { valid: false, result } };
+      if (writeResult.ok) return { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } };
+      const fallback = namedSlotFallback("recent result", "recent_result", writeResult.reason, result.trim(), writeResult.api_reason);
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, result, reason: writeResult.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
     },
   });
 
@@ -733,22 +814,47 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_note",
     label: "Record Note",
-    description: "Miscellaneous note (max 200 chars). Bounded at 20, oldest decay first.",
+    description: "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.",
     parameters: Type.Object({
-      note: Type.String({ description: "Note (max 200 chars)." }),
+      note: Type.String({ description: "Note (max 180 chars)." }),
     }),
     async execute(_id, params) {
       const { note } = params as { note: string };
-      const v = validateNamedSlot(note, 200, "note");
+      const v = validateNamedSlot(note, 180, "note");
       if (!v.valid) return { content: [{ type: "text", text: v.reason || "Invalid note." }], details: { valid: false, note } };
       const result = await pushDelta({ notes: [note.trim()] });
-      return result.ok
-        ? { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } }
-        : { content: [{ type: "text", text: formatNonCriticalWriteFailure("note", result.reason) }], details: { valid: false, note } };
+      if (result.ok) return { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } };
+      const fallback = namedSlotFallback("note", "note", result.reason, note.trim(), result.api_reason);
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, note, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
     },
   });
 
   // ── Continuous Work Loop bridge tools (Spec79 §23 small bridge surface) ──
+
+  type FocusaRouteTier = "hot" | "warm" | "cold";
+
+  function focusaRouteTier(path: string, method = "GET"): FocusaRouteTier {
+    const route = String(path || "").toLowerCase();
+    const verb = String(method || "GET").toUpperCase();
+    if (
+      route.includes("/deep") ||
+      route.includes("/replay/") ||
+      route.includes("closure-bundle") ||
+      route.includes("closure-evidence") ||
+      route.includes("/state/dump") ||
+      route.includes("worktree") ||
+      route.includes("diagnostic") ||
+      route.includes("include_full_payload=true") ||
+      route.includes("mode=full") ||
+      /[?&]deep=true/.test(route)
+    ) return "cold";
+    if (verb !== "GET") return "warm";
+    return "hot";
+  }
+
+  function timeoutFailureClassForRoute(path: string, method?: string): FocusaFailureClass {
+    return focusaRouteTier(path, method) === "cold" ? "cold_path_timeout" : "hot_path_timeout";
+  }
 
   async function focusaFetchDetailed(path: string, opts: RequestInit = {}): Promise<{ ok: boolean; status: number; body: any | null }> {
     const timeout = S.cfg?.focusaApiTimeoutMs || 5000;
@@ -769,8 +875,22 @@ export function registerTools(pi: ExtensionAPI) {
       let body: any = null;
       try { body = await r.json(); } catch { body = null; }
       return { ok: r.ok, status: r.status, body };
-    } catch {
-      return { ok: false, status: 0, body: null };
+    } catch (err: any) {
+      const aborted = err?.name === "AbortError";
+      const method = String(opts.method || "GET");
+      const routeTier = focusaRouteTier(path, method);
+      const failureClass = aborted ? timeoutFailureClassForRoute(path, method) : "daemon_unavailable";
+      return {
+        ok: false,
+        status: aborted ? 408 : 0,
+        body: {
+          error: aborted ? `${routeTier} route request timed out` : "daemon unavailable",
+          failure_class: failureClass,
+          route_tier: routeTier,
+          endpoint: `/v1${path}`,
+          retry: { safe: routeTier !== "warm", posture: routeTier === "cold" ? "safe_retry" : "check_side_effects_first" },
+        },
+      };
     } finally {
       clearTimeout(t);
     }
@@ -783,6 +903,8 @@ export function registerTools(pi: ExtensionAPI) {
     if (msg.includes("claimed by another writer")) return `blocked: loop controlled by another session${activeWriter}`;
     if (msg.includes("worktree is not clean")) return "blocked: worktree has uncommitted changes";
     if (msg.includes("missing required header")) return "blocked: controller identity header missing";
+    if (result.body?.failure_class === "cold_path_timeout") return "blocked: cold route timed out; hot tools may still be healthy";
+    if (result.body?.failure_class === "hot_path_timeout") return "blocked: hot route timed out";
     if (result.status === 0) return "blocked: daemon unavailable";
     return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
   }
@@ -827,8 +949,44 @@ export function registerTools(pi: ExtensionAPI) {
     };
   }
 
+
+  async function enforceTrajectoryClarityPrecondition(projectRoot: string, actionLabel: string, opts: { blockOperatorInput?: boolean } = {}): Promise<{ ok: boolean; text?: string; details: Record<string, any> }> {
+    const query = new URLSearchParams();
+    query.set("project_root", projectRoot);
+    if (S.sessionFrameKey) query.set("session_id", S.sessionFrameKey);
+    if (S.continuityId) query.set("continuity_id", S.continuityId);
+    query.set("mode", "summary");
+    const result = await focusaFetchDetailed(`/trajectory/view?${query.toString()}`, { method: "GET" });
+    const body = result.body || {};
+    const clarity = body.intelligence_view?.clarity_gate || {};
+    const status = String(clarity.status || body.trajectory?.definition_status || "unknown");
+    const action = String(clarity.recommended_action || body.intelligence_view?.context_sufficiency?.recommended_action || "unknown");
+    const projectStatus = String(body.project_identity?.status || "unknown");
+    const details = {
+      action_label: actionLabel,
+      trajectory_precondition: "trajectory_clarity_gate",
+      status,
+      recommended_action: action,
+      project_identity_status: projectStatus,
+      canonical: body.canonical === true,
+      trajectory_id: body.trajectory?.trajectory_id || null,
+      missing_facts: body.intelligence_view?.context_sufficiency?.missing_facts || [],
+      next_tools: body.next_tools || ["focusa_trajectory_view", "focusa_project_verify"],
+    };
+    if (!result.ok) {
+      return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate unavailable (${explainWorkLoopResult(result, "trajectory unavailable")})`, details: { ...details, failure_class: result.body?.failure_class || "daemon_unavailable" } };
+    }
+    if (projectStatus === "mismatch" || status === "conflicted") {
+      return { ok: false, text: `${actionLabel} blocked → trajectory clarity gate conflicted; verify project identity and trajectory before canonical mutation.`, details: { ...details, failure_class: "scope_mismatch" } };
+    }
+    if (opts.blockOperatorInput !== false && (status === "unclear" || action === "operator_input")) {
+      return { ok: false, text: `${actionLabel} blocked → trajectory unclear; define or confirm trajectory before canonical mutation.`, details: { ...details, failure_class: "validation_rejected" } };
+    }
+    return { ok: true, details };
+  }
+
   async function preferredWriterId(): Promise<string> {
-    const status = await focusaFetchDetailed("/work-loop/status");
+    const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
     const claimed = String(status.body?.active_writer || "").trim();
     return claimed || `pi-${process.pid}`;
   }
@@ -843,7 +1001,7 @@ export function registerTools(pi: ExtensionAPI) {
     const direct = String(explicit || "").trim();
     if (direct) return direct;
 
-    const status = await focusaFetchDetailed("/work-loop/status");
+    const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
     const currentTask = String(status.body?.current_task?.work_item_id || "").trim();
     if (currentTask) return currentTask;
 
@@ -862,7 +1020,7 @@ export function registerTools(pi: ExtensionAPI) {
     description: "Read current work-loop writer ownership and mutation preflight guidance without mutating state.",
     parameters: Type.Object({}),
     async execute() {
-      const result = await focusaFetchDetailed("/work-loop/status");
+      const result = await focusaFetchDetailed("/work-loop/status?summary_only=true");
       const body = result.body || {};
       const activeWriter = String(body.active_writer || "none");
       const status = String(body.status || body.current_task?.status || "unknown");
@@ -877,33 +1035,18 @@ export function registerTools(pi: ExtensionAPI) {
     description: "Get current continuous work-loop state and budgets.",
     parameters: Type.Object({}),
     async execute() {
-      const result = await focusaFetchDetailed("/work-loop/status");
-      let replayResult = await focusaFetchDetailed("/work-loop/replay/closure-bundle");
-      if (!replayResult.ok || !replayResult.body) {
-        replayResult = await focusaFetchDetailed("/work-loop/replay/closure-evidence");
-      }
-      const replay = replayConsumerSurface(replayResult);
-      const objectiveSegment = replay.nonClosureObjectiveEvents == null
-        ? ""
-        : ` | non_closure_objectives=${replay.nonClosureObjectiveEvents}${replay.nonClosureObjectiveRate == null ? "" : ` (${(replay.nonClosureObjectiveRate * 100).toFixed(1)}%)`}`;
+      const result = await focusaFetchDetailed("/work-loop/status?summary_only=true");
 
       if (!result.ok || !result.body) {
         return {
-          content: [{ type: "text", text: `Work-loop status ${explainWorkLoopResult(result, "ok")} | Replay consumer: ${replay.replayStatus} | pair=${replay.pairLabel} | continuity_gate=${replay.continuityGate}${objectiveSegment}` }],
+          content: [{ type: "text", text: `Work-loop summary ${explainWorkLoopResult(result, "ok")} | replay=not_checked_hot_path` }],
           details: {
             ok: false,
             status: result.status,
+            endpoint: "/v1/work-loop/status?summary_only=true",
+            hot_path: true,
+            cold_paths_checked: false,
             response: result.body ?? null,
-            closure_replay_consumer: {
-              status: replay.replayStatus,
-              pair_observed: replay.pairObserved,
-              pair_label: replay.pairLabel,
-              continuity_gate: replay.continuityGate,
-              continuity_fail_closed: replay.continuityFailClosed,
-              non_closure_objective_events: replay.nonClosureObjectiveEvents,
-              non_closure_objective_rate: replay.nonClosureObjectiveRate,
-            },
-            closure_replay_response: replayResult.body ?? null,
           },
         };
       }
@@ -913,22 +1056,17 @@ export function registerTools(pi: ExtensionAPI) {
       const enabled = typeof loopStatus?.enabled === "boolean"
         ? loopStatus.enabled
         : !!loopStatus?.work_loop?.enabled;
+      const activeWriter = String(loopStatus?.active_writer || "none");
+      const budget = loopStatus?.budget_remaining == null ? "unknown" : String(loopStatus.budget_remaining);
       return {
-        content: [{ type: "text", text: `Work-loop: ${statusText} (enabled=${enabled ? "yes" : "no"}) | Replay consumer: ${replay.replayStatus} | pair=${replay.pairLabel} | continuity_gate=${replay.continuityGate}${objectiveSegment}` }],
+        content: [{ type: "text", text: `Work-loop summary: ${statusText} (enabled=${enabled ? "yes" : "no"}) active_writer=${activeWriter} budget_remaining=${budget} replay=not_checked_hot_path` }],
         details: {
           ok: true,
           status: result.status,
+          endpoint: "/v1/work-loop/status?summary_only=true",
+          hot_path: true,
+          cold_paths_checked: false,
           response: result.body,
-          closure_replay_consumer: {
-            status: replay.replayStatus,
-            pair_observed: replay.pairObserved,
-            pair_label: replay.pairLabel,
-            continuity_gate: replay.continuityGate,
-            continuity_fail_closed: replay.continuityFailClosed,
-            non_closure_objective_events: replay.nonClosureObjectiveEvents,
-            non_closure_objective_rate: replay.nonClosureObjectiveRate,
-          },
-          closure_replay_response: replayResult.body ?? null,
         },
       };
     },
@@ -1160,6 +1298,127 @@ export function registerTools(pi: ExtensionAPI) {
     },
   });
 
+
+  type SilentSessionAction = "list" | "start" | "reopen" | "kill" | "tail" | "send";
+  const SILENT_SESSION_PREFIX = "focusa-silent";
+
+  function silentSessionExec(args: string[], timeout = 5000): { ok: boolean; stdout: string; stderr: string; status: number | null } {
+    try {
+      const { spawnSync } = require("child_process");
+      const r = spawnSync("tmux", args, { encoding: "utf8", timeout });
+      return { ok: r.status === 0, stdout: r.stdout || "", stderr: r.stderr || "", status: r.status };
+    } catch (err: any) {
+      return { ok: false, stdout: "", stderr: String(err?.message || err), status: null };
+    }
+  }
+
+  function silentSessionName(raw?: unknown): string {
+    const base = String(raw || "default")
+      .toLowerCase()
+      .replace(/[^a-z0-9._:-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "default";
+    return base.startsWith(SILENT_SESSION_PREFIX) ? base : `${SILENT_SESSION_PREFIX}-${base}`;
+  }
+
+  function listSilentSessions() {
+    const r = silentSessionExec(["list-sessions", "-F", "#{session_name}\t#{session_attached}\t#{session_windows}\t#{session_created}"], 3000);
+    if (!r.ok && /no server running|failed to connect/i.test(r.stderr)) return [];
+    return r.stdout.split("\n").filter(Boolean).map((line: string) => {
+      const [name, attached, windows, created] = line.split("\t");
+      return { name, attached: attached === "1", windows: Number(windows || 0), created: Number(created || 0), attach_command: `tmux attach -t ${name}` };
+    }).filter((session: any) => String(session.name || "").startsWith(SILENT_SESSION_PREFIX));
+  }
+
+  function defaultSilentSessionCommand(p: any, sessionName: string): string {
+    const rootDir = String(p.root_dir || S.sessionCwd || process.cwd()).replace(/'/g, `'\\''`);
+    const mission = String(p.mission || "Continue Focusa-governed ready beads using trajectory/workpoint context; stop on destructive risk.").replace(/'/g, `'\\''`);
+    const bead = String(p.work_item_id || "").replace(/'/g, `'\\''`);
+    const lowmem = p.lowmem === false ? "" : "curl -fsS --max-time 5 -X POST http://127.0.0.1:8787/v1/resource/mode -H 'Content-Type: application/json' --data '{\"action\":\"activate_lowmem\",\"reason\":\"SilentSession start\"}' >/tmp/focusa-silent-lowmem.json 2>/tmp/focusa-silent-lowmem.err || true; ";
+    return `cd '${rootDir}' && ${lowmem}pi 'SilentSession ${sessionName}: ${mission}${bead ? ` Work item: ${bead}.` : ""} Use Focusa trajectory/workpoint/beads, record evidence, checkpoint often, and stop for destructive/high-risk actions.'`;
+  }
+
+  pi.registerTool({
+    name: "focusa_silent_sessions",
+    label: "Focusa Silent Sessions",
+    description: "List, start, reopen, tail, send input to, or safely kill tmux-backed Focusa SilentSessions running in the background.",
+    promptSnippet: "Use when an operator asks to list, reopen, start, or kill background SilentSessions/autopilot tmux sessions.",
+    parameters: Type.Object({
+      action: Type.Optional(Type.Union([
+        Type.Literal("list"),
+        Type.Literal("start"),
+        Type.Literal("reopen"),
+        Type.Literal("tail"),
+        Type.Literal("send"),
+        Type.Literal("kill"),
+      ], { description: "SilentSession action. list is default; kill/send/start require approved=true." })),
+      session_name: Type.Optional(Type.String({ description: "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix." })),
+      root_dir: Type.Optional(Type.String({ description: "Working directory for a new SilentSession; defaults to current Pi cwd." })),
+      command: Type.Optional(Type.String({ description: "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command." })),
+      mission: Type.Optional(Type.String({ description: "Mission prompt for default start command." })),
+      work_item_id: Type.Optional(Type.String({ description: "Optional bead/work item id to anchor the SilentSession." })),
+      lowmem: Type.Optional(Type.Boolean({ description: "Activate LowMem at start; default true." })),
+      lines: Type.Optional(Type.Number({ description: "Tail lines for capture-pane; default 80, max 400." })),
+      approved: Type.Optional(Type.Boolean({ description: "Required true for start/send/kill because those mutate background process state." })),
+      force: Type.Optional(Type.Boolean({ description: "Required true with approved=true to kill a SilentSession." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const action = String(p.action || "list") as SilentSessionAction;
+      const sessionsBefore = listSilentSessions();
+      const sessionName = silentSessionName(p.session_name || p.work_item_id || "default");
+      const hasSession = sessionsBefore.some((session: any) => session.name === sessionName);
+
+      if (action === "list") {
+        const text = sessionsBefore.length
+          ? `silent sessions → ${sessionsBefore.map((s: any) => `${s.name}${s.attached ? "(attached)" : ""}`).join(", ")}`
+          : "silent sessions → none";
+        return { content: [{ type: "text", text }], details: { ok: true, status: "completed", sessions: sessionsBefore, count: sessionsBefore.length, next_tools: ["focusa_silent_sessions", "focusa_resource_mode", "focusa_work_loop_status"] } } as any;
+      }
+
+      if (action === "reopen") {
+        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: false, status: "not_found", failure_class: "frame_unavailable", session_name: sessionName, sessions: sessionsBefore } } as any;
+        const tail = silentSessionExec(["capture-pane", "-p", "-t", sessionName, "-S", "-80"], 3000);
+        return { content: [{ type: "text", text: `silent session reopen → ${sessionName}\nattach: tmux attach -t ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, tail: tail.stdout.slice(-4000), sessions: sessionsBefore } } as any;
+      }
+
+      if (action === "tail") {
+        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: false, status: "not_found", session_name: sessionName, sessions: sessionsBefore } } as any;
+        const lines = Math.max(1, Math.min(400, Number(p.lines || 80)));
+        const tail = silentSessionExec(["capture-pane", "-p", "-t", sessionName, "-S", `-${lines}`], 3000);
+        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, error: tail.stderr } } as any;
+      }
+
+      if (action === "start") {
+        if (p.approved !== true) return { content: [{ type: "text", text: "silent session start blocked → approved=true required" }], details: { ok: false, status: "blocked", failure_class: "approval_required", session_name: sessionName } } as any;
+        if (hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, sessions: sessionsBefore } } as any;
+        const cmd = String(p.command || defaultSilentSessionCommand(p, sessionName));
+        const started = silentSessionExec(["new-session", "-d", "-s", sessionName, "--", "bash", "-lc", cmd], 5000);
+        const sessionsAfter = listSilentSessions();
+        return { content: [{ type: "text", text: started.ok ? `silent session started → ${sessionName}\nattach: tmux attach -t ${sessionName}` : `silent session start blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, command: cmd, side_effects: started.ok ? ["tmux_new_session"] : [], sessions: sessionsAfter, error: started.stderr } } as any;
+      }
+
+      if (action === "send") {
+        if (p.approved !== true) return { content: [{ type: "text", text: "silent session send blocked → approved=true required" }], details: { ok: false, status: "blocked", failure_class: "approval_required", session_name: sessionName } } as any;
+        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: false, status: "not_found", session_name: sessionName, sessions: sessionsBefore } } as any;
+        const line = String(p.command || "").trim();
+        if (!line) return { content: [{ type: "text", text: "silent session send blocked → command required" }], details: { ok: false, status: "validation_rejected", session_name: sessionName } } as any;
+        const sent = silentSessionExec(["send-keys", "-t", sessionName, "--", line, "C-m"], 3000);
+        return { content: [{ type: "text", text: sent.ok ? `silent session sent → ${sessionName}` : `silent session send blocked → ${sent.stderr}` }], details: { ok: sent.ok, status: sent.ok ? "accepted" : "blocked", session_name: sessionName, side_effects: sent.ok ? ["tmux_send_keys"] : [], error: sent.stderr } } as any;
+      }
+
+      if (action === "kill") {
+        if (p.approved !== true || p.force !== true) return { content: [{ type: "text", text: "silent session kill blocked → approved=true and force=true required" }], details: { ok: false, status: "blocked", failure_class: "approval_required", session_name: sessionName, sessions: sessionsBefore } } as any;
+        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, sessions: sessionsBefore } } as any;
+        const killed = silentSessionExec(["kill-session", "-t", sessionName], 3000);
+        const sessionsAfter = listSilentSessions();
+        return { content: [{ type: "text", text: killed.ok ? `silent session killed → ${sessionName}` : `silent session kill blocked → ${killed.stderr}` }], details: { ok: killed.ok, status: killed.ok ? "completed" : "blocked", session_name: sessionName, side_effects: killed.ok ? ["tmux_kill_session"] : [], sessions: sessionsAfter, error: killed.stderr } } as any;
+      }
+
+      return { content: [{ type: "text", text: `silent session action unsupported → ${action}` }], details: { ok: false, status: "validation_rejected", action } } as any;
+    },
+  });
+
   pi.registerTool({
     name: "focusa_tool_doctor",
     label: "Focusa Tool Doctor",
@@ -1171,8 +1430,9 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const health = await focusaFetchDetailed("/health", { method: "GET" });
+      const resource = await focusaFetchDetailed("/resource/mode", { method: "GET" });
       const workpoint = await focusaFetchDetailed("/workpoint/current", { method: "GET" });
-      const loop = await focusaFetchDetailed("/work-loop/status", { method: "GET" });
+      const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
       const ready = health.ok && workpoint.ok;
       const contractSummary = focusaToolContractSummary();
       const scopedContracts = String(p.scope || "all") === "all"
@@ -1186,8 +1446,351 @@ export function registerTools(pi: ExtensionAPI) {
         return acc;
       }, {});
       const latestToken = S.spec92TokenTelemetry.at(-1) || null;
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
-      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
+      const resourceMode = resource.body?.resource_mode || {};
+      const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
+      const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
+      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
+    },
+  });
+
+
+  pi.registerTool({
+    name: "focusa_resource_mode",
+    label: "Focusa Resource Mode",
+    description: "Read or control Focusa resource mode, including activating/deactivating LowMem mode when resources are constrained.",
+    promptSnippet: "Use when resources are low, daemon hot paths risk timeouts, or operator says Activate/Deactivate LowMem mode.",
+    parameters: Type.Object({
+      action: Type.Optional(Type.Union([
+        Type.Literal("status"),
+        Type.Literal("activate_lowmem"),
+        Type.Literal("deactivate_lowmem"),
+        Type.Literal("set_mode"),
+        Type.Literal("set_normal"),
+        Type.Literal("set_constrained"),
+        Type.Literal("set_emergency"),
+      ], { description: "Mode action. activate_lowmem enables LowMem; deactivate_lowmem clears the runtime override back to auto." })),
+      mode: Type.Optional(Type.Union([
+        Type.Literal("auto"),
+        Type.Literal("normal"),
+        Type.Literal("constrained"),
+        Type.Literal("lowmem"),
+        Type.Literal("emergency"),
+      ], { description: "Optional target mode when action=set_mode." })),
+      reason: Type.Optional(Type.String({ description: "Why the mode is being read or changed." })),
+      preflight: Type.Optional(Type.Boolean({ description: "If true, only read current mode and report intended change." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const action = String(p.action || "status");
+      const preflight = p.preflight === true;
+      if (action === "status" || preflight) {
+        const result = await focusaFetchDetailed("/resource/mode", { method: "GET" });
+        const body = result.body || {};
+        const mode = body.resource_mode || {};
+        const intended = preflight && action !== "status" ? ` intended_action=${action}` : "";
+        const text = result.ok
+          ? `resource mode → mode=${String(mode.mode || "unknown")} forced=${mode.forced === true} reason=${String(mode.reason || "unknown")}${intended}`
+          : `resource mode blocked → ${explainWorkLoopResult(result, "resource mode unavailable")}`;
+        return {
+          content: [{ type: "text", text }],
+          details: {
+            ok: result.ok,
+            status: result.ok ? "completed" : "blocked",
+            endpoint: "/v1/resource/mode",
+            resource_mode: mode,
+            preflight,
+            intended_action: preflight ? action : undefined,
+            next_tools: ["focusa_tool_doctor", "focusa_trajectory_view", "focusa_workpoint_resume", "focusa_traverse"],
+            response: body,
+          },
+        } as any;
+      }
+      const body = { action, mode: p.mode, reason: p.reason || `pi:${action}` };
+      const result = await focusaFetchDetailed("/resource/mode", { method: "POST", body: JSON.stringify(body) });
+      const response = result.body || {};
+      const mode = response.resource_mode || {};
+      const ok = result.ok && response.status !== "blocked";
+      const text = ok
+        ? `resource mode → action=${action} mode=${String(mode.mode || "unknown")} reason=${String(mode.reason || "unknown")}`
+        : `resource mode blocked → ${String(response.summary || explainWorkLoopResult(result, "resource mode unavailable"))}`;
+      return {
+        content: [{ type: "text", text }],
+        details: {
+          ok,
+          status: ok ? "completed" : "blocked",
+          endpoint: "/v1/resource/mode",
+          action,
+          requested_mode: response.requested_mode || p.mode || null,
+          resource_mode: mode,
+          side_effects: response.side_effects || ["runtime_resource_mode_override"],
+          next_tools: response.next_tools || ["focusa_tool_doctor", "focusa_trajectory_view", "focusa_workpoint_resume", "focusa_traverse"],
+          failure_class: response.failure_class || null,
+          response,
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_project_identity",
+    label: "Focusa Project Identity",
+    description: "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator scope signals.",
+    promptSnippet: "Use before trusting cross-project Workpoints, Trajectory packets, or scope-sensitive context.",
+    parameters: Type.Object({
+      cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root/scope." })),
+    }),
+    async execute(_id, params) {
+      const p = params as { cwd?: string; project_root?: string };
+      const query = new URLSearchParams();
+      query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
+      if (p.project_root) query.set("project_root", p.project_root);
+      const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
+      const body = result.body || {};
+      const identity = body.project_identity || {};
+      const text = result.ok
+        ? `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`
+        : `project identity blocked → ${explainWorkLoopResult(result, "project identity unavailable")}`;
+      const toolResult = body.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(body.status || "completed") : "blocked", canonical: body.canonical === true, degraded: body.degraded !== false, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"] };
+      return {
+        content: [{ type: "text", text }],
+        details: {
+          ok: result.ok,
+          status: result.ok ? String(body.status || "completed") : "blocked",
+          endpoint: "/v1/project/identity",
+          canonical: body.canonical === true,
+          degraded: body.degraded === true,
+          project_identity: identity,
+          verification: body.verification,
+          tool_result_v1: toolResult,
+          failure_class: toolResult.failure_class || body.failure_class || null,
+          next_tools: toolResult.next_tools || body.next_tools || ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
+          response: body,
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_project_verify",
+    label: "Focusa Project Verify",
+    description: "Verify active project scope against expected ProjectIdentity fields and report mismatches without mutating state.",
+    promptSnippet: "Use when project/session scope is ambiguous or before accepting a Workpoint/Trajectory packet as canonical.",
+    parameters: Type.Object({
+      cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
+      project_root: Type.Optional(Type.String({ description: "Expected project root." })),
+      project_id: Type.Optional(Type.String({ description: "Expected project id from marker/operator." })),
+      canonical_name: Type.Optional(Type.String({ description: "Expected canonical project name." })),
+      repo_remote: Type.Optional(Type.String({ description: "Expected git origin remote." })),
+    }),
+    async execute(_id, params) {
+      const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string };
+      const payload = { ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
+      const result = await focusaFetchDetailed("/project/verify", { method: "POST", body: JSON.stringify(payload) });
+      const body = result.body || {};
+      const identity = body.project_identity || {};
+      const verified = body.verification?.verified === true;
+      const text = result.ok
+        ? `project verify → verified=${verified} status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`
+        : `project verify blocked → ${explainWorkLoopResult(result, "project verify unavailable")}`;
+      const toolResult = body.details?.tool_result_v1 || { ok: result.ok && body.status !== "blocked", status: result.ok ? String(body.status || "completed") : "blocked", canonical: body.canonical === true, degraded: body.degraded !== false, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"] };
+      return {
+        content: [{ type: "text", text }],
+        details: {
+          ok: result.ok && body.status !== "blocked",
+          status: result.ok ? String(body.status || "completed") : "blocked",
+          endpoint: "/v1/project/verify",
+          canonical: body.canonical === true,
+          degraded: body.degraded === true,
+          project_identity: identity,
+          verification: body.verification,
+          tool_result_v1: toolResult,
+          failure_class: toolResult.failure_class || body.failure_class || null,
+          next_tools: toolResult.next_tools || body.next_tools || ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+          response: body,
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_trajectory_view",
+    label: "Trajectory View",
+    description: "Read the per-project Trajectory Intelligence view: project identity, goal/state/gap/evidence/drift, and next Workpoint candidate.",
+    promptSnippet: "Use first on project start/resume or when goal/state/next action is unclear; Trajectory is advisory and per-project.",
+    parameters: Type.Object({
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id and is part of authority boundary." })),
+      mode: Type.Optional(Type.Union([Type.Literal("summary"), Type.Literal("full")], { description: "View mode; summary is hot-path bounded." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const query = new URLSearchParams();
+      query.set("project_root", String(p.project_root || S.sessionCwd || process.cwd()));
+      if (p.session_id || S.sessionFrameKey) query.set("session_id", String(p.session_id || S.sessionFrameKey));
+      if (p.continuity_id || S.continuityId) query.set("continuity_id", String(p.continuity_id || S.continuityId));
+      if (p.mode) query.set("mode", String(p.mode));
+      const result = await focusaFetchDetailed(`/trajectory/view?${query.toString()}`, { method: "GET" });
+      const body = result.body || {};
+      const project = body.project_identity || {};
+      const trajectory = body.trajectory || {};
+      const sufficiency = body.intelligence_view?.context_sufficiency || {};
+      const text = result.ok
+        ? `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} action=${String(sufficiency.recommended_action || "unknown")}`
+        : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;
+      const toolResult = body.details?.tool_result_v1 || { ok: result.ok && body.status !== "degraded" && body.status !== "not_found", status: result.ok ? String(body.status || "completed") : String(result.status), canonical: body.canonical === true, degraded: body.degraded === true, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_workpoint_resume", "focusa_active_object_resolve"] };
+      return {
+        content: [{ type: "text", text }],
+        details: {
+          ok: toolResult.ok,
+          status: result.ok ? String(body.status || "completed") : String(result.status),
+          endpoint: "/v1/trajectory/view",
+          canonical: body.canonical === true,
+          degraded: body.degraded === true,
+          project_identity: project,
+          trajectory,
+          intelligence_view: body.intelligence_view || null,
+          tool_result_v1: toolResult,
+          failure_class: toolResult.failure_class || null,
+          evidence_refs: toolResult.evidence_refs || [],
+          side_effects: toolResult.side_effects || [],
+          next_tools: toolResult.next_tools || body.next_tools || ["focusa_workpoint_resume", "focusa_active_object_resolve"],
+          response: body,
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_trajectory_define_goal",
+    label: "Trajectory Define Goal",
+    description: "Create an advisory per-project Trajectory goal candidate without changing task/execution authority.",
+    promptSnippet: "Use when the project trajectory is unclear or operator provides/changes the project goal.",
+    parameters: Type.Object({
+      long_term_goal: Type.String({ description: "Stable project-level long-term goal." }),
+      desired_end_state: Type.String({ description: "Evidence-backed desired project end state." }),
+      short_term_goal: Type.Optional(Type.String({ description: "Current short-term project goal." })),
+      current_state: Type.Optional(Type.String({ description: "Current verified state if known." })),
+      goal_source: Type.Optional(Type.String({ description: "operator|durable_supersession|focus_state|workpoint|beads|imported|inferred_context" })),
+      supersedes_trajectory_id: Type.Optional(Type.String({ description: "Prior trajectory id if this supersedes one." })),
+      operator_confirmed: Type.Optional(Type.Boolean({ description: "True when operator explicitly confirmed a root goal change." })),
+      supersession_evidence_refs: Type.Optional(Type.Array(Type.String(), { description: "Durable evidence refs allowing root goal supersession without direct operator prompt." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id." })),
+      idempotency_key: Type.Optional(Type.String({ description: "Optional external idempotency key." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual") };
+      const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
+      const b = result.body || {};
+      const candidate = b.trajectory_candidate || {};
+      const text = result.ok ? `trajectory define_goal → status=${String(b.status || "unknown")} definition=${String(candidate.definition_status || "unknown")} root_goal_change_allowed=${candidate.root_goal_change_allowed !== false} advisory=${b.advisory_only === true}` : `trajectory define_goal blocked → ${explainWorkLoopResult(result, "define failed")}`;
+      const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "validation_rejected", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: p.supersession_evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_assess"] };
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/define-goal", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, trajectory_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_assess"] } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_trajectory_assess",
+    label: "Trajectory Assess",
+    description: "Assess current project state against the desired Trajectory end state and return gaps/recommended action.",
+    promptSnippet: "Use after trajectory view/define_goal or after verification evidence changes current state.",
+    parameters: Type.Object({
+      observed_state: Type.Optional(Type.String({ description: "Observed current state override." })),
+      evidence_refs: Type.Optional(Type.Array(Type.String(), { description: "Evidence refs supporting observed state." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual") };
+      const result = await focusaFetchDetailed("/trajectory/assess", { method: "POST", body: JSON.stringify(body) });
+      const b = result.body || {};
+      const text = result.ok ? `trajectory assess → gaps=${Array.isArray(b.gaps) ? b.gaps.length : 0} action=${String(b.recommended_action || "unknown")} canonical=${b.canonical === true}` : `trajectory assess blocked → ${explainWorkLoopResult(result, "assess failed")}`;
+      const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: p.evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_propose_workpoint"] };
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/assess", canonical: b.canonical === true, degraded: b.degraded === true, gaps: b.gaps || [], recommended_action: b.recommended_action || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_propose_workpoint"] } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_trajectory_propose_workpoint",
+    label: "Trajectory Propose Workpoint",
+    description: "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.",
+    promptSnippet: "Use after trajectory assess says propose_workpoint; pass candidate to focusa_workpoint_checkpoint only if accepted.",
+    parameters: Type.Object({
+      trajectory_id: Type.Optional(Type.String({ description: "Trajectory id to use; defaults to active project trajectory." })),
+      target_ref: Type.Optional(Type.String({ description: "Optional target object/file/ref." })),
+      action_type: Type.Optional(Type.String({ description: "Optional action intent type." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual") };
+      const result = await focusaFetchDetailed("/trajectory/propose-workpoint", { method: "POST", body: JSON.stringify(body) });
+      const b = result.body || {};
+      const candidate = b.workpoint_candidate || {};
+      const blockers = Array.isArray(candidate.blockers) ? candidate.blockers.length : 0;
+      const text = result.ok ? `trajectory propose_workpoint → advisory=${b.advisory_only === true} action=${String(candidate.action_intent?.action_type || "unknown")} checkpoint_required=${candidate.checkpoint_required === true} blockers=${blockers} no_execution=${b.no_execution_side_effects === true}` : `trajectory propose_workpoint blocked → ${explainWorkLoopResult(result, "proposal failed")}`;
+      const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_checkpoint"] };
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/propose-workpoint", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, no_execution_side_effects: b.no_execution_side_effects === true, workpoint_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_trajectory_checkpoint",
+    label: "Trajectory Checkpoint",
+    description: "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation.",
+    promptSnippet: "Use before compaction/model switch alongside focusa_workpoint_checkpoint; this does not replace Workpoint.",
+    parameters: Type.Object({
+      summary: Type.Optional(Type.String({ description: "Optional bounded Trajectory checkpoint summary." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id." })),
+      idempotency_key: Type.Optional(Type.String({ description: "Optional external idempotency key." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction") };
+      const result = await focusaFetchDetailed("/trajectory/checkpoint", { method: "POST", body: JSON.stringify(body) });
+      const b = result.body || {};
+      const text = result.ok ? `trajectory checkpoint → status=${String(b.status || "unknown")} persisted=${b.persisted === true} canonical=${b.canonical === true}` : `trajectory checkpoint blocked → ${explainWorkLoopResult(result, "checkpoint failed")}`;
+      const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_checkpoint"] };
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/checkpoint", canonical: b.canonical === true, degraded: b.degraded === true, persisted: b.persisted === true, advisory_only: b.advisory_only === true, trajectory_checkpoint: b.trajectory_checkpoint || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_trajectory_resume",
+    label: "Trajectory Resume",
+    description: "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume.",
+    promptSnippet: "Use after compaction/resume before choosing action; inject with Workpoint resume.",
+    parameters: Type.Object({
+      mode: Type.Optional(Type.Union([Type.Literal("summary"), Type.Literal("full")], { description: "Resume mode; summary is bounded." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root; defaults to Pi session cwd." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch") };
+      const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
+      const b = result.body || {};
+      const packet = b.resume_packet || {};
+      const text = result.ok ? `trajectory resume → status=${String(b.status || "unknown")} canonical=${b.canonical === true} project=${String(packet.project_identity?.status || "unknown")}` : `trajectory resume blocked → ${explainWorkLoopResult(result, "resume failed")}`;
+      const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "degraded" && b.status !== "not_found", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_resume"] };
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/resume", canonical: b.canonical === true, degraded: b.degraded === true, resume_packet: packet, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_resume"] } } as any;
     },
   });
 
@@ -1226,10 +1829,13 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.attach_to_workpoint === false) {
         return { content: [{ type: "text", text: `evidence capture → captured ref=${p.evidence_ref} attach_to_workpoint=false` }], details: { ok: true, status: "completed", evidence_ref: p.evidence_ref } } as any;
       }
+      const projectRoot = S.sessionCwd || process.cwd();
+      const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "evidence capture", { blockOperatorInput: false });
+      if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "evidence capture blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
         headers: { "x-focusa-writer-id": await preferredWriterId() },
-        body: JSON.stringify({ target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref }),
+        body: JSON.stringify({ target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual"), trajectory_clarity_precondition: clarity.details }),
       });
       const text = res.ok ? `evidence capture → linked ${p.evidence_ref}` : `evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`;
       return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, response: res.body } } as any;
@@ -1244,6 +1850,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       current_ask: Type.Optional(Type.String({ description: "Current operator ask or mission framing." })),
       work_item_id: Type.Optional(Type.String({ description: "Beads/work item id, e.g. focusa-a2w2.6." })),
+      continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi session continuity id." })),
       checkpoint_reason: Type.Optional(Type.String({ description: "manual|operator_checkpoint|before_compact|after_compact|context_overflow|session_resume|model_switch|fork" })),
       mission: Type.String({ description: "Current mission/objective to preserve across compaction." }),
       target_objects: Type.Optional(Type.Array(Type.String(), { description: "Ontology/file/component/endpoint refs currently targeted." })),
@@ -1255,6 +1862,7 @@ export function registerTools(pi: ExtensionAPI) {
       source_turn_id: Type.Optional(Type.String({ description: "Pi/source turn id for provenance." })),
       idempotency_key: Type.Optional(Type.String({ description: "Optional external idempotency key." })),
       canonical: Type.Optional(Type.Boolean({ description: "False only for degraded fallback packets." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; defaults to Pi session cwd when that cwd is safe." })),
     }),
     promptGuidelines: [
       "Use before /compact, model switches, session repair, and when context feels near limit.",
@@ -1268,12 +1876,23 @@ export function registerTools(pi: ExtensionAPI) {
       const evidence = Array.isArray(p.verified_evidence) ? p.verified_evidence : [];
       const blockers = Array.isArray(p.blockers) ? p.blockers : [];
       const doNotDrift = Array.isArray(p.do_not_drift) ? p.do_not_drift : [];
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      if (p.canonical !== false && !isProjectRootAuthoritySafe(projectRoot)) {
+        const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
+        return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into a specific project/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
+      }
+      const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, p.checkpoint_reason === "before_compact" ? "compaction" : "manual");
+      const clarity = p.canonical === false ? { ok: true, details: { skipped: true, reason: "noncanonical_workpoint" } } : await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint checkpoint", { blockOperatorInput: true });
+      if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint checkpoint blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const payload: any = {
         mission: p.mission,
         next_slice: [p.next_action, ...doNotDrift.map((d: string) => `DO_NOT_DRIFT: ${d}`)].filter(Boolean).join("\n"),
         work_item_id: p.work_item_id,
+        continuity_id: p.continuity_id || ensureContinuityId(projectRoot),
         session_id: S.sessionFrameKey,
-        project_root: S.sessionCwd || process.cwd(),
+        project_root: projectRoot,
+        session_identity: sessionIdentity,
+        trajectory_clarity_precondition: clarity.details,
         checkpoint_reason: p.checkpoint_reason || "manual",
         canonical: p.canonical !== false,
         promote: p.canonical !== false,
@@ -1331,10 +1950,13 @@ export function registerTools(pi: ExtensionAPI) {
           details: { ok: true, status: "no_op", reason: "attach_to_workpoint=false" },
         } as any;
       }
+      const projectRoot = S.sessionCwd || process.cwd();
+      const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint evidence link", { blockOperatorInput: false });
+      if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint evidence link blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
         headers: { "x-focusa-writer-id": await preferredWriterId() },
-        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref }),
+        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual"), trajectory_clarity_precondition: clarity.details }),
       });
       const text = res.ok
         ? `workpoint evidence link → status=${String(res.body?.status || "accepted")} id=${String(res.body?.workpoint_id || "none")}`
@@ -1353,7 +1975,9 @@ export function registerTools(pi: ExtensionAPI) {
     promptSnippet: "After compact/resume/overflow: fetch WorkpointResumePacket and continue from it.",
     parameters: Type.Object({
       workpoint_id: Type.Optional(Type.String({ description: "Specific workpoint id; omit to use active workpoint." })),
+      continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi session continuity id." })),
       mode: Type.Optional(Type.String({ description: "compact_prompt|full_json|operator_summary" })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; defaults to Pi session cwd when that cwd is safe." })),
     }),
     promptGuidelines: [
       "Use immediately after compaction or session resume before choosing next work.",
@@ -1361,20 +1985,28 @@ export function registerTools(pi: ExtensionAPI) {
       "If canonical=false, state degraded status and avoid treating it as canonical truth.",
     ],
     async execute(_id, params) {
-      const p = params as { workpoint_id?: string; mode?: string };
-      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", session_id: S.sessionFrameKey, project_root: S.sessionCwd || process.cwd() };
+      const p = params as { workpoint_id?: string; continuity_id?: string; mode?: string; project_root?: string };
+      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      if (!isProjectRootAuthoritySafe(projectRoot)) {
+        const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
+        return { content: [{ type: "text", text: `workpoint resume blocked → unsafe project_root (${reason}); ignore stale packets and follow latest operator instruction.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason, next_tools: ["focusa_project_identity", "focusa_tool_doctor"] } } as any;
+      }
+      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", continuity_id: p.continuity_id || ensureContinuityId(projectRoot), session_id: S.sessionFrameKey, project_root: projectRoot, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch") };
       const res = await focusaFetchDetailed("/workpoint/resume", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      const text = res.ok && res.body?.status !== "rejected_scope_mismatch"
+      const rejected = res.body?.status === "rejected_scope_mismatch";
+      const text = res.ok && !rejected
         ? `workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim()
-        : res.body?.status === "rejected_scope_mismatch"
-          ? `workpoint resume rejected: project/session mismatch. Ignore packet; follow latest operator instruction and current repo.`
+        : rejected
+          ? `workpoint resume rejected: project_root mismatch. Ignore packet; follow latest operator instruction and current repo.`
           : `workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`;
+      const v2 = res.body?.resume_packet_v2 || null;
+      const toolResult = res.body?.details?.tool_result_v1 || v2?.details?.tool_result_v1 || { ok: res.ok && !rejected, status: res.ok ? String(res.body?.status || "completed") : String(res.status), canonical: res.body?.canonical === true, degraded: res.body?.degraded === true || rejected, failure_class: res.body?.failure_class || (rejected ? "scope_mismatch" : null), retry: { safe: res.ok && !rejected, posture: res.ok && !rejected ? "safe_retry" : "do_not_retry_unchanged" }, side_effects: [], evidence_refs: [], next_tools: res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"] };
       return {
         content: [{ type: "text", text }],
-        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/resume", request: payload, response: res.body },
+        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical: res.body?.canonical === true, degraded: res.body?.degraded === true, failure_class: toolResult.failure_class || null, resume_packet_v2: v2, rendered_summary: res.body?.rendered_summary || "", tool_result_v1: toolResult, next_tools: toolResult.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"], request: payload, response: res.body },
       };
     },
   });
@@ -1383,7 +2015,7 @@ export function registerTools(pi: ExtensionAPI) {
 
   function spec80ErrorCode(result: { ok: boolean; status: number; body: any | null }): string {
     if (result.ok) return "OK";
-    const bodyCode = String(result.body?.code || result.body?.error || "").trim();
+    const bodyCode = String(result.body?.code || result.body?.failure_class || result.body?.error || "").trim();
     if (bodyCode) return bodyCode;
     if (result.status === 0) return "DAEMON_UNAVAILABLE";
     if (result.status === 400) return "INVALID_REQUEST";
@@ -2305,19 +2937,116 @@ export function registerTools(pi: ExtensionAPI) {
     },
   });
 
+
+  // ── Surgical traversal facade (Spec96) ───────────────────────────────────
+
+  pi.registerTool({
+    name: "focusa_traverse",
+    label: "Focusa Traverse",
+    description: "Read-only surgical traversal across large Focusa surfaces. Use for bounded lineage, ontology, evidence, telemetry, Workpoint, and registry slices instead of full payloads.",
+    parameters: strictObject({
+      surface: Type.String({ minLength: 1, maxLength: 80, description: "Surface: lineage|ontology|focus_stack|workpoints|evidence|telemetry|tool_registry etc." }),
+      selector: Type.Optional(Type.String({ maxLength: 80, description: "Selector: window|head|path|children|neighborhood|summaries|search|recent|tags_verify." })),
+      anchor: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.id, description: "Optional anchor id/tag/ref." })),
+      query: Type.Optional(Type.String({ maxLength: SPEC81_LIMITS.currentAsk, description: "Optional search/filter query." })),
+      cursor: Type.Optional(Type.String({ maxLength: 80, description: "Optional cursor/offset token." })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200, description: "Bounded result limit." })),
+      depth: Type.Optional(Type.Integer({ minimum: 1, maximum: 64, description: "Traversal depth cap." })),
+      radius: Type.Optional(Type.Integer({ minimum: 1, maximum: 8, description: "Neighborhood radius cap." })),
+      fields: Type.Optional(Type.Array(Type.String({ maxLength: 80 }), { maxItems: 16, description: "Optional projected fields." })),
+      tags: Type.Optional(Type.Array(Type.Union([
+        Type.String({ maxLength: 240 }),
+        Type.Object({
+          anchor: Type.Optional(Type.String({ maxLength: 160 })),
+          tag: Type.String({ maxLength: 240 }),
+          ordinal: Type.Optional(Type.Integer({ minimum: 0, maximum: 100000 })),
+        }),
+      ]), { maxItems: 32, description: "Optional traversal tags to verify as strings or TraverseTagRef-style objects." })),
+      tag_mode: Type.Optional(Type.Union([Type.Literal("item"), Type.Literal("range"), Type.Literal("window"), Type.Literal("surface"), Type.Literal("mixed")], { description: "Traversal tag mode; defaults mixed." })),
+      include_payload: Type.Optional(Type.Boolean({ description: "Spec96 alias for explicit cold opt-in larger payload; defaults false." })),
+      include_full_payload: Type.Optional(Type.Boolean({ description: "Compatibility alias for explicit cold opt-in larger payload; defaults false." })),
+      include_rehydrate_refs: Type.Optional(Type.Boolean({ description: "Include rehydrate refs for omitted/cold slices." })),
+      budget_tokens: Type.Optional(Type.Integer({ minimum: 1, maximum: 20000, description: "Optional token budget hint." })),
+      session_identity: Type.Optional(Type.Any({ description: "Optional FocusaSessionIdentity envelope for scoped traversal." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_traverse", params, ["surface", "selector", "anchor", "query", "cursor", "limit", "depth", "radius", "fields", "tags", "tag_mode", "include_payload", "include_full_payload", "include_rehydrate_refs", "budget_tokens", "session_identity"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_traverse", "/v1/traverse", params as Record<string, any>, "traverse", keyCheck.error);
+      }
+      const raw = keyCheck.value as { surface: string; selector?: string; anchor?: string; query?: string; cursor?: string; limit?: number; depth?: number; radius?: number; fields?: string[]; tags?: any[]; tag_mode?: string; include_payload?: boolean; include_full_payload?: boolean; include_rehydrate_refs?: boolean; budget_tokens?: number; session_identity?: any };
+      const surfaceCheck = validateRequiredString("surface", raw.surface, 80);
+      if (!surfaceCheck.ok) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", surfaceCheck.error);
+      const selectorCheck = validateOptionalString("selector", raw.selector, 80);
+      if (!selectorCheck.ok) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", selectorCheck.error);
+      const anchorCheck = validateOptionalString("anchor", raw.anchor, SPEC81_LIMITS.id);
+      if (!anchorCheck.ok) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", anchorCheck.error);
+      const queryCheck = validateOptionalString("query", raw.query, SPEC81_LIMITS.currentAsk);
+      if (!queryCheck.ok) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", queryCheck.error);
+      const cursorCheck = validateOptionalString("cursor", raw.cursor, 80);
+      if (!cursorCheck.ok) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", cursorCheck.error);
+      const fieldsCheck = validateStringArray("fields", raw.fields, { maxItems: 16, itemMaxLength: 80 });
+      if (!fieldsCheck.ok) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", fieldsCheck.error);
+      const tags = Array.isArray(raw.tags) ? raw.tags.slice(0, 32).map((tag) => {
+        if (typeof tag === "string") return tag.slice(0, 240);
+        if (tag && typeof tag === "object" && typeof tag.tag === "string") return { ...tag, tag: String(tag.tag).slice(0, 240) };
+        return tag;
+      }) : [];
+      if (raw.tags !== undefined && !Array.isArray(raw.tags)) return spec80ValidationResult("focusa_traverse", "/v1/traverse", raw as Record<string, any>, "traverse", "tags must be an array of strings or TraverseTagRef objects");
+      const selector = selectorCheck.value || "window";
+      const req = {
+        surface: surfaceCheck.value,
+        selector,
+        anchor: anchorCheck.value,
+        query: queryCheck.value,
+        cursor: cursorCheck.value,
+        limit: raw.limit !== undefined ? Math.max(1, Math.min(200, Math.trunc(Number(raw.limit)))) : undefined,
+        depth: raw.depth !== undefined ? Math.max(1, Math.min(64, Math.trunc(Number(raw.depth)))) : undefined,
+        radius: raw.radius !== undefined ? Math.max(1, Math.min(8, Math.trunc(Number(raw.radius)))) : undefined,
+        fields: fieldsCheck.value,
+        tags,
+        tag_mode: raw.tag_mode,
+        include_payload: raw.include_payload === true,
+        include_full_payload: raw.include_full_payload === true || raw.include_payload === true,
+        include_rehydrate_refs: raw.include_rehydrate_refs === true,
+        budget_tokens: raw.budget_tokens !== undefined ? Math.max(1, Math.min(20000, Math.trunc(Number(raw.budget_tokens)))) : undefined,
+        session_identity: raw.session_identity,
+      };
+      const endpoint = selector === "tags_verify" ? "/traverse/verify-tags" : "/traverse";
+      const res = await callSpec80Tool("focusa_traverse", endpoint, req, { method: "POST" });
+      const items = Array.isArray(res.body?.items) ? res.body.items : [];
+      const traversal = res.body?.traversal || {};
+      return spec80Result(
+        "focusa_traverse",
+        endpoint === "/traverse" ? "/v1/traverse" : "/v1/traverse/verify-tags",
+        req,
+        res,
+        `traverse: surface=${req.surface} selector=${selector} returned=${items.length}/${String(traversal.total ?? items.length)} truncated=${Boolean(traversal.truncated)}
+next_cursor=${String(traversal.next_cursor ?? "none")} tags=${Array.isArray(res.body?.tags) ? res.body.tags.length : 0} verified=${Array.isArray(res.body?.verified_tags) ? res.body.verified_tags.length : 0} stale=${Array.isArray(res.body?.stale_tags) ? res.body.stale_tags.length : 0}
+next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
+        "traverse",
+      );
+    },
+  });
+
   // ── Lineage Intelligence (LI) /tree first-class tools ────────────────────
 
   pi.registerTool({
     name: "focusa_lineage_tree",
     label: "Lineage Tree",
-    description: "Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.",
+    description: "Fetch a bounded Focusa lineage window for /tree-aware reasoning. Full tree requires explicit cold opt-in.",
     parameters: Type.Object({
       session_id: Type.Optional(Type.String({ description: "Optional session id scoping hint." })),
-      max_nodes: Type.Optional(Type.Number({ description: "Optional node cap (default 200)." })),
+      max_nodes: Type.Optional(Type.Number({ description: "Optional node cap (default 50)." })),
+      include_full_payload: Type.Optional(Type.Boolean({ description: "Explicit cold opt-in for larger lineage payload." })),
     }),
     async execute(_id, params) {
-      const { session_id, max_nodes } = params as { session_id?: string; max_nodes?: number };
-      const query = session_id ? `?session_id=${encodeURIComponent(session_id)}` : "";
+      const { session_id, max_nodes, include_full_payload } = params as { session_id?: string; max_nodes?: number; include_full_payload?: boolean };
+      const cap = Math.max(1, Math.min(include_full_payload ? 2000 : 200, Number(max_nodes || 50)));
+      const queryParts = [`selector=window`, `limit=${encodeURIComponent(String(cap))}`];
+      if (session_id) queryParts.push(`session_id=${encodeURIComponent(session_id)}`);
+      if (include_full_payload === true) queryParts.push(`include_full_payload=true`);
+      const query = `?${queryParts.join("&")}`;
       const res = await focusaFetchDetailed(`/lineage/tree${query}`);
       if (!res.ok || !res.body) {
         return {
@@ -2326,7 +3055,6 @@ export function registerTools(pi: ExtensionAPI) {
         } as any;
       }
 
-      const cap = Math.max(1, Math.min(2000, Number(max_nodes || 200)));
       const nodes = Array.isArray(res.body?.nodes) ? res.body.nodes.slice(0, cap) : [];
       const head = String(res.body?.head || "");
       const root = String(res.body?.root || "");
@@ -2338,6 +3066,11 @@ export function registerTools(pi: ExtensionAPI) {
           root,
           head,
           total: Number(res.body?.total || nodes.length),
+          returned: Number(res.body?.returned || nodes.length),
+          truncated: Boolean(res.body?.truncated),
+          next_cursor: res.body?.next_cursor ?? res.body?.traversal?.next_cursor ?? null,
+          window_kind: String(res.body?.window_kind || res.body?.traversal?.window_kind || "window"),
+          cold_opt_in: include_full_payload === true,
           nodes,
         },
       } as any;
@@ -2354,7 +3087,10 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { max_candidates, session_id } = params as { max_candidates?: number; session_id?: string };
-      const query = session_id ? `?session_id=${encodeURIComponent(session_id)}` : "";
+      const cap = Math.max(1, Math.min(50, Number(max_candidates || 12)));
+      const queryParts = [`selector=summaries`, `limit=${encodeURIComponent(String(cap))}`];
+      if (session_id) queryParts.push(`session_id=${encodeURIComponent(session_id)}`);
+      const query = `?${queryParts.join("&")}`;
       const res = await focusaFetchDetailed(`/lineage/tree${query}`);
       if (!res.ok || !res.body) {
         return {
@@ -2363,7 +3099,6 @@ export function registerTools(pi: ExtensionAPI) {
         } as any;
       }
 
-      const cap = Math.max(1, Math.min(50, Number(max_candidates || 12)));
       const nodes = Array.isArray(res.body?.nodes) ? res.body.nodes : [];
       const byId = new Map<string, any>();
       nodes.forEach((n: any) => {
