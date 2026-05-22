@@ -8,8 +8,8 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const scopedPacket = getScopedWorkpointPacket();
   const mission = line(scopedPacket?.mission);
   const next = line(scopedPacket?.next_slice);
-  const projectRoot = normalizeProjectRoot(S.sessionCwd || scopedPacket?.project_root);
-  const continuityId = line(S.continuityId || scopedPacket?.continuity_id);
+  const projectRoot = normalizeProjectRoot(scopedPacket?.project_root || S.sessionCwd);
+  const continuityId = scopedPacket ? line(scopedPacket?.continuity_id) : line(S.continuityId);
   const status = S.focusaAvailable ? "available" : "offline/degraded";
   const prefix = mode === "visible" ? "# Focusa Utility Card" : "## Focusa Utility Card";
   return [
@@ -19,7 +19,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     mission ? `Mission: ${mission}` : "Mission: use latest operator instruction only; no scoped Workpoint mission verified.",
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming or uncertain.",
     projectRoot ? `Scope: project_root=${projectRoot}` : "Scope: bind work to current project root; reject cross-project resume packets.",
-    continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: require a stable continuity_id before trusting same-root session state.",
+    scopedPacket && continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: no Workpoint continuity verified for this Pi session; require explicit resume/checkpoint before trusting same-root state.",
     "Trajectory: use focusa_trajectory_view for high/mid/low goals and advisory similarity; never merge same-high-level sessions without project_root+continuity_id.",
     "",
     "Use Focusa as agent working memory and governance:",

@@ -1,5 +1,5 @@
 import { buildFocusaUtilityCard } from "../apps/pi-extension/src/awareness.ts";
-import { S, adoptPersistedContinuityForSession } from "../apps/pi-extension/src/state.ts";
+import { S, adoptPersistedContinuityForSession, ensurePiFrame } from "../apps/pi-extension/src/state.ts";
 
 function assert(cond: any, msg: string) {
   if (!cond) throw new Error(msg);
@@ -29,6 +29,36 @@ const mismatched = buildFocusaUtilityCard("visible");
 assert(!mismatched.includes("STALE MISSION SHOULD NOT LEAK"), "mismatched Utility Card leaked stale mission");
 assert(!mismatched.includes("DO_NOT_DRIFT"), "mismatched Utility Card leaked stale drift boundary");
 assert(mismatched.includes("none verified"), "mismatched Utility Card should declare no scoped Workpoint");
+
+Object.assign(S, {
+  focusaAvailable: true,
+  sessionCwd: "/root",
+  sessionFrameKey: "other-session",
+  continuityId: "spec96-lowmem-surgical",
+  activeWorkpointPacket: {
+    mission: "SPEC96 MISSION MUST NOT LEAK TO UNSAFE CWD",
+    next_slice: "prove evidence link remains bounded under LowMem",
+    project_root: "/home/wirebot/focusa",
+    continuity_id: "spec96-lowmem-surgical",
+    session_id: "spec96-lowmem-surgical",
+    canonical: true,
+    status: "active",
+  },
+});
+await ensurePiFrame("/root", "other-session", "test-unsafe-cwd");
+const unsafeCwdCard = buildFocusaUtilityCard("visible");
+assert(!unsafeCwdCard.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Utility Card adopted global active Workpoint");
+assert(!unsafeCwdCard.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity id");
+assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no scoped Workpoint");
+
+Object.assign(S, {
+  focusaAvailable: true,
+  sessionCwd: "/tmp/project-a",
+  sessionFrameKey: "new-session",
+  continuityId: "current-continuity",
+  activeWorkpointPacket: null,
+  activeWorkpointSummary: "",
+});
 
 adoptPersistedContinuityForSession({
   sessionId: "old-session",

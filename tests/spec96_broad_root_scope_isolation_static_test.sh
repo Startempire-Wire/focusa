@@ -25,10 +25,11 @@ else
   exit 1
 fi
 
-if rg -n 'adoptSafeScopeFromActiveWorkpoint|ensure_pi_frame_unsafe_cwd|pi_scope_recovered_from_active_workpoint|scopedQs\.set\("project_root"' "$STATE" >/dev/null; then
-  echo "✓ PASS: Focus State write recovery adopts safe Workpoint scope before frame writes"
+if rg -n 'clearScopedWorkpointForUnsafeCwd|ensure_pi_frame_unsafe_cwd|pi_scope_rejected_unsafe_cwd|scopedQs\.set\("project_root"' "$STATE" >/dev/null \
+  && ! rg -n 'adoptSafeScopeFromActiveWorkpoint|pi_scope_recovered_from_active_workpoint' "$STATE" >/dev/null; then
+  echo "✓ PASS: unsafe cwd clears scoped Workpoint instead of adopting global active Workpoint"
 else
-  echo "✗ FAIL: Focus State write recovery cannot adopt safe scope from active Workpoint" >&2
+  echo "✗ FAIL: unsafe cwd can still adopt global active Workpoint scope" >&2
   exit 1
 fi
 

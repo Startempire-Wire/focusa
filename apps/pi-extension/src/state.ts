@@ -1226,37 +1226,40 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
   }
 }
 
-export async function adoptSafeScopeFromActiveWorkpoint(reason = "scope_recovery"): Promise<boolean> {
-  try {
-    const current = await focusaFetch("/workpoint/current");
-    const packet = current?.workpoint || current?.resume_packet || null;
-    const root = normalizeProjectRoot(packet?.project_root);
-    const continuityId = String(packet?.continuity_id || "").trim();
-    if (current?.canonical === true && isProjectRootAuthoritySafe(root) && continuityId) {
-      S.sessionCwd = root;
-      S.continuityId = continuityId;
-      S.activeWorkpointPacket = packet;
-      S.activeWorkpointSummary = String(packet?.next_slice || current?.next_step_hint || "");
-      S.activeFrameId = null;
-      S.activeFrameTitle = "";
-      S.activeFrameGoal = "";
-      focusaPost("/telemetry/trace", { event_type: "pi_scope_recovered_from_active_workpoint", payload: { reason, project_root: root, continuity_id: continuityId } });
-      return true;
-    }
-  } catch { /* best effort */ }
-  return false;
+export function clearScopedWorkpointForUnsafeCwd(reason = "unsafe_cwd_scope_guard"): void {
+  S.activeWorkpointPacket = null;
+  S.activeWorkpointSummary = "";
+  S.continuityId = "";
+  S.activeFrameId = null;
+  S.activeFrameTitle = "";
+  S.activeFrameGoal = "";
+  focusaPost("/telemetry/trace", { event_type: "pi_scope_rejected_unsafe_cwd", payload: { reason, cwd: S.sessionCwd || process.cwd() } });
+}
+
+export function stampWorkpointPacketForCurrentPiSession(packet: any): any {
+  if (!packet || typeof packet !== "object") return packet;
+  return {
+    ...packet,
+    pi_session_frame_key: S.sessionFrameKey || null,
+    pi_session_scope_checked_at: new Date().toISOString(),
+  };
 }
 
 export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
   if (!packet || typeof packet !== "object") return false;
   const currentProjectRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
   const currentContinuityId = String(S.continuityId || "").trim();
+  const currentSessionKey = String(S.sessionFrameKey || "").trim();
   const packetProjectRoot = normalizeProjectRoot(packet.project_root);
   const packetContinuityId = String(packet.continuity_id || "").trim();
+  const packetPiSessionKey = String(packet.pi_session_frame_key || "").trim();
+  const packetSessionId = String(packet.session_id || "").trim();
   if (!currentProjectRoot || !currentContinuityId || !packetProjectRoot || !packetContinuityId) return false;
   if (!isProjectRootAuthoritySafe(currentProjectRoot) || !isProjectRootAuthoritySafe(packetProjectRoot)) return false;
   if (currentProjectRoot !== packetProjectRoot) return false;
   if (currentContinuityId !== packetContinuityId) return false;
+  if (currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return false;
+  if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey) return false;
   if (packet.canonical === false || packet.status === "partial" || packet.status === "rejected_scope_mismatch") return false;
   return true;
 }
@@ -1278,7 +1281,7 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
   const packetProjectRoot = normalizeProjectRoot(packet?.project_root);
   const packetContinuityId = String(packet?.continuity_id || "").trim();
   if (packet && isProjectRootAuthoritySafe(cwd) && isProjectRootAuthoritySafe(packetProjectRoot) && packetProjectRoot === normalizeProjectRoot(cwd) && packetContinuityId === persistedContinuityId && packet.canonical !== false && packet.status !== "partial" && packet.status !== "rejected_scope_mismatch") {
-    S.activeWorkpointPacket = packet;
+    S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(packet);
     S.activeWorkpointSummary = String(data?.activeWorkpointSummary || "");
   } else {
     S.activeWorkpointPacket = null;
@@ -1341,7 +1344,8 @@ export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?
 export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
   if (!S.focusaAvailable) return S.activeFrameId;
   if (!isProjectRootAuthoritySafe(cwd || S.sessionCwd || process.cwd())) {
-    await adoptSafeScopeFromActiveWorkpoint("ensure_pi_frame_unsafe_cwd");
+    clearScopedWorkpointForUnsafeCwd("ensure_pi_frame_unsafe_cwd");
+    return null;
   }
   if (S.activeFrameId && isProjectRootAuthoritySafe(S.sessionCwd || cwd || process.cwd())) return S.activeFrameId;
   if (S.activeFramePromise) return await S.activeFramePromise;

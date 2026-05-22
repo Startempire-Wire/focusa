@@ -41,3 +41,24 @@ Spec96 hardening is closed to the current acceptance surface: all Spec96 runtime
 ## Operational posture
 
 Controlled alpha/dogfood is acceptable after agents reload the Pi extension. Broad GTM remains a separate product/support decision, not a Spec96 hardening gap.
+
+## Emergency follow-up: Utility Card cross-session leak
+
+Operator observed another Pi session receiving the Spec96 LowMem Utility Card. Root cause: Pi `ensurePiFrame()` used unsafe-cwd recovery that adopted the daemon global active Workpoint, mutating that other session to the Spec96 `project_root + continuity_id`; the Utility Card then truthfully matched the contaminated in-memory scope.
+
+Fix:
+
+- Unsafe cwd now clears scoped Workpoint/continuity and returns no frame instead of adopting the daemon global active Workpoint (`apps/pi-extension/src/state.ts:1229`).
+- Scoped Workpoint packets are stamped with the current Pi `sessionFrameKey` when loaded into the extension; Utility Card scope rejects mismatched Pi session stamps or mismatched packet `session_id` when no stamp exists (`apps/pi-extension/src/state.ts:1243`).
+- Utility Card no longer prints an unverified stale continuity id when no scoped Workpoint is verified (`apps/pi-extension/src/awareness.ts:12`).
+- Runtime test now proves unsafe `/root` cannot display or adopt the Spec96 LowMem mission/continuity (`tests/utility_card_session_isolation_test.mts:32`).
+
+Validation:
+
+- `apps/pi-extension npx tsc --noEmit` — pass.
+- `tests/spec96_utility_card_session_isolation_static_test.sh` — pass.
+- `tests/spec96_broad_root_scope_isolation_static_test.sh` — pass.
+- `tests/spec96_workpoint_post_compaction_resume_static_test.sh` — pass.
+- `tests/spec96_compaction_resume_injection_v2_static_test.sh` — pass.
+- `tests/spec96_scope_recovery_feedback_static_test.sh` — pass.
+- `node scripts/validate-focusa-tool-contracts.mjs` — pass, 58/58.
