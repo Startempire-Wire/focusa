@@ -950,6 +950,84 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .get("recommended_action")
         .and_then(Value::as_str)
         .unwrap_or(recommended_action);
+    let proceed_posture = match clarity_recommended_action {
+        "proceed" => "proceed",
+        "verify_first" => "verify_first",
+        "operator_input" | "operator_required" => "operator_required",
+        _ => "verify_first",
+    };
+    let stale_refs = Vec::<String>::new();
+    let conflicting_signals = mismatches
+        .iter()
+        .map(|mismatch| {
+            let field = mismatch
+                .get("field")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown_field");
+            let source = mismatch
+                .get("source")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown_source");
+            let expected = mismatch
+                .get("expected")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let actual = mismatch
+                .get("actual")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            format!("{field} mismatch from {source}: expected {expected}, actual {actual}")
+        })
+        .collect::<Vec<_>>();
+    let ask_operator_if = missing_facts
+        .iter()
+        .filter_map(|fact| match *fact {
+            "long_term_goal" => Some("confirm the project long-term goal".to_string()),
+            "desired_end_state" => Some("confirm the desired end state".to_string()),
+            _ => None,
+        })
+        .chain((!scope_match).then_some("confirm project_root and continuity_id scope".to_string()))
+        .collect::<Vec<_>>();
+    let mut relevance_rationale = vec![json!({
+        "ref": "project_identity",
+        "why_included": "bounds Trajectory to project_root plus continuity_id",
+        "confidence": project_confidence,
+    })];
+    if let Some(record) = persisted_trajectory {
+        relevance_rationale.push(json!({
+            "ref": format!("trajectory:{}", record.trajectory_id),
+            "why_included": "provides persisted goal-state binding",
+            "confidence": if record.canonical { "high" } else { "medium" },
+        }));
+    }
+    if focus_state.is_some() {
+        relevance_rationale.push(json!({
+            "ref": "focus_state:active",
+            "why_included": "provides compact intent, current state, decisions, and constraints",
+            "confidence": "medium",
+        }));
+    }
+    if let Some(record) = workpoint {
+        relevance_rationale.push(json!({
+            "ref": format!("workpoint:{}", record.workpoint_id),
+            "why_included": "provides active short-term execution point and next candidate",
+            "confidence": if record.canonical { "high" } else { "medium" },
+        }));
+    }
+    if let Some(record) = frame {
+        relevance_rationale.push(json!({
+            "ref": format!("frame:{}", record.id),
+            "why_included": "provides current Focus Stack alignment evidence",
+            "confidence": "medium",
+        }));
+    }
+    if !evidence_refs.is_empty() {
+        relevance_rationale.push(json!({
+            "ref": "workpoint:evidence_refs",
+            "why_included": "supports verified current-state and completion claims",
+            "confidence": "high",
+        }));
+    }
 
     let next_workpoint_candidate = workpoint.map(|record| {
         json!({
@@ -1000,6 +1078,30 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .take(8)
         .cloned()
         .collect::<Vec<_>>();
+    let since_checkpoint = lifecycle_checkpoints
+        .first()
+        .and_then(|checkpoint| checkpoint.persisted_at.as_ref())
+        .map(|value| value.to_rfc3339());
+    let changed_refs = lifecycle_state_deltas
+        .iter()
+        .map(|delta| {
+            delta
+                .current_state
+                .as_deref()
+                .map(|value| format!("current_state:{}", bounded(value, 120)))
+                .unwrap_or_else(|| format!("reason:{}", bounded(&delta.reason, 120)))
+        })
+        .collect::<Vec<_>>();
+    let delta_evidence_refs = lifecycle_state_deltas
+        .iter()
+        .flat_map(|delta| delta.evidence_refs.iter().take(8).cloned())
+        .take(8)
+        .collect::<Vec<_>>();
+    let current_state_delta = json!({
+        "since_checkpoint": since_checkpoint,
+        "changed_refs": changed_refs,
+        "evidence_refs": delta_evidence_refs,
+    });
 
     json!({
         "status": status,
@@ -1069,11 +1171,19 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "context_sufficiency": {
                 "score": context_score,
                 "status": definition_status,
+                "proceed_posture": proceed_posture,
                 "missing_facts": missing_facts,
+                "stale_refs": stale_refs,
+                "conflicting_signals": conflicting_signals,
                 "recommended_action": clarity_recommended_action,
             },
             "similarity_group": similarity_group,
             "clarity_gate": clarity_gate,
+            "relevance_rationale": relevance_rationale,
+            "current_state_delta": current_state_delta,
+            "learning_refs": Vec::<String>::new(),
+            "prediction_refs": Vec::<String>::new(),
+            "ask_operator_if": ask_operator_if,
             "do_not_use": do_not_use,
             "next_workpoint_candidate": next_workpoint_candidate,
             "tool_affordances": [
@@ -1738,6 +1848,26 @@ mod tests {
             payload["trajectory"]["short_term_goal"].as_str(),
             Some("Implement hot-path trajectory view")
         );
+        assert_eq!(
+            payload["intelligence_view"]["context_sufficiency"]["proceed_posture"].as_str(),
+            Some("operator_required")
+        );
+        assert!(
+            payload["intelligence_view"]["ask_operator_if"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("confirm the project long-term goal"))
+        );
+        assert!(
+            payload["intelligence_view"]["relevance_rationale"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["ref"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .starts_with("workpoint:"))
+        );
     }
 
     #[test]
@@ -1874,6 +2004,49 @@ mod tests {
         assert_eq!(
             view["trajectory"]["current_state"].as_str(),
             Some("Trajectory set command received")
+        );
+        assert_eq!(
+            view["intelligence_view"]["context_sufficiency"]["proceed_posture"].as_str(),
+            Some("verify_first")
+        );
+        assert!(
+            view["intelligence_view"]["context_sufficiency"]["stale_refs"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            view["intelligence_view"]["context_sufficiency"]["conflicting_signals"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            view["intelligence_view"]["ask_operator_if"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(view["intelligence_view"]["current_state_delta"].is_object());
+        assert!(
+            view["intelligence_view"]["learning_refs"]
+                .as_array()
+                .is_some()
+        );
+        assert!(
+            view["intelligence_view"]["prediction_refs"]
+                .as_array()
+                .is_some()
+        );
+        assert!(
+            view["intelligence_view"]["relevance_rationale"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["ref"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .starts_with("trajectory:"))
         );
     }
 

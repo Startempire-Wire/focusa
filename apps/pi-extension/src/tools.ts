@@ -1736,14 +1736,15 @@ export function registerTools(pi: ExtensionAPI) {
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
       const sufficiency = body.intelligence_view?.context_sufficiency || {};
+      const posture = String(sufficiency.proceed_posture || sufficiency.recommended_action || "unknown");
       const projectMismatches = Array.isArray(project.mismatches) ? project.mismatches : [];
       const trajectoryUnset = body.status === "not_found" && String(project.status || "") === "verified" && projectMismatches.length === 0;
       const recovery = trajectoryUnset ? null : scopeRecoveryContext(body, String(p.project_root || S.sessionCwd || process.cwd()), String(p.continuity_id || S.continuityId || ""), "trajectory_view");
       const trajectoryText = trajectoryUnset
-        ? `trajectory view → NOT SET for project=${String(project.project_root || p.project_root || S.sessionCwd || process.cwd())}; definition=unclear; next=focusa_trajectory_define_goal`
+        ? `trajectory view → NOT SET for project=${String(project.project_root || p.project_root || S.sessionCwd || process.cwd())}; definition=unclear; posture=${posture}; next=focusa_trajectory_define_goal`
         : body.canonical === true
-          ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} action=${String(sufficiency.recommended_action || "proceed")}`
-          : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} action=${String(sufficiency.recommended_action || "unknown")}`;
+          ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
+          : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
       const text = result.ok
         ? [trajectoryText, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;

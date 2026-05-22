@@ -33,7 +33,8 @@ Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 - `trajectory.similarity_group` with advisory group keys and `must_not_merge_sessions=true`.
 - `trajectory.lifecycle.clarity_gate` and `intelligence_view.clarity_gate` with `clear|provisional|unclear|conflicted` status and `proceed|verify_first|operator_input` guidance.
 - evidence refs and blockers.
-- `intelligence_view.context_sufficiency`.
+- `intelligence_view.context_sufficiency` with `score`, `proceed_posture`, `missing_facts`, `stale_refs`, and `conflicting_signals`.
+- `intelligence_view.relevance_rationale`, `current_state_delta`, `learning_refs`, `prediction_refs`, and `ask_operator_if`.
 - `do_not_use` stale/mismatched refs.
 - advisory `next_workpoint_candidate`.
 - Pi lifecycle refresh snapshots (`lastTrajectoryClarity`) are updated at session start/resume, compaction, steering, failure/degradation, and fork handoff.
