@@ -700,7 +700,6 @@ pub struct WorkpointState {
     pub degraded_fallbacks: Vec<WorkpointDegradedFallbackRecord>,
 }
 
-
 // ─── Trajectory Projection (Spec96) ────────────────────────────────────────
 
 pub mod trajectory_caps {
@@ -783,6 +782,16 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     #[serde(default)]
     pub verified_evidence_refs: Vec<String>,
     pub status: String,
+    #[serde(default)]
+    pub desired_end_state: Option<String>,
+    #[serde(default)]
+    pub required_evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub required_checks: Vec<String>,
+    #[serde(default)]
+    pub acceptance_risks: Vec<String>,
+    #[serde(default)]
+    pub not_done_if: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -20,13 +20,15 @@ Create a project-scoped trajectory goal candidate. It validates long-term goal a
   "continuity_id": "logical-workstream-id",
   "long_term_goal": "Stable project goal",
   "desired_end_state": "Evidence-backed desired end state",
-  "operator_confirmed": true
+  "operator_confirmed": true,
+  "required_checks": ["test or live proof command"],
+  "not_done_if": ["required checks have not run"]
 }
 ```
 
 ## Expected result
 
-Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `trajectory_candidate.definition_status`, `root_goal_change_allowed`, lifecycle `source_precedence`, `next_tools`, and recovery posture.
+Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `trajectory_candidate.definition_status`, `root_goal_change_allowed`, lifecycle `source_precedence`, `next_tools`, and recovery posture. Persisted trajectories include the Spec96 definition-of-done proof contract: `desired_end_state`, `required_evidence_refs`, `required_checks`, `acceptance_risks`, and `not_done_if`.
 
 ## Recovery notes
 

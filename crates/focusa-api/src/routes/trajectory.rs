@@ -47,6 +47,10 @@ pub struct TrajectoryDefineGoalRequest {
     pub project_root: Option<String>,
     pub operator_confirmed: Option<bool>,
     pub supersession_evidence_refs: Option<Vec<String>>,
+    pub required_evidence_refs: Option<Vec<String>>,
+    pub required_checks: Option<Vec<String>>,
+    pub acceptance_risks: Option<Vec<String>>,
+    pub not_done_if: Option<Vec<String>>,
     pub idempotency_key: Option<String>,
 }
 
@@ -416,6 +420,54 @@ fn trajectory_record_from_define_payload(
         });
     }
     let milestone_id = format!("{trajectory_id}:milestone:active");
+    let verified_evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
+    let required_evidence_refs = {
+        let refs = top_strings(
+            body.required_evidence_refs.as_deref().unwrap_or(&[]),
+            8,
+            180,
+        );
+        if refs.is_empty() {
+            if verified_evidence_refs.is_empty() {
+                vec!["evidence proving desired end state".to_string()]
+            } else {
+                verified_evidence_refs.clone()
+            }
+        } else {
+            refs
+        }
+    };
+    let required_checks = {
+        let checks = top_strings(body.required_checks.as_deref().unwrap_or(&[]), 8, 180);
+        if checks.is_empty() {
+            vec!["verify desired end state with linked evidence".to_string()]
+        } else {
+            checks
+        }
+    };
+    let acceptance_risks = {
+        let risks = top_strings(body.acceptance_risks.as_deref().unwrap_or(&[]), 8, 180);
+        if risks.is_empty() {
+            vec![
+                "current state is stale or unverified".to_string(),
+                "scope mismatch hides incomplete work".to_string(),
+            ]
+        } else {
+            risks
+        }
+    };
+    let not_done_if = {
+        let traps = top_strings(body.not_done_if.as_deref().unwrap_or(&[]), 8, 180);
+        if traps.is_empty() {
+            vec![
+                "desired end state lacks linked evidence".to_string(),
+                "required checks have not run".to_string(),
+                "project_root or continuity_id mismatch remains unresolved".to_string(),
+            ]
+        } else {
+            traps
+        }
+    };
     Some(TrajectoryProjectionRecord {
         trajectory_id: trajectory_id.clone(),
         session_identity: body.session_identity.clone(),
@@ -454,10 +506,15 @@ fn trajectory_record_from_define_payload(
             "supersession_evidence_refs": body.supersession_evidence_refs.clone().unwrap_or_default(),
         }),
         definition_of_done: Some(TrajectoryDefinitionOfDoneRecord {
-            criteria: vec![desired_end_state],
+            criteria: vec![desired_end_state.clone()],
             evidence_required: vec!["evidence proving desired end state".to_string()],
-            verified_evidence_refs: body.supersession_evidence_refs.clone().unwrap_or_default(),
+            verified_evidence_refs,
             status: "defined".to_string(),
+            desired_end_state: Some(desired_end_state),
+            required_evidence_refs,
+            required_checks,
+            acceptance_risks,
+            not_done_if,
         }),
         supersedes_trajectory_id: body.supersedes_trajectory_id.clone(),
         canonical: true,
@@ -1973,6 +2030,10 @@ mod tests {
             project_root: Some("/repo/workbench".to_string()),
             continuity_id: Some("cont-workbench".to_string()),
             operator_confirmed: Some(true),
+            required_evidence_refs: Some(vec!["evidence:workbench-e2e".to_string()]),
+            required_checks: Some(vec!["cargo test -p workbench".to_string()]),
+            acceptance_risks: Some(vec!["stale digest output".to_string()]),
+            not_done_if: Some(vec!["digest proof missing".to_string()]),
             ..TrajectoryDefineGoalRequest::default()
         };
         let payload = define_goal_payload(&state, &body);
@@ -2004,6 +2065,27 @@ mod tests {
         assert_eq!(
             view["trajectory"]["current_state"].as_str(),
             Some("Trajectory set command received")
+        );
+        let dod = &view["trajectory"]["durable_lifecycle"]["definition_of_done"];
+        assert_eq!(
+            dod["desired_end_state"].as_str(),
+            Some("Workbench is usable end to end with verified digest output")
+        );
+        assert_eq!(
+            dod["required_evidence_refs"].as_array().unwrap()[0].as_str(),
+            Some("evidence:workbench-e2e")
+        );
+        assert_eq!(
+            dod["required_checks"].as_array().unwrap()[0].as_str(),
+            Some("cargo test -p workbench")
+        );
+        assert_eq!(
+            dod["acceptance_risks"].as_array().unwrap()[0].as_str(),
+            Some("stale digest output")
+        );
+        assert_eq!(
+            dod["not_done_if"].as_array().unwrap()[0].as_str(),
+            Some("digest proof missing")
         );
         assert_eq!(
             view["intelligence_view"]["context_sufficiency"]["proceed_posture"].as_str(),
@@ -2232,6 +2314,11 @@ mod tests {
                 evidence_required: vec!["evidence:done".to_string()],
                 verified_evidence_refs: vec!["evidence:current".to_string()],
                 status: "in_progress".to_string(),
+                desired_end_state: Some("DOD queryable".to_string()),
+                required_evidence_refs: vec!["evidence:done".to_string()],
+                required_checks: vec!["cargo test".to_string()],
+                acceptance_risks: vec!["stale daemon registry".to_string()],
+                not_done_if: vec!["live proof is missing".to_string()],
             }),
             ..TrajectoryProjectionRecord::default()
         });
@@ -2275,6 +2362,13 @@ mod tests {
         assert_eq!(
             lifecycle["definition_of_done"]["status"].as_str(),
             Some("in_progress")
+        );
+        assert_eq!(
+            lifecycle["definition_of_done"]["required_checks"]
+                .as_array()
+                .unwrap()[0]
+                .as_str(),
+            Some("cargo test")
         );
     }
 

@@ -164,6 +164,13 @@ fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
             &mut dod.verified_evidence_refs,
             trajectory_caps::EVIDENCE_REFS,
         );
+        truncate_front(
+            &mut dod.required_evidence_refs,
+            trajectory_caps::EVIDENCE_REFS,
+        );
+        truncate_front(&mut dod.required_checks, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.acceptance_risks, trajectory_caps::MILESTONES);
+        truncate_front(&mut dod.not_done_if, trajectory_caps::MILESTONES);
     }
 }
 
@@ -4341,6 +4348,11 @@ mod tests {
                 evidence_required: vec!["reducer test".to_string()],
                 verified_evidence_refs: vec![],
                 status: "defined".to_string(),
+                desired_end_state: Some("trajectory persisted".to_string()),
+                required_evidence_refs: vec!["reducer test".to_string()],
+                required_checks: vec!["cargo test -p focusa-core".to_string()],
+                acceptance_risks: vec!["unbounded trajectory proof".to_string()],
+                not_done_if: vec!["trajectory record is not reducer-visible".to_string()],
             }),
             canonical: true,
             ..TrajectoryProjectionRecord::default()
