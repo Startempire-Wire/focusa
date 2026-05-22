@@ -12,15 +12,18 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
+use chrono::Utc;
+use focusa_core::reducer;
 use focusa_core::types::{
-    Action, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
-    TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus,
-    TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord, TrajectoryMilestoneStatus,
-    TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
+    EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
+    SignalOrigin, TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord,
+    TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord,
+    TrajectoryMilestoneStatus, TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct TrajectoryViewQuery {
@@ -466,22 +469,56 @@ async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    state
-        .command_tx
-        .send(Action::EmitEvent { event })
-        .await
-        .map_err(|error| {
-            (
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
+        (
+            StatusCode::OK,
+            Json(json!({
+                "status": "rejected",
+                "canonical": false,
+                "degraded": true,
+                "failure_class": "validation_rejected",
+                "error": error.to_string(),
+                "next_step_hint": "correct the trajectory payload and retry"
+            })),
+        )
+    })?;
+
+    let new_state = result.new_state;
+    for emitted in result.emitted_events {
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: Utc::now(),
+            event: emitted,
+            correlation_id: Some("api:trajectory".to_string()),
+            origin: SignalOrigin::Adapter,
+            machine_id: None,
+            instance_id: None,
+            session_id: new_state.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
+        if let Err(error) = state.persistence.append_event(&entry) {
+            return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({
                     "status": "rejected",
                     "canonical": false,
-                    "failure_class": "unknown_ambiguous_completion",
-                    "error": format!("dispatch failed: {error}"),
-                    "next_step_hint": "retry after daemon command channel recovers"
+                    "degraded": true,
+                    "failure_class": "persistence_failed",
+                    "error": error.to_string(),
+                    "next_step_hint": "retry after trajectory persistence recovers"
                 })),
-            )
-        })
+            ));
+        } else if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
+    }
+
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
+    Ok(())
 }
 
 fn source_precedence() -> Vec<&'static str> {
@@ -1748,6 +1785,53 @@ mod tests {
         assert_ne!(
             payload["trajectory"]["current_state"].as_str(),
             Some("global focusa frame must not leak")
+        );
+    }
+
+    #[test]
+    fn trajectory_define_goal_sets_goal_state_binding_visible_to_view() {
+        let mut state = FocusaState::default();
+        let body = TrajectoryDefineGoalRequest {
+            long_term_goal: "Ship the Workbench product spine".to_string(),
+            desired_end_state: "Workbench is usable end to end with verified digest output"
+                .to_string(),
+            short_term_goal: Some("Verify trajectory set/read contract".to_string()),
+            current_state: Some("Trajectory set command received".to_string()),
+            goal_source: Some("operator".to_string()),
+            project_root: Some("/repo/workbench".to_string()),
+            continuity_id: Some("cont-workbench".to_string()),
+            operator_confirmed: Some(true),
+            ..TrajectoryDefineGoalRequest::default()
+        };
+        let payload = define_goal_payload(&state, &body);
+        let record = trajectory_record_from_define_payload(&payload, &body)
+            .expect("valid trajectory record");
+        state.trajectory.active_trajectory_id = Some(record.trajectory_id.clone());
+        state.trajectory.records.push(record);
+
+        let view = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/repo/workbench".to_string()),
+                continuity_id: Some("cont-workbench".to_string()),
+                mode: None,
+                session_id: None,
+            },
+        );
+
+        assert_eq!(view["status"].as_str(), Some("completed"));
+        assert_eq!(view["canonical"].as_bool(), Some(true));
+        assert_eq!(
+            view["trajectory"]["long_term_goal"].as_str(),
+            Some("Ship the Workbench product spine")
+        );
+        assert_eq!(
+            view["trajectory"]["desired_end_state"].as_str(),
+            Some("Workbench is usable end to end with verified digest output")
+        );
+        assert_eq!(
+            view["trajectory"]["current_state"].as_str(),
+            Some("Trajectory set command received")
         );
     }
 
