@@ -14,9 +14,9 @@ use axum::{
 };
 use focusa_core::types::{
     Action, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
-    TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord,
-    TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord,
-    TrajectoryMilestoneStatus, TrajectoryProjectionRecord, WorkpointRecord,
+    TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus,
+    TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord, TrajectoryMilestoneStatus,
+    TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -107,7 +107,8 @@ fn session_identity_project_root(identity: Option<&FocusaSessionIdentity>) -> Op
 
 fn session_identity_session_id(identity: Option<&FocusaSessionIdentity>) -> Option<String> {
     identity.and_then(|identity| {
-        clean(identity.pi_session_id.as_deref()).or_else(|| clean(Some(identity.session_frame_key.as_str())))
+        clean(identity.pi_session_id.as_deref())
+            .or_else(|| clean(Some(identity.session_frame_key.as_str())))
     })
 }
 
@@ -161,6 +162,33 @@ fn active_workpoint(state: &FocusaState) -> Option<&WorkpointRecord> {
             .iter()
             .find(|record| record.workpoint_id == id)
     })
+}
+
+fn scoped_active_workpoint<'a>(
+    state: &'a FocusaState,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+) -> Option<&'a WorkpointRecord> {
+    let scope_requested = project_root.is_some() || continuity_id.is_some();
+    if scope_requested
+        && let Some(record) = state.workpoint.records.iter().rev().find(|record| {
+            record.status == WorkpointStatus::Active
+                && record.canonical
+                && project_root
+                    .map(|expected| {
+                        clean(record.project_root.as_deref()).as_deref() == Some(expected)
+                    })
+                    .unwrap_or(true)
+                && continuity_id
+                    .map(|expected| {
+                        clean(record.continuity_id.as_deref()).as_deref() == Some(expected)
+                    })
+                    .unwrap_or(true)
+        })
+    {
+        return Some(record);
+    }
+    active_workpoint(state)
 }
 
 fn first_nonempty(candidates: &[Option<&str>]) -> Option<String> {
@@ -243,7 +271,6 @@ fn view_str<'a>(view: &'a Value, pointer: &str) -> Option<&'a str> {
         .filter(|s| !s.trim().is_empty())
 }
 
-
 fn trajectory_definition_status(value: &str) -> TrajectoryDefinitionStatus {
     match value {
         "clear" => TrajectoryDefinitionStatus::Clear,
@@ -270,16 +297,30 @@ fn active_persisted_trajectory<'a>(
         .trajectory
         .active_trajectory_id
         .as_ref()
-        .and_then(|id| state.trajectory.records.iter().find(|record| &record.trajectory_id == id))
+        .and_then(|id| {
+            state
+                .trajectory
+                .records
+                .iter()
+                .find(|record| &record.trajectory_id == id)
+        })
         .filter(|record| {
-            project_root.map(|root| record.project_root.as_deref() == Some(root)).unwrap_or(true)
-                && continuity_id.map(|id| record.continuity_id.as_deref() == Some(id)).unwrap_or(true)
+            project_root
+                .map(|root| record.project_root.as_deref() == Some(root))
+                .unwrap_or(true)
+                && continuity_id
+                    .map(|id| record.continuity_id.as_deref() == Some(id))
+                    .unwrap_or(true)
         })
         .or_else(|| {
             state.trajectory.records.iter().rev().find(|record| {
                 record.canonical
-                    && project_root.map(|root| record.project_root.as_deref() == Some(root)).unwrap_or(true)
-                    && continuity_id.map(|id| record.continuity_id.as_deref() == Some(id)).unwrap_or(true)
+                    && project_root
+                        .map(|root| record.project_root.as_deref() == Some(root))
+                        .unwrap_or(true)
+                    && continuity_id
+                        .map(|id| record.continuity_id.as_deref() == Some(id))
+                        .unwrap_or(true)
             })
         })
 }
@@ -321,19 +362,22 @@ fn trajectory_record_from_define_payload(
         .unwrap_or("operator")
         .to_string();
     let inferred = source != "operator";
-    let mut goal_provenance = vec![TrajectoryGoalProvenanceRecord {
-        field: "long_term_goal".to_string(),
-        source: source.clone(),
-        source_ref: body.idempotency_key.clone(),
-        inferred,
-        confidence,
-    }, TrajectoryGoalProvenanceRecord {
-        field: "desired_end_state".to_string(),
-        source: source.clone(),
-        source_ref: body.idempotency_key.clone(),
-        inferred,
-        confidence,
-    }];
+    let mut goal_provenance = vec![
+        TrajectoryGoalProvenanceRecord {
+            field: "long_term_goal".to_string(),
+            source: source.clone(),
+            source_ref: body.idempotency_key.clone(),
+            inferred,
+            confidence,
+        },
+        TrajectoryGoalProvenanceRecord {
+            field: "desired_end_state".to_string(),
+            source: source.clone(),
+            source_ref: body.idempotency_key.clone(),
+            inferred,
+            confidence,
+        },
+    ];
     if body.short_term_goal.is_some() {
         goal_provenance.push(TrajectoryGoalProvenanceRecord {
             field: "short_term_goal".to_string(),
@@ -361,8 +405,14 @@ fn trajectory_record_from_define_payload(
         root_long_term_goal: long_term_goal.clone(),
         long_term_goal,
         desired_end_state: desired_end_state.clone(),
-        short_term_goal: body.short_term_goal.as_deref().map(|value| bounded(value, 240)),
-        current_state: body.current_state.as_deref().map(|value| bounded(value, 240)),
+        short_term_goal: body
+            .short_term_goal
+            .as_deref()
+            .map(|value| bounded(value, 240)),
+        current_state: body
+            .current_state
+            .as_deref()
+            .map(|value| bounded(value, 240)),
         session_clarity_status: definition_status,
         definition_status,
         confidence,
@@ -400,18 +450,22 @@ async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    state.command_tx.send(Action::EmitEvent { event }).await.map_err(|error| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "status": "rejected",
-                "canonical": false,
-                "failure_class": "unknown_ambiguous_completion",
-                "error": format!("dispatch failed: {error}"),
-                "next_step_hint": "retry after daemon command channel recovers"
-            })),
-        )
-    })
+    state
+        .command_tx
+        .send(Action::EmitEvent { event })
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "status": "rejected",
+                    "canonical": false,
+                    "failure_class": "unknown_ambiguous_completion",
+                    "error": format!("dispatch failed: {error}"),
+                    "next_step_hint": "retry after daemon command channel recovers"
+                })),
+            )
+        })
 }
 
 fn source_precedence() -> Vec<&'static str> {
@@ -578,31 +632,45 @@ fn trajectory_similarity_group_payload(
 fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> Value {
     let frame = active_frame(state);
     let focus_state = focus_state_for(frame);
-    let workpoint = active_workpoint(state);
 
     let query_project = clean(query.project_root.as_deref());
     let query_session = clean(query.session_id.as_deref());
     let query_continuity = clean(query.continuity_id.as_deref());
+    let workpoint =
+        scoped_active_workpoint(state, query_project.as_deref(), query_continuity.as_deref());
     let workpoint_project = workpoint.and_then(|record| clean(record.project_root.as_deref()));
     let workpoint_session = workpoint.and_then(|record| clean(record.session_id.as_deref()));
     let workpoint_continuity = workpoint.and_then(|record| clean(record.continuity_id.as_deref()));
     let persisted_candidate = active_persisted_trajectory(
         state,
         query_project.as_deref().or(workpoint_project.as_deref()),
-        query_continuity.as_deref().or(workpoint_continuity.as_deref()),
+        query_continuity
+            .as_deref()
+            .or(workpoint_continuity.as_deref()),
     );
-    let persisted_project = persisted_candidate.and_then(|record| clean(record.project_root.as_deref()));
-    let persisted_continuity = persisted_candidate.and_then(|record| clean(record.continuity_id.as_deref()));
+    let persisted_project =
+        persisted_candidate.and_then(|record| clean(record.project_root.as_deref()));
+    let persisted_continuity =
+        persisted_candidate.and_then(|record| clean(record.continuity_id.as_deref()));
     let persisted_session = persisted_candidate
         .and_then(|record| record.session_identity.as_ref())
-        .and_then(|identity| clean(identity.pi_session_id.as_deref()).or_else(|| clean(Some(identity.session_frame_key.as_str()))));
+        .and_then(|identity| {
+            clean(identity.pi_session_id.as_deref())
+                .or_else(|| clean(Some(identity.session_frame_key.as_str())))
+        });
     let project_root = query_project
         .clone()
         .or(workpoint_project.clone())
         .or(persisted_project.clone())
         .unwrap_or_else(|| "unbound".to_string());
-    let session_id = query_session.clone().or(workpoint_session.clone()).or(persisted_session.clone());
-    let continuity_id = query_continuity.clone().or(workpoint_continuity.clone()).or(persisted_continuity.clone());
+    let session_id = query_session
+        .clone()
+        .or(workpoint_session.clone())
+        .or(persisted_session.clone());
+    let continuity_id = query_continuity
+        .clone()
+        .or(workpoint_continuity.clone())
+        .or(persisted_continuity.clone());
     let persisted_trajectory = active_persisted_trajectory(
         state,
         Some(project_root.as_str()).filter(|root| *root != "unbound"),
@@ -687,20 +755,45 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let fs_current = focus_state.map(|fs| fs.current_state.as_str());
     let frame_goal = frame.map(|frame| frame.goal.as_str());
     let frame_title = frame.map(|frame| frame.title.as_str());
-    let persisted_long_term_goal = persisted_trajectory.map(|record| record.long_term_goal.as_str());
-    let persisted_desired_end_state = persisted_trajectory.map(|record| record.desired_end_state.as_str());
-    let persisted_current_state = persisted_trajectory.and_then(|record| record.current_state.as_deref());
-    let persisted_short_term_goal = persisted_trajectory.and_then(|record| record.short_term_goal.as_deref());
+    let persisted_long_term_goal =
+        persisted_trajectory.map(|record| record.long_term_goal.as_str());
+    let persisted_desired_end_state =
+        persisted_trajectory.map(|record| record.desired_end_state.as_str());
+    let persisted_current_state =
+        persisted_trajectory.and_then(|record| record.current_state.as_deref());
+    let persisted_short_term_goal =
+        persisted_trajectory.and_then(|record| record.short_term_goal.as_deref());
     let workpoint_mission = workpoint.and_then(|record| record.mission.as_deref());
     let workpoint_next = workpoint.and_then(|record| record.next_slice.as_deref());
     let workpoint_action = workpoint
         .and_then(|record| record.action_intent.as_ref())
         .map(|intent| intent.action_type.as_str());
 
-    let long_term_goal = first_nonempty(&[persisted_long_term_goal, fs_intent, frame_goal, workpoint_mission, frame_title]);
-    let desired_end_state = first_nonempty(&[persisted_desired_end_state, frame_goal, fs_intent, workpoint_mission]);
-    let current_state = first_nonempty(&[persisted_current_state, fs_current, workpoint_mission, frame_title]);
-    let short_term_goal = first_nonempty(&[persisted_short_term_goal, workpoint_next, workpoint_action, fs_current]);
+    let long_term_goal = first_nonempty(&[
+        persisted_long_term_goal,
+        fs_intent,
+        frame_goal,
+        workpoint_mission,
+        frame_title,
+    ]);
+    let desired_end_state = first_nonempty(&[
+        persisted_desired_end_state,
+        frame_goal,
+        fs_intent,
+        workpoint_mission,
+    ]);
+    let current_state = first_nonempty(&[
+        persisted_current_state,
+        fs_current,
+        workpoint_mission,
+        frame_title,
+    ]);
+    let short_term_goal = first_nonempty(&[
+        persisted_short_term_goal,
+        workpoint_next,
+        workpoint_action,
+        fs_current,
+    ]);
     let active_gap = if desired_end_state.is_some() && current_state.is_some() {
         first_nonempty(&[workpoint_next, workpoint_action]).map(|gap| bounded(&gap, 240))
     } else {
@@ -831,7 +924,13 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let canonical = status == "completed" && project_identity_status == "verified";
     let active_trajectory_id = persisted_trajectory
         .map(|record| record.trajectory_id.clone())
-        .unwrap_or_else(|| trajectory_id_for(&project_root, continuity_id.as_deref().or(session_id.as_deref()), "active"));
+        .unwrap_or_else(|| {
+            trajectory_id_for(
+                &project_root,
+                continuity_id.as_deref().or(session_id.as_deref()),
+                "active",
+            )
+        });
     let lifecycle_checkpoints = state
         .trajectory
         .checkpoints
@@ -1329,11 +1428,18 @@ async fn define_goal(
             obj.insert("persisted".to_string(), Value::Bool(true));
             obj.insert("mutates_canonical_state".to_string(), Value::Bool(true));
             obj.insert("canonical".to_string(), Value::Bool(true));
-            obj.insert("persistence_event".to_string(), json!("trajectory_goal_defined"));
+            obj.insert(
+                "persistence_event".to_string(),
+                json!("trajectory_goal_defined"),
+            );
         }
     }
     let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
-    Ok(Json(attach_trajectory_tool_result(payload, side_effects, evidence_refs)))
+    Ok(Json(attach_trajectory_tool_result(
+        payload,
+        side_effects,
+        evidence_refs,
+    )))
 }
 
 async fn assess(
@@ -1349,7 +1455,11 @@ async fn assess(
     drop(focusa);
     let mut side_effects = Vec::new();
     if let Some(trajectory_id) = trajectory_id
-        && (body.observed_state.is_some() || body.evidence_refs.as_ref().is_some_and(|refs| !refs.is_empty()))
+        && (body.observed_state.is_some()
+            || body
+                .evidence_refs
+                .as_ref()
+                .is_some_and(|refs| !refs.is_empty()))
     {
         dispatch_event(
             &state,
@@ -1398,7 +1508,10 @@ async fn checkpoint(
         &state,
         FocusaEvent::TrajectoryCheckpointPersisted {
             trajectory_id,
-            checkpoint: payload.get("trajectory_checkpoint").cloned().unwrap_or(Value::Null),
+            checkpoint: payload
+                .get("trajectory_checkpoint")
+                .cloned()
+                .unwrap_or(Value::Null),
             summary: body.summary.clone(),
         },
     )
@@ -1407,10 +1520,17 @@ async fn checkpoint(
     if let Some(obj) = payload.as_object_mut() {
         obj.insert("persisted".to_string(), Value::Bool(true));
         obj.insert("canonical".to_string(), Value::Bool(true));
-        obj.insert("persistence_event".to_string(), json!("trajectory_checkpoint_persisted"));
+        obj.insert(
+            "persistence_event".to_string(),
+            json!("trajectory_checkpoint_persisted"),
+        );
     }
     side_effects.push("trajectory_checkpoint_persisted");
-    Ok(Json(attach_trajectory_tool_result(payload, side_effects, vec![])))
+    Ok(Json(attach_trajectory_tool_result(
+        payload,
+        side_effects,
+        vec![],
+    )))
 }
 
 async fn resume(
@@ -1492,6 +1612,51 @@ mod tests {
         assert_eq!(
             payload["intelligence_view"]["next_workpoint_candidate"]["advisory_only"].as_bool(),
             Some(true)
+        );
+    }
+
+    #[test]
+    fn trajectory_view_prefers_scoped_workpoint_over_stale_global_active() {
+        let mut state = state_with_workpoint("/repo/focusa");
+        let scoped_id = Uuid::now_v7();
+        state.workpoint.records.push(WorkpointRecord {
+            workpoint_id: scoped_id,
+            work_item_id: Some("focusa-scoped".to_string()),
+            session_id: Some("session-b".to_string()),
+            continuity_id: Some("cont-b".to_string()),
+            project_root: Some("/repo/focusa".to_string()),
+            status: WorkpointStatus::Active,
+            checkpoint_reason: WorkpointCheckpointReason::Manual,
+            confidence: WorkpointConfidence::Verified,
+            canonical: true,
+            mission: Some("Use scoped trajectory workpoint".to_string()),
+            next_slice: Some("Keep trajectory view canonical".to_string()),
+            ..WorkpointRecord::default()
+        });
+
+        let payload = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/repo/focusa".to_string()),
+                session_id: Some("session-after-compact".to_string()),
+                continuity_id: Some("cont-b".to_string()),
+                mode: None,
+            },
+        );
+
+        assert_eq!(payload["status"].as_str(), Some("completed"));
+        assert_eq!(payload["canonical"].as_bool(), Some(true));
+        assert_eq!(
+            payload["project_identity"]["mismatches"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+        let scoped_id_text = scoped_id.to_string();
+        assert_eq!(
+            payload["intelligence_view"]["next_workpoint_candidate"]["workpoint_id"].as_str(),
+            Some(scoped_id_text.as_str())
         );
     }
 
@@ -1705,19 +1870,25 @@ mod tests {
             }),
             ..TrajectoryProjectionRecord::default()
         });
-        state.trajectory.checkpoints.push(focusa_core::types::TrajectoryCheckpointRecord {
-            trajectory_id: trajectory_id.clone(),
-            summary: Some("checkpoint summary".to_string()),
-            packet: json!({"ok": true}),
-            persisted_at: None,
-        });
-        state.trajectory.state_deltas.push(focusa_core::types::TrajectoryStateDeltaRecord {
-            trajectory_id: trajectory_id.clone(),
-            current_state: Some("Defined".to_string()),
-            evidence_refs: vec!["evidence:current".to_string()],
-            reason: "test".to_string(),
-            recorded_at: None,
-        });
+        state
+            .trajectory
+            .checkpoints
+            .push(focusa_core::types::TrajectoryCheckpointRecord {
+                trajectory_id: trajectory_id.clone(),
+                summary: Some("checkpoint summary".to_string()),
+                packet: json!({"ok": true}),
+                persisted_at: None,
+            });
+        state
+            .trajectory
+            .state_deltas
+            .push(focusa_core::types::TrajectoryStateDeltaRecord {
+                trajectory_id: trajectory_id.clone(),
+                current_state: Some("Defined".to_string()),
+                evidence_refs: vec!["evidence:current".to_string()],
+                reason: "test".to_string(),
+                recorded_at: None,
+            });
 
         let payload = trajectory_view_payload(
             &state,
@@ -1736,7 +1907,10 @@ mod tests {
         assert_eq!(lifecycle["milestones"].as_array().unwrap().len(), 1);
         assert_eq!(lifecycle["checkpoints"].as_array().unwrap().len(), 1);
         assert_eq!(lifecycle["state_deltas"].as_array().unwrap().len(), 1);
-        assert_eq!(lifecycle["definition_of_done"]["status"].as_str(), Some("in_progress"));
+        assert_eq!(
+            lifecycle["definition_of_done"]["status"].as_str(),
+            Some("in_progress")
+        );
     }
 
     #[test]
