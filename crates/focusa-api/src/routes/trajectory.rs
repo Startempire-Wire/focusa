@@ -154,6 +154,24 @@ fn active_frame(state: &FocusaState) -> Option<&FrameRecord> {
         .and_then(|id| state.focus_stack.frames.iter().find(|frame| frame.id == id))
 }
 
+fn scoped_active_frame<'a>(
+    state: &'a FocusaState,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+) -> Option<&'a FrameRecord> {
+    let frame = active_frame(state)?;
+    if project_root.is_some() || continuity_id.is_some() {
+        let project_matches = project_root
+            .map(|expected| clean(frame.project_root.as_deref()).as_deref() == Some(expected))
+            .unwrap_or(true);
+        let continuity_matches = continuity_id
+            .map(|expected| clean(frame.continuity_id.as_deref()).as_deref() == Some(expected))
+            .unwrap_or(true);
+        return (project_matches && continuity_matches).then_some(frame);
+    }
+    Some(frame)
+}
+
 fn active_workpoint(state: &FocusaState) -> Option<&WorkpointRecord> {
     state.workpoint.active_workpoint_id.and_then(|id| {
         state
@@ -170,8 +188,8 @@ fn scoped_active_workpoint<'a>(
     continuity_id: Option<&str>,
 ) -> Option<&'a WorkpointRecord> {
     let scope_requested = project_root.is_some() || continuity_id.is_some();
-    if scope_requested
-        && let Some(record) = state.workpoint.records.iter().rev().find(|record| {
+    if scope_requested {
+        return state.workpoint.records.iter().rev().find(|record| {
             record.status == WorkpointStatus::Active
                 && record.canonical
                 && project_root
@@ -184,9 +202,7 @@ fn scoped_active_workpoint<'a>(
                         clean(record.continuity_id.as_deref()).as_deref() == Some(expected)
                     })
                     .unwrap_or(true)
-        })
-    {
-        return Some(record);
+        });
     }
     active_workpoint(state)
 }
@@ -630,12 +646,11 @@ fn trajectory_similarity_group_payload(
 }
 
 fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> Value {
-    let frame = active_frame(state);
-    let focus_state = focus_state_for(frame);
-
     let query_project = clean(query.project_root.as_deref());
     let query_session = clean(query.session_id.as_deref());
     let query_continuity = clean(query.continuity_id.as_deref());
+    let frame = scoped_active_frame(state, query_project.as_deref(), query_continuity.as_deref());
+    let focus_state = focus_state_for(frame);
     let workpoint =
         scoped_active_workpoint(state, query_project.as_deref(), query_continuity.as_deref());
     let workpoint_project = workpoint.and_then(|record| clean(record.project_root.as_deref()));
@@ -742,7 +757,6 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let project_confidence = if project_identity_quorum_confidence == "high"
         && project_identity_status == "verified"
         && query_project.is_some()
-        && workpoint_project.is_some()
     {
         "high"
     } else if project_identity_status == "verified" && project_identity_quorum_confidence != "low" {
@@ -953,7 +967,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     json!({
         "status": status,
         "canonical": canonical,
-        "degraded": status == "degraded" || status == "not_found",
+        "degraded": status == "degraded",
         "source": "per_project_trajectory_projection_v1",
         "mode": query.mode.as_deref().unwrap_or("summary"),
         "project_identity": {
@@ -1035,8 +1049,8 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "decisions": focus_state.map(|fs| top_strings(&fs.decisions, 4, 160)).unwrap_or_default(),
             "constraints": focus_state.map(|fs| top_strings(&fs.constraints, 4, 180)).unwrap_or_default(),
         },
-        "next_tools": ["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"],
-        "warnings": if canonical { Vec::<String>::new() } else { vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()] },
+        "next_tools": if status == "not_found" { json!(["focusa_trajectory_define_goal", "focusa_project_identity"]) } else { json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"]) },
+        "warnings": if canonical { Vec::<String>::new() } else if status == "not_found" { vec!["trajectory is not set for this project scope; define or confirm the goal".to_string()] } else { vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()] },
     })
 }
 
@@ -1369,7 +1383,7 @@ fn attach_trajectory_tool_result(
         .unwrap_or(!canonical);
     let failure_class = if status == "validation_rejected" {
         json!("validation_rejected")
-    } else if matches!(status.as_str(), "degraded" | "not_found") || degraded {
+    } else if status == "degraded" || degraded {
         json!("scope_mismatch")
     } else {
         Value::Null
@@ -1558,9 +1572,10 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use focusa_core::types::{
-        WorkpointActionIntentRecord, WorkpointCheckpointReason, WorkpointConfidence,
-        WorkpointRecord, WorkpointStatus,
+        CompletionReason, FocusState, FrameStats, FrameStatus, WorkpointActionIntentRecord,
+        WorkpointCheckpointReason, WorkpointConfidence, WorkpointRecord, WorkpointStatus,
     };
     use uuid::Uuid;
 
@@ -1589,6 +1604,38 @@ mod tests {
             ..WorkpointRecord::default()
         });
         state
+    }
+
+    fn add_active_frame(
+        state: &mut FocusaState,
+        project_root: &str,
+        continuity_id: &str,
+        title: &str,
+    ) {
+        let frame_id = Uuid::now_v7();
+        state.focus_stack.active_id = Some(frame_id);
+        state.focus_stack.root_id = Some(frame_id);
+        state.focus_stack.stack_path_cache = vec![frame_id];
+        state.focus_stack.frames.push(FrameRecord {
+            id: frame_id,
+            parent_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            status: FrameStatus::Active,
+            title: title.to_string(),
+            goal: title.to_string(),
+            beads_issue_id: format!("issue-{title}"),
+            project_root: Some(project_root.to_string()),
+            continuity_id: Some(continuity_id.to_string()),
+            tags: vec![],
+            priority_hint: None,
+            ascc_checkpoint_id: None,
+            stats: FrameStats::default(),
+            constraints: vec![],
+            focus_state: FocusState::default(),
+            completed_at: None,
+            completion_reason: None::<CompletionReason>,
+        });
     }
 
     #[test]
@@ -1661,8 +1708,14 @@ mod tests {
     }
 
     #[test]
-    fn trajectory_view_degrades_on_project_mismatch() {
-        let state = state_with_workpoint("/repo/focusa");
+    fn trajectory_view_ignores_global_workpoint_and_frame_for_explicit_project_scope() {
+        let mut state = state_with_workpoint("/repo/focusa");
+        add_active_frame(
+            &mut state,
+            "/repo/focusa",
+            "cont-a",
+            "global focusa frame must not leak",
+        );
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
@@ -1672,23 +1725,34 @@ mod tests {
                 mode: None,
             },
         );
-        assert_eq!(payload["status"].as_str(), Some("degraded"));
+        assert_eq!(payload["status"].as_str(), Some("not_found"));
         assert_eq!(payload["canonical"].as_bool(), Some(false));
+        assert_eq!(payload["degraded"].as_bool(), Some(false));
         assert_eq!(
             payload["project_identity"]["status"].as_str(),
-            Some("mismatch")
+            Some("verified")
+        );
+        assert_eq!(
+            payload["project_identity"]["mismatches"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
         );
         assert!(
             payload["intelligence_view"]["do_not_use"]
                 .as_array()
                 .unwrap()
-                .iter()
-                .any(|value| value.as_str() == Some("cross_scope_workpoint_resume"))
+                .is_empty()
+        );
+        assert_ne!(
+            payload["trajectory"]["current_state"].as_str(),
+            Some("global focusa frame must not leak")
         );
     }
 
     #[test]
-    fn trajectory_view_degrades_on_continuity_mismatch_not_session_metadata_change() {
+    fn trajectory_view_treats_session_id_as_metadata_and_missing_continuity_as_not_found() {
         let state = state_with_workpoint("/repo/focusa");
         let session_changed = trajectory_view_payload(
             &state,
@@ -1715,14 +1779,15 @@ mod tests {
                 mode: None,
             },
         );
-        assert_eq!(continuity_changed["status"].as_str(), Some("degraded"));
+        assert_eq!(continuity_changed["status"].as_str(), Some("not_found"));
         assert_eq!(continuity_changed["canonical"].as_bool(), Some(false));
-        assert!(
+        assert_eq!(continuity_changed["degraded"].as_bool(), Some(false));
+        assert_eq!(
             continuity_changed["project_identity"]["mismatches"]
                 .as_array()
                 .unwrap()
-                .iter()
-                .any(|value| value.get("field").and_then(Value::as_str) == Some("continuity_id"))
+                .len(),
+            0
         );
     }
 
