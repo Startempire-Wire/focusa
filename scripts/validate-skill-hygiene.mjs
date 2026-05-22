@@ -31,6 +31,8 @@ const packageCandidates = [
   '@earendil-works/pi-coding-agent/dist/core/skills.js',
   globalRoot && path.join(globalRoot, '@mariozechner/pi-coding-agent/dist/core/skills.js'),
   globalRoot && path.join(globalRoot, '@earendil-works/pi-coding-agent/dist/core/skills.js'),
+  '/opt/node-v22.22.3-linux-x64/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js',
+  '/opt/node-v22.22.3-linux-x64/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/skills.js',
 ];
 const { loadSkillsFromDir } = await importFirstExisting(packageCandidates);
 const homeSkills = process.env.PI_SKILLS_DIR || (process.env.HOME ? path.join(process.env.HOME, '.pi/skills') : '');

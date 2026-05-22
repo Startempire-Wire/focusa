@@ -145,8 +145,14 @@ fn upsert_workpoint_record(
 fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
     truncate_front(&mut record.milestones, trajectory_caps::MILESTONES);
     for milestone in &mut record.milestones {
-        truncate_front(&mut milestone.current_state_evidence_refs, trajectory_caps::EVIDENCE_REFS);
-        truncate_front(&mut milestone.completion_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+        truncate_front(
+            &mut milestone.current_state_evidence_refs,
+            trajectory_caps::EVIDENCE_REFS,
+        );
+        truncate_front(
+            &mut milestone.completion_evidence_refs,
+            trajectory_caps::EVIDENCE_REFS,
+        );
     }
     truncate_front(&mut record.goal_provenance, trajectory_caps::PROVENANCE);
     truncate_front(&mut record.blockers, trajectory_caps::MILESTONES);
@@ -154,11 +160,17 @@ fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
     if let Some(dod) = &mut record.definition_of_done {
         truncate_front(&mut dod.criteria, trajectory_caps::MILESTONES);
         truncate_front(&mut dod.evidence_required, trajectory_caps::EVIDENCE_REFS);
-        truncate_front(&mut dod.verified_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+        truncate_front(
+            &mut dod.verified_evidence_refs,
+            trajectory_caps::EVIDENCE_REFS,
+        );
     }
 }
 
-fn same_trajectory_authority_scope(a: &TrajectoryProjectionRecord, b: &TrajectoryProjectionRecord) -> bool {
+fn same_trajectory_authority_scope(
+    a: &TrajectoryProjectionRecord,
+    b: &TrajectoryProjectionRecord,
+) -> bool {
     a.project_root.is_some()
         && a.continuity_id.is_some()
         && a.project_root == b.project_root
@@ -1028,19 +1040,18 @@ pub fn reduce_with_meta(
 
         // ─── Focus State ─────────────────────────────────────────────────
         FocusaEvent::FocusStateUpdated { frame_id, delta } => {
-            if state.focus_stack.active_id != Some(frame_id) {
-                return Err(ReducerError::InvalidEvent(format!(
-                    "FocusStateUpdated for {} but active is {:?}",
-                    frame_id, state.focus_stack.active_id
-                )));
-            }
-
             let frame = state
                 .focus_stack
                 .frames
                 .iter_mut()
                 .find(|f| f.id == frame_id)
                 .ok_or_else(|| ReducerError::FrameNotFound(frame_id.to_string()))?;
+            if frame.status == FrameStatus::Completed {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "FocusStateUpdated for completed frame {}",
+                    frame_id
+                )));
+            }
 
             apply_delta(&mut frame.focus_state, &delta);
             frame.updated_at = Utc::now();
@@ -2723,7 +2734,6 @@ pub fn reduce_with_meta(
             record.updated_at = Some(Utc::now());
         }
 
-
         // ─── Trajectory Projection (Spec96) ─────────────────────────────
         FocusaEvent::TrajectoryGoalDefined { trajectory } => {
             if trajectory.canonical
@@ -2732,7 +2742,8 @@ pub fn reduce_with_meta(
                     || trajectory.desired_end_state.trim().is_empty())
             {
                 return Err(ReducerError::InvalidEvent(
-                    "Canonical trajectory requires id, long_term_goal, and desired_end_state".to_string(),
+                    "Canonical trajectory requires id, long_term_goal, and desired_end_state"
+                        .to_string(),
                 ));
             }
             let now = Utc::now();
@@ -2774,13 +2785,19 @@ pub fn reduce_with_meta(
             summary,
         } => {
             let now = Utc::now();
-            state.trajectory.checkpoints.push(TrajectoryCheckpointRecord {
-                trajectory_id,
-                summary,
-                packet: checkpoint,
-                persisted_at: Some(now),
-            });
-            truncate_front(&mut state.trajectory.checkpoints, trajectory_caps::CHECKPOINTS);
+            state
+                .trajectory
+                .checkpoints
+                .push(TrajectoryCheckpointRecord {
+                    trajectory_id,
+                    summary,
+                    packet: checkpoint,
+                    persisted_at: Some(now),
+                });
+            truncate_front(
+                &mut state.trajectory.checkpoints,
+                trajectory_caps::CHECKPOINTS,
+            );
         }
         FocusaEvent::TrajectoryStateDeltaRecorded {
             trajectory_id,
@@ -2801,18 +2818,27 @@ pub fn reduce_with_meta(
                 }
                 if let Some(dod) = &mut record.definition_of_done {
                     dod.verified_evidence_refs.extend(evidence_refs.clone());
-                    truncate_front(&mut dod.verified_evidence_refs, trajectory_caps::EVIDENCE_REFS);
+                    truncate_front(
+                        &mut dod.verified_evidence_refs,
+                        trajectory_caps::EVIDENCE_REFS,
+                    );
                 }
                 record.updated_at = Some(now);
             }
-            state.trajectory.state_deltas.push(TrajectoryStateDeltaRecord {
-                trajectory_id,
-                current_state,
-                evidence_refs,
-                reason,
-                recorded_at: Some(now),
-            });
-            truncate_front(&mut state.trajectory.state_deltas, trajectory_caps::STATE_DELTAS);
+            state
+                .trajectory
+                .state_deltas
+                .push(TrajectoryStateDeltaRecord {
+                    trajectory_id,
+                    current_state,
+                    evidence_refs,
+                    reason,
+                    recorded_at: Some(now),
+                });
+            truncate_front(
+                &mut state.trajectory.state_deltas,
+                trajectory_caps::STATE_DELTAS,
+            );
         }
 
         // ─── Errors ──────────────────────────────────────────────────────
@@ -4332,14 +4358,20 @@ mod tests {
         )
         .unwrap()
         .new_state;
-        assert_eq!(state.trajectory.active_trajectory_id.as_deref(), Some("trajectory:first"));
+        assert_eq!(
+            state.trajectory.active_trajectory_id.as_deref(),
+            Some("trajectory:first")
+        );
         let state = reduce(
             state,
             FocusaEvent::TrajectoryGoalDefined { trajectory: second },
         )
         .unwrap()
         .new_state;
-        assert_eq!(state.trajectory.active_trajectory_id.as_deref(), Some("trajectory:second"));
+        assert_eq!(
+            state.trajectory.active_trajectory_id.as_deref(),
+            Some("trajectory:second")
+        );
         let first = state
             .trajectory
             .records
@@ -4347,7 +4379,10 @@ mod tests {
             .find(|record| record.trajectory_id == "trajectory:first")
             .unwrap();
         assert!(!first.canonical);
-        assert_eq!(first.root_goal_stability, TrajectoryRootGoalStability::Superseded);
+        assert_eq!(
+            first.root_goal_stability,
+            TrajectoryRootGoalStability::Superseded
+        );
     }
 
     #[test]
@@ -4393,12 +4428,13 @@ mod tests {
             active.current_state.as_deref(),
             Some("Reducer persisted trajectory delta")
         );
-        assert!(active
-            .definition_of_done
-            .as_ref()
-            .unwrap()
-            .verified_evidence_refs
-            .contains(&"tests:trajectory_reducer".to_string()));
+        assert!(
+            active
+                .definition_of_done
+                .as_ref()
+                .unwrap()
+                .verified_evidence_refs
+                .contains(&"tests:trajectory_reducer".to_string())
+        );
     }
-
 }

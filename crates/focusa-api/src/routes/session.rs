@@ -14,11 +14,16 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::{Action, SessionStatus};
+use chrono::Utc;
+use focusa_core::{
+    reducer,
+    types::{Action, EventLogEntry, FocusaEvent, SessionStatus, SignalOrigin},
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::fs;
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Default)]
 struct StatusQuery {
@@ -273,25 +278,182 @@ struct StartSessionBody {
     instance_id: Option<String>,
 }
 
+fn session_matches_request(
+    session: &focusa_core::types::SessionState,
+    adapter_id: &Option<String>,
+    workspace_id: &Option<String>,
+    project_root: &Option<String>,
+    continuity_id: &Option<String>,
+) -> bool {
+    session.status == SessionStatus::Active
+        && adapter_id
+            .as_ref()
+            .is_none_or(|expected| session.adapter_id.as_ref() == Some(expected))
+        && workspace_id
+            .as_ref()
+            .is_none_or(|expected| session.workspace_id.as_ref() == Some(expected))
+        && project_root
+            .as_ref()
+            .is_none_or(|expected| session.project_root.as_ref() == Some(expected))
+        && continuity_id
+            .as_ref()
+            .is_none_or(|expected| session.continuity_id.as_ref() == Some(expected))
+}
+
+fn active_session_compatible_with_request(
+    session: &focusa_core::types::SessionState,
+    adapter_id: &Option<String>,
+    workspace_id: &Option<String>,
+    project_root: &Option<String>,
+) -> bool {
+    let legacy_pi_recovery_request = project_root.is_none() && adapter_id.as_deref() == Some("pi");
+    session.status == SessionStatus::Active
+        && project_root
+            .as_ref()
+            .is_none_or(|expected| session.project_root.as_ref() == Some(expected))
+        && (legacy_pi_recovery_request
+            || workspace_id
+                .as_ref()
+                .is_none_or(|expected| session.workspace_id.as_ref() == Some(expected)))
+        && (project_root.is_some()
+            || adapter_id.as_ref().is_none()
+            || session.adapter_id.as_ref() == adapter_id.as_ref()
+            || (adapter_id.as_deref().is_some_and(|id| id.starts_with("pi"))
+                && session
+                    .adapter_id
+                    .as_deref()
+                    .is_some_and(|id| id.starts_with("pi"))))
+}
+
 async fn start_session(
     State(state): State<Arc<AppState>>,
     Json(body): Json<StartSessionBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    state
-        .command_tx
-        .send(Action::StartSession {
-            adapter_id: body.adapter_id,
-            workspace_id: body.workspace_id,
-            project_root: body.project_root,
-            continuity_id: body.continuity_id,
-            instance_id: body
-                .instance_id
-                .and_then(|s| uuid::Uuid::parse_str(&s).ok()),
-        })
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let adapter_id = body.adapter_id.clone();
+    let workspace_id = body.workspace_id.clone();
+    let project_root = body.project_root.clone();
+    let continuity_id = body.continuity_id.clone();
+    let instance_id = body
+        .instance_id
+        .as_deref()
+        .and_then(|s| uuid::Uuid::parse_str(s).ok());
 
-    Ok(Json(json!({"status": "accepted"})))
+    if let Some(session) = state.focusa.read().await.session.clone()
+        && active_session_compatible_with_request(
+            &session,
+            &adapter_id,
+            &workspace_id,
+            &project_root,
+        )
+    {
+        return Ok(Json(json!({
+            "status": "accepted",
+            "session_id": session.session_id,
+            "adapter_id": session.adapter_id,
+            "workspace_id": session.workspace_id,
+            "project_root": session.project_root,
+            "continuity_id": session.continuity_id,
+            "requested_continuity_id": continuity_id,
+            "continuity_mismatch": session.continuity_id != continuity_id,
+            "materialized_by": "existing_active_project_session",
+        })));
+    }
+
+    let _guard = state.write_serial_lock.lock().await;
+
+    let current = { state.focusa.read().await.clone() };
+    if let Some(session) = &current.session
+        && session_matches_request(
+            session,
+            &adapter_id,
+            &workspace_id,
+            &project_root,
+            &continuity_id,
+        )
+    {
+        return Ok(Json(json!({
+            "status": "accepted",
+            "session_id": session.session_id,
+            "adapter_id": session.adapter_id,
+            "workspace_id": session.workspace_id,
+            "project_root": session.project_root,
+            "continuity_id": session.continuity_id,
+            "materialized_by": "existing_active_session",
+        })));
+    }
+
+    let event = FocusaEvent::SessionStarted {
+        session_id: Uuid::now_v7(),
+        adapter_id: adapter_id.clone(),
+        workspace_id: workspace_id.clone(),
+        project_root: project_root.clone(),
+        continuity_id: continuity_id.clone(),
+    };
+
+    let result = match reducer::reduce_with_meta(current, event, None, None, false) {
+        Ok(result) => result,
+        Err(error) => {
+            tracing::warn!(error = %error, "session start rejected by reducer");
+            return Ok(Json(json!({
+                "status": "rejected",
+                "failure_class": "reducer_rejected",
+                "reason": error.to_string(),
+                "requested": {
+                    "adapter_id": adapter_id,
+                    "workspace_id": workspace_id,
+                    "project_root": project_root,
+                    "continuity_id": continuity_id,
+                },
+                "current_session": state.focusa.read().await.session.clone(),
+            })));
+        }
+    };
+
+    let new_state = result.new_state;
+    for emitted in result.emitted_events {
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: Utc::now(),
+            event: emitted,
+            correlation_id: Some("api:session:start".to_string()),
+            origin: SignalOrigin::Adapter,
+            machine_id: None,
+            instance_id,
+            session_id: new_state.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
+        if let Err(error) = state.persistence.append_event(&entry) {
+            tracing::warn!(error = %error, "failed to persist session start event");
+        } else if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
+    }
+
+    let session = new_state.session.clone();
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
+    // Keep /session/start hot for Pi daemon-recovery paths. The daemon adopts
+    // this external mutation on its next action and writes the full snapshot;
+    // the event log entry above preserves the session-start fact meanwhile.
+
+    if let Some(session) = session {
+        return Ok(Json(json!({
+            "status": "accepted",
+            "session_id": session.session_id,
+            "adapter_id": session.adapter_id,
+            "workspace_id": session.workspace_id,
+            "project_root": session.project_root,
+            "continuity_id": session.continuity_id,
+            "materialized_by": "api_reducer_sync",
+        })));
+    }
+
+    Ok(Json(json!({
+        "status": "rejected",
+        "failure_class": "session_unavailable",
+        "message": "session start reducer completed without materializing a session",
+    })))
 }
 
 #[allow(dead_code)]
@@ -337,18 +499,69 @@ async fn close_session(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CloseSessionBody>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    state
-        .command_tx
-        .send(Action::CloseSession {
-            reason: body.reason,
-            instance_id: body
-                .instance_id
-                .and_then(|s| uuid::Uuid::parse_str(&s).ok()),
-        })
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let reason = body.reason;
+    let instance_id = body
+        .instance_id
+        .as_deref()
+        .and_then(|s| uuid::Uuid::parse_str(s).ok());
 
-    Ok(Json(json!({"status": "accepted"})))
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    if current
+        .session
+        .as_ref()
+        .is_none_or(|session| session.status == SessionStatus::Closed)
+    {
+        return Ok(Json(json!({
+            "status": "accepted",
+            "materialized_by": "already_closed",
+        })));
+    }
+
+    let event = FocusaEvent::SessionClosed {
+        reason: reason.clone(),
+    };
+    let result = match reducer::reduce_with_meta(current, event, None, None, false) {
+        Ok(result) => result,
+        Err(error) => {
+            tracing::warn!(error = %error, "session close rejected by reducer");
+            return Ok(Json(json!({
+                "status": "rejected",
+                "failure_class": "reducer_rejected",
+                "reason": error.to_string(),
+            })));
+        }
+    };
+
+    let new_state = result.new_state;
+    for emitted in result.emitted_events {
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: Utc::now(),
+            event: emitted,
+            correlation_id: Some("api:session:close".to_string()),
+            origin: SignalOrigin::Adapter,
+            machine_id: None,
+            instance_id,
+            session_id: new_state.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
+        if let Err(error) = state.persistence.append_event(&entry) {
+            tracing::warn!(error = %error, "failed to persist session close event");
+        } else if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
+    }
+
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
+
+    Ok(Json(json!({
+        "status": "accepted",
+        "reason": reason,
+        "materialized_by": "api_reducer_sync",
+    })))
 }
 
 pub fn router() -> Router<Arc<AppState>> {

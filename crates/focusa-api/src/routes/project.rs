@@ -76,10 +76,10 @@ fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
 }
 
 fn expand_home(path: &str) -> PathBuf {
-    if path == "~" {
-        if let Some(home) = std::env::var_os("HOME") {
-            return PathBuf::from(home);
-        }
+    if path == "~"
+        && let Some(home) = std::env::var_os("HOME")
+    {
+        return PathBuf::from(home);
     }
     if let Some(rest) = path.strip_prefix("~/")
         && let Some(home) = std::env::var_os("HOME")

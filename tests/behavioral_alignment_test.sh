@@ -174,8 +174,14 @@ use axum::{routing::get, Router};
 pub fn router() -> Router { Router::new().route("/behavior", get(handler)) }
 async fn handler() {}
 EOF
-curl -s -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\"}" >/dev/null
-curl -s -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d '{"title":"SPEC 53 ontology slice","goal":"verify prompt shaping","beads_issue_id":"spec53-001"}' >/dev/null
+curl -s -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\",\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"spec53-ontology-slice\"}" >/dev/null
+curl -s -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"SPEC 53 ontology slice\",\"goal\":\"verify prompt shaping\",\"beads_issue_id\":\"spec53-001\",\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"spec53-ontology-slice\"}" >/dev/null
+ACTIVE_FRAME=""
+for _ in $(seq 1 50); do
+    ACTIVE_FRAME=$(curl -s "${BASE_URL}/v1/focus/stack" | jq -r '.stack.active_id // empty')
+    [ -n "$ACTIVE_FRAME" ] && break
+    sleep 0.1
+done
 PROMPT=$(curl -s -X POST "${BASE_URL}/v1/prompt/assemble" \
     -H "Content-Type: application/json" \
     -d '{"turn_id":"spec53-ontology-slice","raw_user_input":"How should I modify the current route safely?","format":"string","budget":500}')

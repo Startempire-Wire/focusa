@@ -331,6 +331,7 @@ export function registerSession(pi: ExtensionAPI) {
           // Came back — reconnect SSE and reconcile holdover state; tools were never disabled.
           ctx.ui.setStatus("focusa", S.wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
           ctx.ui.notify("Focusa daemon reconnected — holdover reconciled; session preserved", "info");
+          await ensureFocusaSession(ctx);
           await ensureActiveFrame(ctx);
           connectSSE();
 

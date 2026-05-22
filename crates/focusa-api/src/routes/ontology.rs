@@ -5737,6 +5737,7 @@ fn ontology_read_index(focusa: &FocusaState, frame_id: Option<&str>) -> Arc<Onto
     if let Ok(cache) = ONTOLOGY_READ_INDEX.lock()
         && let Some(index) = cache.as_ref()
         && index.frame_id == cache_key
+        && index.source_state_version == focusa.version
         && index.last_reducer_event_id == ontology_reducer_event_id(focusa)
         && (Utc::now() - index.generated_at).num_seconds() < index.ttl_seconds as i64
     {
@@ -5759,6 +5760,7 @@ pub fn ontology_read_index_cache_metadata(focusa: &FocusaState) -> Value {
         if let Ok(cache) = ONTOLOGY_READ_INDEX.lock()
             && let Some(cached) = cache.as_ref()
             && cached.frame_id == cache_key
+            && cached.source_state_version == focusa.version
             && cached.last_reducer_event_id == ontology_reducer_event_id(focusa)
             && (Utc::now() - cached.generated_at).num_seconds() < cached.ttl_seconds as i64
         {

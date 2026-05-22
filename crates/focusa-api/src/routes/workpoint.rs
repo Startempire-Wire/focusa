@@ -948,26 +948,49 @@ async fn dispatch_event(
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
     if lowmem_caps_active() {
-        return state
-            .command_tx
-            .try_send(Action::EmitEvent { event })
-            .map_err(|error| match error {
-                TrySendError::Full(_) => (
-                    StatusCode::ACCEPTED,
-                    Json(json!({
-                        "status": "pending",
-                        "canonical": false,
-                        "degraded": true,
-                        "failure_class": "resource_exhausted",
-                        "retry_posture": "safe_retry",
-                        "retry": {"safe": true, "posture": "safe_retry", "reason": "daemon command channel is saturated under LowMem"},
-                        "side_effects": [],
-                        "resource_mode": resource_mode_status(),
-                        "next_tools": ["focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"],
-                        "next_step_hint": "retry after LowMem command backlog drains; evidence payload was not enqueued"
-                    })),
-                ),
-                TrySendError::Closed(_) => (
+        match state.command_tx.try_send(Action::EmitEvent { event }) {
+            Ok(()) => return Ok(()),
+            Err(TrySendError::Full(action)) => {
+                match tokio::time::timeout(
+                    Duration::from_millis(1500),
+                    state.command_tx.send(action),
+                )
+                .await
+                {
+                    Ok(Ok(())) => return Ok(()),
+                    Ok(Err(_)) => {
+                        return Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({
+                                "status": "rejected",
+                                "canonical": false,
+                                "failure_class": "daemon_unavailable",
+                                "error": "dispatch failed: daemon command channel closed",
+                                "next_step_hint": "retry after daemon command channel recovers"
+                            })),
+                        ));
+                    }
+                    Err(_) => {
+                        return Err((
+                            StatusCode::ACCEPTED,
+                            Json(json!({
+                                "status": "pending",
+                                "canonical": false,
+                                "degraded": true,
+                                "failure_class": "resource_exhausted",
+                                "retry_posture": "safe_retry",
+                                "retry": {"safe": true, "posture": "safe_retry", "reason": "daemon command channel is saturated under LowMem"},
+                                "side_effects": [],
+                                "resource_mode": resource_mode_status(),
+                                "next_tools": ["focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"],
+                                "next_step_hint": "retry after LowMem command backlog drains; evidence payload was not enqueued"
+                            })),
+                        ));
+                    }
+                }
+            }
+            Err(TrySendError::Closed(_)) => {
+                return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({
                         "status": "rejected",
@@ -976,8 +999,9 @@ async fn dispatch_event(
                         "error": "dispatch failed: daemon command channel closed",
                         "next_step_hint": "retry after daemon command channel recovers"
                     })),
-                ),
-            });
+                ));
+            }
+        }
     }
 
     state
@@ -1521,6 +1545,7 @@ fn resume_summary_v2(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn workpoint_resume_packet_v2(
     record: &WorkpointRecord,
     _packet: Value,

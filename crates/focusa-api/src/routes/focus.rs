@@ -15,9 +15,11 @@ use axum::{
     Json, Router,
     routing::{get, patch, post},
 };
+use chrono::Utc;
+use focusa_core::reducer;
 use focusa_core::types::{
-    Action, CompletionReason, FocusStackState, FocusStateDelta, FrameRecord, FrameStatus,
-    SessionState, SessionStatus,
+    CompletionReason, EventLogEntry, FocusStackState, FocusStateDelta, FocusaEvent, FrameRecord,
+    FrameStatus, SessionState, SessionStatus, SignalOrigin,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -40,7 +42,11 @@ struct ScopedFrameQuery {
 
 fn normalize_project_root_authority(value: &str) -> String {
     let trimmed = value.trim().trim_end_matches('/');
-    if trimmed.is_empty() { "".to_string() } else { trimmed.to_string() }
+    if trimmed.is_empty() {
+        "".to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
@@ -49,18 +55,33 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
         return Some("missing_project_root");
     }
     match root.as_str() {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => Some("unsafe_broad_project_root"),
-        _ if root.strip_prefix("/home/").is_some_and(|rest| !rest.contains('/')) => Some("unsafe_user_home_project_root"),
+        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => {
+            Some("unsafe_broad_project_root")
+        }
+        _ if root
+            .strip_prefix("/home/")
+            .is_some_and(|rest| !rest.contains('/')) =>
+        {
+            Some("unsafe_user_home_project_root")
+        }
         _ => None,
     }
 }
 
 fn frame_matches_project_root(frame: &FrameRecord, project_root: Option<&str>) -> bool {
-    let Some(expected) = project_root.map(normalize_project_root_authority).filter(|value| !value.is_empty()) else {
+    let Some(expected) = project_root
+        .map(normalize_project_root_authority)
+        .filter(|value| !value.is_empty())
+    else {
         return unsafe_project_root_reason(frame.project_root.as_deref()).is_none();
     };
     unsafe_project_root_reason(Some(&expected)).is_none()
-        && frame.project_root.as_deref().map(normalize_project_root_authority).as_deref() == Some(expected.as_str())
+        && frame
+            .project_root
+            .as_deref()
+            .map(normalize_project_root_authority)
+            .as_deref()
+            == Some(expected.as_str())
 }
 
 fn unsafe_scope_response(reason: &'static str, value: Option<&str>) -> serde_json::Value {
@@ -102,18 +123,29 @@ fn resolve_scoped_frame<'a>(
 
     let key = session_key.map(str::trim).unwrap_or_default();
     if key.is_empty() {
-        if project_root.map(str::trim).filter(|value| !value.is_empty()).is_some() {
+        if project_root
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .is_some()
+        {
             return None;
         }
         return stack
             .active_id
-            .and_then(|id| stack.frames.iter().find(|frame| frame.id == id && frame_matches_project_root(frame, None)))
+            .and_then(|id| {
+                stack
+                    .frames
+                    .iter()
+                    .find(|frame| frame.id == id && frame_matches_project_root(frame, None))
+            })
             .map(|frame| (frame, "active_frame"));
     }
 
     stack.frames.iter().rev().find_map(|frame| {
-        (frame.status == FrameStatus::Active && frame_matches_project_root(frame, project_root) && frame.tags.iter().any(|tag| tag == key))
-            .then_some((frame, "session_key"))
+        (frame.status == FrameStatus::Active
+            && frame_matches_project_root(frame, project_root)
+            && frame.tags.iter().any(|tag| tag == key))
+        .then_some((frame, "session_key"))
     })
 }
 
@@ -261,6 +293,45 @@ fn validate_set_active(stack: &FocusStackState, frame_id: Uuid) -> Result<bool, 
     Ok(true)
 }
 
+async fn materialize_focus_event(
+    state: &AppState,
+    event: FocusaEvent,
+    correlation_id: &'static str,
+) -> Result<(), StatusCode> {
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
+        tracing::warn!(error = %error, correlation_id, "focus event rejected by reducer");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let new_state = result.new_state;
+    for emitted in result.emitted_events {
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: Utc::now(),
+            event: emitted,
+            correlation_id: Some(correlation_id.to_string()),
+            origin: SignalOrigin::Adapter,
+            machine_id: None,
+            instance_id: None,
+            session_id: new_state.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
+        if let Err(error) = state.persistence.append_event(&entry) {
+            tracing::error!(error = %error, correlation_id, "failed to persist focus event");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        } else if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
+    }
+
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
+    Ok(())
+}
+
 #[derive(Deserialize)]
 struct PushFrameBody {
     #[serde(default)]
@@ -290,10 +361,10 @@ async fn push_frame(
         }
     }
 
-    if let Some(project_root) = body.project_root.as_deref() {
-        if let Some(reason) = unsafe_project_root_reason(Some(project_root)) {
-            return Ok(Json(unsafe_scope_response(reason, Some(project_root))));
-        }
+    if let Some(project_root) = body.project_root.as_deref()
+        && let Some(reason) = unsafe_project_root_reason(Some(project_root))
+    {
+        return Ok(Json(unsafe_scope_response(reason, Some(project_root))));
     }
 
     let beads_issue_id = body.beads_issue_id.unwrap_or_default();
@@ -304,9 +375,11 @@ async fn push_frame(
         })));
     }
 
-    state
-        .command_tx
-        .send(Action::PushFrame {
+    let frame_id = Uuid::now_v7();
+    materialize_focus_event(
+        &state,
+        FocusaEvent::FocusFramePushed {
+            frame_id,
             title: body.title.unwrap_or_default(),
             goal: body.goal.unwrap_or_default(),
             beads_issue_id,
@@ -314,11 +387,14 @@ async fn push_frame(
             continuity_id: body.continuity_id,
             constraints: body.constraints,
             tags: body.tags,
-        })
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        },
+        "api:focus:push",
+    )
+    .await?;
 
-    Ok(Json(json!({"status": "accepted"})))
+    Ok(Json(
+        json!({"status": "accepted", "frame_id": frame_id, "materialized_by": "api_reducer_sync"}),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -345,15 +421,26 @@ async fn pop_frame(
         }
     }
 
-    state
-        .command_tx
-        .send(Action::PopFrame {
-            completion_reason: body.completion_reason,
-        })
+    let frame_id = state
+        .focusa
+        .read()
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .focus_stack
+        .active_id
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    materialize_focus_event(
+        &state,
+        FocusaEvent::FocusFrameCompleted {
+            frame_id,
+            completion_reason: body.completion_reason,
+        },
+        "api:focus:pop",
+    )
+    .await?;
 
-    Ok(Json(json!({"status": "accepted"})))
+    Ok(Json(
+        json!({"status": "accepted", "frame_id": frame_id, "materialized_by": "api_reducer_sync"}),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -377,15 +464,18 @@ async fn set_active(
         }
     }
 
-    state
-        .command_tx
-        .send(Action::SetActiveFrame {
+    materialize_focus_event(
+        &state,
+        FocusaEvent::FocusFrameResumed {
             frame_id: body.frame_id,
-        })
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        },
+        "api:focus:set-active",
+    )
+    .await?;
 
-    Ok(Json(json!({"status": "accepted"})))
+    Ok(Json(
+        json!({"status": "accepted", "frame_id": body.frame_id, "materialized_by": "api_reducer_sync"}),
+    ))
 }
 
 /// POST /v1/focus/update — update focus state delta (ASCC).
@@ -518,12 +608,21 @@ async fn update_delta(
     let delta = &body.delta;
     let frame = {
         let focusa = state.focusa.read().await;
-        focusa
-            .focus_stack
-            .frames
-            .iter()
-            .find(|f| Some(f.id) == focusa.focus_stack.active_id)
-            .cloned()
+        if let Some(target_frame_id) = body.frame_id {
+            focusa
+                .focus_stack
+                .frames
+                .iter()
+                .find(|f| f.id == target_frame_id)
+                .cloned()
+        } else {
+            focusa
+                .focus_stack
+                .frames
+                .iter()
+                .find(|f| Some(f.id) == focusa.focus_stack.active_id)
+                .cloned()
+        }
     };
 
     if let Some(target_frame_id) = body.frame_id {
@@ -534,10 +633,13 @@ async fn update_delta(
             .frames
             .iter()
             .find(|frame| frame.id == target_frame_id);
-        if let Some(frame) = target {
-            if let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref()) {
-                return Ok(Json(unsafe_scope_response(reason, frame.project_root.as_deref())));
-            }
+        if let Some(frame) = target
+            && let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref())
+        {
+            return Ok(Json(unsafe_scope_response(
+                reason,
+                frame.project_root.as_deref(),
+            )));
         }
         if target.is_none() {
             return Ok(Json(json!({
@@ -549,34 +651,6 @@ async fn update_delta(
                 "retry_posture": "refresh_scoped_frame",
                 "safe_recovery": "call /v1/focus/frame/current with continuity_id or checkpoint a fresh Workpoint/Focus frame",
                 "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true}}
-            })));
-        }
-        if active_frame_id.is_none() {
-            return Ok(Json(json!({
-                "status": "frame_unavailable",
-                "failure_class": "frame_unavailable",
-                "reason": "no_active_frame_for_focus_update",
-                "target_frame_id": target_frame_id,
-                "active_frame_id": active_frame_id,
-                "target_frame_status": target.map(|frame| frame.status),
-                "retry_posture": "recover_frame_then_retry",
-                "safe_recovery": "refresh the scoped Pi frame before writing Focus State; use scratchpad fallback if recovery fails",
-                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true}}
-            })));
-        }
-        if active_frame_id != Some(target_frame_id) {
-            return Ok(Json(json!({
-                "status": "rejected_scope_mismatch",
-                "failure_class": "scope_mismatch",
-                "reason": "target_frame_is_not_active",
-                "target_frame_id": target_frame_id,
-                "active_frame_id": active_frame_id,
-                "target_frame_status": target.map(|frame| frame.status),
-                "active_frame_status": active_frame_id.and_then(|id| focusa.focus_stack.frames.iter().find(|frame| frame.id == id).map(|frame| frame.status)),
-                "diagnostic_class": "stale_active_frame_or_read_model_lag",
-                "retry_posture": "refresh_scoped_frame",
-                "safe_recovery": "retry after getFocusState()/focus frame rescope; do not mark daemon unavailable",
-                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "scope_mismatch", "canonical": false, "degraded": true}}
             })));
         }
     }
@@ -663,8 +737,17 @@ async fn update_delta(
                 return Ok(Json(json!({"status": "no_active_frame"})));
             }
         } else if let Some(active_id) = focusa.focus_stack.active_id {
-            if focusa.focus_stack.frames.iter().find(|frame| frame.id == active_id).and_then(|frame| unsafe_project_root_reason(frame.project_root.as_deref())).is_some() {
-                return Ok(Json(json!({"status": "no_active_frame", "failure_class": "frame_unavailable", "reason": "active_frame_has_unsafe_project_root"})));
+            if focusa
+                .focus_stack
+                .frames
+                .iter()
+                .find(|frame| frame.id == active_id)
+                .and_then(|frame| unsafe_project_root_reason(frame.project_root.as_deref()))
+                .is_some()
+            {
+                return Ok(Json(
+                    json!({"status": "no_active_frame", "failure_class": "frame_unavailable", "reason": "active_frame_has_unsafe_project_root"}),
+                ));
             }
             (active_id, !session_active)
         } else {
@@ -673,33 +756,37 @@ async fn update_delta(
     };
 
     if auto_started_session {
-        state
-            .command_tx
-            .send(Action::StartSession {
+        materialize_focus_event(
+            &state,
+            FocusaEvent::SessionStarted {
+                session_id: Uuid::now_v7(),
                 adapter_id: Some("focus-update".to_string()),
                 workspace_id: Some("auto-recovered-focus-write".to_string()),
                 project_root: None,
                 continuity_id: None,
-                instance_id: None,
-            })
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            },
+            "api:focus:update:auto-session",
+        )
+        .await?;
     }
 
-    state
-        .command_tx
-        .send(Action::UpdateCheckpointDelta {
+    let turn_id = body.turn_id.unwrap_or_else(|| Uuid::now_v7().to_string());
+    materialize_focus_event(
+        &state,
+        FocusaEvent::FocusStateUpdated {
             frame_id: fid,
-            turn_id: body.turn_id.unwrap_or_else(|| Uuid::now_v7().to_string()),
             delta: body.delta,
-        })
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        },
+        "api:focus:update",
+    )
+    .await?;
 
     Ok(Json(json!({
         "status": "accepted",
         "frame_id": fid,
-        "auto_started_session": auto_started_session
+        "turn_id": turn_id,
+        "auto_started_session": auto_started_session,
+        "materialized_by": "api_reducer_sync"
     })))
 }
 
@@ -814,7 +901,9 @@ mod tests {
             stack_path_cache: vec![active_id],
             version: 1,
         };
-        assert!(resolve_scoped_frame(&stack, None, None, None, Some("/workspace/focusa")).is_none());
+        assert!(
+            resolve_scoped_frame(&stack, None, None, None, Some("/workspace/focusa")).is_none()
+        );
         assert!(resolve_scoped_frame(&stack, None, None, None, None).is_none());
     }
 
@@ -830,8 +919,17 @@ mod tests {
             stack_path_cache: vec![safe_id],
             version: 1,
         };
-        let resolved = resolve_scoped_frame(&stack, None, None, Some("cont-focusa"), Some("/workspace/focusa"));
-        assert_eq!(resolved.map(|(frame, by)| (frame.id, by)), Some((safe_id, "continuity_id")));
+        let resolved = resolve_scoped_frame(
+            &stack,
+            None,
+            None,
+            Some("cont-focusa"),
+            Some("/workspace/focusa"),
+        );
+        assert_eq!(
+            resolved.map(|(frame, by)| (frame.id, by)),
+            Some((safe_id, "continuity_id"))
+        );
     }
 
     #[test]
@@ -870,7 +968,8 @@ mod tests {
             version: 2,
         };
 
-        let (resolved, matched_by) = resolve_scoped_frame(&stack, None, None, None, None).expect("frame");
+        let (resolved, matched_by) =
+            resolve_scoped_frame(&stack, None, None, None, None).expect("frame");
         assert_eq!(resolved.id, b);
         assert_eq!(matched_by, "active_frame");
     }

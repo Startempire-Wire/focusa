@@ -220,7 +220,7 @@ function formatResumePacketV2ForPrompt(packet: any): string {
     "## WorkpointResumePacketV2",
     `SCHEMA_VERSION: ${v2.schema_version || "focusa.workpoint_resume_packet.v2"}`,
     `CANONICAL: ${v2.canonical !== false}`,
-    `FAILURE_CLASS: ${v2.failure_class || "none"}`,
+    `FAILURE_CLASS: ${String(v2.failure_class ?? "not_applicable")}`,
     v2.rendered_summary ? `RENDERED_SUMMARY: ${v2.rendered_summary}` : "",
     "BEST_NEXT_TOOLS:",
     ...(bestNext.length ? bestNext : ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse", "focusa_tool_doctor"]).map((tool: string) => `  - ${tool}`),

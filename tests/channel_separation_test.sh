@@ -106,6 +106,22 @@ else
   log_fail "Minimal-slice operator-first logic missing from turns.ts"
 fi
 
+log_info "Seed visible active frame"
+code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
+  -d "{\"adapter_id\":\"channel-contract\",\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
+if [ "$code" = "200" ]; then
+  json_assert '(.status == "accepted") or (.status == "pending")' "Seed session start submitted"
+else
+  log_fail "Seed session start failed"
+fi
+code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
+  -d "{\"title\":\"channel-contract\",\"goal\":\"visible active frame\",\"beads_issue_id\":\"channel-contract\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted"' "Seed active frame accepted"
+else
+  log_fail "Seed active frame failed"
+fi
+
 log_info "Priority order / steering observability"
 code=$(http_code "${BASE_URL}/v1/focus-gate/candidates")
 if [ "$code" = "200" ]; then

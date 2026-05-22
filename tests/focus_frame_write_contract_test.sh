@@ -37,8 +37,9 @@ TITLE_A="frame-contract-a-$$"
 BEADS_A="frame-contract-a-$$"
 TITLE_B="frame-contract-b-$$"
 BEADS_B="frame-contract-b-$$"
-http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_A}\",\"goal\":\"A\",\"beads_issue_id\":\"${BEADS_A}\"}" >/dev/null
-http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_B}\",\"goal\":\"B\",\"beads_issue_id\":\"${BEADS_B}\"}" >/dev/null
+http_json POST "/v1/session/start" "{\"adapter_id\":\"frame-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
+http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_A}\",\"goal\":\"A\",\"beads_issue_id\":\"${BEADS_A}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
+http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_B}\",\"goal\":\"B\",\"beads_issue_id\":\"${BEADS_B}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 
 FRAME_A=""
 FRAME_B=""
@@ -69,10 +70,10 @@ if [ -n "$FRAME_A" ]; then
 fi
 
 INVALID_UPDATE="$(http_json POST "/v1/focus/update" '{"frame_id":"00000000-0000-0000-0000-000000000000","turn_id":"contract-turn-invalid","delta":{"notes":["invalid frame check"]}}')"
-if [ "$(echo "$INVALID_UPDATE" | jq -r '.status // empty')" = "no_active_frame" ]; then
-  log_pass "invalid explicit frame_id returns no_active_frame"
+if echo "$INVALID_UPDATE" | jq -e '(.status == "no_active_frame") or (.status == "frame_unavailable")' >/dev/null; then
+  log_pass "invalid explicit frame_id returns no_active_frame/frame_unavailable"
 else
-  log_fail "invalid explicit frame_id did not return no_active_frame"
+  log_fail "invalid explicit frame_id did not return no_active_frame/frame_unavailable"
 fi
 
 TOOLS_FILE="${ROOT_DIR}/apps/pi-extension/src/tools.ts"

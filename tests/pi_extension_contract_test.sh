@@ -73,15 +73,23 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d '{"adapter_id":"pi-contract","workspace_id":"pi-extension-contract"}')
+  -d "{\"adapter_id\":\"pi-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed session accepted"
 else
   log_fail "Seed session failed"
 fi
 
+code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
+  -d "{\"adapter_id\":\"pi\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract-retry\"}")
+if [ "$code" = "200" ]; then
+  json_assert '.status == "accepted" and (.session_id != null) and ((.materialized_by == "existing_active_project_session") or (.materialized_by == "existing_active_session") or (.materialized_by == "api_reducer_sync"))' "Seed session start idempotent during recovery"
+else
+  log_fail "Seed session idempotency failed"
+fi
+
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d '{"title":"pi-contract-test","goal":"testing input contract","beads_issue_id":"pi-ct-001"}')
+  -d "{\"title\":\"pi-contract-test\",\"goal\":\"testing input contract\",\"beads_issue_id\":\"pi-ct-001\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed focus frame accepted"
 else
@@ -238,10 +246,10 @@ else
   log_fail "Output VerificationRequest failed"
 fi
 
-STATE_TS="apps/pi-extension/src/state.ts"
-INDEX_TS="apps/pi-extension/src/index.ts"
-SESSION_TS="apps/pi-extension/src/session.ts"
-COMMANDS_TS="apps/pi-extension/src/commands.ts"
+STATE_TS="${ROOT_DIR}/apps/pi-extension/src/state.ts"
+INDEX_TS="${ROOT_DIR}/apps/pi-extension/src/index.ts"
+SESSION_TS="${ROOT_DIR}/apps/pi-extension/src/session.ts"
+COMMANDS_TS="${ROOT_DIR}/apps/pi-extension/src/commands.ts"
 if rg -n 'derivePiFrameIntent|S\.currentAsk|Pi Task:|Pi Question:|Pi Correction:' "$STATE_TS" >/dev/null 2>&1; then
   log_pass "Pi frame creation is task-first rather than cwd-only"
 else
@@ -261,7 +269,7 @@ else
 fi
 
 if rg -n 'S\.activeFrameId|S\.activeFrameTitle|S\.activeFrameGoal' "$SESSION_TS" >/dev/null 2>&1 \
-  && ! rg -n 'setSessionName' "apps/pi-extension/src" >/dev/null 2>&1; then
+  && ! rg -n 'setSessionName' "${ROOT_DIR}/apps/pi-extension/src" >/dev/null 2>&1; then
   log_pass "Session sync keeps Focusa frame metadata without overriding Pi session names"
 else
   log_fail "Session sync can override Pi session display names or lacks scoped frame metadata"
@@ -273,32 +281,32 @@ else
   log_fail "Pi session lifecycle missing explicit close reasons"
 fi
 
-if rg -n 'persistAuthoritativeState\(' "$SESSION_TS" "$COMMANDS_TS" "apps/pi-extension/src/compaction.ts" >/dev/null 2>&1; then
+if rg -n 'persistAuthoritativeState\(' "$SESSION_TS" "$COMMANDS_TS" "${ROOT_DIR}/apps/pi-extension/src/compaction.ts" >/dev/null 2>&1; then
   log_pass "Pi persists refreshed authoritative state before lifecycle/compaction boundaries"
 else
   log_fail "Pi missing refreshed authoritative persistence at lifecycle/compaction boundaries"
 fi
 
-if rg -n 'normalizeCompactionArtifacts|kind: "file"|Session compacted\. Modified:|Session compacted\. Read:' "apps/pi-extension/src/compaction.ts" >/dev/null 2>&1; then
+if rg -n 'normalizeCompactionArtifacts|kind: "file"|Session compacted\. Modified:|Session compacted\. Read:' "${ROOT_DIR}/apps/pi-extension/src/compaction.ts" >/dev/null 2>&1; then
   log_pass "Pi compaction file tracking writes canonical artifact lines and notes"
 else
   log_fail "Pi compaction file tracking still appears non-canonical"
 fi
 
-if rg -n 'assistant_output|prompt_tokens|completion_tokens|extractText\(ev\.message\?\.content' "apps/pi-extension/src/turns.ts" >/dev/null 2>&1; then
+if rg -n 'assistant_output|prompt_tokens|completion_tokens|extractText\(ev\.message\?\.content' "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null 2>&1; then
   log_pass "Pi turn completion reports assistant output and canonical token fields"
 else
   log_fail "Pi turn completion still appears token-only or output-blind"
 fi
 
-if rg -n 'await pushDelta\(|Operator correction:|lastFocusSnapshot = \{ decisions: \[], constraints: \[], failures: \[], intent: "", currentFocus: "" \}' "apps/pi-extension/src/turns.ts" "$COMMANDS_TS" >/dev/null 2>&1 \
-  && rg -n 'Reconciled after Focusa outage|await pushDelta\(' "apps/pi-extension/src/session.ts" >/dev/null 2>&1; then
+if rg -n 'await pushDelta\(|Operator correction:|lastFocusSnapshot = \{ decisions: \[], constraints: \[], failures: \[], intent: "", currentFocus: "" \}' "${ROOT_DIR}/apps/pi-extension/src/turns.ts" "$COMMANDS_TS" >/dev/null 2>&1 \
+  && rg -n 'Reconciled after Focusa outage|await pushDelta\(' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null 2>&1; then
   log_pass "Pi progress/reset/reconnect paths use validated writes and clear authoritative snapshot state"
 else
   log_fail "Pi progress/reset/reconnect paths still appear partially local-shadow only"
 fi
 
-if rg -n 'rescopePiFrameFromCurrentAsk|startup frame rescoped after first real ask|pi-post-input-rescope|isNonTaskStatusLikeText|stripQuotedFocusaContext|currentAsk: S\.currentAsk|seedCurrentAskFromPersistedState' "apps/pi-extension/src/state.ts" "apps/pi-extension/src/turns.ts" "apps/pi-extension/src/session.ts" >/dev/null 2>&1; then
+if rg -n 'rescopePiFrameFromCurrentAsk|startup frame rescoped after first real ask|pi-post-input-rescope|isNonTaskStatusLikeText|stripQuotedFocusaContext|currentAsk: S\.currentAsk|seedCurrentAskFromPersistedState' "${ROOT_DIR}/apps/pi-extension/src/state.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null 2>&1; then
   log_pass "Pi startup fallback frame is rescoped only from real asks and strips quoted Focusa payloads on restart/input"
 else
   log_fail "Pi startup fallback frame still appears vulnerable to sticky/status-driven rescope or quoted-payload pollution"
@@ -310,7 +318,7 @@ else
   log_fail "Focusa status/context surfaces still appear stack-only or ASCC-blind"
 fi
 
-if rg -n 'Mission: \$\{mission\}|Focus: \$\{focus\}|getEffectiveFocusSnapshot|S\.lastFocusSnapshot|current_state' "$COMMANDS_TS" "$INDEX_TS" "$STATE_TS" "apps/pi-extension/src/turns.ts" >/dev/null 2>&1; then
+if rg -n 'Mission: \$\{mission\}|Focus: \$\{focus\}|getEffectiveFocusSnapshot|S\.lastFocusSnapshot|current_state' "$COMMANDS_TS" "$INDEX_TS" "$STATE_TS" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null 2>&1; then
   log_pass "Loop/shortcut/widget surfaces prefer authoritative mission/focus context"
 else
   log_fail "Loop/shortcut/widget surfaces still appear local-shadow only"

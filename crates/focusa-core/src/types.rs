@@ -2003,6 +2003,8 @@ pub struct WorkerJob {
 /// Commands dispatched to the reducer via mpsc channel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
+// Keep direct event payloads here: Action is an internal command envelope, not a hot cloned data model.
+#[allow(clippy::large_enum_variant)]
 pub enum Action {
     // Focus
     PushFrame {

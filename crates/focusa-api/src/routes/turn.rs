@@ -13,16 +13,100 @@ use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::post};
+use chrono::Utc;
 use focusa_core::expression::budget::{available_tokens, estimate_tokens};
 use focusa_core::memory::procedural;
+use focusa_core::reducer;
 use focusa_core::types::*;
 use serde_json::{Value, json};
-use std::sync::Arc;
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex, OnceLock};
+use uuid::Uuid;
+
+const RECENT_COMPLETED_TURN_CAP: usize = 2048;
+static RECENT_COMPLETED_TURNS: OnceLock<Mutex<VecDeque<String>>> = OnceLock::new();
+
+fn recent_completed_turns() -> &'static Mutex<VecDeque<String>> {
+    RECENT_COMPLETED_TURNS.get_or_init(|| Mutex::new(VecDeque::new()))
+}
+
+fn recent_turn_completed(turn_id: &str) -> bool {
+    recent_completed_turns()
+        .lock()
+        .map(|turns| turns.iter().any(|value| value == turn_id))
+        .unwrap_or(false)
+}
+
+fn remember_completed_turn(turn_id: &str) {
+    if let Ok(mut turns) = recent_completed_turns().lock() {
+        if turns.iter().any(|value| value == turn_id) {
+            return;
+        }
+        turns.push_back(turn_id.to_string());
+        while turns.len() > RECENT_COMPLETED_TURN_CAP {
+            turns.pop_front();
+        }
+    }
+}
+
+async fn materialize_turn_event(
+    state: &AppState,
+    event: FocusaEvent,
+    correlation_id: &'static str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
+        tracing::warn!(error = %error, correlation_id, "turn event rejected by reducer");
+        (
+            StatusCode::OK,
+            Json(json!({
+                "status": "rejected",
+                "failure_class": "reducer_rejected",
+                "reason": error.to_string(),
+            })),
+        )
+    })?;
+
+    let new_state = result.new_state;
+    for emitted in result.emitted_events {
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: Utc::now(),
+            event: emitted,
+            correlation_id: Some(correlation_id.to_string()),
+            origin: SignalOrigin::Adapter,
+            machine_id: None,
+            instance_id: None,
+            session_id: new_state.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
+        if let Err(error) = state.persistence.append_event(&entry) {
+            tracing::error!(error = %error, correlation_id, "failed to persist turn event");
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "status": "rejected",
+                    "failure_class": "persistence_failed",
+                    "reason": error.to_string(),
+                })),
+            ));
+        } else if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
+    }
+
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
+    Ok(())
+}
 
 /// POST /v1/turn/start
 ///
 /// Adapter calls this when user input is received.
-/// Daemon emits TurnStarted event for observability.
+/// API materializes TurnStarted synchronously so Pi hot paths do not depend on
+/// daemon command-channel latency during LowMem or recovery windows.
 async fn turn_start(
     State(state): State<Arc<AppState>>,
     Json(req): Json<TurnStart>,
@@ -49,31 +133,13 @@ async fn turn_start(
         "Turn started"
     );
 
-    // Emit TurnStarted event via command channel for persistence.
     let event = FocusaEvent::TurnStarted {
         turn_id: req.turn_id.clone(),
         harness_name: req.harness_name.clone(),
         adapter_id: req.adapter_id.clone(),
         raw_user_input: None, // Will be set when prompt_assemble is called
     };
-
-    if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
-        tracing::error!("Failed to emit TurnStarted event: {}", e);
-    } else {
-        for _ in 0..40 {
-            {
-                let focusa = state.focusa.read().await;
-                if focusa
-                    .active_turn
-                    .as_ref()
-                    .is_some_and(|t| t.turn_id == req.turn_id)
-                {
-                    break;
-                }
-            }
-            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
-        }
-    }
+    materialize_turn_event(&state, event, "api:turn:start").await?;
 
     Ok(Json(json!({
         "status": "accepted",
@@ -348,20 +414,15 @@ async fn turn_complete(
         "Turn completed"
     );
 
-    // Idempotency guard: repeated completion for the same turn_id must not double-apply.
-    match state.persistence.turn_completed_exists(&req.turn_id) {
-        Ok(true) => {
-            tracing::debug!(turn_id = %req.turn_id, "Duplicate turn_complete ignored");
-            return Ok(Json(json!({
-                "status": "accepted",
-                "turn_id": req.turn_id,
-                "duplicate": true
-            })));
-        }
-        Ok(false) => {}
-        Err(e) => {
-            tracing::error!(turn_id = %req.turn_id, error = %e, "Failed idempotency check; proceeding cautiously");
-        }
+    // Hot idempotency guard: repeated completion for the same turn_id must not
+    // wait on SQLite or the daemon write lock during resource pressure.
+    if recent_turn_completed(&req.turn_id) {
+        tracing::debug!(turn_id = %req.turn_id, "Duplicate turn_complete ignored");
+        return Ok(Json(json!({
+            "status": "accepted",
+            "turn_id": req.turn_id,
+            "duplicate": true
+        })));
     }
 
     // Get harness_name/raw_user_input plus current continuous-work task if available.
@@ -384,8 +445,9 @@ async fn turn_complete(
         )
     };
 
-    // Emit TurnCompleted event via command channel for persistence.
-    // The reducer will handle CLT recording, error signals, and active_turn clearing.
+    // Materialize synchronously for idempotency and persistence even when the
+    // daemon command channel is saturated. The reducer handles CLT recording,
+    // error signals, telemetry, and active_turn clearing.
     let event = FocusaEvent::TurnCompleted {
         turn_id: req.turn_id.clone(),
         harness_name,
@@ -402,9 +464,19 @@ async fn turn_complete(
             .or(req.tokens.as_ref().and_then(|t| t.output_tokens)),
     };
 
-    if let Err(e) = state.command_tx.send(Action::EmitEvent { event }).await {
-        tracing::error!("Failed to emit TurnCompleted event: {}", e);
-    }
+    remember_completed_turn(&req.turn_id);
+    let state_for_event = Arc::clone(&state);
+    tokio::spawn(async move {
+        if let Err((status, body)) =
+            materialize_turn_event(&state_for_event, event, "api:turn:complete").await
+        {
+            tracing::error!(
+                ?status,
+                ?body,
+                "failed to materialize turn_complete asynchronously"
+            );
+        }
+    });
 
     if work_loop_enabled && let Some(task) = current_task {
         let assistant_output = req.assistant_output.trim();

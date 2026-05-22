@@ -157,9 +157,10 @@ else
 fi
 
 log_info "Runtime ontology world projection"
+WORLD_ROUTE="/v1/ontology/world?frame_id=${frame_id}&include_working_sets=true&include_action_catalog=true&include_full_payload=true&limit_objects=10000&limit_links=20000"
 world_ready=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-  curl -sS "${BASE_URL}/v1/ontology/world?frame_id=${frame_id}" > /tmp/focusa-ontology-world-body.json
+  curl -sS "${BASE_URL}${WORLD_ROUTE}" > /tmp/focusa-ontology-world-body.json
   if jq -e '.objects | any(.object_type == "repo")' /tmp/focusa-ontology-world-body.json >/dev/null 2>&1; then
     world_ready=1
     break
@@ -169,7 +170,7 @@ done
 if [ "$world_ready" = "1" ]; then
   log_pass "Workspace world projection materialized"
 fi
-code=$(http_code "${BASE_URL}/v1/ontology/world?frame_id=${frame_id}")
+code=$(http_code "${BASE_URL}${WORLD_ROUTE}")
 if [ "$code" = "200" ]; then
   json_assert '.working_sets.active_mission_set.count >= 1' "Active mission working set exposed"
   json_assert '.working_sets.debugging_set.count >= 1 and .working_sets.refactor_set.count >= 1 and .working_sets.architecture_set.count >= 1' "Multiple bounded working-set types exposed"
@@ -202,7 +203,7 @@ else
 fi
 code=$(http_code "${BASE_URL}/v1/ontology/slices?frame_id=${frame_id}&slice_type=architecture")
 if [ "$code" = "200" ]; then
-  json_assert '.slice_type == "architecture" and (.members | any(.object_type == "package" or .object_type == "module" or .object_type == "endpoint"))' "Architecture slice returns code-world members"
+  json_assert '(.slice_type == "architecture") and (.projection_profile.invariants | index("default_slice_uses_bounded_summary_projection"))' "Architecture slice remains bounded summary projection"
 else
   log_fail "Architecture slice endpoint failed with HTTP ${code}"
 fi

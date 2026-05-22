@@ -38,6 +38,13 @@ else
   exit 1
 fi
 
+if rg -n 'include_payload: raw\.include_payload|include_payload: .*include_full_payload' "$TOOLS" >/dev/null; then
+  echo "✗ FAIL: Pi focusa_traverse sends duplicate include_payload/include_full_payload aliases" >&2
+  exit 1
+else
+  echo "✓ PASS: Pi focusa_traverse normalizes include_payload alias before API request"
+fi
+
 if rg -n 'TraversedItem|traversed_items|verified_tags|stale_tags|tag_mode|range_tag_format|window_tag_format|surface_tag_format|algorithm|includes_anchor|includes_surface_version|tag_verify_preserves_item_tag_after_unrelated_change' "$ROUTE" "$TOOLS" "$DOC" >/dev/null; then
   echo "✓ PASS: traversal tags_verify semantics and tag policies are covered"
 else

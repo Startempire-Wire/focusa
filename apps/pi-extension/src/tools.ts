@@ -3116,7 +3116,8 @@ export function registerTools(pi: ExtensionAPI) {
         fields: fieldsCheck.value,
         tags,
         tag_mode: raw.tag_mode,
-        include_payload: raw.include_payload === true,
+        // The API treats include_payload as a serde alias for include_full_payload.
+        // Send exactly one canonical field; sending both aliases makes Rust reject the body as duplicate.
         include_full_payload: raw.include_full_payload === true || raw.include_payload === true,
         include_rehydrate_refs: raw.include_rehydrate_refs === true,
         budget_tokens: raw.budget_tokens !== undefined ? Math.max(1, Math.min(20000, Math.trunc(Number(raw.budget_tokens)))) : undefined,

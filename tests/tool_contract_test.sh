@@ -37,7 +37,11 @@ echo ""
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLS_TS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 
-if rg -n 'type PushDeltaFailureReason = "offline" \| "no_active_frame" \| "validation_rejected" \| "write_failed"' "$TOOLS_TS" >/dev/null 2>&1; then
+if rg -n 'type PushDeltaFailureReason = ' "$TOOLS_TS" >/dev/null 2>&1 \
+  && rg -n '"offline"' "$TOOLS_TS" >/dev/null 2>&1 \
+  && rg -n '"no_active_frame"' "$TOOLS_TS" >/dev/null 2>&1 \
+  && rg -n '"validation_rejected"' "$TOOLS_TS" >/dev/null 2>&1 \
+  && rg -n '"write_failed"' "$TOOLS_TS" >/dev/null 2>&1; then
   log_pass "PushDelta exposes required write failure reasons"
 else
   log_fail "PushDelta failure reasons missing required contract taxonomy"
