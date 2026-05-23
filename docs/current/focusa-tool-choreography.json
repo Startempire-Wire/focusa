@@ -1748,5 +1748,12 @@
     "transcript_tail_as_authority",
     "focus_state_note_tools_as_complete_project_workflow",
     "full_cold_payloads_by_default"
-  ]
+  ],
+  "dynamic_weight_policy": {
+    "schema": "focusa.tool_choreography.dynamic_weights.v1",
+    "source": "evaluated predictions with context_refs like tool_edge:focusa_a->focusa_b",
+    "formula": "effective_weight = base_weight * clamp(0.75 + average_score * 0.5, 0.75, 1.25)",
+    "authority": "dynamic weights advise ordering only; operator steering and safety gates win"
+  },
+  "runtime_weight_adjustments": []
 }

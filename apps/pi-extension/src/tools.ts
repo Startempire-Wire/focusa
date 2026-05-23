@@ -394,6 +394,35 @@ function defaultFocusaPromptSnippet(name: string, description?: string): string 
   return String(description || "Use this Focusa tool with explicit project_root when session/cwd is ambiguous.").slice(0, 240);
 }
 
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function paramsWithAutoIdempotency(toolName: string, params: unknown, id: string): unknown {
+  if (toolName !== "focusa_workpoint_checkpoint" || !params || typeof params !== "object" || Array.isArray(params)) return params;
+  const record = params as Record<string, any>;
+  if (record.idempotency_key) return params;
+  const continuity = String(record.continuity_id || S.continuityId || "session").replace(/[^A-Za-z0-9._:-]/g, "_").slice(0, 80);
+  return { ...record, idempotency_key: `pi-tool-${toolName}-${continuity}-${id}`.slice(0, 160) };
+}
+
+function shouldAutoRetryWorkpoint(toolName: string, result: any, toolResult: FocusaToolResultV1): boolean {
+  if (!["focusa_workpoint_checkpoint", "focusa_workpoint_resume"].includes(toolName)) return false;
+  const response = (result?.details as any)?.response || {};
+  const text = String(result?.content?.[0]?.text || "").toLowerCase();
+  return toolResult.failure_class === "read_model_lag"
+    || response.status === "pending"
+    || response.failure_class === "read_model_lag"
+    || response.failure_class === "resource_exhausted"
+    || /pending|read-model lag|not yet visible/.test(text);
+}
+
+function annotateAutoRetry(result: any, attempts: number): any {
+  const details = { ...(result?.details || {}) };
+  details.auto_retry = { attempts, policy: "bounded_workpoint_pending_retry" };
+  return { ...result, details };
+}
+
 function withToolResultEnvelope(tool: any): any {
   if (!tool?.name?.startsWith?.("focusa_") || typeof tool.execute !== "function") return tool;
   const execute = tool.execute;
@@ -401,9 +430,17 @@ function withToolResultEnvelope(tool: any): any {
     ...tool,
     promptSnippet: tool.promptSnippet || defaultFocusaPromptSnippet(tool.name, tool.description),
     async execute(id: string, params: unknown) {
-      const result = await execute(id, params);
-      const details = (result?.details || {}) as Record<string, unknown>;
-      const toolResult = inferToolResult(tool.name, result);
+      const executionParams = paramsWithAutoIdempotency(tool.name, params, id);
+      let result = await execute(id, executionParams);
+      let details = (result?.details || {}) as Record<string, unknown>;
+      let toolResult = inferToolResult(tool.name, result);
+      if (shouldAutoRetryWorkpoint(tool.name, result, toolResult)) {
+        await sleepMs(250);
+        result = await execute(`${id}-retry1`, executionParams);
+        result = annotateAutoRetry(result, 1);
+        details = (result?.details || {}) as Record<string, unknown>;
+        toolResult = inferToolResult(tool.name, result);
+      }
       return { ...result, details: focusaToolDetails(details, toolResult) };
     },
   };

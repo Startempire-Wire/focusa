@@ -2,7 +2,7 @@
 
 Current contract registry: **58 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal, Focus State, work-loop, diagnostics, lineage, prediction, and metacognition.
 
-Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains five route templates, 174 weighted per-tool edges, and exact `per_tool_next_tools` for all 58 tools.
+Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains five route templates, 174 weighted per-tool edges, and exact `per_tool_next_tools` for all 58 tools. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
 
 This map links tools by **model intent** so agents get compounding project results instead of using only basic note tools.
 
@@ -136,6 +136,7 @@ Use them **after** project/trajectory/workpoint orientation, or as local scratch
 
 - `per_tool_next_tools` is the exact next-tool shortlist used by the Pi affordance catalog.
 - `edges[]` carries `from`, `to`, `rank`, `weight`, `from_family`, and `to_family`.
+- `dynamic_weight_policy` documents how evaluated prediction scores adjust live `effective_edges`; base JSON remains the canonical static registry.
 - Operator steering/current ask outranks choreography; choreography is route guidance, not authority.
 - Focus State tools intentionally route back toward project identity, trajectory, and Workpoint instead of forming a note-only loop.
 

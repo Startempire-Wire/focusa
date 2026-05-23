@@ -148,6 +148,8 @@ if (Object.keys(nextTools).length) {
 
 if (choreographyJson) {
   if (choreographyJson.schema !== 'focusa.tool_choreography.v1') fail('invalid choreography schema', choreographyJson.schema);
+  if (!choreographyJson.dynamic_weight_policy) fail('missing choreography dynamic weight policy', choreographyJsonPath);
+  if (!Array.isArray(choreographyJson.runtime_weight_adjustments)) fail('missing choreography runtime_weight_adjustments array', choreographyJsonPath);
   if (choreographyJson.tool_count !== contracts.length) fail('choreography tool_count mismatch', choreographyJson.tool_count);
   if (JSON.stringify(choreographyJson.per_tool_next_tools) !== JSON.stringify(nextTools)) {
     fail('choreography JSON drifted from TypeScript TOOL_NEXT_TOOLS', choreographyJsonPath);

@@ -126,29 +126,61 @@ function existingProjectDirs(root: string, dirs: string[]): string[] {
   return dirs.filter((dir) => safeExists(root, dir)).slice(0, 8);
 }
 
+function safeRead(root: string, rel: string, maxBytes = 4096): string {
+  try {
+    const file = path.join(root, rel);
+    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return "";
+    return fs.readFileSync(file, "utf8").slice(0, maxBytes);
+  } catch { return ""; }
+}
+
+function manifestName(root: string): string {
+  const packageJson = safeRead(root, "package.json");
+  if (packageJson) {
+    try { return `package=${JSON.parse(packageJson).name || "unknown"}`; } catch { return "package=unparsed"; }
+  }
+  const cargo = safeRead(root, "Cargo.toml");
+  const cargoName = cargo.match(/^name\s*=\s*["']([^"']+)["']/m)?.[1];
+  if (cargoName) return `cargo=${cargoName}`;
+  return "manifest=unknown";
+}
+
 function buildProjectArchitectureDigestLine(root: string): string {
+  const evidenceRefs: string[] = [];
+  const mark = (rel: string, label = rel): boolean => {
+    const exists = safeExists(root, rel);
+    if (exists) evidenceRefs.push(label);
+    return exists;
+  };
+  const cargo = mark("Cargo.toml");
+  const packageJson = mark("package.json");
   const stacks = [
-    safeExists(root, "Cargo.toml") ? "rust" : "",
-    safeExists(root, "package.json") || safeExists(root, "pnpm-lock.yaml") || safeExists(root, "bun.lockb") ? "node" : "",
-    safeExists(root, "go.mod") ? "go" : "",
-    safeExists(root, "pyproject.toml") || safeExists(root, "requirements.txt") ? "python" : "",
-    safeExists(root, "composer.json") ? "php" : "",
+    cargo ? "rust" : "",
+    packageJson || mark("pnpm-lock.yaml") || mark("bun.lockb") ? "node" : "",
+    mark("go.mod") ? "go" : "",
+    mark("pyproject.toml") || mark("requirements.txt") ? "python" : "",
+    mark("composer.json") ? "php" : "",
   ].filter(Boolean);
   const keyDirs = existingProjectDirs(root, ["crates", "apps", "packages", "src", "docs", "tests", ".github", ".beads", "data"]);
+  keyDirs.forEach((dir) => { if (!evidenceRefs.includes(dir)) evidenceRefs.push(dir); });
   const deploy = [
-    safeExists(root, "Dockerfile") ? "Dockerfile" : "",
-    safeExists(root, "docker-compose.yml") || safeExists(root, "compose.yml") ? "compose" : "",
-    safeExists(root, ".github/workflows") ? "github_actions" : "",
-    safeExists(root, "systemd") || safeExists(root, ".service") ? "systemd" : "",
+    mark("Dockerfile") ? "Dockerfile" : "",
+    mark("docker-compose.yml") || mark("compose.yml") ? "compose" : "",
+    mark(".github/workflows") ? "github_actions" : "",
+    mark("systemd") || mark(".service") ? "systemd" : "",
   ].filter(Boolean);
   const docs = existingProjectDirs(root, ["docs", "README.md", "AGENTS.md", ".focusa-project.json"]);
   const tests = existingProjectDirs(root, ["tests", "test", "spec", "crates", "apps/pi-extension"]);
+  const confidence = stacks.length && docs.length && tests.length ? "high" : stacks.length && (docs.length || tests.length) ? "medium" : "low";
   return [
     `stack=${stacks.join("+") || "unknown"}`,
+    manifestName(root),
     `key_dirs=${keyDirs.join(",") || "unknown"}`,
     `deploy=${deploy.join(",") || "unknown"}`,
     `docs=${docs.join(",") || "unknown"}`,
     `tests=${tests.join(",") || "unknown"}`,
+    `confidence=${confidence}`,
+    `evidence_refs=${evidenceRefs.slice(0, 10).join(",") || "none"}`,
     "verify_architecture_with=focusa_traverse+repo_docs+evidence",
   ].join("; ");
 }

@@ -198,8 +198,15 @@ if (liveRegistry) {
   if (!payloadEqual) pushWarning('stale_runtime_registry', 'tool_contracts_live', 'Live daemon registry differs from static docs/source registry', 'Static validation remains source until approved rebuild/restart reloads daemon registry.', { static_count: contracts.length, live_count: (liveRegistry.contracts || []).length });
 }
 if (liveChoreography) {
-  const choreographyEqual = JSON.stringify(sortJson(liveChoreography)) === JSON.stringify(sortJson(choreography));
-  if (!choreographyEqual) pushWarning('stale_runtime_choreography', 'tool_choreography_live', 'Live daemon choreography differs from static docs/source registry', 'Rebuild/restart daemon after choreography registry changes.', { static_edge_count: choreography.edge_count, live_edge_count: liveChoreography.edge_count });
+  const stripRuntimeChoreography = (value) => {
+    const clone = JSON.parse(JSON.stringify(value || {}));
+    delete clone.runtime_weight_adjustments;
+    delete clone.effective_edges;
+    return clone;
+  };
+  const choreographyEqual = JSON.stringify(sortJson(stripRuntimeChoreography(liveChoreography))) === JSON.stringify(sortJson(stripRuntimeChoreography(choreography)));
+  if (!choreographyEqual) pushWarning('stale_runtime_choreography', 'tool_choreography_live', 'Live daemon choreography base registry differs from static docs/source registry', 'Rebuild/restart daemon after choreography registry changes.', { static_edge_count: choreography.edge_count, live_edge_count: liveChoreography.edge_count });
+  if (!liveChoreography.dynamic_weight_policy || !Array.isArray(liveChoreography.runtime_weight_adjustments)) pushFailure('validation_rejected', 'tool_choreography_live', 'Choreography route lacks dynamic weight policy/runtime adjustments', 'Expose dynamic weighting metadata even when no predictions are available.');
 }
 
 const getRoutes = new Set([

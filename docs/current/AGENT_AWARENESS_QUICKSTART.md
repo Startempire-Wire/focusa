@@ -24,7 +24,7 @@ Use this as internal orientation, not a blocker:
 7. **Predictions are measurable.** Before risky or uncertain next action, call `focusa_predict_record`; after outcome, call `focusa_predict_evaluate`.
 8. **Compaction must be useful.** Sparse Focusa slots should use related Workpoint/current-ask/frame/local-shadow/session fallbacks, never random filler or bare `none`.
 9. **Identity has axes.** Project scope is `project_root`; logical session/workstream identity is `continuity_id`; Pi `session_id` is temporal metadata; trajectory/goals are corroborating evidence.
-10. **Context pressure is Focusa-aware.** Focusa checkpoints and resumes scoped anchors under pressure; /fork, /new, or handoff are optional UI-isolation paths only when anchors are unconfirmed.
+10. **Context pressure is Focusa-aware.** Focusa checkpoints and resumes scoped anchors under pressure; warnings say anchors are unconfirmed, not degraded, and `/fork`, `/new`, or handoff are optional UI-isolation paths only when anchors are unconfirmed.
 
 ## Minimal runtime loop
 

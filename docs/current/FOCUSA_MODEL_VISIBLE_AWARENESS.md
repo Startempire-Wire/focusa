@@ -29,7 +29,7 @@ The continuous model-facing display is the **Focusa Focus Slice**, not a separat
 
 - `PROJECT_IDENTITY`: status, `project_root`, `continuity_id`, session id, confidence.
 - `PROJECT_INFRA`: canonical name, project id, workspace kind, repo remote, beads prefix, and architecture-boundary reminder.
-- `PROJECT_ARCHITECTURE`: local architecture digest (`stack`, key dirs, deploy surfaces, docs, tests) with a reminder to verify via docs/ontology/evidence.
+- `PROJECT_ARCHITECTURE`: evidence-backed local architecture digest (`stack`, manifest name, key dirs, deploy surfaces, docs, tests, confidence, source refs) with a reminder to verify via docs/ontology/evidence.
 - `TRAJECTORY_GOALS`: long/mid/low goals, desired state, short-term goal.
 - `TRAJECTORY_SIMILARITY_GROUP`: advisory grouping and authority boundary.
 - `CURRENT_VERIFIED_STATE` and `ACTIVE_GAP`.
@@ -61,4 +61,4 @@ Operator steering always wins, but stale transcript tail does not outrank canoni
 
 ## Current improvement
 
-The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes both `PROJECT_INFRA` and `PROJECT_ARCHITECTURE` so the model does not infer architecture from folder names alone. Machine-readable choreography edges are available at `docs/current/focusa-tool-choreography.json` and `GET /v1/ontology/tool-choreography`.
+The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes both `PROJECT_INFRA` and `PROJECT_ARCHITECTURE` so the model does not infer architecture from folder names alone. Machine-readable choreography edges are available at `docs/current/focusa-tool-choreography.json` and `GET /v1/ontology/tool-choreography`; live choreography can weight edges using evaluated prediction evidence.

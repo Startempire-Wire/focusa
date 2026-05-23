@@ -49,7 +49,7 @@ run_json snapshot_recent '.snapshots != null' "$CLI" state snapshot recent --lim
 run_json snapshot_compare_latest '.status != null or .checksum_changed != null or .created != null' "$CLI" state snapshot compare-latest --snapshot-reason "cli-smoke" --json
 PREDICT_RECORD_OUT="$TMP_DIR/predict_record.json"
 PREDICT_RECORD_ERR="$PREDICT_RECORD_OUT.err"
-if "$CLI" predict record --prediction-type smoke --predicted-outcome "safe smoke succeeds" --confidence 0.8 --recommended-action "continue smoke" --why "safe fixture prediction for CLI parity" --context-refs "$KEY" --json >"$PREDICT_RECORD_OUT" 2>"$PREDICT_RECORD_ERR" \
+if "$CLI" predict record --prediction-type smoke --predicted-outcome "safe smoke succeeds" --confidence 0.8 --recommended-action "continue smoke" --why "safe fixture prediction for CLI parity" --context-refs "$KEY,tool_edge:focusa_project_identity->focusa_trajectory_view" --json >"$PREDICT_RECORD_OUT" 2>"$PREDICT_RECORD_ERR" \
   && jq -e '.status == "recorded" and .prediction.prediction_id != null' "$PREDICT_RECORD_OUT" >/dev/null 2>&1; then
   pass predict_record
   PREDICTION_ID="$(jq -r '.prediction.prediction_id' "$PREDICT_RECORD_OUT")"
@@ -57,6 +57,7 @@ if "$CLI" predict record --prediction-type smoke --predicted-outcome "safe smoke
 else
   fail predict_record "$(tail -c 400 "$PREDICT_RECORD_ERR" 2>/dev/null) $(tail -c 600 "$PREDICT_RECORD_OUT" 2>/dev/null)"
 fi
+run_json tool_choreography_dynamic '.runtime_weight_adjustments | map(select(.edge == "focusa_project_identity->focusa_trajectory_view" and .samples >= 1)) | length >= 1' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-choreography
 run_json predict_recent '.predictions != null or .items != null or .total != null' "$CLI" predict recent --limit 1 --json
 run_json predict_stats '.status != null or .stats != null or .prediction_count != null or .total_predictions != null' "$CLI" predict stats --json
 

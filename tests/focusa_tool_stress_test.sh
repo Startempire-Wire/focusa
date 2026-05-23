@@ -3,9 +3,14 @@
 set -euo pipefail
 BASE="${FOCUSA_BASE:-http://127.0.0.1:8787/v1}"
 WRITER_ID="${FOCUSA_STRESS_WRITER_ID:-focusa-tool-stress}"
+REQUEST_TIMEOUT="${FOCUSA_STRESS_TIMEOUT:-20}"
 FAILED=0; PASSED=0
 TMP_DIR="${TMPDIR:-/tmp}/focusa-tool-stress-$$"
 mkdir -p "$TMP_DIR"
+for _ in $(seq 1 30); do
+  if curl -fsS -m 3 "$BASE/health" >/dev/null 2>&1; then break; fi
+  sleep 1
+done
 ACTIVE_WRITER=$(curl -sS -m 3 "$BASE/work-loop/status" 2>/dev/null | jq -r '.active_writer // empty' 2>/dev/null || true)
 if [[ -n "$ACTIVE_WRITER" ]]; then WRITER_ID="$ACTIVE_WRITER"; fi
 
@@ -15,11 +20,14 @@ request(){
   local method="$1" path="$2" body="${3:-}" out="$4"
   local code
   if [[ -n "$body" ]]; then
-    code=$(curl -sS -m 8 -o "$out" -w '%{http_code}' -X "$method" "$BASE$path" -H 'content-type: application/json' -H "x-focusa-writer-id: $WRITER_ID" -d "$body" || true)
+    code=$(curl -sS -m "$REQUEST_TIMEOUT" -o "$out" -w '%{http_code}' -X "$method" "$BASE$path" -H 'content-type: application/json' -H "x-focusa-writer-id: $WRITER_ID" -d "$body" || true)
   else
-    code=$(curl -sS -m 8 -o "$out" -w '%{http_code}' -X "$method" "$BASE$path" -H "x-focusa-writer-id: $WRITER_ID" || true)
+    code=$(curl -sS -m "$REQUEST_TIMEOUT" -o "$out" -w '%{http_code}' -X "$method" "$BASE$path" -H "x-focusa-writer-id: $WRITER_ID" || true)
   fi
-  [[ "$code" =~ ^2 ]] || { echo "HTTP $code" >> "$out"; return 1; }
+  if ! [[ "$code" =~ ^2 ]]; then
+    jq empty "$out" >/dev/null 2>&1 || echo "HTTP $code" >> "$out"
+    return 1
+  fi
   jq empty "$out" >/dev/null 2>&1 || { echo "invalid json" >> "$out"; return 1; }
 }
 assert_req(){
@@ -46,7 +54,7 @@ wait_for_workpoint_visible(){
 
 KEY="stress-$(date +%s)-$$"
 PROJECT_ROOT="${FOCUSA_STRESS_PROJECT_ROOT:-$(pwd -P)}"
-CONTINUITY_ID="${FOCUSA_STRESS_CONTINUITY_ID:-focusa-tool-stress}"
+CONTINUITY_ID="${FOCUSA_STRESS_CONTINUITY_ID:-focusa-tool-stress-$KEY}"
 
 # Core health/session/focus state writes
 assert_req health GET /health '' '.ok == true'

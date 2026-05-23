@@ -11,9 +11,9 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Added friendly Focusa onboarding Q plus tool choreography routes so models favor project identity → trajectory → Workpoint → evidence → prediction/metacog over note-only workflows.
 - Added implementation-to-spec audit coverage and filled CLI/contract gaps for Focus State updates, scoped Workpoint commands, metacog recent reads, lineage extract, and snapshot parity.
 - Added model-visible awareness documentation and per-call `PROJECT_INFRA`/`PROJECT_ARCHITECTURE` trajectory context so agents see project folder, continuity, canonical name, repo, workspace kind, stack/key dirs, deploy/docs/tests, and architecture-boundary guidance.
-- Added machine-readable tool choreography registry/API with exact per-tool next-tool routes for all 58 tools.
-- Reworded context-pressure warnings to reflect Focusa preserving scoped anchors; warnings now point to Workpoint checkpoint/resume and treat `/fork`/handoff as optional UI-isolation paths.
-- Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes.
+- Added machine-readable tool choreography registry/API with exact per-tool next-tool routes for all 58 tools, plus live dynamic weights from evaluated prediction evidence.
+- Reworded context-pressure warnings to reflect Focusa preserving scoped anchors; warnings now point to Workpoint checkpoint/resume and treat `/fork`/handoff as optional UI-isolation paths, with runtime copy guard coverage.
+- Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes; added bounded parallel-load regression coverage.
 - Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction record/evaluate/read paths.
 
 ## Unreleased — Spec93 release publication proof

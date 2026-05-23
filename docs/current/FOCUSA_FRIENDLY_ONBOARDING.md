@@ -65,7 +65,7 @@ project_identity → trajectory_view → workpoint_resume/checkpoint → evidenc
 
 ## Model-visible fallback
 
-The context hook now injects a compact Project/Trajectory/Architecture fallback card even when the scoped Focus frame is missing or trajectory lookup is degraded. This keeps the friendly Q helpful without blocking work. Unsafe broad roots still withhold architecture facts until project identity is verified.
+The context hook now injects a compact Project/Trajectory/Architecture fallback card even when the scoped Focus frame is missing or trajectory lookup is degraded. The architecture digest includes confidence and evidence refs from manifests/docs/tests/service files. This keeps the friendly Q helpful without blocking work. Unsafe broad roots still withhold architecture facts until project identity is verified.
 
 ## Minimal friendly startup copy
 

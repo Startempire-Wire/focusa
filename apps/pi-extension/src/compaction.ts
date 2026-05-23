@@ -174,6 +174,15 @@ export function isFocusaContextContinuityHealthy(): boolean {
   return Boolean(S.focusaAvailable && String(continuityId || "").trim() && noDegradedWorkpoint);
 }
 
+export type ContextPressureWarningKind = "auto_suggest" | "hard_unconfirmed" | "handoff_unconfirmed";
+
+export function contextPressureWarningCopy(kind: ContextPressureWarningKind, pct: number, totalCompactions = S.totalCompactions): string {
+  const pctLabel = Number.isFinite(pct) ? pct.toFixed(0) : "unknown";
+  if (kind === "auto_suggest") return `💡 Context at ${pctLabel}% — Focusa anchors are unconfirmed; checkpoint/resume Workpoint, /fork optional for UI isolation`;
+  if (kind === "hard_unconfirmed") return `⚠️ Context ${pctLabel}% — Focusa will try checkpointed compaction; scoped Workpoint anchor not yet confirmed`;
+  return `💡 ${totalCompactions} compactions with unconfirmed Workpoint anchor — resume/checkpoint Workpoint; handoff optional`;
+}
+
 export function contextTierLabel(tier: "" | "warn" | "auto" | "hard"): string {
   if (tier === "warn") return "monitor";
   if (tier === "auto") return "compacting";
@@ -465,17 +474,17 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
   // §18: autoSuggestForkPct — generic fork/new guidance is only actionable when scoped Focusa anchors are unconfirmed.
   if (pct >= cfg.autoSuggestForkPct && !S.forkSuggested && !focusaContinuityReady) {
     S.forkSuggested = true;
-    ctx.ui.notify(`💡 Context at ${pct.toFixed(0)}% — Focusa anchors are unconfirmed; checkpoint/resume Workpoint, /fork optional for UI isolation`, "warning");
+    ctx.ui.notify(contextPressureWarningCopy("auto_suggest", pct), "warning");
   }
 
   if (pct >= cfg.hardPct) {
     S.currentTier = "hard";
     setContextStatus(ctx, "hard", pct, focusaContinuityReady);
     if (!focusaContinuityReady) {
-      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — Focusa will try checkpointed compaction; scoped Workpoint anchor not yet confirmed`, "warning");
+      ctx.ui.notify(contextPressureWarningCopy("hard_unconfirmed", pct), "warning");
       // §18: Suggest handoff after N compactions only when Workpoint continuity is not healthy.
       if (S.totalCompactions >= cfg.autoSuggestHandoffAfterNCompactions) {
-        ctx.ui.notify(`💡 ${S.totalCompactions} compactions with unconfirmed Workpoint anchor — resume/checkpoint Workpoint; handoff optional`, "warning");
+        ctx.ui.notify(contextPressureWarningCopy("handoff_unconfirmed", pct, S.totalCompactions), "warning");
       }
     }
     if (S.focusaAvailable) {

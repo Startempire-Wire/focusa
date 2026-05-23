@@ -35,4 +35,5 @@ else
   exit 1
 fi
 
+node "${ROOT_DIR}/tests/spec96_context_pressure_warning_copy_runtime_test.mjs"
 echo "SPEC96 Focusa-aware context-pressure static test: PASS"

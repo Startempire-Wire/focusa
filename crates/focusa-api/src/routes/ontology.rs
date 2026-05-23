@@ -8351,13 +8351,155 @@ async fn tool_contracts() -> Json<Value> {
     Json(registry)
 }
 
+fn tool_choreography_prediction_store_path() -> PathBuf {
+    if let Some(home) = std::env::var_os("FOCUSA_HOME") {
+        return PathBuf::from(home).join("data/spec92_predictions.json");
+    }
+    if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
+        return PathBuf::from(data_home).join("focusa/spec92_predictions.json");
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        return PathBuf::from(home).join(".local/share/focusa/spec92_predictions.json");
+    }
+    std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("data/spec92_predictions.json")
+}
+
+fn read_tool_choreography_predictions() -> Vec<Value> {
+    fs::read_to_string(tool_choreography_prediction_store_path())
+        .ok()
+        .and_then(|text| serde_json::from_str::<Vec<Value>>(&text).ok())
+        .unwrap_or_default()
+}
+
+fn parse_tool_edge_ref(raw: &str) -> Option<(String, String)> {
+    let value = raw.trim().strip_prefix("tool_edge:").unwrap_or(raw.trim());
+    let (from, to) = value.split_once("->")?;
+    let from = from.trim().to_string();
+    let to = to.trim().to_string();
+    if from.starts_with("focusa_") && to.starts_with("focusa_") {
+        Some((from, to))
+    } else {
+        None
+    }
+}
+
+fn dynamic_choreography_adjustments(registry: &Value) -> Vec<Value> {
+    let mut known_edges = BTreeSet::new();
+    for edge in registry
+        .get("edges")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        if let (Some(from), Some(to)) = (
+            edge.get("from").and_then(Value::as_str),
+            edge.get("to").and_then(Value::as_str),
+        ) {
+            known_edges.insert((from.to_string(), to.to_string()));
+        }
+    }
+    let mut stats: BTreeMap<(String, String), (usize, f64)> = BTreeMap::new();
+    for prediction in read_tool_choreography_predictions() {
+        let Some(score) = prediction.get("score").and_then(Value::as_f64) else {
+            continue;
+        };
+        let Some(refs) = prediction.get("context_refs").and_then(Value::as_array) else {
+            continue;
+        };
+        for reference in refs.iter().filter_map(Value::as_str) {
+            let Some(edge) = parse_tool_edge_ref(reference) else {
+                continue;
+            };
+            if !known_edges.contains(&edge) {
+                continue;
+            }
+            let entry = stats.entry(edge).or_insert((0, 0.0));
+            entry.0 += 1;
+            entry.1 += score.clamp(0.0, 1.0);
+        }
+    }
+    stats
+        .into_iter()
+        .map(|((from, to), (samples, score_sum))| {
+            let average_score = if samples > 0 {
+                score_sum / samples as f64
+            } else {
+                0.0
+            };
+            let multiplier = (0.75 + average_score * 0.5).clamp(0.75, 1.25);
+            json!({
+                "edge": format!("{}->{}", from, to),
+                "from": from,
+                "to": to,
+                "samples": samples,
+                "average_score": (average_score * 1000.0).round() / 1000.0,
+                "weight_multiplier": (multiplier * 1000.0).round() / 1000.0,
+                "source": "evaluated_predictions",
+            })
+        })
+        .collect()
+}
+
+fn apply_dynamic_choreography_weights(registry: &mut Value) {
+    let adjustments = dynamic_choreography_adjustments(registry);
+    let effective_edges = if adjustments.is_empty() {
+        Vec::new()
+    } else {
+        let multipliers: BTreeMap<String, f64> = adjustments
+            .iter()
+            .filter_map(|item| {
+                Some((
+                    item.get("edge")?.as_str()?.to_string(),
+                    item.get("weight_multiplier")?.as_f64()?,
+                ))
+            })
+            .collect();
+        registry
+            .get("edges")
+            .and_then(Value::as_array)
+            .map(|edges| {
+                edges
+                    .iter()
+                    .map(|edge| {
+                        let mut next = edge.clone();
+                        let key = format!(
+                            "{}->{}",
+                            edge.get("from").and_then(Value::as_str).unwrap_or(""),
+                            edge.get("to").and_then(Value::as_str).unwrap_or("")
+                        );
+                        if let Some(multiplier) = multipliers.get(&key) {
+                            let base = edge.get("weight").and_then(Value::as_f64).unwrap_or(1.0);
+                            next["base_weight"] = json!(base);
+                            next["dynamic_multiplier"] = json!(multiplier);
+                            next["weight"] = json!(((base * multiplier) * 1000.0).round() / 1000.0);
+                        }
+                        next
+                    })
+                    .collect::<Vec<Value>>()
+            })
+            .unwrap_or_default()
+    };
+    if let Some(object) = registry.as_object_mut() {
+        object.insert(
+            "runtime_weight_adjustments".to_string(),
+            Value::Array(adjustments),
+        );
+        if !effective_edges.is_empty() {
+            object.insert("effective_edges".to_string(), Value::Array(effective_edges));
+        }
+    }
+}
+
 async fn tool_choreography() -> Json<Value> {
-    let registry: Value = serde_json::from_str(include_str!(
+    let mut registry: Value = serde_json::from_str(include_str!(
         "../../../../docs/current/focusa-tool-choreography.json"
     ))
     .unwrap_or_else(
         |err| json!({"error":"invalid tool choreography registry","details":err.to_string()}),
     );
+    apply_dynamic_choreography_weights(&mut registry);
     Json(registry)
 }
 
