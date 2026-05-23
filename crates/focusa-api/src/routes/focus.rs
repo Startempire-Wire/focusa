@@ -84,7 +84,7 @@ fn frame_matches_project_root(frame: &FrameRecord, project_root: Option<&str>) -
             == Some(expected.as_str())
 }
 
-fn unsafe_scope_response(reason: &'static str, value: Option<&str>) -> serde_json::Value {
+fn unsafe_project_root_response(reason: &'static str, value: Option<&str>) -> serde_json::Value {
     json!({
         "status": "rejected_unsafe_project_root",
         "canonical": false,
@@ -92,7 +92,7 @@ fn unsafe_scope_response(reason: &'static str, value: Option<&str>) -> serde_jso
         "unsafe_reason": reason,
         "project_root": value,
         "retry_posture": "do_not_retry_unchanged",
-        "safe_recovery": "use an exact project/repo root before creating or reading scoped Focus frames",
+        "safe_recovery": "use an exact project folder/root before creating or reading project-bound Focus frames",
     })
 }
 
@@ -185,7 +185,7 @@ async fn get_stack(
             "cold_full_payload_opt_in": false,
         },
         "rehydrate_refs": [
-            {"route":"/v1/focus/frame/current", "reason":"active scoped frame"},
+            {"route":"/v1/focus/frame/current", "reason":"active project-bound frame"},
             {"tool":"focusa_traverse", "surface":"focus_stack", "selector":"window"}
         ]
     }))
@@ -364,7 +364,7 @@ async fn push_frame(
     if let Some(project_root) = body.project_root.as_deref()
         && let Some(reason) = unsafe_project_root_reason(Some(project_root))
     {
-        return Ok(Json(unsafe_scope_response(reason, Some(project_root))));
+        return Ok(Json(unsafe_project_root_response(reason, Some(project_root))));
     }
 
     let beads_issue_id = body.beads_issue_id.unwrap_or_default();
@@ -636,7 +636,7 @@ async fn update_delta(
         if let Some(frame) = target
             && let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref())
         {
-            return Ok(Json(unsafe_scope_response(
+            return Ok(Json(unsafe_project_root_response(
                 reason,
                 frame.project_root.as_deref(),
             )));

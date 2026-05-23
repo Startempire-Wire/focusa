@@ -76,7 +76,7 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
         .and_then(|r| r.next_slice.as_deref())
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .unwrap_or("Fetch or create a scoped Workpoint before risky continuation.");
+        .unwrap_or("Fetch or create a project-bound Workpoint before risky continuation.");
     let project_root = clean(query.project_root.as_deref())
         .or_else(|| record.and_then(|r| r.project_root.clone()))
         .unwrap_or_else(|| {
@@ -94,17 +94,17 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
     let canonical = record.map(|r| r.canonical).unwrap_or(false);
     [
         "# Focusa Utility Card".to_string(),
-        format!("Status: available{}", if canonical { " / scoped Workpoint found" } else { " / no scoped Workpoint found" }),
+        format!("Status: available{}", if canonical { " / project-bound Workpoint found" } else { " / no project-bound Workpoint found" }),
         format!("Agent: adapter={adapter} workspace={workspace} agent={agent} operator={operator}"),
         format!("Mission: {mission}"),
         format!("Next anchor: {next}"),
-        format!("Scope: project_root={project_root}; continuity_id={continuity}; session_id={session} (temporal metadata)"),
+        format!("Project folder: project_root={project_root}; continuity_id={continuity}; session_id={session} (temporal metadata)"),
         "Trajectory: call /v1/trajectory/view before choosing work; high/mid/low similarity is advisory only and must_not_merge_sessions=true.".to_string(),
         String::new(),
         "Use Focusa as agent working memory and governance:".to_string(),
         "- First when uncertain/degraded: call /v1/doctor or run `focusa doctor --json`.".to_string(),
         "- On project start/resume: read /v1/trajectory/view for high/mid/low goals, gap, evidence, and drift boundaries.".to_string(),
-        "- Before compaction/model switch/fork/risky continuation: checkpoint a scoped Workpoint.".to_string(),
+        "- Before compaction/model switch/fork/risky continuation: checkpoint a project-bound Workpoint.".to_string(),
         "- After compaction/reload/resume: fetch Workpoint resume; do not trust transcript tail over Workpoint.".to_string(),
         "- After proof/tests/API/file evidence: capture or link evidence to the active Workpoint.".to_string(),
         "- Before risky or uncertain next action: record a prediction; after outcome: evaluate it.".to_string(),
@@ -167,7 +167,7 @@ mod tests {
             "/v1/doctor",
             "/v1/trajectory/view",
             "must_not_merge_sessions=true",
-            "checkpoint a scoped Workpoint",
+            "checkpoint a project-bound Workpoint",
             "fetch Workpoint resume",
             "capture or link evidence",
             "record a prediction",

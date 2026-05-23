@@ -194,7 +194,7 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
     }
 }
 
-fn unsafe_scope_rejection(record: &WorkpointRecord, reason: &'static str, expected_project_root: Option<&str>) -> Value {
+fn unsafe_project_root_rejection(record: &WorkpointRecord, reason: &'static str, expected_project_root: Option<&str>) -> Value {
     json!({
         "status": "rejected_unsafe_project_root",
         "canonical": false,
@@ -269,7 +269,7 @@ fn evaluate_resume_scope(
     };
     if let Some(reason) = unsafe_project_root_reason(expected_project_root.or(record.project_root.as_deref())) {
         decision.canonical_scope_ok = false;
-        decision.rejection = Some(unsafe_scope_rejection(record, reason, expected_project_root));
+        decision.rejection = Some(unsafe_project_root_rejection(record, reason, expected_project_root));
         return decision;
     }
 
@@ -1385,7 +1385,7 @@ fn workpoint_identity_axes_payload(record: &WorkpointRecord, canonical: bool) ->
         "projection_kind": "workpoint_identity_axes_v1",
         "authority_gate": "project_root_plus_continuity_id",
         "advisory_only": true,
-        "project": {"project_root": record.project_root, "authority_role": "project_folder_boundary", "legacy_authority_role": "scope_boundary"},
+        "project": {"project_root": record.project_root, "authority_role": "project_folder_boundary"},
         "logical_workstream": {"continuity_id": record.continuity_id, "authority_role": "logical_session_boundary"},
         "adapter_session": {"session_id": record.session_id, "authority_role": "temporal_metadata_only"},
         "workpoint_continuation_card": {
@@ -2276,7 +2276,7 @@ mod tests {
     }
 
     #[test]
-    fn workpoint_packet_includes_project_root_for_scope_guard() {
+    fn workpoint_packet_includes_project_root_for_project_folder_guard() {
         let record = WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
             session_id: Some("session-a".to_string()),

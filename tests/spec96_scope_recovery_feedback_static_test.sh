@@ -32,7 +32,7 @@ else
   fail "Stale frame write feedback lacks continuity recovery guidance"
 fi
 
-if rg -n 'project_root: Type.Optional\(Type.String\(\{ description: "Explicit safe project/repo root; use after compaction if Pi cwd is broad like /root\."' "$TOOLS" >/dev/null \
+if rg -n 'project_root: Type.Optional\(Type.String\(\{ description: "Explicit safe project folder/root; use after compaction if Pi cwd is broad like /root\."' "$TOOLS" >/dev/null \
   && rg -n 'enforceTrajectoryClarityPrecondition\(projectRoot, "workpoint evidence link", \{ blockOperatorInput: false, continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
   && rg -n 'buildFocusaSessionIdentity\(projectRoot, "manual", \{ continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
   && rg -n 'cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd' "$STATE" >/dev/null; then

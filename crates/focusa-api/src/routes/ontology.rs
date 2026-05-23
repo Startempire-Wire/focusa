@@ -6250,7 +6250,6 @@ fn ontology_identity_axes_payload(
             "project": {
                 "project_root": project_root,
                 "authority_role": "project_folder_boundary",
-                "legacy_authority_role": "scope_boundary",
                 "rehydrate": {"tool":"focusa_trajectory_view"},
             },
             "logical_workstream": {
@@ -6270,7 +6269,7 @@ fn ontology_identity_axes_payload(
             "workpoint_continuation_card": workpoint_card,
         },
         "aliases": [
-            {"label":"project_root", "maps_to":"identity_axes.project.project_root", "authority":"project_folder_boundary", "legacy_authority":"scope_boundary"},
+            {"label":"project_root", "maps_to":"identity_axes.project.project_root", "authority":"project_folder_boundary"},
             {"label":"continuity_id", "maps_to":"identity_axes.logical_workstream.continuity_id", "authority":"logical_session_boundary"},
             {"label":"daemon_session_id", "maps_to":"identity_axes.daemon_session.daemon_session_id", "authority":"runtime_metadata"},
             {"label":"session_id", "maps_to":"identity_axes.adapter_session.session_id", "authority":"temporal_metadata_only"},

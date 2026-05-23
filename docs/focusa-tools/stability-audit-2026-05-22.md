@@ -102,3 +102,14 @@ This makes project-root accuracy a daemon-enforced authority boundary, not only 
 ## Navigation metaphor correction
 
 Operator clarification: `project_root` is the project folder/container holding related files. As a metaphor, it is the vessel or hull: a better-confirmed vessel improves navigation/travel reliability, but it is not the route or destination. Focusa Trajectory carries the navigation model: current functional state, desired destination/outcome, and waypoint goals. Utility Cards should require both: confirmed project folder plus clear trajectory.
+
+## Final project-root terminology/core pass
+
+Accuracy pass after operator clarification:
+
+- `project_root` is now described in active docs and agent-facing surfaces as the project folder/container holding related project files.
+- Trajectory remains the functional navigation model: current state, desired outcome/destination, and waypoint goals.
+- API Awareness cards, Pi Utility Cards, CLI awareness help, OpenClaw awareness plugin text, Focus frame recovery text, Workpoint/ProjectIdentity docs, and tool prompts now avoid using `scope` as the public label for `project_root`.
+- ProjectIdentity broad-root status now reports `unsafe_project_root` instead of `unsafe_scope`.
+- Ontology/Workpoint identity axes use `project_folder_boundary` as the authority role.
+- `scope_mismatch` remains only as the backward-compatible failure-class taxonomy for project/continuity context mismatches.

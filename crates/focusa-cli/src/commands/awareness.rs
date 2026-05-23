@@ -18,13 +18,13 @@ pub enum AwarenessCmd {
         /// Operator id, e.g. verious.smith.
         #[arg(long)]
         operator_id: Option<String>,
-        /// Harness/session id for scoped Workpoint lookup (temporal metadata).
+        /// Harness/session id for project-bound Workpoint lookup (temporal metadata).
         #[arg(long)]
         session_id: Option<String>,
-        /// Stable logical session/workstream id for scoped Workpoint lookup.
+        /// Stable logical session/workstream id for project-bound Workpoint lookup.
         #[arg(long)]
         continuity_id: Option<String>,
-        /// Project/workspace root for scoped Workpoint lookup.
+        /// Project/workspace root for project-bound Workpoint lookup.
         #[arg(long)]
         project_root: Option<String>,
     },

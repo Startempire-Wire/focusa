@@ -76,7 +76,7 @@ else
   exit 1
 fi
 
-if rg -n 'unsafe_scope|broad_root_never_verifies_as_project_identity|project_root_authority' "$PROJECT" >/dev/null; then
+if rg -n 'unsafe_project_root|broad_root_never_verifies_as_project_identity|project_root_authority' "$PROJECT" >/dev/null; then
   echo "✓ PASS: ProjectIdentity never verifies unsafe broad roots"
 else
   echo "✗ FAIL: ProjectIdentity can still verify broad roots" >&2

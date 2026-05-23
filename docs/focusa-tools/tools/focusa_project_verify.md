@@ -5,13 +5,13 @@
 
 ## Purpose
 
-Verify expected ProjectIdentity fields and surface scope mismatches without mutating Focusa state.
+Verify expected ProjectIdentity fields and surface project mismatches without mutating Focusa state.
 
 ## When to use
 
 - Before treating a packet as canonical after compaction/model switch/session resume.
 - When operator supplied an expected project root, id, name, or remote.
-- When Focusa reports `scope_mismatch`, `read_model_lag`, or degraded ProjectIdentity.
+- When Focusa reports `scope_mismatch`, `read_model_lag`, or degraded ProjectIdentity. (`scope_mismatch` is the legacy failure-class name for project/continuity context mismatch.)
 
 ## Parameters
 

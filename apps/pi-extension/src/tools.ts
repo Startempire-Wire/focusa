@@ -2078,7 +2078,7 @@ export function registerTools(pi: ExtensionAPI) {
       result: Type.String({ description: "Bounded result summary." }),
       evidence_ref: Type.String({ description: "Stable evidence handle/path/test id." }),
       workpoint_id: Type.Optional(Type.String({ description: "Specific Workpoint id; omit to use active Workpoint." })),
-      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; use after compaction if Pi cwd is broad like /root." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project folder/root; use after compaction if Pi cwd is broad like /root." })),
       session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
       continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi continuity id." })),
       attach_to_workpoint: Type.Optional(Type.Boolean({ description: "Defaults true." })),
@@ -2123,11 +2123,11 @@ export function registerTools(pi: ExtensionAPI) {
       verified_evidence: Type.Optional(Type.Array(Type.String(), { description: "Short evidence refs/results already verified; use handles, not raw logs." })),
       blockers: Type.Optional(Type.Array(Type.String(), { description: "Open blockers or drift boundaries." })),
       next_action: Type.String({ description: "Exact bounded next action to resume after compact/retry." }),
-      do_not_drift: Type.Optional(Type.Array(Type.String(), { description: "Actions/scope the next agent must not drift into." })),
+      do_not_drift: Type.Optional(Type.Array(Type.String(), { description: "Actions/areas the next agent must not drift into." })),
       source_turn_id: Type.Optional(Type.String({ description: "Pi/source turn id for provenance." })),
       idempotency_key: Type.Optional(Type.String({ description: "Optional external idempotency key." })),
       canonical: Type.Optional(Type.Boolean({ description: "False only for degraded fallback packets." })),
-      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; defaults to Pi session cwd when that cwd is safe." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project folder/root; defaults to Pi session cwd when that cwd is safe." })),
     }),
     promptGuidelines: [
       "Use before /compact, model switches, session repair, and when context feels near limit.",
@@ -2146,7 +2146,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootGate) return projectRootGate;
       if (p.canonical !== false && !isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
-        return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into a specific project/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
+        return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into the specific project folder/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
       }
       const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, p.checkpoint_reason === "before_compact" ? "compaction" : "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
       const clarity = p.canonical === false ? { ok: true, details: { skipped: true, reason: "noncanonical_workpoint" } } : await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint checkpoint", { blockOperatorInput: true, continuityId: p.continuity_id, sessionId: p.session_id });
@@ -2206,7 +2206,7 @@ export function registerTools(pi: ExtensionAPI) {
       target_ref: Type.String({ description: "Object/file/test/endpoint/work item the evidence verifies." }),
       result: Type.String({ description: "Bounded verification result summary." }),
       evidence_ref: Type.Optional(Type.String({ description: "Stable evidence handle, file path, test id, or artifact ref." })),
-      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; use after compaction if Pi cwd is broad like /root." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project folder/root; use after compaction if Pi cwd is broad like /root." })),
       session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
       continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi continuity id." })),
       attach_to_workpoint: Type.Optional(Type.Boolean({ description: "Defaults true; false returns blocked/no-op guidance without linking." })),
@@ -2250,7 +2250,7 @@ export function registerTools(pi: ExtensionAPI) {
       continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi session continuity id." })),
       session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
       mode: Type.Optional(Type.String({ description: "compact_prompt|full_json|operator_summary" })),
-      project_root: Type.Optional(Type.String({ description: "Explicit safe project/repo root; defaults to Pi session cwd when that cwd is safe." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit safe project folder/root; defaults to Pi session cwd when that cwd is safe." })),
     }),
     promptGuidelines: [
       "Use immediately after compaction or session resume before choosing next work.",

@@ -351,7 +351,7 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         "low"
     };
     let status = if unsafe_reason.is_some() {
-        "unsafe_scope"
+        "unsafe_project_root"
     } else if !mismatches.is_empty() {
         "mismatch"
     } else if matching_independent >= 2 {
@@ -439,8 +439,8 @@ fn candidate_payload(candidate: IdentityCandidate, expected: Option<&ProjectVeri
     let verified = candidate.status == "verified" && mismatches.is_empty() && unsafe_project_root_reason(&candidate.project_root).is_none();
     let canonical = verified && candidate.confidence == "high";
     let status = if mismatches.is_empty() { "completed" } else { "degraded" };
-    let identity_status = if candidate.status == "unsafe_scope" {
-        "unsafe_scope"
+    let identity_status = if candidate.status == "unsafe_project_root" {
+        "unsafe_project_root"
     } else if mismatches.is_empty() {
         candidate.status
     } else {
@@ -553,11 +553,11 @@ mod tests {
     #[test]
     fn broad_root_never_verifies_as_project_identity() {
         let candidate = discover_identity(Some("/root"), Some("/root"));
-        assert_eq!(candidate.status, "unsafe_scope");
+        assert_eq!(candidate.status, "unsafe_project_root");
         assert_eq!(candidate.confidence, "low");
         assert!(candidate.mismatches.iter().any(|item| item.get("source").and_then(Value::as_str) == Some("project_root_authority")));
         let payload = candidate_payload(candidate, None);
-        assert_eq!(payload.pointer("/project_identity/status").and_then(Value::as_str), Some("unsafe_scope"));
+        assert_eq!(payload.pointer("/project_identity/status").and_then(Value::as_str), Some("unsafe_project_root"));
         assert_eq!(payload.pointer("/details/tool_result_v1/failure_class").and_then(Value::as_str), Some("scope_mismatch"));
     }
 }

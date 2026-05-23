@@ -1390,7 +1390,7 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
 };
 
 const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
-  focus_state: ["bounded text fields", "active scoped Focus Frame"],
+  focus_state: ["bounded text fields", "active project-bound Focus Frame"],
   workpoint: ["project_root", "continuity_id", "mode=compact_prompt|summary"],
   work_loop: ["preflight=true before control", "active writer status"],
   metacognition: ["current_ask", "scope_tags", "evidence_refs when available"],
