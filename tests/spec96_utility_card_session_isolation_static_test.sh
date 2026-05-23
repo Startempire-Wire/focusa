@@ -22,6 +22,13 @@ else
   exit 1
 fi
 
+if rg -n 'resolvePiProjectRoot|adoptPiProjectRoot|\.focusa-project\.json|\.beads|\.git' "$STATE" "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null && bash "${ROOT_DIR}/tests/pi_project_root_inference_test.sh"; then
+  echo "✓ PASS: Pi infers safe project root instead of broad cwd when evidence exists"
+else
+  echo "✗ FAIL: Pi project-root inference missing or unsafe" >&2
+  exit 1
+fi
+
 if rg -n 'scopedWorkpointForPrompt|Boolean\(getScopedWorkpointPacket\(\)\)|const packet: any = getScopedWorkpointPacket\(\)' "$TURNS" >/dev/null; then
   echo "✓ PASS: Workpoint prompt/Focus Slice injection uses scoped Workpoint guard"
 else

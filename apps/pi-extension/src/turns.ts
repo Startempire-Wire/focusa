@@ -7,7 +7,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -705,8 +705,9 @@ export function registerTurns(pi: ExtensionAPI) {
       updatedAt: Date.now(),
     };
 
+    const projectRoot = adoptPiProjectRoot((_ctx as any)?.cwd);
     if (S.focusaAvailable && S.activeFrameId && !packageUpdateCommand) {
-      await rescopePiFrameFromCurrentAsk((_ctx as any)?.cwd, "pi-post-input-rescope").catch(() => null);
+      await rescopePiFrameFromCurrentAsk(projectRoot, "pi-post-input-rescope").catch(() => null);
       await getFocusState().catch(() => null);
     }
 
@@ -726,7 +727,7 @@ export function registerTurns(pi: ExtensionAPI) {
         }),
       }).catch(() => null);
       if (steeringDetected) {
-        refreshTrajectoryClarityLifecycle("operator_steering", (_ctx as any)?.cwd || S.sessionCwd || process.cwd()).catch(() => null);
+        refreshTrajectoryClarityLifecycle("operator_steering", projectRoot).catch(() => null);
       }
     }
 

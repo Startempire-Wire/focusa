@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -100,13 +100,13 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
 }
 
 async function ensureActiveFrame(ctx: any, sessionId?: string) {
-  return ensurePiFrame(ctx.cwd, sessionId, "pi-auto");
+  return ensurePiFrame(adoptPiProjectRoot(ctx.cwd), sessionId, "pi-auto");
 }
 
 async function ensureFocusaSession(ctx: any) {
   const status = await focusaFetch("/status").catch(() => null);
   if (status?.session?.status === "active") return status.session;
-  const cwd = ctx.cwd || S.sessionCwd || "pi-workspace";
+  const cwd = adoptPiProjectRoot(ctx.cwd || S.sessionCwd || "pi-workspace");
   return focusaFetch("/session/start", {
     method: "POST",
     body: JSON.stringify({
@@ -197,7 +197,7 @@ export function registerSession(pi: ExtensionAPI) {
     S.sessionStartTime = Date.now();
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.sessionFrameKey = eventSessionId;
-    S.sessionCwd = ctx.cwd;
+    S.sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_start");
 
     // §37.5: Check CLI flags FIRST
@@ -240,7 +240,7 @@ export function registerSession(pi: ExtensionAPI) {
           intent: e.data.intent || "",
           currentFocus: e.data.currentFocus || "",
         };
-        adoptPersistedContinuityForSession(e.data, eventSessionId, ctx.cwd);
+        adoptPersistedContinuityForSession(e.data, eventSessionId, adoptPiProjectRoot(ctx.cwd, e.data.activeWorkpointPacket));
         // Explicitly clear stale pollution — do NOT carry across sessions
         S.localConstraints = [];
         S.localFailures = [];
@@ -257,15 +257,16 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
 
-    ensureContinuityId(ctx.cwd);
-    await ensureFocusaSession(ctx);
-    await ensureActiveFrame(ctx, (event as any).sessionId || `pi-session-${Date.now()}`);
+    const projectRoot = adoptPiProjectRoot(ctx.cwd);
+    ensureContinuityId(projectRoot);
+    await ensureFocusaSession({ ...ctx, cwd: projectRoot });
+    await ensureActiveFrame({ ...ctx, cwd: projectRoot }, (event as any).sessionId || `pi-session-${Date.now()}`);
     await refreshSessionWorkpointPacket("session_start");
-    await refreshTrajectoryClarityLifecycle("session_start", ctx.cwd);
+    await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
     if (!S.activeWorkpointPacket) {
       await ensureLowConfidenceWorkpoint("session_start");
       await refreshSessionWorkpointPacket("session_start_low_confidence");
-      await refreshTrajectoryClarityLifecycle("session_start_low_confidence", ctx.cwd);
+      await refreshTrajectoryClarityLifecycle("session_start_low_confidence", projectRoot);
     }
 
     // §35.8: Pi owns the session display name (/name, session selector).
@@ -416,7 +417,7 @@ export function registerSession(pi: ExtensionAPI) {
   pi.on("session_switch", async (event, ctx) => {
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.sessionFrameKey = eventSessionId;
-    S.sessionCwd = ctx.cwd;
+    S.sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_switch");
 
     const switchEntries = (event as any).entries || (ctx as any).sessionManager?.getEntries?.() || [];
@@ -443,21 +444,22 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
-        adoptPersistedContinuityForSession(d, eventSessionId, ctx.cwd);
+        adoptPersistedContinuityForSession(d, eventSessionId, adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket));
         break;
       }
     }
 
     if (!S.wbmEnabled) S.activeFrameId = null;
     if (S.focusaAvailable) {
-      await ensureFocusaSession(ctx);
-      await ensureActiveFrame(ctx, eventSessionId || "unknown");
+      const projectRoot = adoptPiProjectRoot(ctx.cwd);
+      await ensureFocusaSession({ ...ctx, cwd: projectRoot });
+      await ensureActiveFrame({ ...ctx, cwd: projectRoot }, eventSessionId || "unknown");
       await refreshSessionWorkpointPacket("session_switch");
-      await refreshTrajectoryClarityLifecycle("session_resume", ctx.cwd);
+      await refreshTrajectoryClarityLifecycle("session_resume", projectRoot);
       if (!S.activeWorkpointPacket) {
         await ensureLowConfidenceWorkpoint("session_resume");
         await refreshSessionWorkpointPacket("session_switch_low_confidence");
-        await refreshTrajectoryClarityLifecycle("session_resume_low_confidence", ctx.cwd);
+        await refreshTrajectoryClarityLifecycle("session_resume_low_confidence", projectRoot);
       }
     }
   });

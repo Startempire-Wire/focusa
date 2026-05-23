@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -519,7 +519,7 @@ function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuit
 async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
   const explicit = normalizeProjectRoot(explicitProjectRoot);
   if (explicit) return explicit;
-  const sessionRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
+  const sessionRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
   if (isProjectRootAuthoritySafe(sessionRoot)) return sessionRoot;
 
   const localScope = focusaToolWorkpointScope(S.activeWorkpointPacket);
@@ -1643,7 +1643,7 @@ export function registerTools(pi: ExtensionAPI) {
       const resourceMode = resource.body?.resource_mode || {};
       const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
       const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
-      const sessionRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
+      const sessionRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
       const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
       const workpointCanonical = workpoint.body?.canonical === true || workpointStatus === "active";

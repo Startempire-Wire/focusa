@@ -1,6 +1,8 @@
 // Shared state, helpers, types for focusa-pi-bridge
 // Spec: docs/44-pi-focusa-integration-spec.md
 
+import { existsSync } from "fs";
+import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { FocusaConfig } from "./config.js";
 
@@ -1165,6 +1167,45 @@ export function isProjectRootAuthoritySafe(value: unknown): boolean {
   return projectRootAuthorityFailure(value) === null;
 }
 
+function findAncestorProjectRoot(start: string): string | null {
+  let dir = normalizeProjectRoot(resolve(start || "."));
+  const homeProject = /^\/home\/[^/]+\/[^/]+/.exec(dir)?.[0] || null;
+  let markerRoot: string | null = null;
+  let gitRoot: string | null = null;
+  let beadsRoot: string | null = null;
+  let workspaceRoot: string | null = null;
+  while (dir && dir !== "/") {
+    if (isProjectRootAuthoritySafe(dir)) {
+      if (existsSync(join(dir, ".focusa-project.json"))) markerRoot = dir;
+      if (!gitRoot && existsSync(join(dir, ".git"))) gitRoot = dir;
+      if (!beadsRoot && existsSync(join(dir, ".beads"))) beadsRoot = dir;
+      if (!workspaceRoot && (existsSync(join(dir, "Cargo.toml")) || existsSync(join(dir, "package.json"))) && dir === homeProject) workspaceRoot = dir;
+    }
+    const parent = normalizeProjectRoot(dirname(dir));
+    if (!parent || parent === dir) break;
+    dir = parent;
+  }
+  return markerRoot || gitRoot || beadsRoot || workspaceRoot;
+}
+
+export function resolvePiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
+  const explicit = normalizeProjectRoot(cwdInput);
+  if (isProjectRootAuthoritySafe(explicit)) return findAncestorProjectRoot(explicit) || explicit;
+  const sessionRoot = normalizeProjectRoot(S.sessionCwd);
+  if (isProjectRootAuthoritySafe(sessionRoot)) return findAncestorProjectRoot(sessionRoot) || sessionRoot;
+  const packet = persistedPacket?.resume_packet?.workpoint || persistedPacket?.workpoint || persistedPacket || S.activeWorkpointPacket;
+  const packetRoot = normalizeProjectRoot(packet?.project_root);
+  if (isProjectRootAuthoritySafe(packetRoot)) return packetRoot;
+  const inferred = explicit ? findAncestorProjectRoot(explicit) : null;
+  return inferred || explicit || sessionRoot || normalizeProjectRoot(process.cwd());
+}
+
+export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
+  const root = resolvePiProjectRoot(cwdInput, persistedPacket);
+  S.sessionCwd = root;
+  return root;
+}
+
 export function normalizeWorkpointResumePacketEnvelope(packet: any): any | null {
   if (!packet || typeof packet !== "object") return null;
   const base = packet.resume_packet && typeof packet.resume_packet === "object" ? packet.resume_packet : packet;
@@ -1295,7 +1336,7 @@ export function stampWorkpointPacketForCurrentPiSession(packet: any): any {
 
 export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
   if (!packet || typeof packet !== "object") return false;
-  const currentProjectRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
+  const currentProjectRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
   const currentContinuityId = String(S.continuityId || "").trim();
   const currentSessionKey = String(S.sessionFrameKey || "").trim();
   const packetProjectRoot = normalizeProjectRoot(packet.project_root);
