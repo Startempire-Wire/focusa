@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, confirmPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -19,7 +19,7 @@ import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
 let traceBatch: any[] = [];
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
-  const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory");
+  const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory");
   return raw.split(",").map((part) => part.trim()).includes(surface);
 }
 
@@ -52,6 +52,18 @@ async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
     return null;
   }
   ensureContinuityId(confirmed);
+  persistState();
+  if (vitalPromptSurfaceEnabled("project_verify")) {
+    const verify = await focusaFetch("/project/verify", { method: "POST", body: JSON.stringify({ cwd: confirmed, project_root: confirmed }) }).catch(() => null);
+    S.lastProjectVerify = verify || null;
+    persistState();
+    if (verify?.verification?.verified !== true && verify?.canonical !== true) {
+      const status = String(verify?.project_identity?.status || verify?.status || "unknown");
+      ctx.ui.setWidget("focusa-vital", ["🧭 Focusa project verify needed", `project_root=${confirmed}`, `status=${status}; agent turn is scope-limited.`], { placement: "belowEditor" });
+      focusaPost("/telemetry/trace", { event_type: "pi_vital_project_verify_before_agent_failed", payload: { project_root: confirmed, status, session_id: S.sessionFrameKey } });
+      return confirmed;
+    }
+  }
   ctx.ui.setWidget("focusa-vital", undefined);
   ctx.ui.notify(`Focusa project_root confirmed: ${confirmed}`, "info");
   focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_before_agent_confirmed", payload: { project_root: confirmed, session_id: S.sessionFrameKey } });

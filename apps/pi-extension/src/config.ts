@@ -77,7 +77,7 @@ const DEFAULTS: FocusaConfig = {
   hardPct: 85,
   contextStatusMode: "actionable",
   vitalInfoPromptMode: "prompt",
-  vitalInfoPromptSurfaces: "project_root,workpoint,trajectory",
+  vitalInfoPromptSurfaces: "project_root,project_verify,workpoint,trajectory",
   cooldownMs: 180_000,
   maxCompactionsPerHour: 8,
   minTurnsBetweenCompactions: 3,

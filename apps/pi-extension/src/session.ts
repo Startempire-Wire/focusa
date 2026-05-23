@@ -112,6 +112,7 @@ async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, rea
     ctx.ui.notify(`Invalid or unsafe project_root: ${selected || "(blank)"}`, "error");
     return null;
   }
+  persistState();
   ctx.ui.notify(`Focusa project_root confirmed: ${confirmed}`, "info");
   focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_prompt_confirmed", payload: { reason, project_root: confirmed, session_id: S.sessionFrameKey } });
   return confirmed;
@@ -135,6 +136,34 @@ function parseTrajectoryEditor(text: string): { long_term_goal: string; desired_
   };
 }
 
+async function promptForProjectVerifyIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
+  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  if (!vitalPromptSurfaceEnabled("project_verify") || mode === "off" || !isProjectRootAuthoritySafe(projectRoot)) return true;
+  const payload = { cwd: projectRoot, project_root: projectRoot };
+  const res = await focusaFetch("/project/verify", { method: "POST", body: JSON.stringify(payload) }).catch(() => null);
+  S.lastProjectVerify = res || null;
+  persistState();
+  if (res?.verification?.verified === true || res?.canonical === true) {
+    focusaPost("/telemetry/trace", { event_type: "pi_vital_project_verify_passed", payload: { reason, project_root: projectRoot, status: res?.project_identity?.status || res?.status || "verified" } });
+    return true;
+  }
+  const status = String(res?.project_identity?.status || res?.status || "unknown");
+  const recovery = String(res?.verification?.required_recovery || "verify project identity before durable cross-project state writes");
+  ctx.ui.setWidget("focusa-vital", ["🧭 Focusa project verify needed", `project_root=${projectRoot}`, `status=${status}; ${recovery}`], { placement: "belowEditor" });
+  ctx.ui.notify(`Focusa project verify is not clean for ${projectRoot}: ${status}`, "warning");
+  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_verify_failed", payload: { reason, project_root: projectRoot, status, mode } });
+  if (mode === "warn_only" || mode === "notify") return false;
+  const ok = await ctx.ui.confirm(
+    "Focusa project verify needs attention",
+    `Project root is confirmed, but project_verify is ${status}. Continue scope-limited with this project_root?`,
+  );
+  if (ok) {
+    ctx.ui.setWidget("focusa-vital", undefined);
+    focusaPost("/telemetry/trace", { event_type: "pi_vital_project_verify_operator_continue", payload: { reason, project_root: projectRoot, status } });
+  }
+  return ok;
+}
+
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
   if (!vitalPromptSurfaceEnabled("workpoint") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot) || S.activeWorkpointPacket) return false;
@@ -144,6 +173,7 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
   const key = `workpoint:${projectRoot}:${reason}`;
   if (S.vitalInfoPrompted[key]) return false;
   S.vitalInfoPrompted[key] = Date.now();
+  persistState();
   const ok = await ctx.ui.confirm(
     "Focusa Workpoint is missing",
     `No canonical Workpoint packet is bound for ${projectRoot}. Create a low-confidence Workpoint checkpoint from the current mission before continuing?`,
@@ -164,6 +194,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   const key = `trajectory:${projectRoot}:${status}:${action}`;
   if (!unclear || S.vitalInfoPrompted[key]) return;
   S.vitalInfoPrompted[key] = Date.now();
+  persistState();
   const choice = await ctx.ui.select(
     "Focusa trajectory is not set",
     ["Define now", "Seed from current Workpoint/current ask", "Skip for now"],
@@ -196,6 +227,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   if (res?.canonical === true || res?.persisted === true) {
     ctx.ui.notify("Focusa trajectory defined for this project.", "info");
     await refreshTrajectoryClarityLifecycle(`${reason}_trajectory_defined`, projectRoot);
+    persistState();
   } else {
     ctx.ui.notify(`Trajectory define_goal did not persist: ${res?.failure_class || res?.status || "unknown"}`, "warning");
   }
@@ -370,6 +402,10 @@ export function registerSession(pi: ExtensionAPI) {
           intent: e.data.intent || "",
           currentFocus: e.data.currentFocus || "",
         };
+        if (e.data.projectRootResolution) S.lastProjectRootResolution = e.data.projectRootResolution;
+        if (e.data.lastTrajectoryClarity) S.lastTrajectoryClarity = e.data.lastTrajectoryClarity;
+        if (e.data.lastProjectVerify) S.lastProjectVerify = e.data.lastProjectVerify;
+        if (e.data.vitalInfoPrompted) S.vitalInfoPrompted = e.data.vitalInfoPrompted;
         adoptPersistedContinuityForSession(e.data, eventSessionId, adoptPiProjectRoot(ctx.cwd, e.data.activeWorkpointPacket));
         // Explicitly clear stale pollution — do NOT carry across sessions
         S.localConstraints = [];
@@ -394,6 +430,7 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
     ensureContinuityId(projectRoot);
+    await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_start");
     await ensureFocusaSession({ ...ctx, cwd: projectRoot });
     await ensureActiveFrame({ ...ctx, cwd: projectRoot }, (event as any).sessionId || `pi-session-${Date.now()}`);
     await refreshSessionWorkpointPacket("session_start");
@@ -584,6 +621,10 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
+        if (d.projectRootResolution) S.lastProjectRootResolution = d.projectRootResolution;
+        if (d.lastTrajectoryClarity) S.lastTrajectoryClarity = d.lastTrajectoryClarity;
+        if (d.lastProjectVerify) S.lastProjectVerify = d.lastProjectVerify;
+        if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
         adoptPersistedContinuityForSession(d, eventSessionId, adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket));
         break;
       }
@@ -597,6 +638,7 @@ export function registerSession(pi: ExtensionAPI) {
         focusaPost("/telemetry/trace", { event_type: "pi_session_switch_bind_blocked_unconfirmed_project_root", payload: { project_root: detectedProjectRoot, summary: projectRootConfirmationSummary(detectedProjectRoot), session_id: eventSessionId, prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt" } });
         return;
       }
+      await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_resume");
       await ensureFocusaSession({ ...ctx, cwd: projectRoot });
       await ensureActiveFrame({ ...ctx, cwd: projectRoot }, eventSessionId || "unknown");
       await refreshSessionWorkpointPacket("session_switch");
