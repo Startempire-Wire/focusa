@@ -213,10 +213,11 @@ fi
 echo "Test 20: Error handling (404)"
 RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/v1/this-route-does-not-exist")
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-if [ "$HTTP_CODE" = "404" ]; then
-    log_pass "404 returned for unknown route"
+BODY=$(echo "$RESPONSE" | sed '$d')
+if [ "$HTTP_CODE" = "404" ] && echo "$BODY" | jq -e '.failure_class and .recovery_hint and .misuse_hint and (.next_tools | length > 0) and .details.tool_result_v1.recovery_hint' >/dev/null 2>&1; then
+    log_pass "404 returned no-deadend recovery envelope for unknown route"
 else
-    log_fail "404 handling" "Got HTTP $HTTP_CODE"
+    log_fail "404 handling" "Got HTTP $HTTP_CODE body=$BODY"
 fi
 
 # Test 21: Invalid JSON handling

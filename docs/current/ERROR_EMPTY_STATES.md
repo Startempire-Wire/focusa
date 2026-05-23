@@ -13,6 +13,9 @@ Focusa doctor-style CLI/API failures use recovery-first envelopes.
   "what_failed": "Could not connect to Focusa API",
   "likely_why": "daemon down or port unavailable",
   "safe_recovery": "focusa start || systemctl restart focusa-daemon",
+  "recovery_hint": "Run focusa_tool_doctor; if daemon is down, continue from operator/repo context until /v1/health is ok.",
+  "misuse_hint": "Likely wrong route, wrong method, malformed input, auth issue, or daemon/resource pressure.",
+  "next_tools": ["focusa_tool_doctor"],
   "command": "focusa start || systemctl restart focusa-daemon",
   "fallback": "focusa doctor",
   "docs": ["docs/current/ERROR_EMPTY_STATES.md"],
@@ -45,6 +48,9 @@ Non-JSON HTTP errors are wrapped by API middleware with:
 - `what_failed`
 - `likely_why`
 - `safe_recovery`
+- `recovery_hint` / `misuse_hint`
+- `next_tools`
+- `details.tool_result_v1` for no-deadend model recovery
 - `command`
 - `fallback`
 - `docs`
