@@ -53,3 +53,20 @@ Second-pass verification used the same gate set:
 - `bash tests/spec96_stale_focus_frame_validation_static_test.sh`
 - `bash tests/focus_frame_write_contract_test.sh`
 - `node scripts/validate-focusa-tool-contracts.mjs`
+
+## Project-root inference refinement
+
+Operator correction: the Focusa project root must not default to the Pi agent install/root directory or to the Focusa repo itself. The coding agent runtime location and the active project root are separate concepts.
+
+Refinement applied:
+
+- Project root inference is now marker-based and directory-layout agnostic.
+- Markers considered include `.focusa-project.json`, `.git`, `.beads`, and common root-level workspace files (`Cargo.toml`, `package.json`, `pyproject.toml`, `go.mod`, `composer.json`, lock/workspace files).
+- Each inference carries a confidence label and numeric score.
+- Roots below 90% confidence set `requiresOperatorConfirmation=true`; the agent should use an operator menu/interview to select the correct root before Focusa writes.
+- Daemon-global active Workpoint scope is no longer used as a fallback for unrelated `/root` sessions.
+
+Additional verification:
+
+- `bash tests/pi_project_root_inference_test.sh`
+- `bash tests/spec96_utility_card_session_isolation_static_test.sh`

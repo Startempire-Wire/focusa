@@ -91,6 +91,7 @@ export const S = {
   pi: null as ExtensionAPI | null,
   cfg: null as FocusaConfig | null,
   focusaAvailable: false,
+  lastProjectRootResolution: null as null | { projectRoot: string; confidence: "high" | "medium" | "low"; confidenceScore: number; source: string; reason: string; safe: boolean; requiresOperatorConfirmation: boolean; markerScore?: number; markers?: string[]; candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }> },
   activeFrameId: null as string | null,
   activeFramePromise: null as Promise<string | null> | null,
   activeFrameTitle: "" as string,
@@ -1153,13 +1154,13 @@ export function normalizeProjectRoot(value: unknown): string {
   return normalized === "" ? "" : normalized;
 }
 
-const UNSAFE_PROJECT_AUTHORITY_ROOTS = new Set(["/", "/root", "/home", "/tmp", "/var", "/usr", "/opt"]);
+const UNSAFE_PROJECT_AUTHORITY_ROOTS = new Set(["/", "/root", "/home", "/Users", "/tmp", "/var", "/usr", "/opt"]);
 
 export function projectRootAuthorityFailure(value: unknown): string | null {
   const root = normalizeProjectRoot(value);
   if (!root) return "missing_project_root";
   if (UNSAFE_PROJECT_AUTHORITY_ROOTS.has(root)) return "unsafe_broad_project_root";
-  if (/^\/home\/[^/]+$/.test(root)) return "unsafe_user_home_project_root";
+  if (/^\/home\/[^/]+$/.test(root) || /^\/Users\/[^/]+$/.test(root)) return "unsafe_user_home_project_root";
   return null;
 }
 
@@ -1167,43 +1168,110 @@ export function isProjectRootAuthoritySafe(value: unknown): boolean {
   return projectRootAuthorityFailure(value) === null;
 }
 
-function findAncestorProjectRoot(start: string): string | null {
+const PROJECT_MARKERS = [
+  [".focusa-project.json", 10_000],
+  [".git", 9_000],
+  [".beads", 6_000],
+  ["Cargo.toml", 2_000],
+  ["package.json", 2_000],
+  ["pnpm-workspace.yaml", 2_000],
+  ["bun.lockb", 1_000],
+  ["yarn.lock", 1_000],
+  ["package-lock.json", 1_000],
+  ["pyproject.toml", 2_000],
+  ["go.mod", 2_000],
+  ["composer.json", 2_000],
+] as const;
+
+function projectMarkers(dir: string): { score: number; markers: string[] } {
+  let score = 0;
+  const markers: string[] = [];
+  for (const [marker, weight] of PROJECT_MARKERS) {
+    if (existsSync(join(dir, marker))) {
+      score += weight;
+      markers.push(marker);
+    }
+  }
+  return { score, markers };
+}
+
+function confidenceForScore(score: number): { confidence: "high" | "medium" | "low"; confidenceScore: number } {
+  if (score >= 10_000) return { confidence: "high", confidenceScore: 0.99 };
+  if (score >= 8_000) return { confidence: "high", confidenceScore: 0.95 };
+  if (score >= 6_000) return { confidence: "high", confidenceScore: 0.90 };
+  if (score >= 2_000) return { confidence: "medium", confidenceScore: 0.75 };
+  return { confidence: "low", confidenceScore: 0.25 };
+}
+
+function projectRootConfirmationRequired(confidenceScore: number): boolean {
+  return confidenceScore < 0.90;
+}
+
+function findAncestorProjectRootCandidates(start: string): Array<{ root: string; score: number; depth: number; markers: string[] }> {
   let dir = normalizeProjectRoot(resolve(start || "."));
-  const homeProject = /^\/home\/[^/]+\/[^/]+/.exec(dir)?.[0] || null;
-  let markerRoot: string | null = null;
-  let gitRoot: string | null = null;
-  let beadsRoot: string | null = null;
-  let workspaceRoot: string | null = null;
+  const candidates: Array<{ root: string; score: number; depth: number; markers: string[] }> = [];
+  let depth = 0;
   while (dir && dir !== "/") {
     if (isProjectRootAuthoritySafe(dir)) {
-      if (existsSync(join(dir, ".focusa-project.json"))) markerRoot = dir;
-      if (!gitRoot && existsSync(join(dir, ".git"))) gitRoot = dir;
-      if (!beadsRoot && existsSync(join(dir, ".beads"))) beadsRoot = dir;
-      if (!workspaceRoot && (existsSync(join(dir, "Cargo.toml")) || existsSync(join(dir, "package.json"))) && dir === homeProject) workspaceRoot = dir;
+      const { score, markers } = projectMarkers(dir);
+      if (score > 0) candidates.push({ root: dir, score, depth, markers });
     }
     const parent = normalizeProjectRoot(dirname(dir));
     if (!parent || parent === dir) break;
     dir = parent;
+    depth += 1;
   }
-  return markerRoot || gitRoot || beadsRoot || workspaceRoot;
+  return candidates.sort((a, b) => (b.score - a.score) || (a.depth - b.depth));
+}
+
+function rootCandidatesForOutput(candidates: Array<{ root: string; score: number; markers: string[] }>): Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }> {
+  return candidates.slice(0, 5).map(candidate => ({
+    projectRoot: candidate.root,
+    confidenceScore: confidenceForScore(candidate.score).confidenceScore,
+    markers: candidate.markers,
+    source: "ancestor_markers",
+  }));
+}
+
+export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacket?: any): { projectRoot: string; confidence: "high" | "medium" | "low"; confidenceScore: number; source: string; reason: string; safe: boolean; requiresOperatorConfirmation: boolean; markerScore?: number; markers?: string[]; candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }> } {
+  const explicit = normalizeProjectRoot(cwdInput);
+  const explicitCandidates = explicit ? findAncestorProjectRootCandidates(explicit) : [];
+  const explicitCandidate = explicitCandidates[0] || null;
+  if (explicitCandidate) {
+    const confidence = confidenceForScore(explicitCandidate.score);
+    return { projectRoot: explicitCandidate.root, ...confidence, source: "cwd_ancestor_markers", reason: `markers=${explicitCandidate.markers.join(",")}`, safe: true, requiresOperatorConfirmation: projectRootConfirmationRequired(confidence.confidenceScore), markerScore: explicitCandidate.score, markers: explicitCandidate.markers, candidates: rootCandidatesForOutput(explicitCandidates) };
+  }
+
+  const sessionRoot = normalizeProjectRoot(S.sessionCwd);
+  const sessionCandidates = sessionRoot && sessionRoot !== explicit ? findAncestorProjectRootCandidates(sessionRoot) : [];
+  const sessionCandidate = sessionCandidates[0] || null;
+  if (sessionCandidate) {
+    const confidence = confidenceForScore(sessionCandidate.score);
+    return { projectRoot: sessionCandidate.root, ...confidence, source: "session_cwd_ancestor_markers", reason: `markers=${sessionCandidate.markers.join(",")}`, safe: true, requiresOperatorConfirmation: projectRootConfirmationRequired(confidence.confidenceScore), markerScore: sessionCandidate.score, markers: sessionCandidate.markers, candidates: rootCandidatesForOutput(sessionCandidates) };
+  }
+
+  const packet = persistedPacket?.resume_packet?.workpoint || persistedPacket?.workpoint || persistedPacket;
+  const packetRoot = normalizeProjectRoot(packet?.project_root);
+  const packetSessionKey = String(packet?.pi_session_frame_key || packet?.session_id || "").trim();
+  const currentSessionKey = String(S.sessionFrameKey || "").trim();
+  if (packetRoot && isProjectRootAuthoritySafe(packetRoot) && currentSessionKey && packetSessionKey === currentSessionKey) {
+    return { projectRoot: packetRoot, confidence: "medium", confidenceScore: 0.75, source: "same_session_workpoint_packet", reason: "same-session Workpoint packet supplied project_root; operator confirmation recommended", safe: true, requiresOperatorConfirmation: true, candidates: [{ projectRoot: packetRoot, confidenceScore: 0.75, markers: ["workpoint_packet"], source: "same_session_workpoint_packet" }] };
+  }
+
+  const fallback = explicit || sessionRoot || normalizeProjectRoot(process.cwd());
+  const safe = isProjectRootAuthoritySafe(fallback);
+  return { projectRoot: fallback, confidence: "low", confidenceScore: 0.10, source: "unverified_cwd", reason: safe ? "no project markers found; ask operator or pass explicit project_root" : projectRootAuthorityFailure(fallback) || "unsafe_project_root", safe, requiresOperatorConfirmation: true, candidates: safe ? [{ projectRoot: fallback, confidenceScore: 0.10, markers: [], source: "unverified_cwd" }] : [] };
 }
 
 export function resolvePiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
-  const explicit = normalizeProjectRoot(cwdInput);
-  if (isProjectRootAuthoritySafe(explicit)) return findAncestorProjectRoot(explicit) || explicit;
-  const sessionRoot = normalizeProjectRoot(S.sessionCwd);
-  if (isProjectRootAuthoritySafe(sessionRoot)) return findAncestorProjectRoot(sessionRoot) || sessionRoot;
-  const packet = persistedPacket?.resume_packet?.workpoint || persistedPacket?.workpoint || persistedPacket || S.activeWorkpointPacket;
-  const packetRoot = normalizeProjectRoot(packet?.project_root);
-  if (isProjectRootAuthoritySafe(packetRoot)) return packetRoot;
-  const inferred = explicit ? findAncestorProjectRoot(explicit) : null;
-  return inferred || explicit || sessionRoot || normalizeProjectRoot(process.cwd());
+  return resolvePiProjectRootCandidate(cwdInput, persistedPacket).projectRoot;
 }
 
 export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
-  const root = resolvePiProjectRoot(cwdInput, persistedPacket);
-  S.sessionCwd = root;
-  return root;
+  const resolution = resolvePiProjectRootCandidate(cwdInput, persistedPacket);
+  S.lastProjectRootResolution = resolution;
+  S.sessionCwd = resolution.projectRoot;
+  return resolution.projectRoot;
 }
 
 export function normalizeWorkpointResumePacketEnvelope(packet: any): any | null {
@@ -1441,8 +1509,9 @@ function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): strin
   if (!packetProjectRoot || !packetContinuityId || !isProjectRootAuthoritySafe(packetProjectRoot)) return null;
   if (packet.canonical === false || workpoint.canonical === false || packet.status === "partial" || packet.status === "rejected_scope_mismatch") return null;
   if (currentContinuityId && currentContinuityId !== packetContinuityId) return null;
-  if (source !== "daemon_active_workpoint" && currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return null;
-  if (source !== "daemon_active_workpoint" && currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey) return null;
+  if (currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return null;
+  if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey) return null;
+  if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
   S.continuityId = packetContinuityId;
   S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(workpoint);
   return packetProjectRoot;
@@ -1450,11 +1519,6 @@ function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): strin
 
 function scopedWorkpointFrameRecoveryCwd(): string | null {
   return adoptWorkpointScopeForFrameRecovery(S.activeWorkpointPacket, "session_scoped_workpoint");
-}
-
-async function daemonActiveWorkpointFrameRecoveryCwd(): Promise<string | null> {
-  const data = await focusaFetch("/workpoint/current").catch(() => null);
-  return adoptWorkpointScopeForFrameRecovery(data, "daemon_active_workpoint");
 }
 
 async function adoptExistingSafeFrameForRecovery(): Promise<string | null> {
@@ -1477,7 +1541,7 @@ export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "
   if (!isProjectRootAuthoritySafe(resolvedCwd)) {
     const adoptedFrameId = await adoptExistingSafeFrameForRecovery();
     if (adoptedFrameId) return adoptedFrameId;
-    const packetCwd = scopedWorkpointFrameRecoveryCwd() || await daemonActiveWorkpointFrameRecoveryCwd();
+    const packetCwd = scopedWorkpointFrameRecoveryCwd();
     if (packetCwd) {
       resolvedCwd = packetCwd;
     } else {

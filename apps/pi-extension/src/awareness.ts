@@ -13,14 +13,19 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const status = S.focusaAvailable ? "available" : "offline/degraded";
   const prefix = mode === "visible" ? "# Focusa Utility Card" : "## Focusa Utility Card";
   const safeScope = !!projectRoot && isProjectRootAuthoritySafe(projectRoot);
+  const resolution = S.lastProjectRootResolution;
+  const confidence = resolution ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}` : "";
+  const needsConfirm = resolution?.requiresOperatorConfirmation === true;
 
   if (mode === "visible" && !scopedPacket) {
     return [
       prefix,
       `Status: ${status}`,
-      `Scope: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}`,
+      `Scope: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
       "Scoped Workpoint: none verified; latest operator instruction is authority.",
-      "Next: cd into a project or pass project_root; use focusa_workpoint_resume only for real project work.",
+      needsConfirm
+        ? "Next: project root confidence <90%; use interview/menu to confirm project_root before Focusa writes."
+        : "Next: cd into a project or pass project_root; use focusa_workpoint_resume only for real project work.",
     ].join("\n");
   }
 

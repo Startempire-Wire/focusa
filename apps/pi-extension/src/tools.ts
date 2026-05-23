@@ -528,14 +528,6 @@ async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Prom
     return localScope.projectRoot;
   }
 
-  const active = await focusaFetch("/workpoint/current").catch(() => null);
-  const activeScope = focusaToolWorkpointScope(active);
-  if (activeScope) {
-    S.activeWorkpointPacket = active?.workpoint || active;
-    if (!S.continuityId) S.continuityId = activeScope.continuityId;
-    return activeScope.projectRoot;
-  }
-
   return sessionRoot || normalizeProjectRoot(process.cwd()) || String(process.cwd());
 }
 
@@ -1643,25 +1635,28 @@ export function registerTools(pi: ExtensionAPI) {
       const resourceMode = resource.body?.resource_mode || {};
       const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
       const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
-      const sessionRoot = resolvePiProjectRoot(S.sessionCwd || process.cwd());
+      const sessionResolution = S.lastProjectRootResolution;
+      const sessionRoot = sessionResolution?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
+      const projectRootNeedsConfirmation = sessionResolution?.requiresOperatorConfirmation === true;
       const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
       const workpointCanonical = workpoint.body?.canonical === true || workpointStatus === "active";
       const recommendations: string[] = [];
       if (!health.ok) recommendations.push("Focusa daemon health is blocked; retry hot status or inspect daemon before state writes.");
       if (!sessionScopeSafe) recommendations.push("Session cwd is broad/unsafe; cd to a specific repo or pass explicit project_root to scoped tools.");
+      if (projectRootNeedsConfirmation) recommendations.push("Project root confidence is below 90%; use interview/menu to ask the operator which candidate root is correct before Focusa writes.");
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
       if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
       if (missingDocs.length) recommendations.push("Some scoped tool contracts lack docs; run docs maintenance before release proof.");
       const nextTools = Array.from(new Set([
         ...(!health.ok ? ["focusa_tool_doctor"] : []),
-        ...(!sessionScopeSafe ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
+        ...(!sessionScopeSafe || projectRootNeedsConfirmation ? ["focusa_project_identity", "interview", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
         ...(String(resourceMode.mode || "") === "emergency" ? ["focusa_resource_mode"] : []),
         ...(!workpoint.ok || !workpointCanonical ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
       ]));
       const recommendedAction = recommendations[0] || "Proceed with explicit project_root for scope-sensitive tools and checkpoint before compaction.";
       const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
-      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe }, recommendations, recommended_action: recommendedAction, next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
+      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: sessionResolution || null }, recommendations, recommended_action: recommendedAction, next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
     },
   });
 
