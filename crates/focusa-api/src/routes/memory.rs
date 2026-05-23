@@ -59,6 +59,17 @@ fn memory_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<se
     )
 }
 
+fn rule_not_found(rule_id: &str) -> (StatusCode, Json<serde_json::Value>) {
+    memory_failure(
+        StatusCode::NOT_FOUND,
+        format!("procedural rule not found: {rule_id}"),
+        "not_found",
+        format!("Procedural rule {rule_id} is absent, so reinforcement would be a no-op."),
+        "List /v1/memory/procedural or create the intended rule before retrying reinforcement.",
+        "Likely stale rule id, wrong daemon data_dir, or cross-session memory reference.",
+    )
+}
+
 #[derive(Debug, Clone, Deserialize, Default)]
 struct SemanticQuery {
     limit: Option<usize>,
@@ -203,11 +214,33 @@ async fn reinforce_rule(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ReinforceBody>,
 ) -> MemoryResult {
+    let rule_id = body.rule_id.trim().to_string();
+    if rule_id.is_empty() {
+        return Err(memory_failure(
+            StatusCode::BAD_REQUEST,
+            "rule_id is required",
+            "validation_rejected",
+            "Procedural reinforcement requires a non-empty rule_id.",
+            "Pass a rule_id returned by /v1/memory/procedural.",
+            "Likely malformed request body or empty stale variable.",
+        ));
+    }
+
+    {
+        let focusa = state.focusa.read().await;
+        if !focusa
+            .memory
+            .procedural
+            .iter()
+            .any(|rule| rule.id == rule_id)
+        {
+            return Err(rule_not_found(&rule_id));
+        }
+    }
+
     state
         .command_tx
-        .send(Action::ReinforceRule {
-            rule_id: body.rule_id,
-        })
+        .send(Action::ReinforceRule { rule_id })
         .await
         .map_err(memory_dispatch_failed)?;
 
@@ -224,7 +257,7 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{limit_page, semantic_summary};
+    use super::{limit_page, rule_not_found, semantic_summary};
     use chrono::Utc;
     use focusa_core::types::{MemorySource, SemanticRecord};
 
@@ -266,5 +299,13 @@ mod tests {
         assert_eq!(summary[0]["pinned"], true);
         assert!(summary[0].get("tags").is_none());
         assert!(summary[0].get("confidence").is_none());
+    }
+
+    #[test]
+    fn missing_rule_reinforce_returns_not_found_failure() {
+        let (status, body) = rule_not_found("bogus-rule");
+        assert_eq!(status, axum::http::StatusCode::NOT_FOUND);
+        assert_eq!(body.0["failure_class"], "not_found");
+        assert!(body.0["why"].as_str().unwrap().contains("would be a no-op"));
     }
 }

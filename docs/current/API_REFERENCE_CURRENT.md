@@ -148,6 +148,8 @@ ECS resolve/content/rehydrate readback uses complete live handle metadata when a
 - `GET /v1/memory/procedural`
 - `POST /v1/memory/procedural/reinforce`
 
+Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `validation_rejected`; absent IDs return typed `not_found` instead of accepted no-op semantics.
+
 ### metacognition
 - `POST /v1/metacognition/capture`
 - `POST /v1/metacognition/retrieve`

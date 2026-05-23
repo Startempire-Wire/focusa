@@ -159,17 +159,18 @@ This section records findings already established in the audit, with direct doc 
 - Current classification:
   - **API/core lifecycle contract bug**; invalid transitions are acknowledged before validation.
 
-### F6. Procedural memory reinforce accepts invalid rule IDs at API surface
+### F6. Procedural memory reinforce invalid-id semantics are repaired at API surface
 - Authority:
   - `docs/G1-13-cli.md:6-10` requires deterministic/scriptable behavior; invalid IDs should not silently succeed.
-- Code evidence:
-  - `crates/focusa-api/src/routes/memory.rs:68-76` accepts reinforce requests and enqueues `Action::ReinforceRule`.
-  - `crates/focusa-core/src/memory/procedural.rs:12-24` returns `None` when the rule ID is not found.
-  - `crates/focusa-core/src/runtime/daemon.rs:2451-2458` converts that not-found case into `Ok(vec![])`, i.e. no event and no error.
-- Runtime evidence:
-  - audit confirmed `memory reinforce --json bogus-rule` was accepted.
+- Prior evidence:
+  - audit confirmed `memory reinforce --json bogus-rule` was accepted while core returned no event for absent rules.
+- Current code evidence:
+  - `crates/focusa-api/src/routes/memory.rs` now prevalidates non-empty `rule_id` and rule presence before dispatch.
+  - missing rule IDs return typed `not_found` failure instead of accepted no-op semantics.
+- Runtime/test evidence:
+  - `cargo test -p focusa-api routes::memory -- --nocapture` passes `missing_rule_reinforce_returns_not_found_failure`.
 - Current classification:
-  - **API/action-result contract bug**; core knows the rule is missing, but the API reports success semantics anyway.
+  - **repaired API/action-result baseline**; core still returns `Ok(vec![])` defensively if a post-check race removes the rule.
 
 ### F7. ECS retrieval contract exists on paper and in routing, and retrieval baseline is repaired
 - Authority:
@@ -298,7 +299,7 @@ This section marks what has already been swept at core depth in the current pass
 | ECS | `docs/G1-detail-08-ecs.md` | repaired baseline | store/resolve/content/rehydrate surfaces exist; API readback now falls back to canonical disk handle metadata when live state is lossy |
 | Export / contribution | `docs/21-data-export-cli.md`, `docs/22-data-contribution.md` | repaired baseline + quality metadata | export status/run are endpoint-backed; CLI writes JSONL/Parquet + manifests; records/manifests include baseline eligibility, provenance, redaction, and quality summaries |
 | Reflection loop | `docs/G1-14-reflection-loop.md` | started | reflection route surface exists; timeout/runtime diagnosis still needs deeper pass |
-| Procedural memory | `docs/G1-13-cli.md` | started | core reinforce path distinguishes found vs missing rule, but API result handling collapses the distinction |
+| Procedural memory | `docs/G1-13-cli.md` | repaired baseline | API reinforce prevalidates rule_id and returns typed not_found for absent rules before dispatch |
 | Pi integration fidelity | `docs/44-pi-focusa-integration-spec.md`, HEC semantics | started | integration still shows cwd-derived fallback as primary in code, contrary to corrected task-first semantics |
 
 ### Core sweep notes from this pass
@@ -354,13 +355,13 @@ This section marks what has already been swept at core depth in the current pass
 - Audit meaning:
   - first-pass core sweep does not support the claim that reflection is unimplemented; current evidence more strongly supports timeout/runtime fragility pending a deeper pass.
 
-#### S6. Procedural memory failure semantics are collapsed between core and API surface
+#### S6. Procedural memory failure semantics are repaired at API boundary
 - Code evidence:
-  - `crates/focusa-core/src/memory/procedural.rs:12-24` returns `None` when the rule is absent.
-  - `crates/focusa-core/src/runtime/daemon.rs:2451-2458` converts that case into `Ok(vec![])`.
-  - `crates/focusa-api/src/routes/memory.rs:68-76` still reports accepted semantics by merely enqueueing the action.
+  - `crates/focusa-core/src/memory/procedural.rs:12-24` still returns `None` when the rule is absent.
+  - `crates/focusa-api/src/routes/memory.rs` now checks for non-empty and existing `rule_id` before enqueueing `Action::ReinforceRule`.
+  - absent rules return typed `not_found` instead of accepted no-op semantics.
 - Audit meaning:
-  - this is a core/API contract gap: the system distinguishes failure internally, then erases that distinction before it reaches the operator.
+  - operator-facing reinforce semantics now distinguish missing rules deterministically before dispatch.
 
 #### S7. Pi integration drift remains an integration problem, not proof that Focus Stack core is missing
 - Code evidence:
@@ -504,13 +505,13 @@ This section marks what has already been swept at core depth in the current pass
 - Verdict:
   - **likely timeout/runtime health issue**, not proof reflection loop is unimplemented.
 
-### X7. Procedural memory reinforcement has a real core operation, but failure semantics are erased before reaching the operator
+### X7. Procedural memory reinforcement has a real core operation and repaired invalid-id API semantics
 - Code evidence:
   - `crates/focusa-core/src/memory/procedural.rs:12-24` reinforces only when a matching rule exists, otherwise returns `None`.
-  - `crates/focusa-core/src/runtime/daemon.rs:2451-2458` converts missing-rule into `Ok(vec![])`.
-  - `crates/focusa-api/src/routes/memory.rs:68-76` simply enqueues the action and reports accepted semantics.
+  - `crates/focusa-api/src/routes/memory.rs` now rejects empty or absent `rule_id` before dispatch.
+  - missing rule IDs return typed `not_found` failure instead of accepted no-op semantics.
 - Verdict:
-  - **core operation exists**, but **API/result contract is wrong** for invalid rule IDs.
+  - **repaired API/result baseline** for invalid rule IDs.
 
 ### X8. Current deepest conclusion for this sweep
 - Re-checked against freshly re-read authoritative specs:
@@ -520,7 +521,7 @@ This section marks what has already been swept at core depth in the current pass
 - export: **not implemented to authoritative spec**
 - contribution: **implemented, but separate from export and not part of reducer/prompt assembly core**
 - reflection: **substantively implemented; current audit failures do not prove absence**
-- procedural memory reinforce: **implemented, but invalid-id behavior is not spec-faithful at the API surface**
+- procedural memory reinforce: **implemented; invalid-id API behavior is repaired at baseline**
 
 ## Full core sweep — fifth pass: command router completeness and CLI `--json` contract
 
@@ -937,14 +938,14 @@ Use one section per violation class.
   - compare against all CLI commands that rely on that route
 
 ### V8. Memory procedural reinforce contract
-- Status: in progress
+- Status: repaired baseline
 - Why it matters: deterministic scriptable CLI should not silently accept invalid IDs.
-- Known evidence:
-  - bogus rule id accepted with no event
-- Next trace steps:
-  - inspect API route result handling
-  - inspect daemon action return semantics for not-found cases
-  - decide whether core event model or API contract must change
+- Current evidence:
+  - API route rejects empty rule IDs and absent rule IDs before dispatch.
+  - missing rule IDs return typed `not_found` failure with recovery guidance.
+  - `cargo test -p focusa-api routes::memory -- --nocapture` covers the not-found failure envelope.
+- Remaining trace steps:
+  - optional deeper core event-model hardening for post-validation rule deletion races.
 
 ### V9. Pi integration session fidelity
 - Status: pending
