@@ -37,6 +37,74 @@ fn require_scope(
     }
 }
 
+fn extra_failure(
+    http_status: axum::http::StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (axum::http::StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {"tool_result_v1": {
+                "ok": false,
+                "status": "blocked",
+                "canonical": false,
+                "degraded": true,
+                "failure_class": failure_class,
+                "summary": why,
+                "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                "side_effects": [],
+                "evidence_refs": [],
+                "next_tools": next_tools_value,
+                "error": {"code": failure_class, "message": error}
+            }}
+        })),
+    )
+}
+
+fn extra_dispatch_failed(
+    action: &str,
+    error: impl std::fmt::Display,
+) -> (axum::http::StatusCode, Json<Value>) {
+    extra_failure(
+        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to dispatch {action}: {error}"),
+        "daemon_unavailable",
+        format!("{action} could not be dispatched to daemon command channel"),
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status"],
+    )
+}
+
+fn extra_session_not_active(session_id: &str) -> Value {
+    extra_failure(
+        axum::http::StatusCode::NOT_FOUND,
+        "session_id not active",
+        "not_found",
+        format!("session_id {session_id} is not the active Focusa session"),
+        "Read /v1/session/state or /v1/status to discover the active session id before requesting session metrics.",
+        "Likely stale session id, wrong daemon instance, or session rollover after compaction/restart.",
+        vec!["focusa_tool_doctor", "focusa_workpoint_resume"],
+    ).1.0
+}
+
 // ─── Autonomy ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
@@ -266,12 +334,7 @@ async fn intuition_submit(
         .command_tx
         .send(focusa_core::types::Action::IngestSignal { signal })
         .await
-        .map_err(|_| {
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "dispatch failed"})),
-            )
-        })?;
+        .map_err(|error| extra_dispatch_failed("intuition signal", error))?;
 
     Ok(Json(json!({"status": "accepted", "payload": body.payload})))
 }
@@ -332,7 +395,7 @@ async fn metrics_session(
     let s = state.focusa.read().await;
     let active = s.session.as_ref().map(|s| s.session_id.to_string());
     if active.as_deref() != Some(&session_id) {
-        return Ok(Json(json!({"error": "session_id not active"})));
+        return Ok(Json(extra_session_not_active(&session_id)));
     }
 
     Ok(Json(json!({
@@ -739,12 +802,7 @@ async fn constitution_propose(
             score: None,
         })
         .await
-        .map_err(|_| {
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to submit proposal"})),
-            )
-        })?;
+        .map_err(|error| extra_dispatch_failed("constitution proposal", error))?;
     Ok(Json(json!({ "status": "proposed" })))
 }
 

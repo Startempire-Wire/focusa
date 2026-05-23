@@ -59,3 +59,12 @@ else
   echo "✗ FAIL: ECS failures lack no-guess recovery contract" >&2
   exit 1
 fi
+
+
+EXTRA_RS="${ROOT_DIR}/crates/focusa-api/src/routes/capabilities_extra.rs"
+if rg -n 'extra_failure|extra_dispatch_failed|extra_session_not_active|recovery_hint|misuse_hint|tool_result_v1' "$EXTRA_RS" >/dev/null; then
+  echo "✓ PASS: Capabilities-extra failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Capabilities-extra failures lack no-guess recovery contract" >&2
+  exit 1
+fi
