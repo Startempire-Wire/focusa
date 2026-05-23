@@ -132,12 +132,7 @@ fn resolve_scoped_frame<'a>(
         }
         return stack
             .active_id
-            .and_then(|id| {
-                stack
-                    .frames
-                    .iter()
-                    .find(|frame| frame.id == id && frame_matches_project_root(frame, None))
-            })
+            .and_then(|id| stack.frames.iter().find(|frame| frame.id == id))
             .map(|frame| (frame, "active_frame"));
     }
 
@@ -364,7 +359,10 @@ async fn push_frame(
     if let Some(project_root) = body.project_root.as_deref()
         && let Some(reason) = unsafe_project_root_reason(Some(project_root))
     {
-        return Ok(Json(unsafe_project_root_response(reason, Some(project_root))));
+        return Ok(Json(unsafe_project_root_response(
+            reason,
+            Some(project_root),
+        )));
     }
 
     let beads_issue_id = body.beads_issue_id.unwrap_or_default();
@@ -904,7 +902,10 @@ mod tests {
         assert!(
             resolve_scoped_frame(&stack, None, None, None, Some("/workspace/focusa")).is_none()
         );
-        assert!(resolve_scoped_frame(&stack, None, None, None, None).is_none());
+        assert_eq!(
+            resolve_scoped_frame(&stack, None, None, None, None).map(|(frame, by)| (frame.id, by)),
+            Some((active_id, "active_frame"))
+        );
     }
 
     #[test]

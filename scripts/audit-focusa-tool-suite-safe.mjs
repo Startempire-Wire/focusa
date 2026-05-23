@@ -230,7 +230,7 @@ for (const endpoint of [...getRoutes].sort()) {
   }
   try {
     const body = await getJson(endpoint);
-    if (endpoint.startsWith('/v1/focus/frame/current') && !body?.frame) {
+    if (endpoint.startsWith('/v1/focus/frame/current') && body?.active_frame_id && !body?.frame) {
       pushWarning('frame_unavailable', endpoint, 'Focus current-frame route returned active_frame_id but no frame', 'Route should fall back to active frame when no scoped query is provided, or safe fixture must pass frame/session query.', body);
     }
     if (endpoint.startsWith('/v1/work-loop/status') && !body?.status && !body?.work_loop?.status) {
