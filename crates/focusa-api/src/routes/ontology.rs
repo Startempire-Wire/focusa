@@ -7437,15 +7437,87 @@ async fn intelligence_dashboard(State(state): State<Arc<AppState>>) -> Json<Valu
     Json(intelligence_dashboard_payload(&focusa))
 }
 
+fn ontology_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {"tool_result_v1": {
+                "ok": false,
+                "status": "blocked",
+                "canonical": false,
+                "degraded": true,
+                "failure_class": failure_class,
+                "summary": why,
+                "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                "recovery_hint": recovery_hint,
+                "misuse_hint": misuse_hint,
+                "side_effects": [],
+                "evidence_refs": [],
+                "next_tools": next_tools_value,
+                "error": {"code": failure_class, "message": error}
+            }}
+        })),
+    )
+}
+
+fn ontology_validation_rejected(error: impl Into<String>) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    ontology_failure(
+        StatusCode::BAD_REQUEST,
+        error.clone(),
+        "validation_rejected",
+        error,
+        "Correct the ontology request payload before retrying unchanged.",
+        "Likely missing tool_name, unknown action_type, or invalid auto_promote/action_type combination.",
+        vec!["focusa_tool_doctor", "focusa_trajectory_view"],
+    )
+}
+
+fn ontology_dispatch_failed(
+    action: &str,
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<Value>) {
+    ontology_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to dispatch {action}: {error}"),
+        "daemon_unavailable",
+        format!("ontology {action} event could not be dispatched to daemon command channel"),
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_work_loop_status",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
 async fn tool_result_proposals(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ToolResultProposalRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if body.tool_name.trim().is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "tool_name is required"})),
-        ));
+        return Err(ontology_validation_rejected("tool_name is required"));
     }
     let proposal_id = Uuid::now_v7();
     let deltas = tool_result_candidate_deltas(&body);
@@ -7456,11 +7528,8 @@ async fn tool_result_proposals(
                 .command_tx
                 .send(Action::EmitEvent { event })
                 .await
-                .map_err(|_| {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": "failed to dispatch tool-result ontology proposal"})),
-                    )
+                .map_err(|error| {
+                    ontology_dispatch_failed("tool-result ontology proposal", error)
                 })?;
         }
     }
@@ -7882,10 +7951,7 @@ async fn execute_ontology_action(
     Json(body): Json<OntologyActionRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if !ACTION_TYPES.contains(&body.action_type.as_str()) {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "unknown ontology action_type"})),
-        ));
+        return Err(ontology_validation_rejected("unknown ontology action_type"));
     }
 
     let source = body
@@ -7900,13 +7966,10 @@ async fn execute_ontology_action(
     let auto_promote = body.auto_promote.unwrap_or(false);
 
     if auto_promote && body.action_type != "review_governance_change" {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "error": "auto_promote requires review_governance_change action",
-                "action_type": body.action_type,
-            })),
-        ));
+        return Err(ontology_validation_rejected(format!(
+            "auto_promote requires review_governance_change action; action_type={}",
+            body.action_type
+        )));
     }
 
     let mut events = proposed_events_from_action(proposal_id, &body.action_type, &payload, &source);
@@ -7961,12 +8024,7 @@ async fn execute_ontology_action(
             .command_tx
             .send(Action::EmitEvent { event })
             .await
-            .map_err(|_| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": "failed to dispatch ontology action event"})),
-                )
-            })?;
+            .map_err(|error| ontology_dispatch_failed("ontology action", error))?;
     }
 
     Ok(Json(json!({
@@ -8638,9 +8696,15 @@ mod tests {
     fn tool_edge_refs_parse_only_focusa_edges() {
         assert_eq!(
             parse_tool_edge_ref("tool_edge:focusa_project_identity->focusa_trajectory_view"),
-            Some(("focusa_project_identity".to_string(), "focusa_trajectory_view".to_string()))
+            Some((
+                "focusa_project_identity".to_string(),
+                "focusa_trajectory_view".to_string()
+            ))
         );
-        assert_eq!(parse_tool_edge_ref("tool_edge:other->focusa_trajectory_view"), None);
+        assert_eq!(
+            parse_tool_edge_ref("tool_edge:other->focusa_trajectory_view"),
+            None
+        );
         assert_eq!(parse_tool_edge_ref("not-an-edge"), None);
     }
 

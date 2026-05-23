@@ -71,3 +71,12 @@ for node in adj.get('nodes',[])[:5]:
 print(json.dumps({'fixed_eval_results':results,'passed':len(results)}))
 PY
 echo "SPEC95 fixed eval runtime gate: PASS"
+
+
+ONTOLOGY_RS="$ROOT_DIR/crates/focusa-api/src/routes/ontology.rs"
+if rg -n 'ontology_failure|ontology_validation_rejected|ontology_dispatch_failed|recovery_hint|misuse_hint|tool_result_v1' "$ONTOLOGY_RS" >/dev/null; then
+  echo "✓ PASS: Ontology failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Ontology failures lack no-guess recovery contract" >&2
+  exit 1
+fi
