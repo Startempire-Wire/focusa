@@ -39,6 +39,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced opaque capabilities-extra dispatch and inactive-session failures with no-guess envelopes.
 - Replaced opaque legacy JSONL event read/not-found failures with no-guess envelopes.
 - Replaced opaque proxy auth, upstream, validation, and ACP failures with no-guess envelopes.
+- Replaced opaque info, telemetry-debug, and training contribution lookup failures with no-guess envelopes.
 
 ## Unreleased — Spec93 release publication proof
 

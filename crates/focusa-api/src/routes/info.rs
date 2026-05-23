@@ -10,12 +10,30 @@ use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+fn info_failure(error: impl Into<String>, why: impl Into<String>) -> Value {
+    let error = error.into();
+    let why = why.into();
+    json!({
+        "status": "blocked", "canonical": false, "degraded": true,
+        "error": error, "failure_class": "persistence_failed", "why": why,
+        "recovery_hint": "Check daemon data_dir and SQLite permissions before relying on /v1/info.",
+        "misuse_hint": "Likely wrong data_dir, SQLite unavailable, or file permission/resource issue.",
+        "next_tools": ["focusa_tool_doctor", "focusa_resource_mode"],
+        "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": "persistence_failed", "summary": why, "retry": {"safe": true, "posture": "safe_retry", "reason": "persistence_failed"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_resource_mode"], "error": {"code": "persistence_failed", "message": error}}}
+    })
+}
+
 async fn info(State(state): State<Arc<AppState>>) -> Json<Value> {
     let db_path = focusa_db_path(&state.config.data_dir);
 
     let conn = match Connection::open(db_path) {
         Ok(c) => c,
-        Err(e) => return Json(json!({"error": format!("db open failed: {e}") })),
+        Err(e) => {
+            return Json(info_failure(
+                format!("db open failed: {e}"),
+                format!("Info SQLite open failed: {e}"),
+            ));
+        }
     };
 
     let machine_id: Option<String> = conn

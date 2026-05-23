@@ -25,6 +25,22 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+fn training_not_found(error: impl Into<String>) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": "not_found",
+            "why": "contribution queue item was not found for approval",
+            "recovery_hint": "List contribution queue items before approving by item_id.",
+            "misuse_hint": "Likely stale item_id, wrong daemon instance, or already processed contribution.",
+            "next_tools": ["focusa_tool_doctor", "focusa_traverse"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": "not_found", "summary": "contribution queue item not found", "retry": {"safe": true, "posture": "safe_retry", "reason": "not_found"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_traverse"], "error": {"code": "not_found", "message": error}}}
+        })),
+    )
+}
+
 /// GET /v1/export/status — export pipeline status.
 async fn export_status(State(state): State<Arc<AppState>>) -> Json<Value> {
     let history_count = state.persistence.event_count().unwrap_or(0);
@@ -377,7 +393,7 @@ async fn contribute_approve(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let mut s = state.focusa.write().await;
     training::approve_contribution(&mut s.contribution, body.item_id)
-        .map_err(|e| (StatusCode::NOT_FOUND, Json(json!({ "error": e }))))?;
+        .map_err(training_not_found)?;
     drop(s);
     state.mark_external_mutation();
     Ok(Json(

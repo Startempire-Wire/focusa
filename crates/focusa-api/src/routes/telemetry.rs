@@ -188,6 +188,21 @@ async fn memory_status(State(state): State<Arc<AppState>>) -> Json<Value> {
     Json(memory_payload(&state).await)
 }
 
+fn telemetry_debug_disabled() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": "debug route disabled", "failure_class": "not_found",
+            "why": "telemetry debug pressure threshold route is disabled outside debug/test mode",
+            "recovery_hint": "Enable FOCUSA_ENABLE_TEST_ROUTES=1 only in test contexts, or use read-only telemetry routes.",
+            "misuse_hint": "Likely production-safe daemon where test mutation routes are intentionally unavailable.",
+            "next_tools": ["focusa_tool_doctor"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": "not_found", "summary": "debug route disabled", "retry": {"safe": false, "posture": "do_not_retry_unchanged", "reason": "test_route_disabled"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor"], "error": {"code": "not_found", "message": "debug route disabled"}}}
+        })),
+    )
+}
+
 async fn debug_set_pressure_threshold(
     State(state): State<Arc<AppState>>,
     Query(query): Query<DebugPressureQuery>,
@@ -195,10 +210,7 @@ async fn debug_set_pressure_threshold(
     if !cfg!(debug_assertions)
         && std::env::var("FOCUSA_ENABLE_TEST_ROUTES").ok().as_deref() != Some("1")
     {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({"error":"debug route disabled"})),
-        ));
+        return Err(telemetry_debug_disabled());
     }
     set_test_pressure_threshold(query.threshold_kb);
     Ok(Json(memory_payload(&state).await))

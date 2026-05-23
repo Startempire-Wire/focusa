@@ -77,3 +77,11 @@ else
   echo "✗ FAIL: Legacy event failures lack no-guess recovery contract" >&2
   exit 1
 fi
+
+
+if rg -n 'info_failure|telemetry_debug_disabled|training_not_found|recovery_hint|misuse_hint|tool_result_v1' "${ROOT_DIR}/crates/focusa-api/src/routes/info.rs" "${ROOT_DIR}/crates/focusa-api/src/routes/telemetry.rs" "${ROOT_DIR}/crates/focusa-api/src/routes/training.rs" >/dev/null; then
+  echo "✓ PASS: Small route failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Small route failures lack no-guess recovery contract" >&2
+  exit 1
+fi
