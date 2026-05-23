@@ -18,11 +18,13 @@ function vitalPromptSurfaceEnabled(surface: string): boolean {
   return raw.split(",").map((part) => part.trim()).includes(surface);
 }
 
-async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
+type WorkpointDraft = { label?: string; mission: string; next_slice: string; action_type?: string; target_ref?: string; confidence?: "low" | "medium" | "verified" };
+
+async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDraft): Promise<void> {
   if (!S.focusaAvailable) return;
   if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) return;
-  const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
-  const nextSlice = S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
+  const mission = draft?.mission || S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
+  const nextSlice = draft?.next_slice || S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
   if (!mission && !nextSlice) return;
   await focusaFetch("/workpoint/checkpoint", {
     method: "POST",
@@ -30,14 +32,14 @@ async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
       mission: mission || "Pi session resume",
       next_slice: nextSlice || "Resume from low-confidence session state and immediately refine Workpoint.",
       checkpoint_reason: reason === "session_start" ? "session_start" : "session_resume",
-      confidence: "low",
+      confidence: draft?.confidence || "low",
       canonical: true,
       promote: true,
       continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
       session_id: S.sessionFrameKey,
       project_root: S.sessionCwd || process.cwd(),
       source_turn_id: `pi-turn-${S.turnCount}`,
-      action_intent: { action_type: "resume_workpoint", target_ref: S.activeFrameId || S.sessionFrameKey || "pi-session", verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"], status: "needs_refinement" },
+      action_intent: { action_type: draft?.action_type || "resume_workpoint", target_ref: draft?.target_ref || S.activeFrameId || S.sessionFrameKey || "pi-session", verification_hooks: ["low-confidence checkpoint created because no active workpoint existed"], status: "needs_refinement" },
     }),
   }).catch(() => null);
 }
@@ -174,6 +176,51 @@ function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; dra
   ];
 }
 
+function workpointDraftOptions(projectRoot: string): Array<{ label: string; draft: WorkpointDraft | null }> {
+  const projectName = projectNameFromRoot(projectRoot);
+  const ask = cleanTrajectorySeed(S.currentAsk?.text);
+  const trajectoryShort = cleanTrajectorySeed(S.lastTrajectoryClarity?.short_term_goal || S.lastTrajectoryClarity?.active_gap);
+  const focus = cleanTrajectorySeed(S.lastFocusSnapshot.currentFocus || S.lastFocusSnapshot.intent);
+  const frameGoal = cleanTrajectorySeed(S.activeFrameGoal);
+  const mission = ask || trajectoryShort || focus || frameGoal || `Continue ${projectName} work`;
+  const next = focus || ask || trajectoryShort || frameGoal || `Identify next useful ${projectName} action`;
+  return [
+    {
+      label: `A) Current task checkpoint — ${mission}`,
+      draft: { mission, next_slice: next, action_type: "resume_current_task", target_ref: S.activeFrameId || S.sessionFrameKey || "pi-session", confidence: "low" },
+    },
+    {
+      label: `B) Trajectory gap follow-up — ${trajectoryShort || next}`,
+      draft: { mission: trajectoryShort || mission, next_slice: trajectoryShort || next, action_type: "trajectory_gap_followup", target_ref: "trajectory_gap", confidence: "low" },
+    },
+    {
+      label: "C) Verify first — collect proof before changing code",
+      draft: { mission: `Verify ${projectName} current state before acting`, next_slice: "Run bounded verification and link evidence before committing to implementation", action_type: "verify_current_state", target_ref: projectRoot, confidence: "low" },
+    },
+    { label: "D) Skip for now", draft: null },
+    { label: "E) Custom edit (typing)", draft: null },
+  ];
+}
+
+function parseWorkpointEditor(text: string): WorkpointDraft | null {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  const value = (label: string) => {
+    const match = raw.match(new RegExp(`^${label}:\\s*(.+)$`, "im"));
+    return String(match?.[1] || "").trim();
+  };
+  const mission = value("MISSION");
+  const next_slice = value("NEXT_SLICE");
+  if (!mission || !next_slice) return null;
+  return {
+    mission,
+    next_slice,
+    action_type: value("ACTION_TYPE") || "resume_workpoint",
+    target_ref: value("TARGET_REF") || undefined,
+    confidence: "low",
+  };
+}
+
 function parseTrajectoryEditor(text: string): TrajectoryGoalDraft | null {
   const raw = String(text || "").trim();
   if (!raw) return null;
@@ -230,13 +277,31 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
   if (S.vitalInfoPrompted[key]) return false;
   S.vitalInfoPrompted[key] = Date.now();
   persistState();
-  const ok = await ctx.ui.confirm(
-    "Focusa Workpoint is missing",
-    `No canonical Workpoint packet is bound for ${projectRoot}. Create a low-confidence Workpoint checkpoint from the current mission before continuing?`,
+  const options = workpointDraftOptions(projectRoot);
+  const choice = await ctx.ui.select(
+    "Focusa Workpoint is missing — choose a checkpoint draft",
+    options.map((option) => option.label),
   );
-  if (!ok) return false;
-  await ensureLowConfidenceWorkpoint(reason);
-  await refreshSessionWorkpointPacket(`${reason}_operator_confirmed_workpoint`);
+  if (!choice || String(choice).startsWith("D)")) return false;
+  let draft = options.find((option) => option.label === choice)?.draft || null;
+  if (String(choice).startsWith("E)")) {
+    const seed = options[0]?.draft;
+    const template = [
+      `MISSION: ${seed?.mission || ""}`,
+      `NEXT_SLICE: ${seed?.next_slice || ""}`,
+      `ACTION_TYPE: ${seed?.action_type || "resume_workpoint"}`,
+      `TARGET_REF: ${seed?.target_ref || "pi-session"}`,
+    ].join("\n");
+    const edited = await ctx.ui.editor("Define Focusa Workpoint", template);
+    draft = parseWorkpointEditor(String(edited || ""));
+    if (!draft) {
+      ctx.ui.notify("Workpoint not saved: MISSION and NEXT_SLICE are required.", "warning");
+      return false;
+    }
+  }
+  if (!draft) return false;
+  await ensureLowConfidenceWorkpoint(reason, draft);
+  await refreshSessionWorkpointPacket(`${reason}_operator_selected_workpoint`);
   return Boolean(S.activeWorkpointPacket);
 }
 
