@@ -34,6 +34,84 @@ fn token_enabled(state: &AppState) -> bool {
     state.config.auth_token.is_some() || std::env::var("FOCUSA_AUTH_TOKEN").is_ok()
 }
 
+fn capabilities_blocked(
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> Value {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    json!({
+        "status": "blocked",
+        "canonical": false,
+        "degraded": true,
+        "error": error,
+        "failure_class": failure_class,
+        "why": why,
+        "recovery_hint": recovery_hint,
+        "misuse_hint": misuse_hint,
+        "next_tools": next_tools_value.clone(),
+        "details": {
+            "tool_result_v1": {
+                "ok": false,
+                "status": "blocked",
+                "canonical": false,
+                "degraded": true,
+                "failure_class": failure_class,
+                "summary": why,
+                "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                "recovery_hint": recovery_hint,
+                "misuse_hint": misuse_hint,
+                "side_effects": [],
+                "evidence_refs": [],
+                "next_tools": next_tools_value,
+                "error": {"code": failure_class, "message": error}
+            }
+        }
+    })
+}
+
+fn agent_not_found(agent_id: &str) -> Value {
+    capabilities_blocked(
+        "agent_id not found",
+        "not_found",
+        format!("agent_id {agent_id} is not registered on this Focusa daemon"),
+        "Use /v1/agents to discover the valid agent_id before requesting agent details.",
+        "Likely stale agent id, wrong daemon instance, or unsupported multi-agent query.",
+        vec!["focusa_tool_doctor", "focusa_project_identity"],
+    )
+}
+
+fn clt_node_not_found(clt_node_id: &str) -> Value {
+    capabilities_blocked(
+        "clt_node_id not found",
+        "not_found",
+        format!("CLT node {clt_node_id} is not present in the current lineage tree"),
+        "Use /v1/lineage/head or /v1/lineage/tree to discover valid node ids before node lookup.",
+        "Likely stale lineage node id, wrong session tree, or pruned lineage window.",
+        vec![
+            "focusa_tree_head",
+            "focusa_lineage_tree",
+            "focusa_tool_doctor",
+        ],
+    )
+}
+
+fn invalid_ref_id(ref_id: &str) -> Value {
+    capabilities_blocked(
+        "invalid ref_id",
+        "validation_rejected",
+        format!("reference id {ref_id} is not a valid UUID"),
+        "Use a UUID from /v1/references/search or /v1/references before requesting reference details.",
+        "Likely malformed ref_id, stale docs, or route parameter mix-up.",
+        vec!["focusa_tool_doctor", "focusa_traverse"],
+    )
+}
+
 fn require_scope(
     headers: &HeaderMap,
     state: &AppState,
@@ -110,7 +188,7 @@ async fn get_agent(
     require_scope(&headers, &state, "agents:read")?;
     let s = state.focusa.read().await;
     if agent_id != DEFAULT_AGENT_ID {
-        return Ok(Json(json!({"error": "agent_id not found"})));
+        return Ok(Json(agent_not_found(&agent_id)));
     }
 
     Ok(Json(json!({
@@ -136,7 +214,7 @@ async fn get_agent_constitution(
     require_scope(&headers, &state, "agents:read")?;
     let s = state.focusa.read().await;
     if agent_id != DEFAULT_AGENT_ID {
-        return Ok(Json(json!({"error": "agent_id not found"})));
+        return Ok(Json(agent_not_found(&agent_id)));
     }
 
     Ok(Json(json!({
@@ -153,7 +231,7 @@ async fn get_agent_capabilities(
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "agents:read")?;
     if agent_id != DEFAULT_AGENT_ID {
-        return Ok(Json(json!({"error": "agent_id not found"})));
+        return Ok(Json(agent_not_found(&agent_id)));
     }
 
     let permissions = permission_context(&headers, token_enabled(&state));
@@ -514,7 +592,7 @@ async fn lineage_node(
     let node = s.clt.nodes.iter().find(|n| n.node_id == clt_node_id);
     match node {
         Some(n) => Ok(Json(json!({"node": n}))),
-        None => Ok(Json(json!({"error": "clt_node_id not found"}))),
+        None => Ok(Json(clt_node_not_found(&clt_node_id))),
     }
 }
 
@@ -702,7 +780,7 @@ async fn reference_by_id(
     let id = match uuid::Uuid::parse_str(&ref_id) {
         Ok(id) => id,
         Err(_) => {
-            return Ok(Json(json!({"error": "invalid ref_id"})));
+            return Ok(Json(invalid_ref_id(&ref_id)));
         }
     };
     let handle = s.reference_index.handles.iter().find(|h| h.id == id);
@@ -719,7 +797,7 @@ async fn reference_meta(
     let id = match uuid::Uuid::parse_str(&ref_id) {
         Ok(id) => id,
         Err(_) => {
-            return Ok(Json(json!({"error": "invalid ref_id"})));
+            return Ok(Json(invalid_ref_id(&ref_id)));
         }
     };
     let handle = s.reference_index.handles.iter().find(|h| h.id == id);

@@ -30,6 +30,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced opaque thread validation, not-found, and dispatch failures with no-guess envelopes.
 - Replaced opaque ASCC frame and delta dispatch failures with no-guess envelopes.
 - Replaced opaque constitution active/load failures with no-guess envelopes.
+- Replaced opaque capabilities agent, lineage node, and reference id lookup failures with no-guess envelopes.
 
 ## Unreleased — Spec93 release publication proof
 

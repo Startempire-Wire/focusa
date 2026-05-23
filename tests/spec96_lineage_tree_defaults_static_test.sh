@@ -43,3 +43,11 @@ else
 fi
 
 echo "SPEC96 lineage/tree default traversal static test: PASS"
+
+
+if rg -n 'capabilities_blocked|agent_not_found|clt_node_not_found|invalid_ref_id|recovery_hint|misuse_hint|tool_result_v1' "$CAPS_RS" >/dev/null; then
+  echo "✓ PASS: Capabilities lookup failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Capabilities lookup failures lack no-guess recovery contract" >&2
+  exit 1
+fi
