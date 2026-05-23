@@ -15,10 +15,10 @@ else
   exit 1
 fi
 
-if rg -n 'mode === "visible" && !scopedPacket|split\("\\n"\)\.length <= 7|packageUpdateCommand|REQUIRED FIRST: confirm project_root|folder/container holding project files|current state' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
-  echo "✓ PASS: unscoped login/update Utility Card stays compact and prioritizes project folder + trajectory"
+if rg -n 'mode === "visible" && !scopedPacket|Suggested first route: confirm project folder|Attentive and awaiting operator direction|Where are we going\? current state' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
+  echo "✓ PASS: unscoped login/update Utility Card prioritizes project folder, trajectory, and attentive fallback"
 else
-  echo "✗ FAIL: login/update Utility Card remains noisy or does not prioritize project folder + trajectory" >&2
+  echo "✗ FAIL: login/update Utility Card does not prioritize project folder, trajectory, and attentive fallback" >&2
   exit 1
 fi
 

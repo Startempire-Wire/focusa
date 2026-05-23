@@ -22,6 +22,7 @@ The card must mention:
 - prediction record/evaluate around risky or uncertain actions.
 - Metacognition/work-loop tool families for learning/continuous work.
 - Focus State tools as note/decision slots, not the whole project workflow.
+- Missing active Pi frame fallback: `Attentive and awaiting operator direction`, with continued help from operator/repo context until scope is safe.
 - Compaction fallback rule: related canonical fallback, not blank `none` fields.
 - Operator steering wins.
 

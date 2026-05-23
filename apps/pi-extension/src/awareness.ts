@@ -28,6 +28,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   ];
   const routeHints = [
     "Tool routes: Orient = focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume; Execute = focusa_active_object_resolve → focusa_workpoint_checkpoint; Prove = focusa_evidence_capture / focusa_workpoint_link_evidence → focusa_trajectory_assess; Learn = focusa_predict_record → focusa_predict_evaluate → focusa_metacog_capture/retrieve; Recover = focusa_tool_doctor → focusa_resource_mode/focusa_traverse/focusa_workpoint_resume.",
+    "Missing active Pi frame fallback: Attentive and awaiting operator direction; keep helping from operator/repo context, then checkpoint/resume once scope is safe.",
     "Focus State tools (scratch/decide/constraint/failure/etc.) are note/decision slots; use them with the project route, not instead of it.",
   ];
 
@@ -38,7 +39,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       `Project folder: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
       ...friendlyQ,
       "Project-bound Workpoint: none verified yet; latest operator instruction is the seed, then bind it to folder + trajectory + next anchor.",
-      needsConfirm
+      !safeScope || needsConfirm
         ? "Suggested first route: confirm project folder, then run focusa_trajectory_view/define_goal before durable Focusa writes."
         : "Suggested first route: run focusa_trajectory_view for goals/gap, then checkpoint once mission and next action are clear.",
       ...routeHints,
