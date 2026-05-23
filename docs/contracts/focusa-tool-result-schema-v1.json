@@ -160,6 +160,14 @@
         "unknown_ambiguous_completion",
         null
       ]
+    },
+    "recovery_hint": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "misuse_hint": {
+      "type": "string",
+      "maxLength": 500
     }
   },
   "additionalProperties": true

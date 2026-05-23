@@ -19,6 +19,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Reworded the missing active Pi frame fallback to `Attentive and awaiting operator direction`, surfaced it in the Utility Card/quickstart, and added validation so agents stay helpful while scratch fallback/recovery guidance remains available.
 - Added model-facing no-deadend recovery guidance (`recovery_hint`, `misuse_hint`, `next_tools`) to Focusa tool result envelopes and documented out-of-order recovery routes.
 - Updated Tool Result Envelope docs to require recovery/misuse hints so models know why a tool failed and the next safe route.
+- Added Spec89 failure-recovery envelope fixture/schema guard for no-deadend tool-result behavior.
 
 ## Unreleased — Spec93 release publication proof
 

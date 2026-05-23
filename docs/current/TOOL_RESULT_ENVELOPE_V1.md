@@ -34,3 +34,5 @@ If a tool fails or blocks:
 2. Check `retry.posture`; only retry unchanged when posture says it is safe.
 3. Follow `recovery_hint` and fix `misuse_hint` before retrying.
 4. Use `next_tools` as the safe route; do not stop at the error unless the operator asks.
+
+Contract fixture: `tests/fixtures/spec89_tool_result_failure_recovery_sample.json` proves failed/out-of-order results carry `recovery_hint`, `misuse_hint`, and non-empty `next_tools`.

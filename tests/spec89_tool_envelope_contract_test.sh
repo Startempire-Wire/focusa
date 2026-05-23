@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS_TS="$ROOT_DIR/apps/pi-extension/src/tools.ts"
 SCHEMA="$ROOT_DIR/docs/contracts/focusa-tool-result-schema-v1.json"
 SAMPLE="$ROOT_DIR/tests/fixtures/spec89_tool_result_valid_sample.json"
+FAILURE_SAMPLE="$ROOT_DIR/tests/fixtures/spec89_tool_result_failure_recovery_sample.json"
 required=(ok status canonical degraded summary retry side_effects evidence_refs next_tools)
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
@@ -29,9 +30,15 @@ validate_result(){
   jq -e '.retry | has("safe") and has("posture")' "$file" >/dev/null || fail "$file retry missing safe/posture"
   jq -e '(.side_effects|type)=="array" and (.evidence_refs|type)=="array" and (.next_tools|type)=="array"' "$file" >/dev/null || fail "$file array fields invalid"
 }
+validate_failure_guidance(){
+  local file="$1"
+  validate_result "$file"
+  jq -e '.ok == false and (.failure_class|type)=="string" and (.recovery_hint|type)=="string" and (.misuse_hint|type)=="string" and (.next_tools|length) > 0 and (.retry.posture != "safe_retry")' "$file" >/dev/null || fail "$file missing no-deadend failure guidance"
+}
 if [[ "$#" -gt 0 ]]; then
   for file in "$@"; do validate_result "$file"; done
 else
   validate_result "$SAMPLE"
+  validate_failure_guidance "$FAILURE_SAMPLE"
 fi
-pass "Spec89 tool envelope skeleton validated required fields and $tool_count tools"
+pass "Spec89 tool envelope skeleton validated required fields, failure recovery guidance, and $tool_count tools"

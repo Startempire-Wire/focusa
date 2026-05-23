@@ -1,0 +1,33 @@
+{
+  "ok": false,
+  "status": "blocked",
+  "failure_class": "scope_mismatch",
+  "canonical": false,
+  "degraded": true,
+  "summary": "workpoint resume blocked by project_root mismatch",
+  "tool": "focusa_workpoint_resume",
+  "family": "workpoint",
+  "workpoint_id": null,
+  "retry": {
+    "safe": false,
+    "posture": "do_not_retry_unchanged",
+    "reason": "scope_mismatch"
+  },
+  "recovery_hint": "Use focusa_project_identity/verify with explicit project_root, then checkpoint/resume in the same continuity; do not retry stale packets unchanged.",
+  "misuse_hint": "Usually caused by broad cwd, cross-project packet reuse, or tool call before project binding.",
+  "side_effects": [],
+  "evidence_refs": [],
+  "next_tools": [
+    "focusa_project_identity",
+    "focusa_project_verify",
+    "focusa_workpoint_checkpoint",
+    "focusa_workpoint_resume"
+  ],
+  "error": {
+    "code": "scope_mismatch",
+    "message": "project_root mismatch"
+  },
+  "raw": {
+    "status": "rejected_scope_mismatch"
+  }
+}
