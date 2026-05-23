@@ -36,6 +36,73 @@ fn hard_limit() -> usize {
     budgeted_hard_limit("FOCUSA_EVENTS_RECENT_HARD_LIMIT", 500, default_limit())
 }
 
+fn events_failure(
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> Value {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    json!({
+        "status": "blocked",
+        "canonical": false,
+        "degraded": true,
+        "error": error,
+        "failure_class": failure_class,
+        "why": why,
+        "recovery_hint": recovery_hint,
+        "misuse_hint": misuse_hint,
+        "next_tools": next_tools_value.clone(),
+        "details": {
+            "tool_result_v1": {
+                "ok": false,
+                "status": "blocked",
+                "canonical": false,
+                "degraded": true,
+                "failure_class": failure_class,
+                "summary": why,
+                "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                "recovery_hint": recovery_hint,
+                "misuse_hint": misuse_hint,
+                "side_effects": [],
+                "evidence_refs": [],
+                "next_tools": next_tools_value,
+                "error": {"code": failure_class, "message": error}
+            }
+        }
+    })
+}
+
+fn events_db_failure(stage: &str, error: impl std::fmt::Display) -> Value {
+    events_failure(
+        format!("db {stage} failed: {error}"),
+        "persistence_failed",
+        format!("SQLite events {stage} operation failed: {error}"),
+        "Check daemon persistence health and data_dir permissions before relying on event history.",
+        "Likely SQLite unavailable, wrong data_dir, file permission issue, or resource pressure.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_resource_mode",
+            "focusa_traverse",
+        ],
+    )
+}
+
+fn event_not_found(event_id: &str) -> Value {
+    events_failure(
+        "Event not found",
+        "not_found",
+        format!("event_id {event_id} is not present in SQLite event history"),
+        "Use /v1/events/recent to discover valid event ids before requesting a specific event.",
+        "Likely stale event id, wrong daemon data_dir, or pruned/unpersisted event history.",
+        vec!["focusa_traverse", "focusa_tool_doctor"],
+    )
+}
+
 async fn recent(
     State(state): State<Arc<AppState>>,
     Query(params): Query<RecentParams>,
@@ -45,9 +112,12 @@ async fn recent(
     let conn = match Connection::open(db_path) {
         Ok(c) => c,
         Err(e) => {
-            return Json(
-                json!({"events": [], "total": 0, "error": format!("db open failed: {e}") }),
-            );
+            let mut payload = events_db_failure("open", e);
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("events".to_string(), json!([]));
+                obj.insert("total".to_string(), json!(0));
+            }
+            return Json(payload);
         }
     };
 
@@ -73,9 +143,12 @@ async fn recent(
     let mut stmt = match conn.prepare(&sql) {
         Ok(s) => s,
         Err(e) => {
-            return Json(
-                json!({"events": [], "total": 0, "error": format!("db query failed: {e}") }),
-            );
+            let mut payload = events_db_failure("query", e);
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("events".to_string(), json!([]));
+                obj.insert("total".to_string(), json!(0));
+            }
+            return Json(payload);
         }
     };
 
@@ -100,9 +173,12 @@ async fn recent(
     let rows = match rows {
         Ok(v) => v,
         Err(e) => {
-            return Json(
-                json!({"events": [], "total": 0, "error": format!("db read failed: {e}") }),
-            );
+            let mut payload = events_db_failure("read", e);
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("events".to_string(), json!([]));
+                obj.insert("total".to_string(), json!(0));
+            }
+            return Json(payload);
         }
     };
 
@@ -166,7 +242,7 @@ async fn get_event(
     let conn = match Connection::open(db_path) {
         Ok(c) => c,
         Err(e) => {
-            return Json(json!({"error": format!("db open failed: {e}") }));
+            return Json(events_db_failure("open", e));
         }
     };
 
@@ -180,7 +256,7 @@ async fn get_event(
         .unwrap_or(None);
 
     match payload {
-        None => Json(json!({"error": "Event not found"})),
+        None => Json(event_not_found(&event_id)),
         Some(p) => {
             let v = serde_json::from_str::<Value>(&p).unwrap_or(json!({"raw": p}));
             Json(json!({"event": v}))

@@ -41,3 +41,12 @@ rg -n 'trace/batch|total_queued|flush_reason|truncated|turn_end' \
 pass "Pi trace batching metadata present"
 
 echo "SPEC94 response-size/metadata contract: PASS"
+
+
+EVENTS_SQLITE_RS="${ROOT_DIR}/crates/focusa-api/src/routes/events_sqlite.rs"
+if rg -n 'events_failure|events_db_failure|event_not_found|recovery_hint|misuse_hint|tool_result_v1' "$EVENTS_SQLITE_RS" >/dev/null; then
+  echo "✓ PASS: SQLite event failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: SQLite event failures lack no-guess recovery contract" >&2
+  exit 1
+fi
