@@ -17,6 +17,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction record/evaluate/read paths.
 - Materialized canonical Workpoint checkpoints through the sync reducer path so safe `project_root + continuity_id` writes are visible immediately instead of depending on queued daemon read-model lag.
 - Reworded the missing active Pi frame fallback to `Attentive and awaiting operator direction`, surfaced it in the Utility Card/quickstart, and added validation so agents stay helpful while scratch fallback/recovery guidance remains available.
+- Added model-facing no-deadend recovery guidance (`recovery_hint`, `misuse_hint`, `next_tools`) to Focusa tool result envelopes and documented out-of-order recovery routes.
 
 ## Unreleased — Spec93 release publication proof
 

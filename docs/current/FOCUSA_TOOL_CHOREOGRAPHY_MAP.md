@@ -6,6 +6,31 @@ Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreog
 
 This map links tools by **model intent** so agents get compounding project results instead of using only basic note tools.
 
+
+## No-deadend failure recovery
+
+Every Focusa tool result should be read as a small recovery contract, not just prose:
+
+```text
+failure_class → why it failed
+retry.posture → whether retry is safe
+recovery_hint / misuse_hint → what to fix first
+next_tools → the next safe route
+```
+
+Common out-of-order fixes:
+
+| Symptom | Likely cause | Safe next move |
+|---|---|---|
+| `scope_mismatch` | Broad cwd, cross-project packet, stale continuity | `focusa_project_identity` / `verify` → `focusa_workpoint_checkpoint` → `resume` |
+| `frame_unavailable` | Focus State slot used before active Pi frame | Stay `Attentive and awaiting operator direction`; checkpoint/resume before durable writes |
+| `validation_rejected` | Verbose/task/debug text in durable slot | Put full text in `focusa_scratch`; retry one compact declarative slot |
+| `read_model_lag` | Just-written packet not visible yet | Wait/read once with same scope; avoid duplicate writes |
+| `hot_path_timeout` | Daemon/resource pressure on bounded route | `focusa_tool_doctor` → `focusa_resource_mode`; avoid full/cold payloads |
+| `unknown_ambiguous_completion` | Result does not prove side effect | Check canonical state/side effects before retrying |
+
+Rule: if a tool blocks, do not stop at the error. Follow `next_tools` unless the operator steers otherwise.
+
 ## Route graph
 
 ### 1) Orient the project

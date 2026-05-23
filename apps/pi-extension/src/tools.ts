@@ -220,6 +220,8 @@ interface FocusaToolResultV1 {
   endpoint?: string;
   workpoint_id?: string | null;
   retry: { safe: boolean; posture: FocusaRetryPosture; reason?: string };
+  recovery_hint?: string;
+  misuse_hint?: string;
   side_effects: string[];
   evidence_refs: string[];
   next_tools: string[];
@@ -249,6 +251,34 @@ function inferFailureClass(status: FocusaToolStatus, summary: string, message?: 
   return null;
 }
 
+function recoveryHintForFailure(failureClass: FocusaFailureClass | null, status: FocusaToolStatus, tool?: string): { recovery_hint?: string; misuse_hint?: string; next_tools?: string[] } {
+  switch (failureClass) {
+    case "scope_mismatch":
+      return { recovery_hint: "Use focusa_project_identity/verify with explicit project_root, then checkpoint/resume in the same continuity; do not retry stale packets unchanged.", misuse_hint: "Usually caused by broad cwd, cross-project packet reuse, or tool call before project binding.", next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] };
+    case "frame_unavailable":
+      return { recovery_hint: "Stay attentive to operator direction, continue from repo/operator context, then create/resume a scoped Workpoint before durable Focus State writes.", misuse_hint: "Focus State note tools were used without an active Pi frame; this is recoverable, not a dead end.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"] };
+    case "validation_rejected":
+      return { recovery_hint: "Rewrite the durable slot as one compact declarative sentence, or put verbose/debug/task content in focusa_scratch.", misuse_hint: "Durable Focus State slots reject task lists, verbose reasoning, and non-declarative wording.", next_tools: ["focusa_scratch", "focusa_decide"] };
+    case "read_model_lag":
+      return { recovery_hint: "Wait briefly, then read/resume the current packet once with the same idempotency scope; avoid duplicate writes.", misuse_hint: "A recent accepted write may not be visible in the read model yet.", next_tools: ["focusa_workpoint_resume", "focusa_tool_doctor"] };
+    case "hot_path_timeout":
+      return { recovery_hint: "Retry the bounded hot route once, then run focusa_tool_doctor/resource_mode; avoid cold/full payload reads.", misuse_hint: "Hot routes should be bounded; repeated timeouts indicate daemon/resource pressure.", next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_traverse"] };
+    case "cold_path_timeout":
+      return { recovery_hint: "Switch to summary/traverse slices or explicit rehydrate refs; schedule cold diagnostics separately.", misuse_hint: "A cold/deep route was used where a bounded route would answer the next action.", next_tools: ["focusa_traverse", "focusa_resource_mode", "focusa_tool_doctor"] };
+    case "daemon_unavailable":
+      return { recovery_hint: "Run focusa_tool_doctor; if daemon is down or overloaded, continue from operator/repo context and retry after health is ok.", misuse_hint: "Tool failure is infrastructure/reachability, not a reason to stop all useful repo work.", next_tools: ["focusa_tool_doctor", "focusa_resource_mode"] };
+    case "writer_conflict":
+      return { recovery_hint: "Use writer-status/preflight and avoid mutating work-loop ownership without explicit operator approval.", misuse_hint: "A mutating work-loop command was attempted while another writer/session owns the loop.", next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_status"] };
+    case "approval_required":
+      return { recovery_hint: "Do not infer approval; use preflight/read-only path or wait for explicit approved=true/force=true where required.", misuse_hint: "A mutating/destructive/background-session action was attempted without required approval fields.", next_tools: ["focusa_tool_doctor"] };
+    case "unknown_ambiguous_completion":
+      return { recovery_hint: "Check side effects or canonical read state first, then retry only if no duplicate/cross-scope mutation risk exists.", misuse_hint: "Result did not prove success or failure; blind retry can duplicate writes.", next_tools: ["focusa_tool_doctor", "focusa_workpoint_resume"] };
+    default:
+      if (status === "blocked" || status === "error") return { recovery_hint: "Read failure_class, retry.posture, and next_tools; prefer project_identity → trajectory_view → workpoint_resume/checkpoint before retrying.", misuse_hint: "Likely out-of-order tool use or missing project/continuity context.", next_tools: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume", "focusa_tool_doctor"] };
+      return {};
+  }
+}
+
 function focusaToolResult(params: {
   ok: boolean;
   status: FocusaToolStatus;
@@ -272,6 +302,8 @@ function focusaToolResult(params: {
   const canonical = params.canonical ?? (!degraded && params.ok);
   const summary = params.summary.slice(0, 500);
   const failureClass = params.failure_class ?? inferFailureClass(params.status, summary, params.error?.message, canonical, degraded);
+  const guidance = recoveryHintForFailure(failureClass, params.status, params.tool);
+  const nextTools = params.next_tools?.length ? params.next_tools : guidance.next_tools ?? [];
   return {
     ok: params.ok,
     status: params.status,
@@ -288,9 +320,11 @@ function focusaToolResult(params: {
       posture: params.retry?.posture ?? (params.ok ? "safe_retry" : "operator_required"),
       reason: params.retry?.reason ?? failureClass ?? undefined,
     },
+    recovery_hint: guidance.recovery_hint,
+    misuse_hint: guidance.misuse_hint,
     side_effects: params.side_effects ?? [],
     evidence_refs: params.evidence_refs ?? [],
-    next_tools: params.next_tools ?? [],
+    next_tools: nextTools,
     ontology_candidate_delta_refs: params.ontology_candidate_delta_refs ?? [],
     error: params.error ?? null,
     raw: params.raw,
