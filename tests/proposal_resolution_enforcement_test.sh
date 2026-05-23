@@ -5,6 +5,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -97,6 +98,14 @@ else
 fi
 
 log_pass "Canonical focus mutation verified after accepted proposal resolution"
+
+
+PROPOSALS_RS="${ROOT_DIR}/crates/focusa-api/src/routes/proposals.rs"
+if rg -n 'proposal_failure|proposal_payload_rejected|proposal_dispatch_failed|recovery_hint|misuse_hint|tool_result_v1' "$PROPOSALS_RS" >/dev/null; then
+  log_pass "Proposal resolution failures expose no-guess recovery contract"
+else
+  log_fail "Proposal resolution failures lack no-guess recovery contract"
+fi
 
 echo ""
 echo "=== PROPOSAL RESOLUTION ENFORCEMENT RESULTS ==="

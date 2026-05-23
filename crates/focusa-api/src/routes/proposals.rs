@@ -669,6 +669,80 @@ fn submission_audit_event(
 }
 
 /// POST /v1/proposals/resolve — run PRE resolution on pending proposals.
+fn proposal_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "canonical": false,
+                    "degraded": true,
+                    "failure_class": failure_class,
+                    "summary": why,
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools_value,
+                    "error": {"code": failure_class, "message": error}
+                }
+            }
+        })),
+    )
+}
+
+fn proposal_payload_rejected(err: impl Into<String>) -> (StatusCode, Json<Value>) {
+    let err = err.into();
+    proposal_failure(
+        StatusCode::BAD_REQUEST,
+        err.clone(),
+        "validation_rejected",
+        format!("proposal payload could not be converted into an applicable domain event: {err}"),
+        "Inspect proposal kind and payload schema before retrying unchanged.",
+        "Likely malformed proposal payload, missing required field, or kind/payload mismatch.",
+        vec!["focusa_tool_doctor", "focusa_trajectory_view"],
+    )
+}
+
+fn proposal_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    proposal_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to dispatch proposal resolution event: {error}"),
+        "daemon_unavailable",
+        "Proposal resolution event could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_work_loop_status",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
 async fn resolve_proposals(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
@@ -744,50 +818,39 @@ async fn resolve_proposals(
             reason,
         } => {
             visibility_target = Some((winner.kind, winner.payload.clone()));
-            let (applied_kind, mut domain_events): (String, Vec<FocusaEvent>) =
-                match winner.kind {
-                    ProposalKind::FocusChange => {
-                        let reduction =
-                            apply_focus_change_proposal(snapshot.clone(), &winner, "api").map_err(
-                                |err| (StatusCode::BAD_REQUEST, Json(json!({"error": err}))),
-                            )?;
-                        ("focus_frame_pushed".to_string(), reduction.emitted_events)
-                    }
-                    ProposalKind::ThesisUpdate => (
-                        "thread_thesis_updated".to_string(),
-                        vec![thesis_update_event(&winner).map_err(|err| {
-                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
-                        })?],
-                    ),
-                    ProposalKind::AutonomyAdjustment => (
-                        "autonomy_adjusted".to_string(),
-                        vec![autonomy_adjustment_event(&winner).map_err(|err| {
-                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
-                        })?],
-                    ),
-                    ProposalKind::ConstitutionRevision => (
-                        "constitution_loaded".to_string(),
-                        vec![constitution_revision_event(&winner).map_err(|err| {
-                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
-                        })?],
-                    ),
-                    ProposalKind::MemoryWrite => (
-                        "semantic_memory_upserted".to_string(),
-                        vec![memory_write_event(&winner).map_err(|err| {
-                            (StatusCode::BAD_REQUEST, Json(json!({"error": err})))
-                        })?],
-                    ),
-                    ProposalKind::OntologyMutation
-                    | ProposalKind::QueryScopeMutation
-                    | ProposalKind::ReferenceResolutionMutation
-                    | ProposalKind::ProjectionViewMutation
-                    | ProposalKind::OntologyGovernanceMutation
-                    | ProposalKind::IdentityModelMutation
-                    | ProposalKind::VisualModelMutation => (
-                        derived_ontology_applied_kind(winner.kind, &winner.payload),
-                        Vec::new(),
-                    ),
-                };
+            let (applied_kind, mut domain_events): (String, Vec<FocusaEvent>) = match winner.kind {
+                ProposalKind::FocusChange => {
+                    let reduction = apply_focus_change_proposal(snapshot.clone(), &winner, "api")
+                        .map_err(proposal_payload_rejected)?;
+                    ("focus_frame_pushed".to_string(), reduction.emitted_events)
+                }
+                ProposalKind::ThesisUpdate => (
+                    "thread_thesis_updated".to_string(),
+                    vec![thesis_update_event(&winner).map_err(proposal_payload_rejected)?],
+                ),
+                ProposalKind::AutonomyAdjustment => (
+                    "autonomy_adjusted".to_string(),
+                    vec![autonomy_adjustment_event(&winner).map_err(proposal_payload_rejected)?],
+                ),
+                ProposalKind::ConstitutionRevision => (
+                    "constitution_loaded".to_string(),
+                    vec![constitution_revision_event(&winner).map_err(proposal_payload_rejected)?],
+                ),
+                ProposalKind::MemoryWrite => (
+                    "semantic_memory_upserted".to_string(),
+                    vec![memory_write_event(&winner).map_err(proposal_payload_rejected)?],
+                ),
+                ProposalKind::OntologyMutation
+                | ProposalKind::QueryScopeMutation
+                | ProposalKind::ReferenceResolutionMutation
+                | ProposalKind::ProjectionViewMutation
+                | ProposalKind::OntologyGovernanceMutation
+                | ProposalKind::IdentityModelMutation
+                | ProposalKind::VisualModelMutation => (
+                    derived_ontology_applied_kind(winner.kind, &winner.payload),
+                    Vec::new(),
+                ),
+            };
 
             events_to_emit.append(&mut domain_events);
             for proposal in &pending {
@@ -876,12 +939,7 @@ async fn resolve_proposals(
             .command_tx
             .send(Action::EmitEvent { event })
             .await
-            .map_err(|_| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": "failed to dispatch proposal resolution event"})),
-                )
-            })?;
+            .map_err(proposal_dispatch_failed)?;
     }
 
     if let Some((kind, payload)) = visibility_target {

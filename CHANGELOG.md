@@ -34,6 +34,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced opaque SQLite event read/not-found failures with no-guess envelopes.
 - Replaced opaque ECS content validation, dispatch, handle, and blob lookup failures with no-guess envelopes.
 - Replaced opaque trust permission and daemon dispatch failures with no-guess envelopes.
+- Replaced opaque proposal resolution payload and dispatch failures with no-guess envelopes.
 
 ## Unreleased — Spec93 release publication proof
 
