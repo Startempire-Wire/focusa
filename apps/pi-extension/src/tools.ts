@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -529,6 +529,25 @@ async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Prom
   }
 
   return sessionRoot || normalizeProjectRoot(process.cwd()) || String(process.cwd());
+}
+
+function projectRootConfirmationGate(projectRoot: string, explicitProjectRoot?: unknown): any | null {
+  if (explicitProjectRoot || !projectRootConfirmationRequired(projectRoot)) return null;
+  const resolution = S.lastProjectRootResolution;
+  const candidates = resolution?.candidates || [];
+  return {
+    content: [{ type: "text", text: `project root confirmation required → ${projectRootConfirmationSummary(projectRoot)}. Use interview/menu to confirm the correct project_root before Focusa state writes.` }],
+    details: {
+      ok: false,
+      status: "blocked",
+      failure_class: "scope_mismatch",
+      reason: "project_root_confidence_below_90",
+      project_root: projectRoot,
+      project_root_resolution: resolution,
+      candidates,
+      next_tools: ["interview", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+    },
+  } as any;
 }
 
 function scopeRecoveryContext(body: any, projectRoot: string, continuityId?: string, source = "focusa"): { text: string; details: Record<string, any> } | null {
@@ -1834,6 +1853,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const query = new URLSearchParams();
       query.set("project_root", projectRoot);
       if (p.session_id || S.sessionFrameKey) query.set("session_id", String(p.session_id || S.sessionFrameKey));
@@ -1906,6 +1927,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1933,6 +1956,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/assess", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1958,6 +1983,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/propose-workpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1984,6 +2011,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/checkpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -2007,6 +2036,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -2057,6 +2088,8 @@ export function registerTools(pi: ExtensionAPI) {
         return { content: [{ type: "text", text: `evidence capture → captured ref=${p.evidence_ref} attach_to_workpoint=false` }], details: { ok: true, status: "completed", evidence_ref: p.evidence_ref } } as any;
       }
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "evidence capture", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "evidence capture blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
@@ -2108,6 +2141,8 @@ export function registerTools(pi: ExtensionAPI) {
       const blockers = Array.isArray(p.blockers) ? p.blockers : [];
       const doNotDrift = Array.isArray(p.do_not_drift) ? p.do_not_drift : [];
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       if (p.canonical !== false && !isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into a specific project/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
@@ -2185,6 +2220,8 @@ export function registerTools(pi: ExtensionAPI) {
         } as any;
       }
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint evidence link", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint evidence link blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
@@ -2222,6 +2259,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as { workpoint_id?: string; continuity_id?: string; session_id?: string; mode?: string; project_root?: string };
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
       if (!isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint resume blocked → unsafe project_root (${reason}); ignore stale packets and follow latest operator instruction.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason, next_tools: ["focusa_project_identity", "focusa_tool_doctor"] } } as any;

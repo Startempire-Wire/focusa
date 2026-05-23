@@ -1,6 +1,6 @@
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
-import { S, adoptPiProjectRoot, resolvePiProjectRoot, resolvePiProjectRootCandidate, isProjectRootAuthoritySafe } from "../apps/pi-extension/src/state.ts";
+import { S, adoptPiProjectRoot, resolvePiProjectRoot, resolvePiProjectRootCandidate, isProjectRootAuthoritySafe, ensurePiFrame } from "../apps/pi-extension/src/state.ts";
 
 function assert(cond: any, msg: string) {
   if (!cond) throw new Error(msg);
@@ -34,6 +34,10 @@ const packageOnlyResolution = resolvePiProjectRootCandidate(join(packageOnlyRoot
 assert(packageOnlyResolution.projectRoot === packageOnlyRoot, `package marker should produce a candidate root, got ${packageOnlyResolution.projectRoot}`);
 assert(packageOnlyResolution.confidenceScore < 0.90 && packageOnlyResolution.requiresOperatorConfirmation === true, "package-only inference should require operator menu confirmation");
 assert((packageOnlyResolution.candidates || []).length > 0, "low-confidence inference should expose candidate roots for menu selection");
+Object.assign(S, { focusaAvailable: true, activeFrameId: null, activeFramePromise: null, sessionFrameKey: "low-confidence-session" });
+adoptPiProjectRoot(join(packageOnlyRoot, "src"));
+const lowConfidenceFrame = await ensurePiFrame(join(packageOnlyRoot, "src"), "low-confidence-session", "test-low-confidence");
+assert(lowConfidenceFrame === null, "low-confidence project root must block automatic frame creation before operator confirmation");
 
 const markerRoot = join(portableRoot, "marker-project");
 mkdirSync(join(markerRoot, "nested", "tool"), { recursive: true });

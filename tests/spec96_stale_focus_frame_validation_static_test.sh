@@ -41,6 +41,12 @@ else
   echo "✗ FAIL: Focus State write failures still lack structured recovery guidance" >&2; exit 1
 fi
 
+if rg -n 'projectRootConfirmationRequired|projectRootConfirmationSummary|pi_frame_creation_blocked_unconfirmed_project_root' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null && rg -n 'projectRootConfirmationGate|project_root_confidence_below_90|interview/menu' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: low-confidence project roots block Focusa writes and route to operator confirmation"
+else
+  echo "✗ FAIL: low-confidence project roots can still silently bind Focusa state" >&2; exit 1
+fi
+
 if rg -n 'recommendations|recommended_action|session_scope|Session cwd is broad/unsafe' "$TOOLS" >/dev/null; then
   echo "✓ PASS: tool doctor emits actionable recommendations and session-scope diagnostics"
 else

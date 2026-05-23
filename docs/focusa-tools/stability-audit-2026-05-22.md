@@ -70,3 +70,19 @@ Additional verification:
 
 - `bash tests/pi_project_root_inference_test.sh`
 - `bash tests/spec96_utility_card_session_isolation_static_test.sh`
+
+## Project-root authority gate
+
+Additional correction: correct project root determines Focus State, Workpoint, Trajectory, evidence, and progress authority. Therefore low-confidence root guesses must not silently bind state.
+
+Third-pass refinement:
+
+- Automatic Pi session/frame/Workpoint/Trajectory binding is blocked when project-root confidence is below 90%.
+- Focus State frame creation returns no frame under unconfirmed project-root scope and emits bounded telemetry.
+- Scope-sensitive Focusa tools return a blocked envelope with candidate roots and `next_tools` including `interview` so the operator can confirm the correct root.
+- Utility Card shows confidence/source and directs the agent to menu confirmation before Focusa writes.
+
+Additional verification:
+
+- `bash tests/pi_project_root_inference_test.sh` now proves low-confidence package-only roots expose candidates and block automatic frame creation.
+- `bash tests/spec96_stale_focus_frame_validation_static_test.sh` now asserts low-confidence root gates exist.

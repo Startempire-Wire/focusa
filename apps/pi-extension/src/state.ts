@@ -1203,10 +1203,9 @@ function confidenceForScore(score: number): { confidence: "high" | "medium" | "l
   return { confidence: "low", confidenceScore: 0.25 };
 }
 
-function projectRootConfirmationRequired(confidenceScore: number): boolean {
+function projectRootScoreRequiresConfirmation(confidenceScore: number): boolean {
   return confidenceScore < 0.90;
 }
-
 function findAncestorProjectRootCandidates(start: string): Array<{ root: string; score: number; depth: number; markers: string[] }> {
   let dir = normalizeProjectRoot(resolve(start || "."));
   const candidates: Array<{ root: string; score: number; depth: number; markers: string[] }> = [];
@@ -1239,7 +1238,7 @@ export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacke
   const explicitCandidate = explicitCandidates[0] || null;
   if (explicitCandidate) {
     const confidence = confidenceForScore(explicitCandidate.score);
-    return { projectRoot: explicitCandidate.root, ...confidence, source: "cwd_ancestor_markers", reason: `markers=${explicitCandidate.markers.join(",")}`, safe: true, requiresOperatorConfirmation: projectRootConfirmationRequired(confidence.confidenceScore), markerScore: explicitCandidate.score, markers: explicitCandidate.markers, candidates: rootCandidatesForOutput(explicitCandidates) };
+    return { projectRoot: explicitCandidate.root, ...confidence, source: "cwd_ancestor_markers", reason: `markers=${explicitCandidate.markers.join(",")}`, safe: true, requiresOperatorConfirmation: projectRootScoreRequiresConfirmation(confidence.confidenceScore), markerScore: explicitCandidate.score, markers: explicitCandidate.markers, candidates: rootCandidatesForOutput(explicitCandidates) };
   }
 
   const sessionRoot = normalizeProjectRoot(S.sessionCwd);
@@ -1247,7 +1246,7 @@ export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacke
   const sessionCandidate = sessionCandidates[0] || null;
   if (sessionCandidate) {
     const confidence = confidenceForScore(sessionCandidate.score);
-    return { projectRoot: sessionCandidate.root, ...confidence, source: "session_cwd_ancestor_markers", reason: `markers=${sessionCandidate.markers.join(",")}`, safe: true, requiresOperatorConfirmation: projectRootConfirmationRequired(confidence.confidenceScore), markerScore: sessionCandidate.score, markers: sessionCandidate.markers, candidates: rootCandidatesForOutput(sessionCandidates) };
+    return { projectRoot: sessionCandidate.root, ...confidence, source: "session_cwd_ancestor_markers", reason: `markers=${sessionCandidate.markers.join(",")}`, safe: true, requiresOperatorConfirmation: projectRootScoreRequiresConfirmation(confidence.confidenceScore), markerScore: sessionCandidate.score, markers: sessionCandidate.markers, candidates: rootCandidatesForOutput(sessionCandidates) };
   }
 
   const packet = persistedPacket?.resume_packet?.workpoint || persistedPacket?.workpoint || persistedPacket;
@@ -1265,6 +1264,23 @@ export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacke
 
 export function resolvePiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
   return resolvePiProjectRootCandidate(cwdInput, persistedPacket).projectRoot;
+}
+
+export function projectRootConfirmationRequired(projectRoot?: string): boolean {
+  const resolution = S.lastProjectRootResolution;
+  if (!resolution) return false;
+  if (projectRoot && normalizeProjectRoot(projectRoot) !== normalizeProjectRoot(resolution.projectRoot)) return false;
+  return resolution.requiresOperatorConfirmation === true || resolution.safe !== true;
+}
+
+export function projectRootConfirmationSummary(projectRoot?: string): string {
+  const resolution = S.lastProjectRootResolution;
+  if (!resolution || (projectRoot && normalizeProjectRoot(projectRoot) !== normalizeProjectRoot(resolution.projectRoot))) return "project root is unverified";
+  const candidates = (resolution.candidates || [])
+    .slice(0, 3)
+    .map(candidate => `${candidate.projectRoot} (${Math.round(candidate.confidenceScore * 100)}%)`)
+    .join(", ");
+  return `project_root=${resolution.projectRoot} confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}; ${resolution.reason}${candidates ? `; candidates: ${candidates}` : ""}`;
 }
 
 export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): string {
@@ -1536,7 +1552,13 @@ async function adoptExistingSafeFrameForRecovery(): Promise<string | null> {
 export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
   if (!S.focusaAvailable) return S.activeFrameId;
 
-  const requestedCwd = normalizeProjectRoot(cwd || S.sessionCwd || process.cwd());
+  const requestedResolution = resolvePiProjectRootCandidate(cwd || S.sessionCwd || process.cwd());
+  S.lastProjectRootResolution = requestedResolution;
+  const requestedCwd = requestedResolution.projectRoot;
+  if (requestedResolution.requiresOperatorConfirmation || requestedResolution.safe !== true) {
+    focusaPost("/telemetry/trace", { event_type: "pi_frame_creation_blocked_unconfirmed_project_root", payload: { project_root: requestedCwd, summary: projectRootConfirmationSummary(requestedCwd), source } });
+    return null;
+  }
   let resolvedCwd = requestedCwd;
   if (!isProjectRootAuthoritySafe(resolvedCwd)) {
     const adoptedFrameId = await adoptExistingSafeFrameForRecovery();

@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -258,6 +258,11 @@ export function registerSession(pi: ExtensionAPI) {
     }
 
     const projectRoot = adoptPiProjectRoot(ctx.cwd);
+    if (projectRootConfirmationRequired(projectRoot)) {
+      ctx.ui.setStatus("focusa", "🧭 Focusa needs project root");
+      focusaPost("/telemetry/trace", { event_type: "pi_session_state_bind_blocked_unconfirmed_project_root", payload: { project_root: projectRoot, summary: projectRootConfirmationSummary(projectRoot), session_id: eventSessionId } });
+      return;
+    }
     ensureContinuityId(projectRoot);
     await ensureFocusaSession({ ...ctx, cwd: projectRoot });
     await ensureActiveFrame({ ...ctx, cwd: projectRoot }, (event as any).sessionId || `pi-session-${Date.now()}`);
@@ -452,6 +457,10 @@ export function registerSession(pi: ExtensionAPI) {
     if (!S.wbmEnabled) S.activeFrameId = null;
     if (S.focusaAvailable) {
       const projectRoot = adoptPiProjectRoot(ctx.cwd);
+      if (projectRootConfirmationRequired(projectRoot)) {
+        focusaPost("/telemetry/trace", { event_type: "pi_session_switch_bind_blocked_unconfirmed_project_root", payload: { project_root: projectRoot, summary: projectRootConfirmationSummary(projectRoot), session_id: eventSessionId } });
+        return;
+      }
       await ensureFocusaSession({ ...ctx, cwd: projectRoot });
       await ensureActiveFrame({ ...ctx, cwd: projectRoot }, eventSessionId || "unknown");
       await refreshSessionWorkpointPacket("session_switch");
