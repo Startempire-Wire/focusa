@@ -98,3 +98,7 @@ Core updates:
 - Rejection envelope uses `project_root_confirmation_required`, `failure_class=scope_mismatch`, `retry_posture=operator_required`, candidate roots, and `next_tools=[interview, focusa_project_identity, focusa_workpoint_checkpoint]`.
 
 This makes project-root accuracy a daemon-enforced authority boundary, not only Pi client behavior.
+
+## Navigation metaphor correction
+
+Operator clarification: project_root/filesystem scope is the vessel or hull. A better vessel improves navigation/travel reliability, but it is not the route or destination. Focusa Trajectory carries the navigation model: current functional state, desired destination/outcome, and waypoint goals. Utility Cards should require both: confirmed scope vessel plus clear trajectory.
