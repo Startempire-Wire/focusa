@@ -76,11 +76,9 @@ That is the next phase.
 
 ### Confirmed core/API issues
 1. Focus Stack lifecycle/invariant problems
-   - completing a root frame can leave `active_id = None`
-   - invalid resume/set flows can be accepted at API layer and only fail later in reducer/event processing
+   - repaired baseline: root completion is rejected without parent handoff, and invalid active/root states are guarded by reducer/API tests
 2. ECS retrieval problems
-   - valid handles can be stored/listed/resolved
-   - `ecs cat` and `ecs rehydrate` fail on valid handles
+   - repaired baseline: valid handles can be stored/listed/resolved, and `ecs cat` / `ecs rehydrate` round-trip through API and CLI
 3. Export pipeline execution
    - repaired: `export status` reports export pipeline state rather than contribution/training queue payload
    - repaired: export dry-run commands return implemented `status: ok` dataset envelopes
@@ -173,7 +171,7 @@ This section records findings already established in the audit, with direct doc 
 - Current classification:
   - **API/action-result contract bug**; core knows the rule is missing, but the API reports success semantics anyway.
 
-### F7. ECS retrieval contract exists on paper and in routing, but runtime retrieval is broken
+### F7. ECS retrieval contract exists on paper and in routing, and retrieval baseline is repaired
 - Authority:
   - `docs/G1-detail-08-ecs.md:77-88` defines handle resolution/content access as part of ECS.
   - `docs/G1-detail-08-ecs.md:97-106` defines explicit rehydration via `focusa ecs rehydrate <id> --max-tokens N`.
@@ -183,9 +181,10 @@ This section records findings already established in the audit, with direct doc 
   - `crates/focusa-api/src/routes/ecs.rs:203-208` registers ECS routes including content/rehydrate.
   - `crates/focusa-cli/src/commands/ecs.rs:108-140` calls those endpoints for `cat` and `rehydrate`.
 - Runtime evidence:
-  - isolated audit saw 404s for valid-handle `ecs cat` and `ecs rehydrate`.
+  - prior isolated audit saw 404s for valid-handle `ecs cat` and `ecs rehydrate`.
+  - repaired route smoke now resolves metadata and retrieves/rehydrates exact stored content through API and CLI.
 - Current classification:
-  - **underlying ECS retrieval path broken**, not merely absent CLI wiring.
+  - **retrieval baseline repaired**; preserve regression coverage for legacy lossy state fallback.
 
 ### F8. Reflection functionality exists, but CLI timeout likely makes healthy paths appear broken
 - Authority:
@@ -296,7 +295,7 @@ This section marks what has already been swept at core depth in the current pass
 | Focus Stack / HEC | `docs/G1-detail-05-focus-stack-hec.md` | started | core invariants present in comments, but reducer behavior already contradicts them in root completion and late resume validation |
 | Session lifecycle | `docs/INTEGRATION_SPEC.md`, `docs/39-thread-lifecycle-spec.md` | started | reducer enforces active/closed session transitions, but session/frame coherence remains under-specified in live behavior |
 | Turn lifecycle / ASCC coupling | `docs/INTEGRATION_SPEC.md`, `docs/G1-07-ascc.md` | started | turn events are emitted and reducer updates CLT/frame stats, but turns read-model still appears mismatched |
-| ECS | `docs/G1-detail-08-ecs.md` | started | store/resolve/content/rehydrate surfaces exist, but retrieval path still fails at runtime |
+| ECS | `docs/G1-detail-08-ecs.md` | repaired baseline | store/resolve/content/rehydrate surfaces exist; API readback now falls back to canonical disk handle metadata when live state is lossy |
 | Export / contribution | `docs/21-data-export-cli.md`, `docs/22-data-contribution.md` | repaired baseline + quality metadata | export status/run are endpoint-backed; CLI writes JSONL/Parquet + manifests; records/manifests include baseline eligibility, provenance, redaction, and quality summaries |
 | Reflection loop | `docs/G1-14-reflection-loop.md` | started | reflection route surface exists; timeout/runtime diagnosis still needs deeper pass |
 | Procedural memory | `docs/G1-13-cli.md` | started | core reinforce path distinguishes found vs missing rule, but API result handling collapses the distinction |
@@ -388,51 +387,46 @@ This section marks what has already been swept at core depth in the current pass
 - Verdict:
   - ECS storage is **not absent** at core store level.
 
-### E3. The reducer throws away critical ECS metadata when registering artifacts into live state
+### E3. Artifact registration now carries full handle metadata, with legacy lossy-state fallback retained
 - Code evidence:
-  - `crates/focusa-core/src/runtime/daemon.rs:2411-2424` stores the artifact through `ReferenceStore::store(...)`, which returns a full handle containing `sha256`, `size`, and `session_id`.
-  - However the emitted event is only `ArtifactRegistered { artifact_id, artifact_type, summary, storage_uri }` and does not carry the full handle.
-  - `crates/focusa-core/src/reducer.rs:984-1011` reconstructs a **minimal** `HandleRef` in `state.reference_index.handles` with:
-    - `size: 0`
-    - `sha256: String::new()`
-    - current-time `created_at` rather than store metadata
+  - `crates/focusa-core/src/runtime/daemon.rs` stores the artifact through `ReferenceStore::store(...)`, which returns a full handle containing `sha256`, `size`, and `session_id`.
+  - `FocusaEvent::ArtifactRegistered` now carries the full `HandleRef`.
+  - `crates/focusa-core/src/reducer.rs` registers that full handle directly in `state.reference_index.handles`.
 - Audit meaning:
-  - this is the central ECS break: the in-memory/readback index loses the data required to locate blob content.
+  - newly registered artifacts preserve metadata needed to locate blob content.
 - Verdict:
-  - **core ECS state-model bug**.
+  - **core ECS state-model baseline repaired**.
 
-### E4. ECS API retrieval routes trust the lossy in-memory index instead of the canonical handle metadata on disk
+### E4. ECS API retrieval routes use live metadata with canonical disk fallback
 - Code evidence:
-  - `crates/focusa-api/src/routes/ecs.rs:85-95` resolves handle metadata from `focusa.reference_index.handles` only.
-  - `crates/focusa-api/src/routes/ecs.rs:100-121` finds the handle in `reference_index.handles`, then computes blob path from `handle.sha256`.
-  - `crates/focusa-api/src/routes/ecs.rs:150-193` uses the same in-memory handle path for rehydration.
-  - `crates/focusa-core/src/reference/store.rs:66-73` already has a canonical `resolve()` path against on-disk metadata, but the API routes do not use it.
+  - `crates/focusa-api/src/routes/ecs.rs` resolves handles from live `reference_index.handles` when complete.
+  - if live state has legacy lossy metadata, `resolve/content/rehydrate` load canonical `ecs/handles/<id>.json` metadata from disk before reading `ecs/objects/<sha256>`.
 - Audit meaning:
-  - because the in-memory handle has blank `sha256`, `content` and `rehydrate` derive the wrong blob path even though the store wrote the correct metadata to disk.
+  - content and rehydrate no longer derive blob paths from blank legacy `sha256` values.
 - Verdict:
-  - **API readback path is wired to corrupted live state rather than canonical store metadata**.
+  - **API readback baseline repaired with disk fallback**.
 
-### E5. ECS runtime 404s are therefore explained by a core+API metadata-loss chain, not by missing CLI support
+### E5. ECS runtime 404 cause is repaired and covered by smoke/unit proof
 - Runtime evidence:
-  - isolated audit produced 404s for valid-handle `ecs cat` and `ecs rehydrate`.
-- Code chain:
-  1. `ReferenceStore::store()` writes correct blob + full metadata (`crates/focusa-core/src/reference/store.rs:25-63`).
-  2. daemon emits only partial artifact registration data (`crates/focusa-core/src/runtime/daemon.rs:2411-2424`).
-  3. reducer inserts a lossy handle with blank `sha256` into `state.reference_index.handles` (`crates/focusa-core/src/reducer.rs:1003-1011`).
-  4. API retrieval routes read that lossy handle instead of the on-disk metadata (`crates/focusa-api/src/routes/ecs.rs:85-121`, `:150-193`).
-  5. blob lookup fails, producing 404.
+  - prior isolated audit produced 404s for valid-handle `ecs cat` and `ecs rehydrate`.
+  - repaired live smoke stored text, resolved non-empty `sha256`, fetched `content_b64`, and rehydrated content via API and CLI.
+- Current chain:
+  1. `ReferenceStore::store()` writes correct blob + full metadata.
+  2. daemon emits full-handle `ArtifactRegistered`.
+  3. reducer inserts the full handle into `state.reference_index.handles`.
+  4. API retrieval routes use complete live metadata or load canonical disk metadata for legacy lossy handles.
 - Verdict:
-  - **confirmed underlying ECS implementation break**, not a surface-only bug.
+  - **ECS retrieval baseline repaired**, not a surface-only doc change.
 
-### E6. ECS readback surfaces are currently not spec-faithful even when storage succeeded
+### E6. ECS readback surfaces are spec-faithful at the repaired baseline
 - Code evidence:
-  - `crates/focusa-api/src/routes/ecs.rs:85-95` returns `{\"handle\": handle}` from the lossy in-memory handle list.
-  - `crates/focusa-api/src/routes/ecs.rs:47-69` returns a newly found handle ID by polling `reference_index.handles` by label after store.
-  - `crates/focusa-core/src/runtime/persistence_sqlite.rs:373-391` persists the entire `FocusaState`, meaning the lossy in-memory handle metadata can also be snapshotted and restored.
+  - `resolve/meta/content/rehydrate` now surface full metadata from live state or disk fallback.
+  - newly registered artifacts carry full metadata in reducer state.
+  - legacy lossy snapshots can still be repaired at read time by loading `ecs/handles/<id>.json`.
 - Audit meaning:
-  - even `resolve/meta/list` can expose degraded or incorrect handle metadata, because the canonical disk metadata is not the source of truth for those routes.
+  - readback now uses canonical handle metadata before content-addressed blob lookup.
 - Current classification:
-  - **core state-model + API read-model defect**.
+  - **repaired baseline with legacy fallback**.
 
 ### E7. Current deepest ECS conclusion
 - Re-checked against freshly re-read authoritative ECS spec:
@@ -440,11 +434,12 @@ This section marks what has already been swept at core depth in the current pass
 - Storage implementation exists.
 - CLI surface exists.
 - The broken layer is not merely wiring.
-- The actual failure is:
-  - **full handle metadata is lost when artifact registration enters reducer state**
-  - then **API retrieval/readback routes use the degraded state instead of canonical ECS metadata on disk**
+- The prior failure was:
+  - full handle metadata loss during artifact registration, followed by API retrieval against degraded state.
+- Current behavior:
+  - new registrations preserve full handle metadata, and API routes fall back to canonical disk metadata for legacy lossy state.
 - Therefore:
-  - current ECS behavior is **not faithful to the authoritative ECS spec**, even though major pieces are present.
+  - current ECS behavior is **faithful at the repaired baseline**, with deeper provenance/retention hardening left for future work.
 
 ## Full core sweep — fourth pass: export, contribution, reflection, and procedural memory
 
@@ -688,16 +683,16 @@ Priority is based on: whether the issue prevents Focusa from being the real syst
   - preserve regression coverage for root completion/pop/set-active lifecycle invariants.
 
 #### FOM-2. ECS metadata-loss/readback repair
+- Status: repaired baseline; keep as regression watch.
 - Why second:
   - ECS is a core lossless-indirection mechanism.
-  - Current implementation stores data, then loses required metadata before readback.
-- Source findings:
-  - `crates/focusa-core/src/reference/store.rs:25-73`
-  - `crates/focusa-core/src/runtime/daemon.rs:2411-2424`
-  - `crates/focusa-core/src/reducer.rs:984-1011`
-  - `crates/focusa-api/src/routes/ecs.rs:85-121,150-193`
-- Required outcome:
-  - canonical handle metadata must survive registration and drive API readback.
+  - Storage and readback must preserve handle metadata before content rehydration.
+- Current evidence:
+  - `ArtifactRegistered` carries a full `HandleRef`.
+  - reducer stores the full handle in `reference_index.handles`.
+  - ECS API resolve/content/rehydrate use complete live metadata or canonical disk metadata fallback for legacy lossy state.
+- Remaining outcome:
+  - preserve live store/resolve/content/rehydrate smoke and disk-fallback unit tests.
 
 #### FOM-3. Session/frame coherence policy repair
 - Why third:
@@ -892,13 +887,13 @@ Use one section per violation class.
 ### V3. ECS retrieval correctness
 - Status: in progress
 - Why it matters: ECS is required for lossless compression by indirection.
-- Known evidence:
+- Current evidence:
   - `store/list/meta/resolve` work
-  - `cat` and `rehydrate` fail on valid handles
+  - `cat` and `rehydrate` now pass for valid handles through API and CLI smoke
+  - disk-fallback unit test covers legacy lossy live-state handles
 - Next trace steps:
-  - inspect API content/rehydrate handlers fully
-  - verify stored blob path/sha expectations
-  - verify route method mismatch possibilities (`GET` vs `POST` already partly checked)
+  - preserve regression coverage for API and CLI ECS roundtrip
+  - verify retention/garbage-collection does not remove pinned or recently referenced blobs unexpectedly
 
 ### V4. Export pipeline completeness vs spec
 - Status: repaired baseline with initial quality/provenance metadata; deeper follow-up remains

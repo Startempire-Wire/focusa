@@ -20,6 +20,7 @@ use axum::{
 use focusa_core::types::{Action, HandleKind, HandleRef};
 use serde::Deserialize;
 use serde_json::json;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 const DEFAULT_HANDLES_LIMIT: usize = 100;
@@ -119,6 +120,38 @@ fn ecs_blob_not_found(handle_id: uuid::Uuid) -> (StatusCode, Json<serde_json::Va
         "Likely missing blob file, wrong data_dir, artifact cleanup, or persistence issue.",
         vec!["focusa_tool_doctor", "focusa_traverse"],
     )
+}
+
+fn ecs_root(data_dir: &str) -> PathBuf {
+    expand_data_path(data_dir).join("ecs")
+}
+
+fn handle_metadata_path(data_dir: &str, handle_id: uuid::Uuid) -> PathBuf {
+    ecs_root(data_dir)
+        .join("handles")
+        .join(format!("{handle_id}.json"))
+}
+
+fn handle_blob_path(data_dir: &str, handle: &HandleRef) -> PathBuf {
+    ecs_root(data_dir).join("objects").join(&handle.sha256)
+}
+
+fn load_handle_metadata_from_disk(data_dir: &str, handle_id: uuid::Uuid) -> Option<HandleRef> {
+    let meta = std::fs::read_to_string(handle_metadata_path(data_dir, handle_id)).ok()?;
+    serde_json::from_str(&meta).ok()
+}
+
+fn resolve_handle_with_disk_fallback(
+    data_dir: &str,
+    handles: &[HandleRef],
+    handle_id: uuid::Uuid,
+) -> Option<HandleRef> {
+    handles
+        .iter()
+        .find(|h| h.id == handle_id)
+        .cloned()
+        .filter(|handle| !handle.sha256.trim().is_empty())
+        .or_else(|| load_handle_metadata_from_disk(data_dir, handle_id))
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -288,12 +321,11 @@ async fn resolve_handle(
     Path(handle_id): Path<uuid::Uuid>,
 ) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
-    match focusa
-        .reference_index
-        .handles
-        .iter()
-        .find(|h| h.id == handle_id)
-    {
+    match resolve_handle_with_disk_fallback(
+        &state.config.data_dir,
+        &focusa.reference_index.handles,
+        handle_id,
+    ) {
         Some(handle) => Json(json!({"handle": handle})),
         None => Json(ecs_handle_not_found(handle_id).1.0),
     }
@@ -307,19 +339,16 @@ async fn get_content(
     use base64::Engine;
     let focusa = state.focusa.read().await;
 
-    // Find handle.
-    let handle = focusa
-        .reference_index
-        .handles
-        .iter()
-        .find(|h| h.id == handle_id)
-        .ok_or_else(|| ecs_handle_not_found(handle_id))?;
+    // Resolve metadata from live state, with disk metadata fallback for legacy lossy state snapshots.
+    let handle = resolve_handle_with_disk_fallback(
+        &state.config.data_dir,
+        &focusa.reference_index.handles,
+        handle_id,
+    )
+    .ok_or_else(|| ecs_handle_not_found(handle_id))?;
 
-    // Compute blob path from sha256.
-    let ecs_root = expand_data_path(&state.config.data_dir).join("ecs/objects");
-    let blob_path = ecs_root.join(&handle.sha256);
-
-    // Get content from store.
+    // Get content from canonical content-addressed object storage.
+    let blob_path = handle_blob_path(&state.config.data_dir, &handle);
     let content = std::fs::read(&blob_path).map_err(|_| ecs_blob_not_found(handle_id))?;
 
     Ok(Json(json!({
@@ -357,19 +386,16 @@ async fn rehydrate(
 ) -> EcsResult {
     let focusa = state.focusa.read().await;
 
-    // Find handle.
-    let handle = focusa
-        .reference_index
-        .handles
-        .iter()
-        .find(|h| h.id == handle_id)
-        .ok_or_else(|| ecs_handle_not_found(handle_id))?;
+    // Resolve metadata from live state, with disk metadata fallback for legacy lossy state snapshots.
+    let handle = resolve_handle_with_disk_fallback(
+        &state.config.data_dir,
+        &focusa.reference_index.handles,
+        handle_id,
+    )
+    .ok_or_else(|| ecs_handle_not_found(handle_id))?;
 
-    // Compute blob path from sha256.
-    let ecs_root = expand_data_path(&state.config.data_dir).join("ecs/objects");
-    let blob_path = ecs_root.join(&handle.sha256);
-
-    // Get content from store.
+    // Get content from canonical content-addressed object storage.
+    let blob_path = handle_blob_path(&state.config.data_dir, &handle);
     let content = std::fs::read(&blob_path).map_err(|_| ecs_blob_not_found(handle_id))?;
 
     // Convert to string if possible.
@@ -409,7 +435,7 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{handle_summaries, limit_handles};
+    use super::{handle_summaries, limit_handles, resolve_handle_with_disk_fallback};
     use chrono::Utc;
     use focusa_core::types::{HandleKind, HandleRef};
     use uuid::Uuid;
@@ -451,5 +477,33 @@ mod tests {
         assert_eq!(summary[0]["pinned"], true);
         assert!(summary[0].get("sha256").is_none());
         assert!(summary[0].get("size").is_none());
+    }
+
+    #[test]
+    fn resolve_handle_uses_disk_metadata_when_state_handle_is_lossy() {
+        let temp = std::env::temp_dir().join(format!("focusa-ecs-test-{}", Uuid::now_v7()));
+        let handles_dir = temp.join("ecs/handles");
+        std::fs::create_dir_all(&handles_dir).expect("handles dir");
+
+        let full = handle("artifact", HandleKind::Text, false);
+        let mut lossy = full.clone();
+        lossy.sha256 = "".to_string();
+        lossy.size = 0;
+        std::fs::write(
+            handles_dir.join(format!("{}.json", full.id)),
+            serde_json::to_string(&full).expect("serialize handle"),
+        )
+        .expect("write metadata");
+
+        let resolved = resolve_handle_with_disk_fallback(
+            temp.to_str().expect("utf8 temp path"),
+            &[lossy],
+            full.id,
+        )
+        .expect("disk fallback handle");
+
+        assert_eq!(resolved.sha256, full.sha256);
+        assert_eq!(resolved.size, full.size);
+        let _ = std::fs::remove_dir_all(temp);
     }
 }

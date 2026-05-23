@@ -95,6 +95,8 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/ecs/content/{handle_id}`
 - `POST /v1/ecs/rehydrate/{handle_id}`
 
+ECS resolve/content/rehydrate readback uses complete live handle metadata when available and falls back to canonical `ecs/handles/{handle_id}.json` metadata for legacy lossy state before reading content-addressed blobs.
+
 ### env
 - `GET /v1/env`
 
