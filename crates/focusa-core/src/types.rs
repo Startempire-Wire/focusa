@@ -90,6 +90,12 @@ pub struct FocusaSessionIdentity {
     pub resume_source: String,
     pub canonical_scope: Option<bool>,
     pub scope_failure: Option<String>,
+    pub project_root_confidence: Option<String>,
+    pub project_root_confidence_score: Option<f64>,
+    pub project_root_resolution_source: Option<String>,
+    pub requires_operator_confirmation: Option<bool>,
+    #[serde(default)]
+    pub project_root_candidates: Vec<serde_json::Value>,
 }
 
 // ─── Continuous Work Loop (spec 79) ─────────────────────────────────────────

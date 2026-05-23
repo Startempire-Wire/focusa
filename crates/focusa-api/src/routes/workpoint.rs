@@ -225,6 +225,38 @@ fn unsafe_checkpoint_rejection(reason: &'static str, field: &'static str, value:
     )
 }
 
+fn unconfirmed_project_root_rejection(identity: &FocusaSessionIdentity) -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::CONFLICT,
+        Json(json!({
+            "status": "project_root_confirmation_required",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+            "project_root": &identity.project_root,
+            "confidence": identity.project_root_confidence.as_deref(),
+            "confidence_score": identity.project_root_confidence_score,
+            "resolution_source": identity.project_root_resolution_source.as_deref(),
+            "requires_operator_confirmation": identity.requires_operator_confirmation.unwrap_or(true),
+            "scope_failure": identity.scope_failure.as_deref(),
+            "candidates": &identity.project_root_candidates,
+            "retry_posture": "operator_required",
+            "next_tools": ["interview", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_step_hint": "ask the operator to confirm the exact project_root before mutating Workpoint/evidence state"
+        })),
+    )
+}
+
+fn session_identity_requires_project_root_confirmation(identity: Option<&FocusaSessionIdentity>) -> Option<(StatusCode, Json<Value>)> {
+    let identity = identity?;
+    if identity.canonical_scope == Some(false) || identity.scope_failure.is_some() || identity.requires_operator_confirmation.unwrap_or(false) {
+        return Some(unconfirmed_project_root_rejection(identity));
+    }
+    if identity.project_root_confidence_score.is_some_and(|score| score < 0.90) {
+        return Some(unconfirmed_project_root_rejection(identity));
+    }
+    None
+}
+
 fn evaluate_resume_scope(
     record: &WorkpointRecord,
     expected_project_root: Option<&str>,
@@ -1083,6 +1115,9 @@ async fn checkpoint(
         }
     }
 
+    if let Some(rejection) = session_identity_requires_project_root_confirmation(req.session_identity.as_ref()) {
+        return Err(rejection);
+    }
     apply_checkpoint_session_identity(&mut req);
     let workpoint_id = req.workpoint_id.unwrap_or_else(Uuid::now_v7);
     let promote = req.promote.unwrap_or(true);
@@ -1777,6 +1812,9 @@ async fn link_evidence(
                 "next_step_hint": "provide target_ref and result before linking Workpoint evidence"
             })),
         ));
+    }
+    if let Some(rejection) = session_identity_requires_project_root_confirmation(req.session_identity.as_ref()) {
+        return Err(rejection);
     }
     let explicit_workpoint_id = req.workpoint_id;
     let record = if let Some(workpoint_id) = explicit_workpoint_id {

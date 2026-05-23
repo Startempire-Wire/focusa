@@ -1322,6 +1322,9 @@ export async function buildFocusaSessionIdentity(
     projectIdentity = response?.project_identity || null;
   }
   const rootParts = projectRoot.split("/").filter(Boolean);
+  const resolution = S.lastProjectRootResolution && normalizeProjectRoot(S.lastProjectRootResolution.projectRoot) === projectRoot
+    ? S.lastProjectRootResolution
+    : resolvePiProjectRootCandidate(projectRootInput || S.sessionCwd || process.cwd());
   return {
     schema: "focusa.session_identity.v1",
     project_identity: projectIdentity,
@@ -1335,8 +1338,13 @@ export async function buildFocusaSessionIdentity(
     process_id: process.pid,
     started_at: new Date(S.sessionStartTime).toISOString(),
     resume_source: resumeSource,
-    canonical_scope: safe,
-    scope_failure: safe ? null : projectRootAuthorityFailure(projectRoot),
+    canonical_scope: safe && !resolution.requiresOperatorConfirmation,
+    scope_failure: safe ? (resolution.requiresOperatorConfirmation ? "project_root_confirmation_required" : null) : projectRootAuthorityFailure(projectRoot),
+    project_root_confidence: resolution.confidence,
+    project_root_confidence_score: resolution.confidenceScore,
+    project_root_resolution_source: resolution.source,
+    requires_operator_confirmation: resolution.requiresOperatorConfirmation,
+    project_root_candidates: resolution.candidates || [],
   };
 }
 

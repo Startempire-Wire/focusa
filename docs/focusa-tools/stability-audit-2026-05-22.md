@@ -86,3 +86,15 @@ Additional verification:
 
 - `bash tests/pi_project_root_inference_test.sh` now proves low-confidence package-only roots expose candidates and block automatic frame creation.
 - `bash tests/spec96_stale_focus_frame_validation_static_test.sh` now asserts low-confidence root gates exist.
+
+## Core enforcement for project-root authority
+
+Final accuracy pass: Pi-side gating is not enough because tools or future clients could call Focusa APIs directly.
+
+Core updates:
+
+- `FocusaSessionIdentity` now carries project-root confidence metadata: confidence label, numeric confidence score, resolution source, candidate roots, and `requires_operator_confirmation`.
+- Workpoint checkpoint and evidence-link routes reject session identities whose project root is unsafe, below 90% confidence, or explicitly requires operator confirmation.
+- Rejection envelope uses `project_root_confirmation_required`, `failure_class=scope_mismatch`, `retry_posture=operator_required`, candidate roots, and `next_tools=[interview, focusa_project_identity, focusa_workpoint_checkpoint]`.
+
+This makes project-root accuracy a daemon-enforced authority boundary, not only Pi client behavior.

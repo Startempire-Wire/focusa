@@ -41,7 +41,7 @@ else
   echo "✗ FAIL: Focus State write failures still lack structured recovery guidance" >&2; exit 1
 fi
 
-if rg -n 'projectRootConfirmationRequired|projectRootConfirmationSummary|pi_frame_creation_blocked_unconfirmed_project_root' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null && rg -n 'projectRootConfirmationGate|project_root_confidence_below_90|interview/menu' "$TOOLS" >/dev/null; then
+if rg -n 'projectRootConfirmationRequired|projectRootConfirmationSummary|pi_frame_creation_blocked_unconfirmed_project_root' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null && rg -n 'projectRootConfirmationGate|project_root_confidence_below_90|interview/menu' "$TOOLS" >/dev/null && rg -n 'project_root_confirmation_required|session_identity_requires_project_root_confirmation|unconfirmed_project_root_rejection' "${ROOT_DIR}/crates/focusa-api/src/routes/workpoint.rs" >/dev/null; then
   echo "✓ PASS: low-confidence project roots block Focusa writes and route to operator confirmation"
 else
   echo "✗ FAIL: low-confidence project roots can still silently bind Focusa state" >&2; exit 1
