@@ -42,6 +42,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced opaque info, telemetry-debug, and training contribution lookup failures with no-guess envelopes.
 - Replaced opaque trajectory reducer and persistence failures with no-guess envelopes.
 - Replaced raw attachment and Focus Gate StatusCode failures with no-guess envelopes, and documented API route failure envelope expectations.
+- Replaced raw sync route StatusCode failures with no-guess envelopes for persistence, peer lookup, validation, delegated receive/transfer, and upstream peer failures.
 
 ## Unreleased — Spec93 release publication proof
 
