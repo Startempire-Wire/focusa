@@ -50,3 +50,12 @@ else
   echo "✗ FAIL: SQLite event failures lack no-guess recovery contract" >&2
   exit 1
 fi
+
+
+ECS_RS="${ROOT_DIR}/crates/focusa-api/src/routes/ecs.rs"
+if rg -n 'ecs_failure|ecs_validation_rejected|ecs_dispatch_failed|ecs_handle_not_found|ecs_blob_not_found|recovery_hint|misuse_hint|tool_result_v1' "$ECS_RS" >/dev/null; then
+  echo "✓ PASS: ECS failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: ECS failures lack no-guess recovery contract" >&2
+  exit 1
+fi

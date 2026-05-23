@@ -25,6 +25,102 @@ use std::sync::Arc;
 const DEFAULT_HANDLES_LIMIT: usize = 100;
 const MAX_HANDLES_LIMIT: usize = 512;
 
+type EcsResult<T = Json<serde_json::Value>> = Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+fn ecs_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "canonical": false,
+                    "degraded": true,
+                    "failure_class": failure_class,
+                    "summary": why,
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools_value,
+                    "error": {"code": failure_class, "message": error}
+                }
+            }
+        })),
+    )
+}
+
+fn ecs_validation_rejected(why: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let why = why.into();
+    ecs_failure(
+        StatusCode::BAD_REQUEST,
+        why.clone(),
+        "validation_rejected",
+        why,
+        "Provide content_b64 or content with valid encoding before retrying unchanged.",
+        "Likely missing ECS content or invalid base64 content_b64 field.",
+        vec!["focusa_tool_doctor", "focusa_active_object_resolve"],
+    )
+}
+
+fn ecs_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
+    ecs_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to dispatch ECS artifact store: {error}"),
+        "daemon_unavailable",
+        "ECS artifact store event could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status"],
+    )
+}
+
+fn ecs_handle_not_found(handle_id: uuid::Uuid) -> (StatusCode, Json<serde_json::Value>) {
+    ecs_failure(
+        StatusCode::NOT_FOUND,
+        "handle not found",
+        "not_found",
+        format!("ECS handle {handle_id} is not present in the reference index"),
+        "Use /v1/ecs/handles or focusa_traverse to discover valid handle ids before resolving content.",
+        "Likely stale handle id, wrong daemon instance, or artifact not materialized yet.",
+        vec!["focusa_traverse", "focusa_tool_doctor"],
+    )
+}
+
+fn ecs_blob_not_found(handle_id: uuid::Uuid) -> (StatusCode, Json<serde_json::Value>) {
+    ecs_failure(
+        StatusCode::NOT_FOUND,
+        "artifact content not found",
+        "not_found",
+        format!("ECS blob for handle {handle_id} is missing from object storage"),
+        "Verify the handle via /v1/ecs/resolve and check data_dir/object storage before relying on content.",
+        "Likely missing blob file, wrong data_dir, artifact cleanup, or persistence issue.",
+        vec!["focusa_tool_doctor", "focusa_traverse"],
+    )
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct StoreBody {
     kind: HandleKind,
@@ -37,16 +133,16 @@ struct StoreBody {
 }
 
 impl StoreBody {
-    fn resolve_content(&self) -> Result<Vec<u8>, StatusCode> {
+    fn resolve_content(&self) -> Result<Vec<u8>, (StatusCode, Json<serde_json::Value>)> {
         if let Some(ref b64) = self.content_b64 {
             use base64::Engine;
             base64::engine::general_purpose::STANDARD
                 .decode(b64)
-                .map_err(|_| StatusCode::BAD_REQUEST)
+                .map_err(|_| ecs_validation_rejected("invalid content_b64"))
         } else if let Some(ref txt) = self.content {
             Ok(txt.as_bytes().to_vec())
         } else {
-            Err(StatusCode::BAD_REQUEST)
+            Err(ecs_validation_rejected("missing content"))
         }
     }
 }
@@ -54,7 +150,7 @@ impl StoreBody {
 async fn store_artifact(
     State(state): State<Arc<AppState>>,
     Json(body): Json<StoreBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> EcsResult {
     let content = body.resolve_content()?;
 
     state
@@ -65,7 +161,7 @@ async fn store_artifact(
             content,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(ecs_dispatch_failed)?;
 
     // Poll for the new handle by label (last-written wins for duplicate labels).
     // §33.3: Return handle.id so the extension can show [ECS: HANDLE:uuid] reference.
@@ -199,7 +295,7 @@ async fn resolve_handle(
         .find(|h| h.id == handle_id)
     {
         Some(handle) => Json(json!({"handle": handle})),
-        None => Json(json!({"error": "handle not found"})),
+        None => Json(ecs_handle_not_found(handle_id).1.0),
     }
 }
 
@@ -207,7 +303,7 @@ async fn resolve_handle(
 async fn get_content(
     State(state): State<Arc<AppState>>,
     Path(handle_id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> EcsResult {
     use base64::Engine;
     let focusa = state.focusa.read().await;
 
@@ -217,14 +313,14 @@ async fn get_content(
         .handles
         .iter()
         .find(|h| h.id == handle_id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .ok_or_else(|| ecs_handle_not_found(handle_id))?;
 
     // Compute blob path from sha256.
     let ecs_root = expand_data_path(&state.config.data_dir).join("ecs/objects");
     let blob_path = ecs_root.join(&handle.sha256);
 
     // Get content from store.
-    let content = std::fs::read(&blob_path).map_err(|_| StatusCode::NOT_FOUND)?;
+    let content = std::fs::read(&blob_path).map_err(|_| ecs_blob_not_found(handle_id))?;
 
     Ok(Json(json!({
         "handle_id": handle_id,
@@ -258,7 +354,7 @@ async fn rehydrate(
     State(state): State<Arc<AppState>>,
     Path(handle_id): Path<uuid::Uuid>,
     Query(query): Query<RehydrateQuery>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> EcsResult {
     let focusa = state.focusa.read().await;
 
     // Find handle.
@@ -267,14 +363,14 @@ async fn rehydrate(
         .handles
         .iter()
         .find(|h| h.id == handle_id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .ok_or_else(|| ecs_handle_not_found(handle_id))?;
 
     // Compute blob path from sha256.
     let ecs_root = expand_data_path(&state.config.data_dir).join("ecs/objects");
     let blob_path = ecs_root.join(&handle.sha256);
 
     // Get content from store.
-    let content = std::fs::read(&blob_path).map_err(|_| StatusCode::NOT_FOUND)?;
+    let content = std::fs::read(&blob_path).map_err(|_| ecs_blob_not_found(handle_id))?;
 
     // Convert to string if possible.
     let text = String::from_utf8_lossy(&content);
