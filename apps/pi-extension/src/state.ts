@@ -1,7 +1,8 @@
 // Shared state, helpers, types for focusa-pi-bridge
 // Spec: docs/44-pi-focusa-integration-spec.md
 
-import { existsSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { homedir } from "os";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { FocusaConfig } from "./config.js";
@@ -1232,7 +1233,62 @@ function rootCandidatesForOutput(candidates: Array<{ root: string; score: number
   }));
 }
 
-export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacket?: any): { projectRoot: string; confidence: "high" | "medium" | "low"; confidenceScore: number; source: string; reason: string; safe: boolean; requiresOperatorConfirmation: boolean; markerScore?: number; markers?: string[]; candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }> } {
+type ProjectRootResolution = { projectRoot: string; confidence: "high" | "medium" | "low"; confidenceScore: number; source: string; reason: string; safe: boolean; requiresOperatorConfirmation: boolean; markerScore?: number; markers?: string[]; candidates?: Array<{ projectRoot: string; confidenceScore: number; markers: string[]; source: string }> };
+
+function rememberedProjectRootPath(): string {
+  const home = process.env.HOME || homedir() || ".";
+  return process.env.FOCUSA_PI_PROJECT_ROOT_CACHE || join(home, ".pi", "agent", "focusa-project-root.json");
+}
+
+function readRememberedProjectRoot(): string {
+  try {
+    const raw = JSON.parse(readFileSync(rememberedProjectRootPath(), "utf8"));
+    return normalizeProjectRoot(raw?.project_root || raw?.projectRoot || "");
+  } catch {
+    return "";
+  }
+}
+
+function rememberedProjectRootResolution(): ProjectRootResolution | null {
+  const remembered = readRememberedProjectRoot();
+  if (!remembered || !isProjectRootAuthoritySafe(remembered)) return null;
+  const candidates = findAncestorProjectRootCandidates(remembered);
+  const exact = candidates.find(candidate => candidate.root === remembered) || candidates[0] || null;
+  if (!exact || exact.root !== remembered) return null;
+  const confidence = confidenceForScore(exact.score);
+  return {
+    projectRoot: remembered,
+    ...confidence,
+    source: "remembered_project_root",
+    reason: `durable Pi project_root cache; markers=${exact.markers.join(",")}`,
+    safe: true,
+    requiresOperatorConfirmation: projectRootScoreRequiresConfirmation(confidence.confidenceScore),
+    markerScore: exact.score,
+    markers: exact.markers,
+    candidates: [{ projectRoot: remembered, confidenceScore: confidence.confidenceScore, markers: exact.markers, source: "remembered_project_root" }],
+  };
+}
+
+function rememberProjectRoot(resolution: ProjectRootResolution): void {
+  if (!resolution.safe || resolution.requiresOperatorConfirmation || !isProjectRootAuthoritySafe(resolution.projectRoot)) return;
+  try {
+    const path = rememberedProjectRootPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify({
+      schema: "focusa.pi.project_root_cache.v1",
+      project_root: resolution.projectRoot,
+      confidence: resolution.confidence,
+      confidence_score: resolution.confidenceScore,
+      source: resolution.source,
+      markers: resolution.markers || [],
+      updated_at: new Date().toISOString(),
+    }, null, 2));
+  } catch {
+    // Best-effort cache only; never block Focusa session startup.
+  }
+}
+
+export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacket?: any): ProjectRootResolution {
   const explicit = normalizeProjectRoot(cwdInput);
   const explicitCandidates = explicit ? findAncestorProjectRootCandidates(explicit) : [];
   const explicitCandidate = explicitCandidates[0] || null;
@@ -1256,6 +1312,11 @@ export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacke
   if (packetRoot && isProjectRootAuthoritySafe(packetRoot) && currentSessionKey && packetSessionKey === currentSessionKey) {
     return { projectRoot: packetRoot, confidence: "medium", confidenceScore: 0.75, source: "same_session_workpoint_packet", reason: "same-session Workpoint packet supplied project_root; operator confirmation recommended", safe: true, requiresOperatorConfirmation: true, candidates: [{ projectRoot: packetRoot, confidenceScore: 0.75, markers: ["workpoint_packet"], source: "same_session_workpoint_packet" }] };
   }
+
+  const remembered = rememberedProjectRootResolution();
+  const explicitIsUnsafe = explicit ? !isProjectRootAuthoritySafe(explicit) : true;
+  const sessionIsUnsafe = sessionRoot ? !isProjectRootAuthoritySafe(sessionRoot) : true;
+  if (remembered && (explicitIsUnsafe || sessionIsUnsafe)) return remembered;
 
   const fallback = explicit || sessionRoot || normalizeProjectRoot(process.cwd());
   const safe = isProjectRootAuthoritySafe(fallback);
@@ -1287,6 +1348,7 @@ export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): s
   const resolution = resolvePiProjectRootCandidate(cwdInput, persistedPacket);
   S.lastProjectRootResolution = resolution;
   S.sessionCwd = resolution.projectRoot;
+  rememberProjectRoot(resolution);
   return resolution.projectRoot;
 }
 

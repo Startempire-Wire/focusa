@@ -18,6 +18,7 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 - `/v1/workpoint/resume` rejects unsafe broad-root packets with `status: rejected_unsafe_project_root`; compaction and Focus Slice omit them.
 - Canonical Workpoint checkpoints require a safe project folder `project_root` and `continuity_id`; `/root` is never a canonical project folder.
 - Focus frame reads/pushes reject unsafe broad-root scopes; scoped `project_root` queries never fall back to global active frames.
+- Pi remembers the last verified safe project folder in a durable per-user cache (`~/.pi/agent/focusa-project-root.json`) so a later Pi session launched from a broad cwd can rebind without asking for `project_root` again.
 - Focus State write recovery may adopt the current safe active Workpoint scope before creating a frame; it must not create `/root` frames.
 - `/v1/workpoint/resume` rejects same-project/different-continuity packets with `status: rejected_continuity_mismatch`.
 - Same-project/same-continuity post-compaction `session_id` changes are recorded as `session_continuity` metadata.

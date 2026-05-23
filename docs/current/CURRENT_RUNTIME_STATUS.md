@@ -20,6 +20,7 @@
 - Agent-first polish surfaces: `focusa doctor`, `focusa status --agent`, `focusa continue`, `focusa release prove`, `focusa cleanup --safe`, token/cache doctors, hook telemetry, and error-empty recovery envelopes.
 - Prediction loop API/CLI/Pi tools for bounded record/recent/evaluate/stats workflows.
 - Project/session isolation: frames and Workpoints carry `project_root + continuity_id`; cross-project and same-root/different-continuity packets reject, while temporal `session_id` changes preserve continuity only after hard gates match.
+- Pi project-root resolution persists the last verified safe project folder across Pi sessions and reuses it when the next session starts from a broad cwd such as `/root`.
 - Pi replacement compaction uses intelligent related fallbacks instead of bare `none` fields.
 
 ## Current proof files

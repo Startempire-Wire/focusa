@@ -17,6 +17,8 @@ assert(repoRoot === "/home/wirebot/focusa", `expected repo root, got ${repoRoot}
 assert(isProjectRootAuthoritySafe(repoRoot), "repo root should be safe");
 
 const portableRoot = `/tmp/focusa-portable-root-${process.pid}`;
+const projectRootCache = join(portableRoot, "focusa-project-root-cache.json");
+process.env.FOCUSA_PI_PROJECT_ROOT_CACHE = projectRootCache;
 rmSync(portableRoot, { recursive: true, force: true });
 mkdirSync(join(portableRoot, "project", "packages", "agent", "src"), { recursive: true });
 mkdirSync(join(portableRoot, "project", ".git"), { recursive: true });
@@ -44,10 +46,15 @@ mkdirSync(join(markerRoot, "nested", "tool"), { recursive: true });
 writeFileSync(join(markerRoot, ".focusa-project.json"), "{}");
 const markerInferred = resolvePiProjectRoot(join(markerRoot, "nested", "tool"));
 assert(markerInferred === markerRoot, `portable focusa marker should define root on any directory layout, got ${markerInferred}`);
-rmSync(portableRoot, { recursive: true, force: true });
+adoptPiProjectRoot(join(markerRoot, "nested", "tool"));
+Object.assign(S, { sessionCwd: "" });
+const rememberedRoot = resolvePiProjectRoot("/root");
+assert(rememberedRoot === markerRoot, `unsafe /root should reuse durable remembered project root, got ${rememberedRoot}`);
 
+rmSync(projectRootCache, { force: true });
+Object.assign(S, { sessionCwd: "" });
 const unsafeRoot = resolvePiProjectRoot("/root");
-assert(unsafeRoot === "/root", `no explicit project from /root should remain fail-closed, got ${unsafeRoot}`);
+assert(unsafeRoot === "/root", `no remembered project from /root should remain fail-closed, got ${unsafeRoot}`);
 assert(!isProjectRootAuthoritySafe(unsafeRoot), "/root should remain unsafe without project evidence");
 
 S.activeWorkpointPacket = {
@@ -69,5 +76,7 @@ const sameSessionResolution = resolvePiProjectRootCandidate("/root", {
 });
 assert(sameSessionResolution.projectRoot === "/home/wirebot/focusa", "same-session Workpoint packet may offer a project root candidate");
 assert(sameSessionResolution.requiresOperatorConfirmation === true, "same-session Workpoint root still requires confirmation below 90% confidence");
+
+rmSync(portableRoot, { recursive: true, force: true });
 
 console.log("Pi project root inference proof passed");
