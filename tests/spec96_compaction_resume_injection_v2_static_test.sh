@@ -34,6 +34,15 @@ else
   exit 1
 fi
 
+if rg -n 'function semanticCurrentAsk' "$COMPACTION" >/dev/null \
+  && rg -n 'isExplicitContinuationAsk\(text\)|isNonTaskStatusLikeText\(text\)' "$COMPACTION" >/dev/null \
+  && rg -n 'const ask = semanticCurrentAsk\(\)' "$COMPACTION" >/dev/null; then
+  echo "✓ PASS: generic continuation asks cannot overwrite compaction mission/next_slice fallback"
+else
+  echo "✗ FAIL: generic continuation asks may still overwrite compaction fallback mission/next_slice" >&2
+  exit 1
+fi
+
 if rg -n 'DO_NOT_USE_BY_DEFAULT|transcript tail as authority|full lineage tree|full ontology graph|deep work-loop status' "$COMPACTION" >/dev/null; then
   echo "✓ PASS: unsafe default reads are excluded from resume prompt"
 else

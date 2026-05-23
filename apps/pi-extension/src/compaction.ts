@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -29,13 +29,20 @@ function packetField(packet: any, key: string): string {
   return String(packet?.[key] || "").trim();
 }
 
+function semanticCurrentAsk(): string {
+  const text = String(S.currentAsk?.text || "").trim();
+  if (!text || isExplicitContinuationAsk(text) || isNonTaskStatusLikeText(text)) return "";
+  return text;
+}
+
 function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
   const candidatePacket = normalizeWorkpointResumePacketEnvelope(workpointPacket) || getScopedWorkpointPacket() || {};
   const packet = isWorkpointPacketScopedToCurrentSession(candidatePacket) ? candidatePacket : {};
   const rendered = String(Object.keys(packet).length ? (packet?.rendered_summary || S.activeWorkpointSummary || "") : "").trim();
-  const mission = packetField(packet, "mission") || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle;
-  const nextSlice = packetField(packet, "next_slice") || S.currentAsk?.text || S.lastCompactDecision;
-  const currentFocus = fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || mission;
+  const ask = semanticCurrentAsk();
+  const mission = packetField(packet, "mission") || ask || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || S.activeFrameTitle;
+  const nextSlice = packetField(packet, "next_slice") || S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || ask || S.activeFrameGoal;
+  const currentFocus = fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || nextSlice || mission;
   const decisions = compactLines(fs?.decisions).concat(S.localDecisions.slice(-5)).filter((v, i, a) => a.indexOf(v) === i);
   const constraints = compactLines(fs?.constraints).concat(S.localConstraints.slice(-5)).filter((v, i, a) => a.indexOf(v) === i);
   const failures = compactLines(sanitizeFocusFailures(fs?.failures || [])).concat(sanitizeFocusFailures(S.localFailures).slice(-3)).filter((v, i, a) => a.indexOf(v) === i);
@@ -67,7 +74,7 @@ function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
   return [
     workpointSection,
     "# Focusa Cognitive Summary",
-    `## Intent\n${fs?.intent || mission || S.currentAsk?.text || "Continue current operator-directed work."}`,
+    `## Intent\n${fs?.intent || mission || "Continue current operator-directed work."}`,
     `## Current Focus\n${currentFocus || "Continue current operator-directed work."}`,
     `## Decisions Made\n${bullet(decisions)}`,
     `## Active Constraints\n${bullet(constraints)}`,
@@ -121,8 +128,8 @@ function recordLocalWorkpointFallback(reason: string): void {
     status: "partial",
     canonical: false,
     reason,
-    mission: S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || "unknown mission",
-    next_slice: S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || "resume from local degraded fallback",
+    mission: semanticCurrentAsk() || S.activeFrameGoal || S.lastFocusSnapshot.intent || "unknown mission",
+    next_slice: S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || S.activeFrameGoal || "resume from local degraded fallback",
     source_turn_id: `pi-turn-${S.turnCount}`,
     recorded_at: new Date().toISOString(),
   };
@@ -136,8 +143,9 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
   if (!S.focusaAvailable) return null;
   const root = S.sessionCwd || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return null;
-  const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || "Pi work before compaction";
-  const nextSlice = S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || "Resume current task from typed Workpoint packet after compaction.";
+  const ask = semanticCurrentAsk();
+  const mission = ask || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus || "Pi work before compaction";
+  const nextSlice = S.lastFocusSnapshot.currentFocus || S.lastCompactDecision || S.activeFrameGoal || ask || "Resume current task from typed Workpoint packet after compaction.";
   try {
     return await focusaFetch("/workpoint/checkpoint", {
       method: "POST",

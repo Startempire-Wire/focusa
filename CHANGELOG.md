@@ -55,6 +55,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Repaired ECS resolve/content/rehydrate readback by falling back to canonical disk handle metadata for legacy lossy state.
 - Added default-on Pi vital-info prompts for project root, project verify, Workpoint, and Trajectory; every other tool surface is opt-in.
 - Repaired procedural memory reinforce semantics so missing rule IDs return typed not-found failures instead of accepted no-ops.
+- Repaired Pi compaction fallback so generic continuation prompts do not overwrite mission/next-slice resume context.
 
 ## Unreleased — Spec93 release publication proof
 
