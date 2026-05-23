@@ -452,7 +452,7 @@ function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
       return "Focusa offline";
     case "no_active_frame":
     case "frame_unavailable":
-      return "No active/scoped Pi frame";
+      return "Attentive and awaiting operator direction";
     case "scope_mismatch":
       return "Focus State scope mismatch";
     case "read_model_lag":
