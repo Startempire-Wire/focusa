@@ -335,6 +335,37 @@ function focusaToolDetails(details: Record<string, unknown>, result: FocusaToolR
   return { ...details, tool_result_v1: result };
 }
 
+function blockedToolResponse(tool: string, family: string, summary: string, failureClass: FocusaFailureClass, raw?: unknown, nextTools?: string[]): any {
+  const toolResult = focusaToolResult({
+    ok: false,
+    status: "blocked",
+    failure_class: failureClass,
+    canonical: false,
+    degraded: true,
+    summary,
+    tool,
+    family,
+    retry: { safe: failureClass !== "validation_rejected", posture: failureClass === "validation_rejected" ? "do_not_retry_unchanged" : "safe_retry", reason: failureClass },
+    side_effects: [],
+    evidence_refs: [],
+    next_tools: nextTools,
+    raw,
+  });
+  return {
+    content: [{ type: "text", text: `${summary}. Why: ${toolResult.misuse_hint || failureClass}. Next: ${toolResult.recovery_hint || toolResult.next_tools.join(" → ")}` }],
+    details: {
+      ok: false,
+      status: "blocked",
+      failure_class: failureClass,
+      recovery_hint: toolResult.recovery_hint,
+      misuse_hint: toolResult.misuse_hint,
+      next_tools: toolResult.next_tools,
+      tool_result_v1: toolResult,
+      response: raw,
+    },
+  } as any;
+}
+
 function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidence_refs: string[]; summary?: string } {
   const packet = S.activeWorkpointPacket || null;
   const workpoint = packet?.resume_packet?.workpoint || packet?.workpoint || packet;
@@ -3577,8 +3608,11 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       context_refs: Type.Optional(Type.Array(Type.String({ description: "Evidence refs or handles." }))),
     }),
     async execute(_id, params) {
-      const res = await focusaFetch("/predictions", { method: "POST", body: JSON.stringify(params) });
-      return { content: [{ type: "text", text: `prediction record → ${res?.status || "unavailable"}` }], details: res || { status: "blocked" } } as any;
+      const res = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify(params) });
+      const body = res.body || {};
+      if (!res.ok) return blockedToolResponse("focusa_predict_record", "prediction", `prediction record blocked → ${explainWorkLoopResult(res, "prediction write unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_predict_recent"]);
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction record → ${body.status || "accepted"}`, tool: "focusa_predict_record", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"], raw: body });
+      return { content: [{ type: "text", text: `prediction record → ${body.status || "accepted"}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });
 
@@ -3589,8 +3623,12 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     parameters: Type.Object({ limit: Type.Optional(Type.Number({ description: "Recent prediction count, max 100." })) }),
     async execute(_id, params) {
       const limit = Math.max(1, Math.min(100, Number((params as any).limit || 20)));
-      const res = await focusaFetch(`/predictions/recent?limit=${limit}`);
-      return { content: [{ type: "text", text: `predictions recent → ${res?.predictions?.length || 0}` }], details: res || { status: "blocked" } } as any;
+      const res = await focusaFetchDetailed(`/predictions/recent?limit=${limit}`);
+      const body = res.body || {};
+      if (!res.ok) return blockedToolResponse("focusa_predict_recent", "prediction", `predictions recent blocked → ${explainWorkLoopResult(res, "prediction read unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_tool_doctor", "focusa_resource_mode"]);
+      const count = Array.isArray(body.predictions) ? body.predictions.length : 0;
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `predictions recent → ${count}`, tool: "focusa_predict_recent", family: "prediction", side_effects: [], evidence_refs: [], next_tools: ["focusa_predict_record", "focusa_predict_evaluate"], raw: body });
+      return { content: [{ type: "text", text: `predictions recent → ${count}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });
 
@@ -3605,9 +3643,12 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       learning_signal_ref: Type.Optional(Type.String({ description: "Optional metacog/learning signal ref." })),
     }),
     async execute(_id, params) {
-      const { prediction_id, ...body } = params as any;
-      const res = await focusaFetch(`/predictions/${encodeURIComponent(prediction_id)}/evaluate`, { method: "POST", body: JSON.stringify(body) });
-      return { content: [{ type: "text", text: `prediction evaluate → ${res?.status || "unavailable"}` }], details: res || { status: "blocked" } } as any;
+      const { prediction_id, ...payload } = params as any;
+      const res = await focusaFetchDetailed(`/predictions/${encodeURIComponent(prediction_id)}/evaluate`, { method: "POST", body: JSON.stringify(payload) });
+      const body = res.body || {};
+      if (!res.ok) return blockedToolResponse("focusa_predict_evaluate", "prediction", `prediction evaluate blocked → ${explainWorkLoopResult(res, "prediction evaluation unavailable")}`, body.failure_class || (res.status === 404 ? "unknown_ambiguous_completion" : "daemon_unavailable"), body, ["focusa_predict_recent", "focusa_tool_doctor"]);
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction evaluate → ${body.status || "accepted"}`, tool: "focusa_predict_evaluate", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_stats", "focusa_metacog_capture"], raw: body });
+      return { content: [{ type: "text", text: `prediction evaluate → ${body.status || "accepted"}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });
 
@@ -3617,8 +3658,12 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     description: "Report Focusa prediction accuracy/calibration stats.",
     parameters: Type.Object({}),
     async execute() {
-      const res = await focusaFetch("/predictions/stats");
-      return { content: [{ type: "text", text: `prediction stats → ${res?.summary || "unavailable"}` }], details: res || { status: "blocked" } } as any;
+      const res = await focusaFetchDetailed("/predictions/stats");
+      const body = res.body || {};
+      if (!res.ok) return blockedToolResponse("focusa_predict_stats", "prediction", `prediction stats blocked → ${explainWorkLoopResult(res, "prediction stats unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_predict_recent", "focusa_tool_doctor"]);
+      const summary = String(body.summary || body.status || "available");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction stats → ${summary}`, tool: "focusa_predict_stats", family: "prediction", side_effects: [], evidence_refs: [], next_tools: ["focusa_predict_record", "focusa_predict_recent"], raw: body });
+      return { content: [{ type: "text", text: `prediction stats → ${summary}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });
 

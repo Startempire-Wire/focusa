@@ -47,6 +47,12 @@ else
   echo "✗ FAIL: generic Focusa tool failures can still dead-end without misuse/recovery hints" >&2; exit 1
 fi
 
+if rg -n 'blockedToolResponse|focusa_predict_record.*prediction record blocked|focusa_predict_recent.*predictions recent blocked|focusa_predict_evaluate.*prediction evaluate blocked|focusa_predict_stats.*prediction stats blocked' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: prediction tool failures explain why and expose no-deadend recovery"
+else
+  echo "✗ FAIL: prediction tool failures can still return opaque unavailable/blocked details" >&2; exit 1
+fi
+
 if rg -n 'projectRootConfirmationRequired|projectRootConfirmationSummary|pi_frame_creation_blocked_unconfirmed_project_root' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null && rg -n 'projectRootConfirmationGate|project_root_confidence_below_90|interview/menu' "$TOOLS" >/dev/null && rg -n 'project_root_confirmation_required|session_identity_requires_project_root_confirmation|unconfirmed_project_root_rejection' "${ROOT_DIR}/crates/focusa-api/src/routes/workpoint.rs" >/dev/null; then
   echo "✓ PASS: low-confidence project roots block Focusa writes and route to operator confirmation"
 else
