@@ -109,6 +109,9 @@ focusa traverse read --surface workpoints --selector current --limit 1 --json
 focusa traverse verify-tags --surface workpoints --tag focusa://workpoints/current/item/example --json
 focusa resource status --json
 focusa resource activate-lowmem --reason "operator requested LowMem" --json
+focusa export status --json
+focusa export sft --output /tmp/focusa-sft.jsonl --dry-run --explain --json
+focusa export preference --output /tmp/focusa-pref.parquet --format parquet --json
 ```
 
 Use `--json` for machine-readable output where supported.

@@ -59,17 +59,17 @@ else
 fi
 
 EXPORT_STATUS=$(run_cli --json export status 2>/dev/null || true)
-if echo "$EXPORT_STATUS" | jq -e '.status == "not_implemented" and (.dataset_types | type == "array") and has("contribution_enabled") | not' >/dev/null 2>&1; then
-  log_pass "export status --json reports export pipeline state, not contribution queue"
+if echo "$EXPORT_STATUS" | jq -e '.status == "ready" and .implemented == true and (.dataset_types | type == "array") and (.supported_formats | index("parquet")) and has("contribution_enabled") | not' >/dev/null 2>&1; then
+  log_pass "export status --json reports implemented export pipeline state, not contribution queue"
 else
-  log_fail "export status --json still looks miswired"
+  log_fail "export status --json missing implemented export status shape"
 fi
 
 EXPORT_DRY_RUN=$(run_cli --json export sft --output /tmp/focusa-export.jsonl --dry-run --explain 2>/dev/null || true)
-if echo "$EXPORT_DRY_RUN" | jq -e '.status == "not_implemented" and .dry_run == true and (.dataset_flags.min_turns == 3)' >/dev/null 2>&1; then
-  log_pass "export sft --dry-run --json returns structured not_implemented payload"
+if echo "$EXPORT_DRY_RUN" | jq -e '.status == "ok" and .dry_run == true and .dataset_type == "sft" and (.manifest.dataset_flags.min_turns == 3) and (.records | type == "array")' >/dev/null 2>&1; then
+  log_pass "export sft --dry-run --json returns implemented dataset envelope"
 else
-  log_fail "export sft dry-run json payload missing expected structure"
+  log_fail "export sft dry-run json payload missing implemented export structure"
 fi
 
 CACHE_BUST=$(curl -fsS -X POST "$BASE_URL/v1/commands/submit" -H 'Content-Type: application/json' \
@@ -85,7 +85,7 @@ curl -fsS -X POST "$BASE_URL/v1/commands/submit" -H 'Content-Type: application/j
 sleep 0.2
 INVALID_PUSH_BODY='{"command":"focus.push_frame","payload":{"title":"bad","goal":"bad","beads_issue_id":""}}'
 INVALID_PUSH_CODE=$(curl -s -o /tmp/focusa-invalid-push.json -w '%{http_code}' -X POST "$BASE_URL/v1/commands/submit" -H 'Content-Type: application/json' -d "$INVALID_PUSH_BODY")
-if [ "$INVALID_PUSH_CODE" = "400" ] && jq -e '.reason == "missing_beads_issue_id"' /tmp/focusa-invalid-push.json >/dev/null 2>&1; then
+if [ "$INVALID_PUSH_CODE" = "400" ] && jq -e '.failure_class == "validation_rejected" and (.why | contains("missing_beads_issue_id"))' /tmp/focusa-invalid-push.json >/dev/null 2>&1; then
   log_pass "commands submit rejects invalid focus.push_frame before acceptance"
 else
   log_fail "commands submit did not reject invalid focus.push_frame correctly"
@@ -100,7 +100,7 @@ for _ in $(seq 1 40); do
   sleep 0.1
 done
 INVALID_CLOSE_CODE=$(curl -s -o /tmp/focusa-invalid-close.json -w '%{http_code}' -X POST "$BASE_URL/v1/commands/submit" -H 'Content-Type: application/json' -d '{"command":"session.close","payload":{"reason":"none"}}')
-if [ "$INVALID_CLOSE_CODE" = "400" ] && jq -e '.reason == "session_inactive" and .session_status == "closed"' /tmp/focusa-invalid-close.json >/dev/null 2>&1; then
+if [ "$INVALID_CLOSE_CODE" = "400" ] && jq -e '.failure_class == "validation_rejected" and (.why | contains("session_inactive")) and (.why | contains("closed"))' /tmp/focusa-invalid-close.json >/dev/null 2>&1; then
   log_pass "commands submit rejects session.close with inactive session"
 else
   log_fail "commands submit did not reject invalid session.close correctly"

@@ -45,7 +45,7 @@ This revision tightens the original spec by:
 
 Current state:
 1. CLI command surface exists but completion/parity is uneven for tooling ambitions.
-2. `focusa export` execution remains stubbed for core dataset modes.
+2. `focusa export` execution has an endpoint-backed baseline for core dataset modes; remaining work is richer eligibility/provenance quality.
 3. `/tree` and `/fork` branch semantics are under-specified for deterministic Focus State restore.
 4. Metacognition is partially captured, but compounding learning loop is not yet enforced.
 

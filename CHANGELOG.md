@@ -46,6 +46,8 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced remaining raw instance, token, visual workflow, and memory mutation failures with no-guess envelopes.
 - Replaced raw session resume and sync receive/transfer implementation failures with no-guess envelopes.
 - Replaced final raw focus mutation/toggle failures with no-guess envelopes.
+- Refreshed export CLI/schema/audit docs and regression tests to reflect the implemented endpoint-backed export baseline.
+- Fixed SQLite export event reads to use `payload_json`, restoring `/v1/export/run` against the current events schema.
 
 ## Unreleased — Spec93 release publication proof
 

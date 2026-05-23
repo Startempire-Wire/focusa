@@ -15,8 +15,8 @@ for id in \
   cli.lineage.tree.v1 \
   cli.lineage.head.v1 \
   cli.metacognition.not_implemented.v1 \
-  cli.export.status.not_implemented.v1 \
-  cli.export.dataset.not_implemented.v1
+  cli.export.status.v1 \
+  cli.export.dataset.v1
   do
   if rg -n "\`$id\`" "$DOC_FILE" >/dev/null 2>&1; then
     log_pass "registry includes schema id: $id"
@@ -37,10 +37,10 @@ else
   log_fail "metacognition planned-extension envelope fields missing"
 fi
 
-if rg -n '\`dataset_types\`|\`supported_formats\`|\`required_sources\`' "$DOC_FILE" >/dev/null 2>&1 && rg -n '\`dataset_type\`|\`dry_run\`|\`dataset_flags\`' "$DOC_FILE" >/dev/null 2>&1; then
-  log_pass "export status/dataset envelope fields are documented"
+if rg -n '\`dataset_types\`|\`supported_formats\`|\`history_count\`|\`last_export_at\`' "$DOC_FILE" >/dev/null 2>&1 && rg -n '\`dataset_type\`|\`dry_run\`|\`eligible_records\`|\`manifest\`|\`records\`' "$DOC_FILE" >/dev/null 2>&1; then
+  log_pass "implemented export status/dataset envelope fields are documented"
 else
-  log_fail "export envelope fields missing"
+  log_fail "implemented export envelope fields missing"
 fi
 
 echo "=== SPEC80 CLI JSON SCHEMA REGISTRY RESULTS ==="

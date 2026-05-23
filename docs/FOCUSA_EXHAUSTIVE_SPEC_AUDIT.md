@@ -81,10 +81,10 @@ That is the next phase.
 2. ECS retrieval problems
    - valid handles can be stored/listed/resolved
    - `ecs cat` and `ecs rehydrate` fail on valid handles
-3. Export pipeline incompleteness
-   - `export status` now reports export pipeline state rather than contribution/training queue payload
-   - export dry-run commands now return structured, honest `not_implemented` payloads with surfaced spec flags
-   - full dataset generation remains unimplemented
+3. Export pipeline execution
+   - repaired: `export status` reports export pipeline state rather than contribution/training queue payload
+   - repaired: export dry-run commands return implemented `status: ok` dataset envelopes
+   - repaired: CLI calls `/v1/export/run`, supports all four dataset families, writes JSONL/Parquet plus manifests for non-dry-run exports
 4. Cache bust command routing
    - repaired: CLI exposes `cache bust` and API command routing now accepts `cache.bust`
 5. Session/frame coherence
@@ -116,17 +116,18 @@ This section records findings already established in the audit, with direct doc 
 - Current classification:
   - **CLI contract bug**, not absence of core thread functionality.
 
-### F2. Export surface is not implemented to authoritative export spec
+### F2. Export surface is implemented to the current endpoint-backed export contract
 - Authority:
   - `docs/21-data-export-cli.md:1-7` makes the export CLI authoritative, read-only, deterministic, auditable.
   - `docs/21-data-export-cli.md:10-20` defines real dataset export commands.
   - `docs/21-data-export-cli.md:70-90` defines multi-phase export behavior including extraction/validation.
 - Code evidence:
-  - `crates/focusa-cli/src/commands/export.rs:54-78` maps `export status` to `/v1/training/status` and prints contribution queue fields, not an export-pipeline status model.
-  - `crates/focusa-cli/src/commands/export.rs:86-97` shows SFT dry-run and export paths are prose/TODO-level, including `// TODO: implement full export pipeline via API`.
-  - `crates/focusa-cli/src/commands/export.rs:102-107` shows other dataset families are similarly prose-only.
+  - `crates/focusa-api/src/routes/training.rs` exposes `/v1/export/status` and `/v1/export/run`.
+  - `crates/focusa-api/src/routes/training.rs` builds `sft`, `preference`, `contrastive`, and `long-horizon` records from turn events.
+  - `crates/focusa-cli/src/commands/export.rs` calls `/v1/export/run`, writes JSONL or Parquet records, and emits `<output>.manifest.json` for non-dry-run exports.
+  - `tests/spec80_impl_export_execution_contract_test.sh` and `tests/spec80_impl_parquet_export_support_test.sh` guard endpoint-backed execution and Parquet support.
 - Current classification:
-  - **spec functionality missing/incomplete**, not merely a UI formatting bug.
+  - **repaired endpoint-backed implementation**; future work is richer eligibility/provenance quality, not stub removal.
 
 ### F3. `cache bust` is surfaced in CLI but unsupported by command routing
 - Authority:
@@ -296,7 +297,7 @@ This section marks what has already been swept at core depth in the current pass
 | Session lifecycle | `docs/INTEGRATION_SPEC.md`, `docs/39-thread-lifecycle-spec.md` | started | reducer enforces active/closed session transitions, but session/frame coherence remains under-specified in live behavior |
 | Turn lifecycle / ASCC coupling | `docs/INTEGRATION_SPEC.md`, `docs/G1-07-ascc.md` | started | turn events are emitted and reducer updates CLT/frame stats, but turns read-model still appears mismatched |
 | ECS | `docs/G1-detail-08-ecs.md` | started | store/resolve/content/rehydrate surfaces exist, but retrieval path still fails at runtime |
-| Export / contribution | `docs/21-data-export-cli.md`, `docs/22-data-contribution.md` | started | export surface remains miswired/stubbed vs authoritative export spec |
+| Export / contribution | `docs/21-data-export-cli.md`, `docs/22-data-contribution.md` | repaired baseline | export status/run are endpoint-backed; CLI writes JSONL/Parquet + manifests; future work is richer eligibility/provenance quality |
 | Reflection loop | `docs/G1-14-reflection-loop.md` | started | reflection route surface exists; timeout/runtime diagnosis still needs deeper pass |
 | Procedural memory | `docs/G1-13-cli.md` | started | core reinforce path distinguishes found vs missing rule, but API result handling collapses the distinction |
 | Pi integration fidelity | `docs/44-pi-focusa-integration-spec.md`, HEC semantics | started | integration still shows cwd-derived fallback as primary in code, contrary to corrected task-first semantics |
@@ -456,23 +457,23 @@ This section marks what has already been swept at core depth in the current pass
 - Audit meaning:
   - export and contribution are related but not interchangeable surfaces.
 
-### X2. `export status` is miswired to contribution queue status, not an authoritative export-pipeline model
+### X2. `export status` reports authoritative export-pipeline status
 - Code evidence:
-  - `crates/focusa-cli/src/commands/export.rs:54-78` calls `/v1/training/status` and renders `contribution_enabled`, `queue_size`, `pending`, `approved`, `total_contributed`.
-  - `crates/focusa-api/src/routes/training.rs:22-32` exposes those same contribution queue fields under `GET /v1/training/status`.
+  - `crates/focusa-api/src/routes/training.rs` exposes `/v1/export/status` with `implemented`, `dataset_types`, `supported_formats`, `history_count`, and `last_export_at`.
+  - `crates/focusa-cli/src/commands/export.rs` calls `/v1/export/status` and no longer renders contribution queue fields for export status.
 - Audit meaning:
-  - the current “export status” surface is actually contribution status, not export pipeline status as specced.
+  - export and contribution now remain separate surfaces at the CLI/API boundary.
 - Verdict:
-  - **API + CLI semantic miswiring**, not just formatting drift.
+  - **repaired**.
 
-### X3. Export dataset generation is still largely unimplemented, not merely hidden behind bad UX
+### X3. Export dataset generation has an endpoint-backed baseline implementation
 - Code evidence:
-  - `crates/focusa-cli/src/commands/export.rs:86-97` explicitly says SFT export pipeline is not yet implemented.
-  - `crates/focusa-cli/src/commands/export.rs:102-107` shows preference/contrastive/long-horizon exports are also prose stubs.
+  - `crates/focusa-api/src/routes/training.rs` implements builders for SFT, preference, contrastive, and long-horizon exports from persisted turn events.
+  - `crates/focusa-cli/src/commands/export.rs` calls `/v1/export/run`, supports dry-run machine envelopes, and writes JSONL/Parquet records plus manifests for non-dry-run exports.
 - Audit meaning:
-  - the authoritative export spec describes a real extraction pipeline, but the present implementation is still placeholder text in the CLI.
+  - the former CLI prose/TODO stub is gone; remaining maturity work is richer eligibility, provenance, redaction, and quality scoring.
 - Verdict:
-  - **spec functionality missing/incomplete**.
+  - **repaired baseline; quality/provenance enhancements remain**.
 
 ### X4. Contribution workflow exists as a separate implemented surface
 - Authority:
@@ -575,12 +576,13 @@ This section marks what has already been swept at core depth in the current pass
 - Verdict:
   - **CLI contract bug**.
 
-### C5. Export commands have mixed `--json` behavior: flag exists, but spec-faithful machine output does not
+### C5. Export commands now have endpoint-backed `--json` behavior
 - Code evidence:
-  - `crates/focusa-cli/src/commands/export.rs:50-78` pretty-prints JSON for `status`, but that JSON is the wrong semantic payload (contribution status, not export status).
-  - `crates/focusa-cli/src/commands/export.rs:86-107` dry-run/export branches print prose/TODO text instead of spec-defined machine-readable export results.
+  - `crates/focusa-cli/src/commands/export.rs` pretty-prints `/v1/export/status` for `export status --json`.
+  - `crates/focusa-cli/src/commands/export.rs` returns `/v1/export/run` envelopes for dry-run and non-dry-run export commands.
+  - `tests/cli_contract_regression_test.sh` checks implemented `status: ready` and `status: ok` export JSON envelopes.
 - Verdict:
-  - **CLI json branch exists but does not satisfy authoritative export semantics**.
+  - **repaired baseline**.
 
 ### C6. Turns command has a json branch, but its read-model is broken by event-shape mismatch
 - Code evidence:
@@ -598,7 +600,7 @@ This section marks what has already been swept at core depth in the current pass
 - the CLI is **not globally non-json-compliant**; many modules do implement json branches
 - but authoritative scriptability is still broken by a smaller number of high-impact violations:
   - threads ignore `--json`
-  - export json surfaces are semantically wrong/incomplete
+  - export json surfaces are now repaired at the endpoint-backed baseline; richer provenance remains future work
   - turns json surface is built over a broken read-model
   - commands API rejects surfaced command names like `cache.bust`
 - therefore the current command/CLI layer is **partially spec-faithful, not fully compliant**
@@ -710,14 +712,14 @@ Priority is based on: whether the issue prevents Focusa from being the real syst
 
 #### FOM-4. Export pipeline implementation
 - Why here:
-  - authoritative export spec is largely unimplemented.
-  - export/contribution confusion can cause false confidence about training-data readiness.
+  - repaired baseline now exists; remaining risk is training-data quality/provenance, not stubbed execution.
+  - export/contribution separation still matters for preventing false confidence about training-data readiness.
 - Source findings:
   - `docs/21-data-export-cli.md`
-  - `crates/focusa-cli/src/commands/export.rs:54-107`
-  - `crates/focusa-api/src/routes/training.rs:22-32`
+  - `crates/focusa-cli/src/commands/export.rs`
+  - `crates/focusa-api/src/routes/training.rs`
 - Required outcome:
-  - real export pipeline matching spec phases, dry-run outputs, and export manifests.
+  - strengthen eligibility/provenance/redaction validation on top of current dry-run outputs, dataset writes, and export manifests.
 
 #### FOM-5. API/command acceptance semantics repair
 - Why here:
@@ -897,23 +899,21 @@ Use one section per violation class.
   - verify route method mismatch possibilities (`GET` vs `POST` already partly checked)
 
 ### V4. Export pipeline completeness vs spec
-- Status: in progress
+- Status: repaired baseline; quality/provenance follow-up remains
 - Why it matters: export is authoritative CLI surface, read-only/deterministic/auditable.
 - Known evidence:
-  - export status mapped to contribution payload
-  - dry-run emits prose and TODO-level behavior
+  - export status reports export-pipeline state, not contribution queue payload
+  - dry-run emits structured `status: ok` dataset envelopes using current SQLite `payload_json` event storage
+  - non-dry-run CLI writes JSONL/Parquet plus manifest files from `/v1/export/run`
 - Next trace steps:
-  - inspect export CLI implementation fully
-  - inspect training/export API routes fully
-  - compare required dry-run outputs from spec with current implementation
+  - strengthen eligibility, provenance, redaction, and quality-score validation beyond the baseline export path
 
 ### V5. CLI `--json` contract compliance
-- Status: in progress
+- Status: in progress; export baseline repaired
 - Why it matters: CLI contract explicitly requires machine-readable stable JSON.
 - Known evidence:
-  - thread commands ignore json mode
-  - export dry-runs ignore json mode
-  - some commands print text despite `--json`
+  - export status/dry-run JSON paths now return endpoint-backed machine envelopes
+  - some non-export commands may still print text despite `--json`
 - Next trace steps:
   - enumerate every CLI command/subcommand and mark json compliance
   - identify whether issue is CLI-only or upstream API shape mismatch

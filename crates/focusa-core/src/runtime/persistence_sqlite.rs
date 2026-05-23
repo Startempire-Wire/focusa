@@ -487,7 +487,7 @@ impl SqlitePersistence {
     pub fn recent_events(&self, limit: usize) -> anyhow::Result<Vec<serde_json::Value>> {
         let conn = self.conn.lock().expect("sqlite conn mutex poisoned");
         let mut stmt =
-            conn.prepare("SELECT payload FROM events ORDER BY ts DESC, rowid DESC LIMIT ?1")?;
+            conn.prepare("SELECT payload_json FROM events ORDER BY ts DESC, rowid DESC LIMIT ?1")?;
         let rows = stmt.query_map([limit as i64], |row| {
             let raw: String = row.get(0)?;
             Ok(raw)

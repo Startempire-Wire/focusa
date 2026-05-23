@@ -1,6 +1,7 @@
 # SPEC80 C4.1 — CLI JSON Schema Registry
 
 Date: 2026-04-21
+Updated: 2026-05-23
 Bead: `focusa-yro7.3.4.1`
 Purpose: define machine-stable JSON schema registry for CLI surfaces consumed by tool wrappers under Spec80 Epic C.
 
@@ -9,6 +10,7 @@ Purpose: define machine-stable JSON schema registry for CLI surfaces consumed by
 - crates/focusa-cli/src/commands/lineage.rs
 - crates/focusa-cli/src/commands/metacognition.rs
 - crates/focusa-cli/src/commands/export.rs
+- crates/focusa-api/src/routes/training.rs
 
 ## Registry conventions
 
@@ -54,28 +56,42 @@ Each registered schema includes:
   - envelope shape is stable until first implemented API release
   - transition to implemented payload requires new schema id
 
-### 4) `cli.export.status.not_implemented.v1`
+### 4) `cli.export.status.v1`
 - `command`: `focusa --json export status`
-- `status_class`: `implemented-now` (for explicit gap reporting contract)
+- `status_class`: `implemented-now`
 - `required_fields`:
-  - `status` (`"not_implemented"`)
-  - `dataset_types` (array)
-  - `supported_formats` (array)
-  - `required_sources` (array)
-  - `reason`
+  - `status` (`"ready"` when export API is available)
+  - `implemented` (boolean)
+  - `dataset_types` (array; includes `sft`, `preference`, `contrastive`, `long-horizon`)
+  - `supported_formats` (array; includes `jsonl`, `parquet`)
+  - `history_count` (number)
+  - `last_export_at` (nullable)
+  - `reason` (nullable)
+- `compatibility_policy`:
+  - minor/patch may add optional readiness/provenance fields
+  - status payload must remain export-pipeline status, not contribution queue status
 
-### 5) `cli.export.dataset.not_implemented.v1`
+### 5) `cli.export.dataset.v1`
 - `command`: `focusa --json export <sft|preference|contrastive|long-horizon> --dry-run --explain ...`
-- `status_class`: `implemented-now` (explicit not-implemented contract path exists)
+- `status_class`: `implemented-now`
 - `required_fields`:
-  - `status` (`"not_implemented"`)
+  - `status` (`"ok"` on successful export planning/execution)
   - `dataset_type`
   - `dry_run`
+  - `explain`
   - `output`
   - `format`
-  - `filters` (object)
-  - `dataset_flags` (object)
-  - `reason`
+  - `eligible_records`
+  - `excluded_records`
+  - `estimated_dataset_size_bytes`
+  - `sample_schema_preview`
+  - `exclusion_reasons` (array)
+  - `manifest` (object)
+  - `records` (array)
+- `compatibility_policy`:
+  - dry-run never writes output files
+  - non-dry-run writes the requested dataset plus `<output>.manifest.json`
+  - records may be empty when no eligible events exist, but the envelope remains machine-readable
 
 ## Compatibility note
 
@@ -86,3 +102,5 @@ This registry is scoped to currently tool-consumed/parity-critical CLI JSON surf
 - tests/spec80_epic_c_lineage_cli_parity_test.sh
 - tests/spec80_cli_metacognition_contract_test.sh
 - tests/cli_contract_regression_test.sh
+- tests/spec80_impl_export_execution_contract_test.sh
+- tests/spec80_impl_parquet_export_support_test.sh
