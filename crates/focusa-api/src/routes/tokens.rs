@@ -17,6 +17,52 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+type TokenResult = Result<Json<Value>, (StatusCode, Json<Value>)>;
+
+fn token_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": failure_class != "validation_rejected", "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry_after_recovery" }, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn token_type_rejected(token_type: &str) -> (StatusCode, Json<Value>) {
+    token_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid token_type: {token_type}"),
+        "validation_rejected",
+        "Token create requires token_type owner, agent, or integration.",
+        "Correct token_type before retrying unchanged.",
+        "Likely typo, stale client enum, or incompatible token API payload.",
+    )
+}
+
+fn token_not_found(token_id: uuid::Uuid) -> (StatusCode, Json<Value>) {
+    token_failure(
+        StatusCode::NOT_FOUND,
+        format!("token not found: {token_id}"),
+        "not_found",
+        "Token revoke did not match an active token.",
+        "List tokens and choose an active token_id before retrying revoke.",
+        "Likely stale token id, already revoked token, or wrong daemon token store.",
+    )
+}
+
 /// Audit log entry — records every allow/deny decision per spec §7.
 #[derive(Debug, Clone, serde::Serialize)]
 #[allow(dead_code)]
@@ -82,12 +128,12 @@ struct ScopeBody {
 async fn create_token(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateTokenBody>,
-) -> Result<Json<Value>, StatusCode> {
+) -> TokenResult {
     let token_type = match body.token_type.as_str() {
         "owner" => ApiTokenType::Owner,
         "agent" => ApiTokenType::Agent,
         "integration" => ApiTokenType::Integration,
-        _ => return Err(StatusCode::BAD_REQUEST),
+        _ => return Err(token_type_rejected(&body.token_type)),
     };
 
     let scopes: Vec<PermissionScope> = body
@@ -118,11 +164,11 @@ struct RevokeBody {
 async fn revoke_token(
     State(state): State<Arc<AppState>>,
     Json(body): Json<RevokeBody>,
-) -> Result<Json<Value>, StatusCode> {
+) -> TokenResult {
     let mut store = state.token_store.write().await;
     store
         .revoke(body.token_id)
-        .map_err(|_| StatusCode::NOT_FOUND)?;
+        .map_err(|_| token_not_found(body.token_id))?;
 
     Ok(Json(json!({
         "status": "revoked",

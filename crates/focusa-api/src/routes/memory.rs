@@ -24,6 +24,41 @@ use std::sync::Arc;
 const DEFAULT_SEMANTIC_LIMIT: usize = 100;
 const MAX_SEMANTIC_LIMIT: usize = 512;
 
+type MemoryResult = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
+
+fn memory_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_metacog_retrieve"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": true, "posture": "safe_retry_after_recovery", "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_metacog_retrieve"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn memory_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
+    memory_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("memory dispatch failed: {error}"),
+        "daemon_unavailable",
+        "Memory action could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+    )
+}
+
 #[derive(Debug, Clone, Deserialize, Default)]
 struct SemanticQuery {
     limit: Option<usize>,
@@ -138,7 +173,7 @@ fn default_source() -> MemorySource {
 async fn upsert_semantic(
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpsertBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> MemoryResult {
     state
         .command_tx
         .send(Action::UpsertSemantic {
@@ -147,7 +182,7 @@ async fn upsert_semantic(
             source: body.source,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(memory_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -167,14 +202,14 @@ struct ReinforceBody {
 async fn reinforce_rule(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ReinforceBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> MemoryResult {
     state
         .command_tx
         .send(Action::ReinforceRule {
             rule_id: body.rule_id,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(memory_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }

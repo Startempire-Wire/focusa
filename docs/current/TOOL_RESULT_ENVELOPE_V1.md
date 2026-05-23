@@ -42,3 +42,5 @@ Contract fixture: `tests/fixtures/spec89_tool_result_failure_recovery_sample.jso
 Public Focusa API routes should avoid bare HTTP status failures for caller-actionable errors. Validation, permission, dispatch, persistence, lookup, and upstream failures should return the same no-deadend fields (`status`, `failure_class`, `why`, `recovery_hint`, `misuse_hint`, `next_tools`, and `details.tool_result_v1`) so Pi, CLI, and non-Pi agents can recover without guessing.
 
 Sync routes follow this contract for local persistence failures, missing peers, malformed receive/transfer payloads, delegated receive/transfer rejections, and remote peer upstream failures.
+
+Instance, token, visual workflow, and memory mutation routes follow the same contract for missing inputs, invalid enum values, missing tokens, malformed visual evidence content, and daemon dispatch failures.

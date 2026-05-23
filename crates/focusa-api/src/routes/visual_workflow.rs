@@ -15,6 +15,52 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
+type VisualResult<T = Json<serde_json::Value>> = Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+fn visual_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_evidence_capture"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": failure_class != "validation_rejected", "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry_after_recovery" }, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_evidence_capture"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn visual_content_rejected(reason: &str) -> (StatusCode, Json<serde_json::Value>) {
+    visual_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid visual evidence content: {reason}"),
+        "validation_rejected",
+        "Visual evidence store requires valid content_b64 or plain content.",
+        "Send valid base64 content_b64 or non-empty content before retrying unchanged.",
+        "Likely missing visual artifact content or malformed base64 from browser/vision capture.",
+    )
+}
+
+fn visual_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
+    visual_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("visual evidence dispatch failed: {error}"),
+        "daemon_unavailable",
+        "Visual evidence artifact could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+    )
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct StoreVisualEvidenceBody {
     run_id: String,
@@ -30,16 +76,18 @@ struct StoreVisualEvidenceBody {
 }
 
 impl StoreVisualEvidenceBody {
-    fn resolve_content(&self) -> Result<Vec<u8>, StatusCode> {
+    fn resolve_content(&self) -> VisualResult<Vec<u8>> {
         if let Some(ref b64) = self.content_b64 {
             use base64::Engine;
             base64::engine::general_purpose::STANDARD
                 .decode(b64)
-                .map_err(|_| StatusCode::BAD_REQUEST)
+                .map_err(|_| visual_content_rejected("content_b64 is not valid base64"))
         } else if let Some(ref txt) = self.content {
             Ok(txt.as_bytes().to_vec())
         } else {
-            Err(StatusCode::BAD_REQUEST)
+            Err(visual_content_rejected(
+                "content_b64 and content are both missing",
+            ))
         }
     }
 
@@ -64,7 +112,7 @@ struct EvidenceQuery {
 async fn store_visual_evidence(
     State(state): State<Arc<AppState>>,
     Json(body): Json<StoreVisualEvidenceBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> VisualResult {
     let content = body.resolve_content()?;
     let label = body.to_artifact_label();
 
@@ -76,7 +124,7 @@ async fn store_visual_evidence(
             content,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(visual_dispatch_failed)?;
 
     let handle_id = loop {
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
