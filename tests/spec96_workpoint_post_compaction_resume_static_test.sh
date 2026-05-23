@@ -68,3 +68,12 @@ PY
 echo "✓ PASS: Pi propagates continuity_id before Workpoint and in operator utility card"
 
 echo "SPEC96 Workpoint post-compaction resume static test: PASS"
+
+
+WORKPOINT_RS="${ROOT_DIR}/crates/focusa-api/src/routes/workpoint.rs"
+if rg -n 'workpoint_failure|workpoint_reducer_rejected|workpoint_persistence_failed|workpoint_dispatch_failed|workpoint_no_active_to_link|recovery_hint|misuse_hint|tool_result_v1' "$WORKPOINT_RS" >/dev/null; then
+  echo "✓ PASS: Workpoint opaque failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Workpoint opaque failures lack no-guess recovery contract" >&2
+  exit 1
+fi

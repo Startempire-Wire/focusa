@@ -6,18 +6,18 @@ use crate::routes::bounded::{
 };
 use crate::routes::permissions::{forbid, permission_context};
 use crate::server::AppState;
-use chrono::Utc;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::{
     Json, Router,
     routing::{get, post},
 };
+use chrono::Utc;
 use focusa_core::reducer;
 use focusa_core::types::{
-    Action, EventLogEntry, FocusaEvent, FocusaSessionIdentity, SignalOrigin, WorkpointActionIntentRecord,
-    WorkpointCheckpointReason, WorkpointConfidence, WorkpointDriftSeverity, WorkpointRecord,
-    WorkpointStatus, WorkpointVerificationRecord,
+    Action, EventLogEntry, FocusaEvent, FocusaSessionIdentity, SignalOrigin,
+    WorkpointActionIntentRecord, WorkpointCheckpointReason, WorkpointConfidence,
+    WorkpointDriftSeverity, WorkpointRecord, WorkpointStatus, WorkpointVerificationRecord,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -132,15 +132,14 @@ fn clean_resume_scope_value(value: Option<&str>) -> Option<String> {
 }
 
 fn session_identity_project_root(identity: Option<&FocusaSessionIdentity>) -> Option<String> {
-    identity
-        .and_then(|identity| {
-            clean_resume_scope_value(Some(identity.project_root.as_str())).or_else(|| {
-                identity
-                    .project_identity
-                    .as_ref()
-                    .and_then(|project| clean_resume_scope_value(Some(project.project_root.as_str())))
-            })
+    identity.and_then(|identity| {
+        clean_resume_scope_value(Some(identity.project_root.as_str())).or_else(|| {
+            identity
+                .project_identity
+                .as_ref()
+                .and_then(|project| clean_resume_scope_value(Some(project.project_root.as_str())))
         })
+    })
 }
 
 fn session_identity_continuity_id(identity: Option<&FocusaSessionIdentity>) -> Option<String> {
@@ -180,7 +179,11 @@ fn apply_resume_session_identity(req: &mut WorkpointResumeRequest) {
 
 fn normalize_project_root_authority(value: &str) -> String {
     let trimmed = value.trim().trim_end_matches('/');
-    if trimmed.is_empty() { "".to_string() } else { trimmed.to_string() }
+    if trimmed.is_empty() {
+        "".to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
@@ -189,13 +192,24 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
         return Some("missing_project_root");
     }
     match root.as_str() {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => Some("unsafe_broad_project_root"),
-        _ if root.strip_prefix("/home/").is_some_and(|rest| !rest.contains('/')) => Some("unsafe_user_home_project_root"),
+        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => {
+            Some("unsafe_broad_project_root")
+        }
+        _ if root
+            .strip_prefix("/home/")
+            .is_some_and(|rest| !rest.contains('/')) =>
+        {
+            Some("unsafe_user_home_project_root")
+        }
         _ => None,
     }
 }
 
-fn unsafe_project_root_rejection(record: &WorkpointRecord, reason: &'static str, expected_project_root: Option<&str>) -> Value {
+fn unsafe_project_root_rejection(
+    record: &WorkpointRecord,
+    reason: &'static str,
+    expected_project_root: Option<&str>,
+) -> Value {
     json!({
         "status": "rejected_unsafe_project_root",
         "canonical": false,
@@ -210,7 +224,11 @@ fn unsafe_project_root_rejection(record: &WorkpointRecord, reason: &'static str,
     })
 }
 
-fn unsafe_checkpoint_rejection(reason: &'static str, field: &'static str, value: Option<&str>) -> (StatusCode, Json<Value>) {
+fn unsafe_checkpoint_rejection(
+    reason: &'static str,
+    field: &'static str,
+    value: Option<&str>,
+) -> (StatusCode, Json<Value>) {
     (
         StatusCode::UNPROCESSABLE_ENTITY,
         Json(json!({
@@ -226,7 +244,9 @@ fn unsafe_checkpoint_rejection(reason: &'static str, field: &'static str, value:
     )
 }
 
-fn unconfirmed_project_root_rejection(identity: &FocusaSessionIdentity) -> (StatusCode, Json<Value>) {
+fn unconfirmed_project_root_rejection(
+    identity: &FocusaSessionIdentity,
+) -> (StatusCode, Json<Value>) {
     (
         StatusCode::CONFLICT,
         Json(json!({
@@ -247,12 +267,20 @@ fn unconfirmed_project_root_rejection(identity: &FocusaSessionIdentity) -> (Stat
     )
 }
 
-fn session_identity_requires_project_root_confirmation(identity: Option<&FocusaSessionIdentity>) -> Option<(StatusCode, Json<Value>)> {
+fn session_identity_requires_project_root_confirmation(
+    identity: Option<&FocusaSessionIdentity>,
+) -> Option<(StatusCode, Json<Value>)> {
     let identity = identity?;
-    if identity.canonical_scope == Some(false) || identity.scope_failure.is_some() || identity.requires_operator_confirmation.unwrap_or(false) {
+    if identity.canonical_scope == Some(false)
+        || identity.scope_failure.is_some()
+        || identity.requires_operator_confirmation.unwrap_or(false)
+    {
         return Some(unconfirmed_project_root_rejection(identity));
     }
-    if identity.project_root_confidence_score.is_some_and(|score| score < 0.90) {
+    if identity
+        .project_root_confidence_score
+        .is_some_and(|score| score < 0.90)
+    {
         return Some(unconfirmed_project_root_rejection(identity));
     }
     None
@@ -268,9 +296,15 @@ fn evaluate_resume_scope(
         canonical_scope_ok: true,
         ..ResumeScopeDecision::default()
     };
-    if let Some(reason) = unsafe_project_root_reason(expected_project_root.or(record.project_root.as_deref())) {
+    if let Some(reason) =
+        unsafe_project_root_reason(expected_project_root.or(record.project_root.as_deref()))
+    {
         decision.canonical_scope_ok = false;
-        decision.rejection = Some(unsafe_project_root_rejection(record, reason, expected_project_root));
+        decision.rejection = Some(unsafe_project_root_rejection(
+            record,
+            reason,
+            expected_project_root,
+        ));
         return decision;
     }
 
@@ -702,11 +736,10 @@ fn classify_drift(
 
 fn active_workpoint(state: &focusa_core::types::FocusaState) -> Option<&WorkpointRecord> {
     state.workpoint.active_workpoint_id.and_then(|id| {
-        state
-            .workpoint
-            .records
-            .iter()
-            .find(|record| record.workpoint_id == id && unsafe_project_root_reason(record.project_root.as_deref()).is_none())
+        state.workpoint.records.iter().find(|record| {
+            record.workpoint_id == id
+                && unsafe_project_root_reason(record.project_root.as_deref()).is_none()
+        })
     })
 }
 
@@ -716,7 +749,10 @@ fn active_workpoint_for_scope<'a>(
     continuity_id: Option<&str>,
 ) -> Option<&'a WorkpointRecord> {
     let clean_project = clean_resume_scope_value(project_root);
-    if clean_project.as_deref().is_some_and(|root| unsafe_project_root_reason(Some(root)).is_some()) {
+    if clean_project
+        .as_deref()
+        .is_some_and(|root| unsafe_project_root_reason(Some(root)).is_some())
+    {
         return None;
     }
     let clean_continuity = clean_resume_scope_value(continuity_id);
@@ -951,6 +987,115 @@ async fn wait_for_workpoint_evidence(
     None
 }
 
+fn workpoint_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "canonical": false,
+                    "degraded": true,
+                    "failure_class": failure_class,
+                    "summary": why,
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools_value,
+                    "error": {"code": failure_class, "message": error}
+                }
+            }
+        })),
+    )
+}
+
+fn workpoint_reducer_rejected(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    workpoint_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("workpoint reducer rejected event: {error}"),
+        "reducer_rejected",
+        format!("Workpoint event could not be reduced into Focusa state: {error}"),
+        "Inspect reducer constraints and current Workpoint packet before retrying the same mutation.",
+        "Likely stale Workpoint state, invalid event payload, or reducer invariant mismatch.",
+        vec![
+            "focusa_workpoint_resume",
+            "focusa_tool_doctor",
+            "focusa_trajectory_view",
+        ],
+    )
+}
+
+fn workpoint_persistence_failed(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    workpoint_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to persist workpoint event: {error}"),
+        "persistence_failed",
+        format!("Workpoint event was reduced but could not be persisted: {error}"),
+        "Check persistence health before retrying; do not rely on transcript-only proof.",
+        "Likely SQLite/file permission/resource pressure or event-log persistence outage.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_resource_mode",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
+fn workpoint_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    workpoint_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("dispatch failed: {error}"),
+        "daemon_unavailable",
+        format!("Workpoint event could not be dispatched to daemon command channel: {error}"),
+        "Check daemon health and retry only after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_work_loop_status",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
+fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
+    workpoint_failure(
+        StatusCode::NOT_FOUND,
+        "no active Workpoint to link evidence",
+        "not_found",
+        "No canonical active Workpoint was available for evidence linking.",
+        "Create or resume a canonical project-scoped Workpoint before linking evidence.",
+        "Likely stale/missing Workpoint packet, unsafe project scope, or wrong continuity_id.",
+        vec![
+            "focusa_project_identity",
+            "focusa_workpoint_checkpoint",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
 async fn materialize_workpoint_events(
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
@@ -962,16 +1107,7 @@ async fn materialize_workpoint_events(
     for event in events {
         let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
             tracing::warn!(error = %error, correlation_id, "workpoint event rejected by reducer");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "status": "rejected",
-                    "canonical": false,
-                    "failure_class": "reducer_rejected",
-                    "error": format!("workpoint reducer rejected event: {error}"),
-                    "next_step_hint": "retry after resolving the reducer rejection"
-                })),
-            )
+            workpoint_reducer_rejected(error)
         })?;
         current = result.new_state;
 
@@ -990,16 +1126,7 @@ async fn materialize_workpoint_events(
             };
             if let Err(error) = state.persistence.append_event(&entry) {
                 tracing::error!(error = %error, correlation_id, "failed to persist workpoint event");
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "status": "rejected",
-                        "canonical": false,
-                        "failure_class": "persistence_failed",
-                        "error": format!("failed to persist workpoint event: {error}"),
-                        "next_step_hint": "retry after persistence recovers"
-                    })),
-                ));
+                return Err(workpoint_persistence_failed(error));
             } else if let Ok(serialized) = serde_json::to_string(&entry) {
                 let _ = state.events_tx.send(serialized);
             }
@@ -1027,16 +1154,7 @@ async fn dispatch_event(
                 {
                     Ok(Ok(())) => return Ok(()),
                     Ok(Err(_)) => {
-                        return Err((
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Json(json!({
-                                "status": "rejected",
-                                "canonical": false,
-                                "failure_class": "daemon_unavailable",
-                                "error": "dispatch failed: daemon command channel closed",
-                                "next_step_hint": "retry after daemon command channel recovers"
-                            })),
-                        ));
+                        return Err(workpoint_dispatch_failed("daemon command channel closed"));
                     }
                     Err(_) => {
                         return Err((
@@ -1058,16 +1176,7 @@ async fn dispatch_event(
                 }
             }
             Err(TrySendError::Closed(_)) => {
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "status": "rejected",
-                        "canonical": false,
-                        "failure_class": "daemon_unavailable",
-                        "error": "dispatch failed: daemon command channel closed",
-                        "next_step_hint": "retry after daemon command channel recovers"
-                    })),
-                ));
+                return Err(workpoint_dispatch_failed("daemon command channel closed"));
             }
         }
     }
@@ -1076,18 +1185,7 @@ async fn dispatch_event(
         .command_tx
         .send(Action::EmitEvent { event })
         .await
-        .map_err(|error| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "status": "rejected",
-                    "canonical": false,
-                    "failure_class": "daemon_unavailable",
-                    "error": format!("dispatch failed: {error}"),
-                    "next_step_hint": "retry after daemon command channel recovers"
-                })),
-            )
-        })
+        .map_err(workpoint_dispatch_failed)
 }
 
 async fn checkpoint(
@@ -1151,7 +1249,9 @@ async fn checkpoint(
         }
     }
 
-    if let Some(rejection) = session_identity_requires_project_root_confirmation(req.session_identity.as_ref()) {
+    if let Some(rejection) =
+        session_identity_requires_project_root_confirmation(req.session_identity.as_ref())
+    {
         return Err(rejection);
     }
     apply_checkpoint_session_identity(&mut req);
@@ -1160,10 +1260,18 @@ async fn checkpoint(
     let requested_canonical = req.canonical.unwrap_or(true);
     if requested_canonical {
         if let Some(reason) = unsafe_project_root_reason(req.project_root.as_deref()) {
-            return Err(unsafe_checkpoint_rejection(reason, "project_root", req.project_root.as_deref()));
+            return Err(unsafe_checkpoint_rejection(
+                reason,
+                "project_root",
+                req.project_root.as_deref(),
+            ));
         }
         if clean_resume_scope_value(req.continuity_id.as_deref()).is_none() {
-            return Err(unsafe_checkpoint_rejection("missing_continuity_id", "continuity_id", req.continuity_id.as_deref()));
+            return Err(unsafe_checkpoint_rejection(
+                "missing_continuity_id",
+                "continuity_id",
+                req.continuity_id.as_deref(),
+            ));
         }
     }
     let idempotency_key = req.idempotency_key.clone();
@@ -1199,13 +1307,16 @@ async fn checkpoint(
         });
     }
 
-    let materialized_state = materialize_workpoint_events(&state, events, "workpoint_checkpoint").await?;
+    let materialized_state =
+        materialize_workpoint_events(&state, events, "workpoint_checkpoint").await?;
     let promoted_record = if promote && canonical {
         materialized_state
             .workpoint
             .records
             .iter()
-            .find(|record| record.workpoint_id == workpoint_id && record.status == WorkpointStatus::Active)
+            .find(|record| {
+                record.workpoint_id == workpoint_id && record.status == WorkpointStatus::Active
+            })
             .cloned()
     } else {
         None
@@ -1448,7 +1559,11 @@ fn packet_resume_source(record: &WorkpointRecord, req: &WorkpointResumeRequest) 
         .or(record.session_identity.as_ref())
         .map(|identity| identity.resume_source.trim().to_string())
         .filter(|source| !source.is_empty())
-        .or_else(|| req.mode.as_ref().map(|mode| format!("workpoint_resume:{mode}")))
+        .or_else(|| {
+            req.mode
+                .as_ref()
+                .map(|mode| format!("workpoint_resume:{mode}"))
+        })
         .unwrap_or_else(|| "workpoint_resume".to_string())
 }
 
@@ -1486,7 +1601,11 @@ fn session_identity_payload(
     generated_at: &str,
     canonical: bool,
 ) -> Value {
-    if let Some(identity) = req.session_identity.as_ref().or(record.session_identity.as_ref()) {
+    if let Some(identity) = req
+        .session_identity
+        .as_ref()
+        .or(record.session_identity.as_ref())
+    {
         return json!(identity);
     }
     let project_root = record
@@ -1594,7 +1713,10 @@ fn resume_summary_v2(
 ) -> Value {
     let mut warnings = scope.warnings.clone();
     if !canonical {
-        warnings.push("resume packet is degraded until project_root plus continuity_id are canonical".to_string());
+        warnings.push(
+            "resume packet is degraded until project_root plus continuity_id are canonical"
+                .to_string(),
+        );
     }
     json!({
         "one_line": summary,
@@ -1635,7 +1757,12 @@ fn workpoint_resume_packet_v2(
     } else {
         json!("scope_unbound_or_non_canonical")
     };
-    let next_tools = json!(["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse", "focusa_active_object_resolve"]);
+    let next_tools = json!([
+        "focusa_workpoint_resume",
+        "focusa_trajectory_view",
+        "focusa_traverse",
+        "focusa_active_object_resolve"
+    ]);
     let tool_result = json!({
         "ok": canonical,
         "status": "completed",
@@ -1851,7 +1978,9 @@ async fn link_evidence(
             })),
         ));
     }
-    if let Some(rejection) = session_identity_requires_project_root_confirmation(req.session_identity.as_ref()) {
+    if let Some(rejection) =
+        session_identity_requires_project_root_confirmation(req.session_identity.as_ref())
+    {
         return Err(rejection);
     }
     let explicit_workpoint_id = req.workpoint_id;
@@ -1891,17 +2020,11 @@ async fn link_evidence(
                 })),
             ));
         }
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({
-                "status": "blocked",
-                "canonical": false,
-                "error": "no active Workpoint to link evidence",
-                "next_step_hint": "create or resume a canonical Workpoint before linking evidence"
-            })),
-        ));
+        return Err(workpoint_no_active_to_link());
     };
-    if let Some(expected_project_root) = session_identity_project_root(req.session_identity.as_ref()) {
+    if let Some(expected_project_root) =
+        session_identity_project_root(req.session_identity.as_ref())
+    {
         let actual = clean_resume_scope_value(record.project_root.as_deref());
         if actual.as_deref() != Some(expected_project_root.as_str()) {
             return Err((
@@ -1918,7 +2041,9 @@ async fn link_evidence(
             ));
         }
     }
-    if let Some(expected_continuity_id) = session_identity_continuity_id(req.session_identity.as_ref()) {
+    if let Some(expected_continuity_id) =
+        session_identity_continuity_id(req.session_identity.as_ref())
+    {
         let actual = clean_resume_scope_value(record.continuity_id.as_deref());
         if actual.as_deref() != Some(expected_continuity_id.as_str()) {
             return Err((
@@ -2116,7 +2241,11 @@ mod tests {
         assert!(payload["ttl_seconds"].as_u64().unwrap_or(0) >= 1);
     }
 
-    fn test_session_identity(project_root: &str, continuity_id: &str, session_id: &str) -> FocusaSessionIdentity {
+    fn test_session_identity(
+        project_root: &str,
+        continuity_id: &str,
+        session_id: &str,
+    ) -> FocusaSessionIdentity {
         FocusaSessionIdentity {
             schema: Some("focusa.session_identity.v1".to_string()),
             project_identity: None,
@@ -2143,7 +2272,11 @@ mod tests {
     #[test]
     fn session_identity_overrides_flat_checkpoint_scope() {
         let mut req = WorkpointCheckpointRequest {
-            session_identity: Some(test_session_identity("/repo/right", "cont-right", "session-right")),
+            session_identity: Some(test_session_identity(
+                "/repo/right",
+                "cont-right",
+                "session-right",
+            )),
             project_root: Some("/repo/wrong".to_string()),
             continuity_id: Some("cont-wrong".to_string()),
             session_id: Some("session-wrong".to_string()),
@@ -2166,9 +2299,24 @@ mod tests {
             ..WorkpointRecord::default()
         };
         let packet = workpoint_packet(&record);
-        assert_eq!(packet.pointer("/session_identity/session_frame_key").and_then(Value::as_str), Some("session-a"));
-        assert_eq!(packet.pointer("/session_identity/session_incarnation_id").and_then(Value::as_str), Some("session-a:test"));
-        assert_eq!(packet.pointer("/session_identity/resume_source").and_then(Value::as_str), Some("manual"));
+        assert_eq!(
+            packet
+                .pointer("/session_identity/session_frame_key")
+                .and_then(Value::as_str),
+            Some("session-a")
+        );
+        assert_eq!(
+            packet
+                .pointer("/session_identity/session_incarnation_id")
+                .and_then(Value::as_str),
+            Some("session-a:test")
+        );
+        assert_eq!(
+            packet
+                .pointer("/session_identity/resume_source")
+                .and_then(Value::as_str),
+            Some("manual")
+        );
     }
 
     #[test]
@@ -2228,18 +2376,25 @@ mod tests {
                 .and_then(Value::as_array)
                 .unwrap()
                 .iter()
-                .any(|slice| slice.get("surface").and_then(Value::as_str) == Some("workpoints")
-                    && slice.get("tags").and_then(Value::as_array).is_some()
-                    && slice.get("rehydrate_refs").and_then(Value::as_array).is_some())
+                .any(
+                    |slice| slice.get("surface").and_then(Value::as_str) == Some("workpoints")
+                        && slice.get("tags").and_then(Value::as_array).is_some()
+                        && slice
+                            .get("rehydrate_refs")
+                            .and_then(Value::as_array)
+                            .is_some()
+                )
         );
         assert!(
             v2.get("api_provenance")
                 .and_then(Value::as_array)
                 .unwrap()
                 .iter()
-                .any(|entry| entry.get("route").and_then(Value::as_str) == Some("/v1/traverse")
-                    && entry.get("tool_or_route").is_some()
-                    && entry.get("freshness").is_some())
+                .any(
+                    |entry| entry.get("route").and_then(Value::as_str) == Some("/v1/traverse")
+                        && entry.get("tool_or_route").is_some()
+                        && entry.get("freshness").is_some()
+                )
         );
         assert_eq!(
             v2.pointer("/trajectory/hierarchy/must_not_merge_on_similarity")
@@ -2442,7 +2597,8 @@ mod tests {
             canonical: true,
             ..WorkpointRecord::default()
         };
-        let decision = evaluate_resume_scope(&record, Some("/root"), Some("cont-a"), Some("pi-after"));
+        let decision =
+            evaluate_resume_scope(&record, Some("/root"), Some("cont-a"), Some("pi-after"));
         assert!(!decision.canonical_scope_ok);
         let rejection = decision.rejection.expect("unsafe root rejects");
         assert_eq!(
@@ -2457,10 +2613,17 @@ mod tests {
 
     #[test]
     fn canonical_checkpoint_requires_safe_project_identity_envelope() {
-        let err = unsafe_checkpoint_rejection("unsafe_broad_project_root", "project_root", Some("/root"));
+        let err =
+            unsafe_checkpoint_rejection("unsafe_broad_project_root", "project_root", Some("/root"));
         assert_eq!(err.0, StatusCode::UNPROCESSABLE_ENTITY);
-        assert_eq!(err.1.0.get("status").and_then(Value::as_str), Some("validation_rejected"));
-        assert_eq!(err.1.0.get("field").and_then(Value::as_str), Some("project_root"));
+        assert_eq!(
+            err.1.0.get("status").and_then(Value::as_str),
+            Some("validation_rejected")
+        );
+        assert_eq!(
+            err.1.0.get("field").and_then(Value::as_str),
+            Some("project_root")
+        );
     }
 
     #[test]
