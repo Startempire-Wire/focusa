@@ -37,6 +37,91 @@ const DEFAULT_KIMI_UPSTREAM: &str = "https://api.kimi.com/coding/v1/messages";
 
 static UPSTREAM_CLIENT: std::sync::OnceLock<Client> = std::sync::OnceLock::new();
 
+fn proxy_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {"tool_result_v1": {
+                "ok": false, "status": "blocked", "canonical": false, "degraded": true,
+                "failure_class": failure_class, "summary": why,
+                "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                "side_effects": [], "evidence_refs": [], "next_tools": next_tools_value,
+                "error": {"code": failure_class, "message": error}
+            }}
+        })),
+    )
+}
+
+fn proxy_auth_missing(provider: &str) -> (StatusCode, Json<Value>) {
+    proxy_failure(
+        StatusCode::UNAUTHORIZED,
+        format!("No API key for {provider}"),
+        "permission_denied",
+        format!("{provider} proxy requires an API key or Authorization header"),
+        "Set the provider API key environment variable or pass an authorized request header.",
+        "Likely missing FOCUSA_API_KEY/FOCUSA_MESSAGES_API_KEY/FOCUSA_ANTHROPIC_KEY or wrong header.",
+        vec!["focusa_tool_doctor"],
+    )
+}
+
+fn proxy_upstream_failed(
+    provider: &str,
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<Value>) {
+    proxy_failure(
+        StatusCode::BAD_GATEWAY,
+        error.to_string(),
+        "upstream_unavailable",
+        format!("{provider} upstream request failed: {error}"),
+        "Check upstream provider availability, credentials, and network before retrying.",
+        "Likely provider outage, invalid credentials, bad upstream URL, or network/proxy failure.",
+        vec!["focusa_tool_doctor", "focusa_resource_mode"],
+    )
+}
+
+fn proxy_upstream_http(
+    provider: &str,
+    status: reqwest::StatusCode,
+    body: String,
+) -> (StatusCode, Json<Value>) {
+    proxy_failure(
+        StatusCode::BAD_GATEWAY,
+        format!("{provider} returned HTTP {status}: {body}"),
+        "upstream_rejected",
+        format!("{provider} upstream returned non-success HTTP {status}"),
+        "Inspect provider response/body and credentials before retrying unchanged.",
+        "Likely provider rejected request schema, quota, credentials, or model selection.",
+        vec!["focusa_tool_doctor"],
+    )
+}
+
+fn proxy_validation_rejected(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    proxy_failure(
+        StatusCode::BAD_REQUEST,
+        error.to_string(),
+        "validation_rejected",
+        format!("proxy payload could not be parsed: {error}"),
+        "Correct the JSON-RPC/proxy payload before retrying unchanged.",
+        "Likely malformed ACP/proxy payload or stale adapter contract.",
+        vec!["focusa_tool_doctor"],
+    )
+}
+
 fn get_client() -> &'static Client {
     UPSTREAM_CLIENT.get_or_init(|| {
         Client::builder()
@@ -256,21 +341,17 @@ async fn stream_messages_response(
         }
     }
 
-    let resp = req.json(&request).send().await.map_err(|e| {
-        (
-            StatusCode::BAD_GATEWAY,
-            Json(json!({"error": e.to_string()})),
-        )
-    })?;
+    let resp = req
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| proxy_upstream_failed("Anthropic messages stream", e))?;
 
     let status = resp.status();
     let headers = resp.headers().clone();
     if !status.is_success() {
         let body = resp.text().await.unwrap_or_default();
-        return Err((
-            StatusCode::BAD_GATEWAY,
-            Json(json!({"error": format!("Anthropic returned HTTP {}: {}", status, body)})),
-        ));
+        return Err(proxy_upstream_http("Anthropic", status, body));
     }
 
     let mut stream = resp.bytes_stream();
@@ -329,12 +410,7 @@ async fn chat_completions(
     headers: HeaderMap,
     Json(request): Json<ChatCompletionRequest>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let key = api_key(&headers).ok_or_else(|| {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "No API key — set FOCUSA_API_KEY or pass Authorization header"})),
-        )
-    })?;
+    let key = api_key(&headers).ok_or_else(|| proxy_auth_missing("OpenAI-compatible"))?;
 
     ensure_session(&state).await;
 
@@ -867,7 +943,7 @@ async fn chat_completions(
     }
 
     if let Some(err) = error_str {
-        return Err((StatusCode::BAD_GATEWAY, Json(json!({"error": err}))));
+        return Err(proxy_upstream_failed("OpenAI-compatible", err));
     }
 
     Ok(Json(response).into_response())
@@ -879,12 +955,7 @@ async fn messages_proxy(
     headers: HeaderMap,
     Json(request): Json<MessagesRequest>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let auth = messages_auth(&headers).ok_or_else(|| {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "No API key — set FOCUSA_MESSAGES_API_KEY (or FOCUSA_ANTHROPIC_KEY) or pass x-api-key/Authorization header"})),
-        )
-    })?;
+    let auth = messages_auth(&headers).ok_or_else(|| proxy_auth_missing("Anthropic messages"))?;
 
     ensure_session(&state).await;
 
@@ -1229,7 +1300,7 @@ async fn messages_proxy(
     }
 
     if let Some(err) = error_str {
-        return Err((StatusCode::BAD_GATEWAY, Json(json!({"error": err}))));
+        return Err(proxy_upstream_failed("Anthropic messages", err));
     }
 
     Ok(Json(response).into_response())
@@ -1243,8 +1314,7 @@ async fn acp_proxy(
     use focusa_core::adapters::acp;
 
     let bytes = serde_json::to_vec(&body).unwrap_or_default();
-    let mut msg = acp::parse_message(&bytes)
-        .map_err(|e| (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))))?;
+    let mut msg = acp::parse_message(&bytes).map_err(proxy_validation_rejected)?;
 
     let s = state.focusa.read().await;
     let session_id = s
@@ -1270,19 +1340,12 @@ async fn acp_proxy(
         .json(&msg)
         .send()
         .await
-        .map_err(|e| {
-            (
-                StatusCode::BAD_GATEWAY,
-                Json(json!({ "error": format!("ACP upstream error: {}", e) })),
-            )
-        })?;
+        .map_err(|e| proxy_upstream_failed("ACP", e))?;
 
-    let response: Value = resp.json().await.map_err(|e| {
-        (
-            StatusCode::BAD_GATEWAY,
-            Json(json!({ "error": format!("ACP response parse error: {}", e) })),
-        )
-    })?;
+    let response: Value = resp
+        .json()
+        .await
+        .map_err(|e| proxy_upstream_failed("ACP response parse", e))?;
 
     Ok(Json(response))
 }

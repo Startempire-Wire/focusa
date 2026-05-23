@@ -185,6 +185,14 @@ else
   log_fail "Ontology contracts fetch failed"
 fi
 
+
+PROXY_RS="${ROOT_DIR}/crates/focusa-api/src/routes/proxy.rs"
+if rg -n 'proxy_failure|proxy_auth_missing|proxy_upstream_failed|proxy_upstream_http|proxy_validation_rejected|recovery_hint|misuse_hint|tool_result_v1' "$PROXY_RS" >/dev/null; then
+  log_pass "Proxy failures expose no-guess recovery contract"
+else
+  log_fail "Proxy failures lack no-guess recovery contract"
+fi
+
 TRUST_RS="${ROOT_DIR}/crates/focusa-api/src/routes/trust.rs"
 if rg -n 'trust_failure|trust_forbidden|trust_dispatch_failed|recovery_hint|misuse_hint|tool_result_v1' "$TRUST_RS" >/dev/null; then
   log_pass "Trust failures expose no-guess recovery contract"
