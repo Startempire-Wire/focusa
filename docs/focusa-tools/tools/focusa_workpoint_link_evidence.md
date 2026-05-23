@@ -7,9 +7,9 @@
 
 Attach a stable evidence reference or verification result to the active canonical Workpoint.
 
-## Scope semantics
+## Project folder semantics
 
-After compaction/model switch, pass `project_root` and `continuity_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad (for example `/root`). The tool builds a `FocusaSessionIdentity` from that explicit scope before trajectory clarity and evidence-link calls.
+After compaction/model switch, pass `project_root` and `continuity_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad (for example `/root`). The tool builds a `FocusaSessionIdentity` from that explicit project context before trajectory clarity and evidence-link calls.
 
 ## When to use
 

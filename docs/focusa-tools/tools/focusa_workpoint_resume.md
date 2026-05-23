@@ -15,9 +15,9 @@ Use `focusa_workpoint_resume` when its specific Focusa state or workflow surface
 
 Do not use `focusa_workpoint_resume` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
 
-## Scope semantics
+## Project folder semantics
 
-`project_root` is the project scope boundary and `continuity_id` is the stable logical session/workstream identity. Broad roots (`/`, `/root`, `/home`, `/tmp`, `/var`, `/usr`, `/opt`) are unsafe and return `rejected_unsafe_project_root`/`scope_mismatch` instead of canonical packets. Cross-project packets return `rejected_scope_mismatch`; same-root/different-continuity packets return `rejected_continuity_mismatch`. When a `FocusaSessionIdentity` envelope is supplied, its `project_root`, `continuity_id`, `session_frame_key`, and ProjectIdentity are authoritative over flat legacy fields. `session_id` is temporal metadata across compaction, model switch, fork, or process restart. Trajectory/goals/work-item/frame tags can raise `identity_confidence_percent` only after the hard gates match.
+`project_root` is the project folder/container holding related files, and `continuity_id` is the stable logical session/workstream identity. Broad roots (`/`, `/root`, `/home`, `/tmp`, `/var`, `/usr`, `/opt`) are unsafe and return `rejected_unsafe_project_root`/`scope_mismatch` instead of canonical packets. Cross-project packets return `rejected_scope_mismatch`; same-root/different-continuity packets return `rejected_continuity_mismatch`. When a `FocusaSessionIdentity` envelope is supplied, its `project_root`, `continuity_id`, `session_frame_key`, and ProjectIdentity are authoritative over flat legacy fields. `session_id` is temporal metadata across compaction, model switch, fork, or process restart. Trajectory/goals/work-item/frame tags can raise `identity_confidence_percent` only after the hard gates match.
 
 ## Example usage
 
@@ -60,4 +60,4 @@ Defined in `apps/pi-extension/src/tools.ts`.
 - `traversal_slices` with tags, window tags, and `rehydrate_refs` for bounded `focusa_traverse` follow-up.
 - `tool_affordances.best_next`, `.recovery`, `.do_not_use`, `api_provenance` with freshness/tool-result metadata, `next_tools`, and `failure_class`.
 
-Authority boundary: project/session authority remains safe `project_root + continuity_id`; shared high-level trajectory similarity and broad roots such as `/root` must never merge sessions.
+Authority boundary: project/session authority remains safe `project_root + continuity_id`; shared high-level trajectory similarity and broad folders such as `/root` must never merge sessions.

@@ -13,7 +13,7 @@ Scope: `apps/pi-extension/src/tools.ts`, `apps/pi-extension/src/state.ts`, and t
 ## Improvements applied
 
 1. **Frame recovery now adopts safe Workpoint authority.** `ensurePiFrame` can use a session Workpoint or daemon active canonical Workpoint to recover safe `project_root + continuity_id` before creating a Pi frame.
-2. **Scope-sensitive tools use a safe project resolver.** Trajectory, Workpoint, and evidence tools now resolve safe project scope from explicit input, safe session cwd, session Workpoint, or daemon active Workpoint before falling back.
+2. **Project-aware tools use a safe project resolver.** Trajectory, Workpoint, and evidence tools now resolve a safe project folder from explicit input, safe session cwd, session Workpoint, or daemon active Workpoint before falling back.
 3. **409 evidence conflicts report actionable scope diagnostics.** Tool output now includes expected vs packet scope, `scope_recovery_context`, `request_scope`, and next tools.
 4. **All Focusa tools get prompt snippets.** A default family-aware prompt snippet is injected for any `focusa_*` registration missing explicit guidance.
 5. **Runtime/static coverage tightened.** Tests now assert prompt snippet coverage, schema expectations, missing-frame recovery, scoped-tool unsafe-cwd recovery, and evidence 409 clarity.

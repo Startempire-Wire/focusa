@@ -9,11 +9,11 @@ The card must mention:
 - Focusa availability/degraded status.
 - Current mission or latest operator/current repo fallback.
 - Current next anchor or `focusa_workpoint_resume` fallback.
-- Current project scope or project-root binding rule.
+- Current project folder (`project_root`) or project-root binding rule.
 - `focusa_tool_doctor` as the first recovery tool when uncertain.
 - `focusa_workpoint_checkpoint` before compaction/model switch/fork/risky continuation.
 - `focusa_workpoint_resume` after compaction/reload/resume.
-- Workpoint scope and continuity rules.
+- Workpoint project-folder and continuity rules.
 - evidence capture/linking after proof.
 - prediction record/evaluate around risky or uncertain actions.
 - Metacognition/work-loop tool families for learning/continuous work.

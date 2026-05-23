@@ -56,7 +56,7 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 - Low-memory mode should preserve health, project identity, Trajectory summary, Workpoint summary, Focus State compact writes, evidence summary, Tool Doctor summary, work-loop summary, and tool contract reads.
 - Cold routes such as telemetry memory, deep replay, full lineage, full ontology, and release proof should degrade before risking OOM.
 - If daemon RSS/store pressure is high, tools should return `resource_exhausted` with recovery guidance rather than bare `null`/`unknown`.
-- `focusa_scratch` is last-resort fallback; preferred recovery is cached scoped Focusa summaries plus clear failure classes.
+- `focusa_scratch` is last-resort fallback; preferred recovery is cached project-bound Focusa summaries plus clear failure classes.
 
 
 ## Latest trajectory-family safe audit

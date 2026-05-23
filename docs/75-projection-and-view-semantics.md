@@ -90,7 +90,8 @@ Represents limits applied to a projection.
 ### Examples
 - token_budget_boundary
 - permission_boundary
-- scope_boundary
+- project_folder_boundary
+- query_scope_boundary
 - role_boundary
 
 ---

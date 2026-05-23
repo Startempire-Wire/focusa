@@ -1440,7 +1440,7 @@ export function buildFocusaToolAffordanceCatalog(contracts: FocusaToolContract[]
     ],
     failure_classes: ["scope_mismatch", "resource_exhausted", "cold_path_timeout", "hot_path_timeout", "daemon_unavailable", "read_model_lag", "validation_rejected"],
     recovery: [
-      "scope_mismatch -> focusa_project_verify or checkpoint in the correct project_root+continuity_id scope",
+      "scope_mismatch -> focusa_project_verify or checkpoint in the correct project_root+continuity_id context",
       "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
       "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture",
     ],
@@ -1457,7 +1457,7 @@ function affordanceLine(name: string, fallback: string): string {
 
 export function selectFocusSliceToolAffordances(options: FocusSliceToolAffordanceOptions): { best_next: string[]; recovery: string[]; do_not_use: string[]; catalog_version: string } {
   const bestNext = [
-    affordanceLine("focusa_project_identity", "verify project scope before trusting carryover packets"),
+    affordanceLine("focusa_project_identity", "verify project folder before trusting carryover packets"),
     options.hasTrajectory
       ? affordanceLine("focusa_trajectory_view", "refresh goal/state/gap/why-next orientation")
       : affordanceLine("focusa_trajectory_view", "build advisory goal/state/gap orientation when available"),

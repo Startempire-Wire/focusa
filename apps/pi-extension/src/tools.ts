@@ -382,7 +382,7 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
 }
 
 function defaultFocusaPromptSnippet(name: string, description?: string): string {
-  if (name.startsWith("focusa_workpoint_")) return "Use after project scope is verified; pass explicit project_root/continuity_id after compaction or unsafe cwd.";
+  if (name.startsWith("focusa_workpoint_")) return "Use after project folder is verified; pass explicit project_root/continuity_id after compaction or unsafe cwd.";
   if (name.startsWith("focusa_trajectory_")) return "Advisory project-goal tool; verify project_root first and do not treat proposals as execution authority.";
   if (name.startsWith("focusa_work_loop_")) return "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.";
   if (name.startsWith("focusa_metacog_")) return "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.";
@@ -391,7 +391,7 @@ function defaultFocusaPromptSnippet(name: string, description?: string): string 
   if (name.includes("hygiene")) return "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.";
   if (name === "focusa_traverse") return "Use bounded traversal/search with explicit limits; opt into large payloads only when needed.";
   if (["focusa_intent", "focusa_current_focus", "focusa_next_step", "focusa_open_question", "focusa_recent_result", "focusa_note"].includes(name)) return "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.";
-  return String(description || "Use this Focusa tool with explicit project scope when session/cwd is ambiguous.").slice(0, 240);
+  return String(description || "Use this Focusa tool with explicit project_root when session/cwd is ambiguous.").slice(0, 240);
 }
 
 function withToolResultEnvelope(tool: any): any {
@@ -440,7 +440,7 @@ function pushDeltaFailureRecovery(reason: PushDeltaFailureReason, apiReason?: st
       return { failure_class: "daemon_unavailable", retry_posture: "safe_retry", recovery_hint: "Run focusa_tool_doctor; if resource mode is emergency, use focusa_resource_mode before retrying.", next_tools: ["focusa_tool_doctor", "focusa_resource_mode"], api_reason: apiReason };
     case "no_active_frame":
     case "frame_unavailable":
-      return { failure_class: "frame_unavailable", retry_posture: "safe_retry", recovery_hint: "Verify project scope, checkpoint/resume a Workpoint, then retry the Focus State write from a reloaded Pi session.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
+      return { failure_class: "frame_unavailable", retry_posture: "safe_retry", recovery_hint: "Verify the project folder, checkpoint/resume a Workpoint, then retry the Focus State write from a reloaded Pi session.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
     case "scope_mismatch":
       return { failure_class: "scope_mismatch", retry_posture: "do_not_retry_unchanged", recovery_hint: "Refresh project_root+continuity_id via focusa_project_verify and focusa_workpoint_resume; do not retry with stale project context.", next_tools: ["focusa_project_verify", "focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"], api_reason: apiReason };
     case "read_model_lag":
@@ -457,8 +457,8 @@ function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailu
   const base = formatPushDeltaFailure(reason);
   const detail = apiReason ? ` Detail: ${apiReason}` : "";
   const recovery = pushDeltaFailureRecovery(reason, apiReason);
-  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until a scoped frame exists.${detail} Next: ${recovery.recovery_hint}`;
-  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Scoped frame/continuity is stale; use latest operator instruction and do not retry unchanged.${detail} Next: ${recovery.recovery_hint}`;
+  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until a project-bound frame exists.${detail} Next: ${recovery.recovery_hint}`;
+  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Project-bound frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint, and do not retry unchanged.${detail} Next: ${recovery.recovery_hint}`;
   if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
   if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
   return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
@@ -1667,7 +1667,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (sessionScopeSafe && !projectRootNeedsConfirmation) recommendations.push("REQUIRED NEXT: run focusa_trajectory_view to confirm current functional state, destination, and waypoints before Workpoint/evidence progress tracking.");
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
       if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
-      if (missingDocs.length) recommendations.push("Some scoped tool contracts lack docs; run docs maintenance before release proof.");
+      if (missingDocs.length) recommendations.push("Some project-aware tool contracts lack docs; run docs maintenance before release proof.");
       const nextTools = Array.from(new Set([
         ...(!health.ok ? ["focusa_tool_doctor"] : []),
         ...(!sessionScopeSafe || projectRootNeedsConfirmation ? ["focusa_project_identity", "interview", "focusa_trajectory_view"] : ["focusa_trajectory_view"]),
@@ -1801,8 +1801,8 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_project_verify",
     label: "Focusa Project Verify",
-    description: "Verify active project scope against expected ProjectIdentity fields and report mismatches without mutating state.",
-    promptSnippet: "Use when project/session scope is ambiguous or before accepting a Workpoint/Trajectory packet as canonical.",
+    description: "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state.",
+    promptSnippet: "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
     parameters: Type.Object({
       cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
       project_root: Type.Optional(Type.String({ description: "Expected project root." })),

@@ -145,7 +145,7 @@ Suggested scope identifiers:
 ## Success criteria
 
 - OpenClaw/Wirebot startup/reload shows or injects a Focusa Utility Card equivalent.
-- Wirebot turns can fetch a scoped Workpoint resume packet.
+- Wirebot turns can fetch a project-bound Workpoint resume packet.
 - Cross-session/project packets are rejected or demoted, not blindly injected.
 - Evidence from Wirebot actions can be linked to the active Workpoint.
 - Predictions can be recorded/evaluated for risky Wirebot choices.

@@ -1,10 +1,10 @@
-# Workpoint Project + Continuity Scope Guard
+# Workpoint Project Folder + Continuity Guard
 
 Focusa separates identity axes instead of collapsing everything into a single active session.
 
 ## Identity axes
 
-- `project_root` — project/repo scope boundary; broad roots such as `/`, `/root`, `/home`, `/tmp`, `/var`, `/usr`, and `/opt` are unsafe authority roots.
+- `project_root` — project folder/container holding related files; broad roots such as `/`, `/root`, `/home`, `/tmp`, `/var`, `/usr`, and `/opt` are unsafe authority roots.
 - `continuity_id` — stable logical session/workstream identity; distinct same-root sessions receive distinct IDs.
 - `session_id` — temporal Pi/process metadata across compaction, model switch, fork, and restart.
 - `trajectory_id`, goals, work-item IDs, frame tags — corroborating alignment signals only.
@@ -16,7 +16,7 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 - Focus frames carry `project_root`, `continuity_id`, and continuity tags so same-root sessions can remain active without cross-pausing.
 - `/v1/workpoint/resume` rejects cross-project packets with `status: rejected_scope_mismatch`.
 - `/v1/workpoint/resume` rejects unsafe broad-root packets with `status: rejected_unsafe_project_root`; compaction and Focus Slice omit them.
-- Canonical Workpoint checkpoints require a safe project/repo `project_root` and `continuity_id`; `/root` is never a canonical project boundary.
+- Canonical Workpoint checkpoints require a safe project folder `project_root` and `continuity_id`; `/root` is never a canonical project folder.
 - Focus frame reads/pushes reject unsafe broad-root scopes; scoped `project_root` queries never fall back to global active frames.
 - Focus State write recovery may adopt the current safe active Workpoint scope before creating a frame; it must not create `/root` frames.
 - `/v1/workpoint/resume` rejects same-project/different-continuity packets with `status: rejected_continuity_mismatch`.
@@ -36,7 +36,7 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 
 ## Recovery
 
-For `project_root` mismatch or unsafe broad-root scope, follow the current project and checkpoint a new scoped Workpoint from the exact repo/project root. For `continuity_id` mismatch, list/reopen the matching SilentSession or checkpoint a fresh Workpoint with the current continuity_id.
+For `project_root` mismatch or unsafe broad-root project folder, follow the current project and checkpoint a new project-bound Workpoint from the exact repo/project root. For `continuity_id` mismatch, list/reopen the matching SilentSession or checkpoint a fresh Workpoint with the current continuity_id.
 
 ## Tests
 

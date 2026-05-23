@@ -7,9 +7,9 @@
 
 Capture a bounded evidence ref/result and optionally link it to the active Workpoint.
 
-## Scope semantics
+## Project folder semantics
 
-After compaction/model switch, pass `project_root`, `continuity_id`, and optionally `workpoint_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad. This prevents evidence from being checked against stale `/root` session scope.
+After compaction/model switch, pass `project_root`, `continuity_id`, and optionally `workpoint_id` from the canonical WorkpointResumePacket when Pi's ambient cwd is broad. This prevents evidence from being checked against a stale `/root` session project context.
 
 ## When to use
 

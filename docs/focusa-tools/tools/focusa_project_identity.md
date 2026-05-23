@@ -9,14 +9,14 @@ Resolve the active ProjectIdentity before trusting project-bound Workpoints, Tra
 
 ## When to use
 
-- At project start/resume when project scope is unclear.
+- At project start/resume when the project folder is unclear.
 - Before accepting a Workpoint/Trajectory packet as canonical.
-- When a packet, cwd, Beads root, git root, or operator scope might point at different projects.
+- When a packet, cwd, Beads root, git root, or operator-provided project folder might point at different projects.
 
 ## Parameters
 
 - `cwd` — optional cwd/project path hint; defaults to Pi session cwd.
-- `project_root` — optional expected project root/scope.
+- `project_root` — optional expected project folder/root.
 
 ## Expected result
 

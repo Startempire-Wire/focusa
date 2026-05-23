@@ -14,14 +14,14 @@ else
 fi
 
 if rg -n 'normalizeWorkpointResumePacketEnvelope' "$STATE_TS" "$COMPACTION" "$SESSION_TS" >/dev/null && rg -n 'formatResumePacketV2ForPrompt\(scopedPacket\)' "$COMPACTION" >/dev/null; then
-  echo "✓ PASS: resume_packet_v2 is preserved on scoped Workpoint packets before prompt rendering"
+  echo "✓ PASS: resume_packet_v2 is preserved on project-bound Workpoint packets before prompt rendering"
 else
   echo "✗ FAIL: resume_packet_v2 is not preserved/rendered from scoped packet" >&2
   exit 1
 fi
 
 if rg -n 'JSON\.stringify\(scopedPacket|scopedPacket \? S\.activeWorkpointSummary|WORKPOINT active: mission=\$\{scopedPacket\.mission\}' "$COMPACTION" >/dev/null; then
-  echo "✗ FAIL: compaction auto-resume can still inject v1/raw scoped Workpoint packet fallback" >&2
+  echo "✗ FAIL: compaction auto-resume can still inject v1/raw unbound Workpoint packet fallback" >&2
   exit 1
 else
   echo "✓ PASS: compaction auto-resume omits v1/raw Workpoint packet fallback"

@@ -30,9 +30,9 @@ else
 fi
 
 if rg -n 'scope mismatch on|scope_recovery_context|request_scope|evidence_capture' "$TOOLS" >/dev/null; then
-  echo "✓ PASS: Pi scoped tools resolve unsafe cwd and evidence capture reports 409 scope mismatches with recovery context"
+  echo "✓ PASS: Pi project-aware tools resolve unsafe cwd and evidence capture reports 409 scope mismatches with recovery context"
 else
-  echo "✗ FAIL: Pi scoped tool recovery/409 reporting remains opaque" >&2; exit 1
+  echo "✗ FAIL: Pi project-aware tool recovery/409 reporting remains opaque" >&2; exit 1
 fi
 
 if rg -n 'pushDeltaFailureRecovery|recovery_hint|retry_posture|focusa_project_identity.*focusa_workpoint_checkpoint' "$TOOLS" >/dev/null; then

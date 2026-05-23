@@ -30,7 +30,7 @@ else
 fi
 
 if rg -n 'scopedWorkpointForPrompt|Boolean\(getScopedWorkpointPacket\(\)\)|const packet: any = getScopedWorkpointPacket\(\)' "$TURNS" >/dev/null; then
-  echo "✓ PASS: Workpoint prompt/Focus Slice injection uses scoped Workpoint guard"
+  echo "✓ PASS: Workpoint prompt/Focus Slice injection uses project-bound Workpoint guard"
 else
   echo "✗ FAIL: Workpoint prompt or Focus Slice still uses unscoped packet" >&2
   exit 1
@@ -44,7 +44,7 @@ else
 fi
 
 if rg -n 'activeWorkpointPacket\?\.continuity_id|if \(e\.data\.sessionId\) S\.sessionFrameKey|if \(d\.sessionId\) S\.sessionFrameKey|Mission: .*S\.currentAsk|Next anchor: .*S\.lastCompactDecision' "$SESSION" "$AWARENESS" >/dev/null; then
-  echo "✗ FAIL: unscoped Workpoint/session fallback remains in Utility Card/session restore" >&2
+  echo "✗ FAIL: unbound Workpoint/session fallback remains in Utility Card/session restore" >&2
   exit 1
 else
   echo "✓ PASS: stale Workpoint/session fallback patterns absent"

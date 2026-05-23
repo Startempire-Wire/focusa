@@ -292,7 +292,7 @@ fn evaluate_resume_scope(
     } else if record.project_root.is_none() {
         decision.canonical_scope_ok = false;
         decision.warnings.push(
-            "resume requested without project_root and packet has no project_root; project scope is unbound"
+            "resume requested without project_root and packet has no project_root; project folder is unbound"
                 .to_string(),
         );
     }
@@ -1385,7 +1385,7 @@ fn workpoint_identity_axes_payload(record: &WorkpointRecord, canonical: bool) ->
         "projection_kind": "workpoint_identity_axes_v1",
         "authority_gate": "project_root_plus_continuity_id",
         "advisory_only": true,
-        "project": {"project_root": record.project_root, "authority_role": "scope_boundary"},
+        "project": {"project_root": record.project_root, "authority_role": "project_folder_boundary", "legacy_authority_role": "scope_boundary"},
         "logical_workstream": {"continuity_id": record.continuity_id, "authority_role": "logical_session_boundary"},
         "adapter_session": {"session_id": record.session_id, "authority_role": "temporal_metadata_only"},
         "workpoint_continuation_card": {
@@ -1572,7 +1572,7 @@ fn resume_summary_v2(
         "safest_next_action": safest_next_action(record),
         "context_sufficiency": {
             "status": if canonical { "sufficient_for_next_action" } else { "requires_reorientation" },
-            "reason": if canonical { "project_root plus continuity_id scope is canonical" } else { "canonical scope not proven" },
+            "reason": if canonical { "project_root plus continuity_id context is canonical" } else { "canonical project context not proven" },
             "next_tools": ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"]
         },
         "warnings": warnings,
@@ -1749,7 +1749,7 @@ async fn resume(
         "resume_packet": packet,
         "resume_packet_v2": packet_v2,
         "rendered_summary": summary,
-        "warnings": if canonical { mismatch_warnings } else { let mut w = mismatch_warnings; w.push("resume packet is non-canonical fallback because project/continuity scope is unbound or packet is non-canonical".to_string()); w },
+        "warnings": if canonical { mismatch_warnings } else { let mut w = mismatch_warnings; w.push("resume packet is non-canonical fallback because project folder/continuity context is unbound or packet is non-canonical".to_string()); w },
         "session_continuity": session_continuity,
         "identity_confidence": identity_confidence,
         "identity_confidence_percent": identity_confidence.get("percent").and_then(Value::as_u64).unwrap_or(0),
@@ -2094,6 +2094,11 @@ mod tests {
             resume_source: "manual".to_string(),
             canonical_scope: Some(true),
             scope_failure: None,
+            project_root_confidence: Some("high".to_string()),
+            project_root_confidence_score: Some(1.0),
+            project_root_resolution_source: Some("test_fixture".to_string()),
+            requires_operator_confirmation: Some(false),
+            project_root_candidates: Vec::new(),
         }
     }
 

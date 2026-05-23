@@ -394,7 +394,7 @@ export function registerCompaction(pi: ExtensionAPI) {
 ## Last Active Focus
 ${S.lastCompactDecision || "pre-compaction work"}
 ## WorkpointResumePacketV2
-${v2Prompt || `No scoped WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
+${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
 ## Directive
 ${directive}
 

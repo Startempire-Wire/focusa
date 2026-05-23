@@ -1055,7 +1055,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "desired_end_state" => Some("confirm the desired end state".to_string()),
             _ => None,
         })
-        .chain((!scope_match).then_some("confirm project_root and continuity_id scope".to_string()))
+        .chain((!scope_match).then_some("confirm project_root folder and continuity_id".to_string()))
         .collect::<Vec<_>>();
     let mut relevance_rationale = vec![json!({
         "ref": "project_identity",
@@ -1266,7 +1266,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "constraints": focus_state.map(|fs| top_strings(&fs.constraints, 4, 180)).unwrap_or_default(),
         },
         "next_tools": if status == "not_found" { json!(["focusa_trajectory_define_goal", "focusa_project_identity"]) } else { json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"]) },
-        "warnings": if canonical { Vec::<String>::new() } else if status == "not_found" { vec!["trajectory is not set for this project scope; define or confirm the goal".to_string()] } else { vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()] },
+        "warnings": if canonical { Vec::<String>::new() } else if status == "not_found" { vec!["trajectory is not set for this project folder; define or confirm the goal".to_string()] } else { vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()] },
     })
 }
 
@@ -1810,7 +1810,7 @@ mod tests {
             checkpoint_reason: WorkpointCheckpointReason::Manual,
             confidence: WorkpointConfidence::Verified,
             canonical: true,
-            mission: Some("Make trajectory project scoped".to_string()),
+            mission: Some("Bind trajectory to project folder".to_string()),
             action_intent: Some(WorkpointActionIntentRecord {
                 action_type: "patch_trajectory_view".to_string(),
                 target_ref: Some("crates/focusa-api/src/routes/trajectory.rs".to_string()),

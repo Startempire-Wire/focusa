@@ -2060,9 +2060,9 @@ Before decomposition completes:
 ### Project identity
 
 - Focusa can identify a project from `.focusa-project.json`, git root/remote, beads root/prefix, workspace files, cwd, and persisted session metadata.
-- Canonical project scope requires a high-confidence ProjectIdentity fingerprint derived from multiple matching signals.
+- Canonical project-folder identity requires a high-confidence ProjectIdentity fingerprint derived from multiple matching signals.
 - Cwd-only identity is allowed only as degraded fallback.
-- Conflicting marker/git/beads/cwd signals produce explicit mismatch diagnostics, not silent scope selection.
+- Conflicting marker/git/beads/cwd signals produce explicit mismatch diagnostics, not silent project-folder selection.
 
 ### Session identity
 

@@ -106,6 +106,6 @@ S.activeWorkpointPacket = {
 };
 const matched = buildFocusaUtilityCard("visible");
 assert(matched.includes("MATCHED MISSION"), "matched Utility Card did not show scoped mission");
-assert(matched.includes("verified project_root + continuity_id match"), "matched Utility Card did not declare verified scope");
+assert(matched.includes("verified project_root + continuity_id match"), "matched Utility Card did not declare verified project-bound Workpoint");
 assert(matched.split("\n").length > resetCard.split("\n").length, "verified Utility Card may include richer Workpoint guidance");
 console.log("utility card session isolation proof passed");

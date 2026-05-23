@@ -26,7 +26,7 @@ else
   fail "Verbose Focus State slot rejection still lacks scratch fallback/suggestion"
 fi
 
-if rg -n "Scoped frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint" "$TOOLS" >/dev/null; then
+if rg -n "Project-bound frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint" "$TOOLS" >/dev/null; then
   pass "Stale frame write failures explain continuity recovery instead of generic retry"
 else
   fail "Stale frame write feedback lacks continuity recovery guidance"
@@ -36,7 +36,7 @@ if rg -n 'project_root: Type.Optional\(Type.String\(\{ description: "Explicit sa
   && rg -n 'enforceTrajectoryClarityPrecondition\(projectRoot, "workpoint evidence link", \{ blockOperatorInput: false, continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
   && rg -n 'buildFocusaSessionIdentity\(projectRoot, "manual", \{ continuityId: p\.continuity_id, sessionId: p\.session_id \}\)' "$TOOLS" >/dev/null \
   && rg -n 'cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd' "$STATE" >/dev/null; then
-  pass "Evidence tools carry explicit project/continuity scope through clarity gate and session identity"
+  pass "Evidence tools carry explicit project/continuity context through clarity gate and session identity"
 else
   fail "Evidence tools still depend on ambient Pi cwd/continuity after compaction"
 fi

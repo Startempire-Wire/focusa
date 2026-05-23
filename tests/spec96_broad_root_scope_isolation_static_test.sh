@@ -19,21 +19,21 @@ else
 fi
 
 if rg -n 'isProjectRootAuthoritySafe\(currentProjectRoot\).*isProjectRootAuthoritySafe\(packetProjectRoot\)' "$STATE" >/dev/null; then
-  echo "✓ PASS: scoped Workpoint guard rejects unsafe current/packet roots"
+  echo "✓ PASS: project-bound Workpoint guard rejects unsafe current/packet roots"
 else
-  echo "✗ FAIL: scoped Workpoint guard does not reject unsafe roots" >&2
+  echo "✗ FAIL: project-bound Workpoint guard does not reject unsafe roots" >&2
   exit 1
 fi
 
 if rg -n 'clearScopedWorkpointForUnsafeCwd|ensure_pi_frame_unsafe_cwd|pi_scope_rejected_unsafe_cwd|scopedQs\.set\("project_root"' "$STATE" >/dev/null \
   && ! rg -n 'adoptSafeScopeFromActiveWorkpoint|pi_scope_recovered_from_active_workpoint' "$STATE" >/dev/null; then
-  echo "✓ PASS: unsafe cwd clears scoped Workpoint instead of adopting global active Workpoint"
+  echo "✓ PASS: unsafe cwd clears project-bound Workpoint instead of adopting global active Workpoint"
 else
   echo "✗ FAIL: unsafe cwd can still adopt global active Workpoint scope" >&2
   exit 1
 fi
 
-if rg -n 'getScopedWorkpointPacket\(\)|projectRootAuthorityFailure\(S\.sessionCwd|No scoped Workpoint packet recorded' "$COMPACTION" >/dev/null; then
+if rg -n 'getScopedWorkpointPacket\(\)|projectRootAuthorityFailure\(S\.sessionCwd|No project-bound WorkpointResumePacketV2 recorded' "$COMPACTION" >/dev/null; then
   echo "✓ PASS: compaction prompt uses scoped packet and unsafe-root fallback"
 else
   echo "✗ FAIL: compaction prompt can still inject unscoped packet" >&2
@@ -48,9 +48,9 @@ else
 fi
 
 if rg -n 'isProjectRootAuthoritySafe\(S\.sessionCwd|isWorkpointPacketScopedToCurrentSession\(candidate\)' "$SESSION" >/dev/null; then
-  echo "✓ PASS: session resume refuses unsafe/unscoped Workpoint packets"
+  echo "✓ PASS: session resume refuses unsafe/unbound Workpoint packets"
 else
-  echo "✗ FAIL: session resume can adopt unsafe/unscoped Workpoint packet" >&2
+  echo "✗ FAIL: session resume can adopt unsafe/unbound Workpoint packet" >&2
   exit 1
 fi
 
