@@ -21,23 +21,23 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     return [
       prefix,
       `Status: ${status}`,
-      `Scope: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
-      "REQUIRED FIRST: confirm project_root (scope vessel/hull; better vessel improves navigation) and trajectory (current functional state → destination/waypoints).",
-      "Scoped Workpoint: none verified; latest operator instruction is authority only after scope+trajectory are known.",
+      `Project folder: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
+      "REQUIRED FIRST: confirm project_root (folder/container holding project files) and trajectory (functional scope: current state → destination/waypoints).",
+      "Project-bound Workpoint: none verified; latest operator instruction is authority only after project folder + trajectory are known.",
       needsConfirm
-        ? "Top priority: use interview/menu to confirm project_root scope, then run focusa_trajectory_view/define_goal before Focusa writes."
-        : "Top priority: run focusa_trajectory_view for current state/destination/waypoints; checkpoint only after scope+trajectory are clear.",
+        ? "Top priority: use interview/menu to confirm project_root folder, then run focusa_trajectory_view/define_goal before Focusa writes."
+        : "Top priority: run focusa_trajectory_view for functional scope/current state/destination/waypoints; checkpoint only after project folder + trajectory are clear.",
     ].join("\n");
   }
 
   return [
     prefix,
     `Status: ${status}`,
-    scopedPacket ? "Scoped Workpoint: verified project_root + continuity_id match." : "Scoped Workpoint: none verified for this logical session; ignore stale scoped carryover.",
-    !safeScope || needsConfirm ? "REQUIRED FIRST: confirm project_root as scope vessel/hull before state writes; better vessel improves navigation." : "Project root: confirmed scope vessel/hull; trajectory provides the route.",
-    mission ? `Mission: ${mission}` : "Mission: use latest operator instruction only; no scoped Workpoint mission verified.",
+    scopedPacket ? "Project-bound Workpoint: verified project_root + continuity_id match." : "Project-bound Workpoint: none verified for this logical session; ignore stale carryover from other projects/sessions.",
+    !safeScope || needsConfirm ? "REQUIRED FIRST: confirm project_root as the project file folder/container before state writes." : "Project root: confirmed project file folder/container; trajectory provides the functional route.",
+    mission ? `Mission: ${mission}` : "Mission: use latest operator instruction only; no project-bound Workpoint mission verified.",
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
-    projectRoot ? `Scope: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Scope: bind work to current project root; reject cross-project resume packets.",
+    projectRoot ? `Project folder: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Project folder: bind work to the folder containing project files; reject cross-project resume packets.",
     scopedPacket && continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: no Workpoint continuity verified for this Pi session; require explicit resume/checkpoint before trusting same-root state.",
     "Trajectory: use focusa_trajectory_view for project goals only; never merge sessions without project_root+continuity_id.",
     "",

@@ -28,7 +28,7 @@ Object.assign(S, {
 const mismatched = buildFocusaUtilityCard("visible");
 assert(!mismatched.includes("STALE MISSION SHOULD NOT LEAK"), "mismatched Utility Card leaked stale mission");
 assert(!mismatched.includes("DO_NOT_DRIFT"), "mismatched Utility Card leaked stale drift boundary");
-assert(mismatched.includes("none verified"), "mismatched Utility Card should declare no scoped Workpoint");
+assert(mismatched.includes("none verified"), "mismatched Utility Card should declare no project-bound Workpoint");
 
 Object.assign(S, {
   focusaAvailable: true,
@@ -48,12 +48,11 @@ Object.assign(S, {
 const unsafeCwdCard = buildFocusaUtilityCard("visible");
 assert(!unsafeCwdCard.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Utility Card adopted global active Workpoint");
 assert(!unsafeCwdCard.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity id");
-assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no scoped Workpoint");
-assert(unsafeCwdCard.includes("broad/unsafe"), "unsafe-cwd Utility Card should be compact but explicit about broad scope");
-assert(unsafeCwdCard.includes("REQUIRED FIRST: confirm project_root"), "unscoped Utility Card should make project root scope resolution top priority");
-assert(unsafeCwdCard.includes("scope vessel/hull"), "unscoped Utility Card should treat project root as scope vessel, not navigation state");
-assert(unsafeCwdCard.includes("better vessel improves navigation"), "unscoped Utility Card should say better scope vessel improves navigation reliability");
-assert(unsafeCwdCard.includes("current functional state"), "unscoped Utility Card should make trajectory current-state/destination explicit");
+assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no project-bound Workpoint");
+assert(unsafeCwdCard.includes("broad/unsafe"), "unsafe-cwd Utility Card should be compact but explicit about broad project-folder context");
+assert(unsafeCwdCard.includes("REQUIRED FIRST: confirm project_root"), "unscoped Utility Card should make project root folder resolution top priority");
+assert(unsafeCwdCard.includes("folder/container holding project files"), "unscoped Utility Card should define project_root as the project file container");
+assert(unsafeCwdCard.includes("current state"), "unscoped Utility Card should make trajectory current-state/destination explicit");
 assert(unsafeCwdCard.split("\n").length <= 7, "unscoped visible Utility Card should stay compact");
 
 Object.assign(S, {

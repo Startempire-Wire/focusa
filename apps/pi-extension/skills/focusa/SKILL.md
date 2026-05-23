@@ -105,8 +105,8 @@ Use for continuity across compaction/resume/model switch/fork/risky work.
 
 Identity and isolation rules:
 
-- `project_root` is the project scope boundary, not a unique session identity by itself.
-- Navigation metaphor: `project_root` is the scope vessel/hull; better scope evidence improves travel reliability, but it is not the functional route or destination.
+- `project_root` is the project folder/container: the place that holds the files related to the project.
+- Navigation metaphor: `project_root` is the vessel/hull; better project-root confidence improves travel reliability, but it is not the functional route or destination.
 - `continuity_id` is the stable logical session/workstream identity; every same-root active session needs a distinct continuity_id.
 - `session_id` is temporal metadata across compaction/model switch/fork; it must not merge or split logical sessions.
 - Trajectory is the route model: current functional state, desired destination/outcome, and waypoint goals.

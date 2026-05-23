@@ -442,7 +442,7 @@ function pushDeltaFailureRecovery(reason: PushDeltaFailureReason, apiReason?: st
     case "frame_unavailable":
       return { failure_class: "frame_unavailable", retry_posture: "safe_retry", recovery_hint: "Verify project scope, checkpoint/resume a Workpoint, then retry the Focus State write from a reloaded Pi session.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
     case "scope_mismatch":
-      return { failure_class: "scope_mismatch", retry_posture: "do_not_retry_unchanged", recovery_hint: "Refresh project_root+continuity_id via focusa_project_verify and focusa_workpoint_resume; do not retry with stale scope.", next_tools: ["focusa_project_verify", "focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"], api_reason: apiReason };
+      return { failure_class: "scope_mismatch", retry_posture: "do_not_retry_unchanged", recovery_hint: "Refresh project_root+continuity_id via focusa_project_verify and focusa_workpoint_resume; do not retry with stale project context.", next_tools: ["focusa_project_verify", "focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"], api_reason: apiReason };
     case "read_model_lag":
       return { failure_class: "read_model_lag", retry_posture: "safe_retry", recovery_hint: "Read model may lag a just-created frame or Workpoint; resume/check current packet before retrying once.", next_tools: ["focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
     case "validation_rejected":
@@ -1662,7 +1662,7 @@ export function registerTools(pi: ExtensionAPI) {
       const workpointCanonical = workpoint.body?.canonical === true || workpointStatus === "active";
       const recommendations: string[] = [];
       if (!health.ok) recommendations.push("Focusa daemon health is blocked; retry hot status or inspect daemon before state writes.");
-      if (!sessionScopeSafe) recommendations.push("Session cwd is broad/unsafe; cd to a specific repo or pass explicit project_root to scoped tools.");
+      if (!sessionScopeSafe) recommendations.push("Session cwd is broad/unsafe; cd to the project folder or pass explicit project_root to project-aware tools.");
       if (projectRootNeedsConfirmation) recommendations.push("REQUIRED FIRST: project root confidence is below 90%; use interview/menu to ask the operator which candidate root is correct before Focusa writes.");
       if (sessionScopeSafe && !projectRootNeedsConfirmation) recommendations.push("REQUIRED NEXT: run focusa_trajectory_view to confirm current functional state, destination, and waypoints before Workpoint/evidence progress tracking.");
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
@@ -1674,7 +1674,7 @@ export function registerTools(pi: ExtensionAPI) {
         ...(String(resourceMode.mode || "") === "emergency" ? ["focusa_resource_mode"] : []),
         ...(!workpoint.ok || !workpointCanonical ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
       ]));
-      const recommendedAction = recommendations[0] || "Proceed with explicit project_root for scope-sensitive tools and checkpoint before compaction.";
+      const recommendedAction = recommendations[0] || "Proceed with explicit project_root for project-aware tools and checkpoint before compaction.";
       const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
       return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: sessionResolution || null }, recommendations, recommended_action: recommendedAction, next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
     },
@@ -1761,11 +1761,11 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_project_identity",
     label: "Focusa Project Identity",
-    description: "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator scope signals.",
-    promptSnippet: "Use before trusting cross-project Workpoints, Trajectory packets, or scope-sensitive context.",
+    description: "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals.",
+    promptSnippet: "Use before trusting cross-project Workpoints, Trajectory packets, or project-sensitive context.",
     parameters: Type.Object({
       cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
-      project_root: Type.Optional(Type.String({ description: "Optional expected project root/scope." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root folder." })),
     }),
     async execute(_id, params) {
       const p = params as { cwd?: string; project_root?: string };

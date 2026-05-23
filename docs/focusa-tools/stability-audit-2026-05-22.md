@@ -28,7 +28,7 @@ Scope: `apps/pi-extension/src/tools.ts`, `apps/pi-extension/src/state.ts`, and t
 
 ## Operational note
 
-Existing Pi sessions must reload/restart to pick up extension source changes. New sessions should still pass explicit `project_root` when known; automatic Workpoint adoption is a recovery path, not a substitute for clear scope.
+Existing Pi sessions must reload/restart to pick up extension source changes. New sessions should still pass explicit `project_root` when known; automatic Workpoint adoption is a recovery path, not a substitute for a clear project folder.
 
 ## Second-pass hardening
 
@@ -101,4 +101,4 @@ This makes project-root accuracy a daemon-enforced authority boundary, not only 
 
 ## Navigation metaphor correction
 
-Operator clarification: project_root/filesystem scope is the vessel or hull. A better vessel improves navigation/travel reliability, but it is not the route or destination. Focusa Trajectory carries the navigation model: current functional state, desired destination/outcome, and waypoint goals. Utility Cards should require both: confirmed scope vessel plus clear trajectory.
+Operator clarification: `project_root` is the project folder/container holding related files. As a metaphor, it is the vessel or hull: a better-confirmed vessel improves navigation/travel reliability, but it is not the route or destination. Focusa Trajectory carries the navigation model: current functional state, desired destination/outcome, and waypoint goals. Utility Cards should require both: confirmed project folder plus clear trajectory.

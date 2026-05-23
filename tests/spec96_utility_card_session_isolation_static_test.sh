@@ -8,17 +8,17 @@ SESSION="${ROOT_DIR}/apps/pi-extension/src/session.ts"
 STATE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
 RUNTIME="${ROOT_DIR}/tests/utility_card_session_isolation_test.mts"
 
-if rg -n 'getScopedWorkpointPacket|Scoped Workpoint: none verified|Mission: use latest operator instruction only|broad/unsafe' "$AWARENESS" >/dev/null; then
-  echo "✓ PASS: Utility Card uses scoped Workpoint guard"
+if rg -n 'getScopedWorkpointPacket|Project-bound Workpoint: none verified|Mission: use latest operator instruction only|broad/unsafe' "$AWARENESS" >/dev/null; then
+  echo "✓ PASS: Utility Card uses project-bound Workpoint guard"
 else
-  echo "✗ FAIL: Utility Card scoped guard missing" >&2
+  echo "✗ FAIL: Utility Card project-bound guard missing" >&2
   exit 1
 fi
 
-if rg -n 'mode === "visible" && !scopedPacket|split\("\\n"\)\.length <= 7|packageUpdateCommand|REQUIRED FIRST: confirm project_root|scope vessel/hull|better vessel improves navigation|current functional state' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
-  echo "✓ PASS: unscoped login/update Utility Card stays compact and prioritizes scope vessel + trajectory"
+if rg -n 'mode === "visible" && !scopedPacket|split\("\\n"\)\.length <= 7|packageUpdateCommand|REQUIRED FIRST: confirm project_root|folder/container holding project files|current state' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
+  echo "✓ PASS: unscoped login/update Utility Card stays compact and prioritizes project folder + trajectory"
 else
-  echo "✗ FAIL: login/update Utility Card remains noisy or does not prioritize scope vessel + trajectory" >&2
+  echo "✗ FAIL: login/update Utility Card remains noisy or does not prioritize project folder + trajectory" >&2
   exit 1
 fi
 

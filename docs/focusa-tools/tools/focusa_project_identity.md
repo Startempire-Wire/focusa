@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Resolve the active ProjectIdentity before trusting scoped Workpoints, Trajectory packets, evidence, or carryover context.
+Resolve the active ProjectIdentity before trusting project-bound Workpoints, Trajectory packets, evidence, or carryover context.
 
 ## When to use
 
