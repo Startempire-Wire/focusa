@@ -25,6 +25,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced opaque prediction tool `unavailable` fallbacks with structured no-deadend responses carrying why, recovery/misuse hints, retry posture, and next tools.
 - Replaced opaque SilentSession blocked/not-found responses with why, recovery/misuse hints, retry posture, next tools, and `tool_result_v1`.
 - Replaced opaque work-loop dispatch/Pi RPC failures with no-guess envelopes carrying why, recovery/misuse hints, next tools, and `tool_result_v1`.
+- Replaced opaque command submit/status/log rejections with no-guess envelopes carrying why, recovery/misuse hints, next tools, and `tool_result_v1`.
 
 ## Unreleased — Spec93 release publication proof
 

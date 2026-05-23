@@ -145,6 +145,15 @@ else
   log_fail "Compaction command lost checkpoint-visible state"
 fi
 
+
+log_info "invalid command rejection envelope"
+invalid=$(http_json -X POST "${BASE_URL}/v1/commands/submit" -H "Content-Type: application/json" -d '{"command":"not.real.command","args":{},"idempotency_key":"invalid-contract"}')
+if echo "$invalid" | jq -e '.status == "blocked" and .failure_class != null and .why != null and .recovery_hint != null and .misuse_hint != null and (.next_tools | type == "array") and .details.tool_result_v1.ok == false' >/dev/null 2>&1; then
+  log_pass "Command rejection responses expose no-guess recovery contract"
+else
+  log_fail "Command rejection missing no-guess recovery contract :: $invalid"
+fi
+
 echo ""
 echo "=== COMMAND WRITE CONTRACT RESULTS ==="
 echo "Tests passed: ${PASSED}"

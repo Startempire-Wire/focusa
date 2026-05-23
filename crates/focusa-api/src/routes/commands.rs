@@ -215,18 +215,152 @@ fn default_compact_tier() -> String {
     "auto".to_string()
 }
 
+fn command_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "failure_class": failure_class,
+                    "canonical": false,
+                    "degraded": true,
+                    "summary": why,
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools_value,
+                    "error": {"code": failure_class, "message": error}
+                }
+            }
+        })),
+    )
+}
+
+fn command_payload_rejected(
+    command: &str,
+    err: impl std::fmt::Display,
+) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid payload for {command}: {err}"),
+        "validation_rejected",
+        format!("command {command} payload did not match the command schema: {err}"),
+        "Inspect the command schema, then resend /v1/commands/submit with a valid payload or args object.",
+        "Likely malformed JSON, wrong command alias payload, missing field, or stale extension command contract.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_project_identity",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
+fn command_unknown(command: &str) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::BAD_REQUEST,
+        format!("unknown or disallowed command: {command}"),
+        "validation_rejected",
+        format!("command {command} is not registered on the /v1/commands/submit allowlist"),
+        "Use a documented command alias or inspect route/tool contracts before retrying.",
+        "Likely stale extension, wrong command name, or unsupported write-model mutation.",
+        vec!["focusa_tool_doctor", "focusa_trajectory_view"],
+    )
+}
+
+fn command_visual_payload_rejected(details: Value) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::BAD_REQUEST,
+        "invalid visual evidence payload",
+        "validation_rejected",
+        format!("visual evidence payload content rejected: {details}"),
+        "Provide content_b64 or content with valid encoding, then retry the visual evidence command.",
+        "Likely missing visual content or invalid base64 content_b64 field.",
+        vec!["focusa_tool_doctor", "focusa_active_object_resolve"],
+    )
+}
+
+fn command_action_rejected(details: Value) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::BAD_REQUEST,
+        "command action validation rejected",
+        "validation_rejected",
+        format!("command cannot be applied in current Focusa state: {details}"),
+        "Inspect current session/focus stack state, then retry only after prerequisites are true.",
+        "Likely no active session, inactive frame, invalid frame transition, or out-of-order command sequence.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_project_identity",
+            "focusa_workpoint_resume",
+        ],
+    )
+}
+
+fn command_dispatch_failed(command_id: &str, details: Option<String>) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "command dispatch failed",
+        "unknown_ambiguous_completion",
+        format!("command {command_id} could not be dispatched to the daemon action channel"),
+        "Check daemon health and command status/log before retrying; retry is safe only after ambiguous dispatch state is resolved.",
+        "Likely daemon command channel unavailable, runtime shutdown, or dispatch ownership issue.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status", "focusa_workpoint_resume"],
+    ).tap_details(details)
+}
+
+trait CommandFailureDetailsExt {
+    fn tap_details(self, details: Option<String>) -> Self;
+}
+
+impl CommandFailureDetailsExt for (StatusCode, Json<Value>) {
+    fn tap_details(mut self, details: Option<String>) -> Self {
+        if let Some(details) = details {
+            if let Some(obj) = self.1.0.as_object_mut() {
+                obj.insert("dispatch_error".to_string(), json!(details));
+            }
+        }
+        self
+    }
+}
+
+fn command_not_found(command_id: &str) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::NOT_FOUND,
+        "command_id not found",
+        "not_found",
+        format!("command_id {command_id} is not present in the in-memory command store"),
+        "Verify the command_id from submit response, then inspect command status/log only for known IDs.",
+        "Likely stale command_id, daemon restart cleared volatile command store, or wrong server instance.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status"],
+    )
+}
+
 fn decode<T: for<'de> Deserialize<'de>>(
     payload: Value,
     command: &str,
 ) -> Result<T, (StatusCode, Json<Value>)> {
-    serde_json::from_value(payload).map_err(|e| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "error": format!("Invalid payload for {}: {}", command, e),
-            })),
-        )
-    })
+    serde_json::from_value(payload).map_err(|e| command_payload_rejected(command, e))
 }
 
 fn ensure_active_session(session: Option<&SessionState>) -> Result<(), Value> {
@@ -486,12 +620,9 @@ fn map_command_to_action(
         | "visual.apply_fix_set"
         | "apply_fix_set" => {
             let p: VisualEvidencePayload = decode(payload, command)?;
-            let content = p.resolve_content().map_err(|e| {
-                (
-                    StatusCode::BAD_REQUEST,
-                    Json(json!({"error":"invalid_visual_evidence_payload","details": e})),
-                )
-            })?;
+            let content = p
+                .resolve_content()
+                .map_err(|e| command_visual_payload_rejected(e))?;
             Ok(Action::StoreArtifact {
                 kind: p.kind,
                 label: p.to_artifact_label(),
@@ -509,10 +640,7 @@ fn map_command_to_action(
                 reason: p.reason,
             })
         }
-        _ => Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": format!("Unknown or disallowed command: {}", command)})),
-        )),
+        _ => Err(command_unknown(command)),
     }
 }
 
@@ -537,7 +665,7 @@ async fn submit_command(
     {
         let focusa = state.focusa.read().await;
         if let Err(resp) = validate_action(&action, focusa.session.as_ref(), &focusa.focus_stack) {
-            return Err((StatusCode::BAD_REQUEST, Json(resp)));
+            return Err(command_action_rejected(resp));
         }
     }
 
@@ -602,15 +730,9 @@ async fn submit_command(
             });
 
             let mut store = state.command_store.write().await;
-            store.insert(command_id, record.clone());
+            store.insert(command_id.clone(), record.clone());
 
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "command dispatch failed",
-                    "details": record.error,
-                })),
-            ))
+            Err(command_dispatch_failed(&command_id, record.error.clone()))
         }
     }
 }
@@ -629,12 +751,9 @@ async fn command_status(
     }
 
     let store = state.command_store.read().await;
-    let record = store.get(&command_id).ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(json!({"error": "command_id not found"})),
-        )
-    })?;
+    let record = store
+        .get(&command_id)
+        .ok_or_else(|| command_not_found(&command_id))?;
 
     Ok(Json(json!({
         "command_id": record.command_id,
@@ -661,12 +780,9 @@ async fn command_log(
     }
 
     let store = state.command_store.read().await;
-    let record = store.get(&command_id).ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(json!({"error": "command_id not found"})),
-        )
-    })?;
+    let record = store
+        .get(&command_id)
+        .ok_or_else(|| command_not_found(&command_id))?;
 
     Ok(Json(json!({
         "command_id": record.command_id,
