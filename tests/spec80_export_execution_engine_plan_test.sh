@@ -31,10 +31,10 @@ else
   log_fail "plan missing execution-mode JSON envelope contracts"
 fi
 
-if rg -n 'not_implemented|bail on pipeline not implemented|Gap is explicitly tracked' "$DOC_FILE" >/dev/null 2>&1; then
-  log_pass "plan captures current code-reality export gap"
+if rg -n 'endpoint-backed and implemented|JSONL/Parquet datasets plus manifest|eligibility, provenance, redaction, and quality metadata' "$DOC_FILE" >/dev/null 2>&1; then
+  log_pass "plan captures current implemented export baseline and remaining maturity scope"
 else
-  log_fail "plan missing current gap checkpoint"
+  log_fail "plan missing implemented export baseline checkpoint"
 fi
 
 echo "=== SPEC80 EXPORT EXECUTION ENGINE PLAN RESULTS ==="

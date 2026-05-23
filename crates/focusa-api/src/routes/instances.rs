@@ -2,7 +2,7 @@
 //!
 //! POST /v1/instances/connect
 //! POST /v1/instances/disconnect
-//! GET  /v1/instances/list (MVP: stub)
+//! GET  /v1/instances/list
 
 use crate::server::AppState;
 use axum::extract::State;

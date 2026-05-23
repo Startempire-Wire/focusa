@@ -599,10 +599,10 @@ This section marks what has already been swept at core depth in the current pass
   - CLI must be scriptable, deterministic, JSON-friendly
 - the CLI is **not globally non-json-compliant**; many modules do implement json branches
 - but authoritative scriptability is still broken by a smaller number of high-impact violations:
-  - threads ignore `--json`
-  - export json surfaces are now repaired at the endpoint-backed baseline; richer provenance remains future work
-  - turns json surface is built over a broken read-model
-  - commands API rejects surfaced command names like `cache.bust`
+  - threads JSON behavior has since been covered by CLI regression smoke
+  - export json surfaces are now repaired at the endpoint-backed baseline with initial quality/provenance metadata
+  - turns JSON read-model has since been repaired for persisted PascalCase event tags
+  - commands API now accepts surfaced command names like `cache.bust`
 - therefore the current command/CLI layer is **partially spec-faithful, not fully compliant**
 
 ## Full core sweep — sixth pass: Pi integration fidelity (spec-first)
@@ -676,14 +676,16 @@ Priority is based on: whether the issue prevents Focusa from being the real syst
 ### P0 — Core spec violations that undermine canonical Focusa behavior
 
 #### FOM-1. Focus Stack invariant repair
-- Why first:
+- Status: repaired in reducer/API baseline; keep as regression watch.
+- Why it mattered:
   - HEC is the core authority for “what Focusa is focused on.”
-  - If root completion can clear `active_id` / `root_id`, canonical focus becomes spec-invalid.
-- Source findings:
-  - `crates/focusa-core/src/focus/stack.rs:5-10`
-  - `crates/focusa-core/src/reducer.rs:785-794`
-- Required outcome:
-  - root completion/pop/set-active lifecycle must satisfy HEC invariants and reject invalid transitions before reporting acceptance.
+  - Root completion clearing `active_id` / `root_id` would make canonical focus spec-invalid.
+- Current evidence:
+  - `crates/focusa-core/src/reducer.rs` rejects root `FocusFrameCompleted` without parent handoff.
+  - reducer invariants reject `active_id` pointing to missing/non-active frames and `active_id=None` while active frames remain.
+  - API pop validation rejects root frame completion before dispatch.
+- Remaining outcome:
+  - preserve regression coverage for root completion/pop/set-active lifecycle invariants.
 
 #### FOM-2. ECS metadata-loss/readback repair
 - Why second:
@@ -866,15 +868,15 @@ Use one section per violation class.
 ## Violation classes to trace exhaustively
 
 ### V1. Focus Stack invariant compliance
-- Status: in progress
+- Status: repaired baseline; regression watch
 - Why it matters: HEC is the authoritative source of focus; if stack invariants fail, Focusa core is not functioning as designed.
-- Known evidence:
-  - root completion can clear active/root ids
-  - invalid resume of completed frame triggers invariant violation after API acceptance
+- Current evidence:
+  - reducer rejects root completion without parent handoff instead of clearing active/root ids
+  - reducer invariants reject `active_id=None` while active frames remain and reject active ids pointing to missing/non-active frames
+  - API pop/set-active validation blocks invalid lifecycle transitions before dispatch
 - Next trace steps:
-  - inspect reducer and daemon paths for push/pop/set-active
-  - inspect whether API returns acceptance before reducer validation
-  - inspect persistence snapshots after each lifecycle mutation
+  - preserve reducer/API lifecycle regression tests for push/pop/set-active
+  - inspect persistence snapshots after lifecycle mutations during broader release proof
 
 ### V2. Turn/session observability correctness
 - Status: in progress

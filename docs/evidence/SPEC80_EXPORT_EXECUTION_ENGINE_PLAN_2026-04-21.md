@@ -2,7 +2,7 @@
 
 Date: 2026-04-21
 Bead: `focusa-yro7.3.1.1`
-Purpose: define the execution-engine plan to close the export runtime gap for `sft|preference|contrastive|long-horizon` in Spec80 Epic C.
+Purpose: record the export execution-engine plan and current implemented baseline for `sft|preference|contrastive|long-horizon` in Spec80 Epic C.
 
 ## Authority
 - docs/80-pi-tree-li-metacognition-tooling-spec.md (§7, §20.1)
@@ -12,10 +12,12 @@ Purpose: define the execution-engine plan to close the export runtime gap for `s
 ## Current code-reality checkpoint
 
 - Export command surface exists for all dataset families.
-- Non-dry-run execution paths currently return `not_implemented` / bail on pipeline not implemented.
-- Gap is explicitly tracked in Spec80 §20.1 (`Export execution pipeline`).
+- `/v1/export/status` and `/v1/export/run` are endpoint-backed and implemented.
+- CLI export writes JSONL/Parquet datasets plus manifest files for non-dry-run mode.
+- Export envelopes/manifests include baseline eligibility, provenance, redaction, and quality metadata.
+- Remaining maturity work is deeper training-data scoring/provenance semantics, not stub removal.
 
-## Execution engine architecture (planned)
+## Execution engine architecture (implemented baseline)
 
 Core components:
 1. **Selector layer**
@@ -28,18 +30,18 @@ Core components:
    - `build_contrastive`
    - `build_long_horizon`
 4. **Writer layer**
-   - JSONL writer first; parquet optional/feature-gated.
+   - JSONL writer and Parquet `record_json` writer are implemented in the CLI.
 5. **Manifest + summary emitter**
-   - emits counts, exclusions, schema fingerprint, and run metadata.
+   - emits counts, exclusions, filters, dataset flags, redaction summary, quality summary, provenance completeness, and run metadata.
 
 ## Dataset-family execution requirements
 
 | Dataset family | Minimum execution requirements | Initial done condition |
 |---|---|---|
-| `sft` | enforce `min_turns`, `require_success`, quality filters | writes records + manifest; non-empty when eligible |
-| `preference` | pair ranking using `min_delta` + correction constraints | writes pairwise examples + preference labels |
-| `contrastive` | branch divergence/abandonment-aware pair extraction | writes contrastive pair records with branch refs |
-| `long-horizon` | session-length and transition thresholds | writes multi-step trajectory records |
+| `sft` | endpoint-backed turn extraction plus dataset flags, quality metadata, provenance, redaction | writes records + manifest; empty set is valid when no eligible turns exist |
+| `preference` | adjacent-turn pair generation plus source-pair provenance | writes pairwise examples + manifest |
+| `contrastive` | adjacent-turn contrastive generation plus source-pair provenance | writes contrastive pair records + manifest |
+| `long-horizon` | ordered 3-turn trajectory chunks plus provenance | writes multi-step trajectory records + manifest |
 
 ## CLI behavior contract during rollout
 
@@ -51,18 +53,19 @@ Core components:
 
 ## Delivery phases
 
-1. **Phase E1: runtime scaffolding**
-   - Shared execution context + selectors + manifest skeleton.
-2. **Phase E2: SFT execution path**
-   - first end-to-end write path enabled.
-3. **Phase E3: Preference + contrastive**
-   - pair-generation and branch-aware extraction.
-4. **Phase E4: Long-horizon execution**
-   - trajectory pipeline and final parity check.
+1. **Phase E1: runtime scaffolding** — complete.
+   - Shared execution context, selectors, manifest skeleton, and endpoint-backed run route exist.
+2. **Phase E2: SFT execution path** — complete at baseline.
+   - End-to-end dry-run/write path enabled through `/v1/export/run` and CLI writers.
+3. **Phase E3: Preference + contrastive** — complete at baseline.
+   - Pair-generation paths emit records with provenance/eligibility metadata.
+4. **Phase E4: Long-horizon execution** — complete at baseline.
+   - Ordered trajectory chunks emit records with provenance/eligibility metadata.
 
-## Blocking dependencies
+## Remaining maturity dependencies
 
-- Canonical replay/source reader must provide stable turn/session traversal.
+- Deeper quality scoring should use richer outcome, correction, and verification signals beyond the current baseline heuristic.
+- Provenance can be strengthened with stable source handles and schema fingerprints.
 - JSON schema registry + compatibility policy (C4.1/C4.2) must gate envelope changes.
 
 ## Evidence citations
