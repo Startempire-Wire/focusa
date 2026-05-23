@@ -534,25 +534,70 @@ fn trajectory_record_from_define_payload(
     })
 }
 
+fn trajectory_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": next_tools_value, "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn trajectory_reducer_rejected(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    trajectory_failure(
+        StatusCode::OK,
+        error.to_string(),
+        "validation_rejected",
+        format!("trajectory event was rejected by reducer: {error}"),
+        "Correct the trajectory payload/project scope before retrying unchanged.",
+        "Likely invalid trajectory payload, unsafe project_root, or reducer invariant mismatch.",
+        vec![
+            "focusa_project_identity",
+            "focusa_trajectory_view",
+            "focusa_tool_doctor",
+        ],
+    )
+}
+
+fn trajectory_persistence_failed(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    trajectory_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        error.to_string(),
+        "persistence_failed",
+        format!("trajectory event could not be persisted: {error}"),
+        "Check daemon persistence health before retrying; do not rely on transcript-only trajectory state.",
+        "Likely SQLite/file permission/resource pressure or event-log persistence outage.",
+        vec![
+            "focusa_tool_doctor",
+            "focusa_resource_mode",
+            "focusa_trajectory_view",
+        ],
+    )
+}
+
 async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
     let _guard = state.write_serial_lock.lock().await;
     let current = { state.focusa.read().await.clone() };
-    let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
-        (
-            StatusCode::OK,
-            Json(json!({
-                "status": "rejected",
-                "canonical": false,
-                "degraded": true,
-                "failure_class": "validation_rejected",
-                "error": error.to_string(),
-                "next_step_hint": "correct the trajectory payload and retry"
-            })),
-        )
-    })?;
+    let result = reducer::reduce_with_meta(current, event, None, None, false)
+        .map_err(trajectory_reducer_rejected)?;
 
     let new_state = result.new_state;
     for emitted in result.emitted_events {
@@ -569,17 +614,7 @@ async fn dispatch_event(
             is_observation: false,
         };
         if let Err(error) = state.persistence.append_event(&entry) {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "status": "rejected",
-                    "canonical": false,
-                    "degraded": true,
-                    "failure_class": "persistence_failed",
-                    "error": error.to_string(),
-                    "next_step_hint": "retry after trajectory persistence recovers"
-                })),
-            ));
+            return Err(trajectory_persistence_failed(error));
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
             let _ = state.events_tx.send(serialized);
         }
@@ -1055,7 +1090,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "desired_end_state" => Some("confirm the desired end state".to_string()),
             _ => None,
         })
-        .chain((!scope_match).then_some("confirm project_root folder and continuity_id".to_string()))
+        .chain(
+            (!scope_match).then_some("confirm project_root folder and continuity_id".to_string()),
+        )
         .collect::<Vec<_>>();
     let mut relevance_rationale = vec![json!({
         "ref": "project_identity",

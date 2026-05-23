@@ -51,3 +51,11 @@ else
 fi
 
 echo "SPEC96 trajectory clarity gate static test: PASS"
+
+
+if rg -n 'trajectory_failure|trajectory_reducer_rejected|trajectory_persistence_failed|recovery_hint|misuse_hint|tool_result_v1' "$TRAJECTORY" >/dev/null; then
+  echo "✓ PASS: Trajectory failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Trajectory failures lack no-guess recovery contract" >&2
+  exit 1
+fi
