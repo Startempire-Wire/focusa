@@ -4,6 +4,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -182,6 +183,13 @@ if [ "$code" = "200" ]; then
   json_assert '.contracts | any(.name == "mark_blocked" and (.failure_modes | index("dependency_failure")) and (.verification_hooks | length) >= 1)' "Blocker contract exposes failure/verification semantics"
 else
   log_fail "Ontology contracts fetch failed"
+fi
+
+TRUST_RS="${ROOT_DIR}/crates/focusa-api/src/routes/trust.rs"
+if rg -n 'trust_failure|trust_forbidden|trust_dispatch_failed|recovery_hint|misuse_hint|tool_result_v1' "$TRUST_RS" >/dev/null; then
+  log_pass "Trust failures expose no-guess recovery contract"
+else
+  log_fail "Trust failures lack no-guess recovery contract"
 fi
 
 echo ""
