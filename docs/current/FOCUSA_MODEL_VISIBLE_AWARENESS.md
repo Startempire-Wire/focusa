@@ -4,19 +4,19 @@ Purpose: describe what the LLM actually sees from Focusa and the precedence of t
 
 ## Surfaces visible to the model
 
-1. **Tool definitions** — always available through the Pi tool registry.  
+1. **Tool definitions** — always available through the Pi tool registry.
    The model sees each `focusa_*` tool name, description, parameter schema, and prompt snippet.
 
-2. **Focusa Utility Card** — injected into the system prompt at agent start/reload; also shown once as a visible card.  
+2. **Focusa Utility Card** — injected into the system prompt at agent start/reload; also shown once as a visible card.
    Source: `apps/pi-extension/src/awareness.ts` via `buildFocusaUtilityCard()`.
 
-3. **Focusa Focus Slice** — injected on each LLM context event when Focusa is available and an active scoped frame exists.  
+3. **Focusa Focus Slice** — injected on each LLM context event. When Focusa has a scoped frame it includes live Focus State; when not, it still injects a compact local Project/Trajectory/Architecture fallback card.
    Source: `apps/pi-extension/src/turns.ts` context handler.
 
-4. **Tool Affordances** — included inside the Focus Slice as `TOOL_AFFORDANCES`.  
+4. **Tool Affordances** — included inside the Focus Slice as `TOOL_AFFORDANCES`.
    Source: `selectFocusSliceToolAffordances()` in `apps/pi-extension/src/tool-contracts.ts`.
 
-5. **Skill descriptions** — visible before loading; full skill files become visible when loaded.  
+5. **Skill descriptions** — visible before loading; full skill files become visible when loaded.
    Source: `/root/.pi/skills/focusa*/SKILL.md` and project skill copies.
 
 6. **Tool results** — every Focusa tool returns a visible summary plus `details.tool_result_v1` with status, canonical/degraded posture, failure class, retry posture, side effects, evidence refs, and next-tool hints.
@@ -29,6 +29,7 @@ The continuous model-facing display is the **Focusa Focus Slice**, not a separat
 
 - `PROJECT_IDENTITY`: status, `project_root`, `continuity_id`, session id, confidence.
 - `PROJECT_INFRA`: canonical name, project id, workspace kind, repo remote, beads prefix, and architecture-boundary reminder.
+- `PROJECT_ARCHITECTURE`: local architecture digest (`stack`, key dirs, deploy surfaces, docs, tests) with a reminder to verify via docs/ontology/evidence.
 - `TRAJECTORY_GOALS`: long/mid/low goals, desired state, short-term goal.
 - `TRAJECTORY_SIMILARITY_GROUP`: advisory grouping and authority boundary.
 - `CURRENT_VERIFIED_STATE` and `ACTIVE_GAP`.
@@ -54,10 +55,10 @@ Focus Slice sections are ordered by priority in `turns.ts`. The practical model 
 
 Operator steering always wins, but stale transcript tail does not outrank canonical scoped Workpoint/Trajectory context.
 
-## Known limitation
+## Degraded / fallback posture
 
-`PROJECT_TRAJECTORY` appears only when Focusa is available, the project folder is safe, and the Pi session has an active scoped Focus frame. If the frame is missing or unsafe, the model still sees the Utility Card and tool definitions, but not the full continuous Focus Slice.
+`PROJECT_TRAJECTORY` is now always attempted from the context hook. If Focusa is unavailable, the scoped frame is missing, or trajectory lookup fails, the model still sees a compact fallback card with `PROJECT_IDENTITY`, `PROJECT_INFRA`, `PROJECT_ARCHITECTURE`, degraded sufficiency, and the recommended recovery route. Unsafe broad roots withhold architecture facts until `focusa_project_identity` verifies an explicit project root.
 
 ## Current improvement
 
-The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes `PROJECT_INFRA` so the model does not infer architecture from folder names alone.
+The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes both `PROJECT_INFRA` and `PROJECT_ARCHITECTURE` so the model does not infer architecture from folder names alone. Machine-readable choreography edges are available at `docs/current/focusa-tool-choreography.json` and `GET /v1/ontology/tool-choreography`.

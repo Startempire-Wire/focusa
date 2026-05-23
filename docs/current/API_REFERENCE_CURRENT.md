@@ -161,6 +161,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/ontology/world`
 - `GET /v1/ontology/slices`
 - `GET /v1/ontology/tool-contracts`
+- `GET /v1/ontology/tool-choreography`
 - `POST /v1/ontology/actions`
 
 ### predictions

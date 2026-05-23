@@ -8,11 +8,13 @@ Validation: `node scripts/validate-focusa-tool-contracts.mjs`.
 
 JSON projection: [`focusa-tool-contracts.json`](focusa-tool-contracts.json).
 
-Ontology API projection: `GET /v1/ontology/tool-contracts`.
+Choreography projection: [`focusa-tool-choreography.json`](focusa-tool-choreography.json).
+
+Ontology API projections: `GET /v1/ontology/tool-contracts` and `GET /v1/ontology/tool-choreography`.
 
 ## Tool Affordance Catalog
 
-`apps/pi-extension/src/tool-contracts.ts` also derives `spec96.tool_affordance_catalog.v1` from the registry. Each affordance carries when-to-use, when-not-to-use, default inputs, side effects, safety posture, failure classes, recovery guidance, example invocation, expected result shape, and likely next tools. Pi Focus Slice `TOOL_AFFORDANCES` uses this catalog to expose `best_next`, `recovery`, and `do_not_use` guidance without requiring a model to read source code.
+`apps/pi-extension/src/tool-contracts.ts` also derives `spec96.tool_affordance_catalog.v1` from the registry. Each affordance carries when-to-use, when-not-to-use, default inputs, side effects, safety posture, failure classes, recovery guidance, example invocation, expected result shape, and exact per-tool likely next tools. Pi Focus Slice `TOOL_AFFORDANCES` uses this catalog to expose `best_next`, `recovery`, and `do_not_use` guidance without requiring a model to read source code.
 
 The catalog now points models toward the friendly project route: `project_identity → trajectory_view → workpoint_resume/checkpoint → active_object_resolve → evidence_capture/link → predict/metacog`, so Focus State tools remain useful slots instead of becoming the whole workflow.
 

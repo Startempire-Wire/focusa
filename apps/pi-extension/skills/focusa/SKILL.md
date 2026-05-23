@@ -115,8 +115,10 @@ Identity and isolation rules:
 
 Context pressure UX:
 
-- Generic `/fork`, `/new`, or session-handoff warnings are redundant when Focusa has healthy Workpoint continuity.
-- Treat context pressure as an internal compaction/checkpoint signal; surface operator-visible warnings only when Focusa continuity is degraded or unavailable.
+- Context pressure means the transcript window is tight; it does not mean Focusa lost project memory.
+- Focusa preserves continuity through scoped project identity, trajectory, Workpoint packets, evidence handles, and post-compact resume guidance.
+- Generic `/fork`, `/new`, or session-handoff warnings are redundant when Focusa has healthy scoped anchors.
+- Surface operator-visible warnings only when scoped Focusa anchors are unconfirmed; phrase them as checkpoint/resume guidance with `/fork` optional for UI isolation.
 
 Real release behavior as of Spec89:
 

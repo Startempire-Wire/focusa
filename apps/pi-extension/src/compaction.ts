@@ -152,6 +152,7 @@ async function checkpointBeforeCompaction(): Promise<any | null> {
         session_id: S.sessionFrameKey,
         project_root: S.sessionCwd || process.cwd(),
         source_turn_id: `pi-turn-${S.turnCount}`,
+        idempotency_key: `pi-before-compact-${S.sessionFrameKey || "session"}-${S.turnCount}`,
         action_intent: {
           action_type: "resume_workpoint",
           target_ref: S.currentAsk?.sourceTurnId || S.activeFrameId || "pi-session",
@@ -176,7 +177,7 @@ export function isFocusaContextContinuityHealthy(): boolean {
 export function contextTierLabel(tier: "" | "warn" | "auto" | "hard"): string {
   if (tier === "warn") return "monitor";
   if (tier === "auto") return "compacting";
-  if (tier === "hard") return isFocusaContextContinuityHealthy() ? "critical · Focusa continuity" : "critical · recovery needed";
+  if (tier === "hard") return isFocusaContextContinuityHealthy() ? "critical · Focusa anchors" : "critical · anchor unconfirmed";
   return "";
 }
 
@@ -197,7 +198,7 @@ function setContextStatus(ctx: any, tier: "" | "warn" | "auto" | "hard", pct?: n
     return;
   }
   if (tier === "hard" && typeof pct === "number") {
-    const label = focusaContinuityReady ? "Focusa continuity" : "recovery needed";
+    const label = focusaContinuityReady ? "Focusa anchors" : "anchor unconfirmed";
     ctx.ui.setStatus("focusa-ctx", `🚧 Context ${pct.toFixed(0)}% ${label}`);
     return;
   }
@@ -461,21 +462,25 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
 
   const focusaContinuityReady = isFocusaContextContinuityHealthy();
 
-  // §18: autoSuggestForkPct — generic fork/new guidance is only actionable when Focusa continuity is degraded.
+  // §18: autoSuggestForkPct — generic fork/new guidance is only actionable when scoped Focusa anchors are unconfirmed.
   if (pct >= cfg.autoSuggestForkPct && !S.forkSuggested && !focusaContinuityReady) {
     S.forkSuggested = true;
-    ctx.ui.notify(`💡 Context at ${pct.toFixed(0)}% — Focusa continuity degraded; consider /fork to preserve context quality`, "warning");
+    ctx.ui.notify(`💡 Context at ${pct.toFixed(0)}% — Focusa anchors are unconfirmed; checkpoint/resume Workpoint, /fork optional for UI isolation`, "warning");
   }
 
   if (pct >= cfg.hardPct) {
     S.currentTier = "hard";
     setContextStatus(ctx, "hard", pct, focusaContinuityReady);
     if (!focusaContinuityReady) {
-      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — Focusa continuity degraded; consider /fork or /new before fallback.`, "warning");
+      ctx.ui.notify(`⚠️ Context ${pct.toFixed(0)}% — Focusa will try checkpointed compaction; scoped Workpoint anchor not yet confirmed`, "warning");
       // §18: Suggest handoff after N compactions only when Workpoint continuity is not healthy.
       if (S.totalCompactions >= cfg.autoSuggestHandoffAfterNCompactions) {
-        ctx.ui.notify(`💡 ${S.totalCompactions} compactions without healthy Workpoint continuity — consider /fork or session handoff`, "warning");
+        ctx.ui.notify(`💡 ${S.totalCompactions} compactions with unconfirmed Workpoint anchor — resume/checkpoint Workpoint; handoff optional`, "warning");
       }
+    }
+    if (S.focusaAvailable) {
+      await checkpointBeforeCompaction();
+      await refreshTrajectoryClarityLifecycle("hard_context_pressure", S.sessionCwd || process.cwd());
     }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {
@@ -499,6 +504,10 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     S.currentTier = "auto";
     setContextStatus(ctx, "auto", pct);
     ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
+    if (S.focusaAvailable) {
+      await checkpointBeforeCompaction();
+      await refreshTrajectoryClarityLifecycle("auto_context_pressure", S.sessionCwd || process.cwd());
+    }
     const r = S.focusaAvailable
       ? await focusaFetch("/commands/submit", {
           method: "POST",

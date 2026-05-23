@@ -8,6 +8,7 @@ const toolsPath = path.join(root, 'apps/pi-extension/src/tools.ts');
 const contractsPath = path.join(root, 'apps/pi-extension/src/tool-contracts.ts');
 const readmePath = path.join(root, 'README.md');
 const registryJsonPath = path.join(root, 'docs/current/focusa-tool-contracts.json');
+const choreographyJsonPath = path.join(root, 'docs/current/focusa-tool-choreography.json');
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
@@ -57,6 +58,22 @@ if (fs.existsSync(registryJsonPath)) {
   }
 } else {
   fail('missing JSON registry projection', registryJsonPath);
+}
+
+const nextToolsMatch = contractsSrc.match(new RegExp('const TOOL_NEXT_TOOLS: Record<string, string\\[]> = ([\\s\\S]*?)\\n\\};'));
+let nextTools = {};
+if (nextToolsMatch) {
+  nextTools = JSON.parse(`${nextToolsMatch[1]}
+}`);
+} else {
+  fail('could not parse TOOL_NEXT_TOOLS map');
+}
+
+let choreographyJson = null;
+if (fs.existsSync(choreographyJsonPath)) {
+  choreographyJson = JSON.parse(read(choreographyJsonPath));
+} else {
+  fail('missing choreography JSON projection', choreographyJsonPath);
 }
 
 const contractNames = contracts.map((contract) => contract.name);
@@ -109,6 +126,41 @@ for (const contract of contracts) {
 
 if (!routeInventory.has('/v1/ontology/tool-contracts')) {
   fail('ontology tool-contracts projection route missing', '/v1/ontology/tool-contracts');
+}
+if (!routeInventory.has('/v1/ontology/tool-choreography')) {
+  fail('ontology tool-choreography projection route missing', '/v1/ontology/tool-choreography');
+}
+
+
+if (Object.keys(nextTools).length) {
+  const nextToolSources = Object.keys(nextTools);
+  const missingNextToolSources = contractNames.filter((name) => !nextToolSources.includes(name));
+  const extraNextToolSources = nextToolSources.filter((name) => !contractSet.has(name));
+  if (missingNextToolSources.length) fail('tools missing per-tool next-tool routing', missingNextToolSources);
+  if (extraNextToolSources.length) fail('per-tool next-tool routing has unknown sources', extraNextToolSources);
+  for (const [source, targets] of Object.entries(nextTools)) {
+    if (!Array.isArray(targets) || targets.length === 0) fail(`${source}: next tools must be non-empty array`);
+    for (const target of targets || []) {
+      if (!contractSet.has(target)) fail(`${source}: next tool target missing contract`, target);
+    }
+  }
+}
+
+if (choreographyJson) {
+  if (choreographyJson.schema !== 'focusa.tool_choreography.v1') fail('invalid choreography schema', choreographyJson.schema);
+  if (choreographyJson.tool_count !== contracts.length) fail('choreography tool_count mismatch', choreographyJson.tool_count);
+  if (JSON.stringify(choreographyJson.per_tool_next_tools) !== JSON.stringify(nextTools)) {
+    fail('choreography JSON drifted from TypeScript TOOL_NEXT_TOOLS', choreographyJsonPath);
+  }
+  const edges = Array.isArray(choreographyJson.edges) ? choreographyJson.edges : [];
+  const expectedEdges = Object.values(nextTools).reduce((sum, targets) => sum + (Array.isArray(targets) ? targets.length : 0), 0);
+  if (edges.length !== expectedEdges || choreographyJson.edge_count !== expectedEdges) {
+    fail('choreography edge count mismatch', { expected: expectedEdges, actual: edges.length, declared: choreographyJson.edge_count });
+  }
+  for (const edge of edges) {
+    if (!contractSet.has(edge.from) || !contractSet.has(edge.to)) fail('choreography edge references unknown tool', edge);
+    if (typeof edge.weight !== 'number' || edge.weight <= 0) fail('choreography edge has invalid weight', edge);
+  }
 }
 
 const byFamily = contracts.reduce((acc, contract) => {

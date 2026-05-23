@@ -63,6 +63,10 @@ project_identity → trajectory_view → workpoint_resume/checkpoint → evidenc
 
 `focusa_scratch`, `focusa_decide`, `focusa_constraint`, `focusa_failure`, and sibling Focus State tools are still useful. They are slots in the route, not the route itself.
 
+## Model-visible fallback
+
+The context hook now injects a compact Project/Trajectory/Architecture fallback card even when the scoped Focus frame is missing or trajectory lookup is degraded. This keeps the friendly Q helpful without blocking work. Unsafe broad roots still withhold architecture facts until project identity is verified.
+
 ## Minimal friendly startup copy
 
 ```text

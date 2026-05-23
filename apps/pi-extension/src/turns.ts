@@ -6,6 +6,8 @@
 //        §30 (metacognitive indicators)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import fs from "node:fs";
+import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
 import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, projectRootConfirmationRequired } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
@@ -116,6 +118,60 @@ function boundedTrajectoryText(value: any, max = 180): string {
   return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
 }
 
+function safeExists(root: string, rel: string): boolean {
+  try { return fs.existsSync(path.join(root, rel)); } catch { return false; }
+}
+
+function existingProjectDirs(root: string, dirs: string[]): string[] {
+  return dirs.filter((dir) => safeExists(root, dir)).slice(0, 8);
+}
+
+function buildProjectArchitectureDigestLine(root: string): string {
+  const stacks = [
+    safeExists(root, "Cargo.toml") ? "rust" : "",
+    safeExists(root, "package.json") || safeExists(root, "pnpm-lock.yaml") || safeExists(root, "bun.lockb") ? "node" : "",
+    safeExists(root, "go.mod") ? "go" : "",
+    safeExists(root, "pyproject.toml") || safeExists(root, "requirements.txt") ? "python" : "",
+    safeExists(root, "composer.json") ? "php" : "",
+  ].filter(Boolean);
+  const keyDirs = existingProjectDirs(root, ["crates", "apps", "packages", "src", "docs", "tests", ".github", ".beads", "data"]);
+  const deploy = [
+    safeExists(root, "Dockerfile") ? "Dockerfile" : "",
+    safeExists(root, "docker-compose.yml") || safeExists(root, "compose.yml") ? "compose" : "",
+    safeExists(root, ".github/workflows") ? "github_actions" : "",
+    safeExists(root, "systemd") || safeExists(root, ".service") ? "systemd" : "",
+  ].filter(Boolean);
+  const docs = existingProjectDirs(root, ["docs", "README.md", "AGENTS.md", ".focusa-project.json"]);
+  const tests = existingProjectDirs(root, ["tests", "test", "spec", "crates", "apps/pi-extension"]);
+  return [
+    `stack=${stacks.join("+") || "unknown"}`,
+    `key_dirs=${keyDirs.join(",") || "unknown"}`,
+    `deploy=${deploy.join(",") || "unknown"}`,
+    `docs=${docs.join(",") || "unknown"}`,
+    `tests=${tests.join(",") || "unknown"}`,
+    "verify_architecture_with=focusa_traverse+repo_docs+evidence",
+  ].join("; ");
+}
+
+function formatTrajectoryFallbackFocusSlice(root: string, reason: string): string[] {
+  const safe = isProjectRootAuthoritySafe(root);
+  const displayRoot = boundedTrajectoryText(root || "(unknown)", 160);
+  const continuityId = boundedTrajectoryText(S.continuityId, 120);
+  return [
+    `PROJECT_IDENTITY: status=${safe ? "local_fallback" : "unsafe_scope"} project_root=${displayRoot} ${continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)"}`,
+    safe ? "PROJECT_INFRA: architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone" : "PROJECT_INFRA: withheld_until_safe_project_root; call focusa_project_identity with explicit project_root",
+    safe ? `PROJECT_ARCHITECTURE: ${buildProjectArchitectureDigestLine(root)}` : "PROJECT_ARCHITECTURE: withheld_until_safe_project_root",
+    `TRAJECTORY_GOALS: unavailable reason=${boundedTrajectoryText(reason, 80)}; call focusa_trajectory_view after safe scope`,
+    "TRAJECTORY_SIMILARITY_GROUP: advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true",
+    "CURRENT_VERIFIED_STATE: unclear",
+    "ACTIVE_GAP: recover scoped trajectory/workpoint before trusting carryover",
+    "WORKPOINT_CANDIDATE: none · advisory_only=true",
+    "TRAJECTORY_EVIDENCE: (none)",
+    "TRAJECTORY_DO_NOT_USE: transcript tail as authority; broad cwd as project identity",
+    "CONTEXT_SUFFICIENCY: score=0 status=degraded missing=scoped_frame, trajectory_view recommended=focusa_project_identity -> focusa_trajectory_view -> focusa_workpoint_resume",
+  ];
+}
+
 function formatTrajectoryFocusSlice(view: any): string[] {
   if (!view || typeof view !== "object") return [];
   const project = view.project_identity || {};
@@ -180,6 +236,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const lines = [
     `PROJECT_IDENTITY: ${identityParts.join(" ")}`,
     infraParts.length ? `PROJECT_INFRA: ${infraParts.join("; ")}` : "PROJECT_INFRA: unknown; use focusa_project_identity plus focusa_traverse before architectural assumptions",
+    `PROJECT_ARCHITECTURE: ${isProjectRootAuthoritySafe(projectRoot) ? buildProjectArchitectureDigestLine(projectRoot) : "withheld_until_safe_project_root"}`,
     goals ? `TRAJECTORY_GOALS: ${goals}` : "TRAJECTORY_GOALS: definition_status=unclear",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
     `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,
@@ -239,9 +296,9 @@ function getToolAffordanceFocusSliceLines(options: {
 }
 
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
-  if (!S.focusaAvailable) return [];
   const root = S.sessionCwd || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return [];
+  if (!isProjectRootAuthoritySafe(root)) return formatTrajectoryFallbackFocusSlice(root, "unsafe_project_root");
+  if (!S.focusaAvailable) return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
   try {
     const params = new URLSearchParams();
     params.set("mode", "summary");
@@ -249,9 +306,10 @@ async function getTrajectoryFocusSliceLines(): Promise<string[]> {
     if (S.sessionFrameKey) params.set("session_id", S.sessionFrameKey);
     if (S.continuityId) params.set("continuity_id", S.continuityId);
     const view = await focusaFetch(`/trajectory/view?${params.toString()}`);
-    return formatTrajectoryFocusSlice(view);
+    const lines = formatTrajectoryFocusSlice(view);
+    return lines.length ? lines : formatTrajectoryFallbackFocusSlice(root, "empty_trajectory_view");
   } catch {
-    return [];
+    return formatTrajectoryFallbackFocusSlice(root, "trajectory_view_unavailable");
   }
 }
 
@@ -328,10 +386,44 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", async (event: any, ctx: any) => {
-    if (!S.focusaAvailable || !S.activeFrameId) return;
+    if (!S.focusaAvailable || !S.activeFrameId) {
+      const trajectoryLines = await getTrajectoryFocusSliceLines();
+      const toolAffordanceLines = getToolAffordanceFocusSliceLines({
+        resourceModeActive: false,
+        hasTrajectory: trajectoryLines.length > 0,
+        hasWorkpoint: Boolean(S.activeWorkpointPacket),
+        hasOntologyAmbiguity: false,
+      });
+      const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
+      const askText = S.currentAsk?.text || "";
+      const lines = [
+        "[Focusa Focus Slice — minimal applicable context]",
+        "PROJECTION_KIND: operator_view",
+        "VIEW_PROFILE: pi_operator_view",
+        askText ? `CURRENT_ASK: ${askText}` : "CURRENT_ASK: (none)",
+        `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`,
+        `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
+        ...formatWorkpointContextSections(),
+        ...toolAffordanceLines,
+      ].filter(Boolean);
+      return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] }, ...(event.messages || [])] };
+    }
 
     const data = await getFocusState();
-    if (!data?.fs) return;
+    if (!data?.fs) {
+      const trajectoryLines = await getTrajectoryFocusSliceLines();
+      const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(S.activeWorkpointPacket), hasOntologyAmbiguity: false });
+      const lines = [
+        "[Focusa Focus Slice — minimal applicable context]",
+        "PROJECTION_KIND: operator_view",
+        "VIEW_PROFILE: pi_operator_view",
+        "FOCUS_STATE: unavailable; using project/trajectory fallback card",
+        `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
+        ...formatWorkpointContextSections(),
+        ...toolAffordanceLines,
+      ];
+      return { messages: [{ role: "user" as const, content: [{ type: "text" as const, text: lines.join("\n") }] }, ...(event.messages || [])] };
+    }
     const { fs, frame } = data;
 
     // §7.1: Format each of the 10 ASCC slots per §Prompt Serialization spec

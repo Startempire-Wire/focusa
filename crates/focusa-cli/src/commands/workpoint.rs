@@ -172,7 +172,9 @@ fn print_human_summary(resp: &Value, label: &str) {
 }
 
 pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
-    let api = ApiClient::new();
+    // Workpoint checkpoint/resume may enqueue reducer events and wait for read-model visibility;
+    // keep CLI UX bounded but longer than hot read probes, especially under LowMem backpressure.
+    let api = ApiClient::with_timeout_secs(8);
     let (label, resp) = match cmd {
         WorkpointCmd::Checkpoint {
             mission,

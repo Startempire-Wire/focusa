@@ -21,6 +21,8 @@ Eviction telemetry appears in `/v1/metacognition/status` under `eviction_telemet
 | Key | Default | Meaning |
 |---|---:|---|
 | `FOCUSA_MEMORY_PRESSURE_RSS_KB` | unset | Enables explicit pressure mode when daemon RSS reaches threshold. |
+| `FOCUSA_LOWMEM_RSS_SOFT_MB` | `700` | Enters LowMem posture at audit-warning RSS; hot routes stay callable while cold payloads prune/defer. |
+| `FOCUSA_LOWMEM_RSS_HARD_MB` | `1000` | Enters emergency posture near audit-critical RSS; Workpoint routes return bounded/pending envelopes instead of blocking. |
 | `FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT` | `256` | Default object page for `/v1/ontology/world`. |
 | `FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT` | `512` | Default link page for `/v1/ontology/world`. |
 | `FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT` | `10000` | Hard object ceiling for explicit full ontology world reads. |

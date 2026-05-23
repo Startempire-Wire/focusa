@@ -8351,6 +8351,16 @@ async fn tool_contracts() -> Json<Value> {
     Json(registry)
 }
 
+async fn tool_choreography() -> Json<Value> {
+    let registry: Value = serde_json::from_str(include_str!(
+        "../../../../docs/current/focusa-tool-choreography.json"
+    ))
+    .unwrap_or_else(
+        |err| json!({"error":"invalid tool choreography registry","details":err.to_string()}),
+    );
+    Json(registry)
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/ontology/primitives", get(primitives))
@@ -8378,6 +8388,7 @@ pub fn router() -> Router<Arc<AppState>> {
             get(intelligence_dashboard),
         )
         .route("/v1/ontology/tool-contracts", get(tool_contracts))
+        .route("/v1/ontology/tool-choreography", get(tool_choreography))
         .route("/v1/ontology/actions", post(execute_ontology_action))
 }
 

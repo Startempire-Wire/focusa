@@ -75,6 +75,36 @@ fn resource_mode_monitor_interval_secs() -> u64 {
         .unwrap_or(15)
 }
 
+fn drain_oldest<T>(items: &mut Vec<T>, limit: usize) -> usize {
+    if items.len() <= limit {
+        return 0;
+    }
+    let overflow = items.len() - limit;
+    items.drain(0..overflow);
+    overflow
+}
+
+async fn prune_pressure_sensitive_state(state: &Arc<AppState>, trace_limit: usize) -> usize {
+    let trace_limit = trace_limit.max(1);
+    let tool_call_limit = trace_limit.saturating_mul(2).max(50);
+    let ledger_limit = trace_limit.max(50);
+    let token_limit = trace_limit.max(100);
+    let mut focusa = state.focusa.write().await;
+    let pruned = drain_oldest(&mut focusa.telemetry.trace_events, trace_limit)
+        + drain_oldest(&mut focusa.telemetry.tool_calls, tool_call_limit)
+        + drain_oldest(&mut focusa.telemetry.secondary_loop_ledger, ledger_limit)
+        + drain_oldest(&mut focusa.telemetry.tokens_per_task, token_limit)
+        + drain_oldest(&mut focusa.anticipated_context, 8);
+    if pruned > 0 {
+        focusa.version = focusa.version.saturating_add(1);
+    }
+    drop(focusa);
+    if pruned > 0 {
+        state.mark_external_mutation();
+    }
+    pruned
+}
+
 async fn resource_mode_monitor_loop(state: Arc<AppState>) {
     let interval_secs = resource_mode_monitor_interval_secs();
     if interval_secs == 0 {
@@ -93,6 +123,25 @@ async fn resource_mode_monitor_loop(state: Arc<AppState>) {
         };
         let status =
             observe_resource_mode_transition("background_resource_monitor", active_session_id);
+        if matches!(status.mode, "lowmem" | "emergency") {
+            let mode = status.mode;
+            let reason = status.reason;
+            let pruned = prune_pressure_sensitive_state(
+                &state,
+                status.retention_policy.trace_event_limit,
+            )
+            .await;
+            let trimmed = tokio::task::spawn_blocking(trim_allocator_once)
+                .await
+                .unwrap_or(false);
+            tracing::debug!(
+                mode = %mode,
+                reason = %reason,
+                pruned,
+                trimmed,
+                "resource pressure triggered bounded-state prune and allocator trim"
+            );
+        }
         if let Some(transition) = status.latest_transition.as_ref() {
             tracing::debug!(
                 transition_id = %transition.transition_id,

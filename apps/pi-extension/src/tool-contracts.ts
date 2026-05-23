@@ -1304,6 +1304,299 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
   traversal: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_workpoint_resume"],
 };
 
+const TOOL_NEXT_TOOLS: Record<string, string[]> = {
+  "focusa_project_identity": [
+    "focusa_project_verify",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_project_verify": [
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume",
+    "focusa_tool_doctor"
+  ],
+  "focusa_trajectory_view": [
+    "focusa_trajectory_assess",
+    "focusa_trajectory_define_goal",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_trajectory_define_goal": [
+    "focusa_trajectory_assess",
+    "focusa_trajectory_propose_workpoint",
+    "focusa_trajectory_checkpoint"
+  ],
+  "focusa_trajectory_assess": [
+    "focusa_trajectory_propose_workpoint",
+    "focusa_workpoint_checkpoint",
+    "focusa_evidence_capture"
+  ],
+  "focusa_trajectory_propose_workpoint": [
+    "focusa_workpoint_checkpoint",
+    "focusa_active_object_resolve",
+    "focusa_evidence_capture"
+  ],
+  "focusa_trajectory_checkpoint": [
+    "focusa_workpoint_checkpoint",
+    "focusa_trajectory_resume",
+    "focusa_evidence_capture"
+  ],
+  "focusa_trajectory_resume": [
+    "focusa_workpoint_resume",
+    "focusa_trajectory_view",
+    "focusa_tool_doctor"
+  ],
+  "focusa_traverse": [
+    "focusa_active_object_resolve",
+    "focusa_evidence_capture",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_predict_record": [
+    "focusa_evidence_capture",
+    "focusa_predict_evaluate",
+    "focusa_metacog_capture"
+  ],
+  "focusa_predict_recent": [
+    "focusa_predict_stats",
+    "focusa_predict_evaluate",
+    "focusa_metacog_retrieve"
+  ],
+  "focusa_predict_evaluate": [
+    "focusa_metacog_capture",
+    "focusa_metacog_reflect",
+    "focusa_predict_stats"
+  ],
+  "focusa_predict_stats": [
+    "focusa_predict_recent",
+    "focusa_metacog_doctor",
+    "focusa_tool_doctor"
+  ],
+  "focusa_scratch": [
+    "focusa_project_identity",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_decide": [
+    "focusa_project_identity",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_constraint": [
+    "focusa_project_identity",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_failure": [
+    "focusa_tool_doctor",
+    "focusa_workpoint_resume",
+    "focusa_metacog_capture"
+  ],
+  "focusa_intent": [
+    "focusa_project_identity",
+    "focusa_trajectory_view",
+    "focusa_workpoint_checkpoint"
+  ],
+  "focusa_current_focus": [
+    "focusa_trajectory_view",
+    "focusa_workpoint_checkpoint",
+    "focusa_evidence_capture"
+  ],
+  "focusa_next_step": [
+    "focusa_workpoint_checkpoint",
+    "focusa_active_object_resolve",
+    "focusa_evidence_capture"
+  ],
+  "focusa_open_question": [
+    "focusa_trajectory_assess",
+    "focusa_traverse",
+    "focusa_metacog_retrieve"
+  ],
+  "focusa_recent_result": [
+    "focusa_evidence_capture",
+    "focusa_trajectory_assess",
+    "focusa_workpoint_checkpoint"
+  ],
+  "focusa_note": [
+    "focusa_project_identity",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_work_loop_writer_status": [
+    "focusa_work_loop_status",
+    "focusa_work_loop_context",
+    "focusa_work_loop_checkpoint"
+  ],
+  "focusa_work_loop_status": [
+    "focusa_work_loop_writer_status",
+    "focusa_work_loop_context",
+    "focusa_work_loop_select_next"
+  ],
+  "focusa_work_loop_control": [
+    "focusa_work_loop_writer_status",
+    "focusa_work_loop_status",
+    "focusa_work_loop_checkpoint"
+  ],
+  "focusa_work_loop_context": [
+    "focusa_work_loop_checkpoint",
+    "focusa_work_loop_status",
+    "focusa_workpoint_checkpoint"
+  ],
+  "focusa_work_loop_checkpoint": [
+    "focusa_work_loop_select_next",
+    "focusa_workpoint_checkpoint",
+    "focusa_evidence_capture"
+  ],
+  "focusa_work_loop_select_next": [
+    "focusa_workpoint_checkpoint",
+    "focusa_work_loop_context",
+    "focusa_evidence_capture"
+  ],
+  "focusa_state_hygiene_doctor": [
+    "focusa_state_hygiene_plan",
+    "focusa_tool_doctor",
+    "focusa_scratch"
+  ],
+  "focusa_state_hygiene_plan": [
+    "focusa_state_hygiene_apply",
+    "focusa_state_hygiene_doctor",
+    "focusa_tool_doctor"
+  ],
+  "focusa_state_hygiene_apply": [
+    "focusa_state_hygiene_doctor",
+    "focusa_workpoint_resume",
+    "focusa_tool_doctor"
+  ],
+  "focusa_silent_sessions": [
+    "focusa_work_loop_status",
+    "focusa_work_loop_checkpoint",
+    "focusa_resource_mode"
+  ],
+  "focusa_tool_doctor": [
+    "focusa_resource_mode",
+    "focusa_project_identity",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_resource_mode": [
+    "focusa_traverse",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_active_object_resolve": [
+    "focusa_workpoint_checkpoint",
+    "focusa_evidence_capture",
+    "focusa_traverse"
+  ],
+  "focusa_evidence_capture": [
+    "focusa_workpoint_link_evidence",
+    "focusa_trajectory_assess",
+    "focusa_recent_result"
+  ],
+  "focusa_workpoint_checkpoint": [
+    "focusa_workpoint_resume",
+    "focusa_active_object_resolve",
+    "focusa_evidence_capture"
+  ],
+  "focusa_workpoint_link_evidence": [
+    "focusa_trajectory_assess",
+    "focusa_workpoint_resume",
+    "focusa_evidence_capture"
+  ],
+  "focusa_workpoint_resume": [
+    "focusa_trajectory_view",
+    "focusa_active_object_resolve",
+    "focusa_evidence_capture"
+  ],
+  "focusa_tree_head": [
+    "focusa_tree_path",
+    "focusa_tree_snapshot_state",
+    "focusa_lineage_tree"
+  ],
+  "focusa_tree_path": [
+    "focusa_tree_snapshot_state",
+    "focusa_tree_diff_context",
+    "focusa_traverse"
+  ],
+  "focusa_tree_snapshot_state": [
+    "focusa_tree_recent_snapshots",
+    "focusa_tree_diff_context",
+    "focusa_tree_restore_state"
+  ],
+  "focusa_tree_restore_state": [
+    "focusa_tree_head",
+    "focusa_tree_path",
+    "focusa_evidence_capture"
+  ],
+  "focusa_tree_diff_context": [
+    "focusa_tree_restore_state",
+    "focusa_tree_path",
+    "focusa_metacog_capture"
+  ],
+  "focusa_metacog_capture": [
+    "focusa_metacog_retrieve",
+    "focusa_metacog_reflect",
+    "focusa_workpoint_checkpoint"
+  ],
+  "focusa_metacog_retrieve": [
+    "focusa_metacog_capture",
+    "focusa_metacog_reflect",
+    "focusa_predict_record"
+  ],
+  "focusa_metacog_reflect": [
+    "focusa_metacog_plan_adjust",
+    "focusa_metacog_capture",
+    "focusa_workpoint_checkpoint"
+  ],
+  "focusa_metacog_plan_adjust": [
+    "focusa_metacog_evaluate_outcome",
+    "focusa_predict_record",
+    "focusa_workpoint_checkpoint"
+  ],
+  "focusa_metacog_evaluate_outcome": [
+    "focusa_metacog_capture",
+    "focusa_predict_stats",
+    "focusa_decide"
+  ],
+  "focusa_tree_recent_snapshots": [
+    "focusa_tree_diff_context",
+    "focusa_tree_snapshot_compare_latest",
+    "focusa_tree_snapshot_state"
+  ],
+  "focusa_tree_snapshot_compare_latest": [
+    "focusa_tree_diff_context",
+    "focusa_tree_restore_state",
+    "focusa_evidence_capture"
+  ],
+  "focusa_metacog_recent_reflections": [
+    "focusa_metacog_plan_adjust",
+    "focusa_metacog_doctor",
+    "focusa_metacog_reflect"
+  ],
+  "focusa_metacog_recent_adjustments": [
+    "focusa_metacog_evaluate_outcome",
+    "focusa_metacog_doctor",
+    "focusa_metacog_reflect"
+  ],
+  "focusa_metacog_loop_run": [
+    "focusa_predict_stats",
+    "focusa_workpoint_checkpoint",
+    "focusa_metacog_doctor"
+  ],
+  "focusa_metacog_doctor": [
+    "focusa_metacog_retrieve",
+    "focusa_metacog_recent_reflections",
+    "focusa_tool_doctor"
+  ],
+  "focusa_lineage_tree": [
+    "focusa_li_tree_extract",
+    "focusa_tree_path",
+    "focusa_traverse"
+  ],
+  "focusa_li_tree_extract": [
+    "focusa_metacog_capture",
+    "focusa_metacog_reflect",
+    "focusa_tree_snapshot_state"
+  ]
+};
+
 const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
   focus_state: ["bounded text fields", "active project-bound Focus Frame"],
   workpoint: ["project_root", "continuity_id", "mode=compact_prompt|summary"],
@@ -1361,7 +1654,7 @@ export function buildFocusaToolAffordanceCatalog(contracts: FocusaToolContract[]
     ],
     example: invocationFor(contract),
     expected_result: `Visible summary plus ${contract.result_envelope} details; docs: ${contract.doc_path}`,
-    likely_next_tools: FAMILY_NEXT_TOOLS[contract.family] || ["focusa_tool_doctor"],
+    likely_next_tools: TOOL_NEXT_TOOLS[contract.name] || FAMILY_NEXT_TOOLS[contract.family] || ["focusa_tool_doctor"],
   }));
 }
 

@@ -33,6 +33,8 @@ wait_current(){
 }
 
 run_json health '.status == "ok" or .ok == true' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/health
+run_json tool_contracts '.contracts | length == 58' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-contracts
+run_json tool_choreography '.schema == "focusa.tool_choreography.v1" and .tool_count == 58 and .edge_count >= 58 and (.per_tool_next_tools.focusa_project_identity | length > 0)' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-choreography
 run_json project_identity '.status == "completed" and .project_identity.status == "verified"' "$CLI" project identity --project-root "$PROJECT_ROOT" --json
 run_json trajectory_view '.project_identity != null and (.trajectory != null or .status != null)' "$CLI" trajectory view --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --mode summary --json
 run_json resource_status '.mode != null or .resource_mode != null' "$CLI" resource status --json
@@ -45,6 +47,16 @@ run_json metacog_recent_adjustments '.adjustments != null' "$CLI" metacognition 
 run_json lineage_extract '.signals != null and .next_tools != null' "$CLI" lineage extract --max-candidates 3 --json
 run_json snapshot_recent '.snapshots != null' "$CLI" state snapshot recent --limit 1 --json
 run_json snapshot_compare_latest '.status != null or .checksum_changed != null or .created != null' "$CLI" state snapshot compare-latest --snapshot-reason "cli-smoke" --json
+PREDICT_RECORD_OUT="$TMP_DIR/predict_record.json"
+PREDICT_RECORD_ERR="$PREDICT_RECORD_OUT.err"
+if "$CLI" predict record --prediction-type smoke --predicted-outcome "safe smoke succeeds" --confidence 0.8 --recommended-action "continue smoke" --why "safe fixture prediction for CLI parity" --context-refs "$KEY" --json >"$PREDICT_RECORD_OUT" 2>"$PREDICT_RECORD_ERR" \
+  && jq -e '.status == "recorded" and .prediction.prediction_id != null' "$PREDICT_RECORD_OUT" >/dev/null 2>&1; then
+  pass predict_record
+  PREDICTION_ID="$(jq -r '.prediction.prediction_id' "$PREDICT_RECORD_OUT")"
+  run_json predict_evaluate '.status == "evaluated" and .prediction.score == 1' "$CLI" predict evaluate "$PREDICTION_ID" --actual-outcome "safe smoke succeeds" --score 1 --learning-signal-ref "$KEY" --json
+else
+  fail predict_record "$(tail -c 400 "$PREDICT_RECORD_ERR" 2>/dev/null) $(tail -c 600 "$PREDICT_RECORD_OUT" 2>/dev/null)"
+fi
 run_json predict_recent '.predictions != null or .items != null or .total != null' "$CLI" predict recent --limit 1 --json
 run_json predict_stats '.status != null or .stats != null or .prediction_count != null or .total_predictions != null' "$CLI" predict stats --json
 

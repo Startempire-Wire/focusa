@@ -10,8 +10,11 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Refreshed public README/spec documentation for the 58-tool surface, including ProjectIdentity, Trajectory, `focusa_traverse`, `focusa_resource_mode`, and `focusa_silent_sessions`.
 - Added friendly Focusa onboarding Q plus tool choreography routes so models favor project identity → trajectory → Workpoint → evidence → prediction/metacog over note-only workflows.
 - Added implementation-to-spec audit coverage and filled CLI/contract gaps for Focus State updates, scoped Workpoint commands, metacog recent reads, lineage extract, and snapshot parity.
-- Added model-visible awareness documentation and per-call `PROJECT_INFRA` trajectory context so agents see project folder, continuity, canonical name, repo, workspace kind, and architecture-boundary guidance.
-- Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction reads.
+- Added model-visible awareness documentation and per-call `PROJECT_INFRA`/`PROJECT_ARCHITECTURE` trajectory context so agents see project folder, continuity, canonical name, repo, workspace kind, stack/key dirs, deploy/docs/tests, and architecture-boundary guidance.
+- Added machine-readable tool choreography registry/API with exact per-tool next-tool routes for all 58 tools.
+- Reworded context-pressure warnings to reflect Focusa preserving scoped anchors; warnings now point to Workpoint checkpoint/resume and treat `/fork`/handoff as optional UI-isolation paths.
+- Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes.
+- Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction record/evaluate/read paths.
 
 ## Unreleased — Spec93 release publication proof
 

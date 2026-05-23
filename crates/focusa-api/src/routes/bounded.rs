@@ -360,8 +360,8 @@ pub fn env_usize(name: &str, fallback: usize) -> usize {
 
 pub fn lowmem_budget() -> LowMemBudget {
     LowMemBudget {
-        rss_soft_mb: env_u64("FOCUSA_LOWMEM_RSS_SOFT_MB", 384),
-        rss_hard_mb: env_u64("FOCUSA_LOWMEM_RSS_HARD_MB", 512),
+        rss_soft_mb: env_u64("FOCUSA_LOWMEM_RSS_SOFT_MB", 700),
+        rss_hard_mb: env_u64("FOCUSA_LOWMEM_RSS_HARD_MB", 1000),
         hot_route_timeout_ms: env_u64("FOCUSA_LOWMEM_HOT_TIMEOUT_MS", 250),
         warm_route_timeout_ms: env_u64("FOCUSA_LOWMEM_WARM_TIMEOUT_MS", 1000),
         cold_route_timeout_ms: env_u64("FOCUSA_LOWMEM_COLD_TIMEOUT_MS", 3000),

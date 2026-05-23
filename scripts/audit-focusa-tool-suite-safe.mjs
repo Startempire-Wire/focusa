@@ -107,6 +107,7 @@ const staticValidation = spawnSync(process.execPath, ['scripts/validate-focusa-t
 if (staticValidation.status !== 0) pushFailure('validation_rejected', 'static_contracts', 'Spec90 static validation failed', 'Fix contract/tool/doc drift before live testing.', { stdout: staticValidation.stdout, stderr: staticValidation.stderr });
 const staticResult = staticValidation.stdout ? JSON.parse(staticValidation.stdout) : null;
 const registry = readJson('docs/current/focusa-tool-contracts.json');
+const choreography = readJson('docs/current/focusa-tool-choreography.json');
 const contracts = registry.contracts || [];
 
 // Doc/affordance checks.
@@ -184,15 +185,21 @@ if (!/budgeted_default_limit|budgeted_requested_limit|bounded_window|field_proje
 }
 
 // Live registry and safe GET probes.
-let health = null, liveRegistry = null;
+let health = null, liveRegistry = null, liveChoreography = null;
 try { health = await getJsonWithRetry('/v1/health'); if (!health?.ok) pushFailure('daemon_unavailable', 'health', 'Daemon health non-ok', 'Check daemon service and API base URL.', health); }
-catch (err) { pushFailure(err.name === 'TimeoutError' ? timeoutFailureClass(endpoint) : 'daemon_unavailable', 'health', err.message, 'Check daemon service/API base URL and resource pressure.'); }
-try { liveRegistry = await getJson('/v1/ontology/tool-contracts'); }
-catch (err) { pushFailure('daemon_unavailable', 'tool_contracts_live', err.message, 'Check ontology tool-contracts API route.'); }
+catch (err) { pushFailure(err.name === 'TimeoutError' ? timeoutFailureClass('/v1/health') : 'daemon_unavailable', 'health', err.message, 'Check daemon service/API base URL and resource pressure.'); }
+try { liveRegistry = await getJsonWithRetry('/v1/ontology/tool-contracts'); }
+catch (err) { pushFailure(err.name === 'TimeoutError' ? timeoutFailureClass('/v1/ontology/tool-contracts') : 'daemon_unavailable', 'tool_contracts_live', err.message, 'Check ontology tool-contracts API route.'); }
+try { liveChoreography = await getJsonWithRetry('/v1/ontology/tool-choreography'); }
+catch (err) { pushFailure(err.name === 'TimeoutError' ? timeoutFailureClass('/v1/ontology/tool-choreography') : 'daemon_unavailable', 'tool_choreography_live', err.message, 'Check ontology tool-choreography API route.'); }
+const sortJson = (value) => Array.isArray(value) ? value.map(sortJson) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, sortJson(value[k])])) : value;
 if (liveRegistry) {
-  const sortJson = (value) => Array.isArray(value) ? value.map(sortJson) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, sortJson(value[k])])) : value;
   const payloadEqual = JSON.stringify(sortJson(liveRegistry)) === JSON.stringify(sortJson(registry));
   if (!payloadEqual) pushWarning('stale_runtime_registry', 'tool_contracts_live', 'Live daemon registry differs from static docs/source registry', 'Static validation remains source until approved rebuild/restart reloads daemon registry.', { static_count: contracts.length, live_count: (liveRegistry.contracts || []).length });
+}
+if (liveChoreography) {
+  const choreographyEqual = JSON.stringify(sortJson(liveChoreography)) === JSON.stringify(sortJson(choreography));
+  if (!choreographyEqual) pushWarning('stale_runtime_choreography', 'tool_choreography_live', 'Live daemon choreography differs from static docs/source registry', 'Rebuild/restart daemon after choreography registry changes.', { static_edge_count: choreography.edge_count, live_edge_count: liveChoreography.edge_count });
 }
 
 const getRoutes = new Set([
@@ -238,7 +245,7 @@ checkDaemonProcessMemory();
 
 // Known live Pi runtime probes from this session cannot be scripted here; document externally via direct tool audit results.
 const result = {
-  status: failures.length ? 'failed' : 'passed_with_warnings',
+  status: failures.length ? 'failed' : warnings.length ? 'passed_with_warnings' : 'passed',
   static_validation: staticResult,
   health: health ? { ok: health.ok, version: health.version } : null,
   contract_count: contracts.length,
