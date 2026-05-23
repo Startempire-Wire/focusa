@@ -18,6 +18,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Materialized canonical Workpoint checkpoints through the sync reducer path so safe `project_root + continuity_id` writes are visible immediately instead of depending on queued daemon read-model lag.
 - Reworded the missing active Pi frame fallback to `Attentive and awaiting operator direction`, surfaced it in the Utility Card/quickstart, and added validation so agents stay helpful while scratch fallback/recovery guidance remains available.
 - Added model-facing no-deadend recovery guidance (`recovery_hint`, `misuse_hint`, `next_tools`) to Focusa tool result envelopes and documented out-of-order recovery routes.
+- Updated Tool Result Envelope docs to require recovery/misuse hints so models know why a tool failed and the next safe route.
 
 ## Unreleased — Spec93 release publication proof
 

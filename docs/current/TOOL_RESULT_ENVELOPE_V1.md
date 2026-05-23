@@ -1,10 +1,10 @@
 # Tool Result Envelope v1
 
-Current Focusa Pi tools preserve visible summaries and attach structured result metadata when available.
+Current Focusa Pi tools preserve visible summaries and attach structured `tool_result_v1` metadata when available.
 
 ## Purpose
 
-Agents should not parse prose to decide whether a Focusa tool succeeded. They should inspect structured fields such as status, retry posture, canonical/degraded flags, evidence refs, side effects, and next-tool hints.
+Agents should not parse prose to decide whether a Focusa tool succeeded. They should inspect structured fields such as status, failure class, retry posture, recovery/misuse hints, canonical/degraded flags, evidence refs, side effects, and next-tool hints.
 
 ## Common fields
 
@@ -13,7 +13,9 @@ Agents should not parse prose to decide whether a Focusa tool succeeded. They sh
 - `canonical` — true when Focusa says the result is authoritative.
 - `degraded` — true when output is a fallback or partial result.
 - `summary` — short human-readable result.
-- `retry` — retry posture and guidance.
+- `retry` — retry safety, posture, and reason.
+- `recovery_hint` — plain next recovery action; use this before retrying.
+- `misuse_hint` — likely out-of-order, scope, validation, or resource-use mistake to fix.
 - `side_effects` — whether state was read, written, linked, checkpointed, or left unchanged.
 - `evidence_refs` — stable proof refs associated with the result.
 - `next_tools` — recommended next Focusa tools.
@@ -22,4 +24,13 @@ Agents should not parse prose to decide whether a Focusa tool succeeded. They sh
 
 ## Agent usage rule
 
-Use `status`, `canonical`, `degraded`, `retry`, and `next_tools` for recovery decisions. Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as a recovery state, not as a final success.
+Use `status`, `failure_class`, `canonical`, `degraded`, `retry`, `recovery_hint`, `misuse_hint`, and `next_tools` for recovery decisions. Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as a recovery state, not as a final success.
+
+## No-deadend rule
+
+If a tool fails or blocks:
+
+1. Read `failure_class` to understand the cause.
+2. Check `retry.posture`; only retry unchanged when posture says it is safe.
+3. Follow `recovery_hint` and fix `misuse_hint` before retrying.
+4. Use `next_tools` as the safe route; do not stop at the error unless the operator asks.

@@ -19,7 +19,7 @@ Purpose: describe what the LLM actually sees from Focusa and the precedence of t
 5. **Skill descriptions** — visible before loading; full skill files become visible when loaded.
    Source: `/root/.pi/skills/focusa*/SKILL.md` and project skill copies.
 
-6. **Tool results** — every Focusa tool returns a visible summary plus `details.tool_result_v1` with status, canonical/degraded posture, failure class, retry posture, side effects, evidence refs, and next-tool hints.
+6. **Tool results** — every Focusa tool returns a visible summary plus `details.tool_result_v1` with status, canonical/degraded posture, failure class, retry posture, recovery/misuse hints, side effects, evidence refs, and next-tool hints.
 
 Docs are **not** automatically visible unless injected by a card/slice/skill or read by the model.
 

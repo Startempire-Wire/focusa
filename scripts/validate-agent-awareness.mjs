@@ -10,6 +10,7 @@ const files = {
   card: 'docs/current/FOCUSA_AGENT_UTILITY_CARD.md',
   onboarding: 'docs/current/FOCUSA_FRIENDLY_ONBOARDING.md',
   choreography: 'docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md',
+  envelope: 'docs/current/TOOL_RESULT_ENVELOPE_V1.md',
   docsIndex: 'docs/README.md',
   readme: 'README.md',
 };
@@ -43,6 +44,7 @@ for (const file of ['quickstart', 'card']) {
 }
 for (const needle of ['Friendly Focusa Q', 'project_root', 'architecture', 'trajectory', 'Workpoint', 'evidence', 'predict', 'metacog']) must('onboarding', needle);
 for (const needle of ['Route graph', 'project_identity', 'trajectory_view', 'workpoint_checkpoint', 'evidence_capture', 'predict_record', 'metacog']) must('choreography', needle);
+for (const needle of ['tool_result_v1', 'failure_class', 'retry', 'recovery_hint', 'misuse_hint', 'next_tools', 'No-deadend rule']) must('envelope', needle);
 must('docsIndex', 'AGENT_AWARENESS_QUICKSTART.md');
 must('docsIndex', 'FOCUSA_AGENT_UTILITY_CARD.md');
 must('docsIndex', 'FOCUSA_FRIENDLY_ONBOARDING.md');
