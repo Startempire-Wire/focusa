@@ -41,6 +41,17 @@ The tool returns the current mode, forced/auto status, pressure reason, LowMem b
 - [`focusa_trajectory_view`](./focusa_trajectory_view.md)
 - [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
 
-## Source
+## Contract summary
 
+- Family: Diagnostics / Hygiene.
+- Side effects: `control_state`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `GET /v1/resource/mode`, `POST /v1/resource/mode`
+- CLI commands: `focusa resource mode`
+- Parity: `domain`; exemptions: `domain_cli_only`.
+- Core surface: Spec96 LowMem ResourceMode runtime policy.
+- Live check: contract_static plus /v1/resource/mode safe probe and activation/deactivation smoke test.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts` and `POST /v1/resource/mode`.

@@ -18,6 +18,8 @@ This docs index describes the current development snapshot. Focusa is implemente
 
 ## Current Runtime Concepts
 
+- **Friendly Focusa Q** – project orientation prompts: where am I, where are we going, next useful move, proof, and compounding lesson.
+- **Tool choreography** – linked tool routes so agents use project identity → trajectory → Workpoint → evidence → prediction/metacog instead of only basic notes.
 - **Focus State** – bounded current cognitive state: intent, focus, decisions, constraints, failures, next steps, open questions, recent results, notes, artifacts.
 - **Workpoint** – typed continuation contract for compaction/model-switch/fork/retry recovery.
 - **Evidence refs** – stable proof handles linked to Workpoints instead of raw transcript blobs.
@@ -130,6 +132,8 @@ This is **institutional intelligence**, not novelty AI.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
 - [current/FOCUSA_AGENT_UTILITY_CARD.md](current/FOCUSA_AGENT_UTILITY_CARD.md) — startup/reload runtime awareness card contract.
+- [current/FOCUSA_FRIENDLY_ONBOARDING.md](current/FOCUSA_FRIENDLY_ONBOARDING.md) — friendly project onboarding Q for agents.
+- [current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) — linked tool routes for compounding project workflows.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.
 - [evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md](evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md) — live OpenClaw/Wirebot Focusa awareness activation proof.
 - [current/NON_PI_AGENT_FOCUSA_USAGE.md](current/NON_PI_AGENT_FOCUSA_USAGE.md) — Focusa awareness for OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and other non-Pi agents.
@@ -138,6 +142,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/AGENT_COMMAND_COOKBOOK.md](current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
 - [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
 - [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
+- [current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md](current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md) — implementation-to-spec parity audit and uplift gaps.
 - [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.
 - [current/LIVE_TOOL_CONTRACT_PROOF.md](current/LIVE_TOOL_CONTRACT_PROOF.md) — live proof command and expected result.
 - [96-trajectory-projection-and-daemon-stability-spec.md](96-trajectory-projection-and-daemon-stability-spec.md) — Trajectory Projection, ProjectIdentity, hot/cold daemon stability, and tool failure taxonomy.

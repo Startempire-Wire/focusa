@@ -53,3 +53,15 @@ Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 - `focusa_active_object_resolve`
 - `focusa_evidence_capture`
 - `focusa_tool_doctor`
+
+## Contract summary
+
+- Family: Trajectory.
+- Side effects: `read_state`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `GET /v1/trajectory/view`
+- CLI commands: `focusa trajectory view`
+- Parity: `domain`; exemptions: `domain_cli_only`.
+- Core surface: Spec96 per-project Trajectory Intelligence projection.
+- Live check: contract_static plus /v1/trajectory/view safe probe and ProjectIdentity status.
+- Contract source: `docs/current/focusa-tool-contracts.json`.

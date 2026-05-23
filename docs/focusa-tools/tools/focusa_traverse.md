@@ -51,3 +51,15 @@ focusa_traverse surface="lineage" selector="tags_verify" tags=["focusa://lineage
 - [`focusa_trajectory_view`](./focusa_trajectory_view.md)
 - [`focusa_workpoint_resume`](./focusa_workpoint_resume.md)
 - [`focusa_lineage_tree`](./focusa_lineage_tree.md)
+
+## Contract summary
+
+- Family: Traversal.
+- Side effects: `read_state`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`
+- CLI commands: none.
+- Parity: `domain`; exemptions: `api_domain_only`.
+- Core surface: Spec96 surgical traversal facade.
+- Live check: contract_static plus /v1/traverse lineage smoke test.
+- Contract source: `docs/current/focusa-tool-contracts.json`.

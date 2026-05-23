@@ -58,7 +58,7 @@ enum Commands {
     /// Resume governed continuous work and refresh state.
     Continue(commands::continue_work::ContinueArgs),
 
-    /// Focus stack operations.
+    /// Focus stack and Focus State operations.
     #[command(subcommand)]
     Focus(commands::focus::FocusCmd),
 

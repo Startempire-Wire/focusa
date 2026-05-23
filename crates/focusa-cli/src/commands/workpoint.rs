@@ -20,6 +20,12 @@ pub enum WorkpointCmd {
         /// Pi/session id.
         #[arg(long)]
         session: Option<String>,
+        /// Safe project folder/container for canonical Workpoint authority.
+        #[arg(long)]
+        project_root: Option<String>,
+        /// Stable logical workstream id for same-project continuity.
+        #[arg(long)]
+        continuity_id: Option<String>,
         /// Checkpoint reason, e.g. manual,operator_checkpoint,before_compact,context_overflow.
         #[arg(long, default_value = "manual")]
         reason: String,
@@ -35,17 +41,30 @@ pub enum WorkpointCmd {
         /// Mark packet non-canonical/degraded.
         #[arg(long)]
         degraded: bool,
-        /// Optional idempotency key accepted for contract parity; currently informational.
+        /// Optional idempotency key for safe replay detection.
         #[arg(long)]
         idempotency_key: Option<String>,
     },
     /// Show the active Workpoint packet.
-    Current,
+    Current {
+        /// Safe project folder/container for scoped lookup.
+        #[arg(long)]
+        project_root: Option<String>,
+        /// Stable logical workstream id for scoped lookup.
+        #[arg(long)]
+        continuity_id: Option<String>,
+    },
     /// Render a WorkpointResumePacket for Pi continuation.
     Resume {
         /// Render mode: compact_prompt, full_json, operator_summary.
         #[arg(long, default_value = "compact_prompt")]
         mode: String,
+        /// Safe project folder/container for canonical resume.
+        #[arg(long)]
+        project_root: Option<String>,
+        /// Stable logical workstream id for canonical resume.
+        #[arg(long)]
+        continuity_id: Option<String>,
     },
     /// Detect whether latest action drifted away from the active workpoint.
     DriftCheck {
@@ -96,6 +115,31 @@ fn reason_to_api(reason: &str) -> String {
     .to_string()
 }
 
+fn query_escape(value: &str) -> String {
+    value
+        .bytes()
+        .map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => (byte as char).to_string(),
+            _ => format!("%{byte:02X}"),
+        })
+        .collect()
+}
+
+fn current_path(project_root: Option<String>, continuity_id: Option<String>) -> String {
+    let mut params = Vec::new();
+    if let Some(root) = project_root.filter(|value| !value.trim().is_empty()) {
+        params.push(format!("project_root={}", query_escape(&root)));
+    }
+    if let Some(continuity) = continuity_id.filter(|value| !value.trim().is_empty()) {
+        params.push(format!("continuity_id={}", query_escape(&continuity)));
+    }
+    if params.is_empty() {
+        "/v1/workpoint/current".to_string()
+    } else {
+        format!("/v1/workpoint/current?{}", params.join("&"))
+    }
+}
+
 fn print_human_summary(resp: &Value, label: &str) {
     let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
     let canonical = resp
@@ -135,6 +179,8 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             next_action,
             work_item,
             session,
+            project_root,
+            continuity_id,
             reason,
             action_type,
             target_ref,
@@ -147,25 +193,42 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                 "next_slice": next_action,
                 "work_item_id": work_item,
                 "session_id": session,
+                "project_root": project_root,
+                "continuity_id": continuity_id,
                 "checkpoint_reason": reason_to_api(&reason),
                 "canonical": !degraded,
                 "promote": !no_promote,
                 "idempotency_key": idempotency_key,
             });
             if action_type.is_some() || target_ref.is_some() {
+                let target_ref_for_refs = target_ref.clone();
                 body["action_intent"] = json!({
                     "action_type": action_type.unwrap_or_else(|| "checkpoint_workpoint".to_string()),
                     "target_ref": target_ref,
                     "verification_hooks": [],
                     "status": "ready",
                 });
+                if let Some(target) = target_ref_for_refs.filter(|target| !target.trim().is_empty()) {
+                    body["active_object_refs"] = json!([target]);
+                }
             }
             ("checkpoint", api.post("/v1/workpoint/checkpoint", &body).await?)
         }
-        WorkpointCmd::Current => ("current", api.get("/v1/workpoint/current").await?),
-        WorkpointCmd::Resume { mode } => (
+        WorkpointCmd::Current { project_root, continuity_id } => (
+            "current",
+            api.get(&current_path(project_root, continuity_id)).await?,
+        ),
+        WorkpointCmd::Resume { mode, project_root, continuity_id } => (
             "resume",
-            api.post("/v1/workpoint/resume", &json!({ "mode": mode })).await?,
+            api.post(
+                "/v1/workpoint/resume",
+                &json!({
+                    "mode": mode,
+                    "project_root": project_root,
+                    "continuity_id": continuity_id,
+                }),
+            )
+            .await?,
         ),
         WorkpointCmd::DriftCheck {
             latest_action,
@@ -208,6 +271,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
     } else {
         print_human_summary(&resp, label);
     }
+
     Ok(())
 }
 
@@ -221,6 +285,14 @@ mod tests {
         assert_eq!(reason_to_api("context_overflow"), "context_overflow");
         assert_eq!(reason_to_api("operator-checkpoint"), "operator_checkpoint");
         assert_eq!(reason_to_api("nonsense"), "nonsense");
+    }
+
+    #[test]
+    fn current_path_encodes_scope_query() {
+        assert_eq!(
+            current_path(Some("/home/wirebot/focusa".to_string()), Some("a b".to_string())),
+            "/v1/workpoint/current?project_root=%2Fhome%2Fwirebot%2Ffocusa&continuity_id=a%20b"
+        );
     }
 
     #[test]

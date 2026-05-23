@@ -4,7 +4,7 @@
 >
 > Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
 
-**Current public snapshot:** `v0.9.11-dev`  
+**Current public snapshot:** `v0.9.12-dev`
 **Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.  
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
@@ -141,17 +141,21 @@ Most commands support human-readable output, and the top-level CLI supports `--j
 
 ### Pi extension
 
-The Pi extension is the main agent-facing integration. It registers 43 `focusa_*` tools grouped into these families:
+The Pi extension is the main agent-facing integration. It registers 58 `focusa_*` tools grouped into these families:
 
 - **Focus State:** scratch, decide, constraint, failure, intent, current focus, next step, open question, recent result, note.
+- **Project Identity:** resolve/verify the project folder before trusting carryover.
+- **Trajectory:** view, define, assess, checkpoint/resume, and propose advisory Workpoint candidates.
 - **Workpoint:** checkpoint, resume, link evidence, active object resolve, evidence capture.
+- **Traversal:** bounded `focusa_traverse` slices across lineage, ontology, evidence, telemetry, Workpoints, and registries.
 - **Work-loop:** writer status, status, control, context, checkpoint, select next.
 - **Tree/lineage:** head, path, snapshot, diff, restore, recent snapshots, compare latest, lineage tree, LI extraction.
 - **Metacognition:** capture, retrieve, reflect, plan adjustment, evaluate outcome, recent reflections, recent adjustments, loop run, doctor.
 - **Prediction loop:** record, recent, evaluate, and stats tools for bounded inspectable predictions.
 - **State hygiene:** doctor, plan, approval-safe apply.
-- **Tool doctor:** diagnostic entrypoint for Focusa tool readiness and likely recovery path.
-- **Workpoint scope guard:** project/session-bound resume packets reject cross-project continuation.
+- **Tool doctor/resource mode:** diagnostic entrypoint plus LowMem/emergency posture control.
+- **SilentSessions:** tmux-backed background Pi session list/start/reopen/tail/send/kill with explicit approval gates.
+- **Workpoint project-folder guard:** project/session-bound resume packets reject cross-project continuation.
 - **Compaction fallback guard:** Pi replacement compaction hydrates sparse fields from related canonical sources instead of emitting bare `none`.
 
 Every `focusa_*` tool is expected to expose a common `tool_result_v1` result envelope with status, canonical/degraded flags, retry guidance, side effects, evidence refs, and next-tool hints.
@@ -160,7 +164,7 @@ Every `focusa_*` tool is expected to expose a common `tool_result_v1` result env
 
 ## Workpoint continuity
 
-A Workpoint is a typed continuation record. It preserves:
+`project_root` means the project folder/container that holds related files. Trajectory is the functional route: current state → desired outcome → waypoint goals. A Workpoint is a typed continuation record. It preserves:
 
 - mission / current ask,
 - active object refs,
@@ -520,13 +524,16 @@ Part of the Startempire Wire ecosystem.
 
 - [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
 - [Focusa Agent Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
+- [Friendly Focusa Onboarding Q](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- [Focusa Tool Choreography Map](docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md)
+- [Tool Implementation-to-Spec Audit](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
 - [Non-Pi Agent Focusa Usage](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
 - [Spec93 Non-Pi Agent Focusa Awareness](docs/93-non-pi-agent-focusa-awareness-spec.md)
 - [Spec93 Non-Pi Awareness Rollout Proof](docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md)
 - [Predictive Power Guide](docs/current/PREDICTIVE_POWER_GUIDE.md)
 - [Agent Command Cookbook](docs/current/AGENT_COMMAND_COOKBOOK.md)
 - [Doctor / Continue / Release Prove](docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md)
-- [Workpoint Session Scope Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)
+- [Workpoint Project Folder + Continuity Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)
 - [Compaction Fallbacks](docs/current/COMPACTION_FALLBACKS.md)
 - [Daemon Resilience](docs/current/DAEMON_RESILIENCE.md)
 - [Efficiency Guide](docs/current/EFFICIENCY_GUIDE.md)
@@ -538,7 +545,7 @@ Part of the Startempire Wire ecosystem.
 - [Trajectory GTM and Companion Gap Assessment](docs/current/TRAJECTORY_GTM_AND_GAPS.md)
 
 ## Focusa Tools
-- [focusa_project_identity](docs/focusa-tools/tools/focusa_project_identity.md) — resolve ProjectIdentity quorum and scope.
+- [focusa_project_identity](docs/focusa-tools/tools/focusa_project_identity.md) — resolve ProjectIdentity quorum for the project folder.
 - [focusa_project_verify](docs/focusa-tools/tools/focusa_project_verify.md) — verify expected ProjectIdentity fields.
 - [focusa_resource_mode](docs/focusa-tools/tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
 - [focusa_traverse](docs/focusa-tools/tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.

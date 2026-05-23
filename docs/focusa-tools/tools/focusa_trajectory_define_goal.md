@@ -46,3 +46,15 @@ Use `details.tool_result_v1.failure_class` plus status/canonical/degraded fields
 - `focusa_workpoint_resume`
 - `focusa_workpoint_checkpoint`
 - `focusa_active_object_resolve`
+
+## Contract summary
+
+- Family: Trajectory.
+- Side effects: `advisory_projection`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `POST /v1/trajectory/define-goal`
+- CLI commands: `focusa trajectory define-goal`
+- Parity: `domain`; exemptions: `domain_cli_only`.
+- Core surface: Spec96 per-project Trajectory Intelligence projection.
+- Live check: contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test.
+- Contract source: `docs/current/focusa-tool-contracts.json`.

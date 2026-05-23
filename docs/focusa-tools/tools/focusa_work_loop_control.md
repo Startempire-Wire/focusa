@@ -39,6 +39,17 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 - [`focusa_work_loop_checkpoint`](./focusa_work_loop_checkpoint.md)
 - [`focusa_work_loop_select_next`](./focusa_work_loop_select_next.md)
 
-## Source
+## Contract summary
 
+- Family: Work Loop.
+- Side effects: `control_state`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`
+- CLI commands: none.
+- Parity: `domain`; exemptions: `domain_cli_only`.
+- Core surface: Work-loop state/writer controller.
+- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts`.

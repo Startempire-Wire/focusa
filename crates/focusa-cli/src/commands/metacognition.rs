@@ -50,6 +50,16 @@ pub enum MetacognitionCmd {
         #[arg(long = "observed-metric")]
         observed_metrics: Vec<String>,
     },
+    /// List recent reflection packets.
+    RecentReflections {
+        #[arg(long, default_value_t = 5)]
+        limit: u32,
+    },
+    /// List recent adjustment packets.
+    RecentAdjustments {
+        #[arg(long, default_value_t = 5)]
+        limit: u32,
+    },
     /// Compound metacognition workflows.
     #[command(subcommand)]
     Loop(MetacognitionLoopCmd),
@@ -537,6 +547,32 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
                     "metacognition evaluate: result={} promote={}",
                     resp["result"].as_str().unwrap_or("unknown"),
                     resp["promote_learning"].as_bool().unwrap_or(false)
+                );
+            }
+        }
+        MetacognitionCmd::RecentReflections { limit } => {
+            let resp = api
+                .get(&format!("/v1/metacognition/reflections/recent?limit={limit}"))
+                .await?;
+            if json_mode {
+                print_json(&resp)?;
+            } else {
+                println!(
+                    "metacognition recent-reflections: count={}",
+                    resp["reflections"].as_array().map(|items| items.len()).unwrap_or(0)
+                );
+            }
+        }
+        MetacognitionCmd::RecentAdjustments { limit } => {
+            let resp = api
+                .get(&format!("/v1/metacognition/adjustments/recent?limit={limit}"))
+                .await?;
+            if json_mode {
+                print_json(&resp)?;
+            } else {
+                println!(
+                    "metacognition recent-adjustments: count={}",
+                    resp["adjustments"].as_array().map(|items| items.len()).unwrap_or(0)
                 );
             }
         }

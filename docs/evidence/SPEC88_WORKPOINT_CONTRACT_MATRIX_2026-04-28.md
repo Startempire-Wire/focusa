@@ -145,9 +145,9 @@ Endpoint envelope minimum:
 
 | Command | Endpoint | Human summary | JSON mode | Required flags/options |
 |---|---|---|---|---|
-| `focusa workpoint checkpoint` | POST `/v1/workpoint/checkpoint` | workpoint id, work item, action, next action, canonical | same as API | `--reason`, optional `--work-item`, `--next-action`, `--idempotency-key` |
-| `focusa workpoint current` | GET `/v1/workpoint/current` | active id + concise packet | same as API | optional `--work-item`, `--session`, `--frame` |
-| `focusa workpoint resume` | POST `/v1/workpoint/resume` | compact resume packet | same as API | `--mode compact-prompt|full-json|operator-summary` |
+| `focusa workpoint checkpoint` | POST `/v1/workpoint/checkpoint` | workpoint id, work item, action, next action, canonical/pending | same as API | `--reason`, `--project-root`, `--continuity-id`, optional `--work-item`, `--next-action`, `--idempotency-key` |
+| `focusa workpoint current` | GET `/v1/workpoint/current` | active id + concise packet | same as API | optional `--project-root`, `--continuity-id` |
+| `focusa workpoint resume` | POST `/v1/workpoint/resume` | compact resume packet | same as API | `--mode compact-prompt|full-json|operator-summary`, optional `--project-root`, `--continuity-id` |
 | `focusa workpoint drift-check` | POST `/v1/workpoint/drift-check` | drift/no drift + reason | same as API | latest output/action source, optional `--emit` |
 
 CLI acceptance:

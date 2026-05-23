@@ -21,9 +21,9 @@ Spec90 turns this into a self-verifying system.
 
 ## 4. Current-build baseline
 
-As of `v0.9.3-dev` / post-doc-audit state:
+As of `v0.9.12-dev` / current public snapshot:
 
-- Pi extension exposes 43 `focusa_*` tools from `apps/pi-extension/src/tools.ts`.
+- Pi extension exposes 58 `focusa_*` tools from `apps/pi-extension/src/tools.ts`.
 - Root docs include one individual doc per tool under `docs/focusa-tools/tools/`.
 - API routes include current surfaces for Workpoint, Work-loop, Metacognition, Ontology, Lineage, Focus State, ECS, Events, and related domains.
 - CLI exposes domains including `workpoint`, `metacognition`, `ontology`, `lineage`, `clt`, `focus`, `memory`, `ecs`, `events`, `state`, and others.
@@ -39,7 +39,7 @@ Each Focusa Pi tool MUST have one canonical contract entry.
 Required fields:
 
 - `name` — exact Pi tool name, e.g. `focusa_workpoint_checkpoint`.
-- `family` — one of `focus_state`, `workpoint`, `work_loop`, `metacognition`, `tree_lineage`, `diagnostics_hygiene`, `trajectory`.
+- `family` — one of `focus_state`, `workpoint`, `work_loop`, `metacognition`, `tree_lineage`, `diagnostics_hygiene`, `trajectory`, `project_identity`, or `traversal`.
 - `label` — human-facing label.
 - `purpose` — current-build purpose, no roadmap language.
 - `ontology_action` — canonical action id, e.g. `workpoint.checkpoint`.

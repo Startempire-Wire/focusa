@@ -40,6 +40,17 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 - [`focusa_current_focus`](./focusa_current_focus.md)
 - [`focusa_next_step`](./focusa_next_step.md)
 
-## Source
+## Contract summary
 
+- Family: Focus State.
+- Side effects: `local_note`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: none; local/Pi-only surface.
+- CLI commands: none.
+- Parity: `local_only`; exemptions: `local_scratchpad_only`.
+- Core surface: FocusState reducer/update.
+- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts`.

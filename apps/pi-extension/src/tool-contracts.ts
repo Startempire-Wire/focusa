@@ -58,13 +58,13 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_project_identity",
     "label": "Project Identity",
-    "purpose": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator scope signals before trusting scoped context.",
+    "purpose": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
     "family": "project_identity",
     "ontology_action": "project.identity",
     "ontology_objects": ["ProjectIdentity"],
     "api_routes": ["GET /v1/project/identity"],
     "cli_commands": ["focusa project identity"],
-    "core_surface": "Spec96 ProjectIdentity quorum and scope safety",
+    "core_surface": "Spec96 ProjectIdentity quorum and project-folder safety",
     "doc_path": "docs/focusa-tools/tools/focusa_project_identity.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_state",
@@ -75,13 +75,13 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_project_verify",
     "label": "Project Verify",
-    "purpose": "Verify expected project identity fields and surface scope mismatches without mutating Focusa state.",
+    "purpose": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
     "family": "project_identity",
     "ontology_action": "project.verify",
     "ontology_objects": ["ProjectIdentity"],
     "api_routes": ["POST /v1/project/verify"],
     "cli_commands": ["focusa project verify"],
-    "core_surface": "Spec96 ProjectIdentity quorum and scope safety",
+    "core_surface": "Spec96 ProjectIdentity quorum and project-folder safety",
     "doc_path": "docs/focusa-tools/tools/focusa_project_verify.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_state",
@@ -295,9 +295,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "FocusState"
     ],
     "api_routes": [],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": [],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_scratch.md",
     "result_envelope": "tool_result_v1",
@@ -320,9 +318,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --decision"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_decide.md",
     "result_envelope": "tool_result_v1",
@@ -343,9 +339,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --constraint"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_constraint.md",
     "result_envelope": "tool_result_v1",
@@ -366,9 +360,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --failure"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_failure.md",
     "result_envelope": "tool_result_v1",
@@ -389,9 +381,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --intent"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_intent.md",
     "result_envelope": "tool_result_v1",
@@ -412,9 +402,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --current-focus"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_current_focus.md",
     "result_envelope": "tool_result_v1",
@@ -435,9 +423,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --next-step"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_next_step.md",
     "result_envelope": "tool_result_v1",
@@ -458,9 +444,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --open-question"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_open_question.md",
     "result_envelope": "tool_result_v1",
@@ -481,9 +465,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --recent-result"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_recent_result.md",
     "result_envelope": "tool_result_v1",
@@ -504,9 +486,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/focus/update"
     ],
-    "cli_commands": [
-      "focusa focus"
-    ],
+    "cli_commands": ["focusa focus update --note"],
     "core_surface": "FocusState reducer/update",
     "doc_path": "docs/focusa-tools/tools/focusa_note.md",
     "result_envelope": "tool_result_v1",
@@ -818,9 +798,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/workpoint/active-object/resolve"
     ],
-    "cli_commands": [
-      "focusa workpoint"
-    ],
+    "cli_commands": ["focusa workpoint resolve-object"],
     "core_surface": "Workpoint reducer/state",
     "doc_path": "docs/focusa-tools/tools/focusa_active_object_resolve.md",
     "result_envelope": "tool_result_v1",
@@ -842,9 +820,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/workpoint/evidence/link"
     ],
-    "cli_commands": [
-      "focusa workpoint"
-    ],
+    "cli_commands": ["focusa workpoint evidence-link"],
     "core_surface": "Workpoint reducer/state",
     "doc_path": "docs/focusa-tools/tools/focusa_evidence_capture.md",
     "result_envelope": "tool_result_v1",
@@ -866,9 +842,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/workpoint/checkpoint"
     ],
-    "cli_commands": [
-      "focusa workpoint"
-    ],
+    "cli_commands": ["focusa workpoint checkpoint"],
     "core_surface": "Workpoint reducer/state",
     "doc_path": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
     "result_envelope": "tool_result_v1",
@@ -890,9 +864,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/workpoint/evidence/link"
     ],
-    "cli_commands": [
-      "focusa workpoint"
-    ],
+    "cli_commands": ["focusa workpoint evidence-link"],
     "core_surface": "Workpoint reducer/state",
     "doc_path": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md",
     "result_envelope": "tool_result_v1",
@@ -914,9 +886,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/workpoint/resume"
     ],
-    "cli_commands": [
-      "focusa workpoint"
-    ],
+    "cli_commands": ["focusa workpoint resume"],
     "core_surface": "Workpoint reducer/state",
     "doc_path": "docs/focusa-tools/tools/focusa_workpoint_resume.md",
     "result_envelope": "tool_result_v1",
@@ -938,10 +908,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/lineage/head"
     ],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "cli_commands": ["focusa lineage head"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_head.md",
     "result_envelope": "tool_result_v1",
@@ -963,10 +930,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/lineage/path/{clt_node_id}"
     ],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "cli_commands": ["focusa lineage path"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_path.md",
     "result_envelope": "tool_result_v1",
@@ -985,19 +949,14 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "LineageNode",
       "TreeSnapshot"
     ],
-    "api_routes": [],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "api_routes": ["POST /v1/focus/snapshots"],
+    "cli_commands": ["focusa state snapshot create"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_snapshot_state.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
-    "parity_status": "pi_only",
-    "exemptions": [
-      "pi_session_snapshot_only"
-    ],
+    "parity_status": "full",
+    "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
@@ -1010,19 +969,14 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "LineageNode",
       "TreeSnapshot"
     ],
-    "api_routes": [],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "api_routes": ["POST /v1/focus/snapshots/restore"],
+    "cli_commands": ["focusa state snapshot restore"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_restore_state.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
-    "parity_status": "pi_only",
-    "exemptions": [
-      "pi_session_snapshot_only"
-    ],
+    "parity_status": "full",
+    "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
@@ -1035,19 +989,14 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "LineageNode",
       "TreeSnapshot"
     ],
-    "api_routes": [],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "api_routes": ["POST /v1/focus/snapshots/diff"],
+    "cli_commands": ["focusa state snapshot diff"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_diff_context.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
-    "parity_status": "pi_only",
-    "exemptions": [
-      "pi_session_snapshot_only"
-    ],
+    "parity_status": "full",
+    "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
@@ -1062,9 +1011,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/metacognition/capture"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition capture"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_capture.md",
     "result_envelope": "tool_result_v1",
@@ -1085,9 +1032,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/metacognition/retrieve"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition retrieve"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_retrieve.md",
     "result_envelope": "tool_result_v1",
@@ -1108,9 +1053,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/metacognition/reflect"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition reflect"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_reflect.md",
     "result_envelope": "tool_result_v1",
@@ -1131,9 +1074,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/metacognition/adjust"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition adjust"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_plan_adjust.md",
     "result_envelope": "tool_result_v1",
@@ -1154,9 +1095,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "POST /v1/metacognition/evaluate"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition evaluate"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
     "result_envelope": "tool_result_v1",
@@ -1175,19 +1114,14 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "LineageNode",
       "TreeSnapshot"
     ],
-    "api_routes": [],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "api_routes": ["GET /v1/focus/snapshots/recent"],
+    "cli_commands": ["focusa state snapshot recent"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_recent_snapshots.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
-    "parity_status": "pi_only",
-    "exemptions": [
-      "pi_session_snapshot_only"
-    ],
+    "parity_status": "full",
+    "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
@@ -1200,19 +1134,14 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "LineageNode",
       "TreeSnapshot"
     ],
-    "api_routes": [],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "api_routes": ["GET /v1/focus/snapshots/recent","POST /v1/focus/snapshots","POST /v1/focus/snapshots/diff"],
+    "cli_commands": ["focusa state snapshot compare-latest"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "read_only",
-    "parity_status": "pi_only",
-    "exemptions": [
-      "pi_session_snapshot_only"
-    ],
+    "parity_status": "full",
+    "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
@@ -1227,9 +1156,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/metacognition/reflections/recent"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition recent-reflections"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
     "result_envelope": "tool_result_v1",
@@ -1250,9 +1177,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/metacognition/adjustments/recent"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition recent-adjustments"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
     "result_envelope": "tool_result_v1",
@@ -1277,9 +1202,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "POST /v1/metacognition/adjust",
       "POST /v1/metacognition/evaluate"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition loop run"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_loop_run.md",
     "result_envelope": "tool_result_v1",
@@ -1301,9 +1224,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "POST /v1/metacognition/retrieve",
       "GET /v1/metacognition/reflections/recent"
     ],
-    "cli_commands": [
-      "focusa metacognition"
-    ],
+    "cli_commands": ["focusa metacognition doctor"],
     "core_surface": "Metacognition store/retriever",
     "doc_path": "docs/focusa-tools/tools/focusa_metacog_doctor.md",
     "result_envelope": "tool_result_v1",
@@ -1325,10 +1246,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/lineage/tree"
     ],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "cli_commands": ["focusa lineage tree"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_lineage_tree.md",
     "result_envelope": "tool_result_v1",
@@ -1350,10 +1268,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "api_routes": [
       "GET /v1/lineage/tree"
     ],
-    "cli_commands": [
-      "focusa lineage",
-      "focusa clt"
-    ],
+    "cli_commands": ["focusa lineage extract"],
     "core_surface": "Context lineage tree/snapshot state",
     "doc_path": "docs/focusa-tools/tools/focusa_li_tree_extract.md",
     "result_envelope": "tool_result_v1",
@@ -1378,15 +1293,15 @@ export function findFocusaToolContract(name: string) {
 
 
 const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
-  focus_state: ["focusa_workpoint_resume", "focusa_evidence_capture", "focusa_tool_doctor"],
-  workpoint: ["focusa_trajectory_view", "focusa_traverse", "focusa_evidence_capture"],
-  work_loop: ["focusa_work_loop_writer_status", "focusa_work_loop_status", "focusa_tool_doctor"],
-  metacognition: ["focusa_metacog_retrieve", "focusa_metacog_reflect", "focusa_workpoint_resume"],
+  focus_state: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+  workpoint: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_trajectory_assess"],
+  work_loop: ["focusa_work_loop_writer_status", "focusa_work_loop_status", "focusa_work_loop_checkpoint"],
+  metacognition: ["focusa_predict_evaluate", "focusa_metacog_retrieve", "focusa_workpoint_resume"],
   tree_lineage: ["focusa_tree_head", "focusa_tree_path", "focusa_traverse"],
   diagnostics_hygiene: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_resume"],
   trajectory: ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint", "focusa_workpoint_checkpoint"],
   project_identity: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
-  traversal: ["focusa_traverse", "focusa_trajectory_view", "focusa_workpoint_resume"],
+  traversal: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_workpoint_resume"],
 };
 
 const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
@@ -1430,7 +1345,7 @@ export function buildFocusaToolAffordanceCatalog(contracts: FocusaToolContract[]
     name: contract.name,
     family: contract.family,
     purpose: contract.purpose,
-    when_to_use: [contract.purpose, `Use for ${contract.core_surface}.`],
+    when_to_use: [contract.purpose, `Use for ${contract.core_surface}.`, "Fit this tool into the friendly route: project identity → trajectory → Workpoint → evidence → prediction/metacog when doing project work."],
     when_not_to_use: FAMILY_WHEN_NOT_TO_USE[contract.family] || ["when another narrower tool is explicitly indicated"],
     default_inputs: FAMILY_DEFAULT_INPUTS[contract.family] || ["bounded tool parameters only"],
     side_effects: contract.side_effect_profile,
@@ -1464,9 +1379,11 @@ export function selectFocusSliceToolAffordances(options: FocusSliceToolAffordanc
     options.hasWorkpoint
       ? affordanceLine("focusa_workpoint_resume", "recover canonical continuation packet after compaction/model switch")
       : affordanceLine("focusa_workpoint_checkpoint", "create typed continuation before risky/long work"),
-    affordanceLine("focusa_traverse", "fetch narrow lineage/ontology/evidence/tool-registry slices instead of full payloads"),
-    ...(options.hasOntologyAmbiguity ? [affordanceLine("focusa_active_object_resolve", "resolve ambiguous target refs before acting")] : []),
     ...(options.resourceModeActive ? [affordanceLine("focusa_resource_mode", "inspect LowMem/emergency posture and budgets")] : []),
+    ...(options.hasOntologyAmbiguity ? [affordanceLine("focusa_traverse", "fetch narrow lineage/ontology/evidence/tool-registry slices instead of full payloads")] : []),
+    affordanceLine("focusa_active_object_resolve", "resolve target refs before acting or linking proof"),
+    affordanceLine("focusa_evidence_capture", "link test/API/file proof after work changes confidence"),
+    affordanceLine("focusa_predict_record", "record a bounded forecast before risky or uncertain action"),
   ];
   return {
     best_next: bestNext.slice(0, 6),

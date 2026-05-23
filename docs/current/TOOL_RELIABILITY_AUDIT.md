@@ -8,15 +8,14 @@
 node scripts/audit-focusa-tool-suite-safe.mjs
 ```
 
-This audit is read-only for daemon/API probes. It validates all 53 registered tool contracts and docs, probes safe GET routes, and classifies warnings/failures with `failure_class`.
+This audit is read-only for daemon/API probes. It validates all 58 registered tool contracts and docs, probes safe GET routes, and classifies warnings/failures with `failure_class`.
 
 ## Latest safe audit result
 
-- Static contracts: passed (`tools=53`, `contracts=53`).
-- Safe GET routes: passed for health, ontology tool contracts, focus current frame, lineage, metacog recent, predictions, work-loop summary, Workpoint current.
+- Static contracts: passed (`tools=58`, `contracts=58`).
+- Safe GET routes: passed for health, ontology tool contracts, focus current frame, lineage, metacog recent, predictions, project identity, resource mode, trajectory, work-loop summary, Workpoint current.
 - Warnings:
-  - `stale_runtime_registry`: running daemon serves old registry payload after source/docs edits; requires approved rebuild/restart to clear.
-  - `frame_unavailable`: live `/v1/focus/frame/current` returns `active_frame_id` but `frame=null` without scoped query; source patch adds active-frame fallback.
+  - `stale_runtime_registry`: running daemon serves old registry payload after source/docs edits; requires rebuild/restart to clear.
 
 ## Confirmed failurepoints from this session
 
@@ -59,11 +58,12 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 - `focusa_scratch` is last-resort fallback; preferred recovery is cached project-bound Focusa summaries plus clear failure classes.
 
 
-## Latest trajectory-family safe audit
+## Latest all-tools implementation/spec audit
 
-- Contracts: passed (`tools=53`, `contracts=53`).
-- Live registry parity: `payload_equal=true` after rebuilt daemon restart.
+- Contracts: passed (`tools=58`, `contracts=58`).
+- Static implementation/spec audit: passed (`failures=0`, `warnings=0`).
+- Filled gaps: concrete Focus State CLI update, scoped Workpoint CLI flags, metacog recent CLI, lineage extract CLI, snapshot API/CLI contract parity.
+- Live probes: 15 hot/safe endpoints passed with no failures in the safe suite; stale runtime registry can appear until daemon rebuild/restart reloads embedded registry.
 - Safe audit skips cold `GET /v1/lineage/tree` by default for low-memory reliability; set `FOCUSA_AUDIT_INCLUDE_COLD_GET=1` for explicit cold-route probing.
-- Process RSS stayed near 320MB before/after hot probes.
-- Evidence: `/tmp/focusa-tool-audit-trajectory-family-final3.json`.
+- Evidence: `/tmp/focusa-tool-implementation-spec-audit.json`, `/tmp/focusa-tool-suite-safe-audit-final.json`.
 

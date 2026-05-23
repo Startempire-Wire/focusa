@@ -37,6 +37,17 @@ Returns ProjectIdentity plus `verification.verified`, quorum rule, matching inde
 focusa_project_verify cwd="/home/wirebot/focusa" project_root="/home/wirebot/focusa" project_id="focusa"
 ```
 
-## Source
+## Contract summary
 
+- Family: Project Identity.
+- Side effects: `read_state`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `POST /v1/project/verify`
+- CLI commands: `focusa project verify`
+- Parity: `domain`; exemptions: `domain_cli_only`.
+- Core surface: Spec96 ProjectIdentity quorum and project-folder safety.
+- Live check: contract_static plus /v1/project/verify safe probe and mismatch diagnostics.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Backed by `POST /v1/project/verify`.

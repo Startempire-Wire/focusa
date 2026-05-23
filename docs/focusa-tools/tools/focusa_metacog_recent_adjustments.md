@@ -40,6 +40,17 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 - [`focusa_metacog_evaluate_outcome`](./focusa_metacog_evaluate_outcome.md)
 - [`focusa_metacog_recent_reflections`](./focusa_metacog_recent_reflections.md)
 
-## Source
+## Contract summary
 
+- Family: Metacognition.
+- Side effects: `read_only`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `GET /v1/metacognition/adjustments/recent`
+- CLI commands: `focusa metacognition recent-adjustments`
+- Parity: `full`.
+- Core surface: Metacognition store/retriever.
+- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts`.

@@ -316,9 +316,9 @@ POST /v1/workpoint/drift-check
 ### 9.2 CLI
 
 ```bash
-focusa workpoint checkpoint
-focusa workpoint current
-focusa workpoint resume
+focusa workpoint checkpoint --project-root <repo> --continuity-id <logical-session>
+focusa workpoint current --project-root <repo> --continuity-id <logical-session>
+focusa workpoint resume --project-root <repo> --continuity-id <logical-session>
 focusa workpoint drift-check
 ```
 

@@ -40,6 +40,17 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 - [`focusa_tree_recent_snapshots`](./focusa_tree_recent_snapshots.md)
 - [`focusa_tree_snapshot_compare_latest`](./focusa_tree_snapshot_compare_latest.md)
 
-## Source
+## Contract summary
 
+- Family: Tree / Lineage.
+- Side effects: `read_only`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `POST /v1/focus/snapshots`
+- CLI commands: `focusa state snapshot create`
+- Parity: `full`.
+- Core surface: Context lineage tree/snapshot state.
+- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts`.

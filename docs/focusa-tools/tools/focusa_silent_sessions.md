@@ -42,6 +42,17 @@ focusa_silent_sessions action="tail" session_name="focusa-c7e1" lines=120
 focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true force=true
 ```
 
-## Source
+## Contract summary
 
+- Family: Work Loop.
+- Side effects: `process_control`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: none; local/Pi-only surface.
+- CLI commands: `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux kill-session`
+- Parity: `pi_only`; exemptions: `pi_only`.
+- Core surface: Pi-local tmux SilentSession controller.
+- Live check: contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts`; wraps `tmux` local commands.

@@ -20,6 +20,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
 - Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success.
 - Trajectory tools are first-class per-project north-star tools: view, define_goal, assess, propose_workpoint, checkpoint, resume.
+- Friendly onboarding and route hints: [`FOCUSA_FRIENDLY_ONBOARDING.md`](../current/FOCUSA_FRIENDLY_ONBOARDING.md) and [`FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](../current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md).
 
 ## All tools
 

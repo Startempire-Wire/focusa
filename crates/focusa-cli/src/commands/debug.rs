@@ -34,12 +34,24 @@ pub enum SnapshotCmd {
         #[arg(long, default_value = "exact")]
         restore_mode: String,
     },
+    /// Show recent snapshot ids.
+    Recent {
+        #[arg(long, default_value_t = 5)]
+        limit: u32,
+    },
     /// Diff two snapshots.
     Diff {
         #[arg(long = "from")]
         from_snapshot_id: String,
         #[arg(long = "to")]
         to_snapshot_id: String,
+    },
+    /// Create a fresh snapshot and compare it to the latest prior snapshot.
+    CompareLatest {
+        #[arg(long)]
+        snapshot_reason: Option<String>,
+        #[arg(long)]
+        baseline_snapshot_id: Option<String>,
     },
 }
 
@@ -134,6 +146,18 @@ pub async fn run_state(cmd: StateCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("snapshot restore: {}", resp["snapshot_id"].as_str().unwrap_or("unknown"));
             }
         }
+        StateCmd::Snapshot(SnapshotCmd::Recent { limit }) => {
+            let bounded = limit.clamp(1, 20);
+            let resp = api.get(&format!("/v1/focus/snapshots/recent?limit={bounded}")).await?;
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!(
+                    "snapshot recent: count={}",
+                    resp["snapshots"].as_array().map(|items| items.len()).unwrap_or(0)
+                );
+            }
+        }
         StateCmd::Snapshot(SnapshotCmd::Diff {
             from_snapshot_id,
             to_snapshot_id,
@@ -148,6 +172,49 @@ pub async fn run_state(cmd: StateCmd, json_mode: bool) -> anyhow::Result<()> {
             } else {
                 println!(
                     "snapshot diff: changed={}",
+                    resp["checksum_changed"].as_bool().unwrap_or(false)
+                );
+            }
+        }
+        StateCmd::Snapshot(SnapshotCmd::CompareLatest {
+            snapshot_reason,
+            baseline_snapshot_id,
+        }) => {
+            let baseline = match baseline_snapshot_id {
+                Some(id) if !id.trim().is_empty() => Some(id),
+                _ => {
+                    let recent = api.get("/v1/focus/snapshots/recent?limit=1").await?;
+                    recent
+                        .get("snapshots")
+                        .and_then(|v| v.as_array())
+                        .and_then(|items| items.first())
+                        .and_then(|item| item.get("snapshot_id"))
+                        .and_then(|v| v.as_str())
+                        .map(str::to_string)
+                }
+            };
+            let created = api
+                .post(
+                    "/v1/focus/snapshots",
+                    &json!({"snapshot_reason": snapshot_reason}),
+                )
+                .await?;
+            let created_id = created["snapshot_id"].as_str().unwrap_or("").to_string();
+            let resp = if let Some(baseline_id) = baseline.filter(|_| !created_id.is_empty()) {
+                api.post(
+                    "/v1/focus/snapshots/diff",
+                    &json!({"from_snapshot_id": baseline_id, "to_snapshot_id": created_id}),
+                )
+                .await?
+            } else {
+                json!({"created": created, "diff": null, "status": "created_no_baseline"})
+            };
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            } else {
+                println!(
+                    "snapshot compare-latest: created={} changed={}",
+                    created_id,
                     resp["checksum_changed"].as_bool().unwrap_or(false)
                 );
             }

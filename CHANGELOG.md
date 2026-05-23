@@ -2,6 +2,15 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — project-root terminology and trajectory accuracy
+
+- Clarified public/runtime language: `project_root` is the project folder/container holding related files, while Trajectory is the functional route from current state to destination and waypoints.
+- Replaced user-facing project-root “scope boundary” wording across Pi, CLI/API awareness cards, ProjectIdentity/Workpoint docs, and OpenClaw awareness text; `scope_mismatch` remains only as backward-compatible failure taxonomy.
+- Deployed release binaries after final cross-layer verification; live daemon health, status, and tool-contract parity were rechecked.
+- Refreshed public README/spec documentation for the 58-tool surface, including ProjectIdentity, Trajectory, `focusa_traverse`, `focusa_resource_mode`, and `focusa_silent_sessions`.
+- Added friendly Focusa onboarding Q plus tool choreography routes so models favor project identity → trajectory → Workpoint → evidence → prediction/metacog over note-only workflows.
+- Added implementation-to-spec audit coverage and filled CLI/contract gaps for Focus State updates, scoped Workpoint commands, metacog recent reads, lineage extract, and snapshot parity.
+
 ## Unreleased — Spec93 release publication proof
 
 - Published `v0.9.12-dev` and recorded final release proof in `docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md`.

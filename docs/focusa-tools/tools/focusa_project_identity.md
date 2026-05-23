@@ -34,6 +34,17 @@ Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`,
 focusa_project_identity cwd="/home/wirebot/focusa"
 ```
 
-## Source
+## Contract summary
 
+- Family: Project Identity.
+- Side effects: `read_state`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `GET /v1/project/identity`
+- CLI commands: `focusa project identity`
+- Parity: `domain`; exemptions: `domain_cli_only`.
+- Core surface: Spec96 ProjectIdentity quorum and project-folder safety.
+- Live check: contract_static plus /v1/project/identity safe probe and quorum status.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Backed by `GET /v1/project/identity`.

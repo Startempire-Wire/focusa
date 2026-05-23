@@ -35,7 +35,18 @@ assert_req_or_writer_conflict(){
   fail "$name" "$(tail -c 500 "$out" 2>/dev/null)"
 }
 
+wait_for_workpoint_visible(){
+  local wid="$1" out="$TMP_DIR/workpoint-visible.json"
+  for _ in $(seq 1 40); do
+    if request GET "/workpoint/current?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID" '' "$out" && jq -e --arg wid "$wid" '(.workpoint_id == $wid) and (.status == "active" or .status == "completed") and .canonical == true' "$out" >/dev/null 2>&1; then return 0; fi
+    sleep 0.25
+  done
+  return 1
+}
+
 KEY="stress-$(date +%s)-$$"
+PROJECT_ROOT="${FOCUSA_STRESS_PROJECT_ROOT:-$(pwd -P)}"
+CONTINUITY_ID="${FOCUSA_STRESS_CONTINUITY_ID:-focusa-tool-stress}"
 
 # Core health/session/focus state writes
 assert_req health GET /health '' '.ok == true'
@@ -46,15 +57,20 @@ assert_req focus_update_constraint POST /focus/update "{\"turn_id\":\"stress-con
 
 # Workpoint API and idempotency
 WP1="$TMP_DIR/workpoint1.json"; WP2="$TMP_DIR/workpoint2.json"
-request POST /workpoint/checkpoint "{\"mission\":\"Focusa tool stress\",\"next_slice\":\"Complete stress suite\",\"checkpoint_reason\":\"manual\",\"confidence\":\"high\",\"canonical\":true,\"promote\":true,\"idempotency_key\":\"$KEY\",\"action_intent\":{\"action_type\":\"stress_verify\",\"target_ref\":\"FocusaToolSuite\",\"verification_hooks\":[\"api\",\"cli\",\"pi\"],\"status\":\"ready\"}}" "$WP1" && jq -e '.status == "accepted" and .canonical == true' "$WP1" >/dev/null && pass workpoint_checkpoint || fail workpoint_checkpoint "$(cat "$WP1" 2>/dev/null)"
-sleep 1
-request POST /workpoint/evidence/link "{\"target_ref\":\"tests/focusa_tool_stress_test.sh\",\"result\":\"stress evidence link passed\",\"evidence_ref\":\"tests/focusa_tool_stress_test.sh:1\"}" "$TMP_DIR/workpoint_link.json" && jq -e '.status == "accepted" and .canonical == true' "$TMP_DIR/workpoint_link.json" >/dev/null && pass workpoint_evidence_link || fail workpoint_evidence_link "$(cat "$TMP_DIR/workpoint_link.json" 2>/dev/null)"
-request POST /workpoint/checkpoint "{\"mission\":\"Duplicate\",\"next_slice\":\"Duplicate\",\"idempotency_key\":\"$KEY\"}" "$WP2" && jq -e '.idempotent_replay == true' "$WP2" >/dev/null && pass workpoint_idempotency || fail workpoint_idempotency "$(cat "$WP2" 2>/dev/null)"
-sleep 1
-assert_req workpoint_current GET /workpoint/current '' '.status == "completed" and .canonical == true'
-assert_req workpoint_resume POST /workpoint/resume '{"mode":"operator"}' '.status == "completed" and .resume_packet != null'
-assert_req workpoint_drift_no POST /workpoint/drift-check '{"latest_action":"stress verify FocusaToolSuite api cli pi","expected_action_type":"stress_verify","emit":false}' '.status == "no_drift" and .drift_detected == false'
-assert_req workpoint_drift_yes POST /workpoint/drift-check '{"latest_action":"Updated notes for unrelated object","expected_action_type":"patch_component_binding","active_object_refs":["Component:homepage.audio_widget"],"emit":false}' '.status == "drift_detected" and .drift_detected == true'
+CHECKPOINT_BODY=$(jq -nc --arg key "$KEY" --arg root "$PROJECT_ROOT" --arg cont "$CONTINUITY_ID" '{mission:"Focusa tool stress",next_slice:"Complete stress suite",project_root:$root,continuity_id:$cont,checkpoint_reason:"manual",confidence:"high",canonical:true,promote:true,idempotency_key:$key,active_object_refs:["FocusaToolSuite"],action_intent:{action_type:"stress_verify",target_ref:"FocusaToolSuite",verification_hooks:["api","cli","pi"],status:"ready"}}')
+request POST /workpoint/checkpoint "$CHECKPOINT_BODY" "$WP1" && WID=$(jq -r '.workpoint_id // empty' "$WP1") && [[ -n "${WID:-}" ]] && jq -e '(.status == "accepted" or .status == "pending") and .canonical == true' "$WP1" >/dev/null && pass workpoint_checkpoint || fail workpoint_checkpoint "$(cat "$WP1" 2>/dev/null)"
+if [[ -n "${WID:-}" ]] && wait_for_workpoint_visible "$WID"; then pass workpoint_visibility; else fail workpoint_visibility "$(cat "$TMP_DIR/workpoint-visible.json" 2>/dev/null)"; fi
+EVIDENCE_BODY=$(jq -nc --arg wid "${WID:-}" '{target_ref:"tests/focusa_tool_stress_test.sh",result:"stress evidence link passed",evidence_ref:"tests/focusa_tool_stress_test.sh:1"} + (if $wid != "" then {workpoint_id:$wid} else {} end)')
+request POST /workpoint/evidence/link "$EVIDENCE_BODY" "$TMP_DIR/workpoint_link.json" && jq -e '((.status == "accepted") or (.status == "pending" and .failure_class == "read_model_lag")) and .canonical == true' "$TMP_DIR/workpoint_link.json" >/dev/null && pass workpoint_evidence_link || fail workpoint_evidence_link "$(cat "$TMP_DIR/workpoint_link.json" 2>/dev/null)"
+DUPLICATE_BODY=$(jq -nc --arg key "$KEY" --arg root "$PROJECT_ROOT" --arg cont "$CONTINUITY_ID" '{mission:"Duplicate",next_slice:"Duplicate",project_root:$root,continuity_id:$cont,idempotency_key:$key}')
+request POST /workpoint/checkpoint "$DUPLICATE_BODY" "$WP2" && jq -e '.idempotent_replay == true' "$WP2" >/dev/null && pass workpoint_idempotency || fail workpoint_idempotency "$(cat "$WP2" 2>/dev/null)"
+assert_req workpoint_current GET "/workpoint/current?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID" '' '(.status == "active" or .status == "completed") and .canonical == true'
+RESUME_BODY=$(jq -nc --arg root "$PROJECT_ROOT" --arg cont "$CONTINUITY_ID" '{mode:"operator",project_root:$root,continuity_id:$cont}')
+assert_req workpoint_resume POST /workpoint/resume "$RESUME_BODY" '.status == "completed" and .resume_packet != null'
+DRIFT_NO_BODY=$(jq -nc --arg wid "${WID:-}" '{latest_action:"stress verify FocusaToolSuite api cli pi",expected_action_type:"stress_verify",active_object_refs:["FocusaToolSuite"],emit:false} + (if $wid != "" then {workpoint_id:$wid} else {} end)')
+assert_req workpoint_drift_no POST /workpoint/drift-check "$DRIFT_NO_BODY" '.status == "no_drift" and .drift_detected == false'
+DRIFT_YES_BODY=$(jq -nc --arg wid "${WID:-}" '{latest_action:"Updated notes for unrelated object",expected_action_type:"patch_component_binding",active_object_refs:["Component:homepage.audio_widget"],emit:false} + (if $wid != "" then {workpoint_id:$wid} else {} end)')
+assert_req workpoint_drift_yes POST /workpoint/drift-check "$DRIFT_YES_BODY" '.status == "drift_detected" and .drift_detected == true'
 
 # Lineage/tree and snapshots
 HEAD_JSON="$TMP_DIR/head.json"

@@ -38,6 +38,17 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 - [`focusa_workpoint_link_evidence`](./focusa_workpoint_link_evidence.md)
 - [`focusa_evidence_capture`](./focusa_evidence_capture.md)
 
-## Source
+## Contract summary
 
+- Family: Workpoint.
+- Side effects: `read_only`.
+- Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
+- API routes: `POST /v1/workpoint/active-object/resolve`
+- CLI commands: `focusa workpoint resolve-object`
+- Parity: `full`.
+- Core surface: Workpoint reducer/state.
+- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
+- Contract source: `docs/current/focusa-tool-contracts.json`.
+
+## Source
 Defined in `apps/pi-extension/src/tools.ts`.

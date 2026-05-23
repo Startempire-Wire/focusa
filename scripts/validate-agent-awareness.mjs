@@ -8,6 +8,8 @@ const files = {
   turns: 'apps/pi-extension/src/turns.ts',
   quickstart: 'docs/current/AGENT_AWARENESS_QUICKSTART.md',
   card: 'docs/current/FOCUSA_AGENT_UTILITY_CARD.md',
+  onboarding: 'docs/current/FOCUSA_FRIENDLY_ONBOARDING.md',
+  choreography: 'docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md',
   docsIndex: 'docs/README.md',
   readme: 'README.md',
 };
@@ -38,9 +40,15 @@ must('turns', 'S.seenFirstBeforeAgentStart');
 for (const file of ['quickstart', 'card']) {
   for (const needle of ['Workpoint', 'doctor', 'evidence', 'prediction', 'compaction', 'operator']) must(file, needle);
 }
+for (const needle of ['Friendly Focusa Q', 'project_root', 'trajectory', 'Workpoint', 'evidence', 'predict', 'metacog']) must('onboarding', needle);
+for (const needle of ['Route graph', 'project_identity', 'trajectory_view', 'workpoint_checkpoint', 'evidence_capture', 'predict_record', 'metacog']) must('choreography', needle);
 must('docsIndex', 'AGENT_AWARENESS_QUICKSTART.md');
 must('docsIndex', 'FOCUSA_AGENT_UTILITY_CARD.md');
+must('docsIndex', 'FOCUSA_FRIENDLY_ONBOARDING.md');
+must('docsIndex', 'FOCUSA_TOOL_CHOREOGRAPHY_MAP.md');
 must('readme', 'Agent Awareness Quickstart');
+must('readme', 'Friendly Focusa Onboarding Q');
+must('readme', 'Focusa Tool Choreography Map');
 
 if (failures.length) {
   console.error('Agent awareness validation: failed');
