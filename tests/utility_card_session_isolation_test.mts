@@ -50,7 +50,9 @@ assert(!unsafeCwdCard.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Util
 assert(!unsafeCwdCard.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity id");
 assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no scoped Workpoint");
 assert(unsafeCwdCard.includes("broad/unsafe"), "unsafe-cwd Utility Card should be compact but explicit about broad scope");
-assert(unsafeCwdCard.split("\n").length <= 6, "unscoped visible Utility Card should stay compact");
+assert(unsafeCwdCard.includes("REQUIRED FIRST: confirm project_root"), "unscoped Utility Card should make project root resolution top priority");
+assert(unsafeCwdCard.includes("trajectory"), "unscoped Utility Card should make trajectory/destination explicit");
+assert(unsafeCwdCard.split("\n").length <= 7, "unscoped visible Utility Card should stay compact");
 
 Object.assign(S, {
   sessionFrameKey: "different-session",
@@ -65,7 +67,7 @@ Object.assign(S, {
 resetPiSessionScopedState("runtime_cross_session_reset_proof");
 const resetCard = buildFocusaUtilityCard("visible");
 assert(!resetCard.includes("SPEC96 FROM OTHER SESSION"), "session reset leaked Pi Task/title from another session");
-assert(resetCard.split("\n").length <= 6, "unscoped reset Utility Card should stay compact");
+assert(resetCard.split("\n").length <= 7, "unscoped reset Utility Card should stay compact");
 assert(S.currentAsk === null, "session reset retained currentAsk");
 assert(S.activeFrameTitle === "" && S.activeFrameGoal === "", "session reset retained frame title/goal");
 assert(S.focusStateCache.data === null, "session reset retained focus cache");

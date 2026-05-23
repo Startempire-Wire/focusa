@@ -22,10 +22,11 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       prefix,
       `Status: ${status}`,
       `Scope: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
-      "Scoped Workpoint: none verified; latest operator instruction is authority.",
+      "REQUIRED FIRST: confirm project_root (current location) and trajectory (destination/waypoints).",
+      "Scoped Workpoint: none verified; latest operator instruction is authority only after location+destination are known.",
       needsConfirm
-        ? "Next: project root confidence <90%; use interview/menu to confirm project_root before Focusa writes."
-        : "Next: cd into a project or pass project_root; use focusa_workpoint_resume only for real project work.",
+        ? "Top priority: use interview/menu to confirm project_root, then run focusa_trajectory_view/define_goal before Focusa writes."
+        : "Top priority: run focusa_trajectory_view for destination/waypoints; checkpoint only after root+trajectory are clear.",
     ].join("\n");
   }
 
@@ -33,6 +34,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     prefix,
     `Status: ${status}`,
     scopedPacket ? "Scoped Workpoint: verified project_root + continuity_id match." : "Scoped Workpoint: none verified for this logical session; ignore stale scoped carryover.",
+    !safeScope || needsConfirm ? "REQUIRED FIRST: confirm project_root (current location) before state writes." : "Project root: confirmed current location.",
     mission ? `Mission: ${mission}` : "Mission: use latest operator instruction only; no scoped Workpoint mission verified.",
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
     projectRoot ? `Scope: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Scope: bind work to current project root; reject cross-project resume packets.",
