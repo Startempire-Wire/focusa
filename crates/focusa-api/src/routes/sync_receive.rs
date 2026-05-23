@@ -15,6 +15,54 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+type SyncReceiveResult = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
+
+fn receive_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_project_identity"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": failure_class != "validation_rejected", "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry_after_recovery" }, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_project_identity"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn receive_persistence_failed(
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<serde_json::Value>) {
+    receive_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("sync receive persistence failed: {error}"),
+        "persistence_unavailable",
+        "Sync receive could not check or persist remote observation state.",
+        "Check SQLite/daemon health and retry after local persistence recovers.",
+        "Likely database lock, wrong project database, or daemon shutdown during sync receive.",
+    )
+}
+
+fn receive_timestamp_rejected(value: &str) -> (StatusCode, Json<serde_json::Value>) {
+    receive_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid remote event timestamp: {value}"),
+        "validation_rejected",
+        "Sync receive event timestamp must be RFC3339.",
+        "Correct the remote event timestamp before retrying unchanged.",
+        "Likely incompatible peer version or malformed remote event payload.",
+    )
+}
+
 #[derive(Deserialize)]
 pub struct ReceiveBody {
     /// Events from remote peer (already filtered by cursor)
@@ -41,7 +89,7 @@ pub struct RemoteEvent {
 pub async fn receive_impl(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ReceiveBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> SyncReceiveResult {
     let mut imported = 0;
     let mut skipped = 0;
     let mut parse_failures = 0;
@@ -66,7 +114,7 @@ pub async fn receive_impl(
         let exists = state
             .persistence
             .event_exists(&event_id.to_string())
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(receive_persistence_failed)?;
 
         if exists {
             skipped += 1;
@@ -94,7 +142,7 @@ pub async fn receive_impl(
         let entry = EventLogEntry {
             id: event_id,
             timestamp: chrono::DateTime::parse_from_rfc3339(&remote.timestamp)
-                .map_err(|_| StatusCode::BAD_REQUEST)?
+                .map_err(|_| receive_timestamp_rejected(&remote.timestamp))?
                 .with_timezone(&chrono::Utc),
             event,
             correlation_id: Some(format!("sync:from:{}", body.peer_id)),

@@ -25,6 +25,52 @@ use std::fs;
 use std::sync::Arc;
 use uuid::Uuid;
 
+type SessionResult = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
+
+fn session_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": failure_class != "validation_rejected", "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry_after_recovery" }, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn session_invalid_uuid(value: &str) -> (StatusCode, Json<serde_json::Value>) {
+    session_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid session_id: {value}"),
+        "validation_rejected",
+        "Session resume requires session_id to be a UUID.",
+        "Send a valid session_id UUID before retrying unchanged.",
+        "Likely stale Pi resume payload or non-UUID session handle.",
+    )
+}
+
+fn session_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
+    session_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("session dispatch failed: {error}"),
+        "daemon_unavailable",
+        "Session resume action could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+    )
+}
+
 #[derive(Debug, Deserialize, Default)]
 struct StatusQuery {
     #[serde(default)]
@@ -469,15 +515,15 @@ struct ResumeSessionBody {
 async fn resume_session(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ResumeSessionBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let session_id =
-        uuid::Uuid::parse_str(&body.session_id).map_err(|_| StatusCode::BAD_REQUEST)?;
+) -> SessionResult {
+    let session_id = uuid::Uuid::parse_str(&body.session_id)
+        .map_err(|_| session_invalid_uuid(&body.session_id))?;
 
     state
         .command_tx
         .send(Action::ResumeSession { session_id })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(session_dispatch_failed)?;
 
     Ok(Json(
         json!({"status": "accepted", "session_id": body.session_id}),

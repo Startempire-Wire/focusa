@@ -160,25 +160,6 @@ fn sync_validation_failed(
     )
 }
 
-fn sync_delegate_failed(route: &str, status: StatusCode) -> (StatusCode, Json<serde_json::Value>) {
-    sync_failure(
-        status,
-        format!("{route} rejected with HTTP {}", status.as_u16()),
-        if status == StatusCode::BAD_REQUEST {
-            "validation_rejected"
-        } else {
-            "persistence_unavailable"
-        },
-        format!(
-            "Delegated {route} sync handler returned HTTP {} without completing.",
-            status.as_u16()
-        ),
-        "Inspect the sync payload and daemon persistence health, then retry after the specific cause is corrected.",
-        "Likely malformed remote event timestamp, database failure, or incompatible delegated sync payload.",
-        &["focusa_tool_doctor", "focusa_project_identity"],
-    )
-}
-
 #[derive(Deserialize)]
 struct RegisterPeerBody {
     peer_id: String,
@@ -413,9 +394,7 @@ async fn receive(
     let body: crate::routes::sync_receive::ReceiveBody =
         serde_json::from_value(body).map_err(|e| sync_validation_failed("receive payload", e))?;
     // Delegate to sync_receive module
-    crate::routes::sync_receive::receive_impl(State(state), Json(body))
-        .await
-        .map_err(|status| sync_delegate_failed("/v1/sync/receive", status))
+    crate::routes::sync_receive::receive_impl(State(state), Json(body)).await
 }
 
 async fn transfer(
@@ -426,7 +405,5 @@ async fn transfer(
     let body: crate::routes::sync_transfer::TransferBody =
         serde_json::from_value(body).map_err(|e| sync_validation_failed("transfer payload", e))?;
     // Delegate to sync_transfer module
-    crate::routes::sync_transfer::transfer_impl(State(state), Json(body))
-        .await
-        .map_err(|status| sync_delegate_failed("/v1/sync/transfer", status))
+    crate::routes::sync_transfer::transfer_impl(State(state), Json(body)).await
 }

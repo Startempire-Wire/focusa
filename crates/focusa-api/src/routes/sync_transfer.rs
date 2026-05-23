@@ -20,6 +20,54 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+type SyncTransferResult = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
+
+fn transfer_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_project_identity"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": failure_class != "validation_rejected", "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry_after_recovery" }, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_project_identity"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn transfer_persistence_failed(
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<serde_json::Value>) {
+    transfer_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("sync transfer persistence failed: {error}"),
+        "persistence_unavailable",
+        "Sync transfer could not check or persist ownership-transfer state.",
+        "Check SQLite/daemon health and retry after local persistence recovers.",
+        "Likely database lock, wrong project database, or daemon shutdown during sync transfer.",
+    )
+}
+
+fn transfer_timestamp_rejected(value: &str) -> (StatusCode, Json<serde_json::Value>) {
+    transfer_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid transfer event timestamp: {value}"),
+        "validation_rejected",
+        "Sync transfer event timestamp must be RFC3339.",
+        "Correct the transfer event timestamp before retrying unchanged.",
+        "Likely incompatible peer version or malformed ownership-transfer payload.",
+    )
+}
+
 #[derive(Deserialize)]
 pub struct TransferBody {
     /// Events that must mutate state (not observations)
@@ -40,7 +88,7 @@ struct TransferEvent {
 pub async fn transfer_impl(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TransferBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> SyncTransferResult {
     let mut applied = 0;
     let mut rejected = 0;
     let start = std::time::Instant::now();
@@ -64,7 +112,7 @@ pub async fn transfer_impl(
         let exists = state
             .persistence
             .event_exists(&event_id.to_string())
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(transfer_persistence_failed)?;
 
         if exists {
             rejected += 1;
@@ -107,7 +155,7 @@ pub async fn transfer_impl(
         let entry = EventLogEntry {
             id: event_id,
             timestamp: chrono::DateTime::parse_from_rfc3339(&remote.timestamp)
-                .map_err(|_| StatusCode::BAD_REQUEST)?
+                .map_err(|_| transfer_timestamp_rejected(&remote.timestamp))?
                 .with_timezone(&chrono::Utc),
             event,
             correlation_id: Some(format!("sync:transfer:from:{}", body.peer_id)),
