@@ -155,6 +155,64 @@ fn conflict(
     )
 }
 
+fn work_loop_failure(
+    http_status: StatusCode,
+    action: &str,
+    failure_class: &str,
+    why: String,
+) -> (StatusCode, Json<Value>) {
+    let next_tools = json!(["focusa_work_loop_writer_status", "focusa_work_loop_status", "focusa_tool_doctor"]);
+    let recovery_hint = "Check writer/status first, then retry the work-loop mutation only if dispatch health and writer ownership are clear.";
+    let misuse_hint = "Likely daemon command channel, writer ownership, Pi RPC dependency, or out-of-order work-loop mutation issue.";
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "error": why,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools,
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "failure_class": failure_class,
+                    "canonical": false,
+                    "degraded": true,
+                    "summary": format!("work-loop {action} blocked"),
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools,
+                    "error": {"code": failure_class, "message": why}
+                }
+            }
+        })),
+    )
+}
+
+fn work_loop_dispatch_failed(action: &str, err: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    work_loop_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        action,
+        "unknown_ambiguous_completion",
+        format!("dispatch failed for {action}: {err}"),
+    )
+}
+
+fn work_loop_pi_spawn_failed(err: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    work_loop_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "pi_rpc_start",
+        "daemon_unavailable",
+        format!("failed to spawn pi rpc: {err}"),
+    )
+}
+
 fn writer_id_from_headers(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Value>)> {
     headers
         .get(WRITER_HEADER)
@@ -727,10 +785,7 @@ async fn maybe_auto_advance_from_blocked(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     let _ = state
@@ -868,10 +923,7 @@ async fn maybe_select_global_ready_work_item(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     sleep(Duration::from_millis(120)).await;
@@ -953,10 +1005,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                     })
                     .await
                     .map_err(|e| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Json(json!({ "error": format!("dispatch failed: {e}") })),
-                        )
+                        work_loop_dispatch_failed("work_loop_dispatch", e)
                     })?;
 
                 let prompt =
@@ -1032,10 +1081,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                     ),
                 })
                 .await
-                .map_err(|e| (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({ "error": format!("dispatch failed: {e}") })),
-                ))?;
+                .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
             return Ok(false);
         }
     }
@@ -1049,10 +1095,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     let prompt = render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
@@ -2212,10 +2255,7 @@ async fn enable(
         policy,
     };
     state.command_tx.send(action).await.map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": format!("dispatch failed: {e}") })),
-        )
+        work_loop_dispatch_failed("work_loop_dispatch", e)
     })?;
 
     let root_work_item_id = if let Some(root) = payload.root_work_item_id.clone() {
@@ -2238,10 +2278,7 @@ async fn enable(
             })
             .await
             .map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({ "error": format!("dispatch failed: {e}") })),
-                )
+                work_loop_dispatch_failed("work_loop_dispatch", e)
             })?;
         let _ = maybe_dispatch_continuous_turn_prompt(
             &state,
@@ -2279,10 +2316,7 @@ async fn pause(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2307,10 +2341,7 @@ async fn resume(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2335,10 +2366,7 @@ async fn select_next(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
     let _ = maybe_dispatch_continuous_turn_prompt(
         &state,
@@ -2375,10 +2403,7 @@ async fn set_decision_context(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(
@@ -2430,10 +2455,7 @@ async fn start_pi_driver(
     }
 
     let mut child = cmd.spawn().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": format!("failed to spawn pi rpc: {e}")})),
-        )
+        work_loop_pi_spawn_failed(e)
     })?;
     let stdin = child
         .stdin
@@ -2715,10 +2737,7 @@ async fn attach_session(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2744,10 +2763,7 @@ async fn abort_session(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2776,10 +2792,7 @@ async fn ingest_transport_event(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2806,10 +2819,7 @@ async fn set_pause_flags(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2839,10 +2849,7 @@ async fn delegate_authorship(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2872,10 +2879,7 @@ async fn clear_delegated_authorship(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2901,10 +2905,7 @@ async fn transport_degraded(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2964,10 +2965,7 @@ async fn checkpoint(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
@@ -2991,10 +2989,7 @@ async fn stop(
         })
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("dispatch failed: {e}") })),
-            )
+            work_loop_dispatch_failed("work_loop_dispatch", e)
         })?;
 
     Ok(Json(

@@ -2,6 +2,7 @@
 # Runtime route contract: work-loop status/checkpoint/replay surfaces must be reachable and typed.
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -36,6 +37,12 @@ if echo "$CLOSURE_BUNDLE_JSON" | jq -e 'has("status") and has("work_loop") and h
   log_pass "GET /v1/work-loop/replay/closure-bundle reachable with closure bundle keys"
 else
   log_fail "GET /v1/work-loop/replay/closure-bundle missing expected keys"
+fi
+
+if rg -n 'work_loop_dispatch_failed|work_loop_pi_spawn_failed|recovery_hint|misuse_hint|tool_result_v1|focusa_work_loop_writer_status' "${ROOT_DIR}/crates/focusa-api/src/routes/work_loop.rs" >/dev/null; then
+  log_pass "Work-loop dispatch failures expose why/recovery/misuse hints and tool_result_v1"
+else
+  log_fail "Work-loop dispatch failures remain opaque"
 fi
 
 echo "=== WORK-LOOP ROUTE CONTRACT RESULTS ==="
