@@ -22,6 +22,52 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+type GateResult<T = Json<serde_json::Value>> = Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+fn gate_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_work_loop_status"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_work_loop_status"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn gate_forbidden() -> (StatusCode, Json<serde_json::Value>) {
+    gate_failure(
+        StatusCode::FORBIDDEN,
+        "forbidden",
+        "permission_denied",
+        "Focus Gate mutation requires commands:submit permission.",
+        "Use an authorized local/admin context before retrying gate mutations.",
+        "Likely missing auth token, wrong permission scope, or remote caller without write authorization.",
+    )
+}
+
+fn gate_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
+    gate_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("gate dispatch failed: {error}"),
+        "daemon_unavailable",
+        "Focus Gate event could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+    )
+}
+
 async fn candidates(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -55,10 +101,10 @@ async fn suppress(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(body): Json<SuppressBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> GateResult {
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("commands:submit") {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(gate_forbidden());
     }
     state
         .command_tx
@@ -67,7 +113,7 @@ async fn suppress(
             scope: body.scope,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(gate_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -81,10 +127,10 @@ async fn pin(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(body): Json<PinBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> GateResult {
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("commands:submit") {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(gate_forbidden());
     }
     state
         .command_tx
@@ -92,7 +138,7 @@ async fn pin(
             candidate_id: body.candidate_id,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(gate_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -111,10 +157,10 @@ async fn surface(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(body): Json<SurfaceBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> GateResult {
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("commands:submit") {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(gate_forbidden());
     }
     state
         .command_tx
@@ -123,7 +169,7 @@ async fn surface(
             boost: body.boost.unwrap_or(1.0),
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(gate_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -199,10 +245,10 @@ async fn emit_signal(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(body): Json<SignalBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> GateResult {
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("commands:submit") {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(gate_forbidden());
     }
     let (kind_str, summary, frame_context) = body.resolved();
     let kind = match kind_str.as_str() {
@@ -227,7 +273,7 @@ async fn emit_signal(
         .command_tx
         .send(Action::IngestSignal { signal })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(gate_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }

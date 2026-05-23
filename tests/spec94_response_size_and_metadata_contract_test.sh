@@ -85,3 +85,11 @@ else
   echo "✗ FAIL: Small route failures lack no-guess recovery contract" >&2
   exit 1
 fi
+
+
+if rg -n 'attachment_failure|attachment_invalid_uuid|attachment_dispatch_failed|gate_failure|gate_forbidden|gate_dispatch_failed|recovery_hint|misuse_hint|tool_result_v1' "${ROOT_DIR}/crates/focusa-api/src/routes/attachments.rs" "${ROOT_DIR}/crates/focusa-api/src/routes/gate.rs" >/dev/null; then
+  echo "✓ PASS: Raw StatusCode route failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Raw StatusCode route failures lack no-guess recovery contract" >&2
+  exit 1
+fi

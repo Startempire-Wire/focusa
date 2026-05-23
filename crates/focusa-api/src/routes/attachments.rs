@@ -17,6 +17,55 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+type AttachmentResult<T = Json<serde_json::Value>> =
+    Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+fn attachment_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn attachment_invalid_uuid(field: &str, value: &str) -> (StatusCode, Json<serde_json::Value>) {
+    attachment_failure(
+        StatusCode::BAD_REQUEST,
+        format!("invalid {field}"),
+        "validation_rejected",
+        format!("{field} value {value} is not a valid UUID"),
+        "Send valid UUID strings for instance_id, session_id, and thread_id before retrying unchanged.",
+        "Likely stale client payload, wrong id field, or non-UUID route contract mismatch.",
+    )
+}
+
+fn attachment_dispatch_failed(
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<serde_json::Value>) {
+    attachment_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("attachment dispatch failed: {error}"),
+        "daemon_unavailable",
+        "attachment event could not be dispatched to daemon command channel",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+    )
+}
+
 #[derive(Deserialize)]
 struct AttachBody {
     instance_id: String,
@@ -33,10 +82,13 @@ fn default_role() -> AttachmentRole {
 async fn attach(
     State(state): State<Arc<AppState>>,
     Json(body): Json<AttachBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let instance_id = Uuid::parse_str(&body.instance_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let session_id = Uuid::parse_str(&body.session_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let thread_id = Uuid::parse_str(&body.thread_id).map_err(|_| StatusCode::BAD_REQUEST)?;
+) -> AttachmentResult {
+    let instance_id = Uuid::parse_str(&body.instance_id)
+        .map_err(|_| attachment_invalid_uuid("instance_id", &body.instance_id))?;
+    let session_id = Uuid::parse_str(&body.session_id)
+        .map_err(|_| attachment_invalid_uuid("session_id", &body.session_id))?;
+    let thread_id = Uuid::parse_str(&body.thread_id)
+        .map_err(|_| attachment_invalid_uuid("thread_id", &body.thread_id))?;
 
     state
         .command_tx
@@ -47,7 +99,7 @@ async fn attach(
             role: body.role,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(attachment_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -68,10 +120,13 @@ fn default_reason() -> String {
 async fn detach(
     State(state): State<Arc<AppState>>,
     Json(body): Json<DetachBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let instance_id = Uuid::parse_str(&body.instance_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let session_id = Uuid::parse_str(&body.session_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let thread_id = Uuid::parse_str(&body.thread_id).map_err(|_| StatusCode::BAD_REQUEST)?;
+) -> AttachmentResult {
+    let instance_id = Uuid::parse_str(&body.instance_id)
+        .map_err(|_| attachment_invalid_uuid("instance_id", &body.instance_id))?;
+    let session_id = Uuid::parse_str(&body.session_id)
+        .map_err(|_| attachment_invalid_uuid("session_id", &body.session_id))?;
+    let thread_id = Uuid::parse_str(&body.thread_id)
+        .map_err(|_| attachment_invalid_uuid("thread_id", &body.thread_id))?;
 
     state
         .command_tx
@@ -82,7 +137,7 @@ async fn detach(
             reason: body.reason,
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(attachment_dispatch_failed)?;
 
     Ok(Json(json!({"status": "accepted"})))
 }

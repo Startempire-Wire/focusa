@@ -36,3 +36,7 @@ If a tool fails or blocks:
 4. Use `next_tools` as the safe route; do not stop at the error unless the operator asks.
 
 Contract fixture: `tests/fixtures/spec89_tool_result_failure_recovery_sample.json` proves failed/out-of-order results carry `recovery_hint`, `misuse_hint`, and non-empty `next_tools`.
+
+## API route failure envelopes
+
+Public Focusa API routes should avoid bare HTTP status failures for caller-actionable errors. Validation, permission, dispatch, persistence, lookup, and upstream failures should return the same no-deadend fields (`status`, `failure_class`, `why`, `recovery_hint`, `misuse_hint`, `next_tools`, and `details.tool_result_v1`) so Pi, CLI, and non-Pi agents can recover without guessing.
