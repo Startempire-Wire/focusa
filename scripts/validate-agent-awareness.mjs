@@ -30,6 +30,7 @@ for (const needle of [
   'focusa_predict_evaluate',
   'focusa_metacog_',
   'focusa_work_loop_',
+  'Attentive and awaiting operator direction',
   'Operator steering always wins',
 ]) must('awareness', needle);
 
@@ -38,7 +39,7 @@ must('turns', 'customType: "focusa-utility-card"');
 must('turns', 'S.seenFirstBeforeAgentStart');
 
 for (const file of ['quickstart', 'card']) {
-  for (const needle of ['Workpoint', 'doctor', 'evidence', 'prediction', 'compaction', 'operator']) must(file, needle);
+  for (const needle of ['Workpoint', 'doctor', 'evidence', 'prediction', 'compaction', 'operator', 'Attentive and awaiting operator direction']) must(file, needle);
 }
 for (const needle of ['Friendly Focusa Q', 'project_root', 'architecture', 'trajectory', 'Workpoint', 'evidence', 'predict', 'metacog']) must('onboarding', needle);
 for (const needle of ['Route graph', 'project_identity', 'trajectory_view', 'workpoint_checkpoint', 'evidence_capture', 'predict_record', 'metacog']) must('choreography', needle);

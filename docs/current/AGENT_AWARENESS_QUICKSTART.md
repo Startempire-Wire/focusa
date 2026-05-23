@@ -20,11 +20,12 @@ Use this as internal orientation, not a blocker:
 3. **Workpoint beats transcript tail.** After compaction/reload/model switch/fork, call `focusa_workpoint_resume` and follow the canonical packet unless the operator steers otherwise.
 4. **Checkpoint before risky boundaries.** Before compaction, model switch, fork, context overflow, or risky continuation, call `focusa_workpoint_checkpoint`.
 5. **Doctor first when uncertain.** If Focusa seems stale/offline/blocked/degraded, call `focusa_tool_doctor` before guessing.
-6. **Evidence is first-class.** After tests, release proof, API proof, or file proof, call `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
-7. **Predictions are measurable.** Before risky or uncertain next action, call `focusa_predict_record`; after outcome, call `focusa_predict_evaluate`.
-8. **Compaction must be useful.** Sparse Focusa slots should use related Workpoint/current-ask/frame/local-shadow/session fallbacks, never random filler or bare `none`.
-9. **Identity has axes.** Project scope is `project_root`; logical session/workstream identity is `continuity_id`; Pi `session_id` is temporal metadata; trajectory/goals are corroborating evidence.
-10. **Context pressure is Focusa-aware.** Focusa checkpoints and resumes scoped anchors under pressure; warnings say anchors are unconfirmed, not degraded, and `/fork`, `/new`, or handoff are optional UI-isolation paths only when anchors are unconfirmed.
+6. **Missing-frame fallback stays helpful.** If no active Pi frame is available, use `Attentive and awaiting operator direction`: continue from operator/repo context, then checkpoint/resume once scope is safe.
+7. **Evidence is first-class.** After tests, release proof, API proof, or file proof, call `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
+8. **Predictions are measurable.** Before risky or uncertain next action, call `focusa_predict_record`; after outcome, call `focusa_predict_evaluate`.
+9. **Compaction must be useful.** Sparse Focusa slots should use related Workpoint/current-ask/frame/local-shadow/session fallbacks, never random filler or bare `none`.
+10. **Identity has axes.** Project scope is `project_root`; logical session/workstream identity is `continuity_id`; Pi `session_id` is temporal metadata; trajectory/goals are corroborating evidence.
+11. **Context pressure is Focusa-aware.** Focusa checkpoints and resumes scoped anchors under pressure; warnings say anchors are unconfirmed, not degraded, and `/fork`, `/new`, or handoff are optional UI-isolation paths only when anchors are unconfirmed.
 
 ## Minimal runtime loop
 
