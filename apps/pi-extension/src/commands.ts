@@ -180,6 +180,7 @@ export function registerCommands(pi: ExtensionAPI) {
       const draft = {
         contextStatusMode: S.cfg?.contextStatusMode || "actionable",
         vitalInfoPromptMode: S.cfg?.vitalInfoPromptMode || "prompt",
+        vitalInfoPromptSurfaces: S.cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory",
         warnPct: S.cfg?.warnPct || 50,
         compactPct: S.cfg?.compactPct || 70,
         hardPct: S.cfg?.hardPct || 85,
@@ -293,12 +294,14 @@ export function registerCommands(pi: ExtensionAPI) {
         { id: "workLoopStatusHeartbeatMs", label: "Refresh heartbeat (ms)", currentValue: String(draft.workLoopStatusHeartbeatMs), values: ["1500", "2000", "3000", "5000"] },
         { id: "contextStatusMode", label: "Footer hints", currentValue: draft.contextStatusMode, values: ["off", "actionable", "all"] },
         { id: "vitalInfoPromptMode", label: "Vital project info prompt", currentValue: draft.vitalInfoPromptMode, values: VITAL_INFO_PROMPT_MODE_OPTIONS },
+        { id: "vitalInfoPromptSurfaces", label: "Vital prompt surfaces", currentValue: draft.vitalInfoPromptSurfaces, values: ["project_root,workpoint,trajectory", "project_root", "project_root,workpoint", "project_root,trajectory"] },
         { id: "workLoopRequireVerificationBeforePersist", label: "Require verification before done", currentValue: String(draft.workLoopRequireVerificationBeforePersist), values: BOOLEAN_OPTIONS },
       ];
 
       const buildAdvancedItems = (): SettingItem[] => [
         { id: "contextStatusMode", label: "Footer context badge", currentValue: draft.contextStatusMode, values: ["off", "actionable", "all"] },
         { id: "vitalInfoPromptMode", label: "Vital project info prompt", currentValue: draft.vitalInfoPromptMode, values: VITAL_INFO_PROMPT_MODE_OPTIONS },
+        { id: "vitalInfoPromptSurfaces", label: "Vital prompt surfaces", currentValue: draft.vitalInfoPromptSurfaces, values: ["project_root,workpoint,trajectory", "project_root", "project_root,workpoint", "project_root,trajectory", "project_root,workpoint,trajectory,evidence,active_object,resource_mode"] },
         { id: "warnPct", label: "Warn threshold %", currentValue: String(draft.warnPct), values: WARN_OPTIONS },
         { id: "compactPct", label: "Auto-compact threshold %", currentValue: String(draft.compactPct), values: COMPACT_OPTIONS },
         { id: "hardPct", label: "Critical threshold %", currentValue: String(draft.hardPct), values: HARD_OPTIONS },
@@ -339,6 +342,7 @@ export function registerCommands(pi: ExtensionAPI) {
             }
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
+            if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);
             if (id === "warnPct") draft.warnPct = Number(newValue);
             if (id === "compactPct") draft.compactPct = Number(newValue);
             if (id === "hardPct") draft.hardPct = Number(newValue);

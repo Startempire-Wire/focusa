@@ -53,7 +53,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Added durable Pi project-root memory so safe verified project folders persist across Pi sessions and broad cwd resumes.
 - Refreshed stale export/FOM audit docs and static guards to reflect implemented export and Focus Stack invariant baselines.
 - Repaired ECS resolve/content/rehydrate readback by falling back to canonical disk handle metadata for legacy lossy state.
-- Added default-on Pi vital-info prompts for unconfirmed project roots and unclear project Trajectory setup, with `warn_only`/`off` opt-outs.
+- Added default-on Pi vital-info prompts for the top 3 high-value surfaces: project root, Workpoint, and Trajectory; other prompt surfaces are opt-in.
 
 ## Unreleased — Spec93 release publication proof
 

@@ -17,6 +17,7 @@ export interface FocusaConfig {
   hardPct: number;
   contextStatusMode: "off" | "actionable" | "all";
   vitalInfoPromptMode: "off" | "warn_only" | "notify" | "prompt";
+  vitalInfoPromptSurfaces: string;
   cooldownMs: number;
   maxCompactionsPerHour: number;
   minTurnsBetweenCompactions: number;
@@ -76,6 +77,7 @@ const DEFAULTS: FocusaConfig = {
   hardPct: 85,
   contextStatusMode: "actionable",
   vitalInfoPromptMode: "prompt",
+  vitalInfoPromptSurfaces: "project_root,workpoint,trajectory",
   cooldownMs: 180_000,
   maxCompactionsPerHour: 8,
   minTurnsBetweenCompactions: 3,
@@ -126,6 +128,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_HARD_PCT: "hardPct",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
   FOCUSA_PI_VITAL_INFO_PROMPT_MODE: "vitalInfoPromptMode",
+  FOCUSA_PI_VITAL_INFO_PROMPT_SURFACES: "vitalInfoPromptSurfaces",
   FOCUSA_PI_COOLDOWN_MS: "cooldownMs",
   FOCUSA_PI_MAX_COMPACTIONS_PER_HOUR: "maxCompactionsPerHour",
   FOCUSA_PI_MIN_TURNS_BETWEEN_COMPACTIONS: "minTurnsBetweenCompactions",

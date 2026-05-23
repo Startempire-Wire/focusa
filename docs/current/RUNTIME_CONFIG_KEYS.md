@@ -7,6 +7,7 @@ Current local Focusa runtime configuration keys used by bounded memory/payload p
 | Key | Default | Meaning |
 |---|---:|---|
 | `FOCUSA_PI_VITAL_INFO_PROMPT_MODE` | `prompt` | Controls vital project info handling: `prompt`, `warn_only`, or `off` (`notify` remains a legacy alias for `warn_only`). |
+| `FOCUSA_PI_VITAL_INFO_PROMPT_SURFACES` | `project_root,workpoint,trajectory` | Comma-list of prompt surfaces. Top 3 default-on; any others are opt-in only. |
 
 ## Metacognition store caps
 

@@ -18,8 +18,13 @@ import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
 
 let traceBatch: any[] = [];
 
+function vitalPromptSurfaceEnabled(surface: string): boolean {
+  const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory");
+  return raw.split(",").map((part) => part.trim()).includes(surface);
+}
+
 async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
-  if (!S.focusaAvailable) return null;
+  if (!S.focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return null;
   const detected = adoptPiProjectRoot(ctx.cwd || S.sessionCwd || process.cwd());
   if (!projectRootConfirmationRequired(detected)) {
     ctx.ui.setWidget("focusa-vital", undefined);

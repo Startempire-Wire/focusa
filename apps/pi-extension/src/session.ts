@@ -13,6 +13,11 @@ let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 
+function vitalPromptSurfaceEnabled(surface: string): boolean {
+  const raw = String(S.cfg?.vitalInfoPromptSurfaces || "project_root,workpoint,trajectory");
+  return raw.split(",").map((part) => part.trim()).includes(surface);
+}
+
 async function ensureLowConfidenceWorkpoint(reason: string): Promise<void> {
   if (!S.focusaAvailable) return;
   if (!isProjectRootAuthoritySafe(S.sessionCwd || process.cwd())) return;
@@ -72,6 +77,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
 }
 
 async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, reason: string): Promise<string | null> {
+  if (!vitalPromptSurfaceEnabled("project_root")) return proposedRoot;
   if (!projectRootConfirmationRequired(proposedRoot)) return proposedRoot;
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
   const summary = projectRootConfirmationSummary(proposedRoot);
@@ -129,9 +135,28 @@ function parseTrajectoryEditor(text: string): { long_term_goal: string; desired_
   };
 }
 
+async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
+  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  if (!vitalPromptSurfaceEnabled("workpoint") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot) || S.activeWorkpointPacket) return false;
+  const mission = S.currentAsk?.text || S.activeFrameGoal || S.lastFocusSnapshot.intent || S.lastFocusSnapshot.currentFocus;
+  const nextSlice = S.lastFocusSnapshot.currentFocus || S.activeFrameGoal || S.currentAsk?.text;
+  if (!mission && !nextSlice) return false;
+  const key = `workpoint:${projectRoot}:${reason}`;
+  if (S.vitalInfoPrompted[key]) return false;
+  S.vitalInfoPrompted[key] = Date.now();
+  const ok = await ctx.ui.confirm(
+    "Focusa Workpoint is missing",
+    `No canonical Workpoint packet is bound for ${projectRoot}. Create a low-confidence Workpoint checkpoint from the current mission before continuing?`,
+  );
+  if (!ok) return false;
+  await ensureLowConfidenceWorkpoint(reason);
+  await refreshSessionWorkpointPacket(`${reason}_operator_confirmed_workpoint`);
+  return Boolean(S.activeWorkpointPacket);
+}
+
 async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
-  if (mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot)) return;
+  if (!vitalPromptSurfaceEnabled("trajectory") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot)) return;
   const clarity: any = S.lastTrajectoryClarity || {};
   const status = String(clarity.status || "unknown");
   const action = String(clarity.recommended_action || "unknown");
@@ -375,8 +400,11 @@ export function registerSession(pi: ExtensionAPI) {
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
     await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
     if (!S.activeWorkpointPacket) {
-      await ensureLowConfidenceWorkpoint("session_start");
-      await refreshSessionWorkpointPacket("session_start_low_confidence");
+      const prompted = await promptForWorkpointIfNeeded(ctx, projectRoot, "session_start");
+      if (!prompted) {
+        await ensureLowConfidenceWorkpoint("session_start");
+        await refreshSessionWorkpointPacket("session_start_low_confidence");
+      }
       await refreshTrajectoryClarityLifecycle("session_start_low_confidence", projectRoot);
       await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start_low_confidence");
     }
@@ -575,8 +603,11 @@ export function registerSession(pi: ExtensionAPI) {
       await refreshTrajectoryClarityLifecycle("session_resume", projectRoot);
       await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume");
       if (!S.activeWorkpointPacket) {
-        await ensureLowConfidenceWorkpoint("session_resume");
-        await refreshSessionWorkpointPacket("session_switch_low_confidence");
+        const prompted = await promptForWorkpointIfNeeded(ctx, projectRoot, "session_resume");
+        if (!prompted) {
+          await ensureLowConfidenceWorkpoint("session_resume");
+          await refreshSessionWorkpointPacket("session_switch_low_confidence");
+        }
         await refreshTrajectoryClarityLifecycle("session_resume_low_confidence", projectRoot);
         await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume_low_confidence");
       }
