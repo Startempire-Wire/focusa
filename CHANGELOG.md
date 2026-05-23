@@ -21,6 +21,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Updated Tool Result Envelope docs to require recovery/misuse hints so models know why a tool failed and the next safe route.
 - Added Spec89 failure-recovery envelope fixture/schema guard for no-deadend tool-result behavior.
 - Extended API error envelopes for unknown/wrong routes with `failure_class`, `recovery_hint`, `misuse_hint`, `next_tools`, and `details.tool_result_v1` so route mistakes do not dead-end models.
+- Added degraded evidence-capture fallback for trajectory clarity hot/cold timeout/resource pressure so the model sees why linking is blocked and proof handles are preserved with Workpoint checkpoint/resume recovery.
 
 ## Unreleased — Spec93 release publication proof
 

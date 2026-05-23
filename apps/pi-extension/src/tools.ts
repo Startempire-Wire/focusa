@@ -1261,6 +1261,47 @@ export function registerTools(pi: ExtensionAPI) {
     return { ok: true, details };
   }
 
+  function evidenceClarityFallbackResult(kind: "evidence capture" | "workpoint evidence link", p: any, projectRoot: string, clarity: { text?: string; details: Record<string, any> }): any | null {
+    const failureClass = String(clarity.details?.failure_class || "");
+    const recoverable = ["hot_path_timeout", "cold_path_timeout", "daemon_unavailable", "resource_exhausted", "read_model_lag"].includes(failureClass);
+    if (!recoverable) return null;
+    const evidenceRef = String(p.evidence_ref || `${p.target_ref || "evidence"}:unlinked`).trim();
+    const why = `trajectory clarity gate unavailable because ${failureClass}; proof should be preserved but not treated as linked`;
+    const text = `${kind} degraded → ${why}. Proof handle preserved in response only; Workpoint link skipped. Next: focusa_workpoint_checkpoint → focusa_workpoint_resume, then retry link once. evidence_ref=${evidenceRef}`;
+    const toolResult = focusaToolResult({
+      ok: false,
+      status: "degraded",
+      failure_class: failureClass as FocusaFailureClass,
+      canonical: false,
+      degraded: true,
+      summary: text,
+      tool: kind === "evidence capture" ? "focusa_evidence_capture" : "focusa_workpoint_link_evidence",
+      family: "workpoint",
+      retry: { safe: true, posture: "safe_retry", reason: failureClass },
+      side_effects: [],
+      evidence_refs: [evidenceRef],
+      next_tools: ["focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
+      raw: { trajectory_clarity_precondition: clarity.details, proof_preserved_not_linked: true, why, project_root: projectRoot },
+    });
+    return {
+      content: [{ type: "text", text }],
+      details: {
+        ok: false,
+        status: "degraded",
+        why,
+        proof_preserved_not_linked: true,
+        evidence_ref: evidenceRef,
+        project_root: projectRoot,
+        trajectory_clarity_precondition: clarity.details,
+        tool_result_v1: toolResult,
+        failure_class: failureClass,
+        next_tools: toolResult.next_tools,
+        recovery_hint: toolResult.recovery_hint,
+        misuse_hint: toolResult.misuse_hint,
+      },
+    } as any;
+  }
+
   async function preferredWriterId(): Promise<string> {
     const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
     const claimed = String(status.body?.active_writer || "").trim();
@@ -2163,7 +2204,11 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
       const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "evidence capture", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
-      if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "evidence capture blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
+      if (!clarity.ok) {
+        const degraded = evidenceClarityFallbackResult("evidence capture", p, projectRoot, clarity);
+        if (degraded) return degraded;
+        return { content: [{ type: "text", text: `${clarity.text || "evidence capture blocked by trajectory clarity gate"}. Why: trajectory clarity is required before linking proof to canonical Workpoint state; follow next_tools/recovery_hint instead of retrying blindly.` }], details: { ok: false, status: "blocked", why: "trajectory clarity is required before canonical evidence linkage", ...clarity.details } } as any;
+      }
       const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
@@ -2295,7 +2340,11 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
       const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint evidence link", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
-      if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint evidence link blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
+      if (!clarity.ok) {
+        const degraded = evidenceClarityFallbackResult("workpoint evidence link", p, projectRoot, clarity);
+        if (degraded) return degraded;
+        return { content: [{ type: "text", text: `${clarity.text || "workpoint evidence link blocked by trajectory clarity gate"}. Why: trajectory clarity is required before linking proof to canonical Workpoint state; follow next_tools/recovery_hint instead of retrying blindly.` }], details: { ok: false, status: "blocked", why: "trajectory clarity is required before canonical evidence linkage", ...clarity.details } } as any;
+      }
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
         headers: { "x-focusa-writer-id": await preferredWriterId() },

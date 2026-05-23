@@ -70,3 +70,5 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 - Safe audit skips cold `GET /v1/lineage/tree` by default for low-memory reliability; set `FOCUSA_AUDIT_INCLUDE_COLD_GET=1` for explicit cold-route probing.
 - Evidence: `/tmp/focusa-tool-implementation-spec-audit.json`, `/tmp/focusa-tool-suite-safe-audit-final.json`, `/tmp/focusa-cli-parity-smoke.log`, `/tmp/focusa-tool-contracts-live-smoke.json`, `/tmp/focusa-tool-stress-smoke.log`.
 
+
+- Evidence capture/link wrappers degrade instead of dead-ending when trajectory clarity is temporarily unavailable from hot/cold timeout or resource pressure: they tell the model why linking is blocked, preserve the proof handle in the response, mark it `proof_preserved_not_linked`, and route to Workpoint checkpoint/resume before retry.

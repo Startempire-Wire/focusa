@@ -40,4 +40,11 @@ else
   exit 1
 fi
 
+if rg -n 'evidenceClarityFallbackResult|proof_preserved_not_linked|Why: trajectory clarity is required|trajectory clarity gate unavailable because|focusa_workpoint_checkpoint.*focusa_workpoint_resume' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: evidence clarity timeout preserves proof handle and explains why to model"
+else
+  echo "✗ FAIL: evidence clarity timeout can still dead-end or hide why from model" >&2
+  exit 1
+fi
+
 echo "SPEC96 Workpoint evidence LowMem timeout static test: PASS"
