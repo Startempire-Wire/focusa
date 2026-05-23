@@ -43,4 +43,4 @@ Public Focusa API routes should avoid bare HTTP status failures for caller-actio
 
 Sync routes follow this contract for local persistence failures, missing peers, malformed receive/transfer payloads, delegated receive/transfer rejections, and remote peer upstream failures.
 
-Instance, token, visual workflow, memory mutation, session resume, and sync receive/transfer implementation routes follow the same contract for missing inputs, invalid enum values, missing tokens, malformed visual evidence content, malformed sync timestamps, and daemon/persistence dispatch failures.
+Instance, token, visual workflow, memory mutation, session resume, sync receive/transfer implementation, and focus mutation/toggle routes follow the same contract for missing inputs, invalid enum values, missing tokens, malformed visual evidence content, malformed sync timestamps, reducer/persistence failures, and daemon dispatch failures.

@@ -26,6 +26,84 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+type FocusResult = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
+type FocusUnitResult = Result<(), (StatusCode, Json<serde_json::Value>)>;
+
+fn focus_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let error = error.into();
+    let why = why.into();
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked", "canonical": false, "degraded": true,
+            "error": error, "failure_class": failure_class, "why": why,
+            "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+            "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"],
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": true, "posture": "safe_retry_after_recovery", "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"], "error": {"code": failure_class, "message": error}}}
+        })),
+    )
+}
+
+fn focus_reducer_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
+    focus_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("focus reducer rejected event: {error}"),
+        "reducer_rejected",
+        "Focus reducer rejected the requested focus mutation.",
+        "Refresh scoped frame/session state, verify project_root/continuity_id, and retry after correcting the request.",
+        "Likely stale frame/session identity, invalid focus transition, or unsafe project context.",
+    )
+}
+
+fn focus_persistence_failed(
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<serde_json::Value>) {
+    focus_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("focus persistence failed: {error}"),
+        "persistence_unavailable",
+        "Focus event could not be persisted after reducer emission.",
+        "Check SQLite/daemon health, verify project database writability, then retry after recovery.",
+        "Likely database lock, wrong project database, or daemon shutdown during focus mutation.",
+    )
+}
+
+fn focus_active_frame_missing() -> (StatusCode, Json<serde_json::Value>) {
+    focus_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "active focus frame missing",
+        "frame_unavailable",
+        "Focus pop could not find an active frame after validation.",
+        "Refresh /v1/focus/frame/current or checkpoint a fresh Workpoint before retrying pop.",
+        "Likely stale active frame state or concurrent focus-stack mutation.",
+    )
+}
+
+fn focus_toggle_io_failed(
+    operation: &str,
+    path: &std::path::Path,
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<serde_json::Value>) {
+    focus_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!(
+            "focus toggle {operation} failed for {}: {error}",
+            path.display()
+        ),
+        "persistence_unavailable",
+        format!("Focusa toggle file {operation} could not complete."),
+        "Check config.data_dir path, filesystem permissions, and disk health before retrying.",
+        "Likely unwritable Pi config directory, missing parent permissions, or filesystem pressure.",
+    )
+}
+
 #[derive(Debug, Clone, Deserialize, Default)]
 struct FocusStackQuery {
     limit: Option<usize>,
@@ -292,12 +370,12 @@ async fn materialize_focus_event(
     state: &AppState,
     event: FocusaEvent,
     correlation_id: &'static str,
-) -> Result<(), StatusCode> {
+) -> FocusUnitResult {
     let _guard = state.write_serial_lock.lock().await;
     let current = { state.focusa.read().await.clone() };
     let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
         tracing::warn!(error = %error, correlation_id, "focus event rejected by reducer");
-        StatusCode::INTERNAL_SERVER_ERROR
+        focus_reducer_failed(error)
     })?;
 
     let new_state = result.new_state;
@@ -316,7 +394,7 @@ async fn materialize_focus_event(
         };
         if let Err(error) = state.persistence.append_event(&entry) {
             tracing::error!(error = %error, correlation_id, "failed to persist focus event");
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            return Err(focus_persistence_failed(error));
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
             let _ = state.events_tx.send(serialized);
         }
@@ -348,7 +426,7 @@ struct PushFrameBody {
 async fn push_frame(
     State(state): State<Arc<AppState>>,
     Json(body): Json<PushFrameBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> FocusResult {
     {
         let focusa = state.focusa.read().await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
@@ -408,7 +486,7 @@ fn default_completion_reason() -> CompletionReason {
 async fn pop_frame(
     State(state): State<Arc<AppState>>,
     Json(body): Json<PopFrameBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> FocusResult {
     {
         let focusa = state.focusa.read().await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
@@ -425,7 +503,7 @@ async fn pop_frame(
         .await
         .focus_stack
         .active_id
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or_else(focus_active_frame_missing)?;
     materialize_focus_event(
         &state,
         FocusaEvent::FocusFrameCompleted {
@@ -449,7 +527,7 @@ struct SetActiveBody {
 async fn set_active(
     State(state): State<Arc<AppState>>,
     Json(body): Json<SetActiveBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> FocusResult {
     {
         let focusa = state.focusa.read().await;
         if let Err(resp) = ensure_active_session(focusa.session.as_ref()) {
@@ -601,7 +679,7 @@ fn slot_cap(slot_kind: &str) -> usize {
 async fn update_delta(
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpdateDeltaBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> FocusResult {
     // §AsccSections: validate ALL slots at API boundary before any write.
     let delta = &body.delta;
     let frame = {
@@ -825,13 +903,15 @@ struct SetEnabledBody {
 async fn set_enabled(
     State(state): State<Arc<AppState>>,
     Json(body): Json<SetEnabledBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> FocusResult {
     let path = pi_enabled_path(&state.config);
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        std::fs::create_dir_all(parent)
+            .map_err(|error| focus_toggle_io_failed("create parent directory", parent, error))?;
     }
     let content = format!("enabled={}", if body.enabled { "1" } else { "0" });
-    std::fs::write(&path, content).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    std::fs::write(&path, content)
+        .map_err(|error| focus_toggle_io_failed("write", &path, error))?;
     tracing::info!(
         path = path.display().to_string(),
         enabled = body.enabled,
