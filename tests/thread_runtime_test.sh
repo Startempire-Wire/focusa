@@ -97,6 +97,21 @@ else
   log_fail "Proposal resolution failed :: $resolve"
 fi
 
+log_info "Invalid thread input envelope"
+invalid=$(curl -sS -X POST "${BASE_URL}/v1/threads" -H "Content-Type: application/json" -d '{"name":"","primary_intent":""}')
+if echo "$invalid" | jq -e '.status == "blocked" and .failure_class == "validation_rejected" and .why != null and .recovery_hint != null and .misuse_hint != null and (.next_tools | type == "array") and .details.tool_result_v1.ok == false' >/dev/null 2>&1; then
+  log_pass "Thread invalid input exposes no-guess recovery contract"
+else
+  log_fail "Thread invalid input missing no-guess recovery contract :: $invalid"
+fi
+
+missing=$(curl -sS "${BASE_URL}/v1/threads/00000000-0000-0000-0000-000000000000")
+if echo "$missing" | jq -e '.status == "blocked" and .failure_class == "not_found" and .why != null and .details.tool_result_v1.ok == false' >/dev/null 2>&1; then
+  log_pass "Thread not-found exposes no-guess recovery contract"
+else
+  log_fail "Thread not-found missing no-guess recovery contract :: $missing"
+fi
+
 echo ""
 echo "=== THREAD RUNTIME RESULTS ==="
 echo "Tests passed: ${PASSED}"

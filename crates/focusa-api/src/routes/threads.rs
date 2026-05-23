@@ -21,6 +21,105 @@ use uuid::Uuid;
 
 type AppResult<T = Json<Value>> = Result<T, (StatusCode, Json<Value>)>;
 
+fn thread_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "canonical": false,
+                    "degraded": true,
+                    "failure_class": failure_class,
+                    "summary": why,
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools_value,
+                    "error": {"code": failure_class, "message": error}
+                }
+            }
+        })),
+    )
+}
+
+fn thread_validation_rejected(field: &str, why: impl Into<String>) -> (StatusCode, Json<Value>) {
+    let why = why.into();
+    thread_failure(
+        StatusCode::BAD_REQUEST,
+        why.clone(),
+        "validation_rejected",
+        why,
+        "Correct the thread request payload before retrying unchanged.",
+        "Likely empty required field or malformed thread id in the route path.",
+        vec!["focusa_tool_doctor", "focusa_trajectory_view"],
+    )
+    .with_field(field)
+}
+
+fn thread_not_found(thread_id: &str) -> (StatusCode, Json<Value>) {
+    thread_failure(
+        StatusCode::NOT_FOUND,
+        "Thread not found",
+        "not_found",
+        format!("thread_id {thread_id} is not present in Focusa thread state"),
+        "Verify the thread id from create/list before get/fork/transfer.",
+        "Likely stale thread id, wrong daemon instance, or thread not materialized yet.",
+        vec!["focusa_tool_doctor", "focusa_traverse"],
+    )
+}
+
+fn thread_dispatch_failed(
+    action: &str,
+    error: impl std::fmt::Display,
+) -> (StatusCode, Json<Value>) {
+    thread_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to dispatch {action}: {error}"),
+        "daemon_unavailable",
+        format!("thread {action} event could not be dispatched to daemon command channel"),
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status"],
+    )
+}
+
+trait ThreadFailureFieldExt {
+    fn with_field(self, field: &str) -> Self;
+}
+
+impl ThreadFailureFieldExt for (StatusCode, Json<Value>) {
+    fn with_field(mut self, field: &str) -> Self {
+        if let Some(obj) = self.1.0.as_object_mut() {
+            obj.insert("field".to_string(), json!(field));
+        }
+        self
+    }
+}
+
 /// GET /v1/threads — list threads in state.
 async fn list_threads(State(state): State<Arc<AppState>>) -> Json<Value> {
     let focus_state = state.focusa.read().await;
@@ -57,15 +156,12 @@ async fn create_thread(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     // Validate required fields
     if body.name.trim().is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "name cannot be empty"})),
-        ));
+        return Err(thread_validation_rejected("name", "name cannot be empty"));
     }
     if body.primary_intent.trim().is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "primary_intent cannot be empty"})),
+        return Err(thread_validation_rejected(
+            "primary_intent",
+            "primary_intent cannot be empty",
         ));
     }
 
@@ -81,12 +177,7 @@ async fn create_thread(
         .command_tx
         .send(Action::EmitEvent { event })
         .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to dispatch thread creation"})),
-            )
-        })?;
+        .map_err(|error| thread_dispatch_failed("thread creation", error))?;
 
     // Wait briefly for daemon reducer + shared-state sync.
     for _ in 0..20 {
@@ -130,12 +221,7 @@ async fn get_thread(
         .threads
         .iter()
         .find(|t| t.id.to_string() == id)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(json!({"error": "Thread not found"})),
-            )
-        })?;
+        .ok_or_else(|| thread_not_found(&id))?;
 
     Ok(Json(json!({
         "thread": {
@@ -164,18 +250,12 @@ async fn fork_thread(
     Json(body): Json<ForkBody>,
 ) -> AppResult<Json<Value>> {
     if body.name.trim().is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "name cannot be empty"})),
-        ));
+        return Err(thread_validation_rejected("name", "name cannot be empty"));
     }
 
-    let thread_id = id.parse::<uuid::Uuid>().map_err(|_| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Invalid thread ID"})),
-        )
-    })?;
+    let thread_id = id
+        .parse::<uuid::Uuid>()
+        .map_err(|_| thread_validation_rejected("thread_id", "Invalid thread ID"))?;
 
     let source = {
         let focusa = state.focusa.read().await;
@@ -184,12 +264,7 @@ async fn fork_thread(
             .iter()
             .find(|t| t.id == thread_id)
             .cloned()
-            .ok_or_else(|| {
-                (
-                    StatusCode::NOT_FOUND,
-                    Json(json!({"error": "Thread not found"})),
-                )
-            })?
+            .ok_or_else(|| thread_not_found(&id))?
     };
 
     let forked_id = Uuid::now_v7();
@@ -204,12 +279,7 @@ async fn fork_thread(
         .command_tx
         .send(Action::EmitEvent { event })
         .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to dispatch thread fork"})),
-            )
-        })?;
+        .map_err(|error| thread_dispatch_failed("thread fork", error))?;
 
     let mut forked = None;
     for _ in 0..80 {
@@ -260,21 +330,16 @@ async fn transfer_ownership(
 ) -> AppResult<Json<Value>> {
     // Validate to_machine_id is not empty
     if body.to_machine_id.is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "to_machine_id cannot be empty"})),
+        return Err(thread_validation_rejected(
+            "to_machine_id",
+            "to_machine_id cannot be empty",
         ));
     }
 
     // Parse thread_id
     let thread_id = match id.parse::<uuid::Uuid>() {
         Ok(id) => id,
-        Err(_) => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(json!({"error": "Invalid thread ID"})),
-            ));
-        }
+        Err(_) => return Err(thread_validation_rejected("thread_id", "Invalid thread ID")),
     };
 
     // Get current state
@@ -283,12 +348,7 @@ async fn transfer_ownership(
         .threads
         .iter()
         .find(|t| t.id == thread_id)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(json!({"error": "Thread not found"})),
-            )
-        })?;
+        .ok_or_else(|| thread_not_found(&id))?;
 
     let previous_owner = thread.owner_machine_id.clone();
 
@@ -304,12 +364,7 @@ async fn transfer_ownership(
         .command_tx
         .send(Action::EmitEvent { event })
         .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to dispatch ownership transfer"})),
-            )
-        })?;
+        .map_err(|error| thread_dispatch_failed("ownership transfer", error))?;
 
     for _ in 0..20 {
         {
