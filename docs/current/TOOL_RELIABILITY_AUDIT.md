@@ -13,9 +13,10 @@ This audit is read-only for daemon/API probes. It validates all 58 registered to
 ## Latest safe audit result
 
 - Static contracts: passed (`tools=58`, `contracts=58`).
-- Safe GET routes: passed for health, ontology tool contracts, focus current frame, lineage, metacog recent, predictions, project identity, resource mode, trajectory, work-loop summary, Workpoint current.
-- Warnings:
-  - `stale_runtime_registry`: running daemon serves old registry payload after source/docs edits; requires rebuild/restart to clear.
+- Safe GET routes: passed for health, ontology tool contracts/choreography, focus current frame, lineage, metacog recent, predictions, project identity, resource mode, trajectory, work-loop summary, Workpoint current.
+- Current hardening gates: `tests/focusa_cli_parity_smoke_test.sh`, `tests/focusa_tool_stress_test.sh`, `tests/focusa_extended_soak_test.sh`, `tests/focusa_parallel_load_regression_test.sh`, `tests/spec96_focusa_aware_context_pressure_static_test.sh`, and `node scripts/audit-focusa-tool-suite-safe.mjs`.
+- Runtime proof includes extended soak RSS/status profiling, immediate scoped Workpoint checkpoint visibility, and live dynamic choreography adjustments from evaluated `tool_edge:from->to` prediction refs.
+- Warnings: none in the latest clean safe-audit run after daemon rebuild/restart.
 
 ## Confirmed failurepoints from this session
 
@@ -29,6 +30,7 @@ This audit is read-only for daemon/API probes. It validates all 58 registered to
 | stale runtime registry | live proof `payload_equal=false` while static/safe fixtures pass | classify as `stale_runtime_registry`; static validation is source until approved daemon reload |
 | null/unknown tool failures | older wrappers hide upstream status/body as null/unavailable | preserve raw status/body in `tool_result_v1.raw`; classify `null_response`/retry posture |
 | Workpoint status projection mismatch | REST `/v1/workpoint/current` returned envelope `status=completed` while nested canonical workpoint was `status=active`; wrapper evidence/checkpoint tools blocked | classify as `read_model_lag`; wrappers should use nested canonical object state and avoid blocking solely on envelope status |
+| Workpoint checkpoint read-model lag | scoped checkpoint returned `pending` and `current/resume` stayed `not_found` while daemon queue was busy | canonical checkpoint route now uses the sync reducer path under `write_serial_lock` and marks external mutation for daemon reconciliation |
 
 ## Reliability requirements
 
@@ -45,6 +47,7 @@ This audit is read-only for daemon/API probes. It validates all 58 registered to
 3. Add last-known-good caches for hot tool reads when daemon is restarting or under pressure.
 4. Add `resource_exhausted` and `null_response` across docs, schema, and all wrappers.
 5. Keep golden tool-choice tasks current; `tests/spec96_tool_affordance_catalog_golden_eval_test.sh` now proves catalog-driven tool choice without source-code inspection.
+6. Keep bounded soak/chaos gates current; `tests/focusa_extended_soak_test.sh` exercises sustained hot routes + Workpoint checkpoint/resume with post-run profiling, `tests/focusa_parallel_load_regression_test.sh` exercises concurrent hot routes, and `tests/focusa_cli_parity_smoke_test.sh` proves dynamic choreography weights through evaluated prediction refs.
 
 ## Low-memory reliability caveats
 

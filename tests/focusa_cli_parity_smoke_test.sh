@@ -31,7 +31,24 @@ wait_current(){
   done
   return 1
 }
+wait_health(){
+  local out="$TMP_DIR/health_wait.json"
+  local consecutive=0
+  for _ in $(seq 1 40); do
+    if curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health >"$out" 2>"$out.err" \
+      && jq -e '.ok == true or .status == "ok"' "$out" >/dev/null 2>&1; then
+      consecutive=$((consecutive+1))
+      [[ "$consecutive" -ge 2 ]] && return 0
+    else
+      consecutive=0
+    fi
+    sleep 1
+  done
+  echo "health readiness failed: $(tail -c 240 "$out.err" 2>/dev/null) $(tail -c 240 "$out" 2>/dev/null)" >&2
+  return 1
+}
 
+wait_health || { echo "=== FOCUSA CLI PARITY SMOKE RESULTS ==="; echo "passed=$PASSED failed=1 artifacts=$TMP_DIR"; exit 1; }
 run_json health '.status == "ok" or .ok == true' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/health
 run_json tool_contracts '.contracts | length == 58' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-contracts
 run_json tool_choreography '.schema == "focusa.tool_choreography.v1" and .tool_count == 58 and .edge_count >= 58 and (.per_tool_next_tools.focusa_project_identity | length > 0)' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-choreography

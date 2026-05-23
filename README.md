@@ -365,6 +365,8 @@ That proof verified a rebuilt installed daemon and CLI through direct live API/C
 - CLI Workpoint current and drift-check,
 - Pi `focusa_workpoint_resume`.
 
+Current hardening gates also cover bounded CLI smoke, tool stress, extended soak, parallel hot-route load, context-pressure warning copy, dynamic choreography weighting, and safe audit/profiling checks. These prove Focusa preserves scoped project/trajectory/Workpoint/evidence anchors under pressure instead of treating context pressure as lost continuity.
+
 Proof marker:
 
 ```text

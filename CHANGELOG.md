@@ -13,8 +13,9 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Added model-visible awareness documentation and per-call `PROJECT_INFRA`/`PROJECT_ARCHITECTURE` trajectory context so agents see project folder, continuity, canonical name, repo, workspace kind, stack/key dirs, deploy/docs/tests, and architecture-boundary guidance.
 - Added machine-readable tool choreography registry/API with exact per-tool next-tool routes for all 58 tools, plus live dynamic weights from evaluated prediction evidence.
 - Reworded context-pressure warnings to reflect Focusa preserving scoped anchors; warnings now point to Workpoint checkpoint/resume and treat `/fork`/handoff as optional UI-isolation paths, with runtime copy guard coverage.
-- Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes; added bounded parallel-load regression coverage.
+- Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes; added bounded extended-soak and parallel-load regression coverage.
 - Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction record/evaluate/read paths.
+- Materialized canonical Workpoint checkpoints through the sync reducer path so safe `project_root + continuity_id` writes are visible immediately instead of depending on queued daemon read-model lag.
 
 ## Unreleased — Spec93 release publication proof
 

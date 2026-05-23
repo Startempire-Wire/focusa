@@ -8385,6 +8385,10 @@ fn parse_tool_edge_ref(raw: &str) -> Option<(String, String)> {
     }
 }
 
+fn dynamic_choreography_multiplier(average_score: f64) -> f64 {
+    (0.75 + average_score.clamp(0.0, 1.0) * 0.5).clamp(0.75, 1.25)
+}
+
 fn dynamic_choreography_adjustments(registry: &Value) -> Vec<Value> {
     let mut known_edges = BTreeSet::new();
     for edge in registry
@@ -8428,7 +8432,7 @@ fn dynamic_choreography_adjustments(registry: &Value) -> Vec<Value> {
             } else {
                 0.0
             };
-            let multiplier = (0.75 + average_score * 0.5).clamp(0.75, 1.25);
+            let multiplier = dynamic_choreography_multiplier(average_score);
             json!({
                 "edge": format!("{}->{}", from, to),
                 "from": from,
@@ -8619,6 +8623,25 @@ mod tests {
             .and_then(|v| v.as_array())
             .map(|items| items.iter().any(|item| item.as_str() == Some(expected)))
             .unwrap_or(false)
+    }
+
+    #[test]
+    fn dynamic_choreography_multiplier_is_bounded_and_monotonic() {
+        assert_eq!(dynamic_choreography_multiplier(-1.0), 0.75);
+        assert_eq!(dynamic_choreography_multiplier(0.0), 0.75);
+        assert_eq!(dynamic_choreography_multiplier(0.5), 1.0);
+        assert_eq!(dynamic_choreography_multiplier(1.0), 1.25);
+        assert_eq!(dynamic_choreography_multiplier(2.0), 1.25);
+    }
+
+    #[test]
+    fn tool_edge_refs_parse_only_focusa_edges() {
+        assert_eq!(
+            parse_tool_edge_ref("tool_edge:focusa_project_identity->focusa_trajectory_view"),
+            Some(("focusa_project_identity".to_string(), "focusa_trajectory_view".to_string()))
+        );
+        assert_eq!(parse_tool_edge_ref("tool_edge:other->focusa_trajectory_view"), None);
+        assert_eq!(parse_tool_edge_ref("not-an-edge"), None);
     }
 
     #[test]

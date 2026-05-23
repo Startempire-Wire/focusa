@@ -13,8 +13,9 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
+use focusa_core::reducer;
 use focusa_core::types::{
-    Action, FocusaEvent, FocusaSessionIdentity, WorkpointActionIntentRecord,
+    Action, EventLogEntry, FocusaEvent, FocusaSessionIdentity, SignalOrigin, WorkpointActionIntentRecord,
     WorkpointCheckpointReason, WorkpointConfidence, WorkpointDriftSeverity, WorkpointRecord,
     WorkpointStatus, WorkpointVerificationRecord,
 };
@@ -892,31 +893,6 @@ fn workpoint_visibility_wait_attempts() -> usize {
     }
 }
 
-async fn wait_for_active_workpoint(
-    state: &Arc<AppState>,
-    workpoint_id: Uuid,
-) -> Option<WorkpointRecord> {
-    let attempts = workpoint_visibility_wait_attempts();
-    for attempt in 0..attempts {
-        {
-            let focusa = state.focusa.read().await;
-            if focusa.workpoint.active_workpoint_id == Some(workpoint_id)
-                && let Some(record) = focusa
-                    .workpoint
-                    .records
-                    .iter()
-                    .find(|record| record.workpoint_id == workpoint_id)
-            {
-                return Some(record.clone());
-            }
-        }
-        if attempt + 1 < attempts {
-            sleep(Duration::from_millis(50)).await;
-        }
-    }
-    None
-}
-
 async fn wait_for_workpoint_record(
     state: &Arc<AppState>,
     workpoint_id: Uuid,
@@ -973,6 +949,66 @@ async fn wait_for_workpoint_evidence(
         }
     }
     None
+}
+
+async fn materialize_workpoint_events(
+    state: &Arc<AppState>,
+    events: Vec<FocusaEvent>,
+    correlation_id: &'static str,
+) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
+    let _guard = state.write_serial_lock.lock().await;
+    let mut current = { state.focusa.read().await.clone() };
+
+    for event in events {
+        let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
+            tracing::warn!(error = %error, correlation_id, "workpoint event rejected by reducer");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "status": "rejected",
+                    "canonical": false,
+                    "failure_class": "reducer_rejected",
+                    "error": format!("workpoint reducer rejected event: {error}"),
+                    "next_step_hint": "retry after resolving the reducer rejection"
+                })),
+            )
+        })?;
+        current = result.new_state;
+
+        for emitted in result.emitted_events {
+            let entry = EventLogEntry {
+                id: Uuid::now_v7(),
+                timestamp: Utc::now(),
+                event: emitted,
+                correlation_id: Some(correlation_id.to_string()),
+                origin: SignalOrigin::Adapter,
+                machine_id: None,
+                instance_id: None,
+                session_id: current.session.as_ref().map(|session| session.session_id),
+                thread_id: None,
+                is_observation: false,
+            };
+            if let Err(error) = state.persistence.append_event(&entry) {
+                tracing::error!(error = %error, correlation_id, "failed to persist workpoint event");
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "status": "rejected",
+                        "canonical": false,
+                        "failure_class": "persistence_failed",
+                        "error": format!("failed to persist workpoint event: {error}"),
+                        "next_step_hint": "retry after persistence recovers"
+                    })),
+                ));
+            } else if let Ok(serialized) = serde_json::to_string(&entry) {
+                let _ = state.events_tx.send(serialized);
+            }
+        }
+    }
+
+    *state.focusa.write().await = current.clone();
+    state.mark_external_mutation();
+    Ok(current)
 }
 
 async fn dispatch_event(
@@ -1154,36 +1190,38 @@ async fn checkpoint(
     };
     let canonical = record.canonical;
 
-    dispatch_event(
-        &state,
-        FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
-    )
-    .await?;
-    let mut promoted_record = None;
+    let mut events = vec![FocusaEvent::WorkpointCheckpointProposed { workpoint: record }];
     if promote && canonical {
-        dispatch_event(
-            &state,
-            FocusaEvent::WorkpointCheckpointPromoted {
-                workpoint_id,
-                confidence: req.confidence.unwrap_or(WorkpointConfidence::High),
-                reason: "checkpoint API promote=true".to_string(),
-            },
-        )
-        .await?;
-        promoted_record = wait_for_active_workpoint(&state, workpoint_id).await;
-        if promoted_record.is_none() {
-            return Err((
-                StatusCode::ACCEPTED,
-                Json(json!({
-                    "status": "pending",
-                    "workpoint_id": workpoint_id,
-                    "canonical": canonical,
-                    "idempotent_replay": false,
-                    "warnings": ["checkpoint accepted but active Workpoint promotion has not materialized yet"],
-                    "next_step_hint": "retry /v1/workpoint/current before relying on this Workpoint"
-                })),
-            ));
-        }
+        events.push(FocusaEvent::WorkpointCheckpointPromoted {
+            workpoint_id,
+            confidence: req.confidence.unwrap_or(WorkpointConfidence::High),
+            reason: "checkpoint API promote=true".to_string(),
+        });
+    }
+
+    let materialized_state = materialize_workpoint_events(&state, events, "workpoint_checkpoint").await?;
+    let promoted_record = if promote && canonical {
+        materialized_state
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == workpoint_id && record.status == WorkpointStatus::Active)
+            .cloned()
+    } else {
+        None
+    };
+    if promote && canonical && promoted_record.is_none() {
+        return Err((
+            StatusCode::ACCEPTED,
+            Json(json!({
+                "status": "pending",
+                "workpoint_id": workpoint_id,
+                "canonical": canonical,
+                "idempotent_replay": false,
+                "warnings": ["checkpoint accepted but active Workpoint promotion has not materialized yet"],
+                "next_step_hint": "retry /v1/workpoint/current before relying on this Workpoint"
+            })),
+        ));
     }
     if let (Some(key), Some(record)) = (
         idempotency_key
