@@ -34,6 +34,13 @@ else
   exit 1
 fi
 
+if rg -n 'wp-config\.php|WP_HOME|WP_SITEURL|/home/\{hint\}/public_html|public_html/wp-config\.php' "${ROOT_DIR}/crates/focusa-api/src/routes/project.rs" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity scans WordPress/nontraditional live-root URL sources"
+else
+  echo "✗ FAIL: WordPress/nontraditional live-root URL inference missing" >&2
+  exit 1
+fi
+
 if rg -n 'advisory_only=true|Trajectory.*never override|advisory degraded projection' "$TURNS_TS" "${ROOT_DIR}/apps/pi-extension/skills/focusa/SKILL.md" >/dev/null; then
   echo "✓ PASS: trajectory projection remains advisory and guarded"
 else

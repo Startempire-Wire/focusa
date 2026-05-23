@@ -237,34 +237,92 @@ fn marker_deployment(marker: &Option<Value>) -> Value {
     deployment
 }
 
-fn candidate_environment_files(root: &Path) -> Vec<PathBuf> {
+fn normalized_hint(value: &str) -> Option<String> {
+    let out = value
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric())
+        .collect::<String>()
+        .to_ascii_lowercase();
+    (out.len() >= 3).then_some(out)
+}
+
+fn add_if_file(out: &mut Vec<PathBuf>, path: PathBuf) {
+    if path.is_file() && !out.iter().any(|existing| existing == &path) {
+        out.push(path);
+    }
+}
+
+fn candidate_environment_files(root: &Path, identity_hints: &[String]) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    for rel in [
-        ".focusa-project.json",
-        "README.md",
-        "AGENTS.md",
-        ".env.example",
-        "package.json",
-        "composer.json",
-    ] {
-        let path = root.join(rel);
-        if path.is_file() {
-            out.push(path);
+    for base in [
+        Some(root.to_path_buf()),
+        root.parent().map(Path::to_path_buf),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        for rel in [
+            ".focusa-project.json",
+            "README.md",
+            "AGENTS.md",
+            ".env.example",
+            "package.json",
+            "composer.json",
+            "wp-config.php",
+            "public_html/wp-config.php",
+        ] {
+            add_if_file(&mut out, base.join(rel));
         }
     }
-    for dir in ["scripts", "bin", ".github/workflows", "docs"] {
+    for hint in identity_hints
+        .iter()
+        .filter_map(|value| normalized_hint(value))
+    {
+        add_if_file(
+            &mut out,
+            PathBuf::from(format!("/home/{hint}/public_html/wp-config.php")),
+        );
+        add_if_file(
+            &mut out,
+            PathBuf::from(format!("/home/{hint}/public_html/.env")),
+        );
+    }
+    for dir in [
+        "scripts",
+        "bin",
+        ".github/workflows",
+        "docs",
+        "wp-content",
+        "app/src",
+        "src",
+    ] {
         let base = root.join(dir);
         if let Ok(entries) = fs::read_dir(base) {
-            for entry in entries.flatten().take(30) {
+            for entry in entries.flatten().take(40) {
                 let path = entry.path();
-                let name = path.file_name().and_then(|v| v.to_str()).unwrap_or("");
+                let name = path
+                    .file_name()
+                    .and_then(|v| v.to_str())
+                    .unwrap_or("")
+                    .to_ascii_lowercase();
                 let ext = path.extension().and_then(|v| v.to_str()).unwrap_or("");
                 if path.is_file()
                     && (name.contains("deploy")
                         || name.contains("live")
+                        || name.contains("config")
+                        || name.contains("url")
                         || matches!(
                             ext,
-                            "md" | "sh" | "php" | "js" | "ts" | "yml" | "yaml" | "json" | "txt"
+                            "md" | "sh"
+                                | "php"
+                                | "js"
+                                | "ts"
+                                | "mjs"
+                                | "yml"
+                                | "yaml"
+                                | "json"
+                                | "txt"
+                                | "env"
                         ))
                 {
                     out.push(path);
@@ -272,7 +330,7 @@ fn candidate_environment_files(root: &Path) -> Vec<PathBuf> {
             }
         }
     }
-    out.into_iter().take(80).collect()
+    out.into_iter().take(120).collect()
 }
 
 fn strip_token(value: &str) -> String {
@@ -337,12 +395,12 @@ fn insert_if_missing(map: &mut Map<String, Value>, key: &str, value: Option<Stri
     }
 }
 
-fn infer_project_environment(root: &Path) -> (Value, Value) {
+fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, Value) {
     let mut urls = Vec::<(String, String)>::new();
     let mut deploy_locations = Vec::<String>::new();
     let mut deploy_command = None::<String>;
     let mut sources = BTreeSet::<String>::new();
-    for path in candidate_environment_files(root) {
+    for path in candidate_environment_files(root, identity_hints) {
         let rel = path
             .strip_prefix(root)
             .unwrap_or(path.as_path())
@@ -380,7 +438,8 @@ fn infer_project_environment(root: &Path) -> (Value, Value) {
         .map(|(url, _)| url.clone());
     let live_url = urls
         .iter()
-        .find(|(url, _)| !is_local_url(url))
+        .find(|(url, source)| !is_local_url(url) && source.contains("wp-config.php"))
+        .or_else(|| urls.iter().find(|(url, _)| !is_local_url(url)))
         .map(|(url, _)| url.clone());
     let root_url = live_url.clone().or_else(|| local_url.clone());
     let deploy_target = live_url.as_deref().and_then(host_from_url);
@@ -675,8 +734,13 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
     let repo_remote = marker_remote.or(repo_remote);
     let beads_prefix = marker_beads.or_else(|| Some(project_id.clone()));
     let workspace_kind = marker_workspace.or_else(|| workspace_kind.map(str::to_string));
+    let identity_hints = [
+        project_id.clone(),
+        canonical_name.clone(),
+        basename(&canonical_root),
+    ];
     let (inferred_project_urls, inferred_deployment) =
-        infer_project_environment(&PathBuf::from(&canonical_root));
+        infer_project_environment(&PathBuf::from(&canonical_root), &identity_hints);
     let project_urls =
         merge_missing_object_fields(marker_project_urls(&marker), inferred_project_urls);
     let deployment = merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
@@ -901,12 +965,17 @@ mod tests {
             "rsync -av ./ /home/asapdigest/public_html/\n",
         )
         .unwrap();
+        fs::write(
+            root.join("wp-config.php"),
+            "define('WP_HOME', 'https://asapdigest.com');\ndefine('WP_SITEURL', 'https://asapdigest.com');\n",
+        )
+        .unwrap();
         let payload = project_identity_payload_for_scope(root.to_str(), None);
         assert_eq!(
             payload
                 .pointer("/project_identity/project_urls/live_url")
                 .and_then(Value::as_str),
-            Some("https://app.asapdigest.com")
+            Some("https://asapdigest.com")
         );
         assert_eq!(
             payload
