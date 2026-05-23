@@ -8,10 +8,17 @@ SESSION="${ROOT_DIR}/apps/pi-extension/src/session.ts"
 STATE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
 RUNTIME="${ROOT_DIR}/tests/utility_card_session_isolation_test.mts"
 
-if rg -n 'getScopedWorkpointPacket|Scoped Workpoint: none verified|Mission: use latest operator instruction only' "$AWARENESS" >/dev/null; then
+if rg -n 'getScopedWorkpointPacket|Scoped Workpoint: none verified|Mission: use latest operator instruction only|broad/unsafe' "$AWARENESS" >/dev/null; then
   echo "✓ PASS: Utility Card uses scoped Workpoint guard"
 else
   echo "✗ FAIL: Utility Card scoped guard missing" >&2
+  exit 1
+fi
+
+if rg -n 'mode === "visible" && !scopedPacket|split\("\\n"\)\.length <= 6|packageUpdateCommand' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
+  echo "✓ PASS: unscoped login/update Utility Card stays compact and package update input is meta"
+else
+  echo "✗ FAIL: login/update Utility Card remains noisy or misclassified" >&2
   exit 1
 fi
 

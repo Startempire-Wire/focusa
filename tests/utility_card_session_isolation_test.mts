@@ -45,11 +45,12 @@ Object.assign(S, {
     status: "active",
   },
 });
-await ensurePiFrame("/root", "other-session", "test-unsafe-cwd");
 const unsafeCwdCard = buildFocusaUtilityCard("visible");
 assert(!unsafeCwdCard.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Utility Card adopted global active Workpoint");
 assert(!unsafeCwdCard.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity id");
 assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no scoped Workpoint");
+assert(unsafeCwdCard.includes("broad/unsafe"), "unsafe-cwd Utility Card should be compact but explicit about broad scope");
+assert(unsafeCwdCard.split("\n").length <= 6, "unscoped visible Utility Card should stay compact");
 
 Object.assign(S, {
   sessionFrameKey: "different-session",
@@ -64,6 +65,7 @@ Object.assign(S, {
 resetPiSessionScopedState("runtime_cross_session_reset_proof");
 const resetCard = buildFocusaUtilityCard("visible");
 assert(!resetCard.includes("SPEC96 FROM OTHER SESSION"), "session reset leaked Pi Task/title from another session");
+assert(resetCard.split("\n").length <= 6, "unscoped reset Utility Card should stay compact");
 assert(S.currentAsk === null, "session reset retained currentAsk");
 assert(S.activeFrameTitle === "" && S.activeFrameGoal === "", "session reset retained frame title/goal");
 assert(S.focusStateCache.data === null, "session reset retained focus cache");
@@ -102,4 +104,5 @@ S.activeWorkpointPacket = {
 const matched = buildFocusaUtilityCard("visible");
 assert(matched.includes("MATCHED MISSION"), "matched Utility Card did not show scoped mission");
 assert(matched.includes("verified project_root + continuity_id match"), "matched Utility Card did not declare verified scope");
+assert(matched.split("\n").length > resetCard.split("\n").length, "verified Utility Card may include richer Workpoint guidance");
 console.log("utility card session isolation proof passed");

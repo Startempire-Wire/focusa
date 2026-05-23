@@ -289,7 +289,9 @@ export function registerTurns(pi: ExtensionAPI) {
 
     if (!S.seenFirstBeforeAgentStart) {
       S.seenFirstBeforeAgentStart = true;
-      pi.sendMessage({ customType: "focusa-utility-card", content: buildFocusaUtilityCard("visible"), display: true });
+      const visibleCard = buildFocusaUtilityCard("visible");
+      pi.sendMessage({ customType: "focusa-utility-card", content: visibleCard, display: true });
+      queueTraceTelemetry({ event_type: "focusa_utility_card_visible", turn_id: `pi-turn-${S.turnCount}`, surface: "pi", bytes: visibleCard.length });
     }
 
     // §29: WBM inbound context injection
@@ -676,7 +678,8 @@ export function registerTurns(pi: ExtensionAPI) {
     // Input is the pre-turn boundary for the upcoming model call.
     // Use the next turn id so CurrentAsk/QueryScope survive unchanged into context injection.
     const sourceTurnId = `pi-turn-${S.turnCount + 1}`;
-    const askKind = classifyCurrentAsk(String(text));
+    const packageUpdateCommand = /^\s*(update|pi\s+update|\/update)\s*$/i.test(String(text));
+    const askKind = packageUpdateCommand ? "meta" : classifyCurrentAsk(String(text));
     const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
     S.currentAsk = {
       text: storedAskText.slice(0, 500),
@@ -702,7 +705,7 @@ export function registerTurns(pi: ExtensionAPI) {
       updatedAt: Date.now(),
     };
 
-    if (S.focusaAvailable && S.activeFrameId) {
+    if (S.focusaAvailable && S.activeFrameId && !packageUpdateCommand) {
       await rescopePiFrameFromCurrentAsk((_ctx as any)?.cwd, "pi-post-input-rescope").catch(() => null);
       await getFocusState().catch(() => null);
     }
