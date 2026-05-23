@@ -13,6 +13,104 @@ use focusa_core::types::{Action, FocusaEvent};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+fn constitution_failure(
+    http_status: StatusCode,
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> (StatusCode, Json<Value>) {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    (
+        http_status,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "degraded": true,
+            "error": error,
+            "failure_class": failure_class,
+            "why": why,
+            "recovery_hint": recovery_hint,
+            "misuse_hint": misuse_hint,
+            "next_tools": next_tools_value.clone(),
+            "details": {
+                "tool_result_v1": {
+                    "ok": false,
+                    "status": "blocked",
+                    "canonical": false,
+                    "degraded": true,
+                    "failure_class": failure_class,
+                    "summary": why,
+                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "recovery_hint": recovery_hint,
+                    "misuse_hint": misuse_hint,
+                    "side_effects": [],
+                    "evidence_refs": [],
+                    "next_tools": next_tools_value,
+                    "error": {"code": failure_class, "message": error}
+                }
+            }
+        })),
+    )
+}
+
+fn constitution_not_active() -> Value {
+    json!({
+        "status": "blocked",
+        "canonical": false,
+        "degraded": true,
+        "error": "No active constitution",
+        "failure_class": "not_found",
+        "why": "No constitution version is currently active in Focusa state.",
+        "recovery_hint": "Load a constitution version or resolve a constitution_revision proposal before reading active constitution.",
+        "misuse_hint": "Likely fresh daemon state, no seed constitution loaded, or wrong daemon instance.",
+        "next_tools": ["focusa_tool_doctor", "focusa_traverse"],
+        "details": {
+            "tool_result_v1": {
+                "ok": false,
+                "status": "blocked",
+                "canonical": false,
+                "degraded": true,
+                "failure_class": "not_found",
+                "summary": "No constitution version is currently active in Focusa state.",
+                "retry": {"safe": true, "posture": "safe_retry", "reason": "not_found"},
+                "side_effects": [],
+                "evidence_refs": [],
+                "next_tools": ["focusa_tool_doctor", "focusa_traverse"],
+                "error": {"code": "not_found", "message": "No active constitution"}
+            }
+        }
+    })
+}
+
+fn constitution_content_required() -> (StatusCode, Json<Value>) {
+    constitution_failure(
+        StatusCode::BAD_REQUEST,
+        "content field required",
+        "validation_rejected",
+        "Constitution load requires a non-empty content field.",
+        "Send JSON with a non-empty content string before retrying unchanged.",
+        "Likely missing content, wrong payload key, or stale caller contract.",
+        vec!["focusa_tool_doctor"],
+    )
+}
+
+fn constitution_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+    constitution_failure(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("failed to dispatch constitution load: {error}"),
+        "daemon_unavailable",
+        "Constitution load event could not be dispatched to daemon command channel.",
+        "Check daemon health and retry after command channel recovery is clear.",
+        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status"],
+    )
+}
+
 /// GET /v1/constitution/active — active constitution.
 async fn active(
     State(state): State<Arc<AppState>>,
@@ -25,7 +123,7 @@ async fn active(
     let s = state.focusa.read().await;
     match focusa_core::constitution::active(&s.constitution) {
         Some(c) => Ok(Json(serde_json::to_value(c).unwrap_or(json!({})))),
-        None => Ok(Json(json!({ "error": "No active constitution" }))),
+        None => Ok(Json(constitution_not_active())),
     }
 }
 
@@ -62,10 +160,7 @@ async fn load_constitution(
 
     let content = body.get("content").and_then(|v| v.as_str()).unwrap_or("");
     if content.is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error": "content field required"})),
-        ));
+        return Err(constitution_content_required());
     }
 
     let source = body.get("source").and_then(|v| v.as_str()).unwrap_or("api");
@@ -151,12 +246,7 @@ async fn load_constitution(
         .command_tx
         .send(Action::EmitEvent { event })
         .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "failed to dispatch constitution load"})),
-            )
-        })?;
+        .map_err(constitution_dispatch_failed)?;
 
     let mut visible = false;
     for _ in 0..80 {

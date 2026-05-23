@@ -3,6 +3,7 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -50,6 +51,12 @@ assert_has_match "crates/focusa-api/src/routes/sync_transfer.rs" 'Action::EmitEv
 assert_no_match "crates/focusa-core/src/runtime/daemon.rs" 'thread\.thesis = thesis|self\.state\.threads\[0\]\.thesis = thesis' "daemon direct thesis mutation"
 assert_no_match "crates/focusa-core/src/runtime/daemon.rs" 'crate::memory::semantic::upsert\(\s*&mut self\.state\.memory' "daemon direct semantic memory upsert"
 assert_has_match "crates/focusa-core/src/runtime/daemon.rs" 'ThreadThesisUpdated|SemanticMemoryUpserted' "daemon reducer-backed thesis/memory events"
+
+if rg -n 'constitution_failure|constitution_not_active|constitution_content_required|constitution_dispatch_failed|recovery_hint|misuse_hint|tool_result_v1' "${ROOT_DIR}/crates/focusa-api/src/routes/constitution.rs" >/dev/null; then
+  log_pass "Constitution failures expose no-guess recovery contract"
+else
+  log_fail "Constitution failures lack no-guess recovery contract"
+fi
 
 echo "=== CANONICAL WRITER GUARDRAIL RESULTS ==="
 echo "Tests passed: $PASSED"
