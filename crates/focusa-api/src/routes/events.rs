@@ -30,6 +30,65 @@ fn default_limit() -> usize {
     20
 }
 
+fn legacy_event_failure(
+    error: impl Into<String>,
+    failure_class: &str,
+    why: impl Into<String>,
+    recovery_hint: &str,
+    misuse_hint: &str,
+    next_tools: Vec<&'static str>,
+) -> Value {
+    let error = error.into();
+    let why = why.into();
+    let next_tools_value = json!(next_tools);
+    json!({
+        "status": "blocked", "canonical": false, "degraded": true,
+        "error": error, "failure_class": failure_class, "why": why,
+        "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
+        "next_tools": next_tools_value.clone(),
+        "details": {"tool_result_v1": {
+            "ok": false, "status": "blocked", "canonical": false, "degraded": true,
+            "failure_class": failure_class, "summary": why,
+            "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+            "side_effects": [], "evidence_refs": [], "next_tools": next_tools_value,
+            "error": {"code": failure_class, "message": error}
+        }}
+    })
+}
+
+fn legacy_event_log_read_failed(error: impl std::fmt::Display) -> Value {
+    legacy_event_failure(
+        format!("Cannot read log: {error}"),
+        "persistence_failed",
+        format!("legacy JSONL event log could not be read: {error}"),
+        "Prefer canonical SQLite /v1/events routes or check data_dir/events/log.jsonl permissions.",
+        "Likely deprecated JSONL log missing, file permission issue, or wrong data_dir.",
+        vec!["focusa_tool_doctor", "focusa_traverse"],
+    )
+}
+
+fn legacy_event_log_not_found() -> Value {
+    legacy_event_failure(
+        "Event log not found",
+        "not_found",
+        "legacy JSONL event log is not present for this daemon data_dir.",
+        "Use canonical SQLite-backed /v1/events/recent or verify data_dir before legacy lookup.",
+        "Likely deprecated JSONL path, fresh daemon state, or wrong data_dir.",
+        vec!["focusa_traverse", "focusa_tool_doctor"],
+    )
+}
+
+fn legacy_event_not_found(event_id: &str) -> Value {
+    legacy_event_failure(
+        "Event not found",
+        "not_found",
+        format!("event_id {event_id} is not present in legacy JSONL event log"),
+        "Use /v1/events/recent to discover valid ids before requesting a specific legacy event.",
+        "Likely stale event id, deprecated JSONL backend, or wrong daemon data_dir.",
+        vec!["focusa_traverse", "focusa_tool_doctor"],
+    )
+}
+
 fn event_type_matches(event: &Value, event_type: Option<&str>) -> bool {
     event_type
         .map(|wanted| event.get("event_type").and_then(|v| v.as_str()) == Some(wanted))
@@ -93,7 +152,11 @@ async fn recent(
         Ok(f) => f,
         Err(e) => {
             tracing::error!("Failed to open event log: {}", e);
-            return Json(json!({ "events": [], "error": format!("Cannot read log: {}", e) }));
+            let mut payload = legacy_event_log_read_failed(e);
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("events".to_string(), json!([]));
+            }
+            return Json(payload);
         }
     };
 
@@ -136,9 +199,7 @@ async fn stream(
     let data_dir = expand_home(&state.config.data_dir);
     let log_path = data_dir.join("events/log.jsonl");
 
-    let initial_len = std::fs::metadata(&log_path)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let initial_len = std::fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);
 
     let stream = async_stream::stream! {
         let mut offset = initial_len;
@@ -179,7 +240,8 @@ fn read_new_events(path: &Path, offset: u64) -> (Vec<String>, u64) {
     }
 
     let bytes_read = buf.len() as u64;
-    let events = buf.lines()
+    let events = buf
+        .lines()
         .filter(|l| !l.trim().is_empty())
         .map(|l| l.to_string())
         .collect();
@@ -205,13 +267,13 @@ async fn get_event(
     let log_path = data_dir.join("events/log.jsonl");
 
     if !log_path.exists() {
-        return Json(json!({ "error": "Event log not found" }));
+        return Json(legacy_event_log_not_found());
     }
 
     let file = match std::fs::File::open(&log_path) {
         Ok(f) => f,
         Err(e) => {
-            return Json(json!({ "error": format!("Cannot read log: {}", e) }));
+            return Json(legacy_event_log_read_failed(e));
         }
     };
 
@@ -220,15 +282,16 @@ async fn get_event(
     for line in reader.lines() {
         if let Ok(l) = line
             && !l.trim().is_empty()
-            && let Ok(v) = serde_json::from_str::<Value>(&l) {
-                // Check if this event matches the ID.
-                if v.get("id").and_then(|id| id.as_str()) == Some(&event_id) {
-                    return Json(json!({ "event": v }));
-                }
+            && let Ok(v) = serde_json::from_str::<Value>(&l)
+        {
+            // Check if this event matches the ID.
+            if v.get("id").and_then(|id| id.as_str()) == Some(&event_id) {
+                return Json(json!({ "event": v }));
             }
+        }
     }
 
-    Json(json!({ "error": "Event not found" }))
+    Json(legacy_event_not_found(&event_id))
 }
 
 pub fn router() -> Router<Arc<AppState>> {

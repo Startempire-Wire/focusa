@@ -68,3 +68,12 @@ else
   echo "✗ FAIL: Capabilities-extra failures lack no-guess recovery contract" >&2
   exit 1
 fi
+
+
+EVENTS_LEGACY_RS="${ROOT_DIR}/crates/focusa-api/src/routes/events.rs"
+if rg -n 'legacy_event_failure|legacy_event_log_read_failed|legacy_event_log_not_found|legacy_event_not_found|recovery_hint|misuse_hint|tool_result_v1' "$EVENTS_LEGACY_RS" >/dev/null; then
+  echo "✓ PASS: Legacy event failures expose no-guess recovery contract"
+else
+  echo "✗ FAIL: Legacy event failures lack no-guess recovery contract" >&2
+  exit 1
+fi
