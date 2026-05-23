@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Approval-safe hygiene apply placeholder; requires approved=true and never deletes silently.
+Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed `/v1/focus/update`.
 
 ## When to use
 
@@ -19,6 +19,7 @@ Do not use `focusa_state_hygiene_apply` to dump unbounded logs, bypass operator 
 
 ```text
 focusa_state_hygiene_apply approved=false reason="review hygiene plan first"
+focusa_state_hygiene_apply approved=true reason="duplicate review complete"
 ```
 
 ## Expected result
@@ -40,13 +41,13 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 ## Contract summary
 
 - Family: Diagnostics / Hygiene.
-- Side effects: `read_only`.
+- Side effects: `write_focus_state_note` when `approved=true`; no deletion.
 - Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: none; local/Pi-only surface.
+- API routes: `POST /v1/focus/update`.
 - CLI commands: none.
-- Parity: `pi_only`; exemptions: `approval_placeholder`, `domain_cli_only`.
-- Core surface: Local diagnostic/hygiene composition.
-- Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.
+- Parity: `pi_only`; exemptions: `domain_cli_only`.
+- Core surface: Reducer-backed Focus State note append through `/v1/focus/update`.
+- Live check: contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note.
 - Contract source: `docs/current/focusa-tool-contracts.json`.
 
 ## Source

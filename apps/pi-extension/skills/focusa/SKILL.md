@@ -177,7 +177,7 @@ Use for safe cleanup planning, never silent deletion.
 
 - `focusa_state_hygiene_doctor` — diagnose stale/duplicate Focus State signals without mutation.
 - `focusa_state_hygiene_plan` — produce proposal-style hygiene plan.
-- `focusa_state_hygiene_apply` — approval-gated, non-destructive placeholder until reducer-backed hygiene events exist.
+- `focusa_state_hygiene_apply` — approval-gated, non-destructive apply that records an auditable Focus State note via `/v1/focus/update`.
 
 No existing Focusa tools should be demoted; weak tools should be redesigned, clarified, merged upward, or hardened.
 

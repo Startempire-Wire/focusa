@@ -683,24 +683,25 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_state_hygiene_apply",
     "label": "Focus State Hygiene Apply",
-    "purpose": "Approval-safe hygiene apply placeholder; requires approved=true and never deletes silently.",
+    "purpose": "Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update.",
     "family": "diagnostics_hygiene",
     "ontology_action": "diagnostics_hygiene.state_hygiene.apply",
     "ontology_objects": [
       "ToolContract"
     ],
-    "api_routes": [],
+    "api_routes": [
+      "POST /v1/focus/update"
+    ],
     "cli_commands": [],
-    "core_surface": "Local diagnostic/hygiene composition",
+    "core_surface": "Reducer-backed Focus State note append through /v1/focus/update",
     "doc_path": "docs/focusa-tools/tools/focusa_state_hygiene_apply.md",
     "result_envelope": "tool_result_v1",
-    "side_effect_profile": "read_only",
+    "side_effect_profile": "write_focus_state_note",
     "parity_status": "pi_only",
     "exemptions": [
-      "approval_placeholder",
       "domain_cli_only"
     ],
-    "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    "live_check": "contract_static plus bounded hot-path live checks; approved apply writes an auditable Focus State note"
   },
 
   {

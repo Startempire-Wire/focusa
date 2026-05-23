@@ -9,14 +9,14 @@
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
-- Pi extension under `apps/pi-extension` exposing 55 current `focusa_*` tools.
+- Pi extension under `apps/pi-extension` exposing 58 current `focusa_*` tools.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor.
 - Work-loop APIs and Pi tools for status, writer-status, control, context, checkpoint, and select-next.
 - Tree/lineage/snapshot tools and lineage API surfaces.
 - Focus State bounded write tools and scratchpad separation.
-- State hygiene doctor/plan/apply surfaces; apply is approval-gated and non-destructive in the current build.
+- State hygiene doctor/plan/apply surfaces; apply is approval-gated, non-destructive, and records an auditable Focus State note through `/v1/focus/update`.
 - Agent-first polish surfaces: `focusa doctor`, `focusa status --agent`, `focusa continue`, `focusa release prove`, `focusa cleanup --safe`, token/cache doctors, hook telemetry, and error-empty recovery envelopes.
 - Prediction loop API/CLI/Pi tools for bounded record/recent/evaluate/stats workflows.
 - Project/session isolation: frames and Workpoints carry `project_root + continuity_id`; cross-project and same-root/different-continuity packets reject, while temporal `session_id` changes preserve continuity only after hard gates match.
@@ -52,6 +52,6 @@ See [`PRODUCTION_RELEASE_COMMANDS.md`](PRODUCTION_RELEASE_COMMANDS.md) for full 
 
 - Focusa remains under active development.
 - Some older docs contain design-direction details beyond current runtime behavior.
-- State hygiene apply does not perform destructive cleanup in this build.
+- State hygiene apply does not perform destructive cleanup in this build; approved applies append audit notes only.
 - Work-loop write endpoints require writer ownership semantics; writer conflicts are expected blocked states.
 - Public docs should use snapshot/version language, not finished/frozen language.

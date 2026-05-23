@@ -1637,12 +1637,65 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_state_hygiene_apply",
     label: "Focus State Hygiene Apply",
-    description: "Approval-safe hygiene apply placeholder; requires approved=true and never deletes silently.",
+    description: "Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update.",
     parameters: Type.Object({ approved: Type.Boolean({ description: "Must be true to apply proposal-safe hygiene." }), reason: Type.Optional(Type.String()) }),
     async execute(_id, params) {
       const p = params as any;
-      if (p.approved !== true) return { content: [{ type: "text", text: "state hygiene apply blocked → approval required" }], details: { ok: false, status: "blocked", reason: "approval_required" } } as any;
-      return { content: [{ type: "text", text: "state hygiene apply → no destructive changes; proposal-safe hygiene acknowledged" }], details: { ok: true, status: "no_op", mutates: false, reason: p.reason || "approved" } } as any;
+      if (p.approved !== true) {
+        return {
+          content: [{ type: "text", text: "state hygiene apply blocked → approval required" }],
+          details: {
+            ok: false,
+            status: "blocked",
+            reason: "approval_required",
+            tool_result_v1: {
+              ok: false,
+              status: "blocked",
+              canonical: false,
+              degraded: false,
+              failure_class: "approval_required",
+              summary: "state hygiene apply requires approved=true",
+              retry: { safe: true, posture: "retry_after_approval", reason: "approval_required" },
+              side_effects: [],
+              evidence_refs: [],
+              next_tools: ["focusa_state_hygiene_plan", "focusa_state_hygiene_doctor"],
+              error: { code: "approval_required", message: "approved=true is required" },
+            },
+          },
+        } as any;
+      }
+
+      const reason = String(p.reason || "approved hygiene review").slice(0, 120);
+      const note = `State hygiene applied; no deletion; reason=${reason}`.slice(0, 200);
+      const result = await focusaFetchDetailed("/focus/update", {
+        method: "POST",
+        body: JSON.stringify({ delta: { notes: [note] } }),
+      });
+      const accepted = result.ok && String(result.body?.status || "") === "accepted";
+      return {
+        content: [{ type: "text", text: accepted ? "state hygiene apply → recorded non-destructive Focus State note" : `state hygiene apply blocked → ${String(result.body?.reason || result.body?.status || result.status)}` }],
+        details: {
+          ok: accepted,
+          status: accepted ? "completed" : "blocked",
+          mutates: accepted,
+          mutation: accepted ? "focus_state_note_append" : "none",
+          reason,
+          response: result.body,
+          tool_result_v1: {
+            ok: accepted,
+            status: accepted ? "completed" : "blocked",
+            canonical: accepted,
+            degraded: false,
+            failure_class: accepted ? undefined : "focus_update_unavailable",
+            summary: accepted ? "state hygiene apply recorded an auditable note" : "state hygiene apply could not write Focus State note",
+            retry: { safe: true, posture: accepted ? "not_needed" : "retry_after_focus_recovery", reason: accepted ? "completed" : "focus_update_unavailable" },
+            side_effects: accepted ? ["focus_state_note_append"] : [],
+            evidence_refs: accepted && result.body?.frame_id ? [`focus_frame:${result.body.frame_id}`] : [],
+            next_tools: accepted ? ["focusa_state_hygiene_doctor"] : ["focusa_tool_doctor", "focusa_workpoint_resume"],
+            error: accepted ? null : { code: "focus_update_unavailable", message: String(result.body?.reason || result.body?.status || result.status) },
+          },
+        },
+      } as any;
     },
   });
 
