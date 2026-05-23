@@ -57,6 +57,13 @@ else
   exit 1
 fi
 
+if rg -n 'trajectoryDraftOptions|A\) Infer from current task|B\) Project-level default|C\) Short-term only|D\) Skip for now|E\) Custom edit' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null; then
+  echo "✓ PASS: trajectory prompt offers mobile-friendly inferred A/B/C/D options before typing fallback"
+else
+  echo "✗ FAIL: trajectory prompt lacks mobile-friendly inferred options" >&2
+  exit 1
+fi
+
 echo "SPEC96 trajectory clarity gate static test: PASS"
 
 

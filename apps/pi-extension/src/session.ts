@@ -118,7 +118,63 @@ async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, rea
   return confirmed;
 }
 
-function parseTrajectoryEditor(text: string): { long_term_goal: string; desired_end_state: string; short_term_goal?: string; current_state?: string } | null {
+type TrajectoryGoalDraft = { long_term_goal: string; desired_end_state: string; short_term_goal?: string; current_state?: string; goal_source?: string };
+
+function projectNameFromRoot(projectRoot: string): string {
+  return String(projectRoot || "project").split("/").filter(Boolean).pop() || "project";
+}
+
+function cleanTrajectorySeed(value: unknown): string {
+  return trimFrameText(stripQuotedFocusaContext(String(value || "").replace(/\s+/g, " ").trim()), 220);
+}
+
+function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; draft: TrajectoryGoalDraft | null }> {
+  const projectName = projectNameFromRoot(projectRoot);
+  const ask = cleanTrajectorySeed(S.currentAsk?.text);
+  const workpointMission = cleanTrajectorySeed(S.activeWorkpointPacket?.mission || S.activeWorkpointPacket?.next_slice);
+  const frameGoal = cleanTrajectorySeed(S.activeFrameGoal);
+  const focus = cleanTrajectorySeed(S.lastFocusSnapshot.currentFocus || S.lastFocusSnapshot.intent);
+  const seed = workpointMission || ask || focus || frameGoal || `Improve ${projectName}`;
+  const short = ask || workpointMission || focus || frameGoal || `Continue ${projectName} work`;
+  const current = focus || frameGoal || "Current verified state unclear";
+  const repoGoal = `Improve and verify ${projectName} as the active project`;
+  return [
+    {
+      label: `A) Infer from current task — ${short}`,
+      draft: {
+        long_term_goal: seed,
+        desired_end_state: `Completed and verified: ${seed}`,
+        short_term_goal: short,
+        current_state: current,
+        goal_source: "inferred_context",
+      },
+    },
+    {
+      label: `B) Project-level default — ${repoGoal}`,
+      draft: {
+        long_term_goal: repoGoal,
+        desired_end_state: `${projectName} has a clear trajectory, active Workpoint, and passing evidence for the current change path`,
+        short_term_goal: short,
+        current_state: current,
+        goal_source: "inferred_context",
+      },
+    },
+    {
+      label: "C) Short-term only for now — keep high-level goal broad",
+      draft: {
+        long_term_goal: repoGoal,
+        desired_end_state: `${projectName} remains directionally aligned while the current short-term goal is refined`,
+        short_term_goal: short,
+        current_state: current,
+        goal_source: "inferred_context",
+      },
+    },
+    { label: "D) Skip for now", draft: null },
+    { label: "E) Custom edit (typing)", draft: null },
+  ];
+}
+
+function parseTrajectoryEditor(text: string): TrajectoryGoalDraft | null {
   const raw = String(text || "").trim();
   if (!raw) return null;
   const value = (label: string) => {
@@ -195,32 +251,35 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   if (!unclear || S.vitalInfoPrompted[key]) return;
   S.vitalInfoPrompted[key] = Date.now();
   persistState();
+  const options = trajectoryDraftOptions(projectRoot);
   const choice = await ctx.ui.select(
-    "Focusa trajectory is not set",
-    ["Define now", "Seed from current Workpoint/current ask", "Skip for now"],
+    "Focusa trajectory is not set — choose a draft",
+    options.map((option) => option.label),
   );
-  if (!choice || choice === "Skip for now") return;
-  const seed = choice === "Seed from current Workpoint/current ask"
-    ? String(S.activeWorkpointPacket?.mission || S.activeWorkpointPacket?.next_slice || S.currentAsk?.text || S.activeFrameGoal || "")
-    : "";
-  const template = [
-    `LONG_TERM_GOAL: ${seed}`,
-    `DESIRED_END_STATE: ${seed ? `Completed and verified: ${seed}` : ""}`,
-    `SHORT_TERM_GOAL: ${S.currentAsk?.text || S.activeWorkpointPacket?.next_slice || ""}`,
-    `CURRENT_STATE: ${S.lastFocusSnapshot.currentFocus || ""}`,
-  ].join("\n");
-  const edited = await ctx.ui.editor("Define Focusa trajectory", template);
-  const parsed = parseTrajectoryEditor(String(edited || ""));
-  if (!parsed) {
-    ctx.ui.notify("Trajectory not saved: LONG_TERM_GOAL and DESIRED_END_STATE are required.", "warning");
-    return;
+  if (!choice || String(choice).startsWith("D)")) return;
+  let parsed = options.find((option) => option.label === choice)?.draft || null;
+  if (String(choice).startsWith("E)")) {
+    const seed = options[0]?.draft;
+    const template = [
+      `LONG_TERM_GOAL: ${seed?.long_term_goal || ""}`,
+      `DESIRED_END_STATE: ${seed?.desired_end_state || ""}`,
+      `SHORT_TERM_GOAL: ${seed?.short_term_goal || ""}`,
+      `CURRENT_STATE: ${seed?.current_state || ""}`,
+    ].join("\n");
+    const edited = await ctx.ui.editor("Define Focusa trajectory", template);
+    parsed = parseTrajectoryEditor(String(edited || ""));
+    if (!parsed) {
+      ctx.ui.notify("Trajectory not saved: LONG_TERM_GOAL and DESIRED_END_STATE are required.", "warning");
+      return;
+    }
   }
+  if (!parsed) return;
   const body = {
     ...parsed,
     project_root: projectRoot,
     continuity_id: ensureContinuityId(projectRoot),
     session_id: S.sessionFrameKey,
-    goal_source: "operator",
+    goal_source: parsed.goal_source || "operator_selected_inference",
     operator_confirmed: true,
   };
   const res = await focusaFetch("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) }).catch(() => null);

@@ -57,6 +57,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Repaired procedural memory reinforce semantics so missing rule IDs return typed not-found failures instead of accepted no-ops.
 - Repaired Pi compaction fallback so generic continuation prompts do not overwrite mission/next-slice resume context.
 - Added prior-project trajectory fallback for Pi reloads so existing long-term goals can orient new continuity without prompting for a new trajectory.
+- Added mobile-friendly A/B/C/D inferred trajectory choices, keeping freeform trajectory editing as an optional fallback only.
 
 ## Unreleased — Spec93 release publication proof
 
