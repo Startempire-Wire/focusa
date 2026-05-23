@@ -22,11 +22,11 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       prefix,
       `Status: ${status}`,
       `Scope: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
-      "REQUIRED FIRST: confirm project_root (current location) and trajectory (destination/waypoints).",
-      "Scoped Workpoint: none verified; latest operator instruction is authority only after location+destination are known.",
+      "REQUIRED FIRST: confirm project_root (scope vessel/hull; better vessel improves navigation) and trajectory (current functional state → destination/waypoints).",
+      "Scoped Workpoint: none verified; latest operator instruction is authority only after scope+trajectory are known.",
       needsConfirm
-        ? "Top priority: use interview/menu to confirm project_root, then run focusa_trajectory_view/define_goal before Focusa writes."
-        : "Top priority: run focusa_trajectory_view for destination/waypoints; checkpoint only after root+trajectory are clear.",
+        ? "Top priority: use interview/menu to confirm project_root scope, then run focusa_trajectory_view/define_goal before Focusa writes."
+        : "Top priority: run focusa_trajectory_view for current state/destination/waypoints; checkpoint only after scope+trajectory are clear.",
     ].join("\n");
   }
 
@@ -34,7 +34,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     prefix,
     `Status: ${status}`,
     scopedPacket ? "Scoped Workpoint: verified project_root + continuity_id match." : "Scoped Workpoint: none verified for this logical session; ignore stale scoped carryover.",
-    !safeScope || needsConfirm ? "REQUIRED FIRST: confirm project_root (current location) before state writes." : "Project root: confirmed current location.",
+    !safeScope || needsConfirm ? "REQUIRED FIRST: confirm project_root as scope vessel/hull before state writes; better vessel improves navigation." : "Project root: confirmed scope vessel/hull; trajectory provides the route.",
     mission ? `Mission: ${mission}` : "Mission: use latest operator instruction only; no scoped Workpoint mission verified.",
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
     projectRoot ? `Scope: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Scope: bind work to current project root; reject cross-project resume packets.",

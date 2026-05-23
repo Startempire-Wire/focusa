@@ -15,10 +15,10 @@ else
   exit 1
 fi
 
-if rg -n 'mode === "visible" && !scopedPacket|split\("\\n"\)\.length <= 7|packageUpdateCommand|REQUIRED FIRST: confirm project_root|trajectory' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
-  echo "✓ PASS: unscoped login/update Utility Card stays compact and prioritizes root+trajectory"
+if rg -n 'mode === "visible" && !scopedPacket|split\("\\n"\)\.length <= 7|packageUpdateCommand|REQUIRED FIRST: confirm project_root|scope vessel/hull|better vessel improves navigation|current functional state' "$AWARENESS" "$TURNS" "$RUNTIME" >/dev/null; then
+  echo "✓ PASS: unscoped login/update Utility Card stays compact and prioritizes scope vessel + trajectory"
 else
-  echo "✗ FAIL: login/update Utility Card remains noisy or does not prioritize root+trajectory" >&2
+  echo "✗ FAIL: login/update Utility Card remains noisy or does not prioritize scope vessel + trajectory" >&2
   exit 1
 fi
 

@@ -1664,7 +1664,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!health.ok) recommendations.push("Focusa daemon health is blocked; retry hot status or inspect daemon before state writes.");
       if (!sessionScopeSafe) recommendations.push("Session cwd is broad/unsafe; cd to a specific repo or pass explicit project_root to scoped tools.");
       if (projectRootNeedsConfirmation) recommendations.push("REQUIRED FIRST: project root confidence is below 90%; use interview/menu to ask the operator which candidate root is correct before Focusa writes.");
-      if (sessionScopeSafe && !projectRootNeedsConfirmation) recommendations.push("REQUIRED NEXT: run focusa_trajectory_view to confirm destination/waypoints before Workpoint/evidence progress tracking.");
+      if (sessionScopeSafe && !projectRootNeedsConfirmation) recommendations.push("REQUIRED NEXT: run focusa_trajectory_view to confirm current functional state, destination, and waypoints before Workpoint/evidence progress tracking.");
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
       if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
       if (missingDocs.length) recommendations.push("Some scoped tool contracts lack docs; run docs maintenance before release proof.");

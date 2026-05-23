@@ -50,8 +50,10 @@ assert(!unsafeCwdCard.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Util
 assert(!unsafeCwdCard.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity id");
 assert(unsafeCwdCard.includes("none verified"), "unsafe-cwd Utility Card should declare no scoped Workpoint");
 assert(unsafeCwdCard.includes("broad/unsafe"), "unsafe-cwd Utility Card should be compact but explicit about broad scope");
-assert(unsafeCwdCard.includes("REQUIRED FIRST: confirm project_root"), "unscoped Utility Card should make project root resolution top priority");
-assert(unsafeCwdCard.includes("trajectory"), "unscoped Utility Card should make trajectory/destination explicit");
+assert(unsafeCwdCard.includes("REQUIRED FIRST: confirm project_root"), "unscoped Utility Card should make project root scope resolution top priority");
+assert(unsafeCwdCard.includes("scope vessel/hull"), "unscoped Utility Card should treat project root as scope vessel, not navigation state");
+assert(unsafeCwdCard.includes("better vessel improves navigation"), "unscoped Utility Card should say better scope vessel improves navigation reliability");
+assert(unsafeCwdCard.includes("current functional state"), "unscoped Utility Card should make trajectory current-state/destination explicit");
 assert(unsafeCwdCard.split("\n").length <= 7, "unscoped visible Utility Card should stay compact");
 
 Object.assign(S, {
