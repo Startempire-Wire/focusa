@@ -40,7 +40,7 @@ must('turns', 'S.seenFirstBeforeAgentStart');
 for (const file of ['quickstart', 'card']) {
   for (const needle of ['Workpoint', 'doctor', 'evidence', 'prediction', 'compaction', 'operator']) must(file, needle);
 }
-for (const needle of ['Friendly Focusa Q', 'project_root', 'trajectory', 'Workpoint', 'evidence', 'predict', 'metacog']) must('onboarding', needle);
+for (const needle of ['Friendly Focusa Q', 'project_root', 'architecture', 'trajectory', 'Workpoint', 'evidence', 'predict', 'metacog']) must('onboarding', needle);
 for (const needle of ['Route graph', 'project_identity', 'trajectory_view', 'workpoint_checkpoint', 'evidence_capture', 'predict_record', 'metacog']) must('choreography', needle);
 must('docsIndex', 'AGENT_AWARENESS_QUICKSTART.md');
 must('docsIndex', 'FOCUSA_AGENT_UTILITY_CARD.md');

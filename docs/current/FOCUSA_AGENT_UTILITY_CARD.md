@@ -7,7 +7,7 @@ This card is injected by the Pi extension at startup/reload and included in the 
 The card must mention:
 
 - Focusa availability/degraded status.
-- Friendly Focusa Q: where am I, where are we going, next useful move, proof, compounding lesson.
+- Friendly Focusa Q: where am I, what project/architecture is this, where are we going, next useful move, proof, compounding lesson.
 - Tool route hints: orient, execute, prove, learn, recover.
 - Current mission or latest operator/current repo fallback.
 - Current next anchor or `focusa_workpoint_resume` fallback.

@@ -123,13 +123,28 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const intelligence = view.intelligence_view || {};
   const sufficiency = intelligence.context_sufficiency || {};
   const candidate = intelligence.next_workpoint_candidate || {};
+  const projectApi = project.project_identity_api || {};
   const continuityId = boundedTrajectoryText(S.continuityId, 120);
+  const projectRoot = boundedTrajectoryText(project.project_root || projectApi.project_root || S.sessionCwd || process.cwd(), 160);
+  const canonicalName = boundedTrajectoryText(project.canonical_name || projectApi.canonical_name, 80);
+  const projectId = boundedTrajectoryText(project.project_id || projectApi.project_id, 80);
+  const workspaceKind = boundedTrajectoryText(project.workspace_kind || projectApi.workspace_kind, 80);
+  const repoRemote = boundedTrajectoryText(project.repo_remote || projectApi.repo_remote, 140);
+  const beadsPrefix = boundedTrajectoryText(project.beads_prefix || projectApi.beads_prefix, 40);
   const identityParts = [
     `status=${boundedTrajectoryText(project.status || view.status || "unknown", 40)}`,
-    `project_root=${boundedTrajectoryText(project.project_root || S.sessionCwd || process.cwd(), 160)}`,
+    `project_root=${projectRoot}`,
     continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)",
     project.session_id ? `session_id=${boundedTrajectoryText(project.session_id, 120)}` : "",
     project.confidence ? `confidence=${boundedTrajectoryText(project.confidence, 40)}` : "",
+  ].filter(Boolean);
+  const infraParts = [
+    canonicalName ? `name=${canonicalName}` : "",
+    projectId ? `project_id=${projectId}` : "",
+    workspaceKind ? `workspace_kind=${workspaceKind}` : "",
+    repoRemote ? `repo=${repoRemote}` : "",
+    beadsPrefix ? `beads_prefix=${beadsPrefix}` : "",
+    "architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone",
   ].filter(Boolean);
   const goals = [
     trajectory.long_term_goal ? `high=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",
@@ -164,6 +179,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   ].filter(Boolean).join("; ");
   const lines = [
     `PROJECT_IDENTITY: ${identityParts.join(" ")}`,
+    infraParts.length ? `PROJECT_INFRA: ${infraParts.join("; ")}` : "PROJECT_INFRA: unknown; use focusa_project_identity plus focusa_traverse before architectural assumptions",
     goals ? `TRAJECTORY_GOALS: ${goals}` : "TRAJECTORY_GOALS: definition_status=unclear",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
     `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,

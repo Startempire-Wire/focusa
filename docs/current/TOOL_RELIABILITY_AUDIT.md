@@ -65,5 +65,5 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 - Filled gaps: concrete Focus State CLI update, scoped Workpoint CLI flags, metacog recent CLI, lineage extract CLI, snapshot API/CLI contract parity.
 - Live probes: 15 hot/safe endpoints passed with no failures in the safe suite; stale runtime registry can appear until daemon rebuild/restart reloads embedded registry.
 - Safe audit skips cold `GET /v1/lineage/tree` by default for low-memory reliability; set `FOCUSA_AUDIT_INCLUDE_COLD_GET=1` for explicit cold-route probing.
-- Evidence: `/tmp/focusa-tool-implementation-spec-audit.json`, `/tmp/focusa-tool-suite-safe-audit-final.json`.
+- Evidence: `/tmp/focusa-tool-implementation-spec-audit.json`, `/tmp/focusa-tool-suite-safe-audit-final.json`, `/tmp/focusa-cli-parity-smoke.log`, `/tmp/focusa-tool-contracts-live-smoke.json`, `/tmp/focusa-tool-stress-smoke.log`.
 

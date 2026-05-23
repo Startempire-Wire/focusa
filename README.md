@@ -526,6 +526,7 @@ Part of the Startempire Wire ecosystem.
 - [Focusa Agent Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
 - [Friendly Focusa Onboarding Q](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
 - [Focusa Tool Choreography Map](docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md)
+- [Model-Visible Awareness Surfaces](docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md)
 - [Tool Implementation-to-Spec Audit](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
 - [Non-Pi Agent Focusa Usage](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
 - [Spec93 Non-Pi Agent Focusa Awareness](docs/93-non-pi-agent-focusa-awareness-spec.md)

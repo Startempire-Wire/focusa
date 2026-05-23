@@ -20,10 +20,11 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const friendlyQ = [
     "Friendly Focusa Q (internal orientation, not a blocker):",
     "1. Where am I? project_root + continuity_id → focusa_project_identity / focusa_project_verify.",
-    "2. Where are we going? current state, destination, waypoints → focusa_trajectory_view / define_goal / assess.",
-    "3. What is the next useful move? mission + active object + next anchor → focusa_workpoint_resume / checkpoint.",
-    "4. What proof changes confidence? tests/API/file handles → focusa_active_object_resolve + focusa_evidence_capture/link.",
-    "5. What compounds? prediction outcome + reusable lesson → focusa_predict_record + focusa_predict_evaluate + focusa_metacog_*.",
+    "2. What kind of project is this? canonical name, repo, workspace kind, infra/architecture boundaries → focusa_project_identity + focusa_traverse.",
+    "3. Where are we going? current state, destination, waypoints → focusa_trajectory_view / define_goal / assess.",
+    "4. What is the next useful move? mission + active object + next anchor → focusa_workpoint_resume / checkpoint.",
+    "5. What proof changes confidence? tests/API/file handles → focusa_active_object_resolve + focusa_evidence_capture/link.",
+    "6. What compounds? prediction outcome + reusable lesson → focusa_predict_record + focusa_predict_evaluate + focusa_metacog_*.",
   ];
   const routeHints = [
     "Tool routes: Orient = focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume; Execute = focusa_active_object_resolve → focusa_workpoint_checkpoint; Prove = focusa_evidence_capture / focusa_workpoint_link_evidence → focusa_trajectory_assess; Learn = focusa_predict_record → focusa_predict_evaluate → focusa_metacog_capture/retrieve; Recover = focusa_tool_doctor → focusa_resource_mode/focusa_traverse/focusa_workpoint_resume.",

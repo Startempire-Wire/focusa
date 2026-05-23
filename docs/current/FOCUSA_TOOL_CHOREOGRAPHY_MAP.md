@@ -11,11 +11,12 @@ This map links tools by **model intent** so agents get compounding project resul
 ```text
 focusa_project_identity
   → focusa_project_verify (when expected root/name/remote matters)
+  → focusa_traverse (when project infra/architecture facts are needed)
   → focusa_trajectory_view
   → focusa_workpoint_resume (if continuing) OR focusa_workpoint_checkpoint (if starting a slice)
 ```
 
-Use when: project start, resume, compaction recovery, cross-project risk, stale transcript uncertainty.
+Use when: project start, resume, compaction recovery, cross-project risk, stale transcript uncertainty, or before making architecture/infrastructure assumptions.
 
 ### 2) Set or repair the goal route
 

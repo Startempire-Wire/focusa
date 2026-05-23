@@ -7,10 +7,11 @@ Focusa is an agent utility layer: working memory, continuation contracts, eviden
 Use this as internal orientation, not a blocker:
 
 1. **Where am I?** `project_root + continuity_id` → `focusa_project_identity` / `focusa_project_verify`.
-2. **Where are we going?** current state, destination, waypoints → `focusa_trajectory_view` / `focusa_trajectory_assess`.
-3. **What is the next useful move?** mission, active object, next anchor → `focusa_workpoint_resume` / `focusa_workpoint_checkpoint`.
-4. **What proof changes confidence?** tests/API/file handles → `focusa_evidence_capture` / `focusa_workpoint_link_evidence`.
-5. **What compounds?** prediction outcome + reusable lesson → `focusa_predict_record`, `focusa_predict_evaluate`, `focusa_metacog_*`.
+2. **What kind of project is this?** canonical name, repo, workspace kind, infra/architecture boundaries → `focusa_project_identity` / `focusa_traverse`.
+3. **Where are we going?** current state, destination, waypoints → `focusa_trajectory_view` / `focusa_trajectory_assess`.
+4. **What is the next useful move?** mission, active object, next anchor → `focusa_workpoint_resume` / `focusa_workpoint_checkpoint`.
+5. **What proof changes confidence?** tests/API/file handles → `focusa_evidence_capture` / `focusa_workpoint_link_evidence`.
+6. **What compounds?** prediction outcome + reusable lesson → `focusa_predict_record`, `focusa_predict_evaluate`, `focusa_metacog_*`.
 
 ## What agents must know first
 

@@ -134,6 +134,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/FOCUSA_AGENT_UTILITY_CARD.md](current/FOCUSA_AGENT_UTILITY_CARD.md) — startup/reload runtime awareness card contract.
 - [current/FOCUSA_FRIENDLY_ONBOARDING.md](current/FOCUSA_FRIENDLY_ONBOARDING.md) — friendly project onboarding Q for agents.
 - [current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) — linked tool routes for compounding project workflows.
+- [current/FOCUSA_MODEL_VISIBLE_AWARENESS.md](current/FOCUSA_MODEL_VISIBLE_AWARENESS.md) — what Focusa shows the LLM and section precedence.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.
 - [evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md](evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md) — live OpenClaw/Wirebot Focusa awareness activation proof.
 - [current/NON_PI_AGENT_FOCUSA_USAGE.md](current/NON_PI_AGENT_FOCUSA_USAGE.md) — Focusa awareness for OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and other non-Pi agents.

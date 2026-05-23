@@ -35,8 +35,9 @@ Evidence artifacts:
 
 - `/tmp/focusa-tool-implementation-spec-audit.json` — static implementation/spec audit passed.
 - `/tmp/focusa-tool-contracts-live-final-uplift-pass.json` — live contract proof passed (`payload_equal=true`, 58/58).
-- `/tmp/focusa-tool-stress-post-uplift3.log` — bounded live stress passed (`passed=39 failed=0`).
-- `/tmp/focusa-tool-suite-safe-post-uplift3.json` — safe suite had 0 failures and 0 warnings across 16 probes.
+- `/tmp/focusa-tool-stress-smoke.log` — bounded live stress passed (`passed=39 failed=0`).
+- `/tmp/focusa-cli-parity-smoke.log` — concrete CLI parity smoke passed (`passed=15 failed=0`).
+- `/tmp/focusa-tool-suite-safe-smoke.json` — safe suite had 0 failures; latest warning was process-memory pressure after repeated smoke/audit runs.
 
 ## Gaps found and filled in this pass
 
