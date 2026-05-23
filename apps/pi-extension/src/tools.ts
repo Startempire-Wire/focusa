@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -372,11 +372,26 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
     },
     side_effects: readOnly ? [] : [family],
     evidence_refs: activeWorkpoint.evidence_refs,
-    next_tools: status === "offline" ? [] : family === "workpoint" ? ["focusa_workpoint_resume"] : [],
+    next_tools: Array.isArray(details.next_tools) && details.next_tools.length
+      ? details.next_tools.map(String)
+      : status === "offline" ? ["focusa_tool_doctor", "focusa_resource_mode"] : family === "workpoint" ? ["focusa_workpoint_resume"] : [],
     ontology_candidate_delta_refs: ontologyCandidateDeltaRefs(tool, result, status),
     error: validationRejected || blocked || offline ? { code: status, message: text.slice(0, 240) } : null,
     raw: details.response ?? details,
   });
+}
+
+function defaultFocusaPromptSnippet(name: string, description?: string): string {
+  if (name.startsWith("focusa_workpoint_")) return "Use after project scope is verified; pass explicit project_root/continuity_id after compaction or unsafe cwd.";
+  if (name.startsWith("focusa_trajectory_")) return "Advisory project-goal tool; verify project_root first and do not treat proposals as execution authority.";
+  if (name.startsWith("focusa_work_loop_")) return "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.";
+  if (name.startsWith("focusa_metacog_")) return "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.";
+  if (name.startsWith("focusa_tree_") || name === "focusa_lineage_tree" || name === "focusa_li_tree_extract") return "Use bounded lineage/snapshot helpers instead of inferring branch/history from transcript memory.";
+  if (name.startsWith("focusa_predict_")) return "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.";
+  if (name.includes("hygiene")) return "Diagnose first; apply hygiene only with explicit approved=true and never silently delete state.";
+  if (name === "focusa_traverse") return "Use bounded traversal/search with explicit limits; opt into large payloads only when needed.";
+  if (["focusa_intent", "focusa_current_focus", "focusa_next_step", "focusa_open_question", "focusa_recent_result", "focusa_note"].includes(name)) return "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.";
+  return String(description || "Use this Focusa tool with explicit project scope when session/cwd is ambiguous.").slice(0, 240);
 }
 
 function withToolResultEnvelope(tool: any): any {
@@ -384,6 +399,7 @@ function withToolResultEnvelope(tool: any): any {
   const execute = tool.execute;
   return {
     ...tool,
+    promptSnippet: tool.promptSnippet || defaultFocusaPromptSnippet(tool.name, tool.description),
     async execute(id: string, params: unknown) {
       const result = await execute(id, params);
       const details = (result?.details || {}) as Record<string, unknown>;
@@ -412,20 +428,47 @@ function formatPushDeltaFailure(reason: PushDeltaFailureReason): string {
   }
 }
 
+function pushDeltaFailureRecovery(reason: PushDeltaFailureReason, apiReason?: string): {
+  failure_class: FocusaFailureClass;
+  retry_posture: FocusaRetryPosture;
+  recovery_hint: string;
+  next_tools: string[];
+  api_reason?: string;
+} {
+  switch (reason) {
+    case "offline":
+      return { failure_class: "daemon_unavailable", retry_posture: "safe_retry", recovery_hint: "Run focusa_tool_doctor; if resource mode is emergency, use focusa_resource_mode before retrying.", next_tools: ["focusa_tool_doctor", "focusa_resource_mode"], api_reason: apiReason };
+    case "no_active_frame":
+    case "frame_unavailable":
+      return { failure_class: "frame_unavailable", retry_posture: "safe_retry", recovery_hint: "Verify project scope, checkpoint/resume a Workpoint, then retry the Focus State write from a reloaded Pi session.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
+    case "scope_mismatch":
+      return { failure_class: "scope_mismatch", retry_posture: "do_not_retry_unchanged", recovery_hint: "Refresh project_root+continuity_id via focusa_project_verify and focusa_workpoint_resume; do not retry with stale scope.", next_tools: ["focusa_project_verify", "focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"], api_reason: apiReason };
+    case "read_model_lag":
+      return { failure_class: "read_model_lag", retry_posture: "safe_retry", recovery_hint: "Read model may lag a just-created frame or Workpoint; resume/check current packet before retrying once.", next_tools: ["focusa_workpoint_resume", "focusa_tool_doctor"], api_reason: apiReason };
+    case "validation_rejected":
+      return { failure_class: "validation_rejected", retry_posture: "do_not_retry_unchanged", recovery_hint: "Rewrite concise canonical wording or store full reasoning in focusa_scratch.", next_tools: ["focusa_scratch"], api_reason: apiReason };
+    case "write_failed":
+    default:
+      return { failure_class: "unknown_ambiguous_completion", retry_posture: "check_side_effects_first", recovery_hint: "Run focusa_tool_doctor and inspect response details before retrying to avoid duplicate or cross-scope writes.", next_tools: ["focusa_tool_doctor", "focusa_scratch"], api_reason: apiReason };
+  }
+}
+
 function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailureReason, apiReason?: string): string {
   const base = formatPushDeltaFailure(reason);
   const detail = apiReason ? ` Detail: ${apiReason}` : "";
-  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until /focusa-status confirms a scoped frame.${detail}`;
-  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Scoped frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint for the verified project, and do not retry unchanged.${detail}`;
-  if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded. Retry when Focusa is reachable.${detail}`;
-  if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded. Distill wording or use scratchpad.${detail}`;
-  return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail}`;
+  const recovery = pushDeltaFailureRecovery(reason, apiReason);
+  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until a scoped frame exists.${detail} Next: ${recovery.recovery_hint}`;
+  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Scoped frame/continuity is stale; use latest operator instruction and do not retry unchanged.${detail} Next: ${recovery.recovery_hint}`;
+  if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
+  if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
+  return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
 }
 
-function namedSlotFallback(slotLabel: string, kind: string, reason: PushDeltaFailureReason, payload: string, apiReason?: string): { text: string; saved: boolean; turn: number } {
+function namedSlotFallback(slotLabel: string, kind: string, reason: PushDeltaFailureReason, payload: string, apiReason?: string): { text: string; saved: boolean; turn: number; recovery: ReturnType<typeof pushDeltaFailureRecovery> } {
   const fallback = mirrorFailedFocusWrite(kind, reason, payload, { api_reason: apiReason });
+  const recovery = pushDeltaFailureRecovery(reason, apiReason);
   const fallbackText = fallback.saved ? ` Saved to scratchpad fallback (turn ${fallback.turn}).` : " Scratchpad fallback also failed.";
-  return { text: `${formatNonCriticalWriteFailure(slotLabel, reason, apiReason)}${fallbackText}`, saved: fallback.saved, turn: fallback.turn };
+  return { text: `${formatNonCriticalWriteFailure(slotLabel, reason, apiReason)}${fallbackText}`, saved: fallback.saved, turn: fallback.turn, recovery };
 }
 
 function conciseObjectiveSuggestion(payload: string): string {
@@ -461,6 +504,39 @@ function projectIdentityVerifiedInPayload(body: any): boolean {
   const project = body?.project_identity || body?.resume_packet?.project_identity || {};
   const api = project?.project_identity_api || body?.project_identity_api || {};
   return project?.status === "verified" || project?.quorum_status === "verified" || api?.status === "verified" || body?.verification?.verified === true;
+}
+
+function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuityId: string } | null {
+  if (!packet || typeof packet !== "object") return null;
+  const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
+  const projectRoot = normalizeProjectRoot(workpoint?.project_root || packet.project_root);
+  const continuityId = String(workpoint?.continuity_id || packet.continuity_id || "").trim();
+  if (!projectRoot || !continuityId || !isProjectRootAuthoritySafe(projectRoot)) return null;
+  if (packet.canonical === false || workpoint?.canonical === false || packet.status === "partial" || packet.status === "rejected_scope_mismatch") return null;
+  return { projectRoot, continuityId };
+}
+
+async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
+  const explicit = normalizeProjectRoot(explicitProjectRoot);
+  if (explicit) return explicit;
+  const sessionRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
+  if (isProjectRootAuthoritySafe(sessionRoot)) return sessionRoot;
+
+  const localScope = focusaToolWorkpointScope(S.activeWorkpointPacket);
+  if (localScope) {
+    if (!S.continuityId) S.continuityId = localScope.continuityId;
+    return localScope.projectRoot;
+  }
+
+  const active = await focusaFetch("/workpoint/current").catch(() => null);
+  const activeScope = focusaToolWorkpointScope(active);
+  if (activeScope) {
+    S.activeWorkpointPacket = active?.workpoint || active;
+    if (!S.continuityId) S.continuityId = activeScope.continuityId;
+    return activeScope.projectRoot;
+  }
+
+  return sessionRoot || normalizeProjectRoot(process.cwd()) || String(process.cwd());
 }
 
 function scopeRecoveryContext(body: any, projectRoot: string, continuityId?: string, source = "focusa"): { text: string; details: Record<string, any> } | null {
@@ -524,10 +600,19 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
   if (delta.notes?.some(v => !validateSlot(v, 200))) { emitWriteTelemetry("focusa_write_failed", { targets, reason: "validation_rejected" }); return { ok: false, reason: "validation_rejected" }; }
 
   if (!S.activeFrameId) {
-    emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: "no_active_frame" });
+    emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: "no_active_frame", strategy: "refresh_scoped_frame" });
+    const refreshed = await getFocusState().catch(() => null);
+    if (refreshed?.frame?.id) {
+      recoveredFrame = true;
+      emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "no_active_frame", recovered: true, strategy: "refresh_scoped_frame", frame_id: refreshed.frame.id });
+    }
+  }
+
+  if (!S.activeFrameId) {
+    emitWriteTelemetry("focusa_write_recovery_attempt", { targets, reason: "no_active_frame", strategy: "create_or_adopt_scoped_frame" });
     const frameId = await ensurePiFrame(undefined, undefined, "pi-auto-recover");
-    recoveredFrame = !!frameId;
-    emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "no_active_frame", recovered: recoveredFrame });
+    recoveredFrame = recoveredFrame || !!frameId;
+    emitWriteTelemetry("focusa_write_recovery_result", { targets, reason: "no_active_frame", recovered: !!frameId, strategy: "create_or_adopt_scoped_frame" });
     if (!frameId) {
       emitWriteTelemetry("focusa_write_failed", { targets, reason: "no_active_frame" });
       return { ok: false, reason: "no_active_frame" };
@@ -663,10 +748,11 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ decisions: [decision] });
       if (!result.ok) {
         const fallback = mirrorFailedFocusWrite("decision", result.reason, decision, { rationale: rationale?.slice(0, 200) });
+        const recovery = pushDeltaFailureRecovery(result.reason, result.api_reason);
         const fallbackText = fallback.saved ? `Saved to scratchpad automatically (turn ${fallback.turn}).` : "Scratchpad fallback also failed.";
         return {
-          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — decision NOT recorded in Focus State. ${fallbackText}` }],
-          details: { valid: false, reason: result.reason, decision, rationale: rationale?.slice(0, 200) },
+          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — decision NOT recorded in Focus State. ${fallbackText} Next: ${recovery.recovery_hint}` }],
+          details: { valid: false, reason: result.reason, decision, rationale: rationale?.slice(0, 200), scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...recovery },
         };
       }
       return {
@@ -722,10 +808,11 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ constraints: [constraint] });
       if (!result.ok) {
         const fallback = mirrorFailedFocusWrite("constraint", result.reason, constraint, { source });
+        const recovery = pushDeltaFailureRecovery(result.reason, result.api_reason);
         const fallbackText = fallback.saved ? `Saved to scratchpad automatically (turn ${fallback.turn}).` : "Scratchpad fallback also failed.";
         return {
-          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — constraint NOT recorded in Focus State. ${fallbackText}` }],
-          details: { valid: false, reason: result.reason, constraint, source },
+          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — constraint NOT recorded in Focus State. ${fallbackText} Next: ${recovery.recovery_hint}` }],
+          details: { valid: false, reason: result.reason, constraint, source, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...recovery },
         };
       }
       return {
@@ -767,10 +854,11 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ failures: [failure] });
       if (!result.ok) {
         const fallback = mirrorFailedFocusWrite("failure", result.reason, failure, { recovery });
+        const recoveryPlan = pushDeltaFailureRecovery(result.reason, result.api_reason);
         const fallbackText = fallback.saved ? `Saved to scratchpad automatically (turn ${fallback.turn}).` : "Scratchpad fallback also failed.";
         return {
-          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — failure NOT recorded in Focus State. ${fallbackText}` }],
-          details: { valid: false, reason: result.reason, failure, recovery },
+          content: [{ type: "text" as const, text: `⚠️ ${formatPushDeltaFailure(result.reason)} — failure NOT recorded in Focus State. ${fallbackText} Next: ${recoveryPlan.recovery_hint}` }],
+          details: { valid: false, reason: result.reason, failure, recovery, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...recoveryPlan },
         };
       }
       return {
@@ -799,7 +887,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ intent: intent.trim() });
       if (result.ok) return { content: [{ type: "text", text: `Intent set: ${intent.slice(0, 100)}` }], details: { valid: true, reason: undefined, intent } };
       const fallback = namedSlotFallback("intent", "intent", result.reason, intent.trim(), result.api_reason);
-      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, intent, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, intent, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...fallback.recovery } } as any;
     },
   });
 
@@ -823,7 +911,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ current_focus: focus.trim() });
       if (result.ok) return { content: [{ type: "text", text: `Current focus set: ${focus.slice(0, 100)}` }], details: { valid: true, reason: undefined, focus } };
       const fallback = namedSlotFallback("current focus", "current_focus", result.reason, focus.trim(), result.api_reason);
-      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, focus, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, focus, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...fallback.recovery } } as any;
     },
   });
 
@@ -846,7 +934,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ next_steps: [step.trim()] });
       if (result.ok) return { content: [{ type: "text", text: `Next step recorded: ${step.slice(0, 80)}` }], details: { valid: true, reason: undefined, step } };
       const fallback = namedSlotFallback("next step", "next_step", result.reason, step.trim(), result.api_reason);
-      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, step, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, step, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...fallback.recovery } } as any;
     },
   });
 
@@ -868,7 +956,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ open_questions: [question.trim()] });
       if (result.ok) return { content: [{ type: "text", text: `Open question recorded: ${question.slice(0, 80)}` }], details: { valid: true, reason: undefined, question } };
       const fallback = namedSlotFallback("open question", "open_question", result.reason, question.trim(), result.api_reason);
-      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, question, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, question, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...fallback.recovery } } as any;
     },
   });
 
@@ -891,7 +979,7 @@ export function registerTools(pi: ExtensionAPI) {
       const writeResult = await pushDelta({ recent_results: [result.trim()] });
       if (writeResult.ok) return { content: [{ type: "text", text: `Result recorded: ${result.slice(0, 80)}` }], details: { valid: true, reason: undefined, result } };
       const fallback = namedSlotFallback("recent result", "recent_result", writeResult.reason, result.trim(), writeResult.api_reason);
-      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, result, reason: writeResult.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, result, reason: writeResult.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...fallback.recovery } } as any;
     },
   });
 
@@ -914,7 +1002,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await pushDelta({ notes: [note.trim()] });
       if (result.ok) return { content: [{ type: "text", text: `Note recorded: ${note.slice(0, 80)}` }], details: { valid: true, reason: undefined, note } };
       const fallback = namedSlotFallback("note", "note", result.reason, note.trim(), result.api_reason);
-      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, note, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn } } as any;
+      return { content: [{ type: "text", text: fallback.text }], details: { valid: false, note, reason: result.reason, scratch_saved: fallback.saved, scratch_turn: fallback.turn, ...fallback.recovery } } as any;
     },
   });
 
@@ -994,6 +1082,13 @@ export function registerTools(pi: ExtensionAPI) {
     if (msg.includes("missing required header")) return "blocked: controller identity header missing";
     if (result.body?.failure_class === "cold_path_timeout") return "blocked: cold route timed out; hot tools may still be healthy";
     if (result.body?.failure_class === "hot_path_timeout") return "blocked: hot route timed out";
+    if (result.body?.failure_class === "scope_mismatch" || result.body?.status === "rejected_scope_mismatch" || result.status === 409) {
+      const field = String(result.body?.field || "scope");
+      const expected = String(result.body?.expected_project_root || result.body?.expected_continuity_id || "unknown");
+      const actual = String(result.body?.packet_project_root || result.body?.packet_continuity_id || "unknown");
+      const hint = String(result.body?.next_step_hint || "resume/checkpoint the Workpoint in the same scope before retrying");
+      return `blocked: scope mismatch on ${field} expected=${expected} packet=${actual}; ${hint}`;
+    }
     if (result.status === 0) return "blocked: daemon unavailable";
     return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
   }
@@ -1548,8 +1643,25 @@ export function registerTools(pi: ExtensionAPI) {
       const resourceMode = resource.body?.resource_mode || {};
       const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
       const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpoint.ok ? String(workpoint.body?.status || "ok") : "blocked"} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"}`;
-      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
+      const sessionRoot = normalizeProjectRoot(S.sessionCwd || process.cwd());
+      const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
+      const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
+      const workpointCanonical = workpoint.body?.canonical === true || workpointStatus === "active";
+      const recommendations: string[] = [];
+      if (!health.ok) recommendations.push("Focusa daemon health is blocked; retry hot status or inspect daemon before state writes.");
+      if (!sessionScopeSafe) recommendations.push("Session cwd is broad/unsafe; cd to a specific repo or pass explicit project_root to scoped tools.");
+      if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
+      if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
+      if (missingDocs.length) recommendations.push("Some scoped tool contracts lack docs; run docs maintenance before release proof.");
+      const nextTools = Array.from(new Set([
+        ...(!health.ok ? ["focusa_tool_doctor"] : []),
+        ...(!sessionScopeSafe ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
+        ...(String(resourceMode.mode || "") === "emergency" ? ["focusa_resource_mode"] : []),
+        ...(!workpoint.ok || !workpointCanonical ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
+      ]));
+      const recommendedAction = recommendations[0] || "Proceed with explicit project_root for scope-sensitive tools and checkpoint before compaction.";
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
+      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe }, recommendations, recommended_action: recommendedAction, next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
     },
   });
 
@@ -1726,8 +1838,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const query = new URLSearchParams();
-      query.set("project_root", String(p.project_root || S.sessionCwd || process.cwd()));
+      query.set("project_root", projectRoot);
       if (p.session_id || S.sessionFrameKey) query.set("session_id", String(p.session_id || S.sessionFrameKey));
       if (p.continuity_id || S.continuityId) query.set("continuity_id", String(p.continuity_id || S.continuityId));
       if (p.mode) query.set("mode", String(p.mode));
@@ -1739,9 +1852,9 @@ export function registerTools(pi: ExtensionAPI) {
       const posture = String(sufficiency.proceed_posture || sufficiency.recommended_action || "unknown");
       const projectMismatches = Array.isArray(project.mismatches) ? project.mismatches : [];
       const trajectoryUnset = body.status === "not_found" && String(project.status || "") === "verified" && projectMismatches.length === 0;
-      const recovery = trajectoryUnset ? null : scopeRecoveryContext(body, String(p.project_root || S.sessionCwd || process.cwd()), String(p.continuity_id || S.continuityId || ""), "trajectory_view");
+      const recovery = trajectoryUnset ? null : scopeRecoveryContext(body, projectRoot, String(p.continuity_id || S.continuityId || ""), "trajectory_view");
       const trajectoryText = trajectoryUnset
-        ? `trajectory view → NOT SET for project=${String(project.project_root || p.project_root || S.sessionCwd || process.cwd())}; definition=unclear; posture=${posture}; next=focusa_trajectory_define_goal`
+        ? `trajectory view → NOT SET for project=${String(project.project_root || projectRoot)}; definition=unclear; posture=${posture}; next=focusa_trajectory_define_goal`
         : body.canonical === true
           ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
           : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
@@ -1797,7 +1910,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as any;
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1824,7 +1937,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as any;
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/assess", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1849,7 +1962,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as any;
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/propose-workpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1875,7 +1988,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as any;
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/checkpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1898,7 +2011,7 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as any;
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
@@ -1948,16 +2061,20 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.attach_to_workpoint === false) {
         return { content: [{ type: "text", text: `evidence capture → captured ref=${p.evidence_ref} attach_to_workpoint=false` }], details: { ok: true, status: "completed", evidence_ref: p.evidence_ref } } as any;
       }
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "evidence capture", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "evidence capture blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
+      const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
         headers: { "x-focusa-writer-id": await preferredWriterId() },
-        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }), trajectory_clarity_precondition: clarity.details }),
+        body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: p.target_ref, result: p.result, evidence_ref: p.evidence_ref, session_identity: sessionIdentity, trajectory_clarity_precondition: clarity.details }),
       });
-      const text = res.ok ? `evidence capture → linked ${p.evidence_ref}` : `evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`;
-      return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, response: res.body } } as any;
+      const recovery = res.ok ? null : scopeRecoveryContext(res.body || {}, projectRoot, p.continuity_id || S.continuityId || "", "evidence_capture");
+      const text = res.ok
+        ? `evidence capture → linked ${p.evidence_ref}`
+        : [`evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`, recovery?.text].filter(Boolean).join("\n");
+      return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, failure_class: res.body?.failure_class || null, scope_recovery_context: recovery?.details || null, request_scope: { project_root: projectRoot, continuity_id: sessionIdentity?.continuity_id || null }, response: res.body, next_tools: recovery?.details?.safe_next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"] } } as any;
     },
   });
 
@@ -1995,7 +2112,7 @@ export function registerTools(pi: ExtensionAPI) {
       const evidence = Array.isArray(p.verified_evidence) ? p.verified_evidence : [];
       const blockers = Array.isArray(p.blockers) ? p.blockers : [];
       const doNotDrift = Array.isArray(p.do_not_drift) ? p.do_not_drift : [];
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       if (p.canonical !== false && !isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into a specific project/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
@@ -2072,7 +2189,7 @@ export function registerTools(pi: ExtensionAPI) {
           details: { ok: true, status: "no_op", reason: "attach_to_workpoint=false" },
         } as any;
       }
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint evidence link", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
       if (!clarity.ok) return { content: [{ type: "text", text: clarity.text || "workpoint evidence link blocked by trajectory clarity gate" }], details: { ok: false, status: "blocked", ...clarity.details } } as any;
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
@@ -2109,7 +2226,7 @@ export function registerTools(pi: ExtensionAPI) {
     ],
     async execute(_id, params) {
       const p = params as { workpoint_id?: string; continuity_id?: string; session_id?: string; mode?: string; project_root?: string };
-      const projectRoot = p.project_root || S.sessionCwd || process.cwd();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       if (!isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint resume blocked → unsafe project_root (${reason}); ignore stale packets and follow latest operator instruction.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason, next_tools: ["focusa_project_identity", "focusa_tool_doctor"] } } as any;

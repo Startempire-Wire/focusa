@@ -11,6 +11,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - [Predictive Power](./predictive-power.md)
 - [Trajectory](./trajectory.md)
 - [Project Identity](./project-identity.md)
+- [Stability audit 2026-05-22](./stability-audit-2026-05-22.md)
 
 ## Current counts
 

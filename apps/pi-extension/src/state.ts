@@ -1388,17 +1388,66 @@ export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?
   return (title || "") === `Pi: ${projectName}` && (goal || "") === `Work on ${projectName}`;
 }
 
+function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): string | null {
+  if (!packet || typeof packet !== "object") return null;
+  const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
+  const packetProjectRoot = normalizeProjectRoot(workpoint.project_root || packet.project_root);
+  const packetContinuityId = String(workpoint.continuity_id || packet.continuity_id || "").trim();
+  const packetPiSessionKey = String(workpoint.pi_session_frame_key || packet.pi_session_frame_key || "").trim();
+  const packetSessionId = String(workpoint.session_id || packet.session_id || "").trim();
+  const currentSessionKey = String(S.sessionFrameKey || "").trim();
+  const currentContinuityId = String(S.continuityId || "").trim();
+  if (!packetProjectRoot || !packetContinuityId || !isProjectRootAuthoritySafe(packetProjectRoot)) return null;
+  if (packet.canonical === false || workpoint.canonical === false || packet.status === "partial" || packet.status === "rejected_scope_mismatch") return null;
+  if (currentContinuityId && currentContinuityId !== packetContinuityId) return null;
+  if (source !== "daemon_active_workpoint" && currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return null;
+  if (source !== "daemon_active_workpoint" && currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey) return null;
+  S.continuityId = packetContinuityId;
+  S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(workpoint);
+  return packetProjectRoot;
+}
+
+function scopedWorkpointFrameRecoveryCwd(): string | null {
+  return adoptWorkpointScopeForFrameRecovery(S.activeWorkpointPacket, "session_scoped_workpoint");
+}
+
+async function daemonActiveWorkpointFrameRecoveryCwd(): Promise<string | null> {
+  const data = await focusaFetch("/workpoint/current").catch(() => null);
+  return adoptWorkpointScopeForFrameRecovery(data, "daemon_active_workpoint");
+}
+
+async function adoptExistingSafeFrameForRecovery(): Promise<string | null> {
+  const data = await loadFocusState().catch(() => null);
+  const frame = data?.frame;
+  const frameProjectRoot = normalizeProjectRoot(frame?.project_root);
+  if (!frame?.id || !frameProjectRoot || !isProjectRootAuthoritySafe(frameProjectRoot)) return null;
+  S.activeFrameId = frame.id;
+  S.sessionCwd = frameProjectRoot;
+  if (frame.continuity_id) S.continuityId = String(frame.continuity_id);
+  return frame.id;
+}
+
 // ── Persist Focusa state to Pi session (§33.7) ──────────────────────────────
 export async function ensurePiFrame(cwd?: string, sessionId?: string, source = "pi-auto"): Promise<string | null> {
   if (!S.focusaAvailable) return S.activeFrameId;
-  if (!isProjectRootAuthoritySafe(cwd || S.sessionCwd || process.cwd())) {
-    clearScopedWorkpointForUnsafeCwd("ensure_pi_frame_unsafe_cwd");
-    return null;
+
+  const requestedCwd = normalizeProjectRoot(cwd || S.sessionCwd || process.cwd());
+  let resolvedCwd = requestedCwd;
+  if (!isProjectRootAuthoritySafe(resolvedCwd)) {
+    const adoptedFrameId = await adoptExistingSafeFrameForRecovery();
+    if (adoptedFrameId) return adoptedFrameId;
+    const packetCwd = scopedWorkpointFrameRecoveryCwd() || await daemonActiveWorkpointFrameRecoveryCwd();
+    if (packetCwd) {
+      resolvedCwd = packetCwd;
+    } else {
+      clearScopedWorkpointForUnsafeCwd("ensure_pi_frame_unsafe_cwd");
+      return null;
+    }
   }
-  if (S.activeFrameId && isProjectRootAuthoritySafe(S.sessionCwd || cwd || process.cwd())) return S.activeFrameId;
+
+  if (S.activeFrameId && isProjectRootAuthoritySafe(S.sessionCwd || resolvedCwd)) return S.activeFrameId;
   if (S.activeFramePromise) return await S.activeFramePromise;
 
-  const resolvedCwd = cwd || S.sessionCwd || process.cwd();
   if (!isProjectRootAuthoritySafe(resolvedCwd)) return null;
   S.sessionCwd = resolvedCwd;
 

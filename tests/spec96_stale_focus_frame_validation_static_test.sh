@@ -23,6 +23,30 @@ else
   echo "✗ FAIL: Pi scoped frame recovery/fallback missing" >&2; exit 1
 fi
 
+if rg -n 'refresh_scoped_frame|create_or_adopt_scoped_frame' "$TOOLS" >/dev/null && rg -n 'adoptExistingSafeFrameForRecovery|scopedWorkpointFrameRecoveryCwd|daemonActiveWorkpointFrameRecoveryCwd|resolveFocusaToolProjectRoot|ensure_pi_frame_unsafe_cwd' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null; then
+  echo "✓ PASS: Pi Focus State writes recover from missing frame using scoped frame/workpoint before failing unsafe cwd"
+else
+  echo "✗ FAIL: missing-frame recovery remains brittle around unsafe cwd" >&2; exit 1
+fi
+
+if rg -n 'scope mismatch on|scope_recovery_context|request_scope|evidence_capture' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: Pi scoped tools resolve unsafe cwd and evidence capture reports 409 scope mismatches with recovery context"
+else
+  echo "✗ FAIL: Pi scoped tool recovery/409 reporting remains opaque" >&2; exit 1
+fi
+
+if rg -n 'pushDeltaFailureRecovery|recovery_hint|retry_posture|focusa_project_identity.*focusa_workpoint_checkpoint' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: Focus State write failures include structured recovery hints and next tools"
+else
+  echo "✗ FAIL: Focus State write failures still lack structured recovery guidance" >&2; exit 1
+fi
+
+if rg -n 'recommendations|recommended_action|session_scope|Session cwd is broad/unsafe' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: tool doctor emits actionable recommendations and session-scope diagnostics"
+else
+  echo "✗ FAIL: tool doctor lacks actionable diagnostic guidance" >&2; exit 1
+fi
+
 if rg -n 'Stale active-frame validation' "$SPEC" >/dev/null; then
   echo "✓ PASS: Spec documents stale-frame validation failure posture"
 else

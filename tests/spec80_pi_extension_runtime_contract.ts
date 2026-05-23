@@ -5,6 +5,8 @@ import { S } from "../apps/pi-extension/src/state.ts";
 
 type ToolDef = {
   name: string;
+  description?: string;
+  promptSnippet?: string;
   execute: (...args: any[]) => Promise<any>;
 };
 
@@ -33,6 +35,13 @@ const required = [
 
 for (const name of required) {
   assert.ok(tools.has(name), `missing tool registration: ${name}`);
+}
+
+const focusaToolDefs = [...tools.values()].filter((tool) => tool.name.startsWith("focusa_"));
+assert.ok(focusaToolDefs.length >= 58, `expected full Focusa tool suite, got ${focusaToolDefs.length}`);
+for (const tool of focusaToolDefs) {
+  assert.ok(String(tool.description || "").trim().length > 0, `${tool.name} should include agent-facing description`);
+  assert.ok(String(tool.promptSnippet || "").trim().length > 0, `${tool.name} should include promptSnippet guidance`);
 }
 
 const calls: Array<{ method: string; path: string; headers: http.IncomingHttpHeaders; body: any }> = [];
@@ -141,7 +150,7 @@ const diffCall = getCall((c) => c.method === "POST" && c.path === "/v1/focus/sna
 assert.deepEqual(diffCall.body, { from_snapshot_id: "snap-0", to_snapshot_id: "snap-1" }, "diff request body should match schema");
 
 const captureCall = getCall((c) => c.method === "POST" && c.path === "/v1/metacognition/capture", "focusa_metacog_capture");
-assert.deepEqual(captureCall.body, { kind: "note", content: "x", confidence: 0.8 }, "capture request body should match schema");
+assert.deepEqual(captureCall.body, { kind: "note", content: "x", evidence_refs: [], confidence: 0.8 }, "capture request body should match schema");
 
 const retrieveCall = getCall((c) => c.method === "POST" && c.path === "/v1/metacognition/retrieve" && (c.body?.k === 50), "focusa_metacog_retrieve");
 assert.deepEqual(retrieveCall.body, { current_ask: "next", scope_tags: ["x"], k: 50 }, "retrieve should clamp k and preserve scope_tags");
@@ -168,7 +177,7 @@ assert.equal(statusHits, 6, "writer-backed tools should resolve writer id per wr
 
 const invalidPath = await tools.get("focusa_tree_path")!.execute("id", { clt_node_id: "" });
 assert.equal(invalidPath?.details?.ok, false, "empty clt_node_id should fail");
-assert.equal(invalidPath?.details?.code, "CLT_NODE_NOT_FOUND", "empty clt_node_id should map to CLT_NODE_NOT_FOUND");
+assert.equal(invalidPath?.details?.code, "SCHEMA_INVALID", "empty clt_node_id should map to schema validation");
 
 const invalidRestoreMode = await tools.get("focusa_tree_restore_state")!.execute("id", { snapshot_id: "snap-1", restore_mode: "invalid-mode" });
 assert.equal(invalidRestoreMode?.details?.ok, false, "invalid restore mode should fail");
