@@ -78,8 +78,9 @@ async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, rea
   ctx.ui.setStatus("focusa", "🧭 Focusa needs project root");
   focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_prompt_required", payload: { reason, project_root: proposedRoot, summary, mode, session_id: S.sessionFrameKey } });
   if (mode === "off") return null;
-  if (mode === "notify") {
+  if (mode === "warn_only" || mode === "notify") {
     ctx.ui.notify(`Focusa needs project root confirmation before durable state writes. ${summary}`, "warning");
+    ctx.ui.setWidget("focusa-vital", ["🧭 Focusa needs project root", summary, "Set /focusa-settings Vital project info prompt=prompt for modal confirmation."], { placement: "belowEditor" });
     return null;
   }
 
@@ -138,16 +139,19 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   const key = `trajectory:${projectRoot}:${status}:${action}`;
   if (!unclear || S.vitalInfoPrompted[key]) return;
   S.vitalInfoPrompted[key] = Date.now();
-  const ok = await ctx.ui.confirm(
+  const choice = await ctx.ui.select(
     "Focusa trajectory is not set",
-    `Project root is confirmed, but trajectory is unclear for ${projectRoot}. Define long-term goal and desired end state now?`,
+    ["Define now", "Seed from current Workpoint/current ask", "Skip for now"],
   );
-  if (!ok) return;
+  if (!choice || choice === "Skip for now") return;
+  const seed = choice === "Seed from current Workpoint/current ask"
+    ? String(S.activeWorkpointPacket?.mission || S.activeWorkpointPacket?.next_slice || S.currentAsk?.text || S.activeFrameGoal || "")
+    : "";
   const template = [
-    "LONG_TERM_GOAL: ",
-    "DESIRED_END_STATE: ",
-    "SHORT_TERM_GOAL: ",
-    "CURRENT_STATE: ",
+    `LONG_TERM_GOAL: ${seed}`,
+    `DESIRED_END_STATE: ${seed ? `Completed and verified: ${seed}` : ""}`,
+    `SHORT_TERM_GOAL: ${S.currentAsk?.text || S.activeWorkpointPacket?.next_slice || ""}`,
+    `CURRENT_STATE: ${S.lastFocusSnapshot.currentFocus || ""}`,
   ].join("\n");
   const edited = await ctx.ui.editor("Define Focusa trajectory", template);
   const parsed = parseTrajectoryEditor(String(edited || ""));

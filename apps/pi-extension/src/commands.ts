@@ -60,7 +60,7 @@ const WORK_LOOP_LOW_PRODUCTIVITY_OPTIONS = ["2", "3", "4"];
 const WORK_LOOP_FAILURE_OPTIONS = ["2", "3", "4"];
 const WORK_LOOP_SAME_SUBPROBLEM_OPTIONS = ["1", "2", "3"];
 const WORK_LOOP_HEARTBEAT_OPTIONS = ["2000", "3000", "5000"];
-const VITAL_INFO_PROMPT_MODE_OPTIONS = ["prompt", "notify", "off"];
+const VITAL_INFO_PROMPT_MODE_OPTIONS = ["prompt", "warn_only", "off"];
 const BOOLEAN_OPTIONS = ["true", "false"];
 
 function nextHigher(options: string[], value: number): string {

@@ -2016,7 +2016,7 @@ Before decomposition completes:
 8. Add Trajectory Intelligence View with context sufficiency, relevance rationale, uncertainty register, negative context, current-state delta, learning refs, and prediction refs.
 9. Add Definition-of-Done proof contract and goal provenance/supersession metadata.
 10. Add Trajectory lifecycle logic: initial definition protocol, inference policy, continuous per-session clarity gate, root-goal stability, change/supersession rules, and operator confirmation path.
-10a. Pi must interruptively prompt for vital project information when passive flags are insufficient: unconfirmed project_root uses a modal project-root selector/input; unclear Trajectory may open an operator goal editor; behavior is controlled by `vitalInfoPromptMode` (`prompt`/`notify`/`off`).
+10a. Pi must interruptively prompt for vital project information when passive flags are insufficient: unconfirmed project_root uses a modal project-root selector/input before session bind and before agent turns; unclear Trajectory offers define-now, seed-from-Workpoint, or skip; behavior is controlled by `vitalInfoPromptMode` (`prompt`/`warn_only`/`off`).
 11. Add Trajectory core types and reducer events only for projection metadata and accepted checkpoints.
 12. Add Trajectory API routes with hot-path summary defaults and cold-path full diagnostics.
 13. Add Pi `focusa_trajectory_*` tools with advisory Workpoint candidates only; prefer `view`, `define_goal`, `assess`, and `propose_workpoint` naming over control verbs.
@@ -2041,7 +2041,7 @@ Before decomposition completes:
 
 ### Compaction/resume packets
 
-- Pi session start/resume blocks durable Focusa binding on unconfirmed project_root until the operator confirms a safe project root through the vital-info prompt, or explicitly downgrades the prompt mode.
+- Pi session start/resume and `before_agent_start` block or scope-limit durable Focusa binding on unconfirmed project_root until the operator confirms a safe project root through the default-on vital-info prompt, or explicitly downgrades the prompt mode.
 - Workpoint Resume Packet v2 is generated from canonical hot-path APIs after compaction/model switch when available.
 - Packet rendering uses `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_traverse`, ProjectIdentity/session identity, evidence handles, and tool affordance guidance.
 - Packet headers and JSON distinguish canonical live data from cached, stale, local, or noncanonical fallback data.

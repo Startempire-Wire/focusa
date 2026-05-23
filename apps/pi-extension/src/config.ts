@@ -16,7 +16,7 @@ export interface FocusaConfig {
   compactPct: number;
   hardPct: number;
   contextStatusMode: "off" | "actionable" | "all";
-  vitalInfoPromptMode: "off" | "notify" | "prompt";
+  vitalInfoPromptMode: "off" | "warn_only" | "notify" | "prompt";
   cooldownMs: number;
   maxCompactionsPerHour: number;
   minTurnsBetweenCompactions: number;
@@ -170,8 +170,9 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(`Invalid tier ordering: 0 < warnPct(${cfg.warnPct}) < compactPct(${cfg.compactPct}) < hardPct(${cfg.hardPct}) < 100`);
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
-  if (!["off", "notify", "prompt"].includes(cfg.vitalInfoPromptMode))
-    errs.push(`vitalInfoPromptMode(${cfg.vitalInfoPromptMode}) must be one of: off, notify, prompt`);
+  if (cfg.vitalInfoPromptMode === "notify") cfg.vitalInfoPromptMode = "warn_only";
+  if (!["off", "warn_only", "prompt"].includes(cfg.vitalInfoPromptMode))
+    errs.push(`vitalInfoPromptMode(${cfg.vitalInfoPromptMode}) must be one of: off, warn_only, prompt`);
   if (cfg.cooldownMs < 30_000) errs.push(`cooldownMs(${cfg.cooldownMs}) must be >= 30000`);
   if (cfg.maxCompactionsPerHour < 1) errs.push(`maxCompactionsPerHour must be >= 1`);
   if (cfg.externalizeThresholdBytes < 2048) errs.push(`externalizeThresholdBytes must be >= 2048`);
