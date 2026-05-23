@@ -2,6 +2,8 @@
 
 Trajectory tools provide per-project north-star orientation. They are advisory projection tools, not planners or executors.
 
+Navigation metaphor: Trajectory is the route model — current functional state, desired destination/outcome, and waypoint goals. `project_root` is only the scope vessel/hull that keeps the route attached to the right project.
+
 - [`focusa_trajectory_view`](tools/focusa_trajectory_view.md)
 - [`focusa_trajectory_define_goal`](tools/focusa_trajectory_define_goal.md)
 - [`focusa_trajectory_assess`](tools/focusa_trajectory_assess.md)

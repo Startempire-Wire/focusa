@@ -111,6 +111,15 @@ Use for continuity across compaction/resume/model switch/fork/risky work.
 - `focusa_active_object_resolve` — resolve likely active objects; returns candidates, not invented truth.
 - `focusa_evidence_capture` — capture bounded evidence and optionally link to Workpoint.
 
+Identity and isolation rules:
+
+- `project_root` is the project scope boundary, not a unique session identity by itself.
+- Navigation metaphor: `project_root` is the scope vessel/hull; better scope evidence improves travel reliability, but it is not the functional route or destination.
+- `continuity_id` is the stable logical session/workstream identity; every same-root active session needs a distinct continuity_id.
+- `session_id` is temporal metadata across compaction/model switch/fork; it must not merge or split logical sessions.
+- Trajectory is the route model: current functional state, desired destination/outcome, and waypoint goals.
+- Trajectory, work-item, frame tags, and goals are corroborating alignment signals only; they never override `project_root + continuity_id` hard gates.
+
 Real release behavior as of Spec89:
 
 - Checkpoint `accepted` means reducer-visible active Workpoint is materialized.
