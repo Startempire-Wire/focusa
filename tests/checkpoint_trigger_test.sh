@@ -128,6 +128,13 @@ else
   log_fail "Focus stack resume verification failed"
 fi
 
+missing_ascc=$(curl -sS "${BASE_URL}/v1/ascc/frame/00000000-0000-0000-0000-000000000000")
+if echo "$missing_ascc" | jq -e '.status == "blocked" and .failure_class == "frame_unavailable" and .why != null and .recovery_hint != null and .misuse_hint != null and .details.tool_result_v1.ok == false' >/dev/null 2>&1; then
+  log_pass "ASCC missing frame exposes no-guess recovery contract"
+else
+  log_fail "ASCC missing frame missing no-guess recovery contract :: $missing_ascc"
+fi
+
 echo ""
 echo "=== SPEC-56.2 CHECKPOINT TRIGGERS RESULTS ==="
 echo "Tests passed: ${PASSED}"

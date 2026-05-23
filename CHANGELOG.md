@@ -28,6 +28,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Replaced opaque command submit/status/log rejections with no-guess envelopes carrying why, recovery/misuse hints, next tools, and `tool_result_v1`.
 - Replaced opaque Workpoint reducer, persistence, dispatch, and missing-active evidence failures with no-guess envelopes.
 - Replaced opaque thread validation, not-found, and dispatch failures with no-guess envelopes.
+- Replaced opaque ASCC frame and delta dispatch failures with no-guess envelopes.
 
 ## Unreleased — Spec93 release publication proof
 
