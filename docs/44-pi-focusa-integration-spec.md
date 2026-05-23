@@ -270,7 +270,7 @@ Recovery:
 - auto-reconnect with backoff
 - soft resync (state/info, recent candidates)
 - never replay writes blindly; re-submit with idempotency keys where supported
-- if Focusa is healthy but Pi has no active frame, attempt automatic frame recovery before surfacing failure
+- if Focusa is healthy but Pi has no active frame, attempt automatic frame recovery before surfacing failure; if still unavailable, the model-facing fallback headline is `Attentive and awaiting operator direction` with explicit scratch/recovery details
 
 ### 11.1 Write-path result semantics
 

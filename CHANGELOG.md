@@ -16,6 +16,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Tuned daemon ResourceMode thresholds and LowMem pruning so repeated audits enter bounded LowMem before emergency, preserving hot Workpoint/contract routes; added bounded extended-soak and parallel-load regression coverage.
 - Added CLI parity smoke coverage for project identity, trajectory, scoped Workpoint, Focus State update, metacog recent reads, lineage extract, snapshots, resource mode, and prediction record/evaluate/read paths.
 - Materialized canonical Workpoint checkpoints through the sync reducer path so safe `project_root + continuity_id` writes are visible immediately instead of depending on queued daemon read-model lag.
+- Reworded the missing active Pi frame fallback to `Attentive and awaiting operator direction` so agents stay helpful while scratch fallback/recovery guidance remains available.
 
 ## Unreleased — Spec93 release publication proof
 
