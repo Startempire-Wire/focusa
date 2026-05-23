@@ -1686,6 +1686,34 @@ export function registerTools(pi: ExtensionAPI) {
     return `cd '${rootDir}' && ${lowmem}pi 'SilentSession ${sessionName}: ${mission}${bead ? ` Work item: ${bead}.` : ""} Use Focusa trajectory/workpoint/beads, record evidence, checkpoint often, and stop for destructive/high-risk actions.'`;
   }
 
+  function silentSessionBlocked(action: SilentSessionAction | string, sessionName: string, failureClass: FocusaFailureClass, why: string, sessions: any[] = [], extra: Record<string, any> = {}): any {
+    const nextTools = failureClass === "approval_required"
+      ? ["focusa_silent_sessions", "focusa_work_loop_writer_status"]
+      : failureClass === "frame_unavailable"
+        ? ["focusa_silent_sessions", "focusa_tool_doctor"]
+        : ["focusa_silent_sessions", "focusa_tool_doctor", "focusa_resource_mode"];
+    const summary = `silent session ${action} blocked → ${why}`;
+    const toolResult = focusaToolResult({
+      ok: false,
+      status: "blocked",
+      failure_class: failureClass,
+      canonical: false,
+      degraded: true,
+      summary,
+      tool: "focusa_silent_sessions",
+      family: "work_loop",
+      retry: { safe: failureClass !== "approval_required", posture: failureClass === "approval_required" ? "operator_required" : "safe_retry", reason: failureClass },
+      side_effects: [],
+      evidence_refs: [],
+      next_tools: nextTools,
+      raw: { action, session_name: sessionName, sessions, ...extra },
+    });
+    return {
+      content: [{ type: "text", text: `${summary}. Why: ${why}. Next: ${toolResult.recovery_hint || nextTools.join(" → ")}` }],
+      details: { ok: false, status: "blocked", session_name: sessionName, sessions, why, failure_class: failureClass, recovery_hint: toolResult.recovery_hint, misuse_hint: toolResult.misuse_hint, next_tools: toolResult.next_tools, tool_result_v1: toolResult, ...extra },
+    } as any;
+  }
+
   pi.registerTool({
     name: "focusa_silent_sessions",
     label: "Focusa Silent Sessions",
@@ -1725,20 +1753,20 @@ export function registerTools(pi: ExtensionAPI) {
       }
 
       if (action === "reopen") {
-        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: false, status: "not_found", failure_class: "frame_unavailable", session_name: sessionName, sessions: sessionsBefore } } as any;
+        if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const tail = silentSessionExec(["capture-pane", "-p", "-t", sessionName, "-S", "-80"], 3000);
         return { content: [{ type: "text", text: `silent session reopen → ${sessionName}\nattach: tmux attach -t ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, tail: tail.stdout.slice(-4000), sessions: sessionsBefore } } as any;
       }
 
       if (action === "tail") {
-        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: false, status: "not_found", session_name: sessionName, sessions: sessionsBefore } } as any;
+        if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const lines = Math.max(1, Math.min(400, Number(p.lines || 80)));
         const tail = silentSessionExec(["capture-pane", "-p", "-t", sessionName, "-S", `-${lines}`], 3000);
         return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, error: tail.stderr } } as any;
       }
 
       if (action === "start") {
-        if (p.approved !== true) return { content: [{ type: "text", text: "silent session start blocked → approved=true required" }], details: { ok: false, status: "blocked", failure_class: "approval_required", session_name: sessionName } } as any;
+        if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "start mutates background process state; pass approved=true only when operator explicitly wants a background session", sessionsBefore);
         if (hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, sessions: sessionsBefore } } as any;
         const cmd = String(p.command || defaultSilentSessionCommand(p, sessionName));
         const started = silentSessionExec(["new-session", "-d", "-s", sessionName, "--", "bash", "-lc", cmd], 5000);
@@ -1747,23 +1775,25 @@ export function registerTools(pi: ExtensionAPI) {
       }
 
       if (action === "send") {
-        if (p.approved !== true) return { content: [{ type: "text", text: "silent session send blocked → approved=true required" }], details: { ok: false, status: "blocked", failure_class: "approval_required", session_name: sessionName } } as any;
-        if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: false, status: "not_found", session_name: sessionName, sessions: sessionsBefore } } as any;
+        if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "send mutates a background process; pass approved=true only for explicit operator input", sessionsBefore);
+        if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const line = String(p.command || "").trim();
-        if (!line) return { content: [{ type: "text", text: "silent session send blocked → command required" }], details: { ok: false, status: "validation_rejected", session_name: sessionName } } as any;
+        if (!line) return silentSessionBlocked(action, sessionName, "validation_rejected", "send requires command/input text; provide command or use tail/list instead", sessionsBefore);
         const sent = silentSessionExec(["send-keys", "-t", sessionName, "--", line, "C-m"], 3000);
-        return { content: [{ type: "text", text: sent.ok ? `silent session sent → ${sessionName}` : `silent session send blocked → ${sent.stderr}` }], details: { ok: sent.ok, status: sent.ok ? "accepted" : "blocked", session_name: sessionName, side_effects: sent.ok ? ["tmux_send_keys"] : [], error: sent.stderr } } as any;
+        if (!sent.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux send-keys failed: ${sent.stderr || "unknown error"}`, sessionsBefore, { error: sent.stderr });
+        return { content: [{ type: "text", text: `silent session sent → ${sessionName}` }], details: { ok: true, status: "accepted", session_name: sessionName, side_effects: ["tmux_send_keys"] } } as any;
       }
 
       if (action === "kill") {
-        if (p.approved !== true || p.force !== true) return { content: [{ type: "text", text: "silent session kill blocked → approved=true and force=true required" }], details: { ok: false, status: "blocked", failure_class: "approval_required", session_name: sessionName, sessions: sessionsBefore } } as any;
+        if (p.approved !== true || p.force !== true) return silentSessionBlocked(action, sessionName, "approval_required", "kill is destructive to background work; pass approved=true and force=true only with explicit operator approval", sessionsBefore);
         if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, sessions: sessionsBefore } } as any;
         const killed = silentSessionExec(["kill-session", "-t", sessionName], 3000);
         const sessionsAfter = listSilentSessions();
-        return { content: [{ type: "text", text: killed.ok ? `silent session killed → ${sessionName}` : `silent session kill blocked → ${killed.stderr}` }], details: { ok: killed.ok, status: killed.ok ? "completed" : "blocked", session_name: sessionName, side_effects: killed.ok ? ["tmux_kill_session"] : [], sessions: sessionsAfter, error: killed.stderr } } as any;
+        if (!killed.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux kill-session failed: ${killed.stderr || "unknown error"}`, sessionsAfter, { error: killed.stderr });
+        return { content: [{ type: "text", text: `silent session killed → ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, side_effects: ["tmux_kill_session"], sessions: sessionsAfter } } as any;
       }
 
-      return { content: [{ type: "text", text: `silent session action unsupported → ${action}` }], details: { ok: false, status: "validation_rejected", action } } as any;
+      return silentSessionBlocked(action, sessionName, "validation_rejected", `unsupported action ${action}; use list/start/reopen/tail/send/kill`, sessionsBefore);
     },
   });
 

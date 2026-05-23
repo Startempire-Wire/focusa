@@ -64,3 +64,10 @@ else
 fi
 
 echo "SPEC96 SilentSession tool static test: PASS"
+
+if rg -n 'silentSessionBlocked|tool_result_v1|recovery_hint|misuse_hint|approved=true.*operator|tmux .*failed' "$TOOLS_TS" >/dev/null; then
+  echo "✓ PASS: SilentSession failures expose why/recovery/misuse hints and tool_result_v1"
+else
+  echo "✗ FAIL: SilentSession failures can still return opaque blocked/not_found responses" >&2
+  exit 1
+fi

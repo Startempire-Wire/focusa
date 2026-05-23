@@ -23,6 +23,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Extended API error envelopes for unknown/wrong routes with `failure_class`, `recovery_hint`, `misuse_hint`, `next_tools`, and `details.tool_result_v1` so route mistakes do not dead-end models.
 - Added degraded evidence-capture fallback for trajectory clarity hot/cold timeout/resource pressure so the model sees why linking is blocked and proof handles are preserved with Workpoint checkpoint/resume recovery.
 - Replaced opaque prediction tool `unavailable` fallbacks with structured no-deadend responses carrying why, recovery/misuse hints, retry posture, and next tools.
+- Replaced opaque SilentSession blocked/not-found responses with why, recovery/misuse hints, retry posture, next tools, and `tool_result_v1`.
 
 ## Unreleased — Spec93 release publication proof
 
