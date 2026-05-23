@@ -20,6 +20,13 @@ else
   exit 1
 fi
 
+if rg -n 'PROJECT_ENVIRONMENT|root_url|live_url|local_url|deploy_target|deploy_location|local_vs_live_boundary' "$TURNS_TS" "${ROOT_DIR}/crates/focusa-api/src/routes/project.rs" >/dev/null; then
+  echo "✓ PASS: Focus Slice includes explicit project environment/deploy facts"
+else
+  echo "✗ FAIL: project environment/deploy facts missing from Focus Slice" >&2
+  exit 1
+fi
+
 if rg -n 'advisory_only=true|Trajectory.*never override|advisory degraded projection' "$TURNS_TS" "${ROOT_DIR}/apps/pi-extension/skills/focusa/SKILL.md" >/dev/null; then
   echo "✓ PASS: trajectory projection remains advisory and guarded"
 else

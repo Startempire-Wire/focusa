@@ -59,6 +59,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Added prior-project trajectory fallback for Pi reloads so existing long-term goals can orient new continuity without prompting for a new trajectory.
 - Added mobile-friendly A/B/C/D inferred trajectory choices, keeping freeform trajectory editing as an optional fallback only.
 - Added mobile-friendly A/B/C/D inferred Workpoint checkpoint choices, keeping freeform Workpoint editing as an optional fallback only.
+- Added marker-backed project environment/deploy facts to ProjectIdentity and Pi Focus Slice so agents see live/local URLs and deploy targets at a glance.
 
 ## Unreleased — Spec93 release publication proof
 

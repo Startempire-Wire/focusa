@@ -64,7 +64,16 @@ const frame = {
   if (route === "/trajectory/view") return jsonResponse({
     status: "completed",
     canonical: true,
-    project_identity: { status: "verified", project_root: "/home/wirebot/focusa", continuity_id: "cont-spec96-runtime", confidence: "high" },
+    project_identity: {
+      status: "verified",
+      project_root: "/home/wirebot/focusa",
+      continuity_id: "cont-spec96-runtime",
+      confidence: "high",
+      project_identity_api: {
+        project_urls: { root_url: "https://app.asapdigest.com", live_url: "https://app.asapdigest.com", local_url: "https://asapdigest.local" },
+        deployment: { environment: "live", deploy_target: "app.asapdigest.com", deploy_location: "/home/asapdigest/public_html", deploy_command: "scripts/deploy-live.sh" },
+      },
+    },
     trajectory: {
       definition_status: "clear",
       long_term_goal: "Spec96 compliant Focus Slice",
@@ -129,6 +138,9 @@ const result = await pi.emit("context", { messages: [{ role: "user", content: [{
 const injected = result?.messages?.[0]?.content?.[0]?.text || "";
 assert(injected.includes("PROJECT_IDENTITY: status=verified"), `missing PROJECT_IDENTITY line:
 ${injected}`);
+assert(injected.includes("PROJECT_ENVIRONMENT: root_url=https://app.asapdigest.com"), `missing PROJECT_ENVIRONMENT root URL line:\n${injected}`);
+assert(injected.includes("environment=live"), `missing PROJECT_ENVIRONMENT live marker:\n${injected}`);
+assert(injected.includes("deploy_location=/home/asapdigest/public_html"), `missing PROJECT_ENVIRONMENT deploy location:\n${injected}`);
 assert(injected.includes("TRAJECTORY_GOALS: high=Spec96 compliant Focus Slice"), `missing TRAJECTORY_GOALS line:
 ${injected}`);
 assert(injected.includes("ACTIVE_GAP: Assert injected sections"), `missing ACTIVE_GAP line:
@@ -141,7 +153,7 @@ assert(injected.includes("RESOURCE_MODE: lowmem"), `missing RESOURCE_MODE line:\
 assert(injected.includes("LOWMEM_BUDGET: hot_timeout_ms=250"), `missing LOWMEM_BUDGET line:\n${injected}`);
 assert(injected.includes("CONTEXT_POSTURE: surgical_summary_only"), `missing context posture:\n${injected}`);
 assert(injected.includes("TOOL_AFFORDANCES:"), `missing TOOL_AFFORDANCES:\n${injected}`);
-assert(injected.includes("focusa_traverse — fetch narrow"), `missing traverse affordance:\n${injected}`);
+assert(injected.includes("focusa_traverse") && injected.includes("narrow slice"), `missing traverse affordance:\n${injected}`);
 assert(injected.includes("scope_mismatch -> focusa_project_verify"), `missing recovery affordance:\n${injected}`);
 assert(injected.includes("full lineage tree / full ontology graph / deep work-loop status by default"), `missing do-not-use affordance:\n${injected}`);
 console.log("SPEC96 Focus Slice runtime injection proof passed");

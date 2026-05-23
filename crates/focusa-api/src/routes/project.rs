@@ -48,6 +48,8 @@ struct IdentityCandidate {
     repo_remote: Option<String>,
     beads_prefix: Option<String>,
     workspace_kind: Option<String>,
+    project_urls: Value,
+    deployment: Value,
     fingerprint: String,
     confidence: &'static str,
     status: &'static str,
@@ -69,8 +71,15 @@ fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
         return Some("missing_project_root");
     }
     match root {
-        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => Some("unsafe_broad_project_root"),
-        _ if root.strip_prefix("/home/").is_some_and(|rest| !rest.contains('/')) => Some("unsafe_user_home_project_root"),
+        "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt" => {
+            Some("unsafe_broad_project_root")
+        }
+        _ if root
+            .strip_prefix("/home/")
+            .is_some_and(|rest| !rest.contains('/')) =>
+        {
+            Some("unsafe_user_home_project_root")
+        }
         _ => None,
     }
 }
@@ -103,7 +112,8 @@ fn resolve_start(cwd: Option<&str>, project_root: Option<&str>) -> PathBuf {
         .or_else(|| std::env::var("FOCUSA_PROJECT_ROOT").ok())
         .or_else(|| std::env::var("FOCUSA_HOME").ok())
         .map(|value| expand_home(&value));
-    let raw = candidate.unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let raw =
+        candidate.unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
     if raw.is_absolute() {
         raw
     } else {
@@ -164,6 +174,67 @@ fn read_git_remote(git_root: &Path) -> Option<String> {
         }
     }
     None
+}
+
+fn marker_string(marker: &Option<Value>, key: &str) -> Option<String> {
+    marker
+        .as_ref()
+        .and_then(|value| value.get(key))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn marker_object_or_empty(marker: &Option<Value>, key: &str) -> Value {
+    marker
+        .as_ref()
+        .and_then(|value| value.get(key))
+        .filter(|value| value.is_object())
+        .cloned()
+        .unwrap_or_else(|| json!({}))
+}
+
+fn marker_project_urls(marker: &Option<Value>) -> Value {
+    let mut urls = marker_object_or_empty(marker, "project_urls");
+    if let Some(map) = urls.as_object_mut() {
+        for (source_key, target_key) in [
+            ("root_url", "root_url"),
+            ("live_url", "live_url"),
+            ("production_url", "live_url"),
+            ("local_url", "local_url"),
+            ("admin_url", "admin_url"),
+            ("api_url", "api_url"),
+        ] {
+            if !map.contains_key(target_key)
+                && let Some(value) = marker_string(marker, source_key)
+            {
+                map.insert(target_key.to_string(), Value::String(value));
+            }
+        }
+    }
+    urls
+}
+
+fn marker_deployment(marker: &Option<Value>) -> Value {
+    let mut deployment = marker_object_or_empty(marker, "deployment");
+    if let Some(map) = deployment.as_object_mut() {
+        for key in [
+            "environment",
+            "deploy_environment",
+            "deploy_target",
+            "deploy_location",
+            "deploy_command",
+            "verification_url",
+        ] {
+            if !map.contains_key(key)
+                && let Some(value) = marker_string(marker, key)
+            {
+                map.insert(key.to_string(), Value::String(value));
+            }
+        }
+    }
+    deployment
 }
 
 fn workspace_kind(root: &Path) -> Option<&'static str> {
@@ -276,7 +347,9 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
     let workspace_root = ["Cargo.toml", "package.json", "go.mod", "pyproject.toml"]
         .iter()
         .find_map(|name| find_upwards(&start, name));
-    let workspace_kind = workspace_root.as_ref().and_then(|root| workspace_kind(root));
+    let workspace_kind = workspace_root
+        .as_ref()
+        .and_then(|root| workspace_kind(root));
     if let Some(root) = &workspace_root {
         signals.push(ProjectSignal {
             source: "workspace_file",
@@ -339,7 +412,9 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
 
     let matching_independent = signals
         .iter()
-        .filter(|signal| signal.independent && signal.root.as_deref() == Some(canonical_root.as_str()))
+        .filter(|signal| {
+            signal.independent && signal.root.as_deref() == Some(canonical_root.as_str())
+        })
         .count();
     let confidence = if unsafe_reason.is_some() {
         "low"
@@ -393,6 +468,8 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
     let repo_remote = marker_remote.or(repo_remote);
     let beads_prefix = marker_beads.or_else(|| Some(project_id.clone()));
     let workspace_kind = marker_workspace.or_else(|| workspace_kind.map(str::to_string));
+    let project_urls = marker_project_urls(&marker);
+    let deployment = marker_deployment(&marker);
     let fingerprint = stable_fingerprint(&[
         project_id.clone(),
         canonical_name.clone(),
@@ -408,6 +485,8 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         repo_remote,
         beads_prefix,
         workspace_kind,
+        project_urls,
+        deployment,
         fingerprint,
         confidence,
         status,
@@ -417,7 +496,10 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
     }
 }
 
-fn candidate_payload(candidate: IdentityCandidate, expected: Option<&ProjectVerifyRequest>) -> Value {
+fn candidate_payload(
+    candidate: IdentityCandidate,
+    expected: Option<&ProjectVerifyRequest>,
+) -> Value {
     let mut mismatches = candidate.mismatches.clone();
     if let Some(expected) = expected {
         if let Some(project_id) = clean(expected.project_id.as_deref())
@@ -436,9 +518,15 @@ fn candidate_payload(candidate: IdentityCandidate, expected: Option<&ProjectVeri
             mismatches.push(json!({"source":"operator_expected_repo_remote", "expected": remote, "actual": candidate.repo_remote, "severity":"medium"}));
         }
     }
-    let verified = candidate.status == "verified" && mismatches.is_empty() && unsafe_project_root_reason(&candidate.project_root).is_none();
+    let verified = candidate.status == "verified"
+        && mismatches.is_empty()
+        && unsafe_project_root_reason(&candidate.project_root).is_none();
     let canonical = verified && candidate.confidence == "high";
-    let status = if mismatches.is_empty() { "completed" } else { "degraded" };
+    let status = if mismatches.is_empty() {
+        "completed"
+    } else {
+        "degraded"
+    };
     let identity_status = if candidate.status == "unsafe_project_root" {
         "unsafe_project_root"
     } else if mismatches.is_empty() {
@@ -459,6 +547,8 @@ fn candidate_payload(candidate: IdentityCandidate, expected: Option<&ProjectVeri
             "repo_remote": candidate.repo_remote,
             "beads_prefix": candidate.beads_prefix,
             "workspace_kind": candidate.workspace_kind,
+            "project_urls": candidate.project_urls,
+            "deployment": candidate.deployment,
             "fingerprint": candidate.fingerprint,
             "confidence": candidate.confidence,
             "signals": candidate.signals.iter().map(signal_json).collect::<Vec<_>>(),
@@ -487,7 +577,10 @@ fn candidate_payload(candidate: IdentityCandidate, expected: Option<&ProjectVeri
     })
 }
 
-pub(crate) fn project_identity_payload_for_scope(cwd: Option<&str>, project_root: Option<&str>) -> Value {
+pub(crate) fn project_identity_payload_for_scope(
+    cwd: Option<&str>,
+    project_root: Option<&str>,
+) -> Value {
     candidate_payload(discover_identity(cwd, project_root), None)
 }
 
@@ -519,7 +612,10 @@ mod tests {
     use super::*;
 
     fn temp_project(name: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!("focusa-project-test-{name}-{}", uuid::Uuid::now_v7()));
+        let root = std::env::temp_dir().join(format!(
+            "focusa-project-test-{name}-{}",
+            uuid::Uuid::now_v7()
+        ));
         fs::create_dir_all(&root).expect("create temp project");
         root
     }
@@ -528,13 +624,53 @@ mod tests {
     fn git_beads_workspace_quorum_verifies_identity() {
         let root = temp_project("quorum");
         fs::create_dir_all(root.join(".git")).unwrap();
-        fs::write(root.join(".git/config"), "[remote \"origin\"]\n\turl = https://example.test/focusa.git\n").unwrap();
+        fs::write(
+            root.join(".git/config"),
+            "[remote \"origin\"]\n\turl = https://example.test/focusa.git\n",
+        )
+        .unwrap();
         fs::create_dir_all(root.join(".beads")).unwrap();
         fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
         let candidate = discover_identity(root.to_str(), None);
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn marker_exposes_environment_and_deploy_facts() {
+        let root = temp_project("environment");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(
+            root.join(".focusa-project.json"),
+            format!(
+                r#"{{"schema":"focusa.project.v1","project_id":"asap","canonical_name":"ASAP Digest","project_root":"{}","root_url":"https://app.asapdigest.com","local_url":"https://asapdigest.local","deployment":{{"environment":"live","deploy_target":"app.asapdigest.com","deploy_location":"/home/asapdigest/public_html","deploy_command":"scripts/deploy-live.sh"}}}}"#,
+                root.to_string_lossy()
+            ),
+        )
+        .unwrap();
+        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/project_urls/root_url")
+                .and_then(Value::as_str),
+            Some("https://app.asapdigest.com")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/deployment/environment")
+                .and_then(Value::as_str),
+            Some("live")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/deployment/deploy_location")
+                .and_then(Value::as_str),
+            Some("/home/asapdigest/public_html")
+        );
         let _ = fs::remove_dir_all(root);
     }
 
@@ -555,9 +691,21 @@ mod tests {
         let candidate = discover_identity(Some("/root"), Some("/root"));
         assert_eq!(candidate.status, "unsafe_project_root");
         assert_eq!(candidate.confidence, "low");
-        assert!(candidate.mismatches.iter().any(|item| item.get("source").and_then(Value::as_str) == Some("project_root_authority")));
+        assert!(candidate.mismatches.iter().any(
+            |item| item.get("source").and_then(Value::as_str) == Some("project_root_authority")
+        ));
         let payload = candidate_payload(candidate, None);
-        assert_eq!(payload.pointer("/project_identity/status").and_then(Value::as_str), Some("unsafe_project_root"));
-        assert_eq!(payload.pointer("/details/tool_result_v1/failure_class").and_then(Value::as_str), Some("scope_mismatch"));
+        assert_eq!(
+            payload
+                .pointer("/project_identity/status")
+                .and_then(Value::as_str),
+            Some("unsafe_project_root")
+        );
+        assert_eq!(
+            payload
+                .pointer("/details/tool_result_v1/failure_class")
+                .and_then(Value::as_str),
+            Some("scope_mismatch")
+        );
     }
 }

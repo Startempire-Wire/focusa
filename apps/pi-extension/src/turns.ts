@@ -244,6 +244,7 @@ function formatTrajectoryFallbackFocusSlice(root: string, reason: string): strin
   return [
     `PROJECT_IDENTITY: status=${safe ? "local_fallback" : "unsafe_scope"} project_root=${displayRoot} ${continuityId ? `continuity_id=${continuityId}` : "continuity_id=(unavailable)"}`,
     safe ? "PROJECT_INFRA: architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone" : "PROJECT_INFRA: withheld_until_safe_project_root; call focusa_project_identity with explicit project_root",
+    safe ? "PROJECT_ENVIRONMENT: root_url=unknown; live_url=unknown; local_url=unknown; environment=unknown; deploy_target=unknown; deploy_location=unknown; source=missing_project_marker_or_trajectory_view" : "PROJECT_ENVIRONMENT: withheld_until_safe_project_root",
     safe ? `PROJECT_ARCHITECTURE: ${buildProjectArchitectureDigestLine(root)}` : "PROJECT_ARCHITECTURE: withheld_until_safe_project_root",
     `TRAJECTORY_GOALS: unavailable reason=${boundedTrajectoryText(reason, 80)}; call focusa_trajectory_view after safe scope`,
     "TRAJECTORY_SIMILARITY_GROUP: advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true",
@@ -271,6 +272,15 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const workspaceKind = boundedTrajectoryText(project.workspace_kind || projectApi.workspace_kind, 80);
   const repoRemote = boundedTrajectoryText(project.repo_remote || projectApi.repo_remote, 140);
   const beadsPrefix = boundedTrajectoryText(project.beads_prefix || projectApi.beads_prefix, 40);
+  const projectUrls = project.project_urls || projectApi.project_urls || {};
+  const deployment = project.deployment || projectApi.deployment || {};
+  const rootUrl = boundedTrajectoryText(projectUrls.root_url || projectUrls.live_url || projectUrls.production_url || deployment.root_url, 140);
+  const liveUrl = boundedTrajectoryText(projectUrls.live_url || projectUrls.production_url || deployment.live_url, 140);
+  const localUrl = boundedTrajectoryText(projectUrls.local_url || deployment.local_url, 140);
+  const deployEnvironment = boundedTrajectoryText(deployment.environment || deployment.deploy_environment || deployment.target_environment, 80);
+  const deployTarget = boundedTrajectoryText(deployment.deploy_target || deployment.target || deployment.host, 120);
+  const deployLocation = boundedTrajectoryText(deployment.deploy_location || deployment.path || deployment.document_root, 160);
+  const deployCommand = boundedTrajectoryText(deployment.deploy_command || deployment.command, 160);
   const identityParts = [
     `status=${boundedTrajectoryText(project.status || view.status || "unknown", 40)}`,
     `project_root=${projectRoot}`,
@@ -286,6 +296,16 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     beadsPrefix ? `beads_prefix=${beadsPrefix}` : "",
     "architecture_boundary=use project docs/ontology/evidence; do not infer from folder name alone",
   ].filter(Boolean);
+  const environmentBits = [
+    rootUrl ? `root_url=${rootUrl}` : "root_url=unknown",
+    liveUrl ? `live_url=${liveUrl}` : "live_url=unknown",
+    localUrl ? `local_url=${localUrl}` : "local_url=unknown",
+    deployEnvironment ? `environment=${deployEnvironment}` : "environment=unknown",
+    deployTarget ? `deploy_target=${deployTarget}` : "deploy_target=unknown",
+    deployLocation ? `deploy_location=${deployLocation}` : "deploy_location=unknown",
+    deployCommand ? `deploy_command=${deployCommand}` : "",
+    "local_vs_live_boundary=verify from project marker/docs; do not assume .local means active target",
+  ].filter(Boolean).join("; ");
   const goals = [
     trajectory.long_term_goal ? `high=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",
     trajectory.mid_level_goal ? `mid=${boundedTrajectoryText(trajectory.mid_level_goal, 160)}` : "",
@@ -320,6 +340,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const lines = [
     `PROJECT_IDENTITY: ${identityParts.join(" ")}`,
     infraParts.length ? `PROJECT_INFRA: ${infraParts.join("; ")}` : "PROJECT_INFRA: unknown; use focusa_project_identity plus focusa_traverse before architectural assumptions",
+    `PROJECT_ENVIRONMENT: ${environmentBits}`,
     `PROJECT_ARCHITECTURE: ${isProjectRootAuthoritySafe(projectRoot) ? buildProjectArchitectureDigestLine(projectRoot) : "withheld_until_safe_project_root"}`,
     goals ? `TRAJECTORY_GOALS: ${goals}` : "TRAJECTORY_GOALS: definition_status=unclear",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,

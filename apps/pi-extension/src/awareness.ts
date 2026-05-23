@@ -20,7 +20,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const friendlyQ = [
     "Friendly Focusa Q (internal orientation, not a blocker):",
     "1. Where am I? project_root + continuity_id → focusa_project_identity / focusa_project_verify.",
-    "2. What kind of project is this? canonical name, repo, workspace kind, infra/architecture boundaries → focusa_project_identity + focusa_traverse.",
+    "2. What kind of project is this? canonical name, repo, root/live/local URLs, deploy target/location, workspace kind, infra/architecture boundaries → focusa_project_identity + focusa_traverse.",
     "3. Where are we going? current state, destination, waypoints → focusa_trajectory_view / define_goal / assess.",
     "4. What is the next useful move? mission + active object + next anchor → focusa_workpoint_resume / checkpoint.",
     "5. What proof changes confidence? tests/API/file handles → focusa_active_object_resolve + focusa_evidence_capture/link.",

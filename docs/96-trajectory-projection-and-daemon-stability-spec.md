@@ -267,12 +267,24 @@ Suggested schema:
   "repo_remote": "git@github.com:.../focusa.git",
   "beads_prefix": "focusa",
   "workspace_kind": "rust-monorepo",
+  "project_urls": {
+    "root_url": "https://app.example.com",
+    "live_url": "https://app.example.com",
+    "local_url": "https://example.local"
+  },
+  "deployment": {
+    "environment": "live",
+    "deploy_target": "app.example.com",
+    "deploy_location": "/home/example/public_html",
+    "deploy_command": "scripts/deploy-live.sh",
+    "verification_url": "https://app.example.com/admin"
+  },
   "aliases": ["focusa-daemon", "focusa-pi-extension"],
   "created_at": "2026-05-20T00:00:00Z"
 }
 ```
 
-The marker improves accuracy but must not be the only source.
+The marker improves accuracy but must not be the only source. Runtime/deployment facts from `project_urls` and `deployment` must be shown explicitly in model-facing cards because repo identity alone does not tell an agent whether the active target is local, staging, or live.
 
 ### 6.3 Identity signals
 
@@ -299,6 +311,8 @@ type ProjectIdentity = {
   project_id: string;
   canonical_name: string;
   project_root: string;
+  project_urls?: Record<string, string>;
+  deployment?: Record<string, string>;
   fingerprint: string;
   confidence: "low" | "medium" | "high";
   signals: ProjectIdentitySignal[];
