@@ -251,6 +251,7 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 
 ### trajectory
 - `GET /v1/trajectory/view`
+  - Query supports `allow_prior_project_trajectory=true` for advisory same-project reload fallback when continuity changed.
 - `POST /v1/trajectory/define-goal`
 - `POST /v1/trajectory/assess`
 - `POST /v1/trajectory/propose-workpoint`

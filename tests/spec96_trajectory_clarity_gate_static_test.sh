@@ -50,6 +50,13 @@ else
   exit 1
 fi
 
+if rg -n 'allow_prior_project_trajectory|prior_project_trajectory|fallback_prior_project_trajectory|fallback_source_continuity_id' "$TRAJECTORY" "$TOOLS" "${ROOT_DIR}/apps/pi-extension/src/state.ts" "$DOC_VIEW" >/dev/null; then
+  echo "✓ PASS: prior project trajectory fallback is available for reload continuity changes"
+else
+  echo "✗ FAIL: prior project trajectory fallback missing" >&2
+  exit 1
+fi
+
 echo "SPEC96 trajectory clarity gate static test: PASS"
 
 

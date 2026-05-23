@@ -2076,6 +2076,7 @@ export function registerTools(pi: ExtensionAPI) {
       session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to Pi session key." })),
       continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to Pi continuity id and is part of authority boundary." })),
       mode: Type.Optional(Type.Union([Type.Literal("summary"), Type.Literal("full")], { description: "View mode; summary is hot-path bounded." })),
+      allow_prior_project_trajectory: Type.Optional(Type.Boolean({ description: "If true, use the prior same-project trajectory as advisory reload fallback when continuity_id changed." })),
     }),
     async execute(_id, params) {
       const p = params as any;
@@ -2087,6 +2088,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.session_id || S.sessionFrameKey) query.set("session_id", String(p.session_id || S.sessionFrameKey));
       if (p.continuity_id || S.continuityId) query.set("continuity_id", String(p.continuity_id || S.continuityId));
       if (p.mode) query.set("mode", String(p.mode));
+      if (p.allow_prior_project_trajectory === true) query.set("allow_prior_project_trajectory", "true");
       const result = await focusaFetchDetailed(`/trajectory/view?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const project = body.project_identity || {};
@@ -2098,9 +2100,11 @@ export function registerTools(pi: ExtensionAPI) {
       const recovery = trajectoryUnset ? null : scopeRecoveryContext(body, projectRoot, String(p.continuity_id || S.continuityId || ""), "trajectory_view");
       const trajectoryText = trajectoryUnset
         ? `trajectory view → NOT SET for project=${String(project.project_root || projectRoot)}; definition=unclear; posture=${posture}; next=focusa_trajectory_define_goal`
-        : body.canonical === true
-          ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
-          : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
+        : trajectory.fallback_prior_project_trajectory === true
+          ? `trajectory view → PRIOR PROJECT FALLBACK long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} short=${String(trajectory.short_term_goal || "missing")} posture=${posture}; refresh short-term goal when needed`
+          : body.canonical === true
+            ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
+            : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
       const text = result.ok
         ? [trajectoryText, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;

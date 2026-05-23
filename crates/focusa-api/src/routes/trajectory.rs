@@ -31,6 +31,8 @@ pub struct TrajectoryViewQuery {
     pub continuity_id: Option<String>,
     pub project_root: Option<String>,
     pub mode: Option<String>,
+    #[serde(default)]
+    pub allow_prior_project_trajectory: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -258,6 +260,7 @@ fn query_from_scope(
         session_id: clean(session_id),
         continuity_id: clean(continuity_id),
         mode: clean(mode),
+        allow_prior_project_trajectory: false,
     }
 }
 
@@ -346,6 +349,24 @@ fn active_persisted_trajectory<'a>(
                         .unwrap_or(true)
             })
         })
+}
+
+fn prior_project_trajectory<'a>(
+    state: &'a FocusaState,
+    project_root: Option<&str>,
+    excluded_continuity_id: Option<&str>,
+) -> Option<&'a TrajectoryProjectionRecord> {
+    state.trajectory.records.iter().rev().find(|record| {
+        record.canonical
+            && project_root
+                .map(|root| record.project_root.as_deref() == Some(root))
+                .unwrap_or(true)
+            && excluded_continuity_id
+                .map(|id| record.continuity_id.as_deref() != Some(id))
+                .unwrap_or(true)
+            && !record.long_term_goal.trim().is_empty()
+            && !record.desired_end_state.trim().is_empty()
+    })
 }
 
 fn trajectory_definition_of_done_record(
@@ -827,11 +848,23 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .clone()
         .or(workpoint_continuity.clone())
         .or(persisted_continuity.clone());
-    let persisted_trajectory = active_persisted_trajectory(
+    let persisted_exact_trajectory = active_persisted_trajectory(
         state,
         Some(project_root.as_str()).filter(|root| *root != "unbound"),
         continuity_id.as_deref(),
     );
+    let persisted_prior_project_trajectory =
+        if persisted_exact_trajectory.is_none() && query.allow_prior_project_trajectory {
+            prior_project_trajectory(
+                state,
+                Some(project_root.as_str()).filter(|root| *root != "unbound"),
+                continuity_id.as_deref(),
+            )
+        } else {
+            None
+        };
+    let using_prior_project_trajectory = persisted_prior_project_trajectory.is_some();
+    let persisted_trajectory = persisted_exact_trajectory.or(persisted_prior_project_trajectory);
     let project_identity_api = if project_root != "unbound" {
         project_identity_payload_for_scope(Some(project_root.as_str()), Some(project_root.as_str()))
     } else {
@@ -1156,7 +1189,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     } else {
         "completed"
     };
-    let canonical = status == "completed" && project_identity_status == "verified";
+    let canonical = status == "completed"
+        && project_identity_status == "verified"
+        && !using_prior_project_trajectory;
     let active_trajectory_id = persisted_trajectory
         .map(|record| record.trajectory_id.clone())
         .unwrap_or_else(|| {
@@ -1238,6 +1273,8 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "trajectory": {
             "trajectory_id": active_trajectory_id,
             "definition_status": definition_status,
+            "fallback_prior_project_trajectory": using_prior_project_trajectory,
+            "fallback_source_continuity_id": persisted_trajectory.and_then(|record| record.continuity_id.clone()),
             "long_term_goal": long_term_goal.as_deref().map(|value| bounded(value, 240)),
             "desired_end_state": desired_end_state.as_deref().map(|value| bounded(value, 240)),
             "current_state": current_state.as_deref().map(|value| bounded(value, 240)),
@@ -1250,6 +1287,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "persisted": persisted_trajectory.is_some(),
                 "active_trajectory_id": state.trajectory.active_trajectory_id.clone(),
                 "canonical": persisted_trajectory.map(|record| record.canonical).unwrap_or(false),
+                "fallback_prior_project_trajectory": using_prior_project_trajectory,
                 "root_goal_stability": persisted_trajectory.map(|record| record.root_goal_stability),
                 "supersedes_trajectory_id": persisted_trajectory.and_then(|record| record.supersedes_trajectory_id.clone()),
                 "created_at": persisted_trajectory.and_then(|record| record.created_at.as_ref().map(|value| value.to_rfc3339())),
@@ -1303,7 +1341,15 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "constraints": focus_state.map(|fs| top_strings(&fs.constraints, 4, 180)).unwrap_or_default(),
         },
         "next_tools": if status == "not_found" { json!(["focusa_trajectory_define_goal", "focusa_project_identity"]) } else { json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"]) },
-        "warnings": if canonical { Vec::<String>::new() } else if status == "not_found" { vec!["trajectory is not set for this project folder; define or confirm the goal".to_string()] } else { vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()] },
+        "warnings": if canonical {
+            Vec::<String>::new()
+        } else if using_prior_project_trajectory {
+            vec!["using prior project trajectory as reload fallback; refresh short-term goal/current state when needed".to_string()]
+        } else if status == "not_found" {
+            vec!["trajectory is not set for this project folder; define or confirm the goal".to_string()]
+        } else {
+            vec!["trajectory projection is degraded or provisional; verify before treating as canonical".to_string()]
+        },
     })
 }
 
@@ -1922,6 +1968,7 @@ mod tests {
                 session_id: Some("session-a".to_string()),
                 continuity_id: None,
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
         assert_eq!(payload["status"].as_str(), Some("completed"));
@@ -1946,6 +1993,7 @@ mod tests {
                 continuity_id: Some("cont-a".to_string()),
                 session_id: None,
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
         assert_eq!(payload["status"].as_str(), Some("not_found"));
@@ -2004,6 +2052,7 @@ mod tests {
                 session_id: Some("session-after-compact".to_string()),
                 continuity_id: Some("cont-b".to_string()),
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
 
@@ -2039,6 +2088,7 @@ mod tests {
                 session_id: Some("session-a".to_string()),
                 continuity_id: None,
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
         assert_eq!(payload["status"].as_str(), Some("not_found"));
@@ -2099,6 +2149,7 @@ mod tests {
                 continuity_id: Some("cont-workbench".to_string()),
                 mode: None,
                 session_id: None,
+                allow_prior_project_trajectory: false,
             },
         );
 
@@ -2193,6 +2244,7 @@ mod tests {
                 session_id: Some("pi-after-compact".to_string()),
                 continuity_id: Some("cont-a".to_string()),
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
         assert_eq!(session_changed["status"].as_str(), Some("completed"));
@@ -2209,6 +2261,7 @@ mod tests {
                 session_id: Some("session-a".to_string()),
                 continuity_id: Some("cont-b".to_string()),
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
         assert_eq!(continuity_changed["status"].as_str(), Some("not_found"));
@@ -2220,6 +2273,27 @@ mod tests {
                 .unwrap()
                 .len(),
             0
+        );
+
+        let fallback_prior = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/repo/focusa".to_string()),
+                session_id: Some("session-a".to_string()),
+                continuity_id: Some("cont-b".to_string()),
+                mode: None,
+                allow_prior_project_trajectory: true,
+            },
+        );
+        assert_eq!(fallback_prior["status"].as_str(), Some("completed"));
+        assert_eq!(fallback_prior["canonical"].as_bool(), Some(false));
+        assert_eq!(
+            fallback_prior["trajectory"]["fallback_prior_project_trajectory"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            fallback_prior["trajectory"]["fallback_source_continuity_id"].as_str(),
+            Some("cont-a")
         );
     }
 
@@ -2406,6 +2480,7 @@ mod tests {
                 session_id: Some("session-a".to_string()),
                 continuity_id: Some("cont-a".to_string()),
                 mode: None,
+                allow_prior_project_trajectory: false,
             },
         );
         let lifecycle = &payload["trajectory"]["durable_lifecycle"];

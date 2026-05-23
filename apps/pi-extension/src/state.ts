@@ -1449,6 +1449,7 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
   const query = new URLSearchParams();
   query.set("mode", "summary");
   query.set("project_root", projectRoot);
+  query.set("allow_prior_project_trajectory", "true");
   if (S.sessionFrameKey) query.set("session_id", S.sessionFrameKey);
   if (S.continuityId) query.set("continuity_id", S.continuityId);
   try {
