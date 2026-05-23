@@ -117,6 +117,8 @@ No files written.
 - `jsonl` output writes one JSON object per line.
 - `parquet` output is implemented and writes records into a UTF8 column named `record_json`.
 - API route `/v1/export/run` drives record selection; CLI handles file encoding/write.
+- `/v1/export/status` reports quality gates requiring provenance, eligibility metadata, and redaction summaries.
+- `/v1/export/run` attaches per-record `provenance` and `eligibility` objects, plus top-level `quality_summary` and `redaction_summary`.
 
 ## 7. Manifest File
 
@@ -130,7 +132,20 @@ Each export produces a manifest:
   "uxp_threshold": 0.7,
   "ufi_threshold": 0.3,
   "generated_at": "iso8601",
-  "focusa_version": "semver"
+  "focusa_version": "semver",
+  "quality_summary": {
+    "average_quality_score": 0.95,
+    "minimum_quality_score": 0.7,
+    "provenance_complete": true,
+    "records_with_redaction": 0,
+    "eligible_record_count": 1243
+  },
+  "redaction_summary": {
+    "enabled": true,
+    "records_redacted": 0,
+    "patterns": ["email_like", "api_key_prefix", "bearer_token"]
+  },
+  "provenance_complete": true
 }
 ```
 
@@ -138,10 +153,11 @@ Each export produces a manifest:
 
 ## 8. Safety & Privacy Guarantees
 
-- No network calls
+- No network calls beyond the local Focusa daemon API used by the CLI.
 - No mutation of Focusa state
 - Explicit opt-in required
-- Redaction hooks available
+- Redaction summary emitted for every run
+- Per-record provenance and eligibility metadata
 - Per-record exclusion logging
 
 ---

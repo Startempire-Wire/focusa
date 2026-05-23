@@ -127,7 +127,7 @@ This section records findings already established in the audit, with direct doc 
   - `crates/focusa-cli/src/commands/export.rs` calls `/v1/export/run`, writes JSONL or Parquet records, and emits `<output>.manifest.json` for non-dry-run exports.
   - `tests/spec80_impl_export_execution_contract_test.sh` and `tests/spec80_impl_parquet_export_support_test.sh` guard endpoint-backed execution and Parquet support.
 - Current classification:
-  - **repaired endpoint-backed implementation**; future work is richer eligibility/provenance quality, not stub removal.
+  - **repaired endpoint-backed implementation**; export now emits baseline eligibility/provenance/redaction/quality metadata; future work is deeper scoring/provenance maturity, not stub removal.
 
 ### F3. `cache bust` is surfaced in CLI but unsupported by command routing
 - Authority:
@@ -297,7 +297,7 @@ This section marks what has already been swept at core depth in the current pass
 | Session lifecycle | `docs/INTEGRATION_SPEC.md`, `docs/39-thread-lifecycle-spec.md` | started | reducer enforces active/closed session transitions, but session/frame coherence remains under-specified in live behavior |
 | Turn lifecycle / ASCC coupling | `docs/INTEGRATION_SPEC.md`, `docs/G1-07-ascc.md` | started | turn events are emitted and reducer updates CLT/frame stats, but turns read-model still appears mismatched |
 | ECS | `docs/G1-detail-08-ecs.md` | started | store/resolve/content/rehydrate surfaces exist, but retrieval path still fails at runtime |
-| Export / contribution | `docs/21-data-export-cli.md`, `docs/22-data-contribution.md` | repaired baseline | export status/run are endpoint-backed; CLI writes JSONL/Parquet + manifests; future work is richer eligibility/provenance quality |
+| Export / contribution | `docs/21-data-export-cli.md`, `docs/22-data-contribution.md` | repaired baseline + quality metadata | export status/run are endpoint-backed; CLI writes JSONL/Parquet + manifests; records/manifests include baseline eligibility, provenance, redaction, and quality summaries |
 | Reflection loop | `docs/G1-14-reflection-loop.md` | started | reflection route surface exists; timeout/runtime diagnosis still needs deeper pass |
 | Procedural memory | `docs/G1-13-cli.md` | started | core reinforce path distinguishes found vs missing rule, but API result handling collapses the distinction |
 | Pi integration fidelity | `docs/44-pi-focusa-integration-spec.md`, HEC semantics | started | integration still shows cwd-derived fallback as primary in code, contrary to corrected task-first semantics |
@@ -471,9 +471,9 @@ This section marks what has already been swept at core depth in the current pass
   - `crates/focusa-api/src/routes/training.rs` implements builders for SFT, preference, contrastive, and long-horizon exports from persisted turn events.
   - `crates/focusa-cli/src/commands/export.rs` calls `/v1/export/run`, supports dry-run machine envelopes, and writes JSONL/Parquet records plus manifests for non-dry-run exports.
 - Audit meaning:
-  - the former CLI prose/TODO stub is gone; remaining maturity work is richer eligibility, provenance, redaction, and quality scoring.
+  - the former CLI prose/TODO stub is gone; baseline eligibility, provenance, redaction, and quality scoring now ship in export envelopes/manifests.
 - Verdict:
-  - **repaired baseline; quality/provenance enhancements remain**.
+  - **repaired baseline with initial quality/provenance metadata; deeper scoring enhancements remain**.
 
 ### X4. Contribution workflow exists as a separate implemented surface
 - Authority:
@@ -712,14 +712,14 @@ Priority is based on: whether the issue prevents Focusa from being the real syst
 
 #### FOM-4. Export pipeline implementation
 - Why here:
-  - repaired baseline now exists; remaining risk is training-data quality/provenance, not stubbed execution.
+  - repaired baseline now exists with initial quality/provenance metadata; remaining risk is deeper training-data scoring, not stubbed execution.
   - export/contribution separation still matters for preventing false confidence about training-data readiness.
 - Source findings:
   - `docs/21-data-export-cli.md`
   - `crates/focusa-cli/src/commands/export.rs`
   - `crates/focusa-api/src/routes/training.rs`
 - Required outcome:
-  - strengthen eligibility/provenance/redaction validation on top of current dry-run outputs, dataset writes, and export manifests.
+  - strengthen eligibility/provenance/redaction validation beyond the current baseline metadata in dry-run outputs, dataset writes, and export manifests.
 
 #### FOM-5. API/command acceptance semantics repair
 - Why here:
@@ -899,14 +899,14 @@ Use one section per violation class.
   - verify route method mismatch possibilities (`GET` vs `POST` already partly checked)
 
 ### V4. Export pipeline completeness vs spec
-- Status: repaired baseline; quality/provenance follow-up remains
+- Status: repaired baseline with initial quality/provenance metadata; deeper follow-up remains
 - Why it matters: export is authoritative CLI surface, read-only/deterministic/auditable.
 - Known evidence:
   - export status reports export-pipeline state, not contribution queue payload
   - dry-run emits structured `status: ok` dataset envelopes using current SQLite `payload_json` event storage
   - non-dry-run CLI writes JSONL/Parquet plus manifest files from `/v1/export/run`
 - Next trace steps:
-  - strengthen eligibility, provenance, redaction, and quality-score validation beyond the baseline export path
+  - strengthen eligibility, provenance, redaction, and quality-score validation beyond the current baseline metadata
 
 ### V5. CLI `--json` contract compliance
 - Status: in progress; export baseline repaired

@@ -114,4 +114,6 @@ focusa export sft --output /tmp/focusa-sft.jsonl --dry-run --explain --json
 focusa export preference --output /tmp/focusa-pref.parquet --format parquet --json
 ```
 
+Export JSON now includes `quality_gates`, per-record `provenance`/`eligibility`, top-level `quality_summary`, `redaction_summary`, and manifest copies of the same quality metadata.
+
 Use `--json` for machine-readable output where supported.

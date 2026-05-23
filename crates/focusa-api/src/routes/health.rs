@@ -57,6 +57,31 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             "cache_metadata_records": cache_records,
             "tool_calls": s.telemetry.tool_calls.len(),
         },
+        "api_cli_parity": {
+            "cli_command": "focusa doctor --json",
+            "api_route": "/v1/doctor",
+            "shared_checks": [
+                "daemon health",
+                "command-center doctor API",
+                "API route inventory surface",
+                "Spec90 tool contracts",
+                "Workpoint canonicality",
+                "Work-loop writer state",
+                "token telemetry status",
+                "cache metadata status"
+            ],
+            "recovery_commands": [
+                "focusa start",
+                "systemctl status focusa-daemon",
+                "journalctl -u focusa-daemon -n 80 --no-pager"
+            ],
+            "status_fields": ["status", "summary", "next_action", "why", "commands", "recovery", "details.checks"]
+        },
+        "checks_summary": {
+            "contracts_expected": 58,
+            "scoped_hot_routes": ["/v1/health", "/v1/doctor", "/v1/workpoint/current", "/v1/work-loop/status?summary_only=true"],
+            "docs": ["docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md", "docs/current/CLI_REFERENCE_CURRENT.md"]
+        },
         "resource_mode": {
             "mode": resource_mode.mode,
             "reason": resource_mode.reason,

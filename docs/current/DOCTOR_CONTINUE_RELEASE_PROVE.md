@@ -11,7 +11,7 @@ focusa doctor
 focusa --json doctor
 ```
 
-`focusa doctor` checks daemon health, daemon executable path, API/capability inventory, Spec90 tool contracts, Spec91 proof harness presence, Pi skill paths, Workpoint canonicality, Work-loop state, token telemetry, cache metadata, Mac app package presence, release docs, and Guardian scanner presence.
+`focusa doctor` checks daemon health, daemon executable path, API/capability inventory, Spec90 tool contracts, Spec91 proof harness presence, Pi skill paths, Workpoint canonicality, Work-loop state, token telemetry, cache metadata, Mac app package presence, release docs, and Guardian scanner presence. `/v1/doctor` now exposes an `api_cli_parity` block naming the shared CLI/API check set, recovery commands, and expected status fields so agents can compare API and CLI doctor behavior without guessing.
 
 ## Agent status
 

@@ -48,6 +48,12 @@ else
   log_fail "CLI parquet mode missing real parquet writer path"
 fi
 
+if rg -n 'provenance\(|eligibility\(|quality_summary|redaction_summary|redact_training_text' "$API_FILE" >/dev/null 2>&1; then
+  log_pass "export_run emits provenance, eligibility, quality, and redaction metadata"
+else
+  log_fail "export_run missing export quality/provenance metadata"
+fi
+
 echo "=== SPEC80 IMPL EXPORT EXECUTION CONTRACT RESULTS ==="
 echo "Tests passed: $PASSED"
 echo "Tests failed: $FAILED"

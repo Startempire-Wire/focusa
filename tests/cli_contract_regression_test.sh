@@ -59,15 +59,15 @@ else
 fi
 
 EXPORT_STATUS=$(run_cli --json export status 2>/dev/null || true)
-if echo "$EXPORT_STATUS" | jq -e '.status == "ready" and .implemented == true and (.dataset_types | type == "array") and (.supported_formats | index("parquet")) and has("contribution_enabled") | not' >/dev/null 2>&1; then
-  log_pass "export status --json reports implemented export pipeline state, not contribution queue"
+if echo "$EXPORT_STATUS" | jq -e '.status == "ready" and .implemented == true and (.dataset_types | type == "array") and (.supported_formats | index("parquet")) and (.quality_gates.provenance_required == true) and has("contribution_enabled") | not' >/dev/null 2>&1; then
+  log_pass "export status --json reports implemented export pipeline state, quality gates, not contribution queue"
 else
   log_fail "export status --json missing implemented export status shape"
 fi
 
 EXPORT_DRY_RUN=$(run_cli --json export sft --output /tmp/focusa-export.jsonl --dry-run --explain 2>/dev/null || true)
-if echo "$EXPORT_DRY_RUN" | jq -e '.status == "ok" and .dry_run == true and .dataset_type == "sft" and (.manifest.dataset_flags.min_turns == 3) and (.records | type == "array")' >/dev/null 2>&1; then
-  log_pass "export sft --dry-run --json returns implemented dataset envelope"
+if echo "$EXPORT_DRY_RUN" | jq -e '.status == "ok" and .dry_run == true and .dataset_type == "sft" and (.manifest.dataset_flags.min_turns == 3) and (.records | type == "array") and (.quality_summary.provenance_complete | type == "boolean") and (.redaction_summary.enabled == true)' >/dev/null 2>&1; then
+  log_pass "export sft --dry-run --json returns implemented dataset envelope with quality metadata"
 else
   log_fail "export sft dry-run json payload missing implemented export structure"
 fi

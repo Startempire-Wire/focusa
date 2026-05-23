@@ -228,10 +228,8 @@ mod tests {
 
     #[test]
     fn write_parquet_emits_valid_magic_header() {
-        let out_path = std::env::temp_dir().join(format!(
-            "focusa-export-{}.parquet",
-            uuid::Uuid::now_v7()
-        ));
+        let out_path =
+            std::env::temp_dir().join(format!("focusa-export-{}.parquet", uuid::Uuid::now_v7()));
         let records = vec![json!({"dataset_type": "sft", "turn_id": "t1"})];
 
         write_parquet(out_path.to_str().expect("utf8 path"), &records).expect("parquet write");
@@ -307,6 +305,18 @@ async fn run_export(
             .and_then(|v| v.as_u64())
             .unwrap_or(0)
     );
+    if let Some(score) = resp
+        .pointer("/quality_summary/average_quality_score")
+        .and_then(|v| v.as_f64())
+    {
+        println!("  Average quality score: {score:.2}");
+    }
+    println!(
+        "  Redacted records: {}",
+        resp.pointer("/redaction_summary/records_redacted")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0)
+    );
 
     Ok(())
 }
@@ -354,6 +364,14 @@ pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
                 );
                 if let Some(reason) = resp["reason"].as_str() {
                     println!("  Reason: {}", reason);
+                }
+                if let Some(min_quality) = resp
+                    .pointer("/quality_gates/minimum_quality_score")
+                    .and_then(|v| v.as_f64())
+                {
+                    println!("  Minimum quality score: {min_quality:.2}");
+                    println!("  Provenance: required");
+                    println!("  Redaction summary: required");
                 }
             }
         }

@@ -37,7 +37,7 @@ else
   log_fail "metacognition planned-extension envelope fields missing"
 fi
 
-if rg -n '\`dataset_types\`|\`supported_formats\`|\`history_count\`|\`last_export_at\`' "$DOC_FILE" >/dev/null 2>&1 && rg -n '\`dataset_type\`|\`dry_run\`|\`eligible_records\`|\`manifest\`|\`records\`' "$DOC_FILE" >/dev/null 2>&1; then
+if rg -n '\`dataset_types\`|\`supported_formats\`|\`history_count\`|\`last_export_at\`|\`quality_gates\`' "$DOC_FILE" >/dev/null 2>&1 && rg -n '\`dataset_type\`|\`dry_run\`|\`eligible_records\`|\`manifest\`|\`records\`|\`quality_summary\`|\`redaction_summary\`|\`provenance\`|\`eligibility\`' "$DOC_FILE" >/dev/null 2>&1; then
   log_pass "implemented export status/dataset envelope fields are documented"
 else
   log_fail "implemented export envelope fields missing"

@@ -49,6 +49,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Refreshed export CLI/schema/audit docs and regression tests to reflect the implemented endpoint-backed export baseline.
 - Fixed SQLite export event reads to use `payload_json`, restoring `/v1/export/run` against the current events schema.
 - Converted State Hygiene Apply from approval placeholder to approved, non-destructive Focus State note append via `/v1/focus/update`.
+- Added `/v1/doctor` API/CLI parity metadata and export provenance, eligibility, quality, and redaction summaries.
 
 ## Unreleased — Spec93 release publication proof
 
