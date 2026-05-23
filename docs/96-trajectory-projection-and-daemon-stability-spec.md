@@ -284,7 +284,7 @@ Suggested schema:
 }
 ```
 
-The marker improves accuracy but must not be the only source. Runtime/deployment facts from `project_urls` and `deployment` must be shown explicitly in model-facing cards because repo identity alone does not tell an agent whether the active target is local, staging, or live.
+The marker improves accuracy but must not be the only source. Runtime/deployment facts from `project_urls` and `deployment` must be shown explicitly in model-facing cards because repo identity alone does not tell an agent whether the active target is local, staging, or live. When marker fields are absent, ProjectIdentity should infer bounded candidates from repo docs, deploy scripts, workflows, and safe URL/path scans, preserving inference sources for verification.
 
 ### 6.3 Identity signals
 

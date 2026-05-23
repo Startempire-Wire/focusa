@@ -27,6 +27,13 @@ else
   exit 1
 fi
 
+if rg -n 'infer_project_environment|candidate_environment_files|extract_urls|extract_deploy_locations|inference_sources' "${ROOT_DIR}/crates/focusa-api/src/routes/project.rs" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity actively infers environment/deploy facts from repo files"
+else
+  echo "✗ FAIL: ProjectIdentity lacks active environment/deploy inference" >&2
+  exit 1
+fi
+
 if rg -n 'advisory_only=true|Trajectory.*never override|advisory degraded projection' "$TURNS_TS" "${ROOT_DIR}/apps/pi-extension/skills/focusa/SKILL.md" >/dev/null; then
   echo "✓ PASS: trajectory projection remains advisory and guarded"
 else

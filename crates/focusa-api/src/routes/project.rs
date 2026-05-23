@@ -10,8 +10,8 @@ use axum::{
     routing::{get, post},
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
-use std::collections::BTreeMap;
+use serde_json::{Map, Value, json};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -235,6 +235,213 @@ fn marker_deployment(marker: &Option<Value>) -> Value {
         }
     }
     deployment
+}
+
+fn candidate_environment_files(root: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for rel in [
+        ".focusa-project.json",
+        "README.md",
+        "AGENTS.md",
+        ".env.example",
+        "package.json",
+        "composer.json",
+    ] {
+        let path = root.join(rel);
+        if path.is_file() {
+            out.push(path);
+        }
+    }
+    for dir in ["scripts", "bin", ".github/workflows", "docs"] {
+        let base = root.join(dir);
+        if let Ok(entries) = fs::read_dir(base) {
+            for entry in entries.flatten().take(30) {
+                let path = entry.path();
+                let name = path.file_name().and_then(|v| v.to_str()).unwrap_or("");
+                let ext = path.extension().and_then(|v| v.to_str()).unwrap_or("");
+                if path.is_file()
+                    && (name.contains("deploy")
+                        || name.contains("live")
+                        || matches!(
+                            ext,
+                            "md" | "sh" | "php" | "js" | "ts" | "yml" | "yaml" | "json" | "txt"
+                        ))
+                {
+                    out.push(path);
+                }
+            }
+        }
+    }
+    out.into_iter().take(80).collect()
+}
+
+fn strip_token(value: &str) -> String {
+    value
+        .trim_matches(|ch: char| {
+            ch.is_whitespace()
+                || matches!(
+                    ch,
+                    '"' | '\'' | '`' | ')' | '(' | ']' | '[' | '}' | '{' | ',' | ';'
+                )
+        })
+        .trim_end_matches('.')
+        .to_string()
+}
+
+fn host_from_url(url: &str) -> Option<String> {
+    let rest = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))?;
+    let host = rest
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .split(':')
+        .next()
+        .unwrap_or("");
+    (!host.is_empty()).then(|| host.to_string())
+}
+
+fn is_local_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.contains(".local") || lower.contains("localhost") || lower.contains("127.0.0.1")
+}
+
+fn extract_urls(text: &str) -> Vec<String> {
+    text.split(|ch: char| ch.is_whitespace() || matches!(ch, '"' | '\'' | '`' | '<' | '>'))
+        .filter_map(|token| {
+            let cleaned = strip_token(token);
+            (cleaned.starts_with("https://") || cleaned.starts_with("http://")).then_some(cleaned)
+        })
+        .collect()
+}
+
+fn extract_deploy_locations(text: &str) -> Vec<String> {
+    text.split(|ch: char| ch.is_whitespace() || matches!(ch, '"' | '\'' | '`'))
+        .filter_map(|token| {
+            let cleaned = strip_token(token);
+            (cleaned.starts_with("/home/")
+                && (cleaned.contains("public_html")
+                    || cleaned.contains("htdocs")
+                    || cleaned.contains("www")))
+            .then_some(cleaned)
+        })
+        .collect()
+}
+
+fn insert_if_missing(map: &mut Map<String, Value>, key: &str, value: Option<String>) {
+    if !map.contains_key(key)
+        && let Some(value) = value.filter(|v| !v.trim().is_empty())
+    {
+        map.insert(key.to_string(), Value::String(value));
+    }
+}
+
+fn infer_project_environment(root: &Path) -> (Value, Value) {
+    let mut urls = Vec::<(String, String)>::new();
+    let mut deploy_locations = Vec::<String>::new();
+    let mut deploy_command = None::<String>;
+    let mut sources = BTreeSet::<String>::new();
+    for path in candidate_environment_files(root) {
+        let rel = path
+            .strip_prefix(root)
+            .unwrap_or(path.as_path())
+            .to_string_lossy()
+            .to_string();
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        if text.is_empty() {
+            continue;
+        }
+        let bounded = text.chars().take(65_536).collect::<String>();
+        for url in extract_urls(&bounded) {
+            urls.push((url, rel.clone()));
+            sources.insert(rel.clone());
+        }
+        for location in extract_deploy_locations(&bounded) {
+            deploy_locations.push(location);
+            sources.insert(rel.clone());
+        }
+        let rel_lower = rel.to_ascii_lowercase();
+        if deploy_command.is_none()
+            && (rel_lower.contains("deploy") || rel_lower.contains("live"))
+            && matches!(
+                path.extension().and_then(|v| v.to_str()),
+                Some("sh" | "php" | "js" | "ts")
+            )
+        {
+            deploy_command = Some(rel.clone());
+            sources.insert(rel);
+        }
+    }
+
+    let local_url = urls
+        .iter()
+        .find(|(url, _)| is_local_url(url))
+        .map(|(url, _)| url.clone());
+    let live_url = urls
+        .iter()
+        .find(|(url, _)| !is_local_url(url))
+        .map(|(url, _)| url.clone());
+    let root_url = live_url.clone().or_else(|| local_url.clone());
+    let deploy_target = live_url.as_deref().and_then(host_from_url);
+    let environment = if live_url.is_some()
+        || deploy_command
+            .as_deref()
+            .is_some_and(|cmd| cmd.contains("live"))
+    {
+        Some("live".to_string())
+    } else if local_url.is_some() {
+        Some("local".to_string())
+    } else {
+        None
+    };
+
+    let mut url_map = Map::new();
+    insert_if_missing(&mut url_map, "root_url", root_url);
+    insert_if_missing(&mut url_map, "live_url", live_url);
+    insert_if_missing(&mut url_map, "local_url", local_url);
+    if !sources.is_empty() {
+        url_map.insert(
+            "inference_sources".to_string(),
+            Value::Array(
+                sources
+                    .iter()
+                    .cloned()
+                    .map(Value::String)
+                    .take(12)
+                    .collect(),
+            ),
+        );
+    }
+
+    let mut deploy_map = Map::new();
+    insert_if_missing(&mut deploy_map, "environment", environment);
+    insert_if_missing(&mut deploy_map, "deploy_target", deploy_target);
+    insert_if_missing(
+        &mut deploy_map,
+        "deploy_location",
+        deploy_locations.into_iter().next(),
+    );
+    insert_if_missing(&mut deploy_map, "deploy_command", deploy_command);
+    if !sources.is_empty() {
+        deploy_map.insert(
+            "inference_sources".to_string(),
+            Value::Array(sources.into_iter().map(Value::String).take(12).collect()),
+        );
+    }
+    (Value::Object(url_map), Value::Object(deploy_map))
+}
+
+fn merge_missing_object_fields(mut primary: Value, fallback: Value) -> Value {
+    if let (Some(primary_map), Some(fallback_map)) = (primary.as_object_mut(), fallback.as_object())
+    {
+        for (key, value) in fallback_map {
+            primary_map
+                .entry(key.clone())
+                .or_insert_with(|| value.clone());
+        }
+    }
+    primary
 }
 
 fn workspace_kind(root: &Path) -> Option<&'static str> {
@@ -468,8 +675,11 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
     let repo_remote = marker_remote.or(repo_remote);
     let beads_prefix = marker_beads.or_else(|| Some(project_id.clone()));
     let workspace_kind = marker_workspace.or_else(|| workspace_kind.map(str::to_string));
-    let project_urls = marker_project_urls(&marker);
-    let deployment = marker_deployment(&marker);
+    let (inferred_project_urls, inferred_deployment) =
+        infer_project_environment(&PathBuf::from(&canonical_root));
+    let project_urls =
+        merge_missing_object_fields(marker_project_urls(&marker), inferred_project_urls);
+    let deployment = merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
     let fingerprint = stable_fingerprint(&[
         project_id.clone(),
         canonical_name.clone(),
@@ -670,6 +880,51 @@ mod tests {
                 .pointer("/project_identity/deployment/deploy_location")
                 .and_then(Value::as_str),
             Some("/home/asapdigest/public_html")
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn scans_repo_files_to_infer_live_environment_without_marker_fields() {
+        let root = temp_project("scan-env");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::create_dir_all(root.join("scripts")).unwrap();
+        fs::write(
+            root.join("README.md"),
+            "Local legacy URL: https://asapdigest.local\nLive app: https://app.asapdigest.com\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("scripts/deploy-live.sh"),
+            "rsync -av ./ /home/asapdigest/public_html/\n",
+        )
+        .unwrap();
+        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/project_urls/live_url")
+                .and_then(Value::as_str),
+            Some("https://app.asapdigest.com")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/project_urls/local_url")
+                .and_then(Value::as_str),
+            Some("https://asapdigest.local")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/deployment/environment")
+                .and_then(Value::as_str),
+            Some("live")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/deployment/deploy_location")
+                .and_then(Value::as_str),
+            Some("/home/asapdigest/public_html/")
         );
         let _ = fs::remove_dir_all(root);
     }

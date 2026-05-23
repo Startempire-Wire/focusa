@@ -20,7 +20,7 @@ Resolve the active ProjectIdentity before trusting project-bound Workpoints, Tra
 
 ## Expected result
 
-Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`, `project_root`, `fingerprint`, `confidence`, `signals`, `mismatches`, `verified_at`, and quorum details. Marker-backed `project_urls` and `deployment` fields expose root/live/local URLs, environment, deploy target/location/command, and verification URL when present. It marks unsafe broad roots such as `/root` as `status=unsafe_project_root`, `canonical=false`. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
+Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`, `project_root`, `fingerprint`, `confidence`, `signals`, `mismatches`, `verified_at`, and quorum details. Marker-backed plus repo-scanned `project_urls` and `deployment` fields expose root/live/local URLs, environment, deploy target/location/command, verification URL, and inference sources when present. It marks unsafe broad roots such as `/root` as `status=unsafe_project_root`, `canonical=false`. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
 
 ## Failure and recovery
 

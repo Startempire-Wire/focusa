@@ -29,7 +29,7 @@ The continuous model-facing display is the **Focusa Focus Slice**, not a separat
 
 - `PROJECT_IDENTITY`: status, `project_root`, `continuity_id`, session id, confidence.
 - `PROJECT_INFRA`: canonical name, project id, workspace kind, repo remote, beads prefix, and architecture-boundary reminder.
-- `PROJECT_ENVIRONMENT`: marker-backed root/live/local URLs, live-vs-local environment, deploy target/location/command, and a reminder not to assume `.local` is active.
+- `PROJECT_ENVIRONMENT`: marker-backed and repo-scanned root/live/local URLs, live-vs-local environment, deploy target/location/command, and a reminder not to assume `.local` is active.
 - `PROJECT_ARCHITECTURE`: evidence-backed local architecture digest (`stack`, manifest name, key dirs, deploy surfaces, docs, tests, confidence, source refs) with a reminder to verify via docs/ontology/evidence.
 - `TRAJECTORY_GOALS`: long/mid/low goals, desired state, short-term goal.
 - `TRAJECTORY_SIMILARITY_GROUP`: advisory grouping and authority boundary.
