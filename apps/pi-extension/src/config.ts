@@ -16,6 +16,7 @@ export interface FocusaConfig {
   compactPct: number;
   hardPct: number;
   contextStatusMode: "off" | "actionable" | "all";
+  vitalInfoPromptMode: "off" | "notify" | "prompt";
   cooldownMs: number;
   maxCompactionsPerHour: number;
   minTurnsBetweenCompactions: number;
@@ -74,6 +75,7 @@ const DEFAULTS: FocusaConfig = {
   compactPct: 70,
   hardPct: 85,
   contextStatusMode: "actionable",
+  vitalInfoPromptMode: "prompt",
   cooldownMs: 180_000,
   maxCompactionsPerHour: 8,
   minTurnsBetweenCompactions: 3,
@@ -123,6 +125,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_COMPACT_PCT: "compactPct",
   FOCUSA_PI_HARD_PCT: "hardPct",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
+  FOCUSA_PI_VITAL_INFO_PROMPT_MODE: "vitalInfoPromptMode",
   FOCUSA_PI_COOLDOWN_MS: "cooldownMs",
   FOCUSA_PI_MAX_COMPACTIONS_PER_HOUR: "maxCompactionsPerHour",
   FOCUSA_PI_MIN_TURNS_BETWEEN_COMPACTIONS: "minTurnsBetweenCompactions",
@@ -167,6 +170,8 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(`Invalid tier ordering: 0 < warnPct(${cfg.warnPct}) < compactPct(${cfg.compactPct}) < hardPct(${cfg.hardPct}) < 100`);
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
+  if (!["off", "notify", "prompt"].includes(cfg.vitalInfoPromptMode))
+    errs.push(`vitalInfoPromptMode(${cfg.vitalInfoPromptMode}) must be one of: off, notify, prompt`);
   if (cfg.cooldownMs < 30_000) errs.push(`cooldownMs(${cfg.cooldownMs}) must be >= 30000`);
   if (cfg.maxCompactionsPerHour < 1) errs.push(`maxCompactionsPerHour must be >= 1`);
   if (cfg.externalizeThresholdBytes < 2048) errs.push(`externalizeThresholdBytes must be >= 2048`);

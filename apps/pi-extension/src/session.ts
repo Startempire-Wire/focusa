@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -69,6 +69,107 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
       });
     }
   } catch { /* best effort */ }
+}
+
+async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, reason: string): Promise<string | null> {
+  if (!projectRootConfirmationRequired(proposedRoot)) return proposedRoot;
+  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  const summary = projectRootConfirmationSummary(proposedRoot);
+  ctx.ui.setStatus("focusa", "🧭 Focusa needs project root");
+  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_prompt_required", payload: { reason, project_root: proposedRoot, summary, mode, session_id: S.sessionFrameKey } });
+  if (mode === "off") return null;
+  if (mode === "notify") {
+    ctx.ui.notify(`Focusa needs project root confirmation before durable state writes. ${summary}`, "warning");
+    return null;
+  }
+
+  const candidates = (S.lastProjectRootResolution?.candidates || [])
+    .map((candidate) => candidate.projectRoot)
+    .filter((root, index, all) => root && all.indexOf(root) === index && isProjectRootAuthoritySafe(root));
+  if (isProjectRootAuthoritySafe(proposedRoot) && !candidates.includes(proposedRoot)) candidates.unshift(proposedRoot);
+  const manual = "Enter project_root manually…";
+  const skip = "Skip for now (Focusa stays unbound)";
+  const choice = await ctx.ui.select(
+    "Focusa needs project root",
+    [...candidates.map((root) => `${root}${root === proposedRoot ? "  ← detected" : ""}`), manual, skip],
+  );
+  if (!choice || choice === skip) return null;
+
+  let selected = String(choice).replace(/\s+← detected$/, "").trim();
+  if (choice === manual) {
+    const typed = await ctx.ui.input("Confirm Focusa project_root", proposedRoot && isProjectRootAuthoritySafe(proposedRoot) ? proposedRoot : "");
+    selected = String(typed || "").trim();
+  }
+  const confirmed = confirmPiProjectRoot(selected, "operator_prompt_confirmed_project_root");
+  if (!confirmed) {
+    ctx.ui.notify(`Invalid or unsafe project_root: ${selected || "(blank)"}`, "error");
+    return null;
+  }
+  ctx.ui.notify(`Focusa project_root confirmed: ${confirmed}`, "info");
+  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_prompt_confirmed", payload: { reason, project_root: confirmed, session_id: S.sessionFrameKey } });
+  return confirmed;
+}
+
+function parseTrajectoryEditor(text: string): { long_term_goal: string; desired_end_state: string; short_term_goal?: string; current_state?: string } | null {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  const value = (label: string) => {
+    const match = raw.match(new RegExp(`^${label}:\\s*(.+)$`, "im"));
+    return String(match?.[1] || "").trim();
+  };
+  const long_term_goal = value("LONG_TERM_GOAL");
+  const desired_end_state = value("DESIRED_END_STATE");
+  if (!long_term_goal || !desired_end_state) return null;
+  return {
+    long_term_goal,
+    desired_end_state,
+    short_term_goal: value("SHORT_TERM_GOAL") || undefined,
+    current_state: value("CURRENT_STATE") || undefined,
+  };
+}
+
+async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
+  const mode = S.cfg?.vitalInfoPromptMode || "prompt";
+  if (mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot)) return;
+  const clarity: any = S.lastTrajectoryClarity || {};
+  const status = String(clarity.status || "unknown");
+  const action = String(clarity.recommended_action || "unknown");
+  const unclear = ["unknown", "unclear", "not_found", "not_set", "missing"].includes(status) || /define_goal|operator_required/.test(action);
+  const key = `trajectory:${projectRoot}:${status}:${action}`;
+  if (!unclear || S.vitalInfoPrompted[key]) return;
+  S.vitalInfoPrompted[key] = Date.now();
+  const ok = await ctx.ui.confirm(
+    "Focusa trajectory is not set",
+    `Project root is confirmed, but trajectory is unclear for ${projectRoot}. Define long-term goal and desired end state now?`,
+  );
+  if (!ok) return;
+  const template = [
+    "LONG_TERM_GOAL: ",
+    "DESIRED_END_STATE: ",
+    "SHORT_TERM_GOAL: ",
+    "CURRENT_STATE: ",
+  ].join("\n");
+  const edited = await ctx.ui.editor("Define Focusa trajectory", template);
+  const parsed = parseTrajectoryEditor(String(edited || ""));
+  if (!parsed) {
+    ctx.ui.notify("Trajectory not saved: LONG_TERM_GOAL and DESIRED_END_STATE are required.", "warning");
+    return;
+  }
+  const body = {
+    ...parsed,
+    project_root: projectRoot,
+    continuity_id: ensureContinuityId(projectRoot),
+    session_id: S.sessionFrameKey,
+    goal_source: "operator",
+    operator_confirmed: true,
+  };
+  const res = await focusaFetch("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+  if (res?.canonical === true || res?.persisted === true) {
+    ctx.ui.notify("Focusa trajectory defined for this project.", "info");
+    await refreshTrajectoryClarityLifecycle(`${reason}_trajectory_defined`, projectRoot);
+  } else {
+    ctx.ui.notify(`Trajectory define_goal did not persist: ${res?.failure_class || res?.status || "unknown"}`, "warning");
+  }
 }
 
 function seedCurrentAskFromPersistedState(ctx: any, data: any) {
@@ -257,10 +358,10 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
 
-    const projectRoot = adoptPiProjectRoot(ctx.cwd);
-    if (projectRootConfirmationRequired(projectRoot)) {
-      ctx.ui.setStatus("focusa", "🧭 Focusa needs project root");
-      focusaPost("/telemetry/trace", { event_type: "pi_session_state_bind_blocked_unconfirmed_project_root", payload: { project_root: projectRoot, summary: projectRootConfirmationSummary(projectRoot), session_id: eventSessionId } });
+    const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
+    const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_start");
+    if (!projectRoot) {
+      focusaPost("/telemetry/trace", { event_type: "pi_session_state_bind_blocked_unconfirmed_project_root", payload: { project_root: detectedProjectRoot, summary: projectRootConfirmationSummary(detectedProjectRoot), session_id: eventSessionId, prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt" } });
       return;
     }
     ensureContinuityId(projectRoot);
@@ -268,10 +369,12 @@ export function registerSession(pi: ExtensionAPI) {
     await ensureActiveFrame({ ...ctx, cwd: projectRoot }, (event as any).sessionId || `pi-session-${Date.now()}`);
     await refreshSessionWorkpointPacket("session_start");
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
+    await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
     if (!S.activeWorkpointPacket) {
       await ensureLowConfidenceWorkpoint("session_start");
       await refreshSessionWorkpointPacket("session_start_low_confidence");
       await refreshTrajectoryClarityLifecycle("session_start_low_confidence", projectRoot);
+      await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start_low_confidence");
     }
 
     // §35.8: Pi owns the session display name (/name, session selector).
@@ -456,19 +559,22 @@ export function registerSession(pi: ExtensionAPI) {
 
     if (!S.wbmEnabled) S.activeFrameId = null;
     if (S.focusaAvailable) {
-      const projectRoot = adoptPiProjectRoot(ctx.cwd);
-      if (projectRootConfirmationRequired(projectRoot)) {
-        focusaPost("/telemetry/trace", { event_type: "pi_session_switch_bind_blocked_unconfirmed_project_root", payload: { project_root: projectRoot, summary: projectRootConfirmationSummary(projectRoot), session_id: eventSessionId } });
+      const detectedProjectRoot = adoptPiProjectRoot(ctx.cwd);
+      const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_switch");
+      if (!projectRoot) {
+        focusaPost("/telemetry/trace", { event_type: "pi_session_switch_bind_blocked_unconfirmed_project_root", payload: { project_root: detectedProjectRoot, summary: projectRootConfirmationSummary(detectedProjectRoot), session_id: eventSessionId, prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt" } });
         return;
       }
       await ensureFocusaSession({ ...ctx, cwd: projectRoot });
       await ensureActiveFrame({ ...ctx, cwd: projectRoot }, eventSessionId || "unknown");
       await refreshSessionWorkpointPacket("session_switch");
       await refreshTrajectoryClarityLifecycle("session_resume", projectRoot);
+      await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume");
       if (!S.activeWorkpointPacket) {
         await ensureLowConfidenceWorkpoint("session_resume");
         await refreshSessionWorkpointPacket("session_switch_low_confidence");
         await refreshTrajectoryClarityLifecycle("session_resume_low_confidence", projectRoot);
+        await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_resume_low_confidence");
       }
     }
   });

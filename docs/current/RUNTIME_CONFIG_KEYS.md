@@ -2,6 +2,12 @@
 
 Current local Focusa runtime configuration keys used by bounded memory/payload paths.
 
+## Pi extension orientation
+
+| Key | Default | Meaning |
+|---|---:|---|
+| `FOCUSA_PI_VITAL_INFO_PROMPT_MODE` | `prompt` | Controls interruptive Pi prompts for vital project information: `prompt`, `notify`, or `off`. |
+
 ## Metacognition store caps
 
 These keys bound the metacognition runtime store and hot index. They mirror `FocusaConfig` fields (`metacog_max_captures`, `metacog_max_reflections`, `metacog_max_adjustments`, `metacog_ttl_minutes`, `metacog_retrieve_max_k`) and are exposed by `GET /v1/metacognition/status`.

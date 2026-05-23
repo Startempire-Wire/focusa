@@ -140,6 +140,7 @@ export const S = {
   activeWorkpointPacket: null as any | null,
   activeWorkpointSummary: "" as string,
   lastTrajectoryClarity: null as any | null,
+  vitalInfoPrompted: {} as Record<string, number>,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
   // ECS handle registry: kind -> id -> { content, stored_at }
@@ -1350,6 +1351,27 @@ export function adoptPiProjectRoot(cwdInput?: unknown, persistedPacket?: any): s
   S.sessionCwd = resolution.projectRoot;
   rememberProjectRoot(resolution);
   return resolution.projectRoot;
+}
+
+export function confirmPiProjectRoot(projectRootInput: unknown, source = "operator_confirmed_project_root"): string | null {
+  const projectRoot = normalizeProjectRoot(projectRootInput);
+  if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) return null;
+  const base = resolvePiProjectRootCandidate(projectRoot);
+  const confirmed: ProjectRootResolution = {
+    ...base,
+    projectRoot,
+    confidence: "high",
+    confidenceScore: Math.max(base.confidenceScore || 0, 0.95),
+    source,
+    reason: `operator confirmed project_root; ${base.reason}`,
+    safe: true,
+    requiresOperatorConfirmation: false,
+    candidates: base.candidates?.length ? base.candidates : [{ projectRoot, confidenceScore: 0.95, markers: base.markers || ["operator_confirmed"], source }],
+  };
+  S.lastProjectRootResolution = confirmed;
+  S.sessionCwd = projectRoot;
+  rememberProjectRoot(confirmed);
+  return projectRoot;
 }
 
 export function normalizeWorkpointResumePacketEnvelope(packet: any): any | null {
