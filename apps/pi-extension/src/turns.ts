@@ -276,11 +276,16 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const deployment = project.deployment || projectApi.deployment || {};
   const rootUrl = boundedTrajectoryText(projectUrls.root_url || projectUrls.live_url || projectUrls.production_url || deployment.root_url, 140);
   const liveUrl = boundedTrajectoryText(projectUrls.live_url || projectUrls.production_url || deployment.live_url, 140);
+  const wpUrl = boundedTrajectoryText(projectUrls.wp_url || projectUrls.wordpress_url || projectUrls.site_url, 140);
+  const appUrl = boundedTrajectoryText(projectUrls.app_url || deployment.app_url, 140);
+  const authUrl = boundedTrajectoryText(projectUrls.auth_url || deployment.auth_url, 140);
+  const graphqlUrl = boundedTrajectoryText(projectUrls.graphql_url || deployment.graphql_url, 140);
   const localUrl = boundedTrajectoryText(projectUrls.local_url || deployment.local_url, 140);
   const deployEnvironment = boundedTrajectoryText(deployment.environment || deployment.deploy_environment || deployment.target_environment, 80);
   const deployTarget = boundedTrajectoryText(deployment.deploy_target || deployment.target || deployment.host, 120);
   const deployLocation = boundedTrajectoryText(deployment.deploy_location || deployment.path || deployment.document_root, 160);
   const deployCommand = boundedTrajectoryText(deployment.deploy_command || deployment.command, 160);
+  const environmentConfidence = boundedTrajectoryText(projectUrls.inference_confidence || deployment.inference_confidence, 40);
   const identityParts = [
     `status=${boundedTrajectoryText(project.status || view.status || "unknown", 40)}`,
     `project_root=${projectRoot}`,
@@ -299,12 +304,18 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const environmentBits = [
     rootUrl ? `root_url=${rootUrl}` : "root_url=unknown",
     liveUrl ? `live_url=${liveUrl}` : "live_url=unknown",
+    wpUrl ? `wp_url=${wpUrl}` : "",
+    appUrl ? `app_url=${appUrl}` : "",
+    authUrl ? `auth_url=${authUrl}` : "",
+    graphqlUrl ? `graphql_url=${graphqlUrl}` : "",
     localUrl ? `local_url=${localUrl}` : "local_url=unknown",
     deployEnvironment ? `environment=${deployEnvironment}` : "environment=unknown",
     deployTarget ? `deploy_target=${deployTarget}` : "deploy_target=unknown",
     deployLocation ? `deploy_location=${deployLocation}` : "deploy_location=unknown",
     deployCommand ? `deploy_command=${deployCommand}` : "",
-    "local_vs_live_boundary=verify from project marker/docs; do not assume .local means active target",
+    environmentConfidence ? `confidence=${environmentConfidence}` : "confidence=unknown",
+    "source=marker+bounded_repo_scan+optional_live_root_scan",
+    "local_vs_live_boundary=project-root-relative by default, but DNS/live roots may live outside repo; verify sources before assuming .local is active",
   ].filter(Boolean).join("; ");
   const goals = [
     trajectory.long_term_goal ? `high=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",

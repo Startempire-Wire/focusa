@@ -20,7 +20,7 @@ else
   exit 1
 fi
 
-if rg -n 'PROJECT_ENVIRONMENT|root_url|live_url|local_url|deploy_target|deploy_location|local_vs_live_boundary' "$TURNS_TS" "${ROOT_DIR}/crates/focusa-api/src/routes/project.rs" >/dev/null; then
+if rg -n 'PROJECT_ENVIRONMENT|root_url|live_url|wp_url|app_url|auth_url|local_url|deploy_target|deploy_location|local_vs_live_boundary|inference_confidence' "$TURNS_TS" "${ROOT_DIR}/crates/focusa-api/src/routes/project.rs" >/dev/null; then
   echo "✓ PASS: Focus Slice includes explicit project environment/deploy facts"
 else
   echo "✗ FAIL: project environment/deploy facts missing from Focus Slice" >&2

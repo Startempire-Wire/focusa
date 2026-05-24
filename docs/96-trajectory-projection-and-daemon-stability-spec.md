@@ -284,7 +284,7 @@ Suggested schema:
 }
 ```
 
-The marker improves accuracy but must not be the only source. Runtime/deployment facts from `project_urls` and `deployment` must be shown explicitly in model-facing cards because repo identity alone does not tell an agent whether the active target is local, staging, or live. When marker fields are absent, ProjectIdentity should infer bounded candidates from repo docs, WordPress `wp-config.php`, likely cPanel live roots such as `/home/<site>/public_html`, deploy scripts, workflows, and safe URL/path scans, preserving inference sources for verification.
+The marker improves accuracy but must not be the only source. Runtime/deployment facts from `project_urls` and `deployment` must be shown explicitly in model-facing cards because repo identity alone does not tell an agent whether the active target is local, staging, or live. When marker fields are absent, ProjectIdentity should infer bounded candidates from repo docs, SvelteKit/app files, WordPress `wp-config.php`, likely cPanel live roots such as `/home/<site>/public_html`, deploy scripts, workflows, and safe URL/path scans, preserving inference sources and confidence levels for verification. Project-root-relative scanning is the default, but DNS/live roots may intentionally exist outside the repo in unconventional product setups.
 
 ### 6.3 Identity signals
 

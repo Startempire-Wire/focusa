@@ -252,6 +252,58 @@ fn add_if_file(out: &mut Vec<PathBuf>, path: PathBuf) {
     }
 }
 
+fn collect_environment_files(out: &mut Vec<PathBuf>, base: &Path, depth: usize, max_depth: usize) {
+    if depth > max_depth || out.len() >= 160 {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(base) else {
+        return;
+    };
+    for entry in entries.flatten().take(80) {
+        let path = entry.path();
+        let name = path
+            .file_name()
+            .and_then(|v| v.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if path.is_dir() {
+            if matches!(
+                name.as_str(),
+                "node_modules" | "vendor" | ".git" | ".svelte-kit" | "build" | "dist" | "cache"
+            ) {
+                continue;
+            }
+            collect_environment_files(out, &path, depth + 1, max_depth);
+            continue;
+        }
+        let ext = path.extension().and_then(|v| v.to_str()).unwrap_or("");
+        if path.is_file()
+            && (name.contains("deploy")
+                || name.contains("live")
+                || name.contains("config")
+                || name.contains("url")
+                || name == "wp-config.php"
+                || name.starts_with(".env")
+                || matches!(
+                    ext,
+                    "md" | "sh"
+                        | "php"
+                        | "js"
+                        | "ts"
+                        | "mjs"
+                        | "svelte"
+                        | "yml"
+                        | "yaml"
+                        | "json"
+                        | "txt"
+                        | "env"
+                ))
+        {
+            add_if_file(out, path);
+        }
+    }
+}
+
 fn candidate_environment_files(root: &Path, identity_hints: &[String]) -> Vec<PathBuf> {
     let mut out = Vec::new();
     for base in [
@@ -265,11 +317,15 @@ fn candidate_environment_files(root: &Path, identity_hints: &[String]) -> Vec<Pa
             ".focusa-project.json",
             "README.md",
             "AGENTS.md",
+            ".env",
             ".env.example",
             "package.json",
             "composer.json",
             "wp-config.php",
             "public_html/wp-config.php",
+            "app/.env",
+            "app/.env.example",
+            "app/package.json",
         ] {
             add_if_file(&mut out, base.join(rel));
         }
@@ -293,44 +349,15 @@ fn candidate_environment_files(root: &Path, identity_hints: &[String]) -> Vec<Pa
         ".github/workflows",
         "docs",
         "wp-content",
+        "app",
         "app/src",
+        "app/src/lib",
+        "app/src/routes",
         "src",
     ] {
-        let base = root.join(dir);
-        if let Ok(entries) = fs::read_dir(base) {
-            for entry in entries.flatten().take(40) {
-                let path = entry.path();
-                let name = path
-                    .file_name()
-                    .and_then(|v| v.to_str())
-                    .unwrap_or("")
-                    .to_ascii_lowercase();
-                let ext = path.extension().and_then(|v| v.to_str()).unwrap_or("");
-                if path.is_file()
-                    && (name.contains("deploy")
-                        || name.contains("live")
-                        || name.contains("config")
-                        || name.contains("url")
-                        || matches!(
-                            ext,
-                            "md" | "sh"
-                                | "php"
-                                | "js"
-                                | "ts"
-                                | "mjs"
-                                | "yml"
-                                | "yaml"
-                                | "json"
-                                | "txt"
-                                | "env"
-                        ))
-                {
-                    out.push(path);
-                }
-            }
-        }
+        collect_environment_files(&mut out, &root.join(dir), 0, 3);
     }
-    out.into_iter().take(120).collect()
+    out.into_iter().take(160).collect()
 }
 
 fn strip_token(value: &str) -> String {
@@ -363,6 +390,28 @@ fn host_from_url(url: &str) -> Option<String> {
 fn is_local_url(url: &str) -> bool {
     let lower = url.to_ascii_lowercase();
     lower.contains(".local") || lower.contains("localhost") || lower.contains("127.0.0.1")
+}
+
+fn first_url_matching<F>(urls: &[(String, String)], predicate: F) -> Option<String>
+where
+    F: Fn(&str, &str) -> bool,
+{
+    urls.iter()
+        .find(|(url, source)| predicate(url, source))
+        .map(|(url, _)| url.clone())
+}
+
+fn url_host_starts_with(url: &str, prefix: &str) -> bool {
+    host_from_url(url).is_some_and(|host| host.starts_with(prefix))
+}
+
+fn looks_like_root_site_url(url: &str) -> bool {
+    if is_local_url(url) || url_host_starts_with(url, "app.") || url_host_starts_with(url, "auth.")
+    {
+        return false;
+    }
+    let lower = url.to_ascii_lowercase();
+    lower.contains("/wp-json") || lower.contains("/graphql") || lower.matches('/').count() <= 2
 }
 
 fn extract_urls(text: &str) -> Vec<String> {
@@ -432,15 +481,30 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
         }
     }
 
-    let local_url = urls
-        .iter()
-        .find(|(url, _)| is_local_url(url))
-        .map(|(url, _)| url.clone());
-    let live_url = urls
-        .iter()
-        .find(|(url, source)| !is_local_url(url) && source.contains("wp-config.php"))
-        .or_else(|| urls.iter().find(|(url, _)| !is_local_url(url)))
-        .map(|(url, _)| url.clone());
+    let local_url = first_url_matching(&urls, |url, _| is_local_url(url));
+    let wp_url = first_url_matching(&urls, |url, source| {
+        !is_local_url(url)
+            && (source.contains("wp-config.php")
+                || url.contains("/wp-json")
+                || url.contains("/graphql")
+                || looks_like_root_site_url(url))
+    });
+    let app_url = first_url_matching(&urls, |url, _| {
+        !is_local_url(url) && url_host_starts_with(url, "app.")
+    });
+    let auth_url = first_url_matching(&urls, |url, _| {
+        !is_local_url(url) && url_host_starts_with(url, "auth.")
+    });
+    let graphql_url = first_url_matching(&urls, |url, _| {
+        !is_local_url(url) && url.to_ascii_lowercase().contains("/graphql")
+    });
+    let api_url = first_url_matching(&urls, |url, _| {
+        !is_local_url(url) && url.to_ascii_lowercase().contains("/api")
+    });
+    let live_url = wp_url
+        .clone()
+        .or_else(|| app_url.clone())
+        .or_else(|| first_url_matching(&urls, |url, _| !is_local_url(url)));
     let root_url = live_url.clone().or_else(|| local_url.clone());
     let deploy_target = live_url.as_deref().and_then(host_from_url);
     let environment = if live_url.is_some()
@@ -455,10 +519,30 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
         None
     };
 
+    let environment_confidence =
+        if wp_url.is_some() && (app_url.is_some() || deploy_locations.first().is_some()) {
+            "high"
+        } else if live_url.is_some() || deploy_locations.first().is_some() {
+            "medium"
+        } else if local_url.is_some() {
+            "low"
+        } else {
+            "unknown"
+        };
+
     let mut url_map = Map::new();
     insert_if_missing(&mut url_map, "root_url", root_url);
     insert_if_missing(&mut url_map, "live_url", live_url);
+    insert_if_missing(&mut url_map, "wp_url", wp_url);
+    insert_if_missing(&mut url_map, "app_url", app_url);
+    insert_if_missing(&mut url_map, "auth_url", auth_url);
+    insert_if_missing(&mut url_map, "graphql_url", graphql_url);
+    insert_if_missing(&mut url_map, "api_url", api_url);
     insert_if_missing(&mut url_map, "local_url", local_url);
+    url_map.insert(
+        "inference_confidence".to_string(),
+        Value::String(environment_confidence.to_string()),
+    );
     if !sources.is_empty() {
         url_map.insert(
             "inference_sources".to_string(),
@@ -476,12 +560,13 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
     let mut deploy_map = Map::new();
     insert_if_missing(&mut deploy_map, "environment", environment);
     insert_if_missing(&mut deploy_map, "deploy_target", deploy_target);
-    insert_if_missing(
-        &mut deploy_map,
-        "deploy_location",
-        deploy_locations.into_iter().next(),
-    );
+    let deploy_location = deploy_locations.into_iter().next();
+    insert_if_missing(&mut deploy_map, "deploy_location", deploy_location);
     insert_if_missing(&mut deploy_map, "deploy_command", deploy_command);
+    deploy_map.insert(
+        "inference_confidence".to_string(),
+        Value::String(environment_confidence.to_string()),
+    );
     if !sources.is_empty() {
         deploy_map.insert(
             "inference_sources".to_string(),
