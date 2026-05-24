@@ -34,7 +34,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const cachedProjectIdentity = S.lastProjectIdentity && normalizeProjectRoot(S.lastProjectIdentity.project_root) === projectRoot ? S.lastProjectIdentity : null;
   const verifiedProjectIdentity = S.lastProjectVerify?.project_identity && normalizeProjectRoot(S.lastProjectVerify.project_identity.project_root) === projectRoot ? S.lastProjectVerify.project_identity : null;
   const trajectoryProjectIdentity = trajectory.project_identity && normalizeProjectRoot(trajectory.project_identity.project_root) === projectRoot ? trajectory.project_identity : null;
-  const projectIdentity = trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {};
+  const projectIdentity = safeScope ? (trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {}) : {};
   const projectSummary = projectIdentity.project_summary || {};
   const projectUrls = trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {};
   const deployment = trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {};
@@ -56,11 +56,11 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
 
   const missionPacket = [
     "MISSION_PACKET:",
-    `- project=${compact(projectIdentity.canonical_name || projectIdentity.project_id || "Focusa", "unknown", 80)} root=${projectRoot || "unknown"}${confidence}`,
+    `- project=${safeScope ? compact(projectIdentity.canonical_name || projectIdentity.project_id, "unknown", 80) : "UNBOUND_UNSAFE_ROOT"} root=${projectRoot || "unknown"}${confidence}`,
     `- trajectory=${trajectorySet ? "set" : "not_hydrated"}; high=${compact(trajectory.long_term_goal, "unknown")}; desired=${compact(trajectory.desired_end_state, "unknown")}`,
     `- current=${compact(trajectory.current_state, "unknown")}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal, "unknown")}; recommended=${compact(trajectory.recommended_action, "unknown", 120)}`,
     `- workpoint=${workpointStatus}; ${scopedPacket ? "canonical packet matches project_root+continuity_id" : "resume/checkpoint required before treating Workpoint as canonical"}`,
-    `- next=${next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
+    `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
     `- environment=${envParts || "unknown; call focusa_project_identity/trajectory_view for URL/deploy facts"}`,
     `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity is advisory only`,
   ];

@@ -63,6 +63,13 @@ else
   exit 1
 fi
 
+if rg -n 'UNBOUND_UNSAFE_ROOT|auto-bootstrap project identity with focusa_project_identity before durable work|safeScope \? \(trajectoryProjectIdentity' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
+  echo "✓ PASS: Utility Card does not label unsafe roots as a concrete project"
+else
+  echo "✗ FAIL: Utility Card can label unsafe roots as a concrete project" >&2
+  exit 1
+fi
+
 if rg -n 'rememberedProjectRootResolution\(cwdInput|same-tree hint|!cwd\.startsWith\(`\$\{remembered\}/`\)' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null \
   && ! rg -n 'projectSummary = projectIdentity\.project_summary \|\| S\.lastProjectIdentity' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
   echo "✓ PASS: remembered ProjectIdentity cache cannot pull other sessions/projects"
