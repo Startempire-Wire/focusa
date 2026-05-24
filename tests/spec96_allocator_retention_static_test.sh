@@ -26,12 +26,14 @@ else
   exit 1
 fi
 
-if command -v systemctl >/dev/null 2>&1 && systemctl cat focusa-daemon.service >/tmp/focusa-daemon-systemd-cat 2>/dev/null; then
-  if rg -n 'MALLOC_ARENA_MAX=2|MALLOC_TRIM_THRESHOLD_=131072' /tmp/focusa-daemon-systemd-cat >/dev/null; then
+SYSTEMD_CAT_FILE="$(mktemp /tmp/focusa-daemon-systemd-cat.XXXXXX)"
+trap 'rm -f "$SYSTEMD_CAT_FILE"' EXIT
+if command -v systemctl >/dev/null 2>&1 && systemctl cat focusa-daemon.service >"$SYSTEMD_CAT_FILE" 2>/dev/null; then
+  if rg -n 'MALLOC_ARENA_MAX=2|MALLOC_TRIM_THRESHOLD_=131072' "$SYSTEMD_CAT_FILE" >/dev/null; then
     echo "✓ PASS: live systemd service caps glibc arenas/trim threshold"
   else
     echo "✗ FAIL: live systemd service missing allocator env caps" >&2
-    cat /tmp/focusa-daemon-systemd-cat >&2
+    cat "$SYSTEMD_CAT_FILE" >&2
     exit 1
   fi
 else
