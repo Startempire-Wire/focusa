@@ -576,6 +576,152 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
     (Value::Object(url_map), Value::Object(deploy_map))
 }
 
+fn object_string(value: &Value, key: &str) -> Option<String> {
+    value
+        .as_object()
+        .and_then(|map| map.get(key))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn top_level_dirs(root: &Path) -> Vec<String> {
+    let mut dirs = Vec::new();
+    if let Ok(entries) = fs::read_dir(root) {
+        for entry in entries.flatten().take(80) {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let name = path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("");
+            if name.starts_with('.') && !matches!(name, ".github" | ".beads") {
+                continue;
+            }
+            if matches!(
+                name,
+                "target" | "node_modules" | "vendor" | "dist" | "build"
+            ) {
+                continue;
+            }
+            dirs.push(name.to_string());
+        }
+    }
+    dirs.sort();
+    dirs.truncate(16);
+    dirs
+}
+
+fn infer_stack(root: &Path, workspace_kind: Option<&str>) -> Vec<String> {
+    let mut stack = BTreeSet::new();
+    if root.join("Cargo.toml").exists() || workspace_kind == Some("rust-workspace") {
+        stack.insert("rust".to_string());
+    }
+    if root.join("package.json").exists()
+        || root.join("app/package.json").exists()
+        || root.join("svelte.config.js").exists()
+        || root.join("app/svelte.config.js").exists()
+    {
+        stack.insert("node".to_string());
+    }
+    if root.join("svelte.config.js").exists() || root.join("app/svelte.config.js").exists() {
+        stack.insert("sveltekit".to_string());
+    }
+    if root.join("wp-config.php").exists()
+        || root.join("public_html/wp-config.php").exists()
+        || root.join("wp-content").exists()
+    {
+        stack.insert("wordpress".to_string());
+    }
+    if root.join("composer.json").exists() {
+        stack.insert("php".to_string());
+    }
+    stack.into_iter().collect()
+}
+
+fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
+    let urls = &candidate.project_urls;
+    let deployment = &candidate.deployment;
+    let stack = infer_stack(
+        Path::new(&candidate.project_root),
+        candidate.workspace_kind.as_deref(),
+    );
+    let key_dirs = top_level_dirs(Path::new(&candidate.project_root));
+    let environment =
+        object_string(deployment, "environment").unwrap_or_else(|| "unknown".to_string());
+    let confidence = object_string(urls, "inference_confidence")
+        .or_else(|| object_string(deployment, "inference_confidence"))
+        .unwrap_or_else(|| candidate.confidence.to_string());
+    let mut lines = Vec::new();
+    lines.push(format!(
+        "project={} id={} root={} confidence={} status={}",
+        candidate.canonical_name,
+        candidate.project_id,
+        candidate.project_root,
+        candidate.confidence,
+        candidate.status
+    ));
+    lines.push(format!(
+        "stack={} workspace={} dirs={}",
+        if stack.is_empty() {
+            "unknown".to_string()
+        } else {
+            stack.join(",")
+        },
+        candidate
+            .workspace_kind
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string()),
+        if key_dirs.is_empty() {
+            "unknown".to_string()
+        } else {
+            key_dirs.join(",")
+        }
+    ));
+    lines.push(format!(
+        "urls=root:{} live:{} local:{} wp:{} app:{} auth:{} graphql:{} api:{}",
+        object_string(urls, "root_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "live_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "local_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "wp_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "app_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "auth_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "graphql_url").unwrap_or_else(|| "unknown".to_string()),
+        object_string(urls, "api_url").unwrap_or_else(|| "unknown".to_string())
+    ));
+    lines.push(format!(
+        "deploy=env:{} target:{} location:{} command:{} confidence:{}",
+        environment,
+        object_string(deployment, "deploy_target").unwrap_or_else(|| "unknown".to_string()),
+        object_string(deployment, "deploy_location").unwrap_or_else(|| "unknown".to_string()),
+        object_string(deployment, "deploy_command").unwrap_or_else(|| "unknown".to_string()),
+        confidence
+    ));
+    json!({
+        "schema": "focusa.project_summary.v1",
+        "project": {
+            "project_id": candidate.project_id.clone(),
+            "canonical_name": candidate.canonical_name.clone(),
+            "project_root": candidate.project_root.clone(),
+            "repo_remote": candidate.repo_remote.clone(),
+            "beads_prefix": candidate.beads_prefix.clone(),
+            "workspace_kind": candidate.workspace_kind.clone(),
+            "stack": stack,
+            "key_dirs": key_dirs,
+            "confidence": candidate.confidence,
+            "status": candidate.status,
+        },
+        "urls": urls.clone(),
+        "deployment": deployment.clone(),
+        "environment_confidence": confidence,
+        "authority_boundary": "project_root_plus_fingerprint",
+        "summary_lines": lines,
+    })
+}
+
 fn merge_missing_object_fields(mut primary: Value, fallback: Value) -> Value {
     if let (Some(primary_map), Some(fallback_map)) = (primary.as_object_mut(), fallback.as_object())
     {
@@ -893,10 +1039,13 @@ fn candidate_payload(
     } else {
         "mismatch"
     };
+    let project_summary = compact_project_summary(&candidate);
     json!({
         "status": status,
         "canonical": canonical,
         "degraded": !canonical,
+        "project_summary": project_summary.clone(),
+        "summary_lines": project_summary.get("summary_lines").cloned().unwrap_or_else(|| json!([])),
         "project_identity": {
             "schema": "focusa.project_identity.v1",
             "status": identity_status,
@@ -908,6 +1057,7 @@ fn candidate_payload(
             "workspace_kind": candidate.workspace_kind,
             "project_urls": candidate.project_urls,
             "deployment": candidate.deployment,
+            "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
             "confidence": candidate.confidence,
             "signals": candidate.signals.iter().map(signal_json).collect::<Vec<_>>(),
@@ -1079,6 +1229,28 @@ mod tests {
                 .pointer("/project_identity/deployment/deploy_location")
                 .and_then(Value::as_str),
             Some("/home/asapdigest/public_html/")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_summary/urls/wp_url")
+                .and_then(Value::as_str),
+            Some("https://asapdigest.com")
+        );
+        assert!(
+            payload
+                .pointer("/project_summary/project/stack")
+                .and_then(Value::as_array)
+                .is_some_and(|stack| stack
+                    .iter()
+                    .any(|value| value.as_str() == Some("wordpress")))
+        );
+        assert!(
+            payload
+                .pointer("/summary_lines")
+                .and_then(Value::as_array)
+                .is_some_and(|lines| lines.iter().any(|line| line
+                    .as_str()
+                    .is_some_and(|text| text.contains("urls=root:"))))
         );
         let _ = fs::remove_dir_all(root);
     }

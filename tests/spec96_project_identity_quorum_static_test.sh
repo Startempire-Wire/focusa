@@ -35,6 +35,13 @@ else
   exit 1
 fi
 
+if rg -n 'compact_project_summary|project_summary|summary_lines|stack|key_dirs|wp_url|app_url|auth_url|graphql_url|environment_confidence' "$PROJECT" "$TOOLS" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity exposes compact project card facts directly"
+else
+  echo "✗ FAIL: ProjectIdentity compact project card facts missing" >&2
+  exit 1
+fi
+
 if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else

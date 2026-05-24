@@ -2001,8 +2001,13 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const identity = body.project_identity || {};
+      const summaryLines = Array.isArray(body.summary_lines)
+        ? body.summary_lines.map((line: any) => String(line)).filter(Boolean)
+        : Array.isArray(identity.project_summary?.summary_lines)
+          ? identity.project_summary.summary_lines.map((line: any) => String(line)).filter(Boolean)
+          : [];
       const text = result.ok
-        ? `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`
+        ? [`project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`, ...summaryLines.slice(0, 4)].join("\n")
         : `project identity blocked → ${explainWorkLoopResult(result, "project identity unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(body.status || "completed") : "blocked", canonical: body.canonical === true, degraded: body.degraded !== false, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"] };
       return {
@@ -2014,6 +2019,8 @@ export function registerTools(pi: ExtensionAPI) {
           canonical: body.canonical === true,
           degraded: body.degraded === true,
           project_identity: identity,
+          project_summary: body.project_summary || identity.project_summary || null,
+          summary_lines: summaryLines,
           verification: body.verification,
           tool_result_v1: toolResult,
           failure_class: toolResult.failure_class || body.failure_class || null,
