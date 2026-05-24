@@ -1467,6 +1467,14 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
       degraded: view?.degraded === true,
       project_identity_status: String(view?.project_identity?.status || "unknown"),
       trajectory_id: view?.trajectory?.trajectory_id || null,
+      long_term_goal: view?.trajectory?.long_term_goal || null,
+      desired_end_state: view?.trajectory?.desired_end_state || null,
+      short_term_goal: view?.trajectory?.short_term_goal || null,
+      current_state: view?.trajectory?.current_state || null,
+      active_gap: view?.trajectory?.active_gap || null,
+      project_identity: view?.project_identity || null,
+      project_urls: view?.project_identity?.project_urls || view?.project?.project_urls || null,
+      deployment: view?.project_identity?.deployment || view?.project?.deployment || null,
       next_tools: view?.next_tools || ["focusa_trajectory_view", "focusa_project_verify", "focusa_workpoint_resume"],
     };
     S.lastTrajectoryClarity = snapshot;

@@ -4,6 +4,20 @@ function line(value: unknown): string {
   return String(value || "").trim();
 }
 
+function compact(value: unknown, fallback = "unknown", max = 180): string {
+  const text = line(value).replace(/\s+/g, " ");
+  if (!text) return fallback;
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
+}
+
+function firstValue(...values: unknown[]): string {
+  for (const value of values) {
+    const text = line(value);
+    if (text) return text;
+  }
+  return "";
+}
+
 export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): string {
   const scopedPacket = getScopedWorkpointPacket();
   const mission = line(scopedPacket?.mission);
@@ -16,6 +30,36 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const resolution = S.lastProjectRootResolution;
   const confidence = resolution ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}` : "";
   const needsConfirm = resolution?.requiresOperatorConfirmation === true;
+  const trajectory = S.lastTrajectoryClarity || {};
+  const projectIdentity = trajectory.project_identity || S.lastProjectVerify?.project_identity || S.lastProjectVerify || {};
+  const projectUrls = trajectory.project_urls || projectIdentity.project_urls || {};
+  const deployment = trajectory.deployment || projectIdentity.deployment || {};
+  const trajectorySet = !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);
+  const workpointStatus = scopedPacket
+    ? "verified"
+    : S.activeWorkpointSummary
+      ? "summary_only"
+      : "unavailable/not_verified";
+  const envParts = [
+    firstValue(projectUrls.root_url, projectUrls.live_url) ? `root=${compact(firstValue(projectUrls.root_url, projectUrls.live_url), "", 120)}` : "",
+    projectUrls.wp_url ? `wp=${compact(projectUrls.wp_url, "", 120)}` : "",
+    projectUrls.app_url ? `app=${compact(projectUrls.app_url, "", 120)}` : "",
+    projectUrls.auth_url ? `auth=${compact(projectUrls.auth_url, "", 120)}` : "",
+    projectUrls.local_url ? `local=${compact(projectUrls.local_url, "", 120)}` : "",
+    deployment.environment ? `env=${compact(deployment.environment, "", 50)}` : "",
+    firstValue(projectUrls.inference_confidence, deployment.inference_confidence) ? `confidence=${compact(firstValue(projectUrls.inference_confidence, deployment.inference_confidence), "", 40)}` : "",
+  ].filter(Boolean).join("; ");
+
+  const missionPacket = [
+    "MISSION_PACKET:",
+    `- project=${compact(projectIdentity.canonical_name || projectIdentity.project_id || "Focusa", "unknown", 80)} root=${projectRoot || "unknown"}${confidence}`,
+    `- trajectory=${trajectorySet ? "set" : "not_hydrated"}; high=${compact(trajectory.long_term_goal, "unknown")}; desired=${compact(trajectory.desired_end_state, "unknown")}`,
+    `- current=${compact(trajectory.current_state, "unknown")}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal, "unknown")}; recommended=${compact(trajectory.recommended_action, "unknown", 120)}`,
+    `- workpoint=${workpointStatus}; ${scopedPacket ? "canonical packet matches project_root+continuity_id" : "resume/checkpoint required before treating Workpoint as canonical"}`,
+    `- next=${next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
+    `- environment=${envParts || "unknown; call focusa_project_identity/trajectory_view for URL/deploy facts"}`,
+    `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity is advisory only`,
+  ];
 
   const friendlyQ = [
     "Friendly Focusa Q (internal orientation, not a blocker):",
@@ -36,9 +80,10 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     return [
       prefix,
       `Status: ${status}`,
+      ...missionPacket,
       `Project folder: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
       ...friendlyQ,
-      "Project-bound Workpoint: none verified yet; latest operator instruction is the seed, then bind it to folder + trajectory + next anchor.",
+      "Project-bound Workpoint: none verified yet; latest operator instruction + trajectory gap are the seed, then checkpoint to create canonical Workpoint.",
       !safeScope || needsConfirm
         ? "Suggested first route: confirm project folder, then run focusa_trajectory_view/define_goal before durable Focusa writes."
         : "Suggested first route: run focusa_trajectory_view for goals/gap, then checkpoint once mission and next action are clear.",
@@ -49,13 +94,14 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   return [
     prefix,
     `Status: ${status}`,
-    scopedPacket ? "Project-bound Workpoint: verified project_root + continuity_id match." : "Project-bound Workpoint: none verified for this logical session; ignore stale carryover from other projects/sessions.",
+    ...missionPacket,
+    scopedPacket ? "Project-bound Workpoint: verified project_root + continuity_id match." : "Project-bound Workpoint: none verified for this logical session; use trajectory gap + operator ask, then checkpoint; ignore stale carryover.",
     !safeScope || needsConfirm ? "Project folder check: confirm the project file folder/container before durable state writes." : "Project root: confirmed project file folder/container; trajectory provides the functional route.",
     mission ? `Mission: ${mission}` : "Mission: use latest operator instruction as seed; bind it to trajectory + Workpoint before long work.",
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
     projectRoot ? `Project folder: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Project folder: bind work to the folder containing project files; reject cross-project resume packets.",
     scopedPacket && continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: no Workpoint continuity verified for this Pi session; use resume/checkpoint before trusting same-root state.",
-    "Trajectory: use focusa_trajectory_view for project goals/gap; never merge sessions without project_root+continuity_id.",
+    trajectorySet ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.` : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes.",
     "",
     ...friendlyQ,
     ...routeHints,
