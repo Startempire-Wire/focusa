@@ -64,6 +64,14 @@ else
   exit 1
 fi
 
+if rg -n 'Ask operator in chat now|no input-only modal|Focusa inferred possible project roots' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null \
+  && ! rg -n 'ctx\.ui\.input\("Confirm Focusa project_root"' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null; then
+  echo "✓ PASS: project root vital prompt is inference-first and avoids input-only modal"
+else
+  echo "✗ FAIL: project root vital prompt still relies on input-only operator entry" >&2
+  exit 1
+fi
+
 if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else
