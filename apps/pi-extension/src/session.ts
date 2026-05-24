@@ -561,6 +561,7 @@ export function registerSession(pi: ExtensionAPI) {
           currentFocus: e.data.currentFocus || "",
         };
         if (e.data.projectRootResolution) S.lastProjectRootResolution = e.data.projectRootResolution;
+        if (e.data.lastProjectIdentity) S.lastProjectIdentity = e.data.lastProjectIdentity;
         if (e.data.lastTrajectoryClarity) {
           const c = e.data.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
@@ -785,6 +786,7 @@ export function registerSession(pi: ExtensionAPI) {
           currentFocus: d.currentFocus || "",
         };
         if (d.projectRootResolution) S.lastProjectRootResolution = d.projectRootResolution;
+        if (d.lastProjectIdentity) S.lastProjectIdentity = d.lastProjectIdentity;
         if (d.lastTrajectoryClarity) {
           const c = d.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";

@@ -42,6 +42,13 @@ else
   exit 1
 fi
 
+if rg -n 'lastProjectIdentity|projectSummary|S\.lastProjectIdentity = identity|S\.lastProjectIdentity = projectIdentity' "${ROOT_DIR}/apps/pi-extension/src/state.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" "$TOOLS" >/dev/null; then
+  echo "✓ PASS: Utility Card consumes cached ProjectIdentity summary facts"
+else
+  echo "✗ FAIL: Utility Card does not consume ProjectIdentity summary facts" >&2
+  exit 1
+fi
+
 if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else

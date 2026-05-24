@@ -143,6 +143,7 @@ export const S = {
   activeWorkpointPacket: null as any | null,
   activeWorkpointSummary: "" as string,
   lastTrajectoryClarity: null as any | null,
+  lastProjectIdentity: null as any | null,
   lastProjectVerify: null as any | null,
   vitalInfoPrompted: {} as Record<string, number>,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
@@ -220,6 +221,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.activeWorkpointPacket = null;
   S.activeWorkpointSummary = "";
   S.lastTrajectoryClarity = null;
+  S.lastProjectIdentity = null;
   S.currentAsk = null;
   S.queryScope = null;
   S.excludedContext = null;
@@ -1408,6 +1410,7 @@ export async function buildFocusaSessionIdentity(
     query.set("project_root", projectRoot);
     const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
     projectIdentity = response?.project_identity || null;
+    if (projectIdentity) S.lastProjectIdentity = projectIdentity;
   }
   const rootParts = projectRoot.split("/").filter(Boolean);
   const resolution = S.lastProjectRootResolution && normalizeProjectRoot(S.lastProjectRootResolution.projectRoot) === projectRoot
@@ -1476,11 +1479,12 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
       current_state: view?.trajectory?.current_state || null,
       active_gap: view?.trajectory?.active_gap || null,
       project_identity: view?.project_identity || null,
-      project_urls: view?.project_identity?.project_urls || view?.project?.project_urls || null,
-      deployment: view?.project_identity?.deployment || view?.project?.deployment || null,
+      project_urls: view?.project_identity?.project_urls || view?.project_identity?.project_summary?.urls || view?.project?.project_urls || null,
+      deployment: view?.project_identity?.deployment || view?.project_identity?.project_summary?.deployment || view?.project?.deployment || null,
       next_tools: view?.next_tools || ["focusa_trajectory_view", "focusa_project_verify", "focusa_workpoint_resume"],
     };
     S.lastTrajectoryClarity = snapshot;
+    if (snapshot.project_identity) S.lastProjectIdentity = snapshot.project_identity;
     focusaPost("/telemetry/activity", {
       surface: "pi",
       event: "trajectory_clarity_refreshed",
@@ -1840,6 +1844,7 @@ export function persistState(): void {
     activeWorkpointPacket: getScopedWorkpointPacket(),
     activeWorkpointSummary: getScopedWorkpointPacket() ? trimPersistText(S.activeWorkpointSummary) : "",
     lastTrajectoryClarity: S.lastTrajectoryClarity,
+    lastProjectIdentity: S.lastProjectIdentity,
     lastProjectVerify: S.lastProjectVerify,
     vitalInfoPrompted: S.vitalInfoPrompted,
     lastCompactResumeKey: S.lastCompactResumeKey,

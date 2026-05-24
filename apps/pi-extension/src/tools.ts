@@ -2001,6 +2001,7 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const identity = body.project_identity || {};
+      if (identity && Object.keys(identity).length) S.lastProjectIdentity = identity;
       const summaryLines = Array.isArray(body.summary_lines)
         ? body.summary_lines.map((line: any) => String(line)).filter(Boolean)
         : Array.isArray(identity.project_summary?.summary_lines)
