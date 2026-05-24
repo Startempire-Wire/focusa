@@ -17,10 +17,10 @@ Operators need a `focusa_` tool surface to see background autonomous coding sess
 - `start` — create a detached tmux session with a Focusa-governed Pi command; requires `approved=true`.
 - `reopen` — return `tmux attach -t <session>`, `tmux attach -d -t <session>` for detach-others recovery, and recent pane output.
 - `tail` — capture recent pane output using `capture-pane -p -J` so wrapped lines are readable.
-- `health` — read pane metadata with `tmux list-panes` to classify the session as `running`, `degraded`, `dead`, or `unknown`.
+- `health` — read pane metadata plus tmux activity/log mtime to classify the session as `running`, `stale`, `degraded`, `dead`, or `unknown`.
 - `send` — send literal operator steering text to the session and press Enter; requires `approved=true`.
 - `interrupt` — send `C-c` to the active pane for a hung/runaway agent; requires `approved=true`.
-- `restart` — kill the existing named tmux session if present and start it again with the same Focusa-governed defaults or supplied command; requires `approved=true`.
+- `restart` — kill the existing named tmux session if present and start it again from stored metadata (`root_dir`, `command`, `mission`, `work_item_id`, `run_as_user`) unless caller supplies overrides; requires `approved=true`.
 - `kill` — terminate the tmux session; requires `approved=true` and `force=true`.
 
 ## Tmux control model
@@ -38,7 +38,7 @@ Reference reviewed: https://tmuxcheatsheet.com/
 - `as-user <owner> 'tmux ...'` when Pi is root and the project root belongs to a non-root owner, so background sessions run as the project owner instead of creating root-owned project files.
 - `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-<session>-<run_as_user>.log` for unattended audit/recovery.
 - Before enabling `pipe-pane`, logs rotate at 5 MiB with three backups (`.1` through `.3`) so repeated starts/restarts do not append forever.
-- `/tmp/focusa-silent-<session>.json` stores best-effort session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `log_path`, `log_max_bytes`, `log_backups`) so later `list`, `tail`, `health`, `send`, `interrupt`, and `kill` use the same execution identity.
+- `/tmp/focusa-silent-<session>.json` stores best-effort session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `command`, `mission`, `work_item_id`, `log_path`, `log_max_bytes`, `log_backups`) so later `list`, `tail`, `health`, `send`, `interrupt`, `restart`, and `kill` use the same execution identity and restart contract.
 - `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
 - `tmux send-keys C-c` for approved interruption without destroying the session.
 - `tmux kill-session -t <name>` only for explicit stop/kill/restart.
@@ -57,7 +57,7 @@ Default `start` activates LowMem via `/v1/resource/mode` before launching the ag
 
 ## Expected result
 
-The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `root_owner`, `run_as_user`, `permission_posture`, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
+The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `log_stats`, `activity_age_seconds`, `stale_after_seconds`, `root_owner`, `run_as_user`, `permission_posture`, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
 
 ## Examples
 
