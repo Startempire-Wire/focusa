@@ -19,6 +19,8 @@ Operators need a `focusa_` tool surface to see background autonomous coding sess
 - `tail` — capture recent pane output using `capture-pane -p -J` so wrapped lines are readable.
 - `health` — read pane metadata with `tmux list-panes` to classify the session as `running`, `degraded`, `dead`, or `unknown`.
 - `send` — send literal operator steering text to the session and press Enter; requires `approved=true`.
+- `interrupt` — send `C-c` to the active pane for a hung/runaway agent; requires `approved=true`.
+- `restart` — kill the existing named tmux session if present and start it again with the same Focusa-governed defaults or supplied command; requires `approved=true`.
 - `kill` — terminate the tmux session; requires `approved=true` and `force=true`.
 
 ## Tmux control model
@@ -33,11 +35,12 @@ Reference reviewed: https://tmuxcheatsheet.com/
 - `tmux capture-pane -p -J -S -<lines>` for readable tails.
 - `tmux list-panes -F ...` for read-only health/pane metadata.
 - `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
-- `tmux kill-session -t <name>` only for explicit stop/kill.
+- `tmux send-keys C-c` for approved interruption without destroying the session.
+- `tmux kill-session -t <name>` only for explicit stop/kill/restart.
 
 ## Safety
 
-`kill` and `send` are process-control actions and require explicit approval flags. `start` also requires approval because it creates a background process. `reopen` and `tail` are read-only; they return exact tmux commands because tool calls cannot take over the operator terminal interactively.
+`kill`, `send`, `interrupt`, and `restart` are process-control actions and require explicit approval flags. `start` also requires approval because it creates a background process. `reopen` and `tail` are read-only; they return exact tmux commands because tool calls cannot take over the operator terminal interactively.
 
 ## LowMem posture
 
@@ -56,6 +59,8 @@ focusa_silent_sessions action="reopen" session_name="focusa-c7e1"
 focusa_silent_sessions action="tail" session_name="focusa-c7e1" lines=120
 focusa_silent_sessions action="health" session_name="focusa-c7e1"
 focusa_silent_sessions action="send" session_name="focusa-c7e1" command="Steer: prioritize failing validation first" approved=true
+focusa_silent_sessions action="interrupt" session_name="focusa-c7e1" approved=true
+focusa_silent_sessions action="restart" session_name="focusa-c7e1" approved=true
 focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true force=true
 ```
 

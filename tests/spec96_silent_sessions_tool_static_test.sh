@@ -15,7 +15,7 @@ else
   exit 1
 fi
 
-for action in list start reopen tail health send kill; do
+for action in list start reopen tail health send interrupt restart kill; do
   if ! rg -n "Type\.Literal\(\"${action}\"\)" "$TOOLS_TS" >/dev/null; then
     echo "✗ FAIL: missing SilentSession action: ${action}" >&2
     exit 1
@@ -23,7 +23,7 @@ for action in list start reopen tail health send kill; do
 done
 echo "✓ PASS: list/start/reopen/tail/send/kill actions are exposed"
 
-if rg -n 'approved !== true|force !== true|tmux attach.*-t|capture-pane|kill-session|send-keys|new-session' "$TOOLS_TS" >/dev/null; then
+if rg -n 'approved !== true|force !== true|tmux attach.*-t|capture-pane|kill-session|send-keys|new-session|tmux_send_interrupt' "$TOOLS_TS" >/dev/null; then
   echo "✓ PASS: reopen returns attach command and mutating actions have approval/force gates"
 else
   echo "✗ FAIL: SilentSession process-control guardrails missing" >&2
@@ -56,7 +56,7 @@ if (!contract.doc_path.endsWith('focusa_silent_sessions.md')) throw new Error('d
 NODE
 echo "✓ PASS: contract registry includes Pi-only tmux SilentSession contract"
 
-if [[ -f "$DOC" ]] && rg -n 'approved=true|force=true|tmux attach|LowMem|detach-others|Steer:' "$DOC" >/dev/null; then
+if [[ -f "$DOC" ]] && rg -n 'approved=true|force=true|tmux attach|LowMem|detach-others|Steer:|interrupt|restart' "$DOC" >/dev/null; then
   echo "✓ PASS: operator documentation covers reopen, kill guard, and LowMem behavior"
 else
   echo "✗ FAIL: SilentSession doc missing guardrail coverage" >&2

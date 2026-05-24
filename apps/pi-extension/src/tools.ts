@@ -1735,7 +1735,7 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
 
-  type SilentSessionAction = "list" | "start" | "reopen" | "kill" | "tail" | "send" | "health";
+  type SilentSessionAction = "list" | "start" | "reopen" | "kill" | "tail" | "send" | "health" | "interrupt" | "restart";
   const SILENT_SESSION_PREFIX = "focusa-silent";
 
   function silentSessionExec(args: string[], timeout = 5000): { ok: boolean; stdout: string; stderr: string; status: number | null } {
@@ -1856,7 +1856,9 @@ export function registerTools(pi: ExtensionAPI) {
         Type.Literal("send"),
         Type.Literal("kill"),
         Type.Literal("health"),
-      ], { description: "SilentSession action. list is default; kill/send/start require approved=true." })),
+        Type.Literal("interrupt"),
+        Type.Literal("restart"),
+      ], { description: "SilentSession action. list is default; kill/send/start/interrupt/restart require approved=true." })),
       session_name: Type.Optional(Type.String({ description: "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix." })),
       root_dir: Type.Optional(Type.String({ description: "Working directory for a new SilentSession; defaults to current Pi cwd." })),
       command: Type.Optional(Type.String({ description: "Custom shell command for start or input line for send. Omit for default Focusa-governed Pi autopilot command." })),
@@ -1905,9 +1907,13 @@ export function registerTools(pi: ExtensionAPI) {
         return { content: [{ type: "text", text }], details: { ok: health.ok, status: health.ok ? "completed" : "blocked", session_name: sessionName, health_status: status, panes: health.panes || [], active_pane: activePane, error: health.error, tmux_version: silentSessionVersion(), next_tools: status === "dead" ? ["focusa_silent_sessions", "focusa_work_loop_status"] : ["focusa_silent_sessions"] } } as any;
       }
 
-      if (action === "start") {
-        if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "start mutates background process state; pass approved=true only when operator explicitly wants a background session", sessionsBefore);
-        if (hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, sessions: sessionsBefore } } as any;
+      if (action === "start" || action === "restart") {
+        if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", `${action} mutates background process state; pass approved=true only when operator explicitly wants a background session`, sessionsBefore);
+        if (action === "start" && hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), sessions: sessionsBefore } } as any;
+        if (action === "restart" && hasSession) {
+          const killed = silentSessionExec(["kill-session", "-t", sessionName], 3000);
+          if (!killed.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux restart kill phase failed: ${killed.stderr || "unknown error"}`, sessionsBefore, { error: killed.stderr });
+        }
         const cmd = String(p.command || defaultSilentSessionCommand(p, sessionName));
         const rootDir = String(p.root_dir || S.sessionCwd || process.cwd());
         const started = silentSessionExec(["new-session", "-d", "-s", sessionName, "-n", "agent", "-c", rootDir, "--", "bash", "-lc", cmd], 5000);
@@ -1916,7 +1922,16 @@ export function registerTools(pi: ExtensionAPI) {
           silentSessionExec(["set-window-option", "-t", sessionName, "remain-on-exit", "on"], 3000);
         }
         const sessionsAfter = listSilentSessions();
-        return { content: [{ type: "text", text: started.ok ? `silent session started → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session start blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, side_effects: started.ok ? ["tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit"] : [], sessions: sessionsAfter, error: started.stderr, tmux_version: silentSessionVersion() } } as any;
+        const verb = action === "restart" ? "restarted" : "started";
+        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit"].filter(Boolean) : [], sessions: sessionsAfter, error: started.stderr, tmux_version: silentSessionVersion() } } as any;
+      }
+
+      if (action === "interrupt") {
+        if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "interrupt sends C-c to a background process; pass approved=true only for explicit operator interruption", sessionsBefore);
+        if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
+        const interrupted = silentSessionExec(["send-keys", "-t", sessionName, "C-c"], 3000);
+        if (!interrupted.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux interrupt failed: ${interrupted.stderr || "unknown error"}`, sessionsBefore, { error: interrupted.stderr });
+        return { content: [{ type: "text", text: `silent session interrupted → ${sessionName}` }], details: { ok: true, status: "accepted", session_name: sessionName, side_effects: ["tmux_send_interrupt"], next_tools: ["focusa_silent_sessions"] } } as any;
       }
 
       if (action === "send") {
@@ -1939,7 +1954,7 @@ export function registerTools(pi: ExtensionAPI) {
         return { content: [{ type: "text", text: `silent session killed → ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, side_effects: ["tmux_kill_session"], sessions: sessionsAfter } } as any;
       }
 
-      return silentSessionBlocked(action, sessionName, "validation_rejected", `unsupported action ${action}; use list/start/reopen/tail/health/send/kill`, sessionsBefore);
+      return silentSessionBlocked(action, sessionName, "validation_rejected", `unsupported action ${action}; use list/start/reopen/tail/health/send/interrupt/restart/kill`, sessionsBefore);
     },
   });
 
