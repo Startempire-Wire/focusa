@@ -78,6 +78,13 @@ else
   exit 1
 fi
 
+if rg -n 'trajectoryFallback \? \(projectIdentity\.project_urls|trajectoryFallback \? \(projectIdentity\.deployment' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
+  echo "✓ PASS: prior trajectory fallback cannot override current ProjectIdentity env facts"
+else
+  echo "✗ FAIL: prior trajectory fallback may bleed environment facts into Utility Card" >&2
+  exit 1
+fi
+
 if rg -n 'VITAL AUTO-PROMPT|Agent responsibility FIRST|call focusa_project_identity with the best explicit project_root|queueProjectIdentityBootstrapTurn|sendUserMessage\(prompt|Focusa auto-bootstrap|pi_vital_project_root_send_user_message' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
   && ! rg -n 'Focusa needs project root|Focusa inferred|Enter project_root|Confirm Focusa project_root|ctx\.ui\.select\("Focusa needs project root|ctx\.ui\.input\("Confirm Focusa project_root"|setWidget\("focusa-vital", \["🧭 Focusa project root unclear"' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null; then
   echo "✓ PASS: project root vital prompt is agent-internal and avoids operator modal/widget UI"

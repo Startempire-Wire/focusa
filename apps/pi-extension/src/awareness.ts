@@ -36,9 +36,9 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const trajectoryProjectIdentity = trajectory.project_identity && normalizeProjectRoot(trajectory.project_identity.project_root) === projectRoot ? trajectory.project_identity : null;
   const projectIdentity = safeScope ? (trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {}) : {};
   const projectSummary = projectIdentity.project_summary || {};
-  const projectUrls = trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {};
-  const deployment = trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {};
   const trajectoryFallback = trajectory.fallback_prior_project_trajectory === true;
+  const projectUrls = trajectoryFallback ? (projectIdentity.project_urls || projectSummary.urls || {}) : (trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {});
+  const deployment = trajectoryFallback ? (projectIdentity.deployment || projectSummary.deployment || {}) : (trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {});
   const trajectorySet = !trajectoryFallback && !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);
   const workpointStatus = scopedPacket
     ? "verified"
