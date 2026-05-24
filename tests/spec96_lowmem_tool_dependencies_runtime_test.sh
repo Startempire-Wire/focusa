@@ -24,7 +24,19 @@ trap cleanup EXIT
 
 cd "$ROOT_DIR"
 
-curl -fsS --max-time 5 "${BASE_URL}/v1/health" >"$HEALTH_BODY"
+health_ready=0
+for _ in 1 2 3; do
+  if curl -fsS --max-time 8 "${BASE_URL}/v1/health" >"$HEALTH_BODY"; then
+    health_ready=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$health_ready" != "1" ]]; then
+  echo "✗ FAIL: /v1/health unavailable after bounded retries" >&2
+  cat "$HEALTH_BODY" >&2 2>/dev/null || true
+  exit 1
+fi
 node scripts/validate-focusa-tool-contracts.mjs --json >"$VALIDATE_JSON"
 initial_tools="$(jq -r '.tools' "$VALIDATE_JSON")"
 initial_contracts="$(jq -r '.contracts' "$VALIDATE_JSON")"
