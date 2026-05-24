@@ -35,6 +35,13 @@ else
   exit 1
 fi
 
+if rg -n 'confirmPiProjectRoot\(verifiedRoot, "focusa_project_identity_verified"\)|ensureContinuityId\(verifiedRoot\)' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: focusa_project_identity verified result binds Pi session root"
+else
+  echo "✗ FAIL: focusa_project_identity does not bind verified root into Pi session" >&2
+  exit 1
+fi
+
 if rg -n 'compact_project_summary|project_summary|summary_lines|stack|key_dirs|wp_url|app_url|auth_url|graphql_url|environment_confidence' "$PROJECT" "$TOOLS" >/dev/null; then
   echo "✓ PASS: ProjectIdentity exposes compact project card facts directly"
 else

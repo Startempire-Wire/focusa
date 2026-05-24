@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -2001,7 +2001,14 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const identity = body.project_identity || {};
-      if (identity && Object.keys(identity).length) S.lastProjectIdentity = identity;
+      if (identity && Object.keys(identity).length) {
+        S.lastProjectIdentity = identity;
+        const verifiedRoot = normalizeProjectRoot(identity.project_root);
+        if (verifiedRoot && identity.status === "verified" && isProjectRootAuthoritySafe(verifiedRoot)) {
+          confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
+          ensureContinuityId(verifiedRoot);
+        }
+      }
       const summaryLines = Array.isArray(body.summary_lines)
         ? body.summary_lines.map((line: any) => String(line)).filter(Boolean)
         : Array.isArray(identity.project_summary?.summary_lines)
