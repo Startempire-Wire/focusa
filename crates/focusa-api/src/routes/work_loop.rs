@@ -204,6 +204,27 @@ fn work_loop_dispatch_failed(action: &str, err: impl std::fmt::Display) -> (Stat
     )
 }
 
+fn work_loop_dispatch_timeout(action: &str) -> (StatusCode, Json<Value>) {
+    work_loop_failure(
+        StatusCode::ACCEPTED,
+        action,
+        "resource_exhausted",
+        format!("work-loop dispatch timed out before enqueue for {action}; command backlog may be saturated"),
+    )
+}
+
+async fn send_work_loop_action(
+    state: &Arc<AppState>,
+    action_name: &str,
+    action: Action,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    match tokio::time::timeout(Duration::from_millis(1500), state.command_tx.send(action)).await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(error)) => Err(work_loop_dispatch_failed(action_name, error)),
+        Err(_) => Err(work_loop_dispatch_timeout(action_name)),
+    }
+}
+
 fn work_loop_pi_spawn_failed(err: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
     work_loop_failure(
         StatusCode::INTERNAL_SERVER_ERROR,
@@ -2254,9 +2275,7 @@ async fn enable(
         project_run_id: payload.project_run_id.unwrap_or_else(Uuid::now_v7),
         policy,
     };
-    state.command_tx.send(action).await.map_err(|e| {
-        work_loop_dispatch_failed("work_loop_dispatch", e)
-    })?;
+    send_work_loop_action(&state, "work_loop_dispatch", action).await?;
 
     let root_work_item_id = if let Some(root) = payload.root_work_item_id.clone() {
         Some(root)
@@ -2271,15 +2290,14 @@ async fn enable(
     };
 
     if let Some(parent_work_item_id) = root_work_item_id {
-        state
-            .command_tx
-            .send(Action::SelectNextContinuousSubtask {
+        send_work_loop_action(
+            &state,
+            "work_loop_select_next",
+            Action::SelectNextContinuousSubtask {
                 parent_work_item_id,
-            })
-            .await
-            .map_err(|e| {
-                work_loop_dispatch_failed("work_loop_dispatch", e)
-            })?;
+            },
+        )
+        .await?;
         let _ = maybe_dispatch_continuous_turn_prompt(
             &state,
             "continuous work enabled with ready work selected",
@@ -2309,15 +2327,14 @@ async fn pause(
         ));
     }
 
-    state
-        .command_tx
-        .send(Action::PauseContinuousWork {
+    send_work_loop_action(
+        &state,
+        "work_loop_pause",
+        Action::PauseContinuousWork {
             reason: payload.reason.unwrap_or_default(),
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2334,15 +2351,14 @@ async fn resume(
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
 
-    state
-        .command_tx
-        .send(Action::ResumeContinuousWork {
+    send_work_loop_action(
+        &state,
+        "work_loop_resume",
+        Action::ResumeContinuousWork {
             reason: payload.reason.unwrap_or_default(),
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2359,15 +2375,14 @@ async fn select_next(
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
 
-    state
-        .command_tx
-        .send(Action::SelectNextContinuousSubtask {
+    send_work_loop_action(
+        &state,
+        "work_loop_select_next",
+        Action::SelectNextContinuousSubtask {
             parent_work_item_id: payload.parent_work_item_id,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
     let _ = maybe_dispatch_continuous_turn_prompt(
         &state,
         "ready work selected for continuous execution",
@@ -2389,9 +2404,10 @@ async fn set_decision_context(
 
     let writer_id = ensure_claimed_writer_matches_for_context(&state, &headers).await?;
 
-    state
-        .command_tx
-        .send(Action::SetContinuousDecisionContext {
+    send_work_loop_action(
+        &state,
+        "work_loop_context",
+        Action::SetContinuousDecisionContext {
             current_ask: payload.current_ask,
             ask_kind: payload.ask_kind,
             scope_kind: payload.scope_kind,
@@ -2400,11 +2416,9 @@ async fn set_decision_context(
             excluded_context_labels: payload.excluded_context_labels,
             source_turn_id: payload.source_turn_id,
             operator_steering_detected: payload.operator_steering_detected,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(
         json!({ "status": "accepted", "writer_id": writer_id }),
@@ -2729,16 +2743,15 @@ async fn attach_session(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::AttachContinuousTransportSession {
+    send_work_loop_action(
+        &state,
+        "work_loop_attach_session",
+        Action::AttachContinuousTransportSession {
             adapter: payload.adapter,
             session_id: payload.session_id,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2754,17 +2767,16 @@ async fn abort_session(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::AbortContinuousTransportSession {
+    send_work_loop_action(
+        &state,
+        "work_loop_abort_session",
+        Action::AbortContinuousTransportSession {
             reason: payload
                 .reason
                 .unwrap_or_else(|| "abort requested".to_string()),
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2780,20 +2792,24 @@ async fn ingest_transport_event(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    let _guard = state.write_serial_lock.lock().await;
-    state
-        .command_tx
-        .send(Action::IngestContinuousTransportEvent {
+    let _guard = tokio::time::timeout(
+        Duration::from_millis(1500),
+        state.write_serial_lock.lock(),
+    )
+    .await
+    .map_err(|_| work_loop_dispatch_timeout("work_loop_ingest_transport_lock"))?;
+    send_work_loop_action(
+        &state,
+        "work_loop_ingest_transport",
+        Action::IngestContinuousTransportEvent {
             sequence: payload.sequence,
             kind: payload.kind,
             session_id: payload.session_id,
             turn_id: payload.turn_id,
             summary: payload.summary,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2809,18 +2825,17 @@ async fn set_pause_flags(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::SetContinuousPauseFlags {
+    send_work_loop_action(
+        &state,
+        "work_loop_pause_flags",
+        Action::SetContinuousPauseFlags {
             destructive_confirmation_required: payload.destructive_confirmation_required,
             governance_decision_pending: payload.governance_decision_pending,
             operator_override_active: payload.operator_override_active,
             reason: payload.reason,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2840,17 +2855,16 @@ async fn delegate_authorship(
         "delegated authorship changes authority state and requires explicit approval",
     )?;
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::SetDelegatedContinuousAuthorship {
+    send_work_loop_action(
+        &state,
+        "work_loop_delegate_authorship",
+        Action::SetDelegatedContinuousAuthorship {
             delegate_id: Some(payload.delegate_id),
             scope: Some(payload.scope),
             amendment_summary: payload.amendment_summary,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2870,17 +2884,16 @@ async fn clear_delegated_authorship(
         "clearing delegated authorship changes authority state and requires explicit approval",
     )?;
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::SetDelegatedContinuousAuthorship {
+    send_work_loop_action(
+        &state,
+        "work_loop_clear_delegated_authorship",
+        Action::SetDelegatedContinuousAuthorship {
             delegate_id: None,
             scope: None,
             amendment_summary: payload.reason,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2896,17 +2909,16 @@ async fn transport_degraded(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::MarkContinuousLoopTransportDegraded {
+    send_work_loop_action(
+        &state,
+        "work_loop_transport_degraded",
+        Action::MarkContinuousLoopTransportDegraded {
             reason: payload
                 .reason
                 .unwrap_or_else(|| "transport degraded".to_string()),
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2957,16 +2969,15 @@ async fn checkpoint(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::CheckpointContinuousLoop {
+    send_work_loop_action(
+        &state,
+        "work_loop_checkpoint",
+        Action::CheckpointContinuousLoop {
             checkpoint_id: payload.checkpoint_id.unwrap_or_else(Uuid::now_v7),
             summary: payload.summary,
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2982,15 +2993,14 @@ async fn stop(
     }
 
     let released_writer = release_writer_claim(&state, &headers).await?;
-    state
-        .command_tx
-        .send(Action::StopContinuousWork {
+    send_work_loop_action(
+        &state,
+        "work_loop_stop",
+        Action::StopContinuousWork {
             reason: payload.reason.unwrap_or_default(),
-        })
-        .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        },
+    )
+    .await?;
 
     Ok(Json(
         json!({ "ok": true, "released_writer": released_writer }),
