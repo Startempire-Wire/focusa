@@ -93,6 +93,13 @@ else
   exit 1
 fi
 
+if rg -n 'project identity timeout_preserved|project verify timeout_preserved|cached identity returned as noncanonical advisory|focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity hot timeout returns cached advisory identity with recovery tools"
+else
+  echo "✗ FAIL: ProjectIdentity hot timeout can dead-end without cached advisory fallback" >&2
+  exit 1
+fi
+
 if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else

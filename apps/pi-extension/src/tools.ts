@@ -2035,6 +2035,11 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.project_root) query.set("project_root", p.project_root);
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
+      if (!result.ok && body.failure_class === "hot_path_timeout") {
+        const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
+        const cachedIdentity = S.lastProjectIdentity && (!requestedRoot || normalizeProjectRoot(S.lastProjectIdentity.project_root) === requestedRoot) ? S.lastProjectIdentity : null;
+        return { content: [{ type: "text", text: `project identity timeout_preserved → ${cachedIdentity ? "cached identity returned as noncanonical advisory" : "no cached identity; retry after focusa_tool_doctor/resource_mode"}` }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/identity", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, failure_class: "hot_path_timeout", response: body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
+      }
       const identity = body.project_identity || {};
       if (identity && Object.keys(identity).length) {
         S.lastProjectIdentity = identity;
@@ -2091,6 +2096,11 @@ export function registerTools(pi: ExtensionAPI) {
       const payload = { ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
       const result = await focusaFetchDetailed("/project/verify", { method: "POST", body: JSON.stringify(payload) });
       const body = result.body || {};
+      if (!result.ok && body.failure_class === "hot_path_timeout") {
+        const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
+        const cachedIdentity = S.lastProjectIdentity && (!requestedRoot || normalizeProjectRoot(S.lastProjectIdentity.project_root) === requestedRoot) ? S.lastProjectIdentity : null;
+        return { content: [{ type: "text", text: `project verify timeout_preserved → ${cachedIdentity ? "cached identity returned as noncanonical advisory" : "no cached identity; retry after focusa_tool_doctor/resource_mode"}` }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/verify", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, verification: { verified: false, reason: "hot_path_timeout" }, failure_class: "hot_path_timeout", response: body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
+      }
       const identity = body.project_identity || {};
       const verified = body.verification?.verified === true;
       const text = result.ok
