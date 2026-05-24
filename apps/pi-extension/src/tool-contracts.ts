@@ -720,6 +720,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "tmux list-sessions",
       "tmux new-session",
       "tmux attach-session",
+      "tmux capture-pane",
+      "tmux send-keys",
       "tmux kill-session"
     ],
     "core_surface": "Pi-local tmux SilentSession controller",

@@ -1757,12 +1757,40 @@ export function registerTools(pi: ExtensionAPI) {
     return base.startsWith(SILENT_SESSION_PREFIX) ? base : `${SILENT_SESSION_PREFIX}-${base}`;
   }
 
+  function silentSessionAttachCommand(name: string, detachOthers = false): string {
+    return `tmux attach${detachOthers ? " -d" : ""} -t ${name}`;
+  }
+
+  function silentSessionTailCommand(name: string, lines = 80): string {
+    return `tmux capture-pane -p -J -t ${name} -S -${lines}`;
+  }
+
+  function silentSessionVersion(): string {
+    const r = silentSessionExec(["-V"], 3000);
+    return r.ok ? r.stdout.trim() : "unknown";
+  }
+
   function listSilentSessions() {
-    const r = silentSessionExec(["list-sessions", "-F", "#{session_name}\t#{session_attached}\t#{session_windows}\t#{session_created}"], 3000);
+    const r = silentSessionExec(["list-sessions", "-F", "#{session_name}\t#{session_attached}\t#{session_windows}\t#{session_created}\t#{session_activity}\t#{session_id}\t#{window_name}"], 3000);
     if (!r.ok && /no server running|failed to connect/i.test(r.stderr)) return [];
     return r.stdout.split("\n").filter(Boolean).map((line: string) => {
-      const [name, attached, windows, created] = line.split("\t");
-      return { name, attached: attached === "1", windows: Number(windows || 0), created: Number(created || 0), attach_command: `tmux attach -t ${name}` };
+      const [name, attached, windows, created, activity, sessionId, windowName] = line.split("\t");
+      const createdNum = Number(created || 0);
+      const activityNum = Number(activity || 0);
+      return {
+        name,
+        attached: attached === "1",
+        windows: Number(windows || 0),
+        created: createdNum,
+        created_iso: createdNum ? new Date(createdNum * 1000).toISOString() : null,
+        activity: activityNum,
+        activity_iso: activityNum ? new Date(activityNum * 1000).toISOString() : null,
+        session_id: sessionId || null,
+        window_name: windowName || null,
+        attach_command: silentSessionAttachCommand(name),
+        attach_detach_others_command: silentSessionAttachCommand(name, true),
+        tail_command: silentSessionTailCommand(name),
+      };
     }).filter((session: any) => String(session.name || "").startsWith(SILENT_SESSION_PREFIX));
   }
 
@@ -1771,7 +1799,7 @@ export function registerTools(pi: ExtensionAPI) {
     const mission = String(p.mission || "Continue Focusa-governed ready beads using trajectory/workpoint context; stop on destructive risk.").replace(/'/g, `'\\''`);
     const bead = String(p.work_item_id || "").replace(/'/g, `'\\''`);
     const lowmem = p.lowmem === false ? "" : "curl -fsS --max-time 5 -X POST http://127.0.0.1:8787/v1/resource/mode -H 'Content-Type: application/json' --data '{\"action\":\"activate_lowmem\",\"reason\":\"SilentSession start\"}' >/tmp/focusa-silent-lowmem.json 2>/tmp/focusa-silent-lowmem.err || true; ";
-    return `cd '${rootDir}' && ${lowmem}pi 'SilentSession ${sessionName}: ${mission}${bead ? ` Work item: ${bead}.` : ""} Use Focusa trajectory/workpoint/beads, record evidence, checkpoint often, and stop for destructive/high-risk actions.'`;
+    return `cd '${rootDir}' && ${lowmem}pi 'SilentSession ${sessionName}: ${mission}${bead ? ` Work item: ${bead}.` : ""} Use Focusa trajectory/workpoint/beads, record evidence, checkpoint often, stop for destructive/high-risk actions, and accept operator steering sent through tmux send-keys.'`;
   }
 
   function silentSessionBlocked(action: SilentSessionAction | string, sessionName: string, failureClass: FocusaFailureClass, why: string, sessions: any[] = [], extra: Record<string, any> = {}): any {
@@ -1837,29 +1865,34 @@ export function registerTools(pi: ExtensionAPI) {
         const text = sessionsBefore.length
           ? `silent sessions → ${sessionsBefore.map((s: any) => `${s.name}${s.attached ? "(attached)" : ""}`).join(", ")}`
           : "silent sessions → none";
-        return { content: [{ type: "text", text }], details: { ok: true, status: "completed", sessions: sessionsBefore, count: sessionsBefore.length, next_tools: ["focusa_silent_sessions", "focusa_resource_mode", "focusa_work_loop_status"] } } as any;
+        return { content: [{ type: "text", text }], details: { ok: true, status: "completed", sessions: sessionsBefore, count: sessionsBefore.length, tmux_version: silentSessionVersion(), next_tools: ["focusa_silent_sessions", "focusa_resource_mode", "focusa_work_loop_status"] } } as any;
       }
 
       if (action === "reopen") {
         if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
-        const tail = silentSessionExec(["capture-pane", "-p", "-t", sessionName, "-S", "-80"], 3000);
-        return { content: [{ type: "text", text: `silent session reopen → ${sessionName}\nattach: tmux attach -t ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, tail: tail.stdout.slice(-4000), sessions: sessionsBefore } } as any;
+        const tail = silentSessionExec(["capture-pane", "-p", "-J", "-t", sessionName, "-S", "-80"], 3000);
+        return { content: [{ type: "text", text: `silent session reopen → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` }], details: { ok: true, status: "completed", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), tail: tail.stdout.slice(-4000), sessions: sessionsBefore, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "tail") {
         if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const lines = Math.max(1, Math.min(400, Number(p.lines || 80)));
-        const tail = silentSessionExec(["capture-pane", "-p", "-t", sessionName, "-S", `-${lines}`], 3000);
-        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, error: tail.stderr } } as any;
+        const tail = silentSessionExec(["capture-pane", "-p", "-J", "-t", sessionName, "-S", `-${lines}`], 3000);
+        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, tail_command: silentSessionTailCommand(sessionName, lines), error: tail.stderr, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "start") {
         if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "start mutates background process state; pass approved=true only when operator explicitly wants a background session", sessionsBefore);
         if (hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, sessions: sessionsBefore } } as any;
         const cmd = String(p.command || defaultSilentSessionCommand(p, sessionName));
-        const started = silentSessionExec(["new-session", "-d", "-s", sessionName, "--", "bash", "-lc", cmd], 5000);
+        const rootDir = String(p.root_dir || S.sessionCwd || process.cwd());
+        const started = silentSessionExec(["new-session", "-d", "-s", sessionName, "-n", "agent", "-c", rootDir, "--", "bash", "-lc", cmd], 5000);
+        if (started.ok) {
+          silentSessionExec(["set-option", "-t", sessionName, "history-limit", "50000"], 3000);
+          silentSessionExec(["set-window-option", "-t", sessionName, "remain-on-exit", "on"], 3000);
+        }
         const sessionsAfter = listSilentSessions();
-        return { content: [{ type: "text", text: started.ok ? `silent session started → ${sessionName}\nattach: tmux attach -t ${sessionName}` : `silent session start blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, command: cmd, side_effects: started.ok ? ["tmux_new_session"] : [], sessions: sessionsAfter, error: started.stderr } } as any;
+        return { content: [{ type: "text", text: started.ok ? `silent session started → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session start blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, side_effects: started.ok ? ["tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit"] : [], sessions: sessionsAfter, error: started.stderr, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "send") {
@@ -1867,9 +1900,10 @@ export function registerTools(pi: ExtensionAPI) {
         if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const line = String(p.command || "").trim();
         if (!line) return silentSessionBlocked(action, sessionName, "validation_rejected", "send requires command/input text; provide command or use tail/list instead", sessionsBefore);
-        const sent = silentSessionExec(["send-keys", "-t", sessionName, "--", line, "C-m"], 3000);
-        if (!sent.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux send-keys failed: ${sent.stderr || "unknown error"}`, sessionsBefore, { error: sent.stderr });
-        return { content: [{ type: "text", text: `silent session sent → ${sessionName}` }], details: { ok: true, status: "accepted", session_name: sessionName, side_effects: ["tmux_send_keys"] } } as any;
+        const sentLiteral = silentSessionExec(["send-keys", "-l", "-t", sessionName, "--", line], 3000);
+        const sentEnter = sentLiteral.ok ? silentSessionExec(["send-keys", "-t", sessionName, "C-m"], 3000) : sentLiteral;
+        if (!sentLiteral.ok || !sentEnter.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux send-keys failed: ${sentLiteral.stderr || sentEnter.stderr || "unknown error"}`, sessionsBefore, { error: sentLiteral.stderr || sentEnter.stderr });
+        return { content: [{ type: "text", text: `silent session sent → ${sessionName}` }], details: { ok: true, status: "accepted", session_name: sessionName, sent_literal: true, side_effects: ["tmux_send_keys_literal", "tmux_send_enter"] } } as any;
       }
 
       if (action === "kill") {
