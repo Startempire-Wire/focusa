@@ -2926,10 +2926,24 @@ export function registerTools(pi: ExtensionAPI) {
           ? [`workpoint resume rejected: project_root mismatch. Ignore packet; follow latest operator instruction and current repo.`, recovery?.text].filter(Boolean).join("\n")
           : [`workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`, recovery?.text].filter(Boolean).join("\n");
       const v2 = res.body?.resume_packet_v2 || null;
-      const toolResult = res.body?.details?.tool_result_v1 || v2?.details?.tool_result_v1 || { ok: res.ok && !rejected, status: res.ok ? String(res.body?.status || "completed") : String(res.status), canonical: res.body?.canonical === true, degraded: res.body?.degraded === true || rejected, failure_class: res.body?.failure_class || (rejected ? "scope_mismatch" : null), retry: { safe: res.ok && !rejected, posture: res.ok && !rejected ? "safe_retry" : "do_not_retry_unchanged" }, side_effects: [], evidence_refs: [], next_tools: res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"] };
+      const canonical = res.body?.canonical === true;
+      const recoveryPacket = canonical ? null : {
+        status: "recovery_required",
+        authority: "operator_and_current_project_context",
+        canonical: false,
+        degraded: true,
+        reason: res.body?.failure_class || res.body?.status || (rejected ? "scope_mismatch" : "no_canonical_workpoint_packet"),
+        project_root: projectRoot,
+        continuity_id: payload.continuity_id,
+        safe_next_action: "create a fresh focusa_workpoint_checkpoint from the current operator ask, project root, target objects, verified evidence, blockers, and exact next action before treating continuation state as canonical",
+        next_tools: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"],
+        do_not_use: ["transcript_tail_as_authority", "cross_project_packets", "noncanonical_resume_as_truth"],
+      };
+      const toolResult = res.body?.details?.tool_result_v1 || v2?.details?.tool_result_v1 || { ok: res.ok && !rejected && canonical, status: res.ok ? String(res.body?.status || "completed") : String(res.status), canonical, degraded: res.body?.degraded === true || !canonical || rejected, failure_class: res.body?.failure_class || (rejected ? "scope_mismatch" : canonical ? null : "frame_unavailable"), retry: { safe: res.ok && !rejected, posture: canonical ? "safe_retry" : "checkpoint_first" }, side_effects: [], evidence_refs: [], next_tools: recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"] };
+      const recoveryText = recoveryPacket ? `\nrecovery → ${recoveryPacket.safe_next_action}` : "";
       return {
-        content: [{ type: "text", text }],
-        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical: res.body?.canonical === true, degraded: res.body?.degraded === true, failure_class: toolResult.failure_class || null, scope_recovery_context: recovery?.details || null, resume_packet_v2: v2, rendered_summary: res.body?.rendered_summary || "", tool_result_v1: toolResult, next_tools: toolResult.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"], request: payload, response: res.body },
+        content: [{ type: "text", text: `${text}${recoveryText}` }],
+        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical, degraded: res.body?.degraded === true || !canonical, failure_class: toolResult.failure_class || null, recovery_packet: recoveryPacket, scope_recovery_context: recovery?.details || null, resume_packet_v2: v2, rendered_summary: res.body?.rendered_summary || "", tool_result_v1: toolResult, next_tools: toolResult.next_tools || recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"], request: payload, response: res.body },
       };
     },
   });
