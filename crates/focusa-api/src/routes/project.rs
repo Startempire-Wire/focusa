@@ -423,6 +423,91 @@ fn extract_urls(text: &str) -> Vec<String> {
         .collect()
 }
 
+fn extract_urls_with_lines(text: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for line in text.lines().take(2_000) {
+        for url in extract_urls(line) {
+            out.push((url, line.trim().to_string()));
+        }
+    }
+    out
+}
+
+fn source_is_docs_or_reference(source: &str) -> bool {
+    let lower = source.to_ascii_lowercase();
+    lower == "readme.md" || lower.starts_with("docs/")
+}
+
+fn source_is_runtime_url_authority(source: &str) -> bool {
+    let lower = source.to_ascii_lowercase();
+    lower.contains("wp-config.php")
+        || lower.starts_with("app/src/")
+        || lower.starts_with("src/")
+        || lower.starts_with("scripts/")
+        || lower.starts_with("bin/")
+        || lower.starts_with(".github/workflows/")
+        || matches!(
+            lower.as_str(),
+            ".focusa-project.json"
+                | ".env"
+                | ".env.example"
+                | "app/.env"
+                | "app/.env.example"
+                | "package.json"
+                | "app/package.json"
+        )
+}
+
+fn line_declares_project_url(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    if lower.contains("upstream")
+        || lower.contains("openai")
+        || lower.contains("anthropic")
+        || lower.contains("example.com")
+        || lower.contains("codex.wordpress.org")
+        || lower.contains("api.wordpress.org")
+    {
+        return false;
+    }
+    [
+        "root_url",
+        "live_url",
+        "local_url",
+        "app_url",
+        "auth_url",
+        "wp_home",
+        "wp_siteurl",
+        "site_url",
+        "public_url",
+        "graphql_url",
+        "production_url",
+        "deploy_target",
+        "app configuration",
+        "allowed origin",
+        "trusted origin",
+    ]
+    .iter()
+    .any(|needle| lower.contains(needle))
+}
+
+fn url_allowed_for_project_inference(source: &str, line: &str, url: &str) -> bool {
+    if is_local_url(url) {
+        return true;
+    }
+    if source_is_docs_or_reference(source) {
+        return line_declares_project_url(line);
+    }
+    if !source_is_runtime_url_authority(source) {
+        return false;
+    }
+    if source.to_ascii_lowercase().contains("wp-config.php") {
+        return true;
+    }
+    line_declares_project_url(line)
+        || url_host_starts_with(url, "app.")
+        || url_host_starts_with(url, "auth.")
+}
+
 fn extract_deploy_locations(text: &str) -> Vec<String> {
     text.split(|ch: char| ch.is_whitespace() || matches!(ch, '"' | '\'' | '`'))
         .filter_map(|token| {
@@ -460,9 +545,11 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
             continue;
         }
         let bounded = text.chars().take(65_536).collect::<String>();
-        for url in extract_urls(&bounded) {
-            urls.push((url, rel.clone()));
-            sources.insert(rel.clone());
+        for (url, line) in extract_urls_with_lines(&bounded) {
+            if url_allowed_for_project_inference(&rel, &line, &url) {
+                urls.push((url, rel.clone()));
+                sources.insert(rel.clone());
+            }
         }
         for location in extract_deploy_locations(&bounded) {
             deploy_locations.push(location);
@@ -650,19 +737,31 @@ fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
         candidate.workspace_kind.as_deref(),
     );
     let key_dirs = top_level_dirs(Path::new(&candidate.project_root));
-    let environment =
-        object_string(deployment, "environment").unwrap_or_else(|| "unknown".to_string());
+    let live_url = object_string(urls, "live_url");
+    let local_url = object_string(urls, "local_url");
+    let local_only = live_url.is_none() && local_url.is_some();
+    let environment = object_string(deployment, "environment").unwrap_or_else(|| {
+        if local_only {
+            "local".to_string()
+        } else {
+            "unknown".to_string()
+        }
+    });
     let confidence = object_string(urls, "inference_confidence")
         .or_else(|| object_string(deployment, "inference_confidence"))
         .unwrap_or_else(|| candidate.confidence.to_string());
     let mut lines = Vec::new();
     lines.push(format!(
-        "project={} id={} root={} confidence={} status={}",
+        "project={} id={} root={} confidence={} status={} public_repo={}",
         candidate.canonical_name,
         candidate.project_id,
         candidate.project_root,
         candidate.confidence,
-        candidate.status
+        candidate.status,
+        candidate
+            .repo_remote
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string())
     ));
     lines.push(format!(
         "stack={} workspace={} dirs={}",
@@ -682,10 +781,11 @@ fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
         }
     ));
     lines.push(format!(
-        "urls=root:{} live:{} local:{} wp:{} app:{} auth:{} graphql:{} api:{}",
+        "urls=local_only:{} root:{} live:{} local:{} wp:{} app:{} auth:{} graphql:{} api:{}",
+        local_only,
         object_string(urls, "root_url").unwrap_or_else(|| "unknown".to_string()),
-        object_string(urls, "live_url").unwrap_or_else(|| "unknown".to_string()),
-        object_string(urls, "local_url").unwrap_or_else(|| "unknown".to_string()),
+        live_url.clone().unwrap_or_else(|| "none".to_string()),
+        local_url.clone().unwrap_or_else(|| "unknown".to_string()),
         object_string(urls, "wp_url").unwrap_or_else(|| "unknown".to_string()),
         object_string(urls, "app_url").unwrap_or_else(|| "unknown".to_string()),
         object_string(urls, "auth_url").unwrap_or_else(|| "unknown".to_string()),
@@ -717,6 +817,8 @@ fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
         "urls": urls.clone(),
         "deployment": deployment.clone(),
         "environment_confidence": confidence,
+        "local_only": local_only,
+        "public_repo": candidate.repo_remote.clone(),
         "authority_boundary": "project_root_plus_fingerprint",
         "summary_lines": lines,
     })
@@ -1192,7 +1294,13 @@ mod tests {
         fs::create_dir_all(root.join("scripts")).unwrap();
         fs::write(
             root.join("README.md"),
-            "Local legacy URL: https://asapdigest.local\nLive app: https://app.asapdigest.com\n",
+            "Local legacy URL: https://asapdigest.local\nDocs reference: https://codex.wordpress.org/Editing_wp-config.php\n",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("app/src")).unwrap();
+        fs::write(
+            root.join("app/src/hooks.server.js"),
+            "const allowedOrigin = 'https://app.asapdigest.com';\n",
         )
         .unwrap();
         fs::write(
@@ -1211,6 +1319,12 @@ mod tests {
                 .pointer("/project_identity/project_urls/live_url")
                 .and_then(Value::as_str),
             Some("https://asapdigest.com")
+        );
+        assert_ne!(
+            payload
+                .pointer("/project_identity/project_urls/live_url")
+                .and_then(Value::as_str),
+            Some("https://codex.wordpress.org/Editing_wp-config.php")
         );
         assert_eq!(
             payload
@@ -1250,7 +1364,7 @@ mod tests {
                 .and_then(Value::as_array)
                 .is_some_and(|lines| lines.iter().any(|line| line
                     .as_str()
-                    .is_some_and(|text| text.contains("urls=root:"))))
+                    .is_some_and(|text| text.contains("urls=local_only:"))))
         );
         let _ = fs::remove_dir_all(root);
     }

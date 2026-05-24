@@ -42,6 +42,13 @@ else
   exit 1
 fi
 
+if rg -n 'url_allowed_for_project_inference|source_is_docs_or_reference|line_declares_project_url|codex\.wordpress\.org|api\.wordpress\.org|upstream' "$PROJECT" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity filters docs/reference URLs from project URL inference"
+else
+  echo "✗ FAIL: ProjectIdentity docs/reference URL filtering missing" >&2
+  exit 1
+fi
+
 if rg -n 'lastProjectIdentity|projectSummary|S\.lastProjectIdentity = identity|S\.lastProjectIdentity = projectIdentity' "${ROOT_DIR}/apps/pi-extension/src/state.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" "$TOOLS" >/dev/null; then
   echo "✓ PASS: Utility Card consumes cached ProjectIdentity summary facts"
 else
