@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -561,7 +561,12 @@ export function registerSession(pi: ExtensionAPI) {
           currentFocus: e.data.currentFocus || "",
         };
         if (e.data.projectRootResolution) S.lastProjectRootResolution = e.data.projectRootResolution;
-        if (e.data.lastProjectIdentity) S.lastProjectIdentity = e.data.lastProjectIdentity;
+        if (e.data.lastProjectIdentity) {
+          const pi = e.data.lastProjectIdentity;
+          const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
+          const cwdRoot = normalizeProjectRoot(ctx.cwd);
+          S.lastProjectIdentity = piRoot && piRoot === cwdRoot ? pi : null;
+        }
         if (e.data.lastTrajectoryClarity) {
           const c = e.data.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
@@ -786,7 +791,12 @@ export function registerSession(pi: ExtensionAPI) {
           currentFocus: d.currentFocus || "",
         };
         if (d.projectRootResolution) S.lastProjectRootResolution = d.projectRootResolution;
-        if (d.lastProjectIdentity) S.lastProjectIdentity = d.lastProjectIdentity;
+        if (d.lastProjectIdentity) {
+          const pi = d.lastProjectIdentity;
+          const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
+          const cwdRoot = normalizeProjectRoot(ctx.cwd);
+          S.lastProjectIdentity = piRoot && piRoot === cwdRoot ? pi : null;
+        }
         if (d.lastTrajectoryClarity) {
           const c = d.lastTrajectoryClarity;
           const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";

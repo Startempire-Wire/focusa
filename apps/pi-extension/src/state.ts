@@ -1256,9 +1256,13 @@ function readRememberedProjectRoot(): string {
   }
 }
 
-function rememberedProjectRootResolution(): ProjectRootResolution | null {
+function rememberedProjectRootResolution(cwdInput?: unknown): ProjectRootResolution | null {
   const remembered = readRememberedProjectRoot();
   if (!remembered || !isProjectRootAuthoritySafe(remembered)) return null;
+  const cwd = normalizeProjectRoot(cwdInput || S.sessionCwd || process.cwd());
+  // Hard isolation: durable project-root cache is only a same-tree hint.
+  // It must never pull a broad/ambiguous or different-project Pi session into another project.
+  if (!cwd || (cwd !== remembered && !cwd.startsWith(`${remembered}/`))) return null;
   const candidates = findAncestorProjectRootCandidates(remembered);
   const exact = candidates.find(candidate => candidate.root === remembered) || candidates[0] || null;
   if (!exact || exact.root !== remembered) return null;
@@ -1320,10 +1324,8 @@ export function resolvePiProjectRootCandidate(cwdInput?: unknown, persistedPacke
     return { projectRoot: packetRoot, confidence: "medium", confidenceScore: 0.75, source: "same_session_workpoint_packet", reason: "same-session Workpoint packet supplied project_root; operator confirmation recommended", safe: true, requiresOperatorConfirmation: true, candidates: [{ projectRoot: packetRoot, confidenceScore: 0.75, markers: ["workpoint_packet"], source: "same_session_workpoint_packet" }] };
   }
 
-  const remembered = rememberedProjectRootResolution();
-  const explicitIsUnsafe = explicit ? !isProjectRootAuthoritySafe(explicit) : true;
-  const sessionIsUnsafe = sessionRoot ? !isProjectRootAuthoritySafe(sessionRoot) : true;
-  if (remembered && (explicitIsUnsafe || sessionIsUnsafe)) return remembered;
+  const remembered = rememberedProjectRootResolution(explicit || sessionRoot);
+  if (remembered) return remembered;
 
   const fallback = explicit || sessionRoot || normalizeProjectRoot(process.cwd());
   const safe = isProjectRootAuthoritySafe(fallback);

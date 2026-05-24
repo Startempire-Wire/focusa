@@ -31,8 +31,11 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const confidence = resolution ? ` confidence=${Math.round(resolution.confidenceScore * 100)}% source=${resolution.source}` : "";
   const needsConfirm = resolution?.requiresOperatorConfirmation === true;
   const trajectory = S.lastTrajectoryClarity || {};
-  const projectIdentity = trajectory.project_identity || S.lastProjectIdentity || S.lastProjectVerify?.project_identity || S.lastProjectVerify || {};
-  const projectSummary = projectIdentity.project_summary || S.lastProjectIdentity?.project_summary || {};
+  const cachedProjectIdentity = S.lastProjectIdentity && normalizeProjectRoot(S.lastProjectIdentity.project_root) === projectRoot ? S.lastProjectIdentity : null;
+  const verifiedProjectIdentity = S.lastProjectVerify?.project_identity && normalizeProjectRoot(S.lastProjectVerify.project_identity.project_root) === projectRoot ? S.lastProjectVerify.project_identity : null;
+  const trajectoryProjectIdentity = trajectory.project_identity && normalizeProjectRoot(trajectory.project_identity.project_root) === projectRoot ? trajectory.project_identity : null;
+  const projectIdentity = trajectoryProjectIdentity || cachedProjectIdentity || verifiedProjectIdentity || {};
+  const projectSummary = projectIdentity.project_summary || {};
   const projectUrls = trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {};
   const deployment = trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {};
   const trajectorySet = !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);

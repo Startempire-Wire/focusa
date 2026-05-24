@@ -49,6 +49,14 @@ else
   exit 1
 fi
 
+if rg -n 'rememberedProjectRootResolution\(cwdInput|same-tree hint|!cwd\.startsWith\(`\$\{remembered\}/`\)' "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null \
+  && ! rg -n 'projectSummary = projectIdentity\.project_summary \|\| S\.lastProjectIdentity' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
+  echo "✓ PASS: remembered ProjectIdentity cache cannot pull other sessions/projects"
+else
+  echo "✗ FAIL: remembered ProjectIdentity cache may bleed across sessions/projects" >&2
+  exit 1
+fi
+
 if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else
