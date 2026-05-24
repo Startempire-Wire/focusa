@@ -15,7 +15,7 @@ else
   exit 1
 fi
 
-for action in list start reopen tail send kill; do
+for action in list start reopen tail health send kill; do
   if ! rg -n "Type\.Literal\(\"${action}\"\)" "$TOOLS_TS" >/dev/null; then
     echo "✗ FAIL: missing SilentSession action: ${action}" >&2
     exit 1
@@ -30,7 +30,7 @@ else
   exit 1
 fi
 
-if rg -n 'silentSessionAttachCommand|attach_detach_others_command|capture-pane", "-p", "-J"|send-keys", "-l"|history-limit|remain-on-exit|tmux_version|window_name' "$TOOLS_TS" >/dev/null   && rg -n 'Tmux control model|tmux attach -d -t|tmux capture-pane -p -J|tmux send-keys -l' "$DOC" >/dev/null; then
+if rg -n 'silentSessionAttachCommand|attach_detach_others_command|capture-pane", "-p", "-J"|send-keys", "-l"|list-panes|pane_dead|health_status|history-limit|remain-on-exit|tmux_version|window_name' "$TOOLS_TS" >/dev/null   && rg -n 'Tmux control model|tmux attach -d -t|tmux capture-pane -p -J|tmux list-panes|tmux send-keys -l' "$DOC" >/dev/null; then
   echo "✓ PASS: tmux cheat-sheet ergonomics are documented and implemented"
 else
   echo "✗ FAIL: SilentSession tmux ergonomics missing from docs or implementation" >&2

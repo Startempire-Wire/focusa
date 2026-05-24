@@ -721,6 +721,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "tmux new-session",
       "tmux attach-session",
       "tmux capture-pane",
+      "tmux list-panes",
       "tmux send-keys",
       "tmux kill-session"
     ],

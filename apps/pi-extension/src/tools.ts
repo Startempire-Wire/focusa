@@ -1735,7 +1735,7 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
 
-  type SilentSessionAction = "list" | "start" | "reopen" | "kill" | "tail" | "send";
+  type SilentSessionAction = "list" | "start" | "reopen" | "kill" | "tail" | "send" | "health";
   const SILENT_SESSION_PREFIX = "focusa-silent";
 
   function silentSessionExec(args: string[], timeout = 5000): { ok: boolean; stdout: string; stderr: string; status: number | null } {
@@ -1768,6 +1768,18 @@ export function registerTools(pi: ExtensionAPI) {
   function silentSessionVersion(): string {
     const r = silentSessionExec(["-V"], 3000);
     return r.ok ? r.stdout.trim() : "unknown";
+  }
+
+  function silentSessionPaneHealth(sessionName: string): any {
+    const r = silentSessionExec(["list-panes", "-t", sessionName, "-F", "#{pane_id}\t#{pane_active}\t#{pane_dead}\t#{pane_current_command}\t#{pane_pid}\t#{pane_exit_status}"], 3000);
+    if (!r.ok) return { ok: false, status: "unknown", panes: [], error: r.stderr || "tmux list-panes failed" };
+    const panes = r.stdout.split("\n").filter(Boolean).map((line: string) => {
+      const [pane_id, active, dead, current_command, pane_pid, exit_status] = line.split("\t");
+      return { pane_id, active: active === "1", dead: dead === "1", current_command: current_command || null, pane_pid: pane_pid ? Number(pane_pid) : null, exit_status: exit_status || null };
+    });
+    const deadCount = panes.filter((pane: any) => pane.dead).length;
+    const status = panes.length === 0 ? "unknown" : deadCount === panes.length ? "dead" : deadCount > 0 ? "degraded" : "running";
+    return { ok: true, status, panes };
   }
 
   function listSilentSessions() {
@@ -1843,6 +1855,7 @@ export function registerTools(pi: ExtensionAPI) {
         Type.Literal("tail"),
         Type.Literal("send"),
         Type.Literal("kill"),
+        Type.Literal("health"),
       ], { description: "SilentSession action. list is default; kill/send/start require approved=true." })),
       session_name: Type.Optional(Type.String({ description: "SilentSession name or suffix. Names are normalized under focusa-silent-* prefix." })),
       root_dir: Type.Optional(Type.String({ description: "Working directory for a new SilentSession; defaults to current Pi cwd." })),
@@ -1881,6 +1894,17 @@ export function registerTools(pi: ExtensionAPI) {
         return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, tail_command: silentSessionTailCommand(sessionName, lines), error: tail.stderr, tmux_version: silentSessionVersion() } } as any;
       }
 
+      if (action === "health") {
+        if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
+        const health = silentSessionPaneHealth(sessionName);
+        const status = health.status || "unknown";
+        const activePane = health.panes?.find?.((pane: any) => pane.active) || health.panes?.[0] || null;
+        const text = health.ok
+          ? `silent session health → ${sessionName}: ${status}${activePane?.current_command ? ` (${activePane.current_command})` : ""}`
+          : `silent session health blocked → ${sessionName}: ${health.error || "unknown"}`;
+        return { content: [{ type: "text", text }], details: { ok: health.ok, status: health.ok ? "completed" : "blocked", session_name: sessionName, health_status: status, panes: health.panes || [], active_pane: activePane, error: health.error, tmux_version: silentSessionVersion(), next_tools: status === "dead" ? ["focusa_silent_sessions", "focusa_work_loop_status"] : ["focusa_silent_sessions"] } } as any;
+      }
+
       if (action === "start") {
         if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "start mutates background process state; pass approved=true only when operator explicitly wants a background session", sessionsBefore);
         if (hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: `tmux attach -t ${sessionName}`, sessions: sessionsBefore } } as any;
@@ -1915,7 +1939,7 @@ export function registerTools(pi: ExtensionAPI) {
         return { content: [{ type: "text", text: `silent session killed → ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, side_effects: ["tmux_kill_session"], sessions: sessionsAfter } } as any;
       }
 
-      return silentSessionBlocked(action, sessionName, "validation_rejected", `unsupported action ${action}; use list/start/reopen/tail/send/kill`, sessionsBefore);
+      return silentSessionBlocked(action, sessionName, "validation_rejected", `unsupported action ${action}; use list/start/reopen/tail/health/send/kill`, sessionsBefore);
     },
   });
 
