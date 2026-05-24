@@ -30,7 +30,7 @@ else
   exit 1
 fi
 
-if rg -n 'silentSessionAttachCommand|attach_detach_others_command|capture-pane", "-p", "-J"|send-keys", "-l"|list-panes|pane_dead|health_status|history-limit|remain-on-exit|tmux_version|window_name' "$TOOLS_TS" >/dev/null   && rg -n 'Tmux control model|tmux attach -d -t|tmux capture-pane -p -J|tmux list-panes|tmux send-keys -l' "$DOC" >/dev/null; then
+if rg -n 'silentSessionAttachCommand|attach_detach_others_command|capture-pane", "-p", "-J"|send-keys", "-l"|list-panes|pane_dead|health_status|pipe-pane|tmux_pipe_pane_log|log_path|history-limit|remain-on-exit|tmux_version|window_name' "$TOOLS_TS" >/dev/null   && rg -n 'Tmux control model|tmux attach -d -t|tmux capture-pane -p -J|tmux list-panes|tmux pipe-pane|tmux send-keys -l' "$DOC" >/dev/null; then
   echo "✓ PASS: tmux cheat-sheet ergonomics are documented and implemented"
 else
   echo "✗ FAIL: SilentSession tmux ergonomics missing from docs or implementation" >&2

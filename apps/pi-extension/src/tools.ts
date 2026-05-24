@@ -1765,6 +1765,17 @@ export function registerTools(pi: ExtensionAPI) {
     return `tmux capture-pane -p -J -t ${name} -S -${lines}`;
   }
 
+  function silentSessionLogPath(name: string): string {
+    const safe = String(name || "default").replace(/[^a-zA-Z0-9._:-]+/g, "-").slice(0, 100) || "default";
+    return `/tmp/${safe}.log`;
+  }
+
+  function silentSessionEnablePipeLog(name: string): { ok: boolean; log_path: string; error?: string } {
+    const logPath = silentSessionLogPath(name);
+    const r = silentSessionExec(["pipe-pane", "-o", "-t", name, `cat >> '${logPath.replace(/'/g, `'\''`)}'`], 3000);
+    return { ok: r.ok, log_path: logPath, error: r.stderr || undefined };
+  }
+
   function silentSessionVersion(): string {
     const r = silentSessionExec(["-V"], 3000);
     return r.ok ? r.stdout.trim() : "unknown";
@@ -1802,6 +1813,7 @@ export function registerTools(pi: ExtensionAPI) {
         attach_command: silentSessionAttachCommand(name),
         attach_detach_others_command: silentSessionAttachCommand(name, true),
         tail_command: silentSessionTailCommand(name),
+        log_path: silentSessionLogPath(name),
       };
     }).filter((session: any) => String(session.name || "").startsWith(SILENT_SESSION_PREFIX));
   }
@@ -1893,7 +1905,7 @@ export function registerTools(pi: ExtensionAPI) {
         if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const lines = Math.max(1, Math.min(400, Number(p.lines || 80)));
         const tail = silentSessionExec(["capture-pane", "-p", "-J", "-t", sessionName, "-S", `-${lines}`], 3000);
-        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, tail_command: silentSessionTailCommand(sessionName, lines), error: tail.stderr, tmux_version: silentSessionVersion() } } as any;
+        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, tail_command: silentSessionTailCommand(sessionName, lines), log_path: silentSessionLogPath(sessionName), error: tail.stderr, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "health") {
@@ -1904,7 +1916,7 @@ export function registerTools(pi: ExtensionAPI) {
         const text = health.ok
           ? `silent session health → ${sessionName}: ${status}${activePane?.current_command ? ` (${activePane.current_command})` : ""}`
           : `silent session health blocked → ${sessionName}: ${health.error || "unknown"}`;
-        return { content: [{ type: "text", text }], details: { ok: health.ok, status: health.ok ? "completed" : "blocked", session_name: sessionName, health_status: status, panes: health.panes || [], active_pane: activePane, error: health.error, tmux_version: silentSessionVersion(), next_tools: status === "dead" ? ["focusa_silent_sessions", "focusa_work_loop_status"] : ["focusa_silent_sessions"] } } as any;
+        return { content: [{ type: "text", text }], details: { ok: health.ok, status: health.ok ? "completed" : "blocked", session_name: sessionName, health_status: status, panes: health.panes || [], active_pane: activePane, log_path: silentSessionLogPath(sessionName), error: health.error, tmux_version: silentSessionVersion(), next_tools: status === "dead" ? ["focusa_silent_sessions", "focusa_work_loop_status"] : ["focusa_silent_sessions"] } } as any;
       }
 
       if (action === "start" || action === "restart") {
@@ -1921,9 +1933,10 @@ export function registerTools(pi: ExtensionAPI) {
           silentSessionExec(["set-option", "-t", sessionName, "history-limit", "50000"], 3000);
           silentSessionExec(["set-window-option", "-t", sessionName, "remain-on-exit", "on"], 3000);
         }
+        const pipeLog = started.ok ? silentSessionEnablePipeLog(sessionName) : { ok: false, log_path: silentSessionLogPath(sessionName), error: started.stderr };
         const sessionsAfter = listSilentSessions();
         const verb = action === "restart" ? "restarted" : "started";
-        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit"].filter(Boolean) : [], sessions: sessionsAfter, error: started.stderr, tmux_version: silentSessionVersion() } } as any;
+        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit", pipeLog.ok ? "tmux_pipe_pane_log" : null].filter(Boolean) : [], sessions: sessionsAfter, error: started.stderr || pipeLog.error, log_path: pipeLog.log_path, pipe_log_ok: pipeLog.ok, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "interrupt") {

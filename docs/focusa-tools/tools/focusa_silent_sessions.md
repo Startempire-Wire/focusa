@@ -34,6 +34,7 @@ Reference reviewed: https://tmuxcheatsheet.com/
 - `tmux attach -d -t <name>` when the operator wants to detach other clients and take over the session.
 - `tmux capture-pane -p -J -S -<lines>` for readable tails.
 - `tmux list-panes -F ...` for read-only health/pane metadata.
+- `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-*.log` for unattended audit/recovery.
 - `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
 - `tmux send-keys C-c` for approved interruption without destroying the session.
 - `tmux kill-session -t <name>` only for explicit stop/kill/restart.
@@ -48,7 +49,7 @@ Default `start` activates LowMem via `/v1/resource/mode` before launching the ag
 
 ## Expected result
 
-The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
+The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
 
 ## Examples
 
@@ -70,7 +71,7 @@ focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true fo
 - Side effects: `process_control`.
 - Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
 - API routes: none; local/Pi-only surface.
-- CLI commands: `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux send-keys`, `tmux kill-session`
+- CLI commands: `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux pipe-pane`, `tmux send-keys`, `tmux kill-session`
 - Parity: `pi_only`; exemptions: `pi_only`.
 - Core surface: Pi-local tmux SilentSession controller.
 - Live check: contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags.
