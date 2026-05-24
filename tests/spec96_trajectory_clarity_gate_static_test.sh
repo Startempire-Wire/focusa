@@ -85,6 +85,13 @@ else
   exit 1
 fi
 
+if rg -n 'trajectory view timeout_preserved|noncanonical cached clarity returned as advisory|Retry focusa_trajectory_view after focusa_tool_doctor/resource_mode|S\.lastTrajectoryClarity = fallback' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: trajectory view hot timeout returns advisory cached clarity with recovery tools"
+else
+  echo "✗ FAIL: trajectory view hot timeout can still dead-end without advisory fallback" >&2
+  exit 1
+fi
+
 if rg -n 'currentAskForProject|trajectoryClarityForProject|scopedWorkpointSeed|sessionId: S\.sessionFrameKey|projectRoot: S\.sessionCwd|trajectory:\$\{projectRoot\}:\$\{S\.continuityId' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
   && ! awk '/function trajectoryDraftOptions/,/^}/ { print }' "${ROOT_DIR}/apps/pi-extension/src/session.ts" | rg -n 'lastFocusSnapshot|activeFrameGoal|lastTrajectoryClarity' >/dev/null; then
   echo "✓ PASS: trajectory prompt seeds are scoped by project/session and do not use global Focus State"

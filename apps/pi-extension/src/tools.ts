@@ -2141,6 +2141,25 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.allow_prior_project_trajectory === true) query.set("allow_prior_project_trajectory", "true");
       const result = await focusaFetchDetailed(`/trajectory/view?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
+      if (!result.ok && body.failure_class === "hot_path_timeout") {
+        const fallback = {
+          ...(S.lastTrajectoryClarity || {}),
+          status: "timeout_preserved",
+          canonical: false,
+          degraded: true,
+          advisory_only: true,
+          failure_class: "hot_path_timeout",
+          project_root: projectRoot,
+          continuity_id: String(p.continuity_id || S.continuityId || "") || null,
+          session_id: String(p.session_id || S.sessionFrameKey || "") || null,
+          preserved_at: new Date().toISOString(),
+          next_step_hint: "Retry focusa_trajectory_view after focusa_tool_doctor/resource_mode; use fallback only as advisory orientation.",
+        };
+        S.lastTrajectoryClarity = fallback;
+        try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallback); } catch { /* best effort */ }
+        persistState();
+        return { content: [{ type: "text", text: "trajectory view timeout_preserved → noncanonical cached clarity returned as advisory; retry after focusa_tool_doctor/resource_mode before treating as current." }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/view", canonical: false, degraded: true, advisory_only: true, trajectory: fallback, failure_class: "hot_path_timeout", response: body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_view", "focusa_workpoint_resume"] } } as any;
+      }
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
       const sufficiency = body.intelligence_view?.context_sufficiency || {};
