@@ -609,10 +609,8 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
             .is_some_and(|cmd| cmd.contains("live"))
     {
         Some("live".to_string())
-    } else if local_url.is_some() {
-        Some("local".to_string())
     } else {
-        None
+        Some("local".to_string())
     };
 
     let environment_confidence =
@@ -620,10 +618,8 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
             "high"
         } else if live_url.is_some() || deploy_locations.first().is_some() {
             "medium"
-        } else if local_url.is_some() {
-            "low"
         } else {
-            "unknown"
+            "low"
         };
 
     let mut url_map = Map::new();
@@ -748,7 +744,7 @@ fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
     let key_dirs = top_level_dirs(Path::new(&candidate.project_root));
     let live_url = object_string(urls, "live_url");
     let local_url = object_string(urls, "local_url");
-    let local_only = live_url.is_none() && local_url.is_some();
+    let local_only = live_url.is_none();
     let environment = object_string(deployment, "environment").unwrap_or_else(|| {
         if local_only {
             "local".to_string()
@@ -1376,6 +1372,48 @@ mod tests {
                     .is_some_and(|text| text.contains("urls=local_only:"))))
         );
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn parent_public_html_wp_config_does_not_bleed_into_child_project() {
+        let parent = temp_project("parent-live-root");
+        let root = parent.join("focusa");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
+        fs::write(
+            root.join(".env.example"),
+            "# Local only\nFOCUSA_API_URL=http://127.0.0.1:8787\n",
+        )
+        .unwrap();
+        fs::create_dir_all(parent.join("public_html")).unwrap();
+        fs::write(
+            parent.join("public_html/wp-config.php"),
+            "define('WP_HOME', 'https://unrelated-live.example');\n",
+        )
+        .unwrap();
+
+        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/project_urls/live_url")
+                .and_then(Value::as_str),
+            None
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_summary/local_only")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/deployment/environment")
+                .and_then(Value::as_str),
+            Some("local")
+        );
+        let _ = fs::remove_dir_all(parent);
     }
 
     #[test]
