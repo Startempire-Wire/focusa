@@ -25,7 +25,7 @@ focusa_tool_doctor scope="workpoint"
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
-The doctor also compares the Pi static tool-contract registry with the live daemon `/v1/ontology/tool-contracts` view. `details.contract_drift` reports `static_count`, `live_count`, `missing_live`, `extra_live`, `stale_live_contracts`, and copy-ready `repair_commands` for daemon rebuild/restart plus live proof.
+The doctor also compares the Pi static tool-contract registry with the live daemon `/v1/ontology/tool-contracts` view. `details.contract_drift` reports `static_count`, `live_count`, `missing_live`, `extra_live`, `stale_live_contracts`, and copy-ready `repair_commands` for daemon rebuild/restart plus live proof. `details.evidence_capture_suggestion` contains a copy-ready `focusa_evidence_capture` payload for preserving the diagnostic proof without reconstructing fields.
 
 ## Recovery notes
 

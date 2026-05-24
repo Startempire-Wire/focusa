@@ -57,7 +57,7 @@ Default `start` activates LowMem via `/v1/resource/mode` before launching the ag
 
 ## Expected result
 
-The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `log_stats`, `activity_age_seconds`, `stale_after_seconds`, `root_owner`, `run_as_user`, `permission_posture`, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
+The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `log_stats`, `activity_age_seconds`, `stale_after_seconds`, `root_owner`, `run_as_user`, `permission_posture`, mutation approval posture, `evidence_capture_suggestion` for copy-ready proof capture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
 
 ## Examples
 
