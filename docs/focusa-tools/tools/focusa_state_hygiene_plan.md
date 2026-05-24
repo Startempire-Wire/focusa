@@ -25,6 +25,8 @@ focusa_state_hygiene_plan reason="old next steps may be stale after release"
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
+`details.plan` is proposal-only and includes `exact_duplicate_groups`, `exact_stale_candidates`, `target_frame_id`, `actions`, and `apply_requires_approval=true`. Use it to review precise stale signals before the approval-gated non-destructive apply note.
+
 ## Recovery notes
 
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.

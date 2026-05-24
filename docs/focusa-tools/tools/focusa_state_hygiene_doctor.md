@@ -25,6 +25,8 @@ focusa_state_hygiene_doctor
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
+`details.response` includes exact `duplicate_groups` and `stale_candidates` with `slot:index` signal IDs, plus proposal-only non-destructive actions. It diagnoses; it does not delete or rewrite Focus State.
+
 ## Recovery notes
 
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.

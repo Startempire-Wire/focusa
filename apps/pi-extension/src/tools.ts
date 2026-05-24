@@ -1655,6 +1655,45 @@ export function registerTools(pi: ExtensionAPI) {
     return `status=${status} id=${id} canonical=${canonical} next=${next}`;
   }
 
+  function buildStateHygieneReport(stackBody: any): any {
+    const frames = stackBody?.stack?.frames || [];
+    const latest = Array.isArray(frames) ? frames[frames.length - 1] || {} : {};
+    const state = latest?.state || latest?.focus_state || {};
+    const slots = ["intent", "current_focus", "next_steps", "open_questions", "decisions", "constraints", "failures", "recent_results", "artifacts", "notes"];
+    const signals: Array<{ id: string; slot: string; index: number; value: string }> = [];
+    for (const slot of slots) {
+      const raw = state?.[slot];
+      const items = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      items.forEach((item: any, index: number) => {
+        const value = typeof item === "string" ? item : JSON.stringify(item);
+        const trimmed = String(value || "").trim();
+        if (trimmed) signals.push({ id: `${slot}:${index}`, slot, index, value: trimmed.slice(0, 240) });
+      });
+    }
+    const byValue = new Map<string, Array<{ id: string; slot: string; index: number; value: string }>>();
+    for (const signal of signals) {
+      const key = signal.value.toLowerCase().replace(/\s+/g, " ").slice(0, 180);
+      byValue.set(key, [...(byValue.get(key) || []), signal]);
+    }
+    const duplicate_groups = Array.from(byValue.values()).filter((group) => group.length > 1).map((group, group_index) => ({ group_id: `dup:${group_index}`, count: group.length, signals: group }));
+    const stale_candidates = signals
+      .filter((signal) => ["next_steps", "open_questions", "current_focus"].includes(signal.slot) && /maybe|unclear|todo|fix|check|old|stale|previous/i.test(signal.value))
+      .map((signal) => ({ ...signal, reason: "stale_language_or_unclear_marker" }));
+    return {
+      frame_id: latest?.id || latest?.frame_id || null,
+      signal_count: signals.length,
+      duplicate_count: duplicate_groups.reduce((sum, group) => sum + group.count, 0),
+      duplicate_groups,
+      stale_candidates,
+      proposal_only_actions: [
+        "append fresh superseding Focus State note",
+        "checkpoint current mission before ignoring stale entries",
+        "avoid deletion; Focus State reducer is append/audit oriented",
+      ],
+      recommended_action: duplicate_groups.length || stale_candidates.length ? "review_plan_then_apply_non_destructive_note" : "no_hygiene_needed",
+    };
+  }
+
   pi.registerTool({
     name: "focusa_state_hygiene_doctor",
     label: "Focus State Hygiene Doctor",
@@ -1662,11 +1701,8 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({}),
     async execute() {
       const stack = await focusaFetchDetailed("/focus/stack", { method: "GET" });
-      const frames = stack.body?.stack?.frames || [];
-      const latest = Array.isArray(frames) ? frames[frames.length - 1] || {} : {};
-      const notes = latest?.state?.notes || [];
-      const result = { duplicate_candidates: RECENT_COGNITIVE_WRITE_KEYS.length, note_count: Array.isArray(notes) ? notes.length : 0, stale_candidates: [], recommended_action: "plan_before_apply" };
-      return { content: [{ type: "text", text: `state hygiene doctor → duplicate_candidates=${result.duplicate_candidates} note_count=${result.note_count} recommended=${result.recommended_action}` }], details: { ok: stack.ok, status: String(stack.status), response: result } } as any;
+      const result = buildStateHygieneReport(stack.body || {});
+      return { content: [{ type: "text", text: `state hygiene doctor → signals=${result.signal_count} duplicate_groups=${result.duplicate_groups.length} stale_candidates=${result.stale_candidates.length} recommended=${result.recommended_action}` }], details: { ok: stack.ok, status: String(stack.status), response: result, next_tools: ["focusa_state_hygiene_plan", "focusa_workpoint_resume", "focusa_tool_doctor"] } } as any;
     },
   });
 
@@ -1677,8 +1713,10 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({ reason: Type.Optional(Type.String({ description: "Why hygiene is being considered." })) }),
     async execute(_id, params) {
       const p = params as any;
-      const plan = { mutates: false, reason: String(p.reason || "operator requested hygiene plan"), actions: ["review duplicate_candidates", "prefer supersede/update over deletion", "apply only with explicit approval"] };
-      return { content: [{ type: "text", text: `state hygiene plan → actions=${plan.actions.length} mutates=false` }], details: { ok: true, status: "completed", plan } } as any;
+      const stack = await focusaFetchDetailed("/focus/stack", { method: "GET" });
+      const report = buildStateHygieneReport(stack.body || {});
+      const plan = { mutates: false, reason: String(p.reason || "operator requested hygiene plan"), target_frame_id: report.frame_id, exact_duplicate_groups: report.duplicate_groups, exact_stale_candidates: report.stale_candidates, actions: report.proposal_only_actions, apply_requires_approval: true };
+      return { content: [{ type: "text", text: `state hygiene plan → duplicate_groups=${report.duplicate_groups.length} stale_candidates=${report.stale_candidates.length} mutates=false` }], details: { ok: stack.ok, status: stack.ok ? "completed" : "degraded", plan, report } } as any;
     },
   });
 
