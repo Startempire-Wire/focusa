@@ -27,6 +27,8 @@ Returns ProjectIdentity plus `verification.verified`, quorum rule, matching inde
 
 ## Failure and recovery
 
+- `failure_class=hot_path_timeout` or `status=timeout_preserved`: cached ProjectIdentity can be returned as noncanonical advisory only; retry verification after `focusa_tool_doctor`/`focusa_resource_mode` before trusting scope.
+
 - `failure_class=scope_mismatch`: suppress stale packet/context; use current repo/operator scope and retry with corrected expected fields.
 - `canonical=false`: do not promote Workpoint/Trajectory carryover as canonical.
 - `validation_rejected` or HTTP schema error: fix request fields; do not retry unchanged.

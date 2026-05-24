@@ -43,6 +43,8 @@ Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 
 ## Recovery notes
 
+- `failure_class=hot_path_timeout` or `status=timeout_preserved`: cached clarity can be returned as advisory only; retry after `focusa_tool_doctor`/`focusa_resource_mode` before treating it as current.
+
 - `failure_class=scope_mismatch` or `status=degraded`: verify ProjectIdentity before trusting context.
 - Same high-level trajectory similarity is advisory only; distinct mid/low goals or continuity IDs remain separate sessions unless the caller explicitly opts into prior-project reload fallback.
 - `definition_status=unclear`: define/confirm goal before proceeding.

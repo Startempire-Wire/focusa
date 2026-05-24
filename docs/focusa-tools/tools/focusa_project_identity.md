@@ -24,6 +24,8 @@ Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`,
 
 ## Failure and recovery
 
+- `failure_class=hot_path_timeout` or `status=timeout_preserved`: treat any cached identity as noncanonical advisory only; retry after `focusa_tool_doctor`/`focusa_resource_mode`, then verify before Workpoint or Trajectory trust.
+
 - `failure_class=scope_mismatch`: resolve mismatched marker/git/beads/cwd/operator signals, then retry unchanged only after scope is corrected.
 - `canonical=false` or `confidence=low|medium`: treat identity as advisory/degraded and verify before canonical resume.
 - `daemon_unavailable`: continue from current repo and Beads as noncanonical fallback, then retry `/v1/project/identity`.

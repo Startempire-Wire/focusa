@@ -29,6 +29,8 @@ Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The 
 
 ## Recovery notes
 
+- `failure_class=hot_path_timeout` or `status=timeout_preserved`: the Pi tool preserves a degraded noncanonical fallback candidate/checkpoint/resume packet; use it only as advisory orientation, then retry after `focusa_tool_doctor`/`focusa_resource_mode`.
+
 Use `details.tool_result_v1.failure_class` plus status/canonical/degraded fields for recovery decisions.
 
 - Scope mismatch: verify ProjectIdentity before trusting context.

@@ -31,6 +31,8 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 
 ## Recovery notes
 
+- `failure_class=hot_path_timeout` or `status=timeout_preserved`: the Pi tool may preserve a noncanonical fallback packet even without a local packet; retry after `focusa_tool_doctor`/`focusa_resource_mode`, or checkpoint the current mission before trusting state.
+
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
 - If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
 - If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
