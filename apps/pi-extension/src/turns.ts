@@ -379,7 +379,7 @@ function getToolAffordanceFocusSliceLines(options: {
 
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
   const root = S.sessionCwd || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return formatTrajectoryFallbackFocusSlice(root, "unsafe_project_root");
+  if (!isProjectRootAuthoritySafe(root)) return [];
   if (!S.focusaAvailable) return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
   try {
     const params = new URLSearchParams();

@@ -49,7 +49,10 @@ assert(markerInferred === markerRoot, `portable focusa marker should define root
 adoptPiProjectRoot(join(markerRoot, "nested", "tool"));
 Object.assign(S, { sessionCwd: "" });
 const rememberedRoot = resolvePiProjectRoot("/root");
-assert(rememberedRoot === markerRoot, `unsafe /root should reuse durable remembered project root, got ${rememberedRoot}`);
+assert(rememberedRoot === "/root", `unsafe /root must not reuse durable remembered project root from another tree, got ${rememberedRoot}`);
+assert(!isProjectRootAuthoritySafe(rememberedRoot), "/root should remain unsafe even when a remembered project exists elsewhere");
+const sameTreeRememberedRoot = resolvePiProjectRoot(join(markerRoot, "nested", "tool"));
+assert(sameTreeRememberedRoot === markerRoot, `same-tree cwd should reuse durable remembered project root, got ${sameTreeRememberedRoot}`);
 
 rmSync(projectRootCache, { force: true });
 Object.assign(S, { sessionCwd: "" });

@@ -90,7 +90,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       ...friendlyQ,
       "Project-bound Workpoint: none verified yet; latest operator instruction + trajectory gap are the seed, then checkpoint to create canonical Workpoint.",
       !safeScope || needsConfirm
-        ? "Suggested first route: infer project folder from cwd/git/beads/repo context; if still unsure, ask operator directly in chat which project folder to bind — no input-only modal."
+        ? "Suggested first route: confirm project folder by inferring from cwd/git/beads/repo context; if still unsure, ask operator directly in chat which project folder to bind — no input-only modal."
         : "Suggested first route: run focusa_trajectory_view for goals/gap, then checkpoint once mission and next action are clear.",
       ...routeHints,
     ].join("\n");
