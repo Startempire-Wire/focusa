@@ -2178,6 +2178,38 @@ export function registerTools(pi: ExtensionAPI) {
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
+      if (!result.ok && b.failure_class === "hot_path_timeout") {
+        const fallbackCandidate = {
+          ...body,
+          definition_status: "timeout_preserved",
+          canonical: false,
+          degraded: true,
+          failure_class: "hot_path_timeout",
+          persisted: false,
+          preserved_at: new Date().toISOString(),
+        };
+        S.lastTrajectoryClarity = {
+          reason: "define_goal_timeout_preserved",
+          refreshed_at: Date.now(),
+          project_root: projectRoot,
+          continuity_id: body.continuity_id || null,
+          session_id: body.session_id || null,
+          status: "timeout_preserved",
+          recommended_action: "retry_define_goal_after_tool_doctor_or_resource_mode",
+          canonical: false,
+          degraded: true,
+          trajectory_id: null,
+          long_term_goal: body.long_term_goal || null,
+          desired_end_state: body.desired_end_state || null,
+          short_term_goal: body.short_term_goal || null,
+          current_state: body.current_state || null,
+          active_gap: body.short_term_goal || null,
+          timeout_preserved: true,
+        };
+        try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallbackCandidate); } catch { /* best effort */ }
+        persistState();
+        return { content: [{ type: "text", text: "trajectory define_goal timeout_preserved → noncanonical candidate saved locally; retry after focusa_tool_doctor/resource_mode before treating as persisted." }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/define-goal", canonical: false, degraded: true, advisory_only: true, trajectory_candidate: fallbackCandidate, failure_class: "hot_path_timeout", response: b, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_define_goal", "focusa_trajectory_view"] } } as any;
+      }
       const candidate = b.trajectory_candidate || {};
       const text = result.ok
         ? `trajectory define_goal → ${b.canonical === true ? "SET" : "NOT SET"} long_term=${String(candidate.long_term_goal || "missing")} desired=${String(candidate.desired_end_state || "missing")} definition=${String(candidate.definition_status || "unknown")} persisted=${b.persisted === true}`
