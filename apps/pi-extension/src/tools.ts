@@ -1206,6 +1206,41 @@ export function registerTools(pi: ExtensionAPI) {
     return `blocked: ${result.body?.error || `request failed (${result.status})`}`;
   }
 
+  function trajectoryTimeoutFallbackResult(action: string, endpoint: string, body: any, response: any, nextTools: string[], extra: Record<string, unknown> = {}) {
+    const fallback = {
+      ...extra,
+      status: "timeout_preserved",
+      canonical: false,
+      degraded: true,
+      advisory_only: true,
+      failure_class: "hot_path_timeout",
+      project_root: body.project_root,
+      continuity_id: body.continuity_id || null,
+      session_id: body.session_id || null,
+      preserved_at: new Date().toISOString(),
+      input: body,
+      next_step_hint: `Retry ${action} after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.`,
+    };
+    S.lastTrajectoryClarity = {
+      reason: `${action}_timeout_preserved`,
+      refreshed_at: Date.now(),
+      project_root: body.project_root,
+      continuity_id: body.continuity_id || null,
+      session_id: body.session_id || null,
+      status: "timeout_preserved",
+      recommended_action: `retry_${action}_after_tool_doctor_or_resource_mode`,
+      canonical: false,
+      degraded: true,
+      trajectory_id: body.trajectory_id || null,
+      current_state: body.observed_state || null,
+      active_gap: body.summary || body.action_type || body.target_ref || null,
+      timeout_preserved: true,
+    };
+    try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallback); } catch { /* best effort */ }
+    persistState();
+    return { content: [{ type: "text", text: `trajectory ${action} timeout_preserved → noncanonical fallback saved locally; retry after focusa_tool_doctor/resource_mode before treating as canonical.` }], details: { ok: false, status: "timeout_preserved", endpoint, canonical: false, degraded: true, advisory_only: true, failure_class: "hot_path_timeout", fallback, response, next_tools: nextTools } } as any;
+  }
+
   function replayConsumerSurface(result: { ok: boolean; status: number; body: any | null }): {
     replayStatus: string;
     pairObserved: boolean;
@@ -2239,6 +2274,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/assess", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
+      if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("assess", "/v1/trajectory/assess", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"], { observed_state: body.observed_state || null, evidence_refs: body.evidence_refs || [] });
       const text = result.ok ? `trajectory assess → gaps=${Array.isArray(b.gaps) ? b.gaps.length : 0} action=${String(b.recommended_action || "unknown")} canonical=${b.canonical === true}` : `trajectory assess blocked → ${explainWorkLoopResult(result, "assess failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: p.evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_propose_workpoint"] };
       return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/assess", canonical: b.canonical === true, degraded: b.degraded === true, gaps: b.gaps || [], recommended_action: b.recommended_action || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_propose_workpoint"] } } as any;
@@ -2266,6 +2302,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/propose-workpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
+      if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("propose_workpoint", "/v1/trajectory/propose-workpoint", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_propose_workpoint", "focusa_workpoint_checkpoint"], { workpoint_candidate: { action_intent: { action_type: body.action_type || "unknown", target_ref: body.target_ref || body.trajectory_id || "trajectory" }, checkpoint_required: true, blockers: [{ reason: "trajectory proposal timed out before canonical candidate was returned", severity: "medium", status: "open" }] } });
       const candidate = b.workpoint_candidate || {};
       const blockers = Array.isArray(candidate.blockers) ? candidate.blockers.length : 0;
       const text = result.ok ? `trajectory propose_workpoint → advisory=${b.advisory_only === true} action=${String(candidate.action_intent?.action_type || "unknown")} checkpoint_required=${candidate.checkpoint_required === true} blockers=${blockers} no_execution=${b.no_execution_side_effects === true}` : `trajectory propose_workpoint blocked → ${explainWorkLoopResult(result, "proposal failed")}`;
@@ -2294,6 +2331,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "compaction", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/checkpoint", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
+      if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("checkpoint", "/v1/trajectory/checkpoint", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_checkpoint", "focusa_workpoint_checkpoint"], { trajectory_checkpoint: { summary: body.summary || "trajectory checkpoint timeout fallback", persisted: false } });
       const text = result.ok ? `trajectory checkpoint → status=${String(b.status || "unknown")} persisted=${b.persisted === true} canonical=${b.canonical === true}` : `trajectory checkpoint blocked → ${explainWorkLoopResult(result, "checkpoint failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_checkpoint"] };
       return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/checkpoint", canonical: b.canonical === true, degraded: b.degraded === true, persisted: b.persisted === true, advisory_only: b.advisory_only === true, trajectory_checkpoint: b.trajectory_checkpoint || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
@@ -2319,6 +2357,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/resume", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
+      if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("resume", "/v1/trajectory/resume", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_resume", "focusa_workpoint_resume"], { resume_packet: S.lastTrajectoryClarity || null });
       const packet = b.resume_packet || {};
       const text = result.ok ? `trajectory resume → status=${String(b.status || "unknown")} canonical=${b.canonical === true} project=${String(packet.project_identity?.status || "unknown")}` : `trajectory resume blocked → ${explainWorkLoopResult(result, "resume failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "degraded" && b.status !== "not_found", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_scope_or_daemon" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_resume"] };

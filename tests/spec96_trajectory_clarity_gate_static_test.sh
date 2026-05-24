@@ -78,6 +78,13 @@ else
   exit 1
 fi
 
+if rg -n 'trajectoryTimeoutFallbackResult|retry_.*_after_tool_doctor_or_resource_mode|trajectory (assess|propose_workpoint|checkpoint|resume) timeout_preserved|focusa_trajectory_(assess|propose_workpoint|checkpoint|resume)' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: remaining trajectory hot timeouts preserve degraded fallback and recovery tools"
+else
+  echo "✗ FAIL: remaining trajectory hot timeouts can dead-end without structured fallback" >&2
+  exit 1
+fi
+
 if rg -n 'currentAskForProject|trajectoryClarityForProject|scopedWorkpointSeed|sessionId: S\.sessionFrameKey|projectRoot: S\.sessionCwd|trajectory:\$\{projectRoot\}:\$\{S\.continuityId' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
   && ! awk '/function trajectoryDraftOptions/,/^}/ { print }' "${ROOT_DIR}/apps/pi-extension/src/session.ts" | rg -n 'lastFocusSnapshot|activeFrameGoal|lastTrajectoryClarity' >/dev/null; then
   echo "✓ PASS: trajectory prompt seeds are scoped by project/session and do not use global Focus State"
