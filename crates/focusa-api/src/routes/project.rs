@@ -306,13 +306,23 @@ fn collect_environment_files(out: &mut Vec<PathBuf>, base: &Path, depth: usize, 
 
 fn candidate_environment_files(root: &Path, identity_hints: &[String]) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    for base in [
-        Some(root.to_path_buf()),
-        root.parent().map(Path::to_path_buf),
-    ]
-    .into_iter()
-    .flatten()
-    {
+    for rel in [
+        ".focusa-project.json",
+        "README.md",
+        "AGENTS.md",
+        ".env",
+        ".env.example",
+        "package.json",
+        "composer.json",
+        "wp-config.php",
+        "public_html/wp-config.php",
+        "app/.env",
+        "app/.env.example",
+        "app/package.json",
+    ] {
+        add_if_file(&mut out, root.join(rel));
+    }
+    if let Some(parent) = root.parent() {
         for rel in [
             ".focusa-project.json",
             "README.md",
@@ -322,12 +332,11 @@ fn candidate_environment_files(root: &Path, identity_hints: &[String]) -> Vec<Pa
             "package.json",
             "composer.json",
             "wp-config.php",
-            "public_html/wp-config.php",
             "app/.env",
             "app/.env.example",
             "app/package.json",
         ] {
-            add_if_file(&mut out, base.join(rel));
+            add_if_file(&mut out, parent.join(rel));
         }
     }
     for hint in identity_hints
