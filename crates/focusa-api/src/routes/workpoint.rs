@@ -1080,6 +1080,23 @@ fn workpoint_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json
     )
 }
 
+fn workpoint_dispatch_timeout() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::ACCEPTED,
+        Json(json!({
+            "status": "pending",
+            "canonical": false,
+            "degraded": true,
+            "failure_class": "resource_exhausted",
+            "retry_posture": "safe_retry",
+            "retry": {"safe": true, "posture": "safe_retry", "reason": "daemon command channel is saturated"},
+            "side_effects": [],
+            "next_tools": ["focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"],
+            "next_step_hint": "retry after command backlog drains; workpoint event was not enqueued"
+        })),
+    )
+}
+
 fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
     workpoint_failure(
         StatusCode::NOT_FOUND,
@@ -1181,11 +1198,16 @@ async fn dispatch_event(
         }
     }
 
-    state
-        .command_tx
-        .send(Action::EmitEvent { event })
-        .await
-        .map_err(workpoint_dispatch_failed)
+    match tokio::time::timeout(
+        Duration::from_millis(1500),
+        state.command_tx.send(Action::EmitEvent { event }),
+    )
+    .await
+    {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(error)) => Err(workpoint_dispatch_failed(error)),
+        Err(_) => Err(workpoint_dispatch_timeout()),
+    }
 }
 
 async fn checkpoint(
