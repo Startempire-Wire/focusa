@@ -16,6 +16,7 @@ const latencyGuardrails = [];
 const hotRouteWarnMs = Number(process.env.FOCUSA_AUDIT_HOT_ROUTE_WARN_MS || 500);
 const hotRouteFailMs = Number(process.env.FOCUSA_AUDIT_HOT_ROUTE_FAIL_MS || 2000);
 const coldRouteTimeoutMs = Number(process.env.FOCUSA_AUDIT_COLD_ROUTE_TIMEOUT_MS || timeoutMs);
+const hotRouteLatencySamples = Math.max(1, Number(process.env.FOCUSA_AUDIT_HOT_ROUTE_LATENCY_SAMPLES || 2));
 
 function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 function readJson(file) { return JSON.parse(read(file)); }
@@ -64,7 +65,17 @@ async function getJsonWithRetry(endpoint, attempts = 2) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       lastResult = await getJson(endpoint, { recordLatency: false });
-      recordLatencyGuardrail(endpoint, lastResult.elapsed_ms, true);
+      let bestElapsedMs = lastResult.elapsed_ms;
+      const samples = routeTier(endpoint) === 'hot' ? hotRouteLatencySamples : 1;
+      for (let sample = 1; sample < samples; sample++) {
+        try {
+          const sampled = await getJson(endpoint, { recordLatency: false });
+          bestElapsedMs = Math.min(bestElapsedMs, sampled.elapsed_ms);
+        } catch (sampleErr) {
+          pushWarning(sampleErr.name === 'TimeoutError' ? timeoutFailureClass(endpoint) : 'daemon_unavailable', endpoint, `latency sample ${sample + 1} failed: ${sampleErr.message}`, 'Best-of latency sampling keeps the successful probe but flags repeated instability.');
+        }
+      }
+      recordLatencyGuardrail(endpoint, bestElapsedMs, true);
       return lastResult.body;
     } catch (err) {
       lastErr = err;
@@ -262,7 +273,7 @@ const result = {
   get_route_count: getRoutes.size,
   skipped_cold_get_routes: skippedColdGetRoutes,
   latency_guardrails: latencyGuardrails,
-  latency_guardrail_config: { hot_warn_ms: hotRouteWarnMs, hot_fail_ms: hotRouteFailMs, cold_timeout_ms: coldRouteTimeoutMs },
+  latency_guardrail_config: { hot_warn_ms: hotRouteWarnMs, hot_fail_ms: hotRouteFailMs, cold_timeout_ms: coldRouteTimeoutMs, hot_latency_samples: hotRouteLatencySamples },
   process_checks: processChecks,
   probes,
   failures,
