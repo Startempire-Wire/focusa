@@ -25,11 +25,14 @@ focusa_tool_doctor scope="workpoint"
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
+The doctor also compares the Pi static tool-contract registry with the live daemon `/v1/ontology/tool-contracts` view. `details.contract_drift` reports `static_count`, `live_count`, `missing_live`, `extra_live`, `stale_live_contracts`, and copy-ready `repair_commands` for daemon rebuild/restart plus live proof.
+
 ## Recovery notes
 
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
 - If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
 - If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
+- If `contract_drift.drift_detected=true`, rebuild/restart the daemon from the documented production release route, then run live contract proof before trusting daemon-visible contracts.
 
 ## Related tools
 

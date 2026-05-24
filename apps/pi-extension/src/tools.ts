@@ -2113,6 +2113,7 @@ export function registerTools(pi: ExtensionAPI) {
       const resource = await focusaFetchDetailed("/resource/mode", { method: "GET" });
       const workpoint = await focusaFetchDetailed("/workpoint/current", { method: "GET" });
       const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
+      const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", { method: "GET" });
       const ready = health.ok && workpoint.ok;
       const contractSummary = focusaToolContractSummary();
       const scopedContracts = String(p.scope || "all") === "all"
@@ -2120,6 +2121,32 @@ export function registerTools(pi: ExtensionAPI) {
         : FOCUSA_TOOL_CONTRACTS.filter((contract) => contract.family === String(p.scope || "") || contract.name.includes(String(p.scope || "")));
       const missingDocs = scopedContracts.filter((contract) => !contract.doc_path).map((contract) => contract.name);
       const knownExemptions = scopedContracts.filter((contract) => contract.exemptions.length > 0).map((contract) => ({ name: contract.name, exemptions: contract.exemptions }));
+      const liveContractList = Array.isArray(liveContracts.body?.contracts) ? liveContracts.body.contracts : [];
+      const liveNames = new Set(liveContractList.map((contract: any) => String(contract.name || "")).filter(Boolean));
+      const staticNames = new Set(FOCUSA_TOOL_CONTRACTS.map((contract) => contract.name));
+      const missing_live = FOCUSA_TOOL_CONTRACTS.map((contract) => contract.name).filter((name) => !liveNames.has(name));
+      const extra_live = liveContractList.map((contract: any) => String(contract.name || "")).filter((name: string) => name && !staticNames.has(name));
+      const stale_live_contracts = scopedContracts.filter((contract) => {
+        const live = liveContractList.find((item: any) => item?.name === contract.name);
+        return live && JSON.stringify(live) !== JSON.stringify(contract);
+      }).map((contract) => contract.name);
+      const contractDrift = {
+        live_ok: liveContracts.ok,
+        static_count: FOCUSA_TOOL_CONTRACTS.length,
+        live_count: liveContractList.length,
+        version: liveContracts.body?.version || null,
+        missing_live,
+        extra_live,
+        stale_live_contracts,
+        drift_detected: !liveContracts.ok || missing_live.length > 0 || extra_live.length > 0 || stale_live_contracts.length > 0,
+        repair_commands: [
+          "cd ${FOCUSA_PROJECT_ROOT:-/home/wirebot/focusa}",
+          "cargo build --release --bins",
+          "systemctl restart focusa-daemon",
+          "curl -sS --max-time 5 http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'",
+          "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures",
+        ],
+      };
       const hookCounts = S.spec92HookTelemetry.reduce((acc: Record<string, number>, item: any) => {
         const hook = String(item.hook || "unknown");
         acc[hook] = (acc[hook] || 0) + 1;
@@ -2143,15 +2170,17 @@ export function registerTools(pi: ExtensionAPI) {
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
       if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
       if (missingDocs.length) recommendations.push("Some project-aware tool contracts lack docs; run docs maintenance before release proof.");
+      if (contractDrift.drift_detected) recommendations.push("Tool contract drift detected between Pi static registry and live daemon; rebuild/restart focusa-daemon, then run live contract proof.");
       const nextTools = Array.from(new Set([
         ...(!health.ok ? ["focusa_tool_doctor"] : []),
         ...(!sessionScopeSafe || projectRootNeedsConfirmation ? ["focusa_project_identity", "interview", "focusa_trajectory_view"] : ["focusa_trajectory_view"]),
         ...(String(resourceMode.mode || "") === "emergency" ? ["focusa_resource_mode"] : []),
         ...(!workpoint.ok || !workpointCanonical ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
+        ...(contractDrift.drift_detected ? ["focusa_tool_doctor"] : []),
       ]));
       const recommendedAction = recommendations[0] || "Proceed with explicit project_root for project-aware tools and checkpoint before compaction.";
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
-      return { content: [{ type: "text", text }], details: { ok: ready, status: ready ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: sessionResolution || null }, recommendations, recommended_action: recommendedAction, next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"} drift=${contractDrift.drift_detected ? "yes" : "no"} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
+      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: contractDrift, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: sessionResolution || null }, recommendations, recommended_action: recommendedAction, next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
     },
   });
 
