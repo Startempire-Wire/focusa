@@ -34,7 +34,10 @@ Reference reviewed: https://tmuxcheatsheet.com/
 - `tmux attach -d -t <name>` when the operator wants to detach other clients and take over the session.
 - `tmux capture-pane -p -J -S -<lines>` for readable tails.
 - `tmux list-panes -F ...` for read-only health/pane metadata.
-- `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-*.log` for unattended audit/recovery.
+- `stat -c '%U:%G:%u' <root_dir>` before `start` to detect the target project-root owner.
+- `as-user <owner> 'tmux ...'` when Pi is root and the project root belongs to a non-root owner, so background sessions run as the project owner instead of creating root-owned project files.
+- `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-<session>-<run_as_user>.log` for unattended audit/recovery.
+- `/tmp/focusa-silent-<session>.json` stores best-effort session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `log_path`) so later `list`, `tail`, `health`, `send`, `interrupt`, and `kill` use the same execution identity.
 - `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
 - `tmux send-keys C-c` for approved interruption without destroying the session.
 - `tmux kill-session -t <name>` only for explicit stop/kill/restart.
@@ -43,13 +46,17 @@ Reference reviewed: https://tmuxcheatsheet.com/
 
 `kill`, `send`, `interrupt`, and `restart` are process-control actions and require explicit approval flags. `start` also requires approval because it creates a background process. `reopen` and `tail` are read-only; they return exact tmux commands because tool calls cannot take over the operator terminal interactively.
 
+## Permission posture
+
+SilentSessions are not bound to one hardcoded user. On `start`/`restart`, the tool resolves `root_dir`, detects the filesystem owner, and if Pi is running as root in a non-root-owned project tree, starts tmux through `as-user <owner>`. Structured results include `root_owner`, `run_as_user`, `permission_posture`, `log_path`, and `ownership_warning` when a root-run session under `/home` could create root-owned files.
+
 ## LowMem posture
 
 Default `start` activates LowMem via `/v1/resource/mode` before launching the agent command. Public Focusa tools stay callable; LowMem changes fidelity and budgets only.
 
 ## Expected result
 
-The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
+The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `root_owner`, `run_as_user`, `permission_posture`, mutation approval posture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
 
 ## Examples
 
@@ -71,10 +78,10 @@ focusa_silent_sessions action="kill" session_name="focusa-c7e1" approved=true fo
 - Side effects: `process_control`.
 - Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
 - API routes: none; local/Pi-only surface.
-- CLI commands: `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux pipe-pane`, `tmux send-keys`, `tmux kill-session`
+- CLI commands: `stat`, `as-user`, `tmux list-sessions`, `tmux new-session`, `tmux attach-session`, `tmux capture-pane`, `tmux list-panes`, `tmux pipe-pane`, `tmux send-keys`, `tmux kill-session`
 - Parity: `pi_only`; exemptions: `pi_only`.
 - Core surface: Pi-local tmux SilentSession controller.
-- Live check: contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags.
+- Live check: contract_static plus optional tmux list-sessions/stat owner probe; kill/send/start require explicit approval flags.
 - Contract source: `docs/current/focusa-tool-contracts.json`.
 
 ## Source

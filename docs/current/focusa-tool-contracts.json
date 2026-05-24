@@ -793,17 +793,19 @@
       ],
       "api_routes": [],
       "cli_commands": [
+        "stat",
+        "as-user",
         "tmux list-sessions",
         "tmux new-session",
         "tmux attach-session",
         "tmux capture-pane",
         "tmux list-panes",
-      "tmux pipe-pane",
-      "tmux send-keys",
-      "tmux send-keys C-c",
+        "tmux pipe-pane",
+        "tmux send-keys",
+        "tmux send-keys C-c",
         "tmux kill-session"
       ],
-      "core_surface": "Pi-local tmux SilentSession controller",
+      "core_surface": "Pi-local tmux SilentSession controller with project-root owner detection",
       "doc_path": "docs/focusa-tools/tools/focusa_silent_sessions.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "process_control",
@@ -811,7 +813,7 @@
       "exemptions": [
         "pi_only"
       ],
-      "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags"
+      "live_check": "contract_static plus optional tmux list-sessions/stat owner probe; kill/send/start require explicit approval flags"
     },
     {
       "name": "focusa_tool_doctor",
