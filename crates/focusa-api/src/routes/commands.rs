@@ -18,6 +18,7 @@ use focusa_core::types::{
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
+use std::time::Duration;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -327,6 +328,18 @@ fn command_dispatch_failed(command_id: &str, details: Option<String>) -> (Status
         "Likely daemon command channel unavailable, runtime shutdown, or dispatch ownership issue.",
         vec!["focusa_tool_doctor", "focusa_work_loop_status", "focusa_workpoint_resume"],
     ).tap_details(details)
+}
+
+fn command_dispatch_timeout(command_id: &str) -> (StatusCode, Json<Value>) {
+    command_failure(
+        StatusCode::ACCEPTED,
+        "command dispatch pending",
+        "resource_exhausted",
+        format!("command {command_id} could not be dispatched within bounded command-channel wait"),
+        "Check command status/log after backlog drains; retry only if the command record remains pending/failed.",
+        "Likely daemon command channel saturated or reducer backlog under resource pressure.",
+        vec!["focusa_tool_doctor", "focusa_resource_mode", "focusa_work_loop_status"],
+    )
 }
 
 trait CommandFailureDetailsExt {
@@ -695,8 +708,8 @@ async fn submit_command(
         store.insert(command_id.clone(), record.clone());
     }
 
-    match state.command_tx.send(action).await {
-        Ok(_) => {
+    match tokio::time::timeout(Duration::from_millis(1500), state.command_tx.send(action)).await {
+        Ok(Ok(_)) => {
             let dispatched_at = Utc::now();
             record.status = CommandExecutionStatus::Dispatched;
             record.dispatched_at = Some(dispatched_at);
@@ -718,7 +731,7 @@ async fn submit_command(
                 "idempotency_key": req.idempotency_key,
             })))
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             let failed_at = Utc::now();
             record.status = CommandExecutionStatus::Failed;
             record.completed_at = Some(failed_at);
@@ -733,6 +746,22 @@ async fn submit_command(
             store.insert(command_id.clone(), record.clone());
 
             Err(command_dispatch_failed(&command_id, record.error.clone()))
+        }
+        Err(_) => {
+            let pending_at = Utc::now();
+            record.status = CommandExecutionStatus::Accepted;
+            record.completed_at = None;
+            record.error = Some("command dispatch timed out before enqueue".to_string());
+            record.logs.push(CommandLogEntry {
+                ts: pending_at,
+                level: "warn".to_string(),
+                message: "Command dispatch timed out before enqueue; command remains accepted/pending for recovery inspection".to_string(),
+            });
+
+            let mut store = state.command_store.write().await;
+            store.insert(command_id.clone(), record.clone());
+
+            Err(command_dispatch_timeout(&command_id))
         }
     }
 }
