@@ -292,8 +292,8 @@ mod tests {
     #[test]
     fn current_path_encodes_scope_query() {
         assert_eq!(
-            current_path(Some("/home/wirebot/focusa".to_string()), Some("a b".to_string())),
-            "/v1/workpoint/current?project_root=%2Fhome%2Fwirebot%2Ffocusa&continuity_id=a%20b"
+            current_path(Some("/tmp/focusa-project".to_string()), Some("a b".to_string())),
+            "/v1/workpoint/current?project_root=%2Ftmp%2Ffocusa-project&continuity_id=a%20b"
         );
     }
 
