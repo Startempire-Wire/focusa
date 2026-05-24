@@ -20,6 +20,10 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$ROOT_DIR"
+if ! command -v "$CARGO_BIN" >/dev/null 2>&1; then
+  echo "⚠️ SKIP: cargo unavailable; SPEC96 status hot/deep split runtime test requires Rust toolchain"
+  exit 0
+fi
 "$CARGO_BIN" build --manifest-path "${ROOT_DIR}/Cargo.toml" -p focusa-api --bin focusa-daemon >/dev/null
 
 FOCUSA_BIND="127.0.0.1:${PORT}" FOCUSA_DATA_DIR="$DATA_DIR" "$BIN" >"$LOG" 2>&1 &
