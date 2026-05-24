@@ -64,11 +64,11 @@ else
   exit 1
 fi
 
-if rg -n 'Agent instruction: infer from cwd/git/beads/repo context first|No modal/select/input UI|Focusa inferred project roots' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null \
-  && ! rg -n 'ctx\.ui\.input\("Confirm Focusa project_root"|Ask operator in chat now|Focusa inferred possible project roots' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null; then
-  echo "✓ PASS: project root vital prompt is inference-first and avoids input-only modal"
+if rg -n 'pi_vital_project_root_agent_inference_required|pi_vital_project_root_before_agent_inference_required' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
+  && ! rg -n 'Focusa needs project root|Focusa inferred|Enter project_root|Confirm Focusa project_root|ctx\.ui\.select\("Focusa needs project root|ctx\.ui\.input\("Confirm Focusa project_root"|setWidget\("focusa-vital", \["🧭 Focusa project root unclear"' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null; then
+  echo "✓ PASS: project root vital prompt is agent-internal and avoids operator modal/widget UI"
 else
-  echo "✗ FAIL: project root vital prompt still relies on input-only operator entry" >&2
+  echo "✗ FAIL: project root vital prompt still shows operator modal/widget UI" >&2
   exit 1
 fi
 

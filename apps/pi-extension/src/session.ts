@@ -83,45 +83,8 @@ async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, rea
   if (!projectRootConfirmationRequired(proposedRoot)) return proposedRoot;
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
   const summary = projectRootConfirmationSummary(proposedRoot);
-  ctx.ui.setStatus("focusa", "🧭 Focusa needs project root");
-  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_prompt_required", payload: { reason, project_root: proposedRoot, summary, mode, session_id: S.sessionFrameKey } });
-  if (mode === "off") return null;
-  if (mode === "warn_only" || mode === "notify") {
-    ctx.ui.notify(`Focusa needs project root confirmation before durable state writes. ${summary}`, "warning");
-    ctx.ui.setWidget("focusa-vital", ["🧭 Focusa needs project root", summary, "Set /focusa-settings Vital project info prompt=prompt for modal confirmation."], { placement: "belowEditor" });
-    return null;
-  }
-
-  const candidates = (S.lastProjectRootResolution?.candidates || [])
-    .map((candidate) => candidate.projectRoot)
-    .filter((root, index, all) => root && all.indexOf(root) === index && isProjectRootAuthoritySafe(root));
-  if (isProjectRootAuthoritySafe(proposedRoot) && !candidates.includes(proposedRoot)) candidates.unshift(proposedRoot);
-  if (!candidates.length) {
-    ctx.ui.setWidget("focusa-vital", [
-      "🧭 Focusa project root unclear",
-      summary,
-      "Agent instruction: infer from cwd/git/beads/repo context first; if still unsure, ask the operator in chat: ‘Which project folder should this session bind to?’ No modal/select/input UI.",
-    ], { placement: "belowEditor" });
-    focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_agent_ask_required", payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey } });
-    return null;
-  }
-  const skip = "Skip for now (Focusa stays unbound)";
-  const choice = await ctx.ui.select(
-    "Focusa inferred project roots — choose only if correct",
-    [...candidates.map((root) => `${root}${root === proposedRoot ? "  ← detected" : ""}`), skip],
-  );
-  if (!choice || choice === skip) return null;
-
-  const selected = String(choice).replace(/\s+← detected$/, "").trim();
-  const confirmed = confirmPiProjectRoot(selected, "operator_prompt_confirmed_project_root");
-  if (!confirmed) {
-    ctx.ui.notify(`Invalid or unsafe project_root: ${selected || "(blank)"}`, "error");
-    return null;
-  }
-  persistState();
-  ctx.ui.notify(`Focusa project_root confirmed: ${confirmed}`, "info");
-  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_prompt_confirmed", payload: { reason, project_root: confirmed, session_id: S.sessionFrameKey } });
-  return confirmed;
+  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_agent_inference_required", payload: { reason, project_root: proposedRoot, summary, mode, session_id: S.sessionFrameKey } });
+  return null;
 }
 
 type TrajectoryGoalDraft = { long_term_goal: string; desired_end_state: string; short_term_goal?: string; current_state?: string; goal_source?: string };
