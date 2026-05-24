@@ -87,6 +87,30 @@ async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, rea
   return null;
 }
 
+function queueProjectIdentityBootstrapTurn(pi: ExtensionAPI, ctx: any, proposedRoot: string, reason: string): void {
+  if (!S.focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return;
+  if (!projectRootConfirmationRequired(proposedRoot)) return;
+  const key = `project_identity_bootstrap:${S.sessionFrameKey || "no-session"}:${normalizeProjectRoot(ctx?.cwd || proposedRoot || process.cwd())}`;
+  if (S.vitalInfoPrompted[key]) return;
+  S.vitalInfoPrompted[key] = Date.now();
+  persistState();
+  const summary = projectRootConfirmationSummary(proposedRoot);
+  const prompt = [
+    "Focusa auto-bootstrap: infer the correct project_root for this Pi session now.",
+    `Current detected root is unsafe/unconfirmed: ${summary}`,
+    "Use Focusa tools and repo evidence first: call focusa_project_identity with the best explicit project_root candidate, then use project_summary/summary_lines to orient.",
+    "If cwd is broad like /root, inspect the session/project context and likely repo folders before asking.",
+    "If multiple plausible project folders remain after inference, ask the operator directly in chat which project folder to bind.",
+    "Do not show modal/select/input UI. Do not perform durable project-aware writes until identity is verified.",
+  ].join("\n");
+  focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_send_user_message", payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey } });
+  try {
+    pi.sendUserMessage(prompt);
+  } catch {
+    try { pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any); } catch { /* best effort */ }
+  }
+}
+
 type TrajectoryGoalDraft = { long_term_goal: string; desired_end_state: string; short_term_goal?: string; current_state?: string; goal_source?: string };
 
 function projectNameFromRoot(projectRoot: string): string {
@@ -563,6 +587,7 @@ export function registerSession(pi: ExtensionAPI) {
     const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_start");
     if (!projectRoot) {
       focusaPost("/telemetry/trace", { event_type: "pi_session_state_bind_blocked_unconfirmed_project_root", payload: { project_root: detectedProjectRoot, summary: projectRootConfirmationSummary(detectedProjectRoot), session_id: eventSessionId, prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt" } });
+      queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_start");
       return;
     }
     ensureContinuityId(projectRoot);
@@ -783,6 +808,7 @@ export function registerSession(pi: ExtensionAPI) {
       const projectRoot = await promptForConfirmedProjectRoot(ctx, detectedProjectRoot, "session_switch");
       if (!projectRoot) {
         focusaPost("/telemetry/trace", { event_type: "pi_session_switch_bind_blocked_unconfirmed_project_root", payload: { project_root: detectedProjectRoot, summary: projectRootConfirmationSummary(detectedProjectRoot), session_id: eventSessionId, prompt_mode: S.cfg?.vitalInfoPromptMode || "prompt" } });
+        queueProjectIdentityBootstrapTurn(pi, ctx, detectedProjectRoot, "session_switch");
         return;
       }
       await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_resume");
