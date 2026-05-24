@@ -435,7 +435,13 @@ export function registerTurns(pi: ExtensionAPI) {
       "- If context was compacted, Focus State below is your source of truth",
       confirmedProjectRoot
         ? `- Focusa project_root is confirmed for this turn: ${confirmedProjectRoot}`
-        : "- VITAL: Focusa project_root is unconfirmed; before durable project-aware work, call focusa_project_identity with explicit project_root or ask operator to confirm it.",
+        : [
+            "- VITAL AUTO-PROMPT: project_root is unconfirmed or unsafe/broad.",
+            "  Agent responsibility FIRST: infer the correct project folder from cwd, git root, .beads, project marker files, and operator text.",
+            "  Then call focusa_project_identity with the best explicit project_root and use its project_summary/summary_lines to orient.",
+            "  If multiple plausible roots remain after tool/repo inference, ask the operator directly in chat which project folder to bind.",
+            "  Do not use modal/select/input UI for this; do not proceed with project-aware durable writes while root remains unsafe.",
+          ].join("\n"),
     ].join("\n");
     const scopedWorkpointForPrompt = getScopedWorkpointPacket();
     const workpointLaw = scopedWorkpointForPrompt ? [

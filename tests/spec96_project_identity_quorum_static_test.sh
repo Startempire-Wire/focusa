@@ -64,7 +64,7 @@ else
   exit 1
 fi
 
-if rg -n 'pi_vital_project_root_agent_inference_required|pi_vital_project_root_before_agent_inference_required' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
+if rg -n 'VITAL AUTO-PROMPT|Agent responsibility FIRST|call focusa_project_identity with the best explicit project_root|pi_vital_project_root_agent_inference_required|pi_vital_project_root_before_agent_inference_required' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
   && ! rg -n 'Focusa needs project root|Focusa inferred|Enter project_root|Confirm Focusa project_root|ctx\.ui\.select\("Focusa needs project root|ctx\.ui\.input\("Confirm Focusa project_root"|setWidget\("focusa-vital", \["🧭 Focusa project root unclear"' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null; then
   echo "✓ PASS: project root vital prompt is agent-internal and avoids operator modal/widget UI"
 else
