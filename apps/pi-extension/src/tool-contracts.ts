@@ -1675,7 +1675,7 @@ export function selectFocusSliceToolAffordances(options: FocusSliceToolAffordanc
       : affordanceLine("focusa_workpoint_checkpoint", "create typed continuation before risky/long work"),
     ...(options.resourceModeActive ? [affordanceLine("focusa_resource_mode", "inspect LowMem/emergency posture and budgets")] : []),
     ...(options.hasOntologyAmbiguity ? [affordanceLine("focusa_traverse", "fetch narrow lineage/ontology/evidence/tool-registry slices instead of full payloads")] : []),
-    affordanceLine("focusa_active_object_resolve", "resolve target refs before acting or linking proof"),
+    affordanceLine("focusa_active_object_resolve", "resolve ambiguous target refs before acting or linking proof"),
     affordanceLine("focusa_evidence_capture", "link test/API/file proof after work changes confidence"),
     affordanceLine("focusa_predict_record", "record a bounded forecast before risky or uncertain action"),
   ];
