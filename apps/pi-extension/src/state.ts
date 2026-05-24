@@ -1589,7 +1589,7 @@ export function buildCompactInstructions(prefix: string): string {
   ];
   if (mission) parts.push(`Fallback Mission:\n- ${mission}`);
   if (nextSlice) parts.push(`Fallback Next Step:\n- ${nextSlice}`);
-  if (projectRoot) parts.push(`Fallback Project Folder:\n- project_root:${projectRoot}`);
+  if (projectRoot) parts.push(`Fallback Scope:\n- project_root:${projectRoot}`);
   if (S.localDecisions.length) parts.push(`Decisions:\n${S.localDecisions.map(d => `- ${d}`).join("\n")}`);
   if (S.localConstraints.length) parts.push(`Constraints:\n${S.localConstraints.map(c => `- ${c}`).join("\n")}`);
   if (S.localFailures.length) parts.push(`Failures:\n${S.localFailures.map(f => `- ${f}`).join("\n")}`);

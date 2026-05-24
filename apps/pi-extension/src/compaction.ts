@@ -59,7 +59,7 @@ function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
   if (packetField(packet, "session_id")) artifactLines.push(`session_id:${packetField(packet, "session_id")}`);
   const notes = compactLines(fs?.notes);
   if (!decisions.length && mission) decisions.push(`Continuation anchored to mission: ${mission}`);
-  if (!constraints.length && packetField(packet, "project_root")) constraints.push(`Resume project folder is bound to project_root ${packetField(packet, "project_root")}`);
+  if (!constraints.length && packetField(packet, "project_root")) constraints.push(`Resume scope is bound to project_root ${packetField(packet, "project_root")}`);
   if (!openQuestions.length) openQuestions.push("No open questions recorded by Focusa or Workpoint.");
   if (!blockers.length) blockers.push("No open blockers recorded by Focusa or Workpoint.");
   if (!failures.length) failures.push("No active failure records in Focusa state.");
