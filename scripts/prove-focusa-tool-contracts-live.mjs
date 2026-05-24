@@ -11,6 +11,8 @@ const safeFixturesMode = process.argv.includes('--safe-fixtures');
 const failures = [];
 const checkedEndpoints = [];
 const fixtureChecks = [];
+const requestTimeoutMs = Number(process.env.FOCUSA_LIVE_PROOF_TIMEOUT_MS || 5000);
+const requestAttempts = Math.max(1, Number(process.env.FOCUSA_LIVE_PROOF_ATTEMPTS || 2));
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -22,10 +24,19 @@ function fail(message, detail) {
 
 async function getJson(endpoint) {
   const url = `${baseUrl}${endpoint}`;
-  checkedEndpoints.push(endpoint);
-  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-  if (!res.ok) throw new Error(`${endpoint} returned HTTP ${res.status}`);
-  return await res.json();
+  let lastErr = null;
+  for (let attempt = 1; attempt <= requestAttempts; attempt++) {
+    checkedEndpoints.push(endpoint);
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(requestTimeoutMs) });
+      if (!res.ok) throw new Error(`${endpoint} returned HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < requestAttempts) await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+  }
+  throw lastErr;
 }
 
 const staticValidation = spawnSync(process.execPath, ['scripts/validate-focusa-tool-contracts.mjs', '--json'], {
@@ -106,6 +117,8 @@ const result = {
   extra_live_contracts: extraLiveContracts,
   payload_equal: payloadEqual,
   checked_endpoints: checkedEndpoints,
+  request_attempts: requestAttempts,
+  request_timeout_ms: requestTimeoutMs,
   safe_fixtures_mode: safeFixturesMode,
   fixture_checks: fixtureChecks,
   failures,
