@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, stampWorkpointPacketForCurrentPiSession, persistState } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -2433,6 +2433,33 @@ export function registerTools(pi: ExtensionAPI) {
         headers: { "x-focusa-writer-id": await preferredWriterId() },
         body: JSON.stringify(payload),
       });
+      if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
+        const fallback = stampWorkpointPacketForCurrentPiSession({
+          status: "timeout_preserved",
+          canonical: false,
+          degraded: true,
+          failure_class: "hot_path_timeout",
+          project_root: projectRoot,
+          continuity_id: payload.continuity_id,
+          session_id: payload.session_id,
+          mission: payload.mission,
+          next_slice: payload.next_slice,
+          action_intent: payload.action_intent,
+          verification_records: payload.verification_records,
+          blockers: payload.blockers,
+          checkpoint_reason: payload.checkpoint_reason,
+          preserved_at: new Date().toISOString(),
+          next_step_hint: "Retry focusa_workpoint_checkpoint once after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.",
+        });
+        S.activeWorkpointPacket = fallback;
+        S.activeWorkpointSummary = `${payload.mission || "Workpoint checkpoint"} (noncanonical timeout fallback)`;
+        try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
+        persistState();
+        return {
+          content: [{ type: "text", text: "workpoint checkpoint timeout_preserved → noncanonical fallback saved locally; retry after focusa_tool_doctor/resource_mode before treating as canonical." }],
+          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/checkpoint", canonical: false, degraded: true, failure_class: "hot_path_timeout", request: payload, response: res.body, fallback_packet: fallback, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] },
+        } as any;
+      }
       const text = res.ok
         ? `workpoint checkpoint → ${summarizeWorkpointResponse(res.body)}`
         : res.body?.status === "validation_rejected"
@@ -2526,6 +2553,28 @@ export function registerTools(pi: ExtensionAPI) {
       });
       const rejected = res.body?.status === "rejected_scope_mismatch";
       const recovery = scopeRecoveryContext(res.body || {}, projectRoot, payload.continuity_id, "workpoint_resume");
+      if (!res.ok && res.body?.failure_class === "hot_path_timeout" && S.activeWorkpointPacket) {
+        const fallback = stampWorkpointPacketForCurrentPiSession({
+          ...S.activeWorkpointPacket,
+          status: "timeout_preserved",
+          canonical: false,
+          degraded: true,
+          failure_class: "hot_path_timeout",
+          project_root: projectRoot,
+          continuity_id: payload.continuity_id,
+          session_id: payload.session_id,
+          preserved_at: new Date().toISOString(),
+          next_step_hint: "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.",
+        });
+        S.activeWorkpointPacket = fallback;
+        S.activeWorkpointSummary = `${String(fallback.mission || "Workpoint resume")} (noncanonical timeout fallback)`;
+        try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
+        persistState();
+        return {
+          content: [{ type: "text", text: "workpoint resume timeout_preserved → using noncanonical local fallback; retry after focusa_tool_doctor/resource_mode before treating as canonical." }],
+          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/resume", canonical: false, degraded: true, failure_class: "hot_path_timeout", fallback_packet: fallback, scope_recovery_context: recovery?.details || null, request: payload, response: res.body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"] },
+        } as any;
+      }
       const text = res.ok && !rejected
         ? [`workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim(), recovery?.text].filter(Boolean).join("\n")
         : rejected

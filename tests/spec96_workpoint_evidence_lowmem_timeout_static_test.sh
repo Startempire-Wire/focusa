@@ -47,4 +47,11 @@ else
   exit 1
 fi
 
+if rg -n 'timeout_preserved|focusa-workpoint-timeout-fallback|noncanonical fallback|hot_path_timeout.*fallback_packet|Retry focusa_workpoint_(checkpoint|resume).*resource_mode' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: Workpoint checkpoint/resume hot timeout preserves noncanonical fallback with recovery tools"
+else
+  echo "✗ FAIL: Workpoint checkpoint/resume hot timeout can still dead-end without fallback" >&2
+  exit 1
+fi
+
 echo "SPEC96 Workpoint evidence LowMem timeout static test: PASS"
