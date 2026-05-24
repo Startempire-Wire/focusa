@@ -14,6 +14,9 @@ export interface PiCurrentAsk {
   kind: PiCurrentAskKind;
   sourceTurnId: string;
   updatedAt: number;
+  sessionId?: string;
+  projectRoot?: string;
+  continuityId?: string;
 }
 
 export interface PiQueryScope {

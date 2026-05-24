@@ -64,6 +64,14 @@ else
   exit 1
 fi
 
+if rg -n 'currentAskForProject|trajectoryClarityForProject|scopedWorkpointSeed|sessionId: S\.sessionFrameKey|projectRoot: S\.sessionCwd|trajectory:\$\{projectRoot\}:\$\{S\.continuityId' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/turns.ts" >/dev/null \
+  && ! awk '/function trajectoryDraftOptions/,/^}/ { print }' "${ROOT_DIR}/apps/pi-extension/src/session.ts" | rg -n 'lastFocusSnapshot|activeFrameGoal|lastTrajectoryClarity' >/dev/null; then
+  echo "✓ PASS: trajectory prompt seeds are scoped by project/session and do not use global Focus State"
+else
+  echo "✗ FAIL: trajectory prompt can bleed unscoped session/global state" >&2
+  exit 1
+fi
+
 echo "SPEC96 trajectory clarity gate static test: PASS"
 
 

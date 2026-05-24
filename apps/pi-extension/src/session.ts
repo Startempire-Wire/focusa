@@ -130,15 +130,40 @@ function cleanTrajectorySeed(value: unknown): string {
   return trimFrameText(stripQuotedFocusaContext(String(value || "").replace(/\s+/g, " ").trim()), 220);
 }
 
+function currentAskForProject(projectRoot: string): string {
+  const ask: any = S.currentAsk;
+  if (!ask?.text) return "";
+  if (ask.sessionId && ask.sessionId !== S.sessionFrameKey) return "";
+  if (ask.projectRoot && adoptPiProjectRoot(ask.projectRoot) !== projectRoot) return "";
+  if (ask.continuityId && S.continuityId && ask.continuityId !== S.continuityId) return "";
+  return cleanTrajectorySeed(ask.text);
+}
+
+function trajectoryClarityForProject(projectRoot: string): any | null {
+  const clarity: any = S.lastTrajectoryClarity || null;
+  if (!clarity) return null;
+  if (clarity.project_root && adoptPiProjectRoot(clarity.project_root) !== projectRoot) return null;
+  if (clarity.continuity_id && S.continuityId && clarity.continuity_id !== S.continuityId) return null;
+  if (clarity.session_id && S.sessionFrameKey && clarity.session_id !== S.sessionFrameKey && clarity.fallback_prior_project_trajectory !== true) return null;
+  return clarity;
+}
+
+function scopedWorkpointSeed(projectRoot: string): string {
+  const packet: any = isWorkpointPacketScopedToCurrentSession(S.activeWorkpointPacket) ? S.activeWorkpointPacket : null;
+  if (!packet) return "";
+  if (packet.project_root && adoptPiProjectRoot(packet.project_root) !== projectRoot) return "";
+  return cleanTrajectorySeed(packet.mission || packet.next_slice);
+}
+
 function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; draft: TrajectoryGoalDraft | null }> {
   const projectName = projectNameFromRoot(projectRoot);
-  const ask = cleanTrajectorySeed(S.currentAsk?.text);
-  const workpointMission = cleanTrajectorySeed(S.activeWorkpointPacket?.mission || S.activeWorkpointPacket?.next_slice);
-  const frameGoal = cleanTrajectorySeed(S.activeFrameGoal);
-  const focus = cleanTrajectorySeed(S.lastFocusSnapshot.currentFocus || S.lastFocusSnapshot.intent);
-  const seed = workpointMission || ask || focus || frameGoal || `Improve ${projectName}`;
-  const short = ask || workpointMission || focus || frameGoal || `Continue ${projectName} work`;
-  const current = focus || frameGoal || "Current verified state unclear";
+  const ask = currentAskForProject(projectRoot);
+  const workpointMission = scopedWorkpointSeed(projectRoot);
+  const frameGoal = "";
+  const focus = "";
+  const seed = workpointMission || ask || `Improve ${projectName}`;
+  const short = ask || workpointMission || `Continue ${projectName} work`;
+  const current = "Current verified state unclear";
   const repoGoal = `Improve and verify ${projectName} as the active project`;
   return [
     {
@@ -178,12 +203,13 @@ function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; dra
 
 function workpointDraftOptions(projectRoot: string): Array<{ label: string; draft: WorkpointDraft | null }> {
   const projectName = projectNameFromRoot(projectRoot);
-  const ask = cleanTrajectorySeed(S.currentAsk?.text);
-  const trajectoryShort = cleanTrajectorySeed(S.lastTrajectoryClarity?.short_term_goal || S.lastTrajectoryClarity?.active_gap);
-  const focus = cleanTrajectorySeed(S.lastFocusSnapshot.currentFocus || S.lastFocusSnapshot.intent);
-  const frameGoal = cleanTrajectorySeed(S.activeFrameGoal);
-  const mission = ask || trajectoryShort || focus || frameGoal || `Continue ${projectName} work`;
-  const next = focus || ask || trajectoryShort || frameGoal || `Identify next useful ${projectName} action`;
+  const ask = currentAskForProject(projectRoot);
+  const clarity = trajectoryClarityForProject(projectRoot);
+  const trajectoryShort = cleanTrajectorySeed(clarity?.short_term_goal || clarity?.active_gap);
+  const focus = "";
+  const frameGoal = "";
+  const mission = ask || trajectoryShort || `Continue ${projectName} work`;
+  const next = ask || trajectoryShort || `Identify next useful ${projectName} action`;
   return [
     {
       label: `A) Current task checkpoint — ${mission}`,
@@ -308,11 +334,11 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
 async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
   if (!vitalPromptSurfaceEnabled("trajectory") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot)) return;
-  const clarity: any = S.lastTrajectoryClarity || {};
+  const clarity: any = trajectoryClarityForProject(projectRoot) || {};
   const status = String(clarity.status || "unknown");
   const action = String(clarity.recommended_action || "unknown");
   const unclear = ["unknown", "unclear", "not_found", "not_set", "missing"].includes(status) || /define_goal|operator_required/.test(action);
-  const key = `trajectory:${projectRoot}:${status}:${action}`;
+  const key = `trajectory:${projectRoot}:${S.continuityId || "no-continuity"}:${S.sessionFrameKey || "no-session"}:${status}:${action}`;
   if (!unclear || S.vitalInfoPrompted[key]) return;
   S.vitalInfoPrompted[key] = Date.now();
   persistState();
@@ -360,12 +386,18 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
 function seedCurrentAskFromPersistedState(ctx: any, data: any) {
   const restoredAsk = data?.currentAsk;
   const cleanedRestoredAsk = stripQuotedFocusaContext(restoredAsk?.text || "");
+  const cwd = adoptPiProjectRoot(ctx?.cwd || S.sessionCwd || process.cwd());
   if (cleanedRestoredAsk && !isNonTaskStatusLikeText(cleanedRestoredAsk)) {
+    if (restoredAsk.sessionId && restoredAsk.sessionId !== S.sessionFrameKey) return;
+    if (restoredAsk.projectRoot && adoptPiProjectRoot(restoredAsk.projectRoot) !== cwd) return;
     S.currentAsk = {
       text: trimFrameText(cleanedRestoredAsk, 500),
       kind: restoredAsk.kind || classifyCurrentAsk(cleanedRestoredAsk),
       sourceTurnId: restoredAsk.sourceTurnId || "restored",
       updatedAt: restoredAsk.updatedAt || Date.now(),
+      sessionId: restoredAsk.sessionId || S.sessionFrameKey,
+      projectRoot: restoredAsk.projectRoot || cwd,
+      continuityId: restoredAsk.continuityId || S.continuityId,
     };
     if (data?.queryScope) S.queryScope = data.queryScope;
     return;
@@ -373,7 +405,6 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
 
   const goal = stripQuotedFocusaContext(String(data?.frameGoal || "").trim());
   const title = String(data?.frameTitle || "").trim();
-  const cwd = ctx?.cwd || S.sessionCwd || process.cwd();
   if (!goal || isNonTaskStatusLikeText(goal) || isGenericPiFrameForCwd(cwd, title, goal)) return;
   if (!/^Pi (Task|Question|Correction): /.test(title)) return;
 
@@ -382,6 +413,9 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
     kind: classifyCurrentAsk(goal),
     sourceTurnId: "restored-frame-goal",
     updatedAt: Date.now(),
+    sessionId: S.sessionFrameKey,
+    projectRoot: cwd,
+    continuityId: S.continuityId,
   };
 }
 
@@ -527,7 +561,12 @@ export function registerSession(pi: ExtensionAPI) {
           currentFocus: e.data.currentFocus || "",
         };
         if (e.data.projectRootResolution) S.lastProjectRootResolution = e.data.projectRootResolution;
-        if (e.data.lastTrajectoryClarity) S.lastTrajectoryClarity = e.data.lastTrajectoryClarity;
+        if (e.data.lastTrajectoryClarity) {
+          const c = e.data.lastTrajectoryClarity;
+          const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
+          const cwdRoot = adoptPiProjectRoot(ctx.cwd);
+          S.lastTrajectoryClarity = (!cRoot || cRoot === cwdRoot) && (!c.session_id || c.session_id === eventSessionId || c.fallback_prior_project_trajectory === true) ? c : null;
+        }
         if (e.data.lastProjectVerify) S.lastProjectVerify = e.data.lastProjectVerify;
         if (e.data.vitalInfoPrompted) S.vitalInfoPrompted = e.data.vitalInfoPrompted;
         adoptPersistedContinuityForSession(e.data, eventSessionId, adoptPiProjectRoot(ctx.cwd, e.data.activeWorkpointPacket));
@@ -746,7 +785,12 @@ export function registerSession(pi: ExtensionAPI) {
           currentFocus: d.currentFocus || "",
         };
         if (d.projectRootResolution) S.lastProjectRootResolution = d.projectRootResolution;
-        if (d.lastTrajectoryClarity) S.lastTrajectoryClarity = d.lastTrajectoryClarity;
+        if (d.lastTrajectoryClarity) {
+          const c = d.lastTrajectoryClarity;
+          const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
+          const cwdRoot = adoptPiProjectRoot(ctx.cwd);
+          S.lastTrajectoryClarity = (!cRoot || cRoot === cwdRoot) && (!c.session_id || c.session_id === eventSessionId || c.fallback_prior_project_trajectory === true) ? c : null;
+        }
         if (d.lastProjectVerify) S.lastProjectVerify = d.lastProjectVerify;
         if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
         adoptPersistedContinuityForSession(d, eventSessionId, adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket));

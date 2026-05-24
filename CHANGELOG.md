@@ -60,6 +60,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 - Added mobile-friendly A/B/C/D inferred trajectory choices, keeping freeform trajectory editing as an optional fallback only.
 - Added mobile-friendly A/B/C/D inferred Workpoint checkpoint choices, keeping freeform Workpoint editing as an optional fallback only.
 - Added marker-backed, repo/SvelteKit-scanned, and WordPress/live-root scanned project environment/deploy facts with confidence/source labels to ProjectIdentity and Pi Focus Slice.
+- Hardened Pi trajectory setup prompts so inferred options use only current project/session/continuity-scoped seeds, preventing cross-session bleed from global Focus State text.
 
 ## Unreleased — Spec93 release publication proof
 

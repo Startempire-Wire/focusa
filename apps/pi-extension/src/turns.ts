@@ -915,6 +915,9 @@ export function registerTurns(pi: ExtensionAPI) {
       kind: askKind,
       sourceTurnId,
       updatedAt: Date.now(),
+      sessionId: S.sessionFrameKey,
+      projectRoot: S.sessionCwd,
+      continuityId: S.continuityId,
     };
     const queryScope = deriveQueryScope(askKind);
     const steeringDetected = isOperatorSteeringInput(String(text), askKind);
