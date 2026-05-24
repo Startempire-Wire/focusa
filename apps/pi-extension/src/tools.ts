@@ -1371,6 +1371,7 @@ export function registerTools(pi: ExtensionAPI) {
         proof_preserved_not_linked: true,
         evidence_ref: evidenceRef,
         project_root: projectRoot,
+        project_root_permission_posture: projectRootPermissionPosture(projectRoot),
         trajectory_clarity_precondition: clarity.details,
         tool_result_v1: toolResult,
         failure_class: failureClass,
@@ -1826,6 +1827,21 @@ export function registerTools(pi: ExtensionAPI) {
     } catch (err: any) {
       return { user: currentUserName(), group: "unknown", uid: null, ok: false, error: String(err?.message || err) };
     }
+  }
+
+  function projectRootPermissionPosture(projectRoot: string): Record<string, unknown> {
+    const owner = silentSessionRootOwner(projectRoot);
+    const current_user = currentUserName();
+    const root_user_home = /^\/home\/[^/]+(?:\/|$)/.test(projectRoot);
+    return {
+      project_root: projectRoot,
+      root_owner: owner,
+      current_user,
+      root_owned_by_current_user: owner.user === current_user,
+      root_user_home,
+      posture: root_user_home && owner.user !== current_user ? "cross_user_home_use_as_owner" : "same_user_or_non_home_root",
+      guidance: root_user_home && owner.user !== current_user ? `Run repo/file mutations via as-user ${owner.user}; avoid root-owned files under ${projectRoot}.` : "Project root ownership matches current user or is outside /home user space.",
+    };
   }
 
   function silentSessionName(raw?: unknown): string {
@@ -2725,7 +2741,8 @@ export function registerTools(pi: ExtensionAPI) {
     async execute(_id, params) {
       const p = params as any;
       if (p.attach_to_workpoint === false) {
-        return { content: [{ type: "text", text: `evidence capture → captured ref=${p.evidence_ref} attach_to_workpoint=false` }], details: { ok: true, status: "completed", evidence_ref: p.evidence_ref } } as any;
+        const projectRoot = p.project_root ? await resolveFocusaToolProjectRoot(p.project_root) : null;
+        return { content: [{ type: "text", text: `evidence capture → captured ref=${p.evidence_ref} attach_to_workpoint=false` }], details: { ok: true, status: "completed", evidence_ref: p.evidence_ref, project_root_permission_posture: projectRoot ? projectRootPermissionPosture(projectRoot) : null } } as any;
       }
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
@@ -2746,7 +2763,7 @@ export function registerTools(pi: ExtensionAPI) {
       const text = res.ok
         ? `evidence capture → linked ${p.evidence_ref}`
         : [`evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`, recovery?.text].filter(Boolean).join("\n");
-      return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, failure_class: res.body?.failure_class || null, scope_recovery_context: recovery?.details || null, request_scope: { project_root: projectRoot, continuity_id: sessionIdentity?.continuity_id || null }, response: res.body, next_tools: recovery?.details?.safe_next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, failure_class: res.body?.failure_class || null, scope_recovery_context: recovery?.details || null, request_scope: { project_root: projectRoot, continuity_id: sessionIdentity?.continuity_id || null }, project_root_permission_posture: projectRootPermissionPosture(projectRoot), response: res.body, next_tools: recovery?.details?.safe_next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"] } } as any;
     },
   });
 
@@ -2789,7 +2806,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootGate) return projectRootGate;
       if (p.canonical !== false && !isProjectRootAuthoritySafe(projectRoot)) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
-        return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into the specific project folder/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason } } as any;
+        return { content: [{ type: "text", text: `workpoint checkpoint blocked → unsafe project_root (${reason}); cd into the specific project folder/repo or pass project_root explicitly.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, project_root_permission_posture: projectRootPermissionPosture(projectRoot), reason } } as any;
       }
       const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, p.checkpoint_reason === "before_compact" ? "compaction" : "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
       const clarity = p.canonical === false ? { ok: true, details: { skipped: true, reason: "noncanonical_workpoint" } } : await enforceTrajectoryClarityPrecondition(projectRoot, "workpoint checkpoint", { blockOperatorInput: true, continuityId: p.continuity_id, sessionId: p.session_id });
@@ -2851,7 +2868,7 @@ export function registerTools(pi: ExtensionAPI) {
         persistState();
         return {
           content: [{ type: "text", text: "workpoint checkpoint timeout_preserved → noncanonical fallback saved locally; retry after focusa_tool_doctor/resource_mode before treating as canonical." }],
-          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/checkpoint", canonical: false, degraded: true, failure_class: "hot_path_timeout", request: payload, response: res.body, fallback_packet: fallback, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] },
+          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/checkpoint", canonical: false, degraded: true, failure_class: "hot_path_timeout", project_root_permission_posture: projectRootPermissionPosture(projectRoot), request: payload, response: res.body, fallback_packet: fallback, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] },
         } as any;
       }
       const text = res.ok
@@ -2861,7 +2878,7 @@ export function registerTools(pi: ExtensionAPI) {
           : `workpoint checkpoint blocked → ${explainWorkLoopResult(res, "checkpoint failed")}`;
       return {
         content: [{ type: "text", text }],
-        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/checkpoint", request: payload, response: res.body },
+        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/checkpoint", project_root_permission_posture: projectRootPermissionPosture(projectRoot), request: payload, response: res.body },
       };
     },
   });
@@ -2887,7 +2904,7 @@ export function registerTools(pi: ExtensionAPI) {
         const text = "workpoint evidence link → no_op attach_to_workpoint=false";
         return {
           content: [{ type: "text", text }],
-          details: { ok: true, status: "no_op", reason: "attach_to_workpoint=false" },
+          details: { ok: true, status: "no_op", reason: "attach_to_workpoint=false", project_root_permission_posture: p.project_root ? projectRootPermissionPosture(await resolveFocusaToolProjectRoot(p.project_root)) : null },
         } as any;
       }
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
@@ -2897,7 +2914,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!clarity.ok) {
         const degraded = evidenceClarityFallbackResult("workpoint evidence link", p, projectRoot, clarity);
         if (degraded) return degraded;
-        return { content: [{ type: "text", text: `${clarity.text || "workpoint evidence link blocked by trajectory clarity gate"}. Why: trajectory clarity is required before linking proof to canonical Workpoint state; follow next_tools/recovery_hint instead of retrying blindly.` }], details: { ok: false, status: "blocked", why: "trajectory clarity is required before canonical evidence linkage", ...clarity.details } } as any;
+        return { content: [{ type: "text", text: `${clarity.text || "workpoint evidence link blocked by trajectory clarity gate"}. Why: trajectory clarity is required before linking proof to canonical Workpoint state; follow next_tools/recovery_hint instead of retrying blindly.` }], details: { ok: false, status: "blocked", why: "trajectory clarity is required before canonical evidence linkage", project_root_permission_posture: projectRootPermissionPosture(projectRoot), ...clarity.details } } as any;
       }
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
@@ -2909,7 +2926,7 @@ export function registerTools(pi: ExtensionAPI) {
         : `workpoint evidence link blocked → ${explainWorkLoopResult(res, "link failed")}`;
       return {
         content: [{ type: "text", text }],
-        details: { ok: res.ok, status: String(res.status), reason: res.ok ? "linked" : "blocked", endpoint: "/workpoint/evidence/link", response: res.body },
+        details: { ok: res.ok, status: String(res.status), reason: res.ok ? "linked" : "blocked", endpoint: "/workpoint/evidence/link", project_root_permission_posture: projectRootPermissionPosture(projectRoot), response: res.body },
       } as any;
     },
   });

@@ -29,6 +29,8 @@ focusa_workpoint_link_evidence target_ref="docs/focusa-tools" result="43 one-too
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
+Project-aware results include `details.project_root_permission_posture` with root owner, current user, cross-user `/home` posture, and `as-user` guidance before file-affecting follow-up work.
+
 ## Recovery notes
 
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.
