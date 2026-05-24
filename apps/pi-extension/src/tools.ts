@@ -1792,6 +1792,7 @@ export function registerTools(pi: ExtensionAPI) {
   const SILENT_SESSION_LOG_MAX_BYTES = 5 * 1024 * 1024;
   const SILENT_SESSION_LOG_BACKUPS = 3;
   const SILENT_SESSION_STALE_SECONDS = 30 * 60;
+  const SILENT_SESSION_REGISTRY_PATH = "/tmp/focusa-silent-registry.json";
 
   function shellQuote(value: string): string {
     return `'${String(value).replace(/'/g, `'\''`)}'`;
@@ -1872,17 +1873,33 @@ export function registerTools(pi: ExtensionAPI) {
     return `/tmp/${safe}-${user}.log`;
   }
 
+  function silentSessionReadRegistry(): Record<string, any> {
+    try {
+      const fs = require("fs");
+      if (!fs.existsSync(SILENT_SESSION_REGISTRY_PATH)) return {};
+      const parsed = JSON.parse(fs.readFileSync(SILENT_SESSION_REGISTRY_PATH, "utf8"));
+      return parsed && typeof parsed === "object" ? parsed.sessions || parsed : {};
+    } catch { return {}; }
+  }
+
+  function silentSessionWriteRegistry(registry: Record<string, any>): void {
+    try { require("fs").writeFileSync(SILENT_SESSION_REGISTRY_PATH, JSON.stringify({ schema_version: "focusa.silent_sessions.registry.v1", updated_at: new Date().toISOString(), sessions: registry }, null, 2)); } catch { /* best effort */ }
+  }
+
   function silentSessionReadMeta(name: string): any | null {
     try {
       const fs = require("fs");
       const path = silentSessionMetaPath(name);
-      if (!fs.existsSync(path)) return null;
-      return JSON.parse(fs.readFileSync(path, "utf8"));
-    } catch { return null; }
+      if (fs.existsSync(path)) return JSON.parse(fs.readFileSync(path, "utf8"));
+      return silentSessionReadRegistry()[name] || null;
+    } catch { return silentSessionReadRegistry()[name] || null; }
   }
 
   function silentSessionWriteMeta(name: string, meta: any): void {
     try { require("fs").writeFileSync(silentSessionMetaPath(name), JSON.stringify(meta, null, 2)); } catch { /* best effort */ }
+    const registry = silentSessionReadRegistry();
+    registry[name] = { ...(registry[name] || {}), ...meta, session_name: name, registry_updated_at: new Date().toISOString() };
+    silentSessionWriteRegistry(registry);
   }
 
   function silentSessionRunAsFor(name: string): string | null {
@@ -1956,14 +1973,17 @@ export function registerTools(pi: ExtensionAPI) {
   function listSilentSessions() {
     const format = "#{session_name}\t#{session_attached}\t#{session_windows}\t#{session_created}\t#{session_activity}\t#{session_id}\t#{window_name}";
     const currentR = silentSessionExec(["list-sessions", "-F", format], 3000);
+    const registry = silentSessionReadRegistry();
     const metaUsers = (() => {
       try {
         const fs = require("fs");
-        return Array.from(new Set(fs.readdirSync("/tmp")
+        const fileUsers = fs.readdirSync("/tmp")
           .filter((file: string) => file.startsWith(SILENT_SESSION_PREFIX) && file.endsWith(".json"))
           .map((file: string) => silentSessionReadMeta(file.replace(/\.json$/, ""))?.run_as_user)
-          .filter(Boolean)));
-      } catch { return []; }
+          .filter(Boolean);
+        const registryUsers = Object.values(registry).map((meta: any) => meta?.run_as_user).filter(Boolean);
+        return Array.from(new Set([...fileUsers, ...registryUsers]));
+      } catch { return Array.from(new Set(Object.values(registry).map((meta: any) => meta?.run_as_user).filter(Boolean))); }
     })() as string[];
     const outputs: string[] = [];
     if (currentR.ok) outputs.push(currentR.stdout || "");
@@ -1998,8 +2018,17 @@ export function registerTools(pi: ExtensionAPI) {
         run_as_user: meta.run_as_user || currentUserName(),
         root_owner: meta.root_owner || null,
         permission_posture: meta.permission_posture || "current_user_tmux",
+        registry_metadata: meta,
+        registry_state: meta.session_name ? "active_registered" : "active_unregistered",
       };
     }).filter((session: any) => session && String(session.name || "").startsWith(SILENT_SESSION_PREFIX));
+  }
+
+  function silentSessionRegistrySnapshot(activeSessions: any[]): any {
+    const registry = silentSessionReadRegistry();
+    const active = new Set(activeSessions.map((session: any) => String(session.name || "")));
+    const entries = Object.entries(registry).map(([name, meta]) => ({ name, active: active.has(name), ...(meta as Record<string, unknown>) }));
+    return { path: SILENT_SESSION_REGISTRY_PATH, count: entries.length, active_count: entries.filter((entry: any) => entry.active).length, stale_count: entries.filter((entry: any) => !entry.active).length, entries };
   }
 
   function defaultSilentSessionCommand(p: any, sessionName: string): string {
@@ -2076,14 +2105,14 @@ export function registerTools(pi: ExtensionAPI) {
         const text = sessionsBefore.length
           ? `silent sessions → ${sessionsBefore.map((s: any) => `${s.name}${s.attached ? "(attached)" : ""}`).join(", ")}`
           : "silent sessions → none";
-        return { content: [{ type: "text", text }], details: { ok: true, status: "completed", sessions: sessionsBefore, count: sessionsBefore.length, tmux_version: silentSessionVersion(), next_tools: ["focusa_silent_sessions", "focusa_resource_mode", "focusa_work_loop_status"] } } as any;
+        return { content: [{ type: "text", text }], details: { ok: true, status: "completed", sessions: sessionsBefore, count: sessionsBefore.length, registry: silentSessionRegistrySnapshot(sessionsBefore), tmux_version: silentSessionVersion(), next_tools: ["focusa_silent_sessions", "focusa_resource_mode", "focusa_work_loop_status"] } } as any;
       }
 
       if (action === "reopen") {
         if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const runAsUser = silentSessionRunAsFor(sessionName);
         const tail = silentSessionExec(["capture-pane", "-p", "-J", "-t", sessionName, "-S", "-80"], 3000, runAsUser);
-        return { content: [{ type: "text", text: `silent session reopen → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` }], details: { ok: true, status: "completed", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), tail: tail.stdout.slice(-4000), sessions: sessionsBefore, tmux_version: silentSessionVersion() } } as any;
+        return { content: [{ type: "text", text: `silent session reopen → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` }], details: { ok: true, status: "completed", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), tail: tail.stdout.slice(-4000), sessions: sessionsBefore, registry_metadata: silentSessionReadMeta(sessionName), registry: silentSessionRegistrySnapshot(sessionsBefore), tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "tail") {
@@ -2092,7 +2121,7 @@ export function registerTools(pi: ExtensionAPI) {
         const runAsUser = silentSessionRunAsFor(sessionName);
         const meta = silentSessionReadMeta(sessionName) || {};
         const tail = silentSessionExec(["capture-pane", "-p", "-J", "-t", sessionName, "-S", `-${lines}`], 3000, runAsUser);
-        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, tail_command: silentSessionTailCommand(sessionName, lines), log_path: meta.log_path || silentSessionLogPath(sessionName, runAsUser), run_as_user: runAsUser || currentUserName(), error: tail.stderr, tmux_version: silentSessionVersion() } } as any;
+        return { content: [{ type: "text", text: tail.ok ? `silent session tail → ${sessionName}\n${tail.stdout.slice(-4000)}` : `silent session tail blocked → ${tail.stderr}` }], details: { ok: tail.ok, status: tail.ok ? "completed" : "blocked", session_name: sessionName, tail: tail.stdout, tail_command: silentSessionTailCommand(sessionName, lines), log_path: meta.log_path || silentSessionLogPath(sessionName, runAsUser), run_as_user: runAsUser || currentUserName(), registry_metadata: meta, error: tail.stderr, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "health") {
@@ -2104,7 +2133,7 @@ export function registerTools(pi: ExtensionAPI) {
         const text = health.ok
           ? `silent session health → ${sessionName}: ${status}${activePane?.current_command ? ` (${activePane.current_command})` : ""}`
           : `silent session health blocked → ${sessionName}: ${health.error || "unknown"}`;
-        return { content: [{ type: "text", text }], details: { ok: health.ok, status: health.ok ? "completed" : "blocked", session_name: sessionName, health_status: status, panes: health.panes || [], active_pane: activePane, log_path: health.log_path || silentSessionLogPath(sessionName, silentSessionRunAsFor(sessionName)), log_stats: health.log_stats, activity_age_seconds: health.activity_age_seconds, stale_after_seconds: health.stale_after_seconds, run_as_user: health.run_as_user || silentSessionRunAsFor(sessionName) || currentUserName(), error: health.error, tmux_version: silentSessionVersion(), evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: `silent_session:${sessionName}`, result: `SilentSession health ${status}`, evidence_ref: `tmux:${sessionName}:health`, attach_to_workpoint: false }), next_tools: status === "dead" || status === "stale" ? ["focusa_silent_sessions", "focusa_work_loop_status"] : ["focusa_silent_sessions"] } } as any;
+        return { content: [{ type: "text", text }], details: { ok: health.ok, status: health.ok ? "completed" : "blocked", session_name: sessionName, health_status: status, panes: health.panes || [], active_pane: activePane, log_path: health.log_path || silentSessionLogPath(sessionName, silentSessionRunAsFor(sessionName)), log_stats: health.log_stats, activity_age_seconds: health.activity_age_seconds, stale_after_seconds: health.stale_after_seconds, run_as_user: health.run_as_user || silentSessionRunAsFor(sessionName) || currentUserName(), registry_metadata: silentSessionReadMeta(sessionName), error: health.error, tmux_version: silentSessionVersion(), evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: `silent_session:${sessionName}`, result: `SilentSession health ${status}`, evidence_ref: `tmux:${sessionName}:health`, attach_to_workpoint: false }), next_tools: status === "dead" || status === "stale" ? ["focusa_silent_sessions", "focusa_work_loop_status"] : ["focusa_silent_sessions"] } } as any;
       }
 
       if (action === "start" || action === "restart") {
@@ -2130,7 +2159,7 @@ export function registerTools(pi: ExtensionAPI) {
         if (started.ok) silentSessionWriteMeta(sessionName, { session_name: sessionName, root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, command: cmd, mission: p.mission || priorMeta.mission || null, work_item_id: p.work_item_id || priorMeta.work_item_id || null, lowmem: p.lowmem ?? priorMeta.lowmem ?? true, log_path: pipeLog.log_path, log_max_bytes: pipeLog.max_bytes, log_backups: pipeLog.backups, created_at: priorMeta.created_at || new Date().toISOString(), restarted_at: action === "restart" ? new Date().toISOString() : undefined });
         const sessionsAfter = listSilentSessions();
         const verb = action === "restart" ? "restarted" : "started";
-        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, ownership_warning: runAsUser === "root" && rootDir.startsWith("/home/") ? "root-run session in /home may create root-owned files" : null, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit", pipeLog.ok ? "tmux_pipe_pane_log" : null].filter(Boolean) : [], sessions: sessionsAfter, error: started.stderr || pipeLog.error, log_path: pipeLog.log_path, pipe_log_ok: pipeLog.ok, log_rotated: pipeLog.rotated, log_max_bytes: pipeLog.max_bytes, log_backups: pipeLog.backups, tmux_version: silentSessionVersion(), evidence_capture_suggestion: started.ok ? focusaEvidenceCaptureSuggestion({ target_ref: `silent_session:${sessionName}`, result: `SilentSession ${verb} in ${rootDir} as ${runAsUser}`, evidence_ref: `tmux:${sessionName}:${action}`, project_root: rootDir, attach_to_workpoint: false }) : undefined } } as any;
+        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, ownership_warning: runAsUser === "root" && rootDir.startsWith("/home/") ? "root-run session in /home may create root-owned files" : null, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit", pipeLog.ok ? "tmux_pipe_pane_log" : null, "silent_session_registry_update"].filter(Boolean) : [], sessions: sessionsAfter, registry_metadata: silentSessionReadMeta(sessionName), registry: silentSessionRegistrySnapshot(sessionsAfter), error: started.stderr || pipeLog.error, log_path: pipeLog.log_path, pipe_log_ok: pipeLog.ok, log_rotated: pipeLog.rotated, log_max_bytes: pipeLog.max_bytes, log_backups: pipeLog.backups, tmux_version: silentSessionVersion(), evidence_capture_suggestion: started.ok ? focusaEvidenceCaptureSuggestion({ target_ref: `silent_session:${sessionName}`, result: `SilentSession ${verb} in ${rootDir} as ${runAsUser}`, evidence_ref: `tmux:${sessionName}:${action}`, project_root: rootDir, attach_to_workpoint: false }) : undefined } } as any;
       }
 
       if (action === "interrupt") {
@@ -2157,9 +2186,10 @@ export function registerTools(pi: ExtensionAPI) {
         if (p.approved !== true || p.force !== true) return silentSessionBlocked(action, sessionName, "approval_required", "kill is destructive to background work; pass approved=true and force=true only with explicit operator approval", sessionsBefore);
         if (!hasSession) return { content: [{ type: "text", text: `silent session not found → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, sessions: sessionsBefore } } as any;
         const killed = silentSessionExec(["kill-session", "-t", sessionName], 3000, silentSessionRunAsFor(sessionName));
+        if (killed.ok) silentSessionWriteMeta(sessionName, { ...(silentSessionReadMeta(sessionName) || {}), session_name: sessionName, killed_at: new Date().toISOString(), last_status: "killed" });
         const sessionsAfter = listSilentSessions();
         if (!killed.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux kill-session failed: ${killed.stderr || "unknown error"}`, sessionsAfter, { error: killed.stderr });
-        return { content: [{ type: "text", text: `silent session killed → ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, side_effects: ["tmux_kill_session"], sessions: sessionsAfter } } as any;
+        return { content: [{ type: "text", text: `silent session killed → ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, side_effects: ["tmux_kill_session", "silent_session_registry_update"], sessions: sessionsAfter, registry_metadata: silentSessionReadMeta(sessionName), registry: silentSessionRegistrySnapshot(sessionsAfter) } } as any;
       }
 
       return silentSessionBlocked(action, sessionName, "validation_rejected", `unsupported action ${action}; use list/start/reopen/tail/health/send/interrupt/restart/kill`, sessionsBefore);

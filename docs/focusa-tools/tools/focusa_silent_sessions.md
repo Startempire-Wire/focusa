@@ -38,7 +38,8 @@ Reference reviewed: https://tmuxcheatsheet.com/
 - `as-user <owner> 'tmux ...'` when Pi is root and the project root belongs to a non-root owner, so background sessions run as the project owner instead of creating root-owned project files.
 - `tmux pipe-pane -o` to persist pane output to `/tmp/focusa-silent-<session>-<run_as_user>.log` for unattended audit/recovery.
 - Before enabling `pipe-pane`, logs rotate at 5 MiB with three backups (`.1` through `.3`) so repeated starts/restarts do not append forever.
-- `/tmp/focusa-silent-<session>.json` stores best-effort session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `command`, `mission`, `work_item_id`, `log_path`, `log_max_bytes`, `log_backups`) so later `list`, `tail`, `health`, `send`, `interrupt`, `restart`, and `kill` use the same execution identity and restart contract.
+- `/tmp/focusa-silent-<session>.json` stores best-effort per-session metadata (`root_dir`, `root_owner`, `run_as_user`, `permission_posture`, `command`, `mission`, `work_item_id`, `log_path`, `log_max_bytes`, `log_backups`) so later `list`, `tail`, `health`, `send`, `interrupt`, `restart`, and `kill` use the same execution identity and restart contract.
+- `/tmp/focusa-silent-registry.json` stores a bounded registry of SilentSession metadata keyed by normalized session name. `list`, `reopen`, `tail`, `health`, `start`, `restart`, and `kill` surface `registry`/`registry_metadata` so recovery does not depend on reconstructing flags from transcript memory.
 - `tmux send-keys -l -- <text>` followed by `Enter` for literal steering input.
 - `tmux send-keys C-c` for approved interruption without destroying the session.
 - `tmux kill-session -t <name>` only for explicit stop/kill/restart.
@@ -57,7 +58,7 @@ Default `start` activates LowMem via `/v1/resource/mode` before launching the ag
 
 ## Expected result
 
-The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `log_stats`, `activity_age_seconds`, `stale_after_seconds`, `root_owner`, `run_as_user`, `permission_posture`, mutation approval posture, `evidence_capture_suggestion` for copy-ready proof capture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
+The tool returns a visible text summary plus structured details for session names, tmux attach commands, detach-others attach commands, captured tail output, tmux version, session metadata, persistent `log_path`, `log_rotated`, `log_max_bytes`, `log_backups`, `log_stats`, `activity_age_seconds`, `stale_after_seconds`, `root_owner`, `run_as_user`, `permission_posture`, `registry`, `registry_metadata`, mutation approval posture, `evidence_capture_suggestion` for copy-ready proof capture, and recovery hints. Failure responses should include `failure_class`, `status`, `canonical/degraded` when applicable, `retry` posture, side effects, and next tools so agents can recover without guessing.
 
 ## Examples
 
