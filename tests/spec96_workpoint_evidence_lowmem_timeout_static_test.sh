@@ -54,4 +54,11 @@ else
   exit 1
 fi
 
+if rg -n '\.\.\.\(S\.activeWorkpointPacket \|\| \{\}\)|Workpoint resume timed out before a canonical packet was returned|checkpoint the current mission before treating state as canonical' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: Workpoint resume timeout preserves fallback even without a local packet"
+else
+  echo "✗ FAIL: Workpoint resume timeout still requires a local packet for fallback" >&2
+  exit 1
+fi
+
 echo "SPEC96 Workpoint evidence LowMem timeout static test: PASS"

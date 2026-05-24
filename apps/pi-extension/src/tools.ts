@@ -2624,9 +2624,9 @@ export function registerTools(pi: ExtensionAPI) {
       });
       const rejected = res.body?.status === "rejected_scope_mismatch";
       const recovery = scopeRecoveryContext(res.body || {}, projectRoot, payload.continuity_id, "workpoint_resume");
-      if (!res.ok && res.body?.failure_class === "hot_path_timeout" && S.activeWorkpointPacket) {
+      if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
         const fallback = stampWorkpointPacketForCurrentPiSession({
-          ...S.activeWorkpointPacket,
+          ...(S.activeWorkpointPacket || {}),
           status: "timeout_preserved",
           canonical: false,
           degraded: true,
@@ -2634,8 +2634,10 @@ export function registerTools(pi: ExtensionAPI) {
           project_root: projectRoot,
           continuity_id: payload.continuity_id,
           session_id: payload.session_id,
+          mission: S.activeWorkpointPacket?.mission || S.activeWorkpointSummary || "Workpoint resume timed out before a canonical packet was returned",
+          next_slice: S.activeWorkpointPacket?.next_slice || "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode, or create a fresh focusa_workpoint_checkpoint from current operator/repo context.",
           preserved_at: new Date().toISOString(),
-          next_step_hint: "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.",
+          next_step_hint: "Retry focusa_workpoint_resume after focusa_tool_doctor/resource_mode; if no canonical packet exists, checkpoint the current mission before treating state as canonical.",
         });
         S.activeWorkpointPacket = fallback;
         S.activeWorkpointSummary = `${String(fallback.mission || "Workpoint resume")} (noncanonical timeout fallback)`;
