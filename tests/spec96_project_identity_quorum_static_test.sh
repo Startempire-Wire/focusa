@@ -64,8 +64,8 @@ else
   exit 1
 fi
 
-if rg -n 'Ask operator in chat now|no input-only modal|Focusa inferred possible project roots' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null \
-  && ! rg -n 'ctx\.ui\.input\("Confirm Focusa project_root"' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null; then
+if rg -n 'Agent instruction: infer from cwd/git/beads/repo context first|No modal/select/input UI|Focusa inferred project roots' "${ROOT_DIR}/apps/pi-extension/src/session.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null \
+  && ! rg -n 'ctx\.ui\.input\("Confirm Focusa project_root"|Ask operator in chat now|Focusa inferred possible project roots' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null; then
   echo "✓ PASS: project root vital prompt is inference-first and avoids input-only modal"
 else
   echo "✗ FAIL: project root vital prompt still relies on input-only operator entry" >&2

@@ -96,25 +96,21 @@ async function promptForConfirmedProjectRoot(ctx: any, proposedRoot: string, rea
     .map((candidate) => candidate.projectRoot)
     .filter((root, index, all) => root && all.indexOf(root) === index && isProjectRootAuthoritySafe(root));
   if (isProjectRootAuthoritySafe(proposedRoot) && !candidates.includes(proposedRoot)) candidates.unshift(proposedRoot);
-  const askOperator = "Ask operator in chat now — no durable binding";
-  const skip = "Skip for now (Focusa stays unbound)";
-  const options = candidates.length
-    ? [...candidates.map((root) => `${root}${root === proposedRoot ? "  ← detected" : ""}`), askOperator, skip]
-    : [askOperator, skip];
-  const choice = await ctx.ui.select(
-    "Focusa inferred possible project roots — choose only if correct",
-    options,
-  );
-  if (!choice || choice === skip) return null;
-  if (choice === askOperator) {
+  if (!candidates.length) {
     ctx.ui.setWidget("focusa-vital", [
       "🧭 Focusa project root unclear",
       summary,
-      "Agent instruction: infer from cwd/git/beads/repo context first; if still unsure, ask the operator in chat: ‘Which project folder should this session bind to?’ Do not use an input-only modal.",
+      "Agent instruction: infer from cwd/git/beads/repo context first; if still unsure, ask the operator in chat: ‘Which project folder should this session bind to?’ No modal/select/input UI.",
     ], { placement: "belowEditor" });
     focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_agent_ask_required", payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey } });
     return null;
   }
+  const skip = "Skip for now (Focusa stays unbound)";
+  const choice = await ctx.ui.select(
+    "Focusa inferred project roots — choose only if correct",
+    [...candidates.map((root) => `${root}${root === proposedRoot ? "  ← detected" : ""}`), skip],
+  );
+  if (!choice || choice === skip) return null;
 
   const selected = String(choice).replace(/\s+← detected$/, "").trim();
   const confirmed = confirmPiProjectRoot(selected, "operator_prompt_confirmed_project_root");
