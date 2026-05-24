@@ -6,6 +6,8 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::io;
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -21,7 +23,9 @@ fn main() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             // Hide window on blur (click outside = dismiss, standard menubar behavior)
-            let main_window = app.get_webview_window("main").unwrap();
+            let main_window = app.get_webview_window("main").ok_or_else(|| {
+                io::Error::new(io::ErrorKind::NotFound, "missing configured `main` webview window")
+            })?;
             let win_clone = main_window.clone();
             main_window.on_window_event(move |event| {
                 if let WindowEvent::Focused(false) = event {
