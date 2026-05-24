@@ -23,6 +23,7 @@ use focusa_core::types::{
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
+use std::time::Duration;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Default)]
@@ -611,11 +612,33 @@ fn trajectory_persistence_failed(error: impl std::fmt::Display) -> (StatusCode, 
     )
 }
 
+fn trajectory_dispatch_timeout() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::ACCEPTED,
+        Json(json!({
+            "status": "pending",
+            "canonical": false,
+            "degraded": true,
+            "failure_class": "resource_exhausted",
+            "retry_posture": "safe_retry",
+            "retry": {"safe": true, "posture": "safe_retry", "reason": "trajectory write lock is saturated"},
+            "side_effects": [],
+            "next_tools": ["focusa_resource_mode", "focusa_trajectory_view", "focusa_traverse"],
+            "next_step_hint": "retry trajectory mutation after write-lock backlog drains; event was not persisted"
+        })),
+    )
+}
+
 async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    let _guard = state.write_serial_lock.lock().await;
+    let _guard = tokio::time::timeout(
+        Duration::from_millis(1500),
+        state.write_serial_lock.lock(),
+    )
+    .await
+    .map_err(|_| trajectory_dispatch_timeout())?;
     let current = { state.focusa.read().await.clone() };
     let result = reducer::reduce_with_meta(current, event, None, None, false)
         .map_err(trajectory_reducer_rejected)?;
