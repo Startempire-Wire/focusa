@@ -20,6 +20,7 @@ use focusa_core::types::{Action, MemorySource, SemanticRecord};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Duration;
 
 const DEFAULT_SEMANTIC_LIMIT: usize = 100;
 const MAX_SEMANTIC_LIMIT: usize = 512;
@@ -57,6 +58,31 @@ fn memory_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<se
         "Check daemon health and retry after command channel recovery is clear.",
         "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
     )
+}
+
+fn memory_dispatch_timeout() -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::ACCEPTED,
+        Json(json!({
+            "status": "pending",
+            "canonical": false,
+            "degraded": true,
+            "failure_class": "resource_exhausted",
+            "retry_posture": "safe_retry",
+            "retry": {"safe": true, "posture": "safe_retry", "reason": "daemon command channel is saturated"},
+            "side_effects": [],
+            "next_tools": ["focusa_tool_doctor", "focusa_resource_mode", "focusa_metacog_retrieve"],
+            "next_step_hint": "retry after daemon command backlog drains; memory action was not enqueued"
+        })),
+    )
+}
+
+async fn dispatch_memory_action(state: &Arc<AppState>, action: Action) -> MemoryResult {
+    match tokio::time::timeout(Duration::from_millis(1500), state.command_tx.send(action)).await {
+        Ok(Ok(())) => Ok(Json(json!({"status": "accepted"}))),
+        Ok(Err(error)) => Err(memory_dispatch_failed(error)),
+        Err(_) => Err(memory_dispatch_timeout()),
+    }
 }
 
 fn rule_not_found(rule_id: &str) -> (StatusCode, Json<serde_json::Value>) {
@@ -185,17 +211,15 @@ async fn upsert_semantic(
     State(state): State<Arc<AppState>>,
     Json(body): Json<UpsertBody>,
 ) -> MemoryResult {
-    state
-        .command_tx
-        .send(Action::UpsertSemantic {
+    dispatch_memory_action(
+        &state,
+        Action::UpsertSemantic {
             key: body.key,
             value: body.value,
             source: body.source,
-        })
-        .await
-        .map_err(memory_dispatch_failed)?;
-
-    Ok(Json(json!({"status": "accepted"})))
+        },
+    )
+    .await
 }
 
 async fn procedural(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -238,13 +262,7 @@ async fn reinforce_rule(
         }
     }
 
-    state
-        .command_tx
-        .send(Action::ReinforceRule { rule_id })
-        .await
-        .map_err(memory_dispatch_failed)?;
-
-    Ok(Json(json!({"status": "accepted"})))
+    dispatch_memory_action(&state, Action::ReinforceRule { rule_id }).await
 }
 
 pub fn router() -> Router<Arc<AppState>> {
