@@ -1475,6 +1475,8 @@ export async function refreshTrajectoryClarityLifecycle(reason: string, projectR
       degraded: view?.degraded === true,
       project_identity_status: String(view?.project_identity?.status || "unknown"),
       trajectory_id: view?.trajectory?.trajectory_id || null,
+      fallback_prior_project_trajectory: view?.trajectory?.fallback_prior_project_trajectory === true,
+      fallback_source_continuity_id: view?.trajectory?.fallback_source_continuity_id || null,
       long_term_goal: view?.trajectory?.long_term_goal || null,
       desired_end_state: view?.trajectory?.desired_end_state || null,
       short_term_goal: view?.trajectory?.short_term_goal || null,

@@ -38,7 +38,8 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const projectSummary = projectIdentity.project_summary || {};
   const projectUrls = trajectory.project_urls || projectIdentity.project_urls || projectSummary.urls || {};
   const deployment = trajectory.deployment || projectIdentity.deployment || projectSummary.deployment || {};
-  const trajectorySet = !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);
+  const trajectoryFallback = trajectory.fallback_prior_project_trajectory === true;
+  const trajectorySet = !trajectoryFallback && !!(trajectory.long_term_goal || trajectory.desired_end_state || trajectory.active_gap || trajectory.status);
   const workpointStatus = scopedPacket
     ? "verified"
     : S.activeWorkpointSummary
@@ -57,12 +58,12 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const missionPacket = [
     "MISSION_PACKET:",
     `- project=${safeScope ? compact(projectIdentity.canonical_name || projectIdentity.project_id, "unknown", 80) : "UNBOUND_UNSAFE_ROOT"} root=${projectRoot || "unknown"}${confidence}`,
-    `- trajectory=${trajectorySet ? "set" : "not_hydrated"}; high=${compact(trajectory.long_term_goal, "unknown")}; desired=${compact(trajectory.desired_end_state, "unknown")}`,
+    `- trajectory=${trajectoryFallback ? "prior_project_fallback_advisory" : trajectorySet ? "set" : "not_hydrated"}; high=${compact(trajectory.long_term_goal, "unknown")}; desired=${compact(trajectory.desired_end_state, "unknown")}`,
     `- current=${compact(trajectory.current_state, "unknown")}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal, "unknown")}; recommended=${compact(trajectory.recommended_action, "unknown", 120)}`,
     `- workpoint=${workpointStatus}; ${scopedPacket ? "canonical packet matches project_root+continuity_id" : "resume/checkpoint required before treating Workpoint as canonical"}`,
     `- next=${!safeScope || needsConfirm ? "auto-bootstrap project identity with focusa_project_identity before durable work" : next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
     `- environment=${envParts || "unknown; call focusa_project_identity/trajectory_view for URL/deploy facts"}`,
-    `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity is advisory only`,
+    `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity/fallback is advisory only`,
   ];
 
   const friendlyQ = [
@@ -105,7 +106,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
     projectRoot ? `Project folder: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Project folder: bind work to the folder containing project files; reject cross-project resume packets.",
     scopedPacket && continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: no Workpoint continuity verified for this Pi session; use resume/checkpoint before trusting same-root state.",
-    trajectorySet ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.` : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes.",
+    trajectoryFallback ? `Trajectory: prior-project fallback only from continuity=${compact(trajectory.fallback_source_continuity_id, "unknown", 80)}; refresh/define current continuity before durable trajectory writes.` : trajectorySet ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.` : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes.",
     "",
     ...friendlyQ,
     ...routeHints,

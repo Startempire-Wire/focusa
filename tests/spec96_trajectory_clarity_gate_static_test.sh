@@ -57,6 +57,13 @@ else
   exit 1
 fi
 
+if rg -n 'prior_project_fallback_advisory|trajectoryFallback|fallback_source_continuity_id|trajectory similarity/fallback is advisory only' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null; then
+  echo "✓ PASS: Utility Card labels prior trajectory fallback as advisory, not canonical set state"
+else
+  echo "✗ FAIL: Utility Card can present prior trajectory fallback as canonical set state" >&2
+  exit 1
+fi
+
 if rg -n 'trajectoryDraftOptions|A\) Infer from current task|B\) Project-level default|C\) Short-term only|D\) Skip for now|E\) Custom edit' "${ROOT_DIR}/apps/pi-extension/src/session.ts" >/dev/null; then
   echo "✓ PASS: trajectory prompt offers mobile-friendly inferred A/B/C/D options before typing fallback"
 else
