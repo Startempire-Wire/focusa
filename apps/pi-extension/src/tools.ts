@@ -1737,6 +1737,8 @@ export function registerTools(pi: ExtensionAPI) {
 
   type SilentSessionAction = "list" | "start" | "reopen" | "kill" | "tail" | "send" | "health" | "interrupt" | "restart";
   const SILENT_SESSION_PREFIX = "focusa-silent";
+  const SILENT_SESSION_LOG_MAX_BYTES = 5 * 1024 * 1024;
+  const SILENT_SESSION_LOG_BACKUPS = 3;
 
   function shellQuote(value: string): string {
     return `'${String(value).replace(/'/g, `'\''`)}'`;
@@ -1820,10 +1822,29 @@ export function registerTools(pi: ExtensionAPI) {
     return meta?.run_as_user || null;
   }
 
-  function silentSessionEnablePipeLog(name: string, runAsUser?: string | null): { ok: boolean; log_path: string; error?: string } {
+  function silentSessionRotateLog(logPath: string): { rotated: boolean; max_bytes: number; backups: number; error?: string } {
+    try {
+      const fs = require("fs");
+      if (!fs.existsSync(logPath) || fs.statSync(logPath).size < SILENT_SESSION_LOG_MAX_BYTES) {
+        return { rotated: false, max_bytes: SILENT_SESSION_LOG_MAX_BYTES, backups: SILENT_SESSION_LOG_BACKUPS };
+      }
+      for (let i = SILENT_SESSION_LOG_BACKUPS - 1; i >= 1; i--) {
+        const from = `${logPath}.${i}`;
+        const to = `${logPath}.${i + 1}`;
+        if (fs.existsSync(from)) fs.renameSync(from, to);
+      }
+      fs.renameSync(logPath, `${logPath}.1`);
+      return { rotated: true, max_bytes: SILENT_SESSION_LOG_MAX_BYTES, backups: SILENT_SESSION_LOG_BACKUPS };
+    } catch (err: any) {
+      return { rotated: false, max_bytes: SILENT_SESSION_LOG_MAX_BYTES, backups: SILENT_SESSION_LOG_BACKUPS, error: String(err?.message || err) };
+    }
+  }
+
+  function silentSessionEnablePipeLog(name: string, runAsUser?: string | null): { ok: boolean; log_path: string; rotated: boolean; max_bytes: number; backups: number; error?: string } {
     const logPath = silentSessionLogPath(name, runAsUser);
+    const rotation = silentSessionRotateLog(logPath);
     const r = silentSessionExec(["pipe-pane", "-o", "-t", name, `cat >> ${shellQuote(logPath)}`], 3000, runAsUser);
-    return { ok: r.ok, log_path: logPath, error: r.stderr || undefined };
+    return { ok: r.ok, log_path: logPath, rotated: rotation.rotated, max_bytes: rotation.max_bytes, backups: rotation.backups, error: r.stderr || rotation.error || undefined };
   }
 
   function silentSessionVersion(): string {
@@ -2013,11 +2034,11 @@ export function registerTools(pi: ExtensionAPI) {
           silentSessionExec(["set-option", "-t", sessionName, "history-limit", "50000"], 3000, runAsUser);
           silentSessionExec(["set-window-option", "-t", sessionName, "remain-on-exit", "on"], 3000, runAsUser);
         }
-        const pipeLog = started.ok ? silentSessionEnablePipeLog(sessionName, runAsUser) : { ok: false, log_path: silentSessionLogPath(sessionName, runAsUser), error: started.stderr };
-        if (started.ok) silentSessionWriteMeta(sessionName, { session_name: sessionName, root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, command: cmd, log_path: pipeLog.log_path, created_at: new Date().toISOString() });
+        const pipeLog = started.ok ? silentSessionEnablePipeLog(sessionName, runAsUser) : { ok: false, log_path: silentSessionLogPath(sessionName, runAsUser), rotated: false, max_bytes: SILENT_SESSION_LOG_MAX_BYTES, backups: SILENT_SESSION_LOG_BACKUPS, error: started.stderr };
+        if (started.ok) silentSessionWriteMeta(sessionName, { session_name: sessionName, root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, command: cmd, log_path: pipeLog.log_path, log_max_bytes: pipeLog.max_bytes, log_backups: pipeLog.backups, created_at: new Date().toISOString() });
         const sessionsAfter = listSilentSessions();
         const verb = action === "restart" ? "restarted" : "started";
-        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, ownership_warning: runAsUser === "root" && rootDir.startsWith("/home/") ? "root-run session in /home may create root-owned files" : null, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit", pipeLog.ok ? "tmux_pipe_pane_log" : null].filter(Boolean) : [], sessions: sessionsAfter, error: started.stderr || pipeLog.error, log_path: pipeLog.log_path, pipe_log_ok: pipeLog.ok, tmux_version: silentSessionVersion() } } as any;
+        return { content: [{ type: "text", text: started.ok ? `silent session ${verb} → ${sessionName}\nattach: ${silentSessionAttachCommand(sessionName)}\ndetach others: ${silentSessionAttachCommand(sessionName, true)}` : `silent session ${action} blocked → ${started.stderr}` }], details: { ok: started.ok, status: started.ok ? "accepted" : "blocked", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), tail_command: silentSessionTailCommand(sessionName), command: cmd, window_name: "agent", root_dir: rootDir, root_owner: owner, run_as_user: runAsUser, permission_posture: permissionPosture, ownership_warning: runAsUser === "root" && rootDir.startsWith("/home/") ? "root-run session in /home may create root-owned files" : null, side_effects: started.ok ? [action === "restart" && hasSession ? "tmux_kill_session" : null, "tmux_new_session", "tmux_set_history_limit", "tmux_set_remain_on_exit", pipeLog.ok ? "tmux_pipe_pane_log" : null].filter(Boolean) : [], sessions: sessionsAfter, error: started.stderr || pipeLog.error, log_path: pipeLog.log_path, pipe_log_ok: pipeLog.ok, log_rotated: pipeLog.rotated, log_max_bytes: pipeLog.max_bytes, log_backups: pipeLog.backups, tmux_version: silentSessionVersion() } } as any;
       }
 
       if (action === "interrupt") {
