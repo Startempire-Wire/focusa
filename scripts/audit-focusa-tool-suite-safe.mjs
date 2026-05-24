@@ -44,7 +44,7 @@ function recordLatencyGuardrail(endpoint, elapsed_ms, ok) {
   if (elapsed_ms > hotRouteFailMs) pushFailure('hot_path_timeout', endpoint, `hot route exceeded fail guardrail ${elapsed_ms}ms > ${hotRouteFailMs}ms`, 'Move cold work off hot route or lower payload/lock work.', record);
   else if (elapsed_ms > hotRouteWarnMs) pushWarning('hot_path_timeout', endpoint, `hot route exceeded warning guardrail ${elapsed_ms}ms > ${hotRouteWarnMs}ms`, 'Monitor and reduce hot path work before it causes tool timeouts.', record);
 }
-async function getJson(endpoint) {
+async function getJson(endpoint, options = {}) {
   const url = `${baseUrl}${endpoint}`;
   const started = Date.now();
   const res = await fetch(url, { signal: AbortSignal.timeout(timeoutForEndpoint(endpoint)) });
@@ -53,16 +53,19 @@ async function getJson(endpoint) {
   let body = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   probes.push({ endpoint, status: res.status, ok: res.ok, elapsed_ms, route_tier: routeTier(endpoint) });
-  recordLatencyGuardrail(endpoint, elapsed_ms, res.ok);
+  if (options.recordLatency !== false) recordLatencyGuardrail(endpoint, elapsed_ms, res.ok);
   if (!res.ok) throw new Error(`${endpoint} HTTP ${res.status}`);
-  return body;
+  return { body, elapsed_ms };
 }
 
 async function getJsonWithRetry(endpoint, attempts = 2) {
   let lastErr = null;
+  let lastResult = null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      return await getJson(endpoint);
+      lastResult = await getJson(endpoint, { recordLatency: false });
+      recordLatencyGuardrail(endpoint, lastResult.elapsed_ms, true);
+      return lastResult.body;
     } catch (err) {
       lastErr = err;
       if (attempt < attempts) {
@@ -229,7 +232,7 @@ for (const endpoint of [...getRoutes].sort()) {
     continue;
   }
   try {
-    const body = await getJson(endpoint);
+    const body = await getJsonWithRetry(endpoint);
     if (endpoint.startsWith('/v1/focus/frame/current') && body?.active_frame_id && !body?.frame) {
       pushWarning('frame_unavailable', endpoint, 'Focus current-frame route returned active_frame_id but no frame', 'Route should fall back to active frame when no scoped query is provided, or safe fixture must pass frame/session query.', body);
     }
