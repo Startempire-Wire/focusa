@@ -11,10 +11,11 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectIdentityQuery {
@@ -1193,11 +1194,35 @@ fn candidate_payload(
     })
 }
 
+type ProjectIdentityPayloadCache = Mutex<HashMap<String, (Instant, Value)>>;
+static PROJECT_IDENTITY_PAYLOAD_CACHE: OnceLock<ProjectIdentityPayloadCache> = OnceLock::new();
+const PROJECT_IDENTITY_PAYLOAD_CACHE_TTL: Duration = Duration::from_secs(2);
+
+fn project_identity_cache_key(cwd: Option<&str>, project_root: Option<&str>) -> String {
+    format!("cwd={}\nproject_root={}", cwd.unwrap_or_default(), project_root.unwrap_or_default())
+}
+
 pub(crate) fn project_identity_payload_for_scope(
     cwd: Option<&str>,
     project_root: Option<&str>,
 ) -> Value {
-    candidate_payload(discover_identity(cwd, project_root), None)
+    let key = project_identity_cache_key(cwd, project_root);
+    let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(guard) = cache.lock()
+        && let Some((cached_at, payload)) = guard.get(&key)
+        && cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL
+    {
+        return payload.clone();
+    }
+
+    let payload = candidate_payload(discover_identity(cwd, project_root), None);
+    if let Ok(mut guard) = cache.lock() {
+        if guard.len() > 64 {
+            guard.retain(|_, (cached_at, _)| cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL);
+        }
+        guard.insert(key, (Instant::now(), payload.clone()));
+    }
+    payload
 }
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {

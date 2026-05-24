@@ -56,6 +56,13 @@ else
   exit 1
 fi
 
+if rg -n 'PROJECT_IDENTITY_PAYLOAD_CACHE|PROJECT_IDENTITY_PAYLOAD_CACHE_TTL|project_identity_cache_key|cached_at\.elapsed\(\).*PROJECT_IDENTITY_PAYLOAD_CACHE_TTL' "$PROJECT" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity hot-path payload uses bounded short TTL cache"
+else
+  echo "✗ FAIL: ProjectIdentity hot-path payload cache missing" >&2
+  exit 1
+fi
+
 if rg -n 'lastProjectIdentity|projectSummary|S\.lastProjectIdentity = identity|S\.lastProjectIdentity = projectIdentity' "${ROOT_DIR}/apps/pi-extension/src/state.ts" "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" "$TOOLS" >/dev/null; then
   echo "✓ PASS: Utility Card consumes cached ProjectIdentity summary facts"
 else
