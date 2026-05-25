@@ -7,11 +7,22 @@
 
 ## 1. Goal
 
-Ship a Tauri menubar app that acts as a compact **Focusa Runtime Cockpit**: an operator can see whether the current agent/project is oriented, canonical, evidence-backed, healthy, and safe to continue without falling back to CLI for routine state checks.
+Ship a Tauri menubar app that acts as an **Ambient Focusa Runtime Cockpit**: a calm, glanceable window into whether the current agent/project is oriented, canonical, evidence-backed, healthy, and safe to continue.
 
-The app is not a replacement for Pi or the CLI. It is the always-visible control/status surface for Focusa's current cognitive state.
+The app is not a replacement for Pi or the CLI, and it must not become the primary interface. It keeps the original Tauri app spirit: ambient cognitive awareness, soft visual emergence, no notifications, no modal interruption, no focus stealing, and no silent state mutation.
 
 ## 2. Product principles
+
+### 2.1 Original menubar spirit — preserved
+
+1. **Awareness, not control.** Default UI explains state; it does not ask the operator to act.
+2. **Calm, organic, non-demanding.** Motion is soft, slow, optional, and never alert-like.
+3. **Glanceable first.** The default view answers “is Focusa okay?” in seconds.
+4. **Never modal.** Details open as peeks/drawers, not blocking dialogs.
+5. **No focus stealing.** No notifications, no auto-open, no keyboard capture.
+6. **CLI/Pi remain sufficient.** The app makes state visible; it does not replace primary workflows.
+
+### 2.2 Current-runtime principles — added
 
 1. **Project-scoped first.** Every primary view is anchored by `project_root + continuity_id`; global Focus State is secondary.
 2. **Canonical over narrative.** Workpoint/Trajectory packets beat transcript tail or legacy state dumps.
@@ -20,25 +31,34 @@ The app is not a replacement for Pi or the CLI. It is the always-visible control
 5. **Safe mutations only.** Any write operation shows confirmation, payload summary, and returned `tool_result_v1` status.
 6. **Degraded is a first-class state.** `pending`, `blocked`, `canonical=false`, `degraded=true`, writer conflicts, and retry posture are visible, not hidden.
 
-## 3. Target navigation
+## 3. Target interaction model
 
-Replace current tabs (`Focus`, `Mission`, `Gate`, `Sync`, `Settings`) with this cockpit layout:
+Do not turn the app into a dense admin console by default. Keep the original small menubar shape and use progressive disclosure:
 
-| Tab | Purpose | Primary routes |
+| Layer | Purpose | UI style |
+|---|---|---|
+| **Ambient icon** | Show daemon/project/workpoint/work-loop state at a glance. | Soft outline/fill/pulse/ring states; no badges or numbers. |
+| **Default bubble view** | Centered current Focus/Workpoint bubble with background thought clouds. | Organic, quiet, hover labels only. |
+| **Peek drawers** | Trajectory, Workpoint, Proof, Work Loop, Focus/Gate, Sync/Settings details. | Small vertical panels; dismissable; no modal blocks. |
+| **Explicit actions** | Rare safe mutations such as gate pin/suppress or evidence link. | Confirmation drawer with reversible/copyable CLI alternative. |
+
+The detailed cockpit layout is a set of **peek drawers**, not always-visible tabs:
+
+| Drawer | Purpose | Primary routes |
 |---|---|---|
 | **Cockpit** | One-screen health/orientation summary. | `/v1/health`, `/v1/doctor`, `/v1/project/identity`, `/v1/trajectory/view`, `/v1/workpoint/resume`, `/v1/work-loop/health`, `/v1/telemetry/memory` |
 | **Trajectory** | Project goals, current state, active gap, drift boundaries, proposed next Workpoint. | `/v1/trajectory/view`, `/v1/trajectory/assess`, `/v1/trajectory/propose-workpoint`, `/v1/trajectory/checkpoint` |
 | **Workpoint** | Canonical continuation packet, next action, blockers, target objects, drift check, linked evidence. | `/v1/workpoint/resume`, `/v1/workpoint/current`, `/v1/workpoint/drift-check`, `/v1/workpoint/active-object/resolve`, `/v1/workpoint/evidence/link` |
 | **Proof** | Evidence, predictions, metacognition, lineage/snapshots in one proof/recovery area. | `/v1/traverse`, `/v1/predictions/recent`, `/v1/predictions/stats`, `/v1/metacognition/status`, `/v1/metacognition/evaluations/recent`, `/v1/focus/snapshots/recent`, `/v1/lineage/tree` |
 | **Work Loop** | Dispatch readiness, writer ownership, active task, pause/degraded state, checkpoint history. | `/v1/work-loop/health`, `/v1/work-loop/status?summary_only=true`, `/v1/work-loop/checkpoints`, `/v1/work-loop/context`, `/v1/work-loop/checkpoint` |
-| **Focus/Gate** | Legacy Focus State and Focus Gate, with safe update/suppress/pin controls. | `/v1/focus/frame/current`, `/v1/focus/stack`, `/v1/focus/update`, `/v1/focus-gate/candidates`, `/v1/focus-gate/*` |
+| **Focus/Gate** | Legacy Focus State and Focus Gate, with safe suppress/pin controls. | `/v1/focus/frame/current`, `/v1/focus/stack`, `/v1/focus-gate/candidates`, `/v1/focus-gate/*` |
 | **Sync/Settings** | Connection, sync peers, API base, build/runtime version, security guidance. | `/v1/sync/*`, `/v1/info`, `/v1/ontology/tool-contracts`, `/v1/resource/mode` |
 
-## 4. Cockpit tab requirements
+## 4. Cockpit drawer requirements
 
-### 4.1 Header status strip
+### 4.1 Ambient status strip
 
-Show these chips at all times:
+Show these states quietly when the cockpit drawer is open. In the collapsed icon, map them to soft visual states rather than badges/numbers:
 
 | Chip | Good state | Warning/bad state |
 |---|---|---|
@@ -64,15 +84,15 @@ Required cards:
    - action: drift check.
 4. **Dispatch Readiness**
    - dispatch ready, boundary reason, pause flags, writer owner, degraded transport.
-   - action: open Work Loop tab.
+   - action: open Work Loop drawer.
 5. **Health/Doctor**
    - daemon health, doctor summary, memory RSS/pressure, route budget warnings.
    - action: run doctor refresh.
 6. **Recent Proof**
    - latest evidence/prediction/metacog evaluation/snapshot handles.
-   - action: open Proof tab.
+   - action: open Proof drawer.
 
-## 5. Trajectory tab requirements
+## 5. Trajectory drawer requirements
 
 ### Read-only baseline
 
@@ -91,7 +111,7 @@ Required cards:
 | Checkpoint trajectory | Confirmation + summary. | `POST /v1/trajectory/checkpoint` |
 | Define/update goal | High-friction confirmation; show operator-confirmed boundary. | `POST /v1/trajectory/define-goal` |
 
-## 6. Workpoint tab requirements
+## 6. Workpoint drawer requirements
 
 ### Resume packet display
 
@@ -115,7 +135,7 @@ Show the Workpoint as a continuation contract:
 | Link evidence | Confirmation, target ref + evidence ref required. | `POST /v1/workpoint/evidence/link` |
 | Create checkpoint | Confirmation, all required fields previewed. | `POST /v1/workpoint/checkpoint` |
 
-## 7. Proof tab requirements
+## 7. Proof drawer requirements
 
 Unify evidence, prediction, metacognition, and lineage because these answer: “Why should we trust this state?”
 
@@ -150,13 +170,13 @@ Unify evidence, prediction, metacognition, and lineage because these answer: “
 - `/v1/lineage/tree`
 - `/v1/traverse`
 
-## 8. Work Loop tab requirements
+## 8. Work Loop drawer requirements
 
 ### Read surfaces
 
 - `/v1/work-loop/health` polled on hot path.
-- `/v1/work-loop/status?summary_only=true` polled less frequently or on tab open.
-- `/v1/work-loop/checkpoints` on tab open.
+- `/v1/work-loop/status?summary_only=true` polled less frequently or on drawer open.
+- `/v1/work-loop/checkpoints` on drawer open.
 - deep status/replay surfaces only behind explicit “Deep diagnostics” button.
 
 ### Display
@@ -177,15 +197,16 @@ Default mode is read-only. Mutations require explicit confirmation and show resu
 - manual checkpoint.
 - select next ready work.
 
-## 9. Focus/Gate tab requirements
+## 9. Focus/Gate drawer requirements
 
-Keep legacy Focus State but make it current and useful:
+Keep legacy Focus State visually central because that is the original app's emotional core:
 
+- default view remains the current Focus/Workpoint bubble, with inactive frames and pinned candidates as background thought clouds.
 - display active frame current fields: intent, current_focus/current_state, decisions, constraints, failures, next steps, open questions, recent results, notes.
-- display Focus Stack depth and active path.
+- display Focus Stack depth and active path as ambient depth/position, not a noisy table by default.
 - display Gate candidates/signals from direct routes, not only `/v1/state/dump`.
-- support safe `focus/update` writes for single-slot additions.
 - support gate suppress/pin/surface with confirmation and result envelope.
+- Focus State writes stay CLI/Pi-first for this version; if exposed later, they must live behind an explicit advanced drawer.
 
 ## 10. Sync/Settings requirements
 
@@ -254,7 +275,7 @@ Every card should render normalized fields when present:
 | 2s | `/v1/health`, `/v1/work-loop/health` |
 | 5s | project identity, trajectory view, Workpoint resume/current, memory telemetry |
 | 10s | doctor, predictions stats, metacog status, snapshots, events |
-| on tab open | deep work-loop, lineage tree, recent lists, sync peers |
+| on drawer open | deep work-loop, lineage tree, recent lists, sync peers |
 | manual only | write routes, deep diagnostics, snapshot diff/restore |
 
 ## 12. Implementation phases
@@ -267,18 +288,19 @@ Every card should render normalized fields when present:
 
 **Acceptance:** clean checkout can run documented app proof without order-dependent failure.
 
-### Phase 1 — Cockpit MVP
+### Phase 1 — Ambient Cockpit MVP
 
 - Central API client.
-- Cockpit tab with health, doctor, project identity, trajectory view, Workpoint resume, work-loop health, memory telemetry.
-- Result envelope badges.
+- Ambient icon state plus default Focus/Workpoint bubble.
+- Cockpit drawer with health, doctor, project identity, trajectory view, Workpoint resume, work-loop health, memory telemetry.
+- Result envelope badges inside drawers, not on the menubar icon.
 
-**Acceptance:** Cockpit answers project, trajectory, Workpoint canonicality, dispatch readiness, and memory pressure in one view.
+**Acceptance:** collapsed app stays calm; opened cockpit answers project, trajectory, Workpoint canonicality, dispatch readiness, and memory pressure in one view.
 
 ### Phase 2 — Workpoint + Trajectory depth
 
-- Full Trajectory tab.
-- Full Workpoint tab.
+- Full Trajectory drawer.
+- Full Workpoint drawer.
 - Drift check and evidence link flows.
 
 **Acceptance:** operator can determine the exact next safe continuation action and supporting evidence without CLI.
@@ -294,9 +316,9 @@ Every card should render normalized fields when present:
 ### Phase 4 — Work Loop controls
 
 - Health/status/checkpoints.
-- Preflighted pause/resume/stop/context/checkpoint/select-next.
+- Preflighted pause/resume/stop/context/checkpoint/select-next in an advanced drawer only.
 
-**Acceptance:** app can safely show and control continuous work-loop posture without stealing writer ownership.
+**Acceptance:** app can safely show continuous work-loop posture by default and expose controls only without stealing writer ownership.
 
 ### Phase 5 — Polish and release readiness
 
@@ -319,7 +341,8 @@ Every card should render normalized fields when present:
 
 The app is “fully up to speed” when:
 
-- [ ] project identity and trajectory are first-class surfaces.
+- [ ] original menubar spirit remains intact: calm, organic, glanceable, never modal, no notifications, no focus stealing.
+- [ ] project identity and trajectory are first-class surfaces behind ambient progressive disclosure.
 - [ ] Workpoint resume packet is canonical source for continuation UI.
 - [ ] evidence, predictions, metacognition evaluations, and lineage snapshots are visible.
 - [ ] work-loop health dispatch readiness is visible on hot path.
