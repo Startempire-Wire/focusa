@@ -22,6 +22,8 @@ assert_has apps/menubar/src/lib/components/MissionControl.svelte 'PROJECT|TRAJEC
 assert_has apps/menubar/src/lib/components/MissionControl.svelte 'envelopeLabel|envelopeTone|evidenceCount|class:watch|class:bad|class="chip"' 'mission panel renders calm result-envelope/status chips'
 assert_has apps/menubar/src/lib/components/TrajectoryPeek.svelte 'Active gap|Long-term goal|Desired end state|Next Workpoint|Evidence refs|Checks / risks' 'trajectory peek renders current trajectory surfaces calmly'
 assert_has apps/menubar/src/routes/+page.svelte "TrajectoryPeek|activeTab === 'trajectory'" 'trajectory peek is reachable from menubar shell'
+assert_has apps/menubar/src/lib/components/WorkpointPeek.svelte 'Continuation contract|Current action|Next action|Target objects|Evidence refs|Blockers|Do not drift' 'workpoint peek renders canonical continuation surfaces calmly'
+assert_has apps/menubar/src/routes/+page.svelte "WorkpointPeek|activeTab === 'workpoint'" 'workpoint peek is reachable from menubar shell'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then

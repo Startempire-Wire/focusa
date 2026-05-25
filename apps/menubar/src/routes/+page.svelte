@@ -8,11 +8,12 @@
   import Settings from '$lib/components/Settings.svelte';
   import MissionControl from '$lib/components/MissionControl.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
+  import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
 
-  type Tab = 'focus' | 'mission' | 'trajectory' | 'gate' | 'sync' | 'settings';
+  type Tab = 'focus' | 'mission' | 'trajectory' | 'workpoint' | 'gate' | 'sync' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -95,6 +96,9 @@
     <button class="tab" class:active={activeTab === 'trajectory'} onclick={() => activeTab = 'trajectory'}>
       Traj
     </button>
+    <button class="tab" class:active={activeTab === 'workpoint'} onclick={() => activeTab = 'workpoint'}>
+      WP
+    </button>
     <button class="tab" class:active={activeTab === 'gate'} onclick={() => activeTab = 'gate'}>
       Gate
       {#if gateStore.surfacedCount > 0}
@@ -118,6 +122,8 @@
     <MissionControl />
   {:else if activeTab === 'trajectory'}
     <TrajectoryPeek />
+  {:else if activeTab === 'workpoint'}
+    <WorkpointPeek />
   {:else if activeTab === 'gate'}
     <GatePanel />
   {:else if activeTab === 'sync'}
