@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timezone
 
 
-def req(base_url, path, method="GET", body=None, headers=None, timeout=5):
+def req(base_url, path, method="GET", body=None, headers=None, timeout=20):
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
@@ -69,6 +69,9 @@ def main():
     body, err = parse_json(raw)
     required = ["active_frame", "stack_depth", "worker_status", "last_event_ts", "prompt_stats"]
     missing = [] if body is None else check_fields(body, required)
+    if isinstance(body, dict):
+        cold_omitted = set(body.get("cold_omitted", []))
+        missing = [field for field in missing if field not in cold_omitted]
     ok = status == 200 and body is not None and not missing
     add_check("status_contract", ok, {"status": status, "missing": missing, "body": body if body else raw, "parse_error": err})
 

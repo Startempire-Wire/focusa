@@ -350,10 +350,10 @@ trait CommandFailureDetailsExt {
 
 impl CommandFailureDetailsExt for (StatusCode, Json<Value>) {
     fn tap_details(mut self, details: Option<String>) -> Self {
-        if let Some(details) = details {
-            if let Some(obj) = self.1.0.as_object_mut() {
-                obj.insert("dispatch_error".to_string(), json!(details));
-            }
+        if let Some(details) = details
+            && let Some(obj) = self.1.0.as_object_mut()
+        {
+            obj.insert("dispatch_error".to_string(), json!(details));
         }
         self
     }
@@ -637,7 +637,7 @@ fn map_command_to_action(
             let p: VisualEvidencePayload = decode(payload, command)?;
             let content = p
                 .resolve_content()
-                .map_err(|e| command_visual_payload_rejected(e))?;
+                .map_err(command_visual_payload_rejected)?;
             Ok(Action::StoreArtifact {
                 kind: p.kind,
                 label: p.to_artifact_label(),

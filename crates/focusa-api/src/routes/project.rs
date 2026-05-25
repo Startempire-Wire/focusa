@@ -615,9 +615,9 @@ fn infer_project_environment(root: &Path, identity_hints: &[String]) -> (Value, 
     };
 
     let environment_confidence =
-        if wp_url.is_some() && (app_url.is_some() || deploy_locations.first().is_some()) {
+        if wp_url.is_some() && (app_url.is_some() || !deploy_locations.is_empty()) {
             "high"
-        } else if live_url.is_some() || deploy_locations.first().is_some() {
+        } else if live_url.is_some() || !deploy_locations.is_empty() {
             "medium"
         } else {
             "low"

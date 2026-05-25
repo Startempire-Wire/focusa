@@ -2496,7 +2496,7 @@ async fn start_pi_driver(
         cmd.current_dir(cwd);
     }
 
-    let mut child = cmd.spawn().map_err(|e| work_loop_pi_spawn_failed(e))?;
+    let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;
     let stdin = child
         .stdin
         .take()

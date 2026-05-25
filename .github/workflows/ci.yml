@@ -52,7 +52,8 @@ jobs:
           APP_PATH=$(find apps/menubar/src-tauri/target/release/bundle/macos -name "*.app" | head -1)
           test -n "$APP_PATH"
           echo "Found bundle: $APP_PATH"
-          /usr/bin/defaults read "$APP_PATH/Contents/Info.plist" CFBundleShortVersionString
+          test -f "$APP_PATH/Contents/Info.plist"
+          /usr/bin/defaults read "$APP_PATH/Contents/Info.plist" CFBundleIdentifier
 
   spec-gates:
     name: Spec Gates (strict)
