@@ -34,6 +34,8 @@ fn gate_failure(
 ) -> (StatusCode, Json<serde_json::Value>) {
     let error = error.into();
     let why = why.into();
+    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "permission_denied");
+    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
     (
         http_status,
         Json(json!({
@@ -41,7 +43,7 @@ fn gate_failure(
             "error": error, "failure_class": failure_class, "why": why,
             "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
             "next_tools": ["focusa_tool_doctor", "focusa_work_loop_status"],
-            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_work_loop_status"], "error": {"code": failure_class, "message": error}}}
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_work_loop_status"], "error": {"code": failure_class, "message": error}}}
         })),
     )
 }
