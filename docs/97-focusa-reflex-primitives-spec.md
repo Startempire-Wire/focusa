@@ -1,7 +1,7 @@
 # 97 — Focusa Reflex Primitives Spec
 
 **Date:** 2026-05-25  
-**Status:** draft / iterable spec lineage  
+**Status:** draft / dependency-audited / implementation gaps identified
 **Priority:** high  
 **Owner:** Focusa + Pi integration  
 **Source:** Operator framing from the "agent cerebellum" model: routine cognition should become reliable reflex, not repeated high-cognition planning.
@@ -43,6 +43,33 @@ Spec97 extends the 90s lineage:
 | Spec96 | Trajectory Projection, project/session scope, daemon stability, LowMem hardening. |
 
 Spec97 does not replace these. It creates a cross-cutting vocabulary and acceptance model for the repeatable routines they imply.
+
+### 2.1 Dependency audit — 2026-05-25
+
+Audit rule: a dependency counts as functional only when code/routes/tests or validation output prove it; bead closure alone is not proof.
+
+| Dependency | Required for Spec97 | Verified functional evidence | Audit status |
+|---|---|---|---|
+| Spec90 tool/action contracts | Primitive registry must map to stable tool contracts, ontology actions, docs, result envelopes, and parity metadata. | `docs/current/focusa-tool-contracts.json`, `apps/pi-extension/src/tool-contracts.ts`, `GET /v1/ontology/tool-contracts` in `crates/focusa-api/src/routes/ontology.rs`, `node scripts/validate-focusa-tool-contracts.mjs --json` returned `failures=0`, `tools=58`, `contracts=58`. | Functional in repo/static validation. |
+| Spec91 live proof harness | Reflex acceptance needs live/static parity proof before claiming runtime release readiness. | `scripts/prove-focusa-tool-contracts-live.mjs` and `docs/current/LIVE_TOOL_CONTRACT_PROOF.md` exist; safe fixture endpoints passed against live daemon. | Implementation functional, but current live daemon is stale: `payload_equal=false` because live `/v1/ontology/tool-contracts` differs from static registry. See immediate gap `G97-live-contract-parity`. |
+| Spec92 agent-first polish and prediction | Recovery reflexes and learning reflexes need `tool_result_v1`, bounded failures, predictive record/evaluate surfaces, and token/cache telemetry. | Pi tool wrappers expose `tool_result_v1`; prediction routes/tools/docs are present; `tests/spec96_predict_evaluate_not_found_static_test.sh`, `tests/spec96_pi_retry_posture_contract_static_test.sh`, and contract validation cover current behavior. | Functionally available as substrate; Spec97 must only reference it through bounded primitive metadata. |
+| Spec93 non-Pi awareness | Reflexes must be visible outside Pi through awareness cards and CLI/API entrypoints. | `/v1/awareness/card` is routed in `crates/focusa-api/src/routes/awareness.rs` and `server.rs`; CLI `focusa awareness card` exists; docs/current `NON_PI_AGENT_FOCUSA_USAGE.md` documents OpenClaw/Wirebot path. | Functional substrate. |
+| Spec94 memory/payload/RPC discipline | Reflexes must stay summary-first, bounded, cursor/rehydrate-aware, and pressure-safe. | `tests/spec94_response_size_and_metadata_contract_test.sh` passed; ECS/memory/ontology/work-loop/telemetry bounded metadata and response-size instrumentation are present. | Functional substrate. |
+| Spec95 ontology intelligence | Reflex routing needs ontology actions, risks, affordances, working sets, prompt-safe context, and retrieval governance. | `tests/spec95_ontology_intelligence_contract_test.sh` passed; `/v1/ontology/working-set`, `/context`, `/affordances`, `/retrieval-governor`, `/tool-choreography` are routed in `ontology.rs`. | Functional substrate. |
+| Spec96 trajectory/project/scope/LowMem | Reflexes require verified ProjectIdentity, project_root+continuity scope, Workpoint v2, Trajectory view, traversal, ResourceMode, and LowMem degradation. | `tests/spec96_project_identity_quorum_static_test.sh`, `tests/spec96_trajectory_clarity_gate_static_test.sh`, `tests/spec96_traverse_schema_static_test.sh`, and `tests/spec96_resource_mode_envelope_static_test.sh` passed; bootstrap default gap closed in `crates/focusa-api/src/routes/trajectory.rs`. | Functional substrate. |
+
+### 2.2 Immediate development gap list from audit
+
+These gaps block claiming Spec97 implementation beyond vocabulary/spec language:
+
+| Gap id | Dependency/phase | Evidence of gap | Immediate development requirement |
+|---|---|---|---|
+| `G97-live-contract-parity` | Spec91 live proof dependency | `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json` returned `status=failed`, `payload_equal=false`; live daemon registry still has stale `approval_placeholder`, missing `tmux pipe-pane`, and old schema field compared with static JSON. | Rebuild/restart or otherwise refresh the running daemon so live `/v1/ontology/tool-contracts` equals `docs/current/focusa-tool-contracts.json`, then record passing live proof. |
+| `G97-primitive-registry` | Phase A | Repository search finds no `focusa-reflex-primitives.json`, `reflex_primitives` module, `/v1/reflex/primitives`, or `focusa_traverse` reflex surface outside this draft. | Add read-only primitive registry covering all ten families, with `primitive_id`, authority boundary, context inputs, escalation boundary, hot/cold posture, and tool/route mappings. |
+| `G97-reflex-envelope-metadata` | Phase B | Repository search finds no `reflex_suggestion` metadata in tool envelopes/contracts. | Extend relevant `tool_result_v1`/recovery envelopes with bounded primitive ids for scope mismatch, pending, degraded, resource pressure, missing evidence, and stale Workpoint. |
+| `G97-ontology-reflex-routing` | Phase C | Ontology has strong action/risk/affordance surfaces, but no reflex primitive object/action/risk classes or traverse selector for primitive summaries. | Add ontology classes/registry projection for ReflexPrimitive, ReflexTrigger, ReflexRisk, ReflexAffordance, and bounded traverse retrieval by family/risk/object. |
+| `G97-golden-reflex-scenarios` | Phase D | No tests named for Spec97/reflex scenarios; existing Spec94-96 tests prove substrates, not `Trigger -> Context -> Reflex -> Evidence -> Escalation` scenarios. | Add at least five golden scenario tests covering identity, evidence, continuity, recovery/resource, and governance/execution reflex chains. |
+| `G97-utility-card-reflex-language` | Phase E | Awareness/Utility Card names Trajectory/Workpoint/Focusa guidance, but not concise reflex affordances. | Add minimal, non-noisy reflex naming only where it improves next action selection. |
 
 ---
 
