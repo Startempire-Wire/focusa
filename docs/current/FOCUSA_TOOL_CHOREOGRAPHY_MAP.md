@@ -1,8 +1,8 @@
 # Focusa Tool Choreography Map
 
-Current contract registry: **58 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal, Focus State, work-loop, diagnostics, lineage, prediction, and metacognition.
+Current contract registry: **59 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, and metacognition.
 
-Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains five route templates, 174 weighted per-tool edges, and exact `per_tool_next_tools` for all 58 tools. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
+Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains 177 weighted per-tool edges and exact `per_tool_next_tools` for all 59 tools, including `focusa_reflex_primitives`. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
 
 This map links tools by **model intent** so agents get compounding project results instead of using only basic note tools.
 
@@ -16,6 +16,7 @@ failure_class → why it failed
 retry.posture → whether retry is safe
 recovery_hint / misuse_hint → what to fix first
 next_tools → the next safe route
+reflex_suggestions → bounded Spec97 primitive ids for recurring recovery patterns
 ```
 
 Common out-of-order fixes:
@@ -26,10 +27,10 @@ Common out-of-order fixes:
 | `frame_unavailable` | Focus State slot used before active Pi frame | Stay `Attentive and awaiting operator direction`; checkpoint/resume before durable writes |
 | `validation_rejected` | Verbose/task/debug text in durable slot | Put full text in `focusa_scratch`; retry one compact declarative slot |
 | `read_model_lag` | Just-written packet not visible yet | Wait/read once with same scope; avoid duplicate writes |
-| `hot_path_timeout` | Daemon/resource pressure on bounded route | `focusa_tool_doctor` → `focusa_resource_mode`; avoid full/cold payloads |
+| `hot_path_timeout` | Daemon/resource pressure on bounded route | `focusa_tool_doctor` → `focusa_resource_mode`; avoid full/cold payloads; inspect `resource_mode_fallback` reflex if present |
 | `unknown_ambiguous_completion` | Result does not prove side effect | Check canonical state/side effects before retrying |
 
-Rule: if a tool blocks, do not stop at the error. Follow `next_tools` unless the operator steers otherwise.
+Rule: if a tool blocks, do not stop at the error. Follow `next_tools` unless the operator steers otherwise; use `reflex_suggestions`/`focusa_reflex_primitives` only as advisory routing metadata.
 
 ## Route graph
 

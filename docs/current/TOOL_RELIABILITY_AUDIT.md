@@ -8,11 +8,11 @@
 node scripts/audit-focusa-tool-suite-safe.mjs
 ```
 
-This audit is read-only for daemon/API probes. It validates all 58 registered tool contracts and docs, probes safe GET routes, and classifies warnings/failures with `failure_class`.
+This audit is read-only for daemon/API probes. It validates all 59 registered tool contracts and docs, probes safe GET routes, and classifies warnings/failures with `failure_class` and optional Spec97 `reflex_suggestions`.
 
 ## Latest safe audit result
 
-- Static contracts: passed (`tools=58`, `contracts=58`).
+- Static contracts: passed (`tools=59`, `contracts=59`).
 - Safe GET routes: passed for health, ontology tool contracts/choreography, focus current frame, lineage, metacog recent, predictions, project identity, resource mode, trajectory, work-loop summary, Workpoint current.
 - Current hardening gates: `tests/focusa_cli_parity_smoke_test.sh`, `tests/focusa_tool_stress_test.sh`, `tests/focusa_extended_soak_test.sh`, `tests/focusa_parallel_load_regression_test.sh`, `tests/spec96_focusa_aware_context_pressure_static_test.sh`, and `node scripts/audit-focusa-tool-suite-safe.mjs`.
 - Runtime proof includes extended soak RSS/status profiling, immediate scoped Workpoint checkpoint visibility, and live dynamic choreography adjustments from evaluated `tool_edge:from->to` prediction refs.
@@ -28,13 +28,13 @@ This audit is read-only for daemon/API probes. It validates all 58 registered to
 | focus current-frame null | `/v1/focus/frame/current` returned active id but no frame | source patch makes unscoped route fall back to active frame |
 | result-adjacent slot max mismatch | API rejects `recent_results`, `notes`, `open_questions` over 180 chars while Pi tool advertised 200/300 | source/docs now align public tool limits to 180 chars |
 | stale runtime registry | live proof `payload_equal=false` while static/safe fixtures pass | classify as `stale_runtime_registry`; static validation is source until approved daemon reload |
-| null/unknown tool failures | older wrappers hide upstream status/body as null/unavailable | preserve raw status/body in `tool_result_v1.raw`; classify `null_response`/retry posture |
+| null/unknown tool failures | older wrappers hide upstream status/body as null/unavailable | preserve compact safe status/body in `tool_result_v1.raw`; classify `null_response`/retry posture |
 | Workpoint status projection mismatch | REST `/v1/workpoint/current` returned envelope `status=completed` while nested canonical workpoint was `status=active`; wrapper evidence/checkpoint tools blocked | classify as `read_model_lag`; wrappers should use nested canonical object state and avoid blocking solely on envelope status |
 | Workpoint checkpoint read-model lag | scoped checkpoint returned `pending` and `current/resume` stayed `not_found` while daemon queue was busy | canonical checkpoint route now uses the sync reducer path under `write_serial_lock` and marks external mutation for daemon reconciliation |
 
 ## Reliability requirements
 
-- Tool results must expose `failure_class`, retry posture, `canonical/degraded`, side effects, evidence refs, `next_tools`, and raw status/body when safe.
+- Tool results must expose `failure_class`, retry posture, `canonical/degraded`, side effects, evidence refs, `next_tools`, optional `reflex_suggestions`, and compact raw status/body when safe.
 - Read-only hot tools must return bounded data or degraded cached data, not block on cold diagnostics.
 - Mutating tools must retry only when idempotent or after checking side effects.
 - `focusa_scratch` is fallback for working notes and degraded write recovery, not the normal path for durable state.
@@ -63,10 +63,10 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 
 ## Latest all-tools implementation/spec audit
 
-- Contracts: passed (`tools=58`, `contracts=58`).
+- Contracts: passed (`tools=59`, `contracts=59`).
 - Static implementation/spec audit: passed (`failures=0`, `warnings=0`).
-- Filled gaps: concrete Focus State CLI update, scoped Workpoint CLI flags, metacog recent CLI, lineage extract CLI, snapshot API/CLI contract parity.
-- Live probes: 15 hot/safe endpoints passed with no failures in the safe suite; stale runtime registry can appear until daemon rebuild/restart reloads embedded registry.
+- Filled gaps: concrete Focus State CLI update, scoped Workpoint CLI flags, metacog recent CLI, lineage extract CLI, snapshot API/CLI contract parity, Spec97 Reflex Primitive direct/traverse access, and API/Pi `reflex_suggestions`.
+- Live probes: hot/safe endpoints and Spec97 reflex dogfood passed with no failures in the safe suite; stale runtime registry can appear until daemon rebuild/restart reloads embedded registry.
 - Safe audit skips cold `GET /v1/lineage/tree` by default for low-memory reliability; set `FOCUSA_AUDIT_INCLUDE_COLD_GET=1` for explicit cold-route probing.
 - Evidence: `/tmp/focusa-tool-implementation-spec-audit.json`, `/tmp/focusa-tool-suite-safe-audit-final.json`, `/tmp/focusa-cli-parity-smoke.log`, `/tmp/focusa-tool-contracts-live-smoke.json`, `/tmp/focusa-tool-stress-smoke.log`.
 

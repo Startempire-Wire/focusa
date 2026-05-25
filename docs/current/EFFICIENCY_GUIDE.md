@@ -2,7 +2,7 @@
 
 **Spec:** [`docs/92-agent-first-polish-hooks-efficiency-spec.md`](../92-agent-first-polish-hooks-efficiency-spec.md)
 
-This page documents the current Spec92 token-budget telemetry slice. Cache metadata now has an initial bounded Spec92 metadata surface.
+This page documents the current Spec92 token-budget telemetry slice plus current low-resource hardening. Cache metadata now has an initial bounded Spec92 metadata surface; Spec97 reflex metadata stays bounded by default.
 
 ## Current token-budget surfaces
 
@@ -60,7 +60,7 @@ node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
 focusa telemetry token-budget
 ```
 
-Then compact large tool-result history or store large evidence in ECS handles before continuing.
+Then compact large tool-result history or store large evidence in ECS handles before continuing. Under memory pressure, prefer `focusa_resource_mode`, bounded `focusa_traverse`, and read-only `focusa_reflex_primitives`; avoid cold/full payloads unless explicitly needed.
 
 ## Cache phase status
 
@@ -98,4 +98,4 @@ focusa doctor
 focusa --json doctor
 ```
 
-The full doctor aggregates daemon health, daemon executable path, API route/capability inventory, Spec90/Spec91 proof surfaces, Pi skill paths, Workpoint canonicality, Work-loop writer state, token telemetry, cache metadata, Mac app package presence, release docs, Guardian scanner presence, recovery commands, and evidence refs.
+The full doctor aggregates daemon health, daemon executable path, API route/capability inventory, Spec90/Spec91 proof surfaces, Pi skill paths, Workpoint canonicality, Work-loop writer state, token telemetry, cache metadata, Mac app package presence, release docs, Guardian scanner presence, recovery commands, and evidence refs. Pi tool output is capped/compacted, route timeouts are tiered, and `tool_result_v1.raw` omits large unbounded response echoes.

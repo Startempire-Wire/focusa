@@ -8,13 +8,13 @@ The card must mention:
 
 - Focusa availability/degraded status.
 - Friendly Focusa Q: where am I, what project/architecture is this, where are we going, next useful move, proof, compounding lesson.
-- Tool route hints: orient, execute, prove, learn, recover.
+- Tool route hints: orient, execute, prove, learn, recover, and inspect reflexes when a result exposes `reflex_suggestions`.
 - Current mission or latest operator/current repo fallback.
 - Current next anchor or `focusa_workpoint_resume` fallback.
 - Current project folder (`project_root`) or project-root binding rule.
 - `focusa_project_identity` / `focusa_project_verify` before cross-project state trust.
 - `focusa_trajectory_view` / `focusa_trajectory_assess` for goals, state, destination, and gaps.
-- `focusa_tool_doctor` as the first recovery tool when uncertain.
+- `focusa_tool_doctor` as the first recovery tool when uncertain; `focusa_reflex_primitives` as read-only advisory metadata for recurring recovery patterns.
 - `focusa_workpoint_checkpoint` before compaction/model switch/fork/risky continuation.
 - `focusa_workpoint_resume` after compaction/reload/resume.
 - Workpoint project-folder and continuity rules.
@@ -22,6 +22,7 @@ The card must mention:
 - prediction record/evaluate around risky or uncertain actions.
 - Metacognition/work-loop tool families for learning/continuous work.
 - Focus State tools as note/decision slots, not the whole project workflow.
+- Spec97 Reflex Primitives as bounded, read-only suggestions; they never override operator steering, Workpoint authority, or reducer-approved mutation paths.
 - Missing active Pi frame fallback: `Attentive and awaiting operator direction`, with continued help from operator/repo context until scope is safe.
 - Compaction fallback rule: related canonical fallback, not blank `none` fields.
 - Operator steering wins.

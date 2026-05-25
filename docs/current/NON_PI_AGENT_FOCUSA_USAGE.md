@@ -23,8 +23,8 @@ Minimum card content:
 
 ```text
 Focusa is the local cognitive continuity/governance runtime.
-Use it for Workpoints, Focus State, evidence refs, predictions, metacognition, lineage, work-loop state, and recovery.
-If uncertain/degraded: run focusa doctor or call /v1/doctor.
+Use it for Workpoints, Focus State, evidence refs, predictions, metacognition, lineage, work-loop state, Spec97 Reflex Primitives, and recovery.
+If uncertain/degraded: run focusa doctor or call /v1/doctor; if a result includes reflex_suggestions, inspect /v1/reflex/primitives read-only.
 Before compaction/model switch/fork/risky continuation: checkpoint a Workpoint.
 On project start/resume: fetch /v1/trajectory/view for high/mid/low goals, active gap, evidence, and drift boundaries.
 After resume/reload: fetch Workpoint resume packet and follow it unless operator steers otherwise.
@@ -119,7 +119,7 @@ Letta may keep local narrative continuity, but Focusa remains project trajectory
 ### CLI/MCP adapter card
 
 ```text
-Expose these as first-class commands/tools: focusa_project_identity, focusa_trajectory_view, focusa_workpoint_resume, focusa_evidence_capture, focusa_tool_doctor, focusa_traverse. MCP wrappers should preserve continuity_id and project_root on every call.
+Expose these as first-class commands/tools: focusa_project_identity, focusa_trajectory_view, focusa_workpoint_resume, focusa_evidence_capture, focusa_tool_doctor, focusa_traverse, and focusa_reflex_primitives. MCP wrappers should preserve continuity_id and project_root on every call and treat reflex primitives as advisory read-only metadata.
 ```
 
 ## Wirebot-specific requirements

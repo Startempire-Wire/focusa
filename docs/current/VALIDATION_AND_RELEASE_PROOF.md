@@ -20,7 +20,7 @@ cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 node scripts/validate-skill-hygiene.mjs
 ```
 
-## Spec96 continuity/portability checks
+## Spec96 continuity/portability/resource checks
 
 ```bash
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
@@ -29,7 +29,25 @@ tests/spec96_workpoint_post_compaction_resume_static_test.sh
 tests/spec96_silent_sessions_tool_static_test.sh
 tests/spec96_focusa_aware_context_pressure_static_test.sh
 tests/spec96_portable_identity_paths_static_test.sh
+tests/spec96_focus_trajectory_short_term_sync_static_test.sh
+tests/spec82_low_resource_efficiency_static_test.sh
 ```
+
+## Spec97 Reflex Primitive checks
+
+```bash
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
+tests/spec97_api_native_reflex_and_ontology_static_test.sh
+tests/spec97_reflex_direct_route_static_test.sh
+tests/spec97_reflex_runtime_dogfood_test.sh
+tests/spec97_reflex_envelope_metadata_static_test.sh
+tests/spec97_reflex_traverse_routing_static_test.sh
+tests/spec97_reflex_primitive_registry_static_test.sh
+tests/spec97_reflex_golden_scenarios_static_test.sh
+tests/spec97_reflex_utility_card_static_test.sh
+```
+
+Note: `tests/spec97_reflex_runtime_dogfood_test.sh` temporarily activates LowMem through `/v1/resource/mode` to prove degraded reflex suggestions, then restores the runtime override on exit.
 
 ## Runtime proof
 
@@ -44,7 +62,9 @@ systemctl status focusa-daemon --no-pager -l
 readlink -f /proc/$(systemctl show -p MainPID --value focusa-daemon)/exe
 curl -sS --max-time 5 http://127.0.0.1:8787/v1/health | jq .
 curl -sS --max-time 5 http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'
+curl -sS --max-time 5 'http://127.0.0.1:8787/v1/reflex/primitives?family=recovery&limit=2' | jq '.status, .read_only, .advisory_only, (.items|length)'
 node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
+tests/spec97_reflex_runtime_dogfood_test.sh
 focusa workpoint current
 focusa workpoint resume
 ```
@@ -73,6 +93,7 @@ For current real proof see:
 - `docs/evidence/PRODUCTION_RELEASE_MAC_APP_GITHUB_FIX_2026-04-28.md`
 - `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
 - `docs/current/PRODUCTION_RELEASE_COMMANDS.md`
+- `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`
 
 
 ## Spec96 trajectory agent eval

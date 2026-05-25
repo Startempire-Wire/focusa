@@ -1,6 +1,6 @@
 # Focusa Pi Tool Stability Audit — 2026-05-22
 
-Scope: `apps/pi-extension/src/tools.ts`, `apps/pi-extension/src/state.ts`, and the 58 `focusa_*` tools exposed to Pi agents.
+Scope at original audit time: `apps/pi-extension/src/tools.ts`, `apps/pi-extension/src/state.ts`, and the then-58 `focusa_*` tools exposed to Pi agents. Current public tool count is 59 after the Spec97 `focusa_reflex_primitives` addition.
 
 ## Weaknesses found
 
@@ -28,7 +28,7 @@ Scope: `apps/pi-extension/src/tools.ts`, `apps/pi-extension/src/state.ts`, and t
 
 ## Operational note
 
-Existing Pi sessions must reload/restart to pick up extension source changes. New sessions should still pass explicit `project_root` when known; automatic Workpoint adoption is a recovery path, not a substitute for a clear project folder.
+Existing Pi sessions must reload/restart to pick up extension source changes. New sessions should still pass explicit `project_root` when known; automatic Workpoint adoption is a recovery path, not a substitute for a clear project folder. Current sessions also expose Spec97 Reflex Primitive suggestions as advisory recovery metadata, not mutation authority.
 
 ## Second-pass hardening
 

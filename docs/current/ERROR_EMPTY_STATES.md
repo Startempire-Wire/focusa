@@ -16,6 +16,7 @@ Focusa doctor-style CLI/API failures use recovery-first envelopes.
   "recovery_hint": "Run focusa_tool_doctor; if daemon is down, continue from operator/repo context until /v1/health is ok.",
   "misuse_hint": "Likely wrong route, wrong method, malformed input, auth issue, or daemon/resource pressure.",
   "next_tools": ["focusa_tool_doctor"],
+  "reflex_suggestions": ["resource_mode_fallback"],
   "command": "focusa start || systemctl restart focusa-daemon",
   "fallback": "focusa doctor",
   "docs": ["docs/current/ERROR_EMPTY_STATES.md"],
@@ -50,6 +51,7 @@ Non-JSON HTTP errors are wrapped by API middleware with:
 - `safe_recovery`
 - `recovery_hint` / `misuse_hint`
 - `next_tools`
+- optional `reflex_suggestions` for Spec97 recovery affordances
 - `details.tool_result_v1` for no-deadend model recovery
 - `command`
 - `fallback`

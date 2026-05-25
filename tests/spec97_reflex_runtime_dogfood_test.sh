@@ -17,7 +17,16 @@ curl -fsS --max-time 5 "$BASE_URL/v1/traverse" \
 jq -e '.status=="completed" and (.items|length)>=1 and .items[0].data.primitive_id=="route_noncanonical_result" and .items[0].data.family=="recovery"' "$TMP" >/dev/null || fail "traverse reflex primitive dogfood failed"
 pass "traverse reflex primitive dogfood passed"
 
-printf '%s' '{"surface":"reflex_primitives","selector":"family","anchor":"recovery","limit":1,"include_full_payload":true,"budget_tokens":1}' > "$REQ"
+restore_resource_mode() {
+  curl -fsS --max-time 5 "$BASE_URL/v1/resource/mode" \
+    -H 'content-type: application/json' \
+    -d '{"action":"deactivate_lowmem","reason":"restore after spec97 reflex runtime dogfood"}' >/dev/null || true
+}
+trap restore_resource_mode EXIT
+curl -fsS --max-time 5 "$BASE_URL/v1/resource/mode" \
+  -H 'content-type: application/json' \
+  -d '{"action":"activate_lowmem","reason":"spec97 reflex runtime dogfood"}' >/dev/null
+printf '%s' '{"surface":"reflex_primitives","selector":"family","anchor":"recovery","limit":1,"include_payload":true,"budget_tokens":1}' > "$REQ"
 curl -fsS --max-time 5 "$BASE_URL/v1/traverse" \
   -H 'content-type: application/json' \
   --data-binary "@$REQ" > "$TMP"

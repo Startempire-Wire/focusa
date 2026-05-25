@@ -385,7 +385,7 @@ Ontology should supply typed context for primitives:
 
 ### 6.2 Primitive routing view
 
-A future `/v1/reflex/primitives` or traverse surface should expose:
+The current `/v1/reflex/primitives` route and `surface=reflex_primitives` traversal expose:
 
 ```json
 {

@@ -45,6 +45,16 @@ Use `focusa_work_loop_writer_status` in Pi before mutating work-loop state.
 
 Treat non-canonical Workpoint output as a recovery hint. Call `focusa_workpoint_resume` or direct `/v1/workpoint/current` before continuing important work.
 
+## Reflex suggestions
+
+If a Pi/API result includes `reflex_suggestions`, treat those ids as advisory Spec97 recovery affordances. Inspect the registry without mutating state:
+
+```bash
+curl -sS 'http://127.0.0.1:8787/v1/reflex/primitives?family=recovery&limit=5' | jq .
+```
+
+In Pi, use `focusa_reflex_primitives` only to clarify the smallest safe next step; `next_tools`, operator steering, and canonical Workpoint/Trajectory scope still decide the route.
+
 ## Real release proof
 
 Use `docs/current/VALIDATION_AND_RELEASE_PROOF.md` for current validation expectations.

@@ -19,7 +19,7 @@ Purpose: describe what the LLM actually sees from Focusa and the precedence of t
 5. **Skill descriptions** — visible before loading; full skill files become visible when loaded.
    Source: `/root/.pi/skills/focusa*/SKILL.md` and project skill copies.
 
-6. **Tool results** — every Focusa tool returns a visible summary plus `details.tool_result_v1` with status, canonical/degraded posture, failure class, retry posture, recovery/misuse hints, side effects, evidence refs, and next-tool hints.
+6. **Tool results** — every Focusa tool returns a visible summary plus `details.tool_result_v1` with status, canonical/degraded posture, failure class, retry posture, recovery/misuse hints, side effects, evidence refs, next-tool hints, and optional `reflex_suggestions`.
 
 Docs are **not** automatically visible unless injected by a card/slice/skill or read by the model.
 
@@ -48,7 +48,7 @@ Focus Slice sections are ordered by priority in `turns.ts`. The practical model 
 3. ResourceMode when non-normal.
 4. Project Trajectory (`PROJECT_TRAJECTORY`).
 5. Workpoint continuation packet.
-6. Tool Affordances / next-tool routing.
+6. Tool Affordances / next-tool routing / Reflex Primitive suggestions.
 7. Focus frame/current focus/intent.
 8. Ontology active objects/link paths/valid next actions.
 9. Constraints and decisions.
@@ -63,3 +63,5 @@ Operator steering always wins, but stale transcript tail does not outrank canoni
 ## Current improvement
 
 The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes both `PROJECT_INFRA` and `PROJECT_ARCHITECTURE` so the model does not infer architecture from folder names alone. Machine-readable choreography edges are available at `docs/current/focusa-tool-choreography.json` and `GET /v1/ontology/tool-choreography`; live choreography can weight edges using evaluated prediction evidence.
+
+Spec97 Reflex Primitives are now model-visible through bounded `reflex_suggestions` in Pi/API result envelopes, `focusa_reflex_primitives`, direct `GET /v1/reflex/primitives`, and `surface=reflex_primitives` traversal. These are advisory recovery affordances only; they do not replace operator steering or canonical Workpoint/Trajectory scope gates.

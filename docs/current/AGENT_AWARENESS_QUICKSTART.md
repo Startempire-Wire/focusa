@@ -1,6 +1,6 @@
 # Agent Awareness Quickstart
 
-Focusa is an agent utility layer: working memory, continuation contracts, evidence links, prediction records, recovery guidance, and governance for long-running AI sessions.
+Focusa is an agent utility layer: working memory, continuation contracts, evidence links, prediction records, recovery guidance, Spec97 reflex affordances, and governance for long-running AI sessions.
 
 ## Friendly Focusa Q
 
@@ -12,6 +12,7 @@ Use this as internal orientation, not a blocker:
 4. **What is the next useful move?** mission, active object, next anchor → `focusa_workpoint_resume` / `focusa_workpoint_checkpoint`.
 5. **What proof changes confidence?** tests/API/file handles → `focusa_evidence_capture` / `focusa_workpoint_link_evidence`.
 6. **What compounds?** prediction outcome + reusable lesson → `focusa_predict_record`, `focusa_predict_evaluate`, `focusa_metacog_*`.
+7. **What routine recovery applies?** bounded primitive ids from `reflex_suggestions` → `focusa_reflex_primitives` / `surface=reflex_primitives`.
 
 ## What agents must know first
 
@@ -19,7 +20,7 @@ Use this as internal orientation, not a blocker:
 2. **Use the route, not only the note tools.** `focusa_scratch` / `focusa_decide` are useful slots, but project work should usually route through project identity → trajectory → Workpoint → evidence → learning.
 3. **Workpoint beats transcript tail.** After compaction/reload/model switch/fork, call `focusa_workpoint_resume` and follow the canonical packet unless the operator steers otherwise.
 4. **Checkpoint before risky boundaries.** Before compaction, model switch, fork, context overflow, or risky continuation, call `focusa_workpoint_checkpoint`.
-5. **No deadends on tool failure.** Read `failure_class`, `retry.posture`, `recovery_hint` / `misuse_hint`, and `next_tools`; fix ordering/scope before retrying.
+5. **No deadends on tool failure.** Read `failure_class`, `retry.posture`, `recovery_hint` / `misuse_hint`, `next_tools`, and optional `reflex_suggestions`; fix ordering/scope before retrying.
 6. **Doctor first when uncertain.** If Focusa seems stale/offline/blocked/degraded, call `focusa_tool_doctor` before guessing.
 7. **Missing-frame fallback stays helpful.** If no active Pi frame is available, use `Attentive and awaiting operator direction`: continue from operator/repo context, then checkpoint/resume once scope is safe.
 8. **Evidence is first-class.** After tests, release proof, API proof, or file proof, call `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
@@ -39,6 +40,7 @@ After outcome:    focusa_predict_evaluate → metacog_capture/retrieve if reusab
 After proof:      trajectory_assess → recent_result/decision if durable.
 After compaction: focusa_workpoint_resume; continue from canonical packet only when project_root and continuity_id match.
 When uncertain:   focusa_tool_doctor → resource_mode/traverse/workpoint_resume.
+Recurring recovery: inspect reflex_suggestions → focusa_reflex_primitives (advisory only).
 ```
 
 More: [`FOCUSA_FRIENDLY_ONBOARDING.md`](FOCUSA_FRIENDLY_ONBOARDING.md) and [`FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](FOCUSA_TOOL_CHOREOGRAPHY_MAP.md).

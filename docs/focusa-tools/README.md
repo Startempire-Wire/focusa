@@ -15,11 +15,12 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 
 ## Current counts
 
-- 58 Pi tools documented with one page per tool.
+- 59 Pi tools documented with one page per tool.
 - Prediction tools are first-class (`record`, `recent`, `evaluate`, `stats`).
 - Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
-- Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success.
+- Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success; bounded `reflex_suggestions` point to Spec97 recovery primitives when applicable.
 - Trajectory tools are first-class per-project north-star tools: view, define_goal, assess, propose_workpoint, checkpoint, resume.
+- Spec97 Reflex Primitive docs are public and read-only through [`focusa_reflex_primitives`](tools/focusa_reflex_primitives.md), `GET /v1/reflex/primitives`, and `surface=reflex_primitives` traversal.
 - Friendly onboarding and route hints: [`FOCUSA_FRIENDLY_ONBOARDING.md`](../current/FOCUSA_FRIENDLY_ONBOARDING.md) and [`FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](../current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md).
 
 ## All tools

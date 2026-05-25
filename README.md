@@ -141,13 +141,13 @@ Most commands support human-readable output, and the top-level CLI supports `--j
 
 ### Pi extension
 
-The Pi extension is the main agent-facing integration. It registers 58 `focusa_*` tools grouped into these families:
+The Pi extension is the main agent-facing integration. It registers 59 `focusa_*` tools grouped into these families:
 
 - **Focus State:** scratch, decide, constraint, failure, intent, current focus, next step, open question, recent result, note.
 - **Project Identity:** resolve/verify the project folder before trusting carryover.
 - **Trajectory:** view, define, assess, checkpoint/resume, and propose advisory Workpoint candidates.
 - **Workpoint:** checkpoint, resume, link evidence, active object resolve, evidence capture.
-- **Traversal:** bounded `focusa_traverse` slices across lineage, ontology, evidence, telemetry, Workpoints, and registries.
+- **Traversal/reflexes:** bounded `focusa_traverse` slices across lineage, ontology, evidence, telemetry, Workpoints, registries, plus read-only Spec97 Reflex Primitive summaries via `focusa_reflex_primitives`.
 - **Work-loop:** writer status, status, control, context, checkpoint, select next.
 - **Tree/lineage:** head, path, snapshot, diff, restore, recent snapshots, compare latest, lineage tree, LI extraction.
 - **Metacognition:** capture, retrieve, reflect, plan adjustment, evaluate outcome, recent reflections, recent adjustments, loop run, doctor.
@@ -158,7 +158,7 @@ The Pi extension is the main agent-facing integration. It registers 58 `focusa_*
 - **Workpoint project-folder guard:** project/session-bound resume packets reject cross-project continuation.
 - **Compaction fallback guard:** Pi replacement compaction hydrates sparse fields from related canonical sources instead of emitting bare `none`.
 
-Every `focusa_*` tool is expected to expose a common `tool_result_v1` result envelope with status, canonical/degraded flags, retry guidance, side effects, evidence refs, and next-tool hints.
+Every `focusa_*` tool is expected to expose a common `tool_result_v1` result envelope with status, canonical/degraded flags, retry guidance, side effects, evidence refs, next-tool hints, and bounded `reflex_suggestions` when a recurring recovery primitive applies.
 
 ---
 

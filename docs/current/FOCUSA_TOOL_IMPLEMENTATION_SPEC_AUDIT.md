@@ -1,6 +1,6 @@
 # Focusa Tool Implementation-to-Spec Audit
 
-Purpose: compare the 58 current `focusa_*` tools against registered contracts, API routes, CLI parity, docs, result-envelope rules, and model-routing affordances.
+Purpose: compare the 59 current `focusa_*` tools against registered contracts, API routes, CLI parity, docs, result-envelope rules, Reflex Primitive metadata, and model-routing affordances.
 
 ## Audit command
 
@@ -24,8 +24,8 @@ The audit checks:
 ```json
 {
   "status": "passed",
-  "tool_count": 58,
-  "contract_count": 58,
+  "tool_count": 59,
+  "contract_count": 59,
   "failures": [],
   "warnings": []
 }
@@ -34,7 +34,7 @@ The audit checks:
 Evidence artifacts:
 
 - `/tmp/focusa-tool-implementation-spec-audit.json` — static implementation/spec audit passed.
-- `/tmp/focusa-tool-contracts-live-final-uplift-pass.json` — live contract proof passed (`payload_equal=true`, 58/58).
+- `/tmp/spec97-live-contract-proof.json` — live contract proof passed (`payload_equal=true`, 59/59).
 - `/tmp/focusa-tool-stress-smoke.log` — bounded live stress passed (`passed=39 failed=0`).
 - `/tmp/focusa-cli-parity-smoke.log` — concrete CLI parity smoke passed (`passed=15 failed=0`).
 - `/tmp/focusa-tool-suite-safe-smoke.json` — safe suite had 0 failures; latest warning was process-memory pressure after repeated smoke/audit runs.
@@ -54,6 +54,7 @@ Evidence artifacts:
 | Snapshot/tree tools used API routes but contracts marked them Pi-only with generic lineage CLI hints. | Updated contracts to full parity and added/declared concrete `focusa state snapshot create/recent/restore/diff/compare-latest` commands. |
 | Contract docs had weak or stale CLI/API summaries for some tools. | Regenerated per-tool contract summaries and registry table from `focusa-tool-contracts.json`. |
 | Model route hints allowed Focus State tools to remain too central. | Updated affordance catalog and Utility Card to route models through project identity → trajectory → Workpoint → evidence → prediction/metacog. |
+| Spec97 reflex primitives were not represented in the public tool/API/ontology docs. | Added `focusa_reflex_primitives`, direct `GET /v1/reflex/primitives`, `surface=reflex_primitives` traversal, ontology reflex classes/actions, and API/Pi `reflex_suggestions`. |
 
 ## Uplift opportunities after no remaining hard gaps
 

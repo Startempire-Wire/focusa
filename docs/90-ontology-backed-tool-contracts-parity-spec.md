@@ -6,7 +6,7 @@ Make every current `focusa_*` Pi tool maximally sharp by giving it a canonical m
 
 ## 2. Problem statement
 
-The present build has 43 useful Focusa Pi tools, current docs, CLI domains, API routes, and ontology endpoints. The remaining gap is not raw feature absence; it is contract drift risk. Tool behavior, docs, API routes, CLI commands, ontology actions, and doctor checks are still partly maintained by convention.
+The present build has 59 useful Focusa Pi tools, current docs, CLI domains, API routes, ontology endpoints, and Spec97 Reflex Primitive metadata. The remaining risk is contract drift: tool behavior, docs, API routes, CLI commands, ontology actions, doctor checks, and reflex suggestions must stay synchronized.
 
 Spec90 turns this into a self-verifying system.
 
@@ -23,11 +23,11 @@ Spec90 turns this into a self-verifying system.
 
 As of `v0.9.12-dev` / current public snapshot:
 
-- Pi extension exposes 58 `focusa_*` tools from `apps/pi-extension/src/tools.ts`.
+- Pi extension exposes 59 `focusa_*` tools from `apps/pi-extension/src/tools.ts`, including read-only `focusa_reflex_primitives`.
 - Root docs include one individual doc per tool under `docs/focusa-tools/tools/`.
-- API routes include current surfaces for Workpoint, Work-loop, Metacognition, Ontology, Lineage, Focus State, ECS, Events, and related domains.
+- API routes include current surfaces for Workpoint, Work-loop, Metacognition, Ontology, Lineage, Focus State, ECS, Events, Spec97 Reflex Primitives, and related domains.
 - CLI exposes domains including `workpoint`, `metacognition`, `ontology`, `lineage`, `clt`, `focus`, `memory`, `ecs`, `events`, `state`, and others.
-- `tool_result_v1` is already attached by the Pi extension wrapper when available.
+- `tool_result_v1` is already attached by the Pi extension wrapper when available, with bounded `reflex_suggestions` for recurring recovery primitives.
 - `focusa_tool_doctor` currently checks daemon health/workpoint/work-loop readiness, but does not yet prove full contract parity.
 
 ## 5. Core concept: Focusa Tool Contract

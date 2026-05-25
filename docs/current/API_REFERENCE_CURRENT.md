@@ -2,7 +2,7 @@
 
 Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. This is an inventory, not a full schema reference.
 
-**Current notable surfaces:** per-project Trajectory view, Workpoint scope guard, prediction loop, doctor/health, token/cache telemetry, work-loop, metacognition, tree/lineage, and tool contracts.
+**Current notable surfaces:** per-project Trajectory view, Workpoint scope guard, Spec97 Reflex Primitives, prediction loop, doctor/health, token/cache telemetry, work-loop, metacognition, tree/lineage, and tool contracts.
 
 ### ascc
 - `GET /v1/ascc/state`
@@ -213,6 +213,11 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `GET /v1/resource/mode`
 - `POST /v1/resource/mode`
 
+### reflex
+- `GET /v1/reflex/primitives`
+  - Query supports `family`, `query`, `limit`, `offset`, and explicit cold `include_payload=true` for full registry entries.
+  - Route is read-only/advisory; mutation authority remains in existing Focusa reducer/tool surfaces.
+
 ### rfm
 - `GET /v1/rfm`
 
@@ -312,6 +317,7 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 
 ### traverse
 - `POST /v1/traverse`
+  - Supports `surface=reflex_primitives` with bounded family/query projection from the Spec97 registry.
 - `POST /v1/traverse/verify-tags`
 
 ### visual_workflow

@@ -1,7 +1,7 @@
 # Current Runtime Status
 
 **Snapshot:** `v0.9.12-dev`
-**Repo head when written:** `e8275d9`
+**Repo head when written:** public-docs refresh after `a5a5164`
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
@@ -9,7 +9,7 @@
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
-- Pi extension under `apps/pi-extension` exposing 58 current `focusa_*` tools.
+- Pi extension under `apps/pi-extension` exposing 59 current `focusa_*` tools.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor; evaluations persist as first-class records, successful evaluations promote learning back into retrieval memory, and API/CLI readback includes `evaluations/recent`.
@@ -23,6 +23,9 @@
 - Pi project-root resolution persists the last verified safe project folder across Pi sessions and reuses it when the next session starts from a broad cwd such as `/root`.
 - Pi replacement compaction uses intelligent related fallbacks instead of bare `none` fields.
 - Source-available licensing boundary is explicit: root `LICENSE.md`, `COMMERCIAL.md`, `TRADEMARKS.md`, `CONTRIBUTING.md`, support terms, and commercial/CLA templates are present; Cargo metadata points to `LICENSE.md` instead of MIT.
+- Spec97 Reflex Primitives are implemented as a read-only registry, direct `GET /v1/reflex/primitives` API, Pi `focusa_reflex_primitives` tool, `surface=reflex_primitives` traversal, API/Pi `reflex_suggestions`, ontology reflex classes/actions, and runtime dogfood gates.
+- Spec96 Focus current-focus ↔ Trajectory short-term-goal sync is implemented, so verified trajectory context can hydrate sparse Focus slices across compaction/reload.
+- Low-resource hardening is active: Tokio/reqwest features are narrowed, cold payloads require explicit opt-in, Pi result text/details are capped, and hot routes use compact fallback envelopes under pressure.
 
 ## Current proof files
 
@@ -36,6 +39,8 @@
 - `docs/current/PREDICTIVE_POWER_GUIDE.md`
 - `docs/current/COMPACTION_FALLBACKS.md`
 - `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
+- `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`
+- `docs/evidence/PUBLIC_DOCS_SPEC97_REFRESH_2026-05-25.md`
 
 ## Current verification commands
 
@@ -45,6 +50,7 @@ node scripts/validate-focusa-tool-contracts.mjs
 node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
 cargo clippy --workspace -- -D warnings
 ./scripts/ci/run-spec-gates.sh
+tests/spec97_reflex_runtime_dogfood_test.sh
 curl -sS --max-time 5 http://127.0.0.1:8787/v1/health | jq .
 ```
 

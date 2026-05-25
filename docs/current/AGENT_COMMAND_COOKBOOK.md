@@ -83,6 +83,15 @@ focusa release prove --tag <tag> --github
 journalctl -u focusa-daemon -n 80 --no-pager
 ```
 
+## Reflex suggestions / recurring recovery
+
+```bash
+curl -sS 'http://127.0.0.1:8787/v1/reflex/primitives?family=recovery&limit=5' | jq .
+# In Pi: focusa_reflex_primitives family=recovery limit=5
+```
+
+Use this only when `tool_result_v1.reflex_suggestions` names a primitive or recurring risk; it is read-only advisory metadata.
+
 ## Mac app stale
 
 ```bash
