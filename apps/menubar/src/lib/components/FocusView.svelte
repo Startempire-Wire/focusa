@@ -36,14 +36,14 @@
   <!-- Disconnected empty state -->
   <div class="empty-state">
     <div class="empty-icon">⊘</div>
-    <div class="empty-title">Not Connected</div>
+    <div class="empty-title">Focusa is out of view</div>
     <div class="empty-desc">
-      Focusa daemon is not reachable.
+      No daemon signal yet. The menubar will stay quiet until Focusa is reachable.
     </div>
     <div class="empty-help">
-      <p>Start the daemon on this machine:</p>
+      <p>Start local awareness:</p>
       <code class="cmd">focusa-daemon</code>
-      <p class="hint">Or configure a remote server in Settings (⚙).</p>
+      <p class="hint">For remote work, prefer an SSH tunnel in Settings (⚙).</p>
     </div>
   </div>
 
@@ -51,10 +51,10 @@
   <!-- Error state -->
   <div class="empty-state">
     <div class="empty-icon error">⚠</div>
-    <div class="empty-title">Connection Error</div>
+    <div class="empty-title">Signal interrupted</div>
     <div class="empty-desc">{focusStore.errorMsg ?? 'Unknown error'}</div>
     <div class="empty-help">
-      <p class="hint">Check Settings (⚙) for the correct API URL.</p>
+      <p class="hint">Check Settings (⚙) for the API URL. No focus state was changed.</p>
     </div>
   </div>
 
@@ -62,13 +62,13 @@
   <!-- Connected but no focus frames -->
   <div class="empty-state">
     <div class="empty-icon calm">◎</div>
-    <div class="empty-title">No Active Focus</div>
+    <div class="empty-title">Quiet surface</div>
     <div class="empty-desc">
-      The daemon is running but no focus frames exist yet.
+      The daemon is present, but no focus bubble has surfaced yet.
     </div>
     <div class="empty-help">
-      <p>Push a focus frame via CLI:</p>
-      <code class="cmd">focusa push "My task" --goal "What to do"</code>
+      <p>When work begins, Focusa will show it here. CLI/Pi remain the primary controls.</p>
+      <code class="cmd">focusa focus update --intent "Current work"</code>
     </div>
   </div>
 

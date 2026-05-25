@@ -34,7 +34,9 @@ assert_has apps/menubar/src/routes/+page.svelte 'aria-label="Focusa peeks"|tab-m
 assert_has apps/menubar/src/routes/+page.svelte "activeTab === 'cockpit'|CockpitView" 'menubar uses cockpit naming instead of mission naming'
 assert_has apps/menubar/src/lib/components/CockpitView.svelte 'cockpit-grid|Focusa cockpit' 'cockpit component naming is polished'
 assert_has apps/menubar/src/lib/components/Settings.svelte 'v0\.9\.12-dev|Direct network binding exposes Focusa' 'settings polish updates version and remote security copy'
-assert_has apps/menubar/src/lib/components/FocusView.svelte 'CURRENT BUBBLE|BACKGROUND CLOUDS|ambient-orbit|thought-cloud|focus-bubble' 'default focus view preserves original bubble/cloud hierarchy'
+assert_has apps/menubar/src/lib/components/FocusView.svelte 'CURRENT BUBBLE|BACKGROUND CLOUDS|ambient-orbit|thought-cloud|focus-bubble|Quiet surface|Focusa is out of view' 'default focus view preserves original bubble/cloud hierarchy and calm empty states'
+assert_has apps/menubar/src/lib/components/GatePanel.svelte 'Gate is quiet|SOFT CANDIDATES|AMBIENT SIGNALS|do not switch focus for you' 'gate panel copy remains ambient awareness, not control UI'
+assert_has apps/menubar/src/lib/components/SyncPanel.svelte 'Peer awareness; no automatic ownership changes|Local-first mode is fine|Pull gently|Listening for peers' 'sync panel copy remains calm local-first awareness'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then

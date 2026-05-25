@@ -1,5 +1,5 @@
 <!--
-  GatePanel — full-tab view of gate candidates and recent signals.
+  GatePanel — ambient peek for gate candidates and recent signals.
 -->
 <script lang="ts">
   import { gateStore } from '$lib/stores/gate.svelte';
@@ -12,18 +12,18 @@
   {#if candidates.length === 0 && signals.length === 0}
     <div class="empty-state">
       <div class="empty-icon">◇</div>
-      <div class="empty-title">Gate is Quiet</div>
+      <div class="empty-title">Gate is quiet</div>
       <div class="empty-desc">
-        No candidates are pressing for attention. The intuition engine has no recent signals.
+        Nothing is asking to surface. No context switch or stall needs attention.
       </div>
       <div class="empty-hint">
-        Candidates surface when the daemon detects context switches, stalls, or priority changes.
+        Signals appear here as soft awareness only; they do not switch focus for you.
       </div>
     </div>
   {:else}
     {#if candidates.length > 0}
       <section class="section">
-        <div class="section-label">CANDIDATES ({candidates.length})</div>
+        <div class="section-label">SOFT CANDIDATES ({candidates.length})</div>
         {#each candidates as c}
           <div class="candidate" style="--pressure: {Math.max(0.3, c.pressure)}">
             <div class="candidate-top">
@@ -44,7 +44,7 @@
 
     {#if signals.length > 0}
       <section class="section">
-        <div class="section-label">RECENT SIGNALS ({signals.length})</div>
+        <div class="section-label">AMBIENT SIGNALS ({signals.length})</div>
         <div class="signal-list">
           {#each signals.slice(-10).reverse() as s}
             <div class="signal">

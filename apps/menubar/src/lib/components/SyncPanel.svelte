@@ -1,4 +1,4 @@
-<!-- SyncPanel.svelte — Multi-device sync status and controls (docs/43) -->
+<!-- SyncPanel.svelte — calm multi-device sync awareness (docs/43) -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchJson, postJson, summarizeError } from '$lib/api';
@@ -115,7 +115,10 @@
 
 <div class="sync-panel">
   <header>
-    <h3>Sync</h3>
+    <div>
+      <h3>Sync</h3>
+      <p class="subtitle">Peer awareness; no automatic ownership changes.</p>
+    </div>
     <button class="btn-add" on:click={() => showAddModal = true} title="Add peer">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -127,7 +130,7 @@
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
-      <span>Loading peers...</span>
+      <span>Listening for peers…</span>
     </div>
   {:else if error}
     <div class="error">
@@ -137,8 +140,9 @@
   {:else if peers.length === 0}
     <div class="empty">
       <p>No peers configured</p>
+      <span class="empty-hint">Local-first mode is fine. Add a peer only when you want another device visible.</span>
       <button class="btn-primary" on:click={() => showAddModal = true}>
-        Add Your First Peer
+        Add peer
       </button>
     </div>
   {:else}
@@ -200,9 +204,9 @@
             >
               {#if syncBusy}
                 <span class="spinner-small"></span>
-                Syncing...
+                Checking…
               {:else}
-                Sync now
+                Pull gently
               {/if}
             </button>
           </div>
@@ -234,6 +238,14 @@
     margin: 0;
     font-size: 16px;
     font-weight: 600;
+  }
+
+  .subtitle,
+  .empty-hint {
+    margin: 3px 0 0;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 11px;
+    line-height: 1.35;
   }
 
   .btn-add {
