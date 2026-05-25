@@ -204,6 +204,7 @@ type FocusaFailureClass =
   | "scope_mismatch"
   | "approval_required"
   | "permission_denied"
+  | "process_control_failed"
   | "noncanonical_fallback"
   | "read_model_lag"
   | "unknown_ambiguous_completion";
@@ -271,6 +272,8 @@ function recoveryHintForFailure(failureClass: FocusaFailureClass | null, status:
       return { recovery_hint: "Use writer-status/preflight and avoid mutating work-loop ownership without explicit operator approval.", misuse_hint: "A mutating work-loop command was attempted while another writer/session owns the loop.", next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_status"] };
     case "approval_required":
       return { recovery_hint: "Do not infer approval; use preflight/read-only path or wait for explicit approved=true/force=true where required.", misuse_hint: "A mutating/destructive/background-session action was attempted without required approval fields.", next_tools: ["focusa_tool_doctor"] };
+    case "process_control_failed":
+      return { recovery_hint: "List/health/tail the SilentSession, verify tmux run_as_user/root_dir metadata, then retry only after process state is clear.", misuse_hint: "Likely tmux session missing, wrong run_as_user, dead pane, or process-control race.", next_tools: ["focusa_silent_sessions", "focusa_tool_doctor"] };
     case "unknown_ambiguous_completion":
       return { recovery_hint: "Check side effects or canonical read state first, then retry only if no duplicate/cross-scope mutation risk exists.", misuse_hint: "Result did not prove success or failure; blind retry can duplicate writes.", next_tools: ["focusa_tool_doctor", "focusa_workpoint_resume"] };
     default:
@@ -2141,7 +2144,7 @@ export function registerTools(pi: ExtensionAPI) {
         if (action === "start" && hasSession) return { content: [{ type: "text", text: `silent session already exists → ${sessionName}` }], details: { ok: true, status: "no_op", session_name: sessionName, attach_command: silentSessionAttachCommand(sessionName), attach_detach_others_command: silentSessionAttachCommand(sessionName, true), sessions: sessionsBefore } } as any;
         if (action === "restart" && hasSession) {
           const killed = silentSessionExec(["kill-session", "-t", sessionName], 3000, silentSessionRunAsFor(sessionName));
-          if (!killed.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux restart kill phase failed: ${killed.stderr || "unknown error"}`, sessionsBefore, { error: killed.stderr });
+          if (!killed.ok) return silentSessionBlocked(action, sessionName, "process_control_failed", `tmux restart kill phase failed: ${killed.stderr || "unknown error"}`, sessionsBefore, { error: killed.stderr });
         }
         const priorMeta = action === "restart" ? (silentSessionReadMeta(sessionName) || {}) : {};
         const rootDir = String(p.root_dir || priorMeta.root_dir || S.sessionCwd || process.cwd());
@@ -2166,7 +2169,7 @@ export function registerTools(pi: ExtensionAPI) {
         if (p.approved !== true) return silentSessionBlocked(action, sessionName, "approval_required", "interrupt sends C-c to a background process; pass approved=true only for explicit operator interruption", sessionsBefore);
         if (!hasSession) return silentSessionBlocked(action, sessionName, "frame_unavailable", "no tmux SilentSession with that normalized name exists; list sessions or start it first", sessionsBefore);
         const interrupted = silentSessionExec(["send-keys", "-t", sessionName, "C-c"], 3000, silentSessionRunAsFor(sessionName));
-        if (!interrupted.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux interrupt failed: ${interrupted.stderr || "unknown error"}`, sessionsBefore, { error: interrupted.stderr });
+        if (!interrupted.ok) return silentSessionBlocked(action, sessionName, "process_control_failed", `tmux interrupt failed: ${interrupted.stderr || "unknown error"}`, sessionsBefore, { error: interrupted.stderr });
         return { content: [{ type: "text", text: `silent session interrupted → ${sessionName}` }], details: { ok: true, status: "accepted", session_name: sessionName, side_effects: ["tmux_send_interrupt"], next_tools: ["focusa_silent_sessions"] } } as any;
       }
 
@@ -2178,7 +2181,7 @@ export function registerTools(pi: ExtensionAPI) {
         const runAsUser = silentSessionRunAsFor(sessionName);
         const sentLiteral = silentSessionExec(["send-keys", "-l", "-t", sessionName, "--", line], 3000, runAsUser);
         const sentEnter = sentLiteral.ok ? silentSessionExec(["send-keys", "-t", sessionName, "C-m"], 3000, runAsUser) : sentLiteral;
-        if (!sentLiteral.ok || !sentEnter.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux send-keys failed: ${sentLiteral.stderr || sentEnter.stderr || "unknown error"}`, sessionsBefore, { error: sentLiteral.stderr || sentEnter.stderr });
+        if (!sentLiteral.ok || !sentEnter.ok) return silentSessionBlocked(action, sessionName, "process_control_failed", `tmux send-keys failed: ${sentLiteral.stderr || sentEnter.stderr || "unknown error"}`, sessionsBefore, { error: sentLiteral.stderr || sentEnter.stderr });
         return { content: [{ type: "text", text: `silent session sent → ${sessionName}` }], details: { ok: true, status: "accepted", session_name: sessionName, sent_literal: true, side_effects: ["tmux_send_keys_literal", "tmux_send_enter"] } } as any;
       }
 
@@ -2188,7 +2191,7 @@ export function registerTools(pi: ExtensionAPI) {
         const killed = silentSessionExec(["kill-session", "-t", sessionName], 3000, silentSessionRunAsFor(sessionName));
         if (killed.ok) silentSessionWriteMeta(sessionName, { ...(silentSessionReadMeta(sessionName) || {}), session_name: sessionName, killed_at: new Date().toISOString(), last_status: "killed" });
         const sessionsAfter = listSilentSessions();
-        if (!killed.ok) return silentSessionBlocked(action, sessionName, "unknown_ambiguous_completion", `tmux kill-session failed: ${killed.stderr || "unknown error"}`, sessionsAfter, { error: killed.stderr });
+        if (!killed.ok) return silentSessionBlocked(action, sessionName, "process_control_failed", `tmux kill-session failed: ${killed.stderr || "unknown error"}`, sessionsAfter, { error: killed.stderr });
         return { content: [{ type: "text", text: `silent session killed → ${sessionName}` }], details: { ok: true, status: "completed", session_name: sessionName, side_effects: ["tmux_kill_session", "silent_session_registry_update"], sessions: sessionsAfter, registry_metadata: silentSessionReadMeta(sessionName), registry: silentSessionRegistrySnapshot(sessionsAfter) } } as any;
       }
 
