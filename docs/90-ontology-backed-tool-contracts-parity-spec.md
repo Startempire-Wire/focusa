@@ -113,7 +113,6 @@ Exemptions must be explicit. Valid exemptions:
 - `doctor_composition_only`
 - `domain_cli_only`
 - `api_domain_only`
-- `approval_placeholder`
 - `pi_session_snapshot_only`
 - `pi_only`
 

@@ -1,6 +1,7 @@
 {
-  "schema": "focusa.tool_contracts.v1",
-  "generated_at": "2026-05-25T01:33:47.760Z",
+  "schema": "spec90.tool_contracts.v1",
+  "version": "spec90.tool_contracts.v1",
+  "tool_count": 58,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -730,7 +731,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "pi_only",
       "exemptions": [
-        "approval_placeholder",
+        "pi_only",
         "domain_cli_only"
       ],
       "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
@@ -752,7 +753,7 @@
       "side_effect_profile": "read_only",
       "parity_status": "pi_only",
       "exemptions": [
-        "approval_placeholder",
+        "pi_only",
         "domain_cli_only"
       ],
       "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"

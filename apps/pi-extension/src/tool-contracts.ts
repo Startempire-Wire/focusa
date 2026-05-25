@@ -653,7 +653,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "pi_only",
     "exemptions": [
-      "approval_placeholder",
+      "pi_only",
       "domain_cli_only"
     ],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
@@ -675,7 +675,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_only",
     "parity_status": "pi_only",
     "exemptions": [
-      "approval_placeholder",
+      "pi_only",
       "domain_cli_only"
     ],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
