@@ -9,11 +9,12 @@
   import MissionControl from '$lib/components/MissionControl.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
+  import ProofPeek from '$lib/components/ProofPeek.svelte';
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
 
-  type Tab = 'focus' | 'mission' | 'trajectory' | 'workpoint' | 'gate' | 'sync' | 'settings';
+  type Tab = 'focus' | 'mission' | 'trajectory' | 'workpoint' | 'proof' | 'gate' | 'sync' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -29,7 +30,7 @@
   async function poll() {
     try {
       const state = await fetchJson('/v1/state/dump', 5000);
-      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, memoryTelemetry, events, tokenBudget, cacheMetadata] = await Promise.all([
+      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -43,6 +44,12 @@
         safe(() => fetchJson('/v1/events/recent?limit=5')),
         safe(() => fetchJson('/v1/telemetry/token-budget/status?limit=5')),
         safe(() => fetchJson('/v1/telemetry/cache-metadata/status?limit=5')),
+        safe(() => fetchJson('/v1/predictions/recent?limit=5')),
+        safe(() => fetchJson('/v1/predictions/stats')),
+        safe(() => fetchJson('/v1/metacognition/status')),
+        safe(() => fetchJson('/v1/metacognition/evaluations/recent?limit=5')),
+        safe(() => fetchJson('/v1/focus/snapshots/recent?limit=5')),
+        safe(() => fetchJson('/v1/lineage/head')),
       ]);
       focusStore.update(state);
       gateStore.update(state.focus_gate);
@@ -61,6 +68,12 @@
         recentEventCount: Array.isArray(events?.events) ? events.events.length : 0,
         tokenBudget,
         cacheMetadata,
+        predictionsRecent,
+        predictionsStats,
+        metacogStatus,
+        metacogEvaluations,
+        snapshotsRecent,
+        lineageHead,
         releaseProof: { status: 'ready', summary: 'run focusa release prove --tag <tag>' },
       });
     } catch (e: any) {
@@ -99,6 +112,9 @@
     <button class="tab" class:active={activeTab === 'workpoint'} onclick={() => activeTab = 'workpoint'}>
       WP
     </button>
+    <button class="tab" class:active={activeTab === 'proof'} onclick={() => activeTab = 'proof'}>
+      Proof
+    </button>
     <button class="tab" class:active={activeTab === 'gate'} onclick={() => activeTab = 'gate'}>
       Gate
       {#if gateStore.surfacedCount > 0}
@@ -124,6 +140,8 @@
     <TrajectoryPeek />
   {:else if activeTab === 'workpoint'}
     <WorkpointPeek />
+  {:else if activeTab === 'proof'}
+    <ProofPeek />
   {:else if activeTab === 'gate'}
     <GatePanel />
   {:else if activeTab === 'sync'}

@@ -13,6 +13,12 @@ export interface RuntimeSnapshot {
   recentEventCount: number;
   tokenBudget: any | null;
   cacheMetadata: any | null;
+  predictionsRecent: any | null;
+  predictionsStats: any | null;
+  metacogStatus: any | null;
+  metacogEvaluations: any | null;
+  snapshotsRecent: any | null;
+  lineageHead: any | null;
   releaseProof: any | null;
 }
 
@@ -32,6 +38,12 @@ function createRuntimeStore() {
     recentEventCount: 0,
     tokenBudget: null,
     cacheMetadata: null,
+    predictionsRecent: null,
+    predictionsStats: null,
+    metacogStatus: null,
+    metacogEvaluations: null,
+    snapshotsRecent: null,
+    lineageHead: null,
     releaseProof: null,
   });
   let errorMsg = $state<string | null>(null);
