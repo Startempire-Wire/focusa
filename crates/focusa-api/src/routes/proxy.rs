@@ -50,8 +50,15 @@ fn proxy_failure(
     let error = error.into();
     let why = why.into();
     let next_tools_value = json!(next_tools);
-    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "permission_denied");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_safe = !matches!(
+        failure_class,
+        "validation_rejected" | "not_found" | "permission_denied"
+    );
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     (
         http_status,
         Json(json!({
@@ -324,7 +331,9 @@ pub(crate) fn create_signal(kind: SignalKind, summary: impl Into<String>) -> Sig
 }
 
 async fn dispatch_proxy_telemetry(state: &Arc<AppState>, action: Action, label: &'static str) {
-    if let Err(err) = tokio::time::timeout(Duration::from_millis(500), state.command_tx.send(action)).await {
+    if let Err(err) =
+        tokio::time::timeout(Duration::from_millis(500), state.command_tx.send(action)).await
+    {
         tracing::warn!(label, error = %err, "proxy telemetry dispatch timed out; continuing provider response");
     }
 }
@@ -454,13 +463,19 @@ async fn chat_completions(
         adapter_id: "openai-proxy".into(),
         raw_user_input: Some(user_input.clone()),
     };
-    dispatch_proxy_telemetry(&state, Action::EmitEvent { event: start_event }, "proxy_turn_started").await;
+    dispatch_proxy_telemetry(
+        &state,
+        Action::EmitEvent { event: start_event },
+        "proxy_turn_started",
+    )
+    .await;
 
     // Emit user_input signal to Focus Gate (summary max 200 chars).
     if !user_input.is_empty() {
         let summary: String = user_input.chars().take(200).collect();
         let signal = create_signal(SignalKind::UserInput, summary);
-        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_user_signal").await;
+        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_user_signal")
+            .await;
     }
 
     let url = upstream_url();
@@ -875,20 +890,37 @@ async fn chat_completions(
         prompt_tokens: Some(prompt_tokens),
         completion_tokens: Some(completion_tokens),
     };
-    dispatch_proxy_telemetry(&state, Action::EmitEvent { event: complete_event }, "proxy_turn_completed").await;
+    dispatch_proxy_telemetry(
+        &state,
+        Action::EmitEvent {
+            event: complete_event,
+        },
+        "proxy_turn_completed",
+    )
+    .await;
 
     // Emit error signal if failed (summary max 200 chars).
     if let Some(ref err) = error_str {
         let summary: String = err.chars().take(200).collect();
         let signal = create_signal(SignalKind::Error, summary);
-        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_error_signal").await;
+        dispatch_proxy_telemetry(
+            &state,
+            Action::IngestSignal { signal },
+            "proxy_error_signal",
+        )
+        .await;
     }
 
     // Emit assistant_output signal if success (summary max 200 chars).
     if error_str.is_none() && !assistant_output.is_empty() {
         let summary: String = assistant_output.chars().take(200).collect();
         let signal = create_signal(SignalKind::AssistantOutput, summary);
-        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_assistant_signal").await;
+        dispatch_proxy_telemetry(
+            &state,
+            Action::IngestSignal { signal },
+            "proxy_assistant_signal",
+        )
+        .await;
     }
 
     tracing::info!(
@@ -986,13 +1018,19 @@ async fn messages_proxy(
         adapter_id: "messages-proxy".into(),
         raw_user_input: Some(user_input.clone()),
     };
-    dispatch_proxy_telemetry(&state, Action::EmitEvent { event: start_event }, "proxy_turn_started").await;
+    dispatch_proxy_telemetry(
+        &state,
+        Action::EmitEvent { event: start_event },
+        "proxy_turn_started",
+    )
+    .await;
 
     // Emit user_input signal (summary max 200 chars).
     if !user_input.is_empty() {
         let summary: String = user_input.chars().take(200).collect();
         let signal = create_signal(SignalKind::UserInput, summary);
-        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_user_signal").await;
+        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_user_signal")
+            .await;
     }
 
     let url = resolve_messages_upstream(&request.model);
@@ -1229,17 +1267,34 @@ async fn messages_proxy(
         prompt_tokens: Some(input_tokens),
         completion_tokens: Some(output_tokens),
     };
-    dispatch_proxy_telemetry(&state, Action::EmitEvent { event: complete_event }, "proxy_turn_completed").await;
+    dispatch_proxy_telemetry(
+        &state,
+        Action::EmitEvent {
+            event: complete_event,
+        },
+        "proxy_turn_completed",
+    )
+    .await;
 
     // Emit error or assistant signal (summary max 200 chars).
     if let Some(ref err) = error_str {
         let summary: String = err.chars().take(200).collect();
         let signal = create_signal(SignalKind::Error, summary);
-        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_error_signal").await;
+        dispatch_proxy_telemetry(
+            &state,
+            Action::IngestSignal { signal },
+            "proxy_error_signal",
+        )
+        .await;
     } else if !assistant_output.is_empty() {
         let summary: String = assistant_output.chars().take(200).collect();
         let signal = create_signal(SignalKind::AssistantOutput, summary);
-        dispatch_proxy_telemetry(&state, Action::IngestSignal { signal }, "proxy_assistant_signal").await;
+        dispatch_proxy_telemetry(
+            &state,
+            Action::IngestSignal { signal },
+            "proxy_assistant_signal",
+        )
+        .await;
     }
 
     tracing::info!(

@@ -1199,7 +1199,11 @@ static PROJECT_IDENTITY_PAYLOAD_CACHE: OnceLock<ProjectIdentityPayloadCache> = O
 const PROJECT_IDENTITY_PAYLOAD_CACHE_TTL: Duration = Duration::from_secs(2);
 
 fn project_identity_cache_key(cwd: Option<&str>, project_root: Option<&str>) -> String {
-    format!("cwd={}\nproject_root={}", cwd.unwrap_or_default(), project_root.unwrap_or_default())
+    format!(
+        "cwd={}\nproject_root={}",
+        cwd.unwrap_or_default(),
+        project_root.unwrap_or_default()
+    )
 }
 
 pub(crate) fn project_identity_payload_for_scope(
@@ -1218,7 +1222,9 @@ pub(crate) fn project_identity_payload_for_scope(
     let payload = candidate_payload(discover_identity(cwd, project_root), None);
     if let Ok(mut guard) = cache.lock() {
         if guard.len() > 64 {
-            guard.retain(|_, (cached_at, _)| cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL);
+            guard.retain(|_, (cached_at, _)| {
+                cached_at.elapsed() <= PROJECT_IDENTITY_PAYLOAD_CACHE_TTL
+            });
         }
         guard.insert(key, (Instant::now(), payload.clone()));
     }

@@ -621,14 +621,18 @@ fn surface_items(
                 .collect(),
             _ => state.ontology.objects.clone(),
         },
-        "focus_stack" | "frames" if sel == "current" => active_frame_value(state).into_iter().collect(),
+        "focus_stack" | "frames" if sel == "current" => {
+            active_frame_value(state).into_iter().collect()
+        }
         "focus_stack" | "frames" => state
             .focus_stack
             .frames
             .iter()
             .filter_map(|frame| serde_json::to_value(frame).ok())
             .collect(),
-        "workpoints" | "workpoint" if sel == "current" => active_workpoint_value(state).into_iter().collect(),
+        "workpoints" | "workpoint" if sel == "current" => {
+            active_workpoint_value(state).into_iter().collect()
+        }
         "workpoints" | "workpoint" => state
             .workpoint
             .records
@@ -860,7 +864,10 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
     let (verified_tags, stale_tags) = verify_requested_tags(&req, &items, &traversal_meta);
     let mut traversal_meta = traversal_meta;
     if let Some(obj) = traversal_meta.as_object_mut() {
-        obj.insert("verified_tags".to_string(), Value::Array(verified_tags.clone()));
+        obj.insert(
+            "verified_tags".to_string(),
+            Value::Array(verified_tags.clone()),
+        );
         obj.insert("stale_tags".to_string(), Value::Array(stale_tags.clone()));
     }
     let response_items = if verify_only {
@@ -951,7 +958,10 @@ mod tests {
             },
             false,
         );
-        assert_eq!(res.get("status").and_then(Value::as_str), Some("validation_rejected"));
+        assert_eq!(
+            res.get("status").and_then(Value::as_str),
+            Some("validation_rejected")
+        );
         assert_eq!(
             res.pointer("/details/tool_result_v1/failure_class")
                 .and_then(Value::as_str),
@@ -1156,9 +1166,9 @@ mod tests {
             TraverseRequest {
                 surface: "lineage".to_string(),
                 selector: Some("window".to_string()),
-                tags: vec![
-                    json!("focusa://lineage/window/item/missing/deadbeefdeadbeefdeadbeef"),
-                ],
+                tags: vec![json!(
+                    "focusa://lineage/window/item/missing/deadbeefdeadbeefdeadbeef"
+                )],
                 ..TraverseRequest::default()
             },
             true,

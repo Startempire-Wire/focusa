@@ -228,8 +228,15 @@ fn command_failure(
     let error = error.into();
     let why = why.into();
     let next_tools_value = json!(next_tools);
-    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "frame_unavailable");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_safe = !matches!(
+        failure_class,
+        "validation_rejected" | "not_found" | "frame_unavailable"
+    );
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     (
         http_status,
         Json(json!({
@@ -340,7 +347,11 @@ fn command_dispatch_timeout(command_id: &str) -> (StatusCode, Json<Value>) {
         format!("command {command_id} could not be dispatched within bounded command-channel wait"),
         "Check command status/log after backlog drains; retry only if the command record remains pending/failed.",
         "Likely daemon command channel saturated or reducer backlog under resource pressure.",
-        vec!["focusa_tool_doctor", "focusa_resource_mode", "focusa_work_loop_status"],
+        vec![
+            "focusa_tool_doctor",
+            "focusa_resource_mode",
+            "focusa_work_loop_status",
+        ],
     )
 }
 

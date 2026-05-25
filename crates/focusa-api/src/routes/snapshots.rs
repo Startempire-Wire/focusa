@@ -255,7 +255,9 @@ async fn create_snapshot(
 
     persist_snapshot_record(&state, &rec);
 
-    let mut store = snapshot_store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut store = snapshot_store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     store.insert(snapshot_id.clone(), rec);
     prune_snapshot_store(&mut store, Utc::now(), snapshot_store_config());
     persist_snapshot_index(&state, store.values().cloned());
@@ -301,7 +303,9 @@ async fn restore_snapshot(
     }
 
     let record = {
-        let mut store = snapshot_store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut store = snapshot_store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if !store.contains_key(&body.snapshot_id)
             && let Some(mut disk_record) = load_snapshot_record(&state, &body.snapshot_id)
         {
@@ -366,7 +370,9 @@ async fn recent_snapshots(
 
     let mut by_id: HashMap<String, SnapshotRecord> = HashMap::new();
     {
-        let store = snapshot_store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let store = snapshot_store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in store.values() {
             by_id.insert(rec.snapshot_id.clone(), rec.clone());
         }
@@ -433,7 +439,9 @@ async fn diff_snapshots(
     require_scope(&headers, &state, "lineage:read")?;
 
     let (from, to) = {
-        let mut store = snapshot_store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut store = snapshot_store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
 
         if !store.contains_key(&body.from_snapshot_id)
             && let Some(mut rec) = load_snapshot_record(&state, &body.from_snapshot_id)

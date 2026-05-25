@@ -48,7 +48,11 @@ fn events_failure(
     let why = why.into();
     let next_tools_value = json!(next_tools);
     let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     json!({
         "status": "blocked",
         "canonical": false,

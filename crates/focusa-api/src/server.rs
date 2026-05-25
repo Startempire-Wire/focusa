@@ -126,11 +126,9 @@ async fn resource_mode_monitor_loop(state: Arc<AppState>) {
         if matches!(status.mode, "lowmem" | "emergency") {
             let mode = status.mode;
             let reason = status.reason;
-            let pruned = prune_pressure_sensitive_state(
-                &state,
-                status.retention_policy.trace_event_limit,
-            )
-            .await;
+            let pruned =
+                prune_pressure_sensitive_state(&state, status.retention_policy.trace_event_limit)
+                    .await;
             let trimmed = tokio::task::spawn_blocking(trim_allocator_once)
                 .await
                 .unwrap_or(false);

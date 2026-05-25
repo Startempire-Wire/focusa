@@ -77,7 +77,9 @@ fn failure_class(status: StatusCode) -> &'static str {
         StatusCode::NOT_FOUND => "not_found",
         StatusCode::METHOD_NOT_ALLOWED => "validation_rejected",
         StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => "permission_denied",
-        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => "daemon_unavailable",
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+            "daemon_unavailable"
+        }
         StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => "validation_rejected",
         _ if status.is_server_error() => "daemon_unavailable",
         _ if status.is_client_error() => "validation_rejected",
@@ -87,35 +89,68 @@ fn failure_class(status: StatusCode) -> &'static str {
 
 fn recovery_hint(status: StatusCode) -> &'static str {
     match status {
-        StatusCode::NOT_FOUND => "Check the route path against docs/current/API_REFERENCE_CURRENT.md; for model recovery run focusa_tool_doctor, then use the nearest project/trajectory/workpoint route.",
-        StatusCode::METHOD_NOT_ALLOWED => "Use the documented HTTP method for this route; if uncertain run focusa_tool_doctor or inspect API_REFERENCE_CURRENT.md.",
-        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => "Verify Focusa auth token/scopes before retrying; do not retry the same credentials unchanged.",
-        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => "Check daemon health/resource mode; continue from operator/repo context until /v1/health is ok.",
-        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => "Fix request body/query shape from the docs; do not retry unchanged.",
-        _ if status.is_server_error() => "Run focusa_tool_doctor and inspect daemon logs before retrying.",
-        _ if status.is_client_error() => "Correct the request route/body/headers from API docs; do not retry unchanged.",
+        StatusCode::NOT_FOUND => {
+            "Check the route path against docs/current/API_REFERENCE_CURRENT.md; for model recovery run focusa_tool_doctor, then use the nearest project/trajectory/workpoint route."
+        }
+        StatusCode::METHOD_NOT_ALLOWED => {
+            "Use the documented HTTP method for this route; if uncertain run focusa_tool_doctor or inspect API_REFERENCE_CURRENT.md."
+        }
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+            "Verify Focusa auth token/scopes before retrying; do not retry the same credentials unchanged."
+        }
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+            "Check daemon health/resource mode; continue from operator/repo context until /v1/health is ok."
+        }
+        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => {
+            "Fix request body/query shape from the docs; do not retry unchanged."
+        }
+        _ if status.is_server_error() => {
+            "Run focusa_tool_doctor and inspect daemon logs before retrying."
+        }
+        _ if status.is_client_error() => {
+            "Correct the request route/body/headers from API docs; do not retry unchanged."
+        }
         _ => "Inspect status/code/details, then choose the safe next route from next_tools.",
     }
 }
 
 fn misuse_hint(status: StatusCode) -> &'static str {
     match status {
-        StatusCode::NOT_FOUND => "Likely wrong endpoint such as /health instead of /v1/health, stale docs, or out-of-order route guessing.",
+        StatusCode::NOT_FOUND => {
+            "Likely wrong endpoint such as /health instead of /v1/health, stale docs, or out-of-order route guessing."
+        }
         StatusCode::METHOD_NOT_ALLOWED => "Likely correct route with wrong HTTP verb.",
-        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => "Likely missing/invalid credentials or wrong execution identity.",
-        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => "Likely daemon/resource pressure, restart window, or cold route timeout.",
-        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => "Likely malformed JSON, missing project_root/continuity_id, or schema mismatch.",
-        _ if status.is_client_error() => "Likely unsupported route, missing header, malformed request, or out-of-order client call.",
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+            "Likely missing/invalid credentials or wrong execution identity."
+        }
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+            "Likely daemon/resource pressure, restart window, or cold route timeout."
+        }
+        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => {
+            "Likely malformed JSON, missing project_root/continuity_id, or schema mismatch."
+        }
+        _ if status.is_client_error() => {
+            "Likely unsupported route, missing header, malformed request, or out-of-order client call."
+        }
         _ => "Likely improper route/order or ambiguous infrastructure state.",
     }
 }
 
 fn next_tools(status: StatusCode) -> Vec<&'static str> {
     match status {
-        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED => vec!["focusa_tool_doctor", "focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED => vec![
+            "focusa_tool_doctor",
+            "focusa_project_identity",
+            "focusa_trajectory_view",
+            "focusa_workpoint_resume",
+        ],
         StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => vec!["focusa_tool_doctor"],
-        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => vec!["focusa_tool_doctor", "focusa_resource_mode"],
-        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => vec!["focusa_tool_doctor", "focusa_project_identity"],
+        StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+            vec!["focusa_tool_doctor", "focusa_resource_mode"]
+        }
+        StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => {
+            vec!["focusa_tool_doctor", "focusa_project_identity"]
+        }
         _ if status.is_client_error() => vec!["focusa_tool_doctor", "focusa_project_identity"],
         _ => vec!["focusa_tool_doctor"],
     }

@@ -51,8 +51,12 @@ async fn active_session_id(state: &Arc<AppState>) -> Option<String> {
         .map(|session| session.session_id.to_string())
 }
 
-
-fn tool_result_v1(ok: bool, status: &str, failure_class: Option<&str>, side_effects: Vec<&str>) -> Value {
+fn tool_result_v1(
+    ok: bool,
+    status: &str,
+    failure_class: Option<&str>,
+    side_effects: Vec<&str>,
+) -> Value {
     json!({
         "ok": ok,
         "status": status,
@@ -124,9 +128,17 @@ async fn set_mode(
             status.mode, status.reason
         )
     };
-    let status_label = if rejected.is_some() { "blocked" } else { "completed" };
+    let status_label = if rejected.is_some() {
+        "blocked"
+    } else {
+        "completed"
+    };
     let failure_class = rejected.as_ref().map(|_| "validation_rejected");
-    let side_effects = if changed { vec!["runtime_resource_mode_override"] } else { Vec::<&str>::new() };
+    let side_effects = if changed {
+        vec!["runtime_resource_mode_override"]
+    } else {
+        Vec::<&str>::new()
+    };
     Json(json!({
         "status": status_label,
         "canonical": rejected.is_none(),
@@ -150,7 +162,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/resource/mode", post(set_mode))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,7 +183,12 @@ mod tests {
         assert_eq!(result.get("canonical").and_then(Value::as_bool), Some(true));
         assert_eq!(result.get("degraded").and_then(Value::as_bool), Some(false));
         assert!(result.get("retry").is_some());
-        assert!(result.get("side_effects").and_then(Value::as_array).is_some());
+        assert!(
+            result
+                .get("side_effects")
+                .and_then(Value::as_array)
+                .is_some()
+        );
         assert!(result.get("next_tools").and_then(Value::as_array).is_some());
     }
 }

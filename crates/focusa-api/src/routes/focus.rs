@@ -40,7 +40,11 @@ fn focus_failure(
     let error = error.into();
     let why = why.into();
     let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     (
         http_status,
         Json(json!({
