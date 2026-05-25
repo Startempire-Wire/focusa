@@ -72,6 +72,9 @@ else
   exit 1
 fi
 
+curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"pi-extension-contract-reset"}' >/dev/null || true
+
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
   -d "{\"adapter_id\":\"pi-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then

@@ -53,7 +53,7 @@ jobs:
           test -n "$APP_PATH"
           echo "Found bundle: $APP_PATH"
           test -f "$APP_PATH/Contents/Info.plist"
-          /usr/bin/defaults read "$APP_PATH/Contents/Info.plist" CFBundleIdentifier
+          /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
 
   spec-gates:
     name: Spec Gates (strict)
