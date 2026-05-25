@@ -30,6 +30,8 @@ fn ascc_failure(
     let error = error.into();
     let why = why.into();
     let next_tools_value = json!(next_tools);
+    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "frame_unavailable");
+    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
     (
         http_status,
         Json(json!({
@@ -50,7 +52,7 @@ fn ascc_failure(
                     "degraded": true,
                     "failure_class": failure_class,
                     "summary": why,
-                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class},
                     "recovery_hint": recovery_hint,
                     "misuse_hint": misuse_hint,
                     "side_effects": [],
