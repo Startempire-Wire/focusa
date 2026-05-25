@@ -465,7 +465,7 @@ async fn capture(
     let index_entry = capture_index_entry(&rec);
     append_capture_index_entry(&state, &index_entry);
 
-    let mut s = store().lock().expect("metacog store poisoned");
+    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     s.captures.push(rec);
     s.capture_hot_index.push(index_entry);
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
@@ -532,7 +532,7 @@ async fn retrieve(
     let cfg = metacog_store_config(&state.config);
     let now = Utc::now();
     let (in_memory_records, in_memory_index) = {
-        let mut s = store().lock().expect("metacog store poisoned");
+        let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         if s.capture_hot_index.is_empty() && !s.captures.is_empty() {
             s.capture_hot_index = rebuild_capture_hot_index(&s.captures, cfg, now);
         }
@@ -718,7 +718,7 @@ async fn reflect(
         &json!(rec),
     );
 
-    let mut s = store().lock().expect("metacog store poisoned");
+    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     s.reflections.push(rec.clone());
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
@@ -745,7 +745,7 @@ async fn adjust(
     require_scope(&headers, &state, "metacognition:write")?;
 
     let in_mem_exists = {
-        let s = store().lock().expect("metacog store poisoned");
+        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         s.reflections
             .iter()
             .any(|r| r.reflection_id == body.reflection_id)
@@ -779,7 +779,7 @@ async fn adjust(
         &metacog_record_path(&state, "adjustments", &adjustment_id),
         &json!(rec),
     );
-    let mut s = store().lock().expect("metacog store poisoned");
+    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     s.adjustments.push(rec.clone());
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
@@ -809,7 +809,7 @@ async fn evaluate(
     require_scope(&headers, &state, "metacognition:write")?;
 
     let in_mem_exists = {
-        let s = store().lock().expect("metacog store poisoned");
+        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         s.adjustments
             .iter()
             .any(|a| a.adjustment_id == body.adjustment_id)
@@ -850,7 +850,7 @@ async fn metacog_status(
     require_scope(&headers, &state, "metacognition:read")?;
     let cfg = metacog_store_config(&state.config);
     let disk_captures = load_capture_records_from_disk(&state);
-    let mut s = store().lock().expect("metacog store poisoned");
+    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let mut by_id: HashMap<String, CaptureRecord> = HashMap::new();
     for rec in disk_captures {
         by_id.insert(rec.capture_id.clone(), rec);
@@ -888,7 +888,7 @@ async fn get_capture(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
     let in_mem = {
-        let s = store().lock().expect("metacog store poisoned");
+        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         s.captures
             .iter()
             .find(|rec| rec.capture_id == capture_id)
@@ -925,7 +925,7 @@ async fn recent_reflections(
 
     let mut by_id: HashMap<String, ReflectionRecord> = HashMap::new();
     {
-        let s = store().lock().expect("metacog store poisoned");
+        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.reflections {
             by_id.insert(rec.reflection_id.clone(), rec.clone());
         }
@@ -979,7 +979,7 @@ async fn recent_adjustments(
 
     let mut by_id: HashMap<String, AdjustmentRecord> = HashMap::new();
     {
-        let s = store().lock().expect("metacog store poisoned");
+        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.adjustments {
             by_id.insert(rec.adjustment_id.clone(), rec.clone());
         }
