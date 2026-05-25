@@ -59,6 +59,17 @@ struct AdjustmentRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct EvaluationRecord {
+    evaluation_id: String,
+    adjustment_id: String,
+    observed_metrics: Vec<String>,
+    result: String,
+    promote_learning: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+    storage_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CaptureIndexEntry {
     capture_id: String,
     created_at: chrono::DateTime<chrono::Utc>,
@@ -85,6 +96,7 @@ struct MetaStore {
     captures: Vec<CaptureRecord>,
     reflections: Vec<ReflectionRecord>,
     adjustments: Vec<AdjustmentRecord>,
+    evaluations: Vec<EvaluationRecord>,
     capture_hot_index: Vec<CaptureIndexEntry>,
     eviction_events: Vec<MetacogEvictionEvent>,
 }
@@ -239,10 +251,15 @@ fn prune_metacog_store(
         retain_recent(&mut store.adjustments, cfg.max_adjustments, cutoff, |r| {
             r.created_at
         });
+    let evaluation_evicted =
+        retain_recent(&mut store.evaluations, cfg.max_adjustments, cutoff, |r| {
+            r.created_at
+        });
     store.capture_hot_index = rebuild_capture_hot_index(&store.captures, cfg, now);
     record_eviction(store, "captures", capture_evicted, "ttl_or_cap", now);
     record_eviction(store, "reflections", reflection_evicted, "ttl_or_cap", now);
     record_eviction(store, "adjustments", adjustment_evicted, "ttl_or_cap", now);
+    record_eviction(store, "evaluations", evaluation_evicted, "ttl_or_cap", now);
 }
 
 fn metacog_base_dir(state: &AppState) -> PathBuf {
@@ -380,6 +397,27 @@ fn load_adjustment_records_from_disk(state: &AppState) -> Vec<AdjustmentRecord> 
 
 fn reflection_exists_on_disk(state: &AppState, reflection_id: &str) -> bool {
     metacog_record_path(state, "reflections", reflection_id).exists()
+}
+
+fn load_evaluation_records_from_disk(state: &AppState) -> Vec<EvaluationRecord> {
+    let mut out = Vec::new();
+    let dir = metacog_category_dir(state, "evaluations");
+    let Ok(entries) = fs::read_dir(dir) else {
+        return out;
+    };
+
+    for entry in entries.flatten() {
+        let Ok(bytes) = fs::read(entry.path()) else {
+            continue;
+        };
+        let Ok(rec) = serde_json::from_slice::<EvaluationRecord>(&bytes) else {
+            continue;
+        };
+        out.push(rec);
+    }
+
+    out.sort_by_key(|r| r.created_at);
+    out
 }
 
 fn adjustment_exists_on_disk(state: &AppState, adjustment_id: &str) -> bool {
@@ -826,14 +864,38 @@ async fn evaluate(
     }
 
     let promote = !body.observed_metrics.is_empty();
+    let now = Utc::now();
+    let evaluation_id = format!("eval-{}", now.timestamp_nanos_opt().unwrap_or_default());
+    let storage_path = metacog_record_path(&state, "evaluations", &evaluation_id)
+        .display()
+        .to_string();
+    let rec = EvaluationRecord {
+        evaluation_id: evaluation_id.clone(),
+        adjustment_id: body.adjustment_id,
+        observed_metrics: body.observed_metrics,
+        result: if promote { "improved" } else { "inconclusive" }.to_string(),
+        promote_learning: promote,
+        created_at: now,
+        storage_path: storage_path.clone(),
+    };
+    persist_json_record(
+        &metacog_record_path(&state, "evaluations", &evaluation_id),
+        &json!(rec),
+    );
+    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    s.evaluations.push(rec.clone());
+    prune_metacog_store(&mut s, now, metacog_store_config(&state.config));
 
     Ok(Json(json!({
-        "evaluation_id": format!("eval-{}", Utc::now().timestamp_nanos_opt().unwrap_or_default()),
+        "evaluation_id": evaluation_id,
+        "adjustment_id": rec.adjustment_id,
         "delta_scorecard": {
-            "metrics_observed": body.observed_metrics,
+            "metrics_observed": rec.observed_metrics,
         },
-        "result": if promote { "improved" } else { "inconclusive" },
-        "promote_learning": promote,
+        "result": rec.result,
+        "promote_learning": rec.promote_learning,
+        "storage_path": storage_path,
+        "next_step_hint": if rec.promote_learning { "promote or reuse the evaluated learning signal" } else { "collect observed_metrics before promoting this learning signal" }
     })))
 }
 
@@ -850,6 +912,7 @@ async fn metacog_status(
     require_scope(&headers, &state, "metacognition:read")?;
     let cfg = metacog_store_config(&state.config);
     let disk_captures = load_capture_records_from_disk(&state);
+    let disk_evaluations = load_evaluation_records_from_disk(&state);
     let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let mut by_id: HashMap<String, CaptureRecord> = HashMap::new();
     for rec in disk_captures {
@@ -858,17 +921,29 @@ async fn metacog_status(
     for rec in &s.captures {
         by_id.insert(rec.capture_id.clone(), rec.clone());
     }
+    let mut evaluations_by_id: HashMap<String, EvaluationRecord> = HashMap::new();
+    for rec in disk_evaluations {
+        evaluations_by_id.insert(rec.evaluation_id.clone(), rec);
+    }
+    for rec in &s.evaluations {
+        evaluations_by_id.insert(rec.evaluation_id.clone(), rec.clone());
+    }
     s.capture_hot_index = rebuild_capture_hot_index(
         &by_id.values().cloned().collect::<Vec<_>>(),
         cfg,
         Utc::now(),
     );
+    let promoted_evaluations = evaluations_by_id
+        .values()
+        .filter(|rec| rec.promote_learning)
+        .count();
     Ok(Json(json!({
         "status": "ok",
         "caps": {
             "max_captures": cfg.max_captures,
             "max_reflections": cfg.max_reflections,
             "max_adjustments": cfg.max_adjustments,
+            "max_evaluations": cfg.max_adjustments,
             "ttl_minutes": cfg.ttl_minutes,
             "retrieve_max_k": retrieve_max_k()
         },
@@ -876,6 +951,12 @@ async fn metacog_status(
             "captures_indexed": s.capture_hot_index.len(),
             "summary_chars": 240,
             "full_content_rehydrate_route": "/v1/metacognition/captures/{capture_id}"
+        },
+        "evaluation_memory": {
+            "evaluations_recorded": evaluations_by_id.len(),
+            "promoted_evaluations": promoted_evaluations,
+            "storage_category": "evaluations",
+            "persistence": "json_record"
         },
         "eviction_telemetry": s.eviction_events.iter().rev().take(10).cloned().collect::<Vec<_>>(),
     })))
@@ -1082,6 +1163,18 @@ mod tests {
         }
     }
 
+    fn evaluation(id: &str, created_at: chrono::DateTime<chrono::Utc>) -> EvaluationRecord {
+        EvaluationRecord {
+            evaluation_id: id.to_string(),
+            adjustment_id: "adj".to_string(),
+            observed_metrics: vec!["metric".to_string()],
+            result: "improved".to_string(),
+            promote_learning: true,
+            created_at,
+            storage_path: format!("/tmp/evaluation-{id}.json"),
+        }
+    }
+
     #[test]
     fn prune_metacog_store_applies_ttl() {
         let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
@@ -1159,6 +1252,12 @@ mod tests {
         store
             .adjustments
             .push(adjustment("a2", now - Duration::minutes(3)));
+        store
+            .evaluations
+            .push(evaluation("e1", now - Duration::minutes(4)));
+        store
+            .evaluations
+            .push(evaluation("e2", now - Duration::minutes(3)));
 
         prune_metacog_store(
             &mut store,
@@ -1180,5 +1279,7 @@ mod tests {
 
         assert_eq!(store.adjustments.len(), 1);
         assert_eq!(store.adjustments[0].adjustment_id, "a2");
+        assert_eq!(store.evaluations.len(), 1);
+        assert_eq!(store.evaluations[0].evaluation_id, "e2");
     }
 }
