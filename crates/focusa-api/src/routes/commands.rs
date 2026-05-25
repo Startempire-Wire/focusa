@@ -320,13 +320,13 @@ fn command_action_rejected(details: Value) -> (StatusCode, Json<Value>) {
 
 fn command_dispatch_failed(command_id: &str, details: Option<String>) -> (StatusCode, Json<Value>) {
     command_failure(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "command dispatch failed",
-        "unknown_ambiguous_completion",
-        format!("command {command_id} could not be dispatched to the daemon action channel"),
-        "Check daemon health and command status/log before retrying; retry is safe only after ambiguous dispatch state is resolved.",
-        "Likely daemon command channel unavailable, runtime shutdown, or dispatch ownership issue.",
-        vec!["focusa_tool_doctor", "focusa_work_loop_status", "focusa_workpoint_resume"],
+        StatusCode::SERVICE_UNAVAILABLE,
+        "command dispatch unavailable",
+        "daemon_unavailable",
+        format!("command {command_id} could not be dispatched because the daemon action channel is unavailable"),
+        "Check daemon health and the command record before retrying; use the idempotency key/command_id to avoid duplicate side effects.",
+        "Likely daemon command channel closed, runtime shutdown, or dispatch owner unavailable before the command was enqueued.",
+        vec!["focusa_tool_doctor", "focusa_work_loop_status", "focusa_resource_mode", "focusa_workpoint_resume"],
     ).tap_details(details)
 }
 

@@ -197,10 +197,10 @@ fn work_loop_failure(
 
 fn work_loop_dispatch_failed(action: &str, err: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
     work_loop_failure(
-        StatusCode::INTERNAL_SERVER_ERROR,
+        StatusCode::SERVICE_UNAVAILABLE,
         action,
-        "unknown_ambiguous_completion",
-        format!("dispatch failed for {action}: {err}"),
+        "daemon_unavailable",
+        format!("dispatch channel unavailable for {action}: {err}"),
     )
 }
 
