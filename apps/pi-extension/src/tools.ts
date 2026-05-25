@@ -2394,6 +2394,7 @@ export function registerTools(pi: ExtensionAPI) {
         if (verifiedRoot && identity.status === "verified" && isProjectRootAuthoritySafe(verifiedRoot)) {
           confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
           ensureContinuityId(verifiedRoot);
+          persistState();
         }
       }
       const summaryLines = Array.isArray(body.summary_lines)
@@ -2450,6 +2451,13 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const identity = body.project_identity || {};
       const verified = body.verification?.verified === true;
+      if (identity && Object.keys(identity).length) S.lastProjectVerify = body;
+      const verifiedRoot = normalizeProjectRoot(identity.project_root);
+      if (verified && verifiedRoot && isProjectRootAuthoritySafe(verifiedRoot)) {
+        confirmPiProjectRoot(verifiedRoot, "focusa_project_verify_verified");
+        ensureContinuityId(verifiedRoot);
+        persistState();
+      }
       const text = result.ok
         ? `project verify → verified=${verified} status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`
         : `project verify blocked → ${explainWorkLoopResult(result, "project verify unavailable")}`;

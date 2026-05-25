@@ -29,6 +29,13 @@ else
   exit 1
 fi
 
+if rg -n 'focusa_project_identity_verified|focusa_project_verify_verified|persistState\(\)' "${ROOT_DIR}/apps/pi-extension/src/tools.ts" >/dev/null; then
+  echo "✓ PASS: Focusa project identity/verify tools persist verified project root into Pi session scope"
+else
+  echo "✗ FAIL: project identity/verify tools do not persist verified project root into Pi session scope" >&2
+  exit 1
+fi
+
 if rg -n 'scopedWorkpointForPrompt|Boolean\(getScopedWorkpointPacket\(\)\)|const packet: any = getScopedWorkpointPacket\(\)' "$TURNS" >/dev/null; then
   echo "✓ PASS: Workpoint prompt/Focus Slice injection uses project-bound Workpoint guard"
 else
