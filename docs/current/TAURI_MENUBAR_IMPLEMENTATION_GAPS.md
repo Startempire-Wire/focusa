@@ -19,9 +19,9 @@
 
 ## Remaining Phase 0 gaps — foundation
 
-- `npm ci` still fails because npm/package-lock dependency resolution conflicts with Vite/Svelte plugin versions; Bun path is the validated path.
+- `npm ci` parity is now resolved by upgrading `@sveltejs/vite-plugin-svelte` to `^5.0.0`; npm and Bun check/build paths both pass.
 - Tauri config still uses `csp: null`; security posture needs a compatibility pass.
-- Full Tauri packaging (`bun tauri build`) has not been proven in this slice.
+- Full Tauri packaging (`bun tauri build`) is blocked in this server slice because the `wirebot` user has no accessible `cargo`; root-only `/root/.cargo/bin/cargo` is not traversable under `as-user` and root builds would create unsafe ownership in `/home/wirebot`.
 
 ## Remaining Phase 1 gaps — ambient cockpit MVP
 
@@ -39,7 +39,7 @@
 
 ## Next recommended implementation slices
 
-1. **Tauri packaging/security pass:** verify or document Bun-only install, test `bun tauri build` where platform dependencies allow, and evaluate a minimal CSP.
+1. **Tauri packaging/security pass:** provide an accessible Rust/Cargo toolchain for `wirebot` or run packaging on a developer machine, then retry `bun tauri build`; evaluate a minimal CSP.
 2. **True drawer shell:** keep the current peek labels but move secondary surfaces into a drawer/peek interaction model rather than dense tabs.
 3. **Ambient tray state:** map daemon/project/workpoint/work-loop posture to the tray icon states from the original spec.
 4. **Safe read-to-write affordances:** add confirmation-gated drift check and evidence link first; defer work-loop mutations until writer preflight UX is explicit.

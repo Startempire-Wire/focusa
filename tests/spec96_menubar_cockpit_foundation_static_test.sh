@@ -40,6 +40,8 @@ assert_has apps/menubar/src/lib/components/SyncPanel.svelte 'Peer awareness; no 
 assert_has docs/current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md 'Implemented in the current menubar slice|Remaining Phase 0 gaps|Next recommended implementation slices|git:9de260c' 'menubar implementation gaps doc reflects current post-audit status'
 assert_has docs/current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md '✅ Implemented|Partial: read-only Trajectory peek implemented|Read-only Work Loop peek implemented' 'up-to-speed spec tracks implemented vs remaining slices'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
+assert_has apps/menubar/package.json '"@sveltejs/vite-plugin-svelte": "\^5\.0\.0"' 'menubar npm parity uses Vite-6-compatible Svelte plugin'
+assert_has docs/current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md 'npm ci.*resolved|wirebot.*no accessible.*cargo|root-only.*/root/.cargo/bin/cargo' 'menubar packaging gaps distinguish resolved npm parity from Cargo blocker'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then
   echo "✗ FAIL: hardcoded API base outside shared default/placeholder" >&2

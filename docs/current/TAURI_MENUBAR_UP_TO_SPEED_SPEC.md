@@ -282,9 +282,10 @@ Every card should render normalized fields when present:
 
 ### Phase 0 — Build contract repair
 
-- Make `bun run check` reliable from clean checkout.
-- Resolve npm lock conflict or document Bun-only.
-- Add static CI script for menubar build/check expectations.
+- Make `bun run check` reliable from clean checkout. ✅ Implemented.
+- Resolve npm lock conflict or document Bun-only. ✅ npm parity resolved with Vite-compatible Svelte plugin.
+- Add static CI script for menubar build/check expectations. ✅ Implemented.
+- Tauri package proof. Blocked on this server until `wirebot` has accessible Cargo or packaging runs on a developer machine.
 
 **Acceptance:** clean checkout can run documented app proof without order-dependent failure.
 
