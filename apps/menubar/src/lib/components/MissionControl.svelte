@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { normalizeToolResult } from '$lib/api';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
 
   let s = $derived(runtimeStore.snapshot);
@@ -18,6 +19,27 @@
     if (typeof v === 'string') return v;
     return String(v);
   }
+
+  function envelopeLabel(payload: any): string | null {
+    const result = normalizeToolResult(payload);
+    if (result.canonical === true) return 'canonical';
+    if (result.degraded === true) return 'degraded';
+    if (result.status) return result.status;
+    return null;
+  }
+
+  function envelopeTone(payload: any): 'ok' | 'watch' | 'bad' | 'neutral' {
+    const result = normalizeToolResult(payload);
+    if (result.canonical === true || result.status === 'accepted' || result.status === 'ok') return 'ok';
+    if (result.degraded === true || result.status === 'pending') return 'watch';
+    if (result.canonical === false || result.status === 'blocked' || result.failure_class) return 'bad';
+    return 'neutral';
+  }
+
+  function evidenceCount(payload: any): number {
+    const refs = normalizeToolResult(payload).evidence_refs;
+    return Array.isArray(refs) ? refs.length : 0;
+  }
 </script>
 
 <section class="mission-grid" aria-label="Focusa mission control">
@@ -25,6 +47,7 @@
     <div class="label">DAEMON</div>
     <div class="value">{daemonOk ? 'Live' : 'Unavailable'}</div>
     <div class="meta">v{text(s.health?.version, 'n/a')} · {text(s.health?.uptime_ms, '0')}ms</div>
+    <div class="chips"><span class="chip" class:ok={daemonOk}>{daemonOk ? 'ok' : 'offline'}</span></div>
     <code>curl /v1/health</code>
   </article>
 
@@ -32,6 +55,7 @@
     <div class="label">PROJECT</div>
     <div class="value">{text(project.project_id ?? project.project?.id ?? project.canonical_name, 'unknown')}</div>
     <div class="meta">{text(project.project_root ?? project.root ?? project.workspace_root, 'no verified root')}</div>
+    <div class="chips"><span class="chip" class:ok={project.status === 'verified'}>{text(project.status, 'unknown')}</span></div>
     <code>GET /v1/project/identity</code>
   </article>
 
@@ -39,6 +63,7 @@
     <div class="label">TRAJECTORY</div>
     <div class="value">{text(trajectory.status ?? trajectory.posture ?? 'pending')}</div>
     <div class="meta">{text(trajectory.gap ?? trajectory.active_gap ?? trajectory.short_term_goal, 'no active gap')}</div>
+    <div class="chips"><span class="chip" class:watch={trajectory.posture === 'verify_first'}>{text(trajectory.posture ?? trajectory.status, 'summary')}</span></div>
     <code>GET /v1/trajectory/view</code>
   </article>
 
@@ -46,6 +71,10 @@
     <div class="label">WORKPOINT</div>
     <div class="value">{text(workpoint.status ?? (workpoint.canonical ? 'canonical' : 'unknown'))}</div>
     <div class="meta">{text(workpoint.next_action ?? workpoint.next ?? workpoint.mission ?? workpoint.resume_packet?.mission, 'no mission')}</div>
+    <div class="chips">
+      {#if envelopeLabel(workpoint)}<span class="chip" class:ok={envelopeTone(workpoint) === 'ok'} class:watch={envelopeTone(workpoint) === 'watch'} class:bad={envelopeTone(workpoint) === 'bad'}>{envelopeLabel(workpoint)}</span>{/if}
+      {#if evidenceCount(workpoint) > 0}<span class="chip">{evidenceCount(workpoint)} evidence</span>{/if}
+    </div>
     <code>POST /v1/workpoint/resume</code>
   </article>
 
@@ -53,6 +82,7 @@
     <div class="label">WORK LOOP</div>
     <div class="value">{text(workLoop.dispatch_ready ?? workLoop.status ?? workLoop.work_loop?.status)}</div>
     <div class="meta">{text(workLoop.boundary_reason ?? workLoop.current_task?.id ?? workLoop.current_work_item_id, 'no active boundary')}</div>
+    <div class="chips"><span class="chip" class:ok={workLoop.dispatch_ready === true} class:watch={workLoop.dispatch_ready === false}>{workLoop.dispatch_ready === true ? 'ready' : workLoop.dispatch_ready === false ? 'boundary' : 'unknown'}</span></div>
     <code>GET /v1/work-loop/health</code>
   </article>
 
@@ -67,6 +97,7 @@
     <div class="label">MEMORY</div>
     <div class="value">{text(memory.pressure_status ?? memory.status, 'normal')}</div>
     <div class="meta">rss {text(memory.rss_kb ?? memory.current_rss_kb, 'n/a')}kb · peak {text(memory.peak_rss_kb, 'n/a')}kb</div>
+    <div class="chips"><span class="chip" class:watch={memory.pressure_status === 'lowmem'} class:bad={memory.pressure_status === 'emergency'}>{text(memory.pressure_status ?? memory.status, 'normal')}</span></div>
     <code>GET /v1/telemetry/memory</code>
   </article>
 
@@ -95,6 +126,7 @@
     <div class="label">RECOVERY</div>
     <div class="value">{runtimeStore.errorMsg ? 'Holdover' : text(doctor.status, 'Ready')}</div>
     <div class="meta">{runtimeStore.errorMsg ?? text(doctor.summary ?? doctor.recommended_action, 'daemon reachable')}</div>
+    <div class="chips"><span class="chip" class:ok={!runtimeStore.errorMsg && doctor.status !== 'degraded'} class:bad={!!runtimeStore.errorMsg || doctor.status === 'degraded'}>{runtimeStore.errorMsg ? 'error' : text(doctor.status, 'ready')}</span></div>
     <code>GET /v1/doctor</code>
   </article>
 </section>
@@ -139,6 +171,37 @@
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: var(--sp-2);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 16px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    color: var(--fg-tertiary);
+    background: var(--bg-elevated);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    line-height: 1.3;
+  }
+  .chip.ok {
+    color: var(--green);
+    border-color: color-mix(in srgb, var(--green) 45%, var(--border));
+  }
+  .chip.watch {
+    color: var(--orange);
+    border-color: color-mix(in srgb, var(--orange) 50%, var(--border));
+  }
+  .chip.bad {
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
   }
   code {
     display: block;
