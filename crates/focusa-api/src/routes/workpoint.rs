@@ -2039,8 +2039,20 @@ async fn link_evidence(
             None => wait_for_workpoint_record(&state, workpoint_id).await,
         }
     } else {
+        let expected_project_root = session_identity_project_root(req.session_identity.as_ref());
+        let expected_continuity_id = session_identity_continuity_id(req.session_identity.as_ref());
         let focusa = state.focusa.read().await;
-        active_workpoint(&focusa).cloned()
+        if expected_project_root.is_some() || expected_continuity_id.is_some() {
+            active_workpoint_for_scope(
+                &focusa,
+                expected_project_root.as_deref(),
+                expected_continuity_id.as_deref(),
+            )
+            .or_else(|| active_workpoint(&focusa))
+            .cloned()
+        } else {
+            active_workpoint(&focusa).cloned()
+        }
     };
     let Some(record) = record else {
         if let Some(workpoint_id) = explicit_workpoint_id {
