@@ -127,6 +127,7 @@ fn value_id(value: &Value) -> String {
         .get("node_id")
         .or_else(|| value.get("id"))
         .or_else(|| value.get("workpoint_id"))
+        .or_else(|| value.get("primitive_id"))
         .or_else(|| value.get("frame_id"))
         .or_else(|| value.get("prediction_id"))
         .and_then(Value::as_str)
@@ -499,6 +500,59 @@ fn snapshot_items(state: &FocusaState) -> Vec<Value> {
     })]
 }
 
+fn reflex_primitive_items(req: &TraverseRequest, sel: &str) -> Vec<Value> {
+    let registry: Value = serde_json::from_str(include_str!(
+        "../../../../docs/current/focusa-reflex-primitives.json"
+    ))
+    .unwrap_or_else(|_| json!({"primitives": []}));
+    let family = req
+        .anchor
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let risk_or_object_query = req
+        .query
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let primitives = registry
+        .get("primitives")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    primitives
+        .into_iter()
+        .filter(|primitive| match sel {
+            "family" | "children" => {
+                family.is_empty()
+                    || primitive
+                        .get("family")
+                        .and_then(Value::as_str)
+                        .map(|value| value.eq_ignore_ascii_case(&family))
+                        .unwrap_or(false)
+            }
+            _ => true,
+        })
+        .filter(|primitive| {
+            risk_or_object_query.is_empty()
+                || serde_json::to_string(primitive)
+                    .unwrap_or_default()
+                    .to_ascii_lowercase()
+                    .contains(&risk_or_object_query)
+        })
+        .map(|mut primitive| {
+            if let Some(obj) = primitive.as_object_mut() {
+                obj.insert(
+                    "source".to_string(),
+                    json!("spec97_reflex_primitive_registry"),
+                );
+                obj.insert("advisory_only".to_string(), json!(true));
+            }
+            primitive
+        })
+        .collect()
+}
+
 fn generic_filter_items(mut items: Vec<Value>, req: &TraverseRequest, sel: &str) -> Vec<Value> {
     let anchor = req.anchor.as_deref().unwrap_or_default();
     let query = req
@@ -650,6 +704,7 @@ fn surface_items(
         "metacognition" | "metacog" => metacognition_items(state),
         "predictions" | "prediction" => prediction_items(state),
         "snapshots" | "snapshot" => snapshot_items(state),
+        "reflex" | "reflexes" | "reflex_primitives" => reflex_primitive_items(req, sel),
         "tool_registry" | "capabilities" => vec![json!({
             "id": "tool_registry_summary",
             "surface": "tool_registry",
@@ -696,6 +751,30 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "project_root",
                 "tags",
                 "created_at",
+            ],
+        ),
+        "reflex" | "reflexes" | "reflex_primitives" => (
+            &[
+                "primitive_id",
+                "family",
+                "trigger",
+                "reflex_action",
+                "advisory_only",
+            ],
+            &[
+                "primitive_id",
+                "family",
+                "trigger",
+                "context_inputs",
+                "reflex_action",
+                "evidence_output",
+                "escalation_boundary",
+                "authority_boundary",
+                "hot_path_budget",
+                "failure_envelope",
+                "implementation_status",
+                "source",
+                "advisory_only",
             ],
         ),
         "workpoints" | "workpoint" => (
@@ -763,6 +842,9 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             | "commands"
             | "snapshots"
             | "snapshot"
+            | "reflex"
+            | "reflexes"
+            | "reflex_primitives"
             | "tool_registry"
             | "capabilities"
     );
@@ -1069,6 +1151,7 @@ mod tests {
             "predictions",
             "telemetry",
             "snapshots",
+            "reflex_primitives",
             "tool_registry",
         ] {
             let res = traverse_response(
@@ -1091,6 +1174,41 @@ mod tests {
                 "surface={surface}"
             );
         }
+    }
+
+    #[test]
+    fn reflex_primitive_surface_returns_registry_backed_family_items() {
+        let state = FocusaState::new();
+        let res = traverse_response(
+            &state,
+            TraverseRequest {
+                surface: "reflex_primitives".to_string(),
+                selector: Some("family".to_string()),
+                anchor: Some("recovery".to_string()),
+                fields: vec![
+                    "primitive_id".to_string(),
+                    "family".to_string(),
+                    "reflex_action".to_string(),
+                ],
+                limit: Some(8),
+                ..TraverseRequest::default()
+            },
+            false,
+        );
+        assert_eq!(res.get("status").and_then(Value::as_str), Some("completed"));
+        let items = res.get("items").and_then(Value::as_array).unwrap();
+        assert!(items.iter().any(|item| {
+            item.get("data")
+                .and_then(|payload| payload.get("primitive_id"))
+                .and_then(Value::as_str)
+                == Some("route_noncanonical_result")
+        }));
+        assert!(items.iter().all(|item| {
+            item.get("data")
+                .and_then(|payload| payload.get("family"))
+                .and_then(Value::as_str)
+                == Some("recovery")
+        }));
     }
 
     #[test]
