@@ -109,11 +109,10 @@ impl Daemon {
         let state = persistence.load_state()?.unwrap_or_default();
 
         // Sync loaded state immediately so the API sees it before run() is called.
-        // No contention at construction time, so try_write always succeeds.
         {
-            let mut shared = shared_state
-                .try_write()
-                .expect("no contention at daemon construction");
+            let mut shared = shared_state.try_write().map_err(|_| {
+                anyhow::anyhow!("shared Focusa state write lock unavailable during daemon construction")
+            })?;
             *shared = state.clone();
         }
 
