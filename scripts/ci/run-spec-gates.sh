@@ -30,37 +30,44 @@ for i in $(seq 1 60); do
   fi
 done
 
-./tests/focusa_toggle_persistence_test.sh
-./tests/tool_contract_test.sh
-./tests/command_write_contract_test.sh
-./tests/trace_dimensions_test.sh
-./tests/pi_extension_contract_test.sh
-./tests/behavioral_alignment_test.sh
-./tests/channel_separation_test.sh
-./tests/proxy_mode_b_parity_test.sh
-./tests/checkpoint_trigger_test.sh
-./tests/restart_recovery_test.sh
-./tests/fork_compact_recovery_test.sh
-./tests/continuous_pruning_test.sh
-./tests/thread_runtime_test.sh
-./tests/proposal_submit_contract_test.sh
-./tests/proposal_resolution_enforcement_test.sh
-./tests/proposal_kind_enforcement_test.sh
-./tests/proposal_governance_enforcement_test.sh
-./tests/canonical_writer_guardrail_test.sh
-./tests/focus_frame_write_contract_test.sh
-./tests/work_loop_continuation_inputs_test.sh
-./tests/work_loop_policy_consumption_test.sh
-./tests/work_loop_policy_enforcement_test.sh
-./tests/work_loop_preset_semantics_test.sh
-./tests/pi_rpc_driver_contract_test.sh
-./tests/focus_work_command_surface_test.sh
-./tests/worktree_discipline_guardrail_test.sh
-./tests/work_loop_turn_outcome_wiring_test.sh
-./tests/work_loop_autocontinue_wiring_test.sh
-./tests/work_loop_route_contract_test.sh
-./tests/ontology_event_contract_test.sh
-./tests/ontology_world_contract_test.sh
-./tests/golden_tasks_eval.sh
-./tests/scope_routing_regression_eval.sh
-./tests/golden_tasks_comparative_eval.sh
+run_gate() {
+  curl -sS -X POST "${BASE_URL}/v1/session/close" \
+    -H "Content-Type: application/json" \
+    -d '{"reason":"ci-spec-gate-isolation"}' >/dev/null || true
+  "$@"
+}
+
+run_gate ./tests/focusa_toggle_persistence_test.sh
+run_gate ./tests/tool_contract_test.sh
+run_gate ./tests/command_write_contract_test.sh
+run_gate ./tests/trace_dimensions_test.sh
+run_gate ./tests/pi_extension_contract_test.sh
+run_gate ./tests/behavioral_alignment_test.sh
+run_gate ./tests/channel_separation_test.sh
+run_gate ./tests/proxy_mode_b_parity_test.sh
+run_gate ./tests/checkpoint_trigger_test.sh
+run_gate ./tests/restart_recovery_test.sh
+run_gate ./tests/fork_compact_recovery_test.sh
+run_gate ./tests/continuous_pruning_test.sh
+run_gate ./tests/thread_runtime_test.sh
+run_gate ./tests/proposal_submit_contract_test.sh
+run_gate ./tests/proposal_resolution_enforcement_test.sh
+run_gate ./tests/proposal_kind_enforcement_test.sh
+run_gate ./tests/proposal_governance_enforcement_test.sh
+run_gate ./tests/canonical_writer_guardrail_test.sh
+run_gate ./tests/focus_frame_write_contract_test.sh
+run_gate ./tests/work_loop_continuation_inputs_test.sh
+run_gate ./tests/work_loop_policy_consumption_test.sh
+run_gate ./tests/work_loop_policy_enforcement_test.sh
+run_gate ./tests/work_loop_preset_semantics_test.sh
+run_gate ./tests/pi_rpc_driver_contract_test.sh
+run_gate ./tests/focus_work_command_surface_test.sh
+run_gate ./tests/worktree_discipline_guardrail_test.sh
+run_gate ./tests/work_loop_turn_outcome_wiring_test.sh
+run_gate ./tests/work_loop_autocontinue_wiring_test.sh
+run_gate ./tests/work_loop_route_contract_test.sh
+run_gate ./tests/ontology_event_contract_test.sh
+run_gate ./tests/ontology_world_contract_test.sh
+run_gate ./tests/golden_tasks_eval.sh
+run_gate ./tests/scope_routing_regression_eval.sh
+run_gate ./tests/golden_tasks_comparative_eval.sh
