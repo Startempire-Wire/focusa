@@ -227,9 +227,53 @@ interface FocusaToolResultV1 {
   side_effects: string[];
   evidence_refs: string[];
   next_tools: string[];
+  reflex_suggestions?: string[];
   ontology_candidate_delta_refs?: string[];
   error?: { field?: string; code?: string; message?: string; allowed_values?: string[] } | null;
   raw?: unknown;
+}
+
+function reflexSuggestionsForFailure(failureClass: FocusaFailureClass | null, status: FocusaToolStatus, nextTools: string[]): string[] {
+  const suggestions = new Set<string>();
+  switch (failureClass) {
+    case "scope_mismatch":
+      suggestions.add("diagnose_scope_mismatch");
+      suggestions.add("confirm_continuity_scope");
+      break;
+    case "hot_path_timeout":
+    case "cold_path_timeout":
+    case "resource_exhausted":
+    case "daemon_unavailable":
+      suggestions.add("resource_mode_fallback");
+      suggestions.add("degrade_with_recovery");
+      break;
+    case "read_model_lag":
+      suggestions.add("retry_safe_pending");
+      break;
+    case "noncanonical_fallback":
+    case "frame_unavailable":
+    case "unknown_ambiguous_completion":
+      suggestions.add("route_noncanonical_result");
+      break;
+    case "not_found":
+      suggestions.add("resume_from_canonical_workpoint");
+      break;
+    case "approval_required":
+    case "permission_denied":
+      suggestions.add("require_destructive_confirmation");
+      break;
+    case "writer_conflict":
+      suggestions.add("preflight_writer_ownership");
+      break;
+    case "validation_rejected":
+      suggestions.add("guard_stale_focus_state");
+      break;
+  }
+  if (status === "degraded" || status === "offline") suggestions.add("degrade_with_recovery");
+  if (nextTools.includes("focusa_workpoint_resume")) suggestions.add("resume_from_canonical_workpoint");
+  if (nextTools.includes("focusa_project_identity") || nextTools.includes("focusa_project_verify")) suggestions.add("bind_project_root");
+  if (nextTools.includes("focusa_traverse")) suggestions.add("prefer_summary_hot_path");
+  return Array.from(suggestions).slice(0, 4);
 }
 
 function inferFailureClass(status: FocusaToolStatus, summary: string, message?: string | null, canonical?: boolean, degraded?: boolean): FocusaFailureClass | null {
@@ -311,6 +355,7 @@ function focusaToolResult(params: {
   const failureClass = params.failure_class ?? inferFailureClass(params.status, summary, params.error?.message, canonical, degraded);
   const guidance = recoveryHintForFailure(failureClass, params.status, params.tool);
   const nextTools = params.next_tools?.length ? params.next_tools : guidance.next_tools ?? [];
+  const reflexSuggestions = reflexSuggestionsForFailure(failureClass, params.status, nextTools);
   return {
     ok: params.ok,
     status: params.status,
@@ -332,6 +377,7 @@ function focusaToolResult(params: {
     side_effects: params.side_effects ?? [],
     evidence_refs: params.evidence_refs ?? [],
     next_tools: nextTools,
+    reflex_suggestions: reflexSuggestions,
     ontology_candidate_delta_refs: params.ontology_candidate_delta_refs ?? [],
     error: params.error ?? null,
     raw: params.raw,
@@ -380,6 +426,7 @@ function blockedToolResponse(tool: string, family: string, summary: string, fail
       recovery_hint: toolResult.recovery_hint,
       misuse_hint: toolResult.misuse_hint,
       next_tools: toolResult.next_tools,
+      reflex_suggestions: toolResult.reflex_suggestions,
       tool_result_v1: toolResult,
       response: raw,
     },

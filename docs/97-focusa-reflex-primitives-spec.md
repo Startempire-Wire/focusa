@@ -66,7 +66,7 @@ These gaps block claiming Spec97 implementation beyond vocabulary/spec language:
 |---|---|---|---|
 | `G97-live-contract-parity` | Spec91 live proof dependency | `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json` returned `status=failed`, `payload_equal=false`; live daemon registry still has stale `approval_placeholder`, missing `tmux pipe-pane`, and old schema field compared with static JSON. | Rebuild/restart or otherwise refresh the running daemon so live `/v1/ontology/tool-contracts` equals `docs/current/focusa-tool-contracts.json`, then record passing live proof. |
 | `G97-primitive-registry` | Phase A | Closed by `docs/current/focusa-reflex-primitives.json` plus `tests/spec97_reflex_primitive_registry_static_test.sh`; registry is read-only and covers all ten families. | Remaining follow-up is optional API/traverse projection, tracked by `G97-ontology-reflex-routing`. |
-| `G97-reflex-envelope-metadata` | Phase B | Repository search finds no `reflex_suggestion` metadata in tool envelopes/contracts. | Extend relevant `tool_result_v1`/recovery envelopes with bounded primitive ids for scope mismatch, pending, degraded, resource pressure, missing evidence, and stale Workpoint. |
+| `G97-reflex-envelope-metadata` | Phase B | Closed for Pi tool envelopes by `tool_result_v1.reflex_suggestions` in `apps/pi-extension/src/tools.ts` plus `tests/spec97_reflex_envelope_metadata_static_test.sh`; follow-up API-native envelope parity can be added with ontology routing. | Keep primitive ids bounded and registry-backed; do not let suggestions override operator steering or retry posture. |
 | `G97-ontology-reflex-routing` | Phase C | Ontology has strong action/risk/affordance surfaces, but no reflex primitive object/action/risk classes or traverse selector for primitive summaries. | Add ontology classes/registry projection for ReflexPrimitive, ReflexTrigger, ReflexRisk, ReflexAffordance, and bounded traverse retrieval by family/risk/object. |
 | `G97-golden-reflex-scenarios` | Phase D | No tests named for Spec97/reflex scenarios; existing Spec94-96 tests prove substrates, not `Trigger -> Context -> Reflex -> Evidence -> Escalation` scenarios. | Add at least five golden scenario tests covering identity, evidence, continuity, recovery/resource, and governance/execution reflex chains. |
 | `G97-utility-card-reflex-language` | Phase E | Awareness/Utility Card names Trajectory/Workpoint/Focusa guidance, but not concise reflex affordances. | Add minimal, non-noisy reflex naming only where it improves next action selection. |
@@ -451,7 +451,7 @@ Acceptance:
 ### Phase B — Reflex suggestions in tool envelopes
 
 - Extend `tool_result_v1.next_tools`/recovery hints with primitive ids where useful.
-- Add `reflex_suggestion` metadata for common failures: scope mismatch, pending, degraded, resource exhausted, missing evidence, stale Workpoint.
+- Add `reflex_suggestions` metadata for common failures: scope mismatch, pending, degraded, resource exhausted, missing evidence, stale Workpoint.
 
 Acceptance:
 
