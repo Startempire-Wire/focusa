@@ -1,7 +1,7 @@
 # 97 — Focusa Reflex Primitives Spec
 
 **Date:** 2026-05-25  
-**Status:** draft / dependency-audited / implementation gaps identified
+**Status:** implemented / dependency-audited / live-validated
 **Priority:** high  
 **Owner:** Focusa + Pi integration  
 **Source:** Operator framing from the "agent cerebellum" model: routine cognition should become reliable reflex, not repeated high-cognition planning.
@@ -58,16 +58,16 @@ Audit rule: a dependency counts as functional only when code/routes/tests or val
 | Spec95 ontology intelligence | Reflex routing needs ontology actions, risks, affordances, working sets, prompt-safe context, and retrieval governance. | `tests/spec95_ontology_intelligence_contract_test.sh` passed; `/v1/ontology/working-set`, `/context`, `/affordances`, `/retrieval-governor`, `/tool-choreography` are routed in `ontology.rs`. | Functional substrate. |
 | Spec96 trajectory/project/scope/LowMem | Reflexes require verified ProjectIdentity, project_root+continuity scope, Workpoint v2, Trajectory view, traversal, ResourceMode, and LowMem degradation. | `tests/spec96_project_identity_quorum_static_test.sh`, `tests/spec96_trajectory_clarity_gate_static_test.sh`, `tests/spec96_traverse_schema_static_test.sh`, and `tests/spec96_resource_mode_envelope_static_test.sh` passed; bootstrap default gap closed in `crates/focusa-api/src/routes/trajectory.rs`. | Functional substrate. |
 
-### 2.2 Immediate development gap list from audit
+### 2.2 Implementation closure ledger from audit
 
-These gaps block claiming Spec97 implementation beyond vocabulary/spec language:
+All audited Spec97 gaps are closed; this ledger preserves proof and ongoing maintenance requirements:
 
-| Gap id | Dependency/phase | Evidence of gap | Immediate development requirement |
+| Gap id | Dependency/phase | Closure evidence | Ongoing maintenance requirement |
 |---|---|---|---|
 | `G97-live-contract-parity` | Spec91 live proof dependency | Closed after adding `focusa_reflex_primitives` to static/TS contracts, choreography, README docs, rebuilding/restarting daemon, and rerunning live proof: `status=passed`, `payload_equal=true`, `static_count=59`, `live_count=59`. | Keep contract registry, Pi tool registrations, choreography, docs, and live daemon payloads synchronized. |
-| `G97-primitive-registry` | Phase A | Closed by `docs/current/focusa-reflex-primitives.json` plus `tests/spec97_reflex_primitive_registry_static_test.sh`; registry is read-only and covers all ten families. | Remaining follow-up is optional API/traverse projection, tracked by `G97-ontology-reflex-routing`. |
+| `G97-primitive-registry` | Phase A | Closed by `docs/current/focusa-reflex-primitives.json` plus `tests/spec97_reflex_primitive_registry_static_test.sh`; registry is read-only and covers all ten families. | Keep registry entries unique, bounded, read-only, and mapped to existing Focusa surfaces. |
 | `G97-reflex-envelope-metadata` | Phase B | Closed for Pi tool envelopes and API-native envelopes: `tool_result_v1.reflex_suggestions` is emitted by Pi wrappers and core API failure/degraded envelopes for Focus State, Workpoint, Trajectory, and Traverse. | Keep primitive ids bounded and registry-backed; do not let suggestions override operator steering or retry posture. |
-| `G97-ontology-reflex-routing` | Phase C | Closed for bounded traversal by `surface=reflex_primitives` in `/v1/traverse`, backed by `docs/current/focusa-reflex-primitives.json` and `tests/spec97_reflex_traverse_routing_static_test.sh`. | Optional future work: direct `/v1/reflex/primitives` route and deeper ontology object classes. |
+| `G97-ontology-reflex-routing` | Phase C | Closed for bounded traversal by `surface=reflex_primitives`, direct read-only `GET /v1/reflex/primitives`, and ontology reflex object/action classes. | Keep traversal, direct API, ontology classes, and registry metadata in parity. |
 | `G97-golden-reflex-scenarios` | Phase D | Closed by `docs/current/spec97-reflex-golden-scenarios.json`, static scenario validation, and live runtime dogfood in `tests/spec97_reflex_runtime_dogfood_test.sh` for direct API, traverse routing, and degraded/reflex recovery suggestions. | Extend scenarios only when new primitive families are added. |
 | `G97-utility-card-reflex-language` | Phase E | Closed by `crates/focusa-api/src/routes/awareness.rs` and `tests/spec97_reflex_utility_card_static_test.sh`; Utility Card now names reflex affordances only for blocked/degraded next-step routing. | Keep language concise and avoid metacognitive noise. |
 
@@ -440,7 +440,7 @@ This spec does not:
 
 - Add a static registry describing primitive families and mappings to existing tools/routes.
 - Include authority boundary, context inputs, escalation boundary, and hot/cold posture.
-- Expose via bounded docs and optional API/traverse projection.
+- Expose via bounded docs, direct read-only API, and traverse projection.
 
 Current registry: `docs/current/focusa-reflex-primitives.json` (`schema=focusa.reflex_primitives.v1`, `version=spec97.reflex_primitives.v1`).
 
