@@ -53,7 +53,7 @@ fn sync_failure(
                     "summary": why,
                     "retry": {
                         "safe": failure_class != "validation_rejected",
-                        "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry_after_recovery" },
+                        "posture": if failure_class == "validation_rejected" { "do_not_retry_unchanged" } else { "safe_retry" },
                         "reason": failure_class,
                     },
                     "recovery_hint": recovery_hint,
