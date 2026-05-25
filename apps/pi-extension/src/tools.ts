@@ -193,6 +193,7 @@ type FocusaToolStatus = "accepted" | "completed" | "no_op" | "blocked" | "valida
 type FocusaRetryPosture = "safe_retry" | "retry_with_idempotency_key" | "check_side_effects_first" | "do_not_retry_unchanged" | "operator_required";
 type FocusaFailureClass =
   | "validation_rejected"
+  | "not_found"
   | "frame_unavailable"
   | "daemon_unavailable"
   | "stale_runtime_registry"
@@ -238,6 +239,7 @@ function inferFailureClass(status: FocusaToolStatus, summary: string, message?: 
   if (text.includes("oom") || text.includes("out of memory") || text.includes("resource exhausted") || text.includes("killed process")) return "resource_exhausted";
   if (text.includes("null response") || text.includes("response=null") || text.includes("body=null")) return "null_response";
   if (status === "validation_rejected" || text.includes("validation_rejected") || text.includes("rejected")) return "validation_rejected";
+  if (text.includes("not_found") || text.includes("not found") || text.includes("missing prediction") || text.includes("no such")) return "not_found";
   if (status === "offline" || text.includes("daemon unavailable") || text.includes("focusa offline") || text.includes("connection refused")) return "daemon_unavailable";
   if (text.includes("timeout") || text.includes("timed out") || text.includes("abort")) {
     return /(cold|deep|replay|worktree|diagnostic)/.test(text) ? "cold_path_timeout" : "hot_path_timeout";
@@ -260,6 +262,8 @@ function recoveryHintForFailure(failureClass: FocusaFailureClass | null, status:
       return { recovery_hint: "Stay attentive to operator direction, continue from repo/operator context, then create/resume a scoped Workpoint before durable Focus State writes.", misuse_hint: "Focus State note tools were used without an active Pi frame; this is recoverable, not a dead end.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"] };
     case "validation_rejected":
       return { recovery_hint: "Rewrite the durable slot as one compact declarative sentence, or put verbose/debug/task content in focusa_scratch.", misuse_hint: "Durable Focus State slots reject task lists, verbose reasoning, and non-declarative wording.", next_tools: ["focusa_scratch", "focusa_decide"] };
+    case "not_found":
+      return { recovery_hint: "Use the relevant recent/list/read tool or create the missing record before retrying the mutation.", misuse_hint: "Likely stale id, missing record, wrong project scope, or evaluating/linking before the source object exists.", next_tools: ["focusa_project_identity", "focusa_workpoint_resume", "focusa_predict_recent", "focusa_tool_doctor"] };
     case "read_model_lag":
       return { recovery_hint: "Wait briefly, then read/resume the current packet once with the same idempotency scope; avoid duplicate writes.", misuse_hint: "A recent accepted write may not be visible in the read model yet.", next_tools: ["focusa_workpoint_resume", "focusa_tool_doctor"] };
     case "hot_path_timeout":
