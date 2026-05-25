@@ -23,6 +23,37 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
+  menubar:
+    name: Menubar
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/menubar/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        working-directory: apps/menubar
+        run: npm ci
+      - name: Typecheck
+        working-directory: apps/menubar
+        run: npm run check
+      - name: Web build
+        working-directory: apps/menubar
+        run: npm run build
+      - name: Tauri package proof
+        working-directory: apps/menubar
+        run: npm run tauri build -- --bundles app
+      - name: Validate macOS bundle
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find apps/menubar/src-tauri/target/release/bundle/macos -name "*.app" | head -1)
+          test -n "$APP_PATH"
+          echo "Found bundle: $APP_PATH"
+          /usr/bin/defaults read "$APP_PATH/Contents/Info.plist" CFBundleShortVersionString
+
   spec-gates:
     name: Spec Gates (strict)
     runs-on: ubuntu-latest
