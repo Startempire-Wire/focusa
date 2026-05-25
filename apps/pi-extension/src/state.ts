@@ -1760,7 +1760,7 @@ export function getEffectiveFocusSnapshot(fs?: any): {
     constraints: fs?.constraints || S.lastFocusSnapshot.constraints || S.localConstraints,
     failures: sanitizeFocusFailures(fs?.failures || S.lastFocusSnapshot.failures || S.localFailures),
     intent: fs?.intent || S.lastFocusSnapshot.intent || "",
-    currentFocus: fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || "",
+    currentFocus: fs?.current_focus || fs?.current_state || S.lastFocusSnapshot.currentFocus || S.lastTrajectoryClarity?.short_term_goal || "",
   };
 }
 

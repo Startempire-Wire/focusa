@@ -50,8 +50,8 @@ Audit rule: a dependency counts as functional only when code/routes/tests or val
 
 | Dependency | Required for Spec97 | Verified functional evidence | Audit status |
 |---|---|---|---|
-| Spec90 tool/action contracts | Primitive registry must map to stable tool contracts, ontology actions, docs, result envelopes, and parity metadata. | `docs/current/focusa-tool-contracts.json`, `apps/pi-extension/src/tool-contracts.ts`, `GET /v1/ontology/tool-contracts` in `crates/focusa-api/src/routes/ontology.rs`, `node scripts/validate-focusa-tool-contracts.mjs --json` returned `failures=0`, `tools=58`, `contracts=58`. | Functional in repo/static validation. |
-| Spec91 live proof harness | Reflex acceptance needs live/static parity proof before claiming runtime release readiness. | `scripts/prove-focusa-tool-contracts-live.mjs` and `docs/current/LIVE_TOOL_CONTRACT_PROOF.md` exist; safe fixture endpoints passed against live daemon. | Implementation functional, but current live daemon is stale: `payload_equal=false` because live `/v1/ontology/tool-contracts` differs from static registry. See immediate gap `G97-live-contract-parity`. |
+| Spec90 tool/action contracts | Primitive registry must map to stable tool contracts, ontology actions, docs, result envelopes, and parity metadata. | `docs/current/focusa-tool-contracts.json`, `apps/pi-extension/src/tool-contracts.ts`, `GET /v1/ontology/tool-contracts` in `crates/focusa-api/src/routes/ontology.rs`, `node scripts/validate-focusa-tool-contracts.mjs --json` returned `failures=0`, `tools=59`, `contracts=59`. | Functional in repo/static validation. |
+| Spec91 live proof harness | Reflex acceptance needs live/static parity proof before claiming runtime release readiness. | `scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json` passed after rebuild/restart with `static_count=59`, `live_count=59`, and `payload_equal=true`. | Functional in live daemon proof. |
 | Spec92 agent-first polish and prediction | Recovery reflexes and learning reflexes need `tool_result_v1`, bounded failures, predictive record/evaluate surfaces, and token/cache telemetry. | Pi tool wrappers expose `tool_result_v1`; prediction routes/tools/docs are present; `tests/spec96_predict_evaluate_not_found_static_test.sh`, `tests/spec96_pi_retry_posture_contract_static_test.sh`, and contract validation cover current behavior. | Functionally available as substrate; Spec97 must only reference it through bounded primitive metadata. |
 | Spec93 non-Pi awareness | Reflexes must be visible outside Pi through awareness cards and CLI/API entrypoints. | `/v1/awareness/card` is routed in `crates/focusa-api/src/routes/awareness.rs` and `server.rs`; CLI `focusa awareness card` exists; docs/current `NON_PI_AGENT_FOCUSA_USAGE.md` documents OpenClaw/Wirebot path. | Functional substrate. |
 | Spec94 memory/payload/RPC discipline | Reflexes must stay summary-first, bounded, cursor/rehydrate-aware, and pressure-safe. | `tests/spec94_response_size_and_metadata_contract_test.sh` passed; ECS/memory/ontology/work-loop/telemetry bounded metadata and response-size instrumentation are present. | Functional substrate. |
@@ -64,11 +64,11 @@ These gaps block claiming Spec97 implementation beyond vocabulary/spec language:
 
 | Gap id | Dependency/phase | Evidence of gap | Immediate development requirement |
 |---|---|---|---|
-| `G97-live-contract-parity` | Spec91 live proof dependency | `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json` returned `status=failed`, `payload_equal=false`; live daemon registry still has stale `approval_placeholder`, missing `tmux pipe-pane`, and old schema field compared with static JSON. | Rebuild/restart or otherwise refresh the running daemon so live `/v1/ontology/tool-contracts` equals `docs/current/focusa-tool-contracts.json`, then record passing live proof. |
+| `G97-live-contract-parity` | Spec91 live proof dependency | Closed after adding `focusa_reflex_primitives` to static/TS contracts, choreography, README docs, rebuilding/restarting daemon, and rerunning live proof: `status=passed`, `payload_equal=true`, `static_count=59`, `live_count=59`. | Keep contract registry, Pi tool registrations, choreography, docs, and live daemon payloads synchronized. |
 | `G97-primitive-registry` | Phase A | Closed by `docs/current/focusa-reflex-primitives.json` plus `tests/spec97_reflex_primitive_registry_static_test.sh`; registry is read-only and covers all ten families. | Remaining follow-up is optional API/traverse projection, tracked by `G97-ontology-reflex-routing`. |
-| `G97-reflex-envelope-metadata` | Phase B | Closed for Pi tool envelopes by `tool_result_v1.reflex_suggestions` in `apps/pi-extension/src/tools.ts` plus `tests/spec97_reflex_envelope_metadata_static_test.sh`; follow-up API-native envelope parity can be added with ontology routing. | Keep primitive ids bounded and registry-backed; do not let suggestions override operator steering or retry posture. |
+| `G97-reflex-envelope-metadata` | Phase B | Closed for Pi tool envelopes and API-native envelopes: `tool_result_v1.reflex_suggestions` is emitted by Pi wrappers and core API failure/degraded envelopes for Focus State, Workpoint, Trajectory, and Traverse. | Keep primitive ids bounded and registry-backed; do not let suggestions override operator steering or retry posture. |
 | `G97-ontology-reflex-routing` | Phase C | Closed for bounded traversal by `surface=reflex_primitives` in `/v1/traverse`, backed by `docs/current/focusa-reflex-primitives.json` and `tests/spec97_reflex_traverse_routing_static_test.sh`. | Optional future work: direct `/v1/reflex/primitives` route and deeper ontology object classes. |
-| `G97-golden-reflex-scenarios` | Phase D | Closed by `docs/current/spec97-reflex-golden-scenarios.json` and `tests/spec97_reflex_golden_scenarios_static_test.sh`; five scenarios cover identity, continuity, recovery/evidence, resource, and execution. | Future runtime dogfood can add live scenario execution, but static scenario/probe consistency is now gated. |
+| `G97-golden-reflex-scenarios` | Phase D | Closed by `docs/current/spec97-reflex-golden-scenarios.json`, static scenario validation, and live runtime dogfood in `tests/spec97_reflex_runtime_dogfood_test.sh` for direct API, traverse routing, and degraded/reflex recovery suggestions. | Extend scenarios only when new primitive families are added. |
 | `G97-utility-card-reflex-language` | Phase E | Closed by `crates/focusa-api/src/routes/awareness.rs` and `tests/spec97_reflex_utility_card_static_test.sh`; Utility Card now names reflex affordances only for blocked/degraded next-step routing. | Keep language concise and avoid metacognitive noise. |
 
 ---
@@ -399,6 +399,8 @@ A future `/v1/reflex/primitives` or traverse surface should expose:
 }
 ```
 
+Current direct route: `GET /v1/reflex/primitives?family=<family>&query=<risk-or-object>&limit=<n>` returns bounded read-only primitive summaries from the registry. Use `include_payload=true` only for explicit cold/full inspection. Live proof: `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`.
+
 This view should be read-only first. Mutation remains in existing tools until individual primitive APIs are justified.
 
 ---
@@ -464,12 +466,13 @@ Acceptance:
 - Add ontology classes for reflex primitives, triggers, action classes, risks, and affordances.
 - Allow `focusa_traverse` to return primitive summaries by family/object/risk.
 
-Current traversal route: `POST /v1/traverse` with `surface=reflex_primitives`, `selector=family`, and `anchor=<family>` returns bounded registry-backed primitive summaries.
+Current traversal route: `POST /v1/traverse` with `surface=reflex_primitives`, `selector=family`, and `anchor=<family>` returns bounded registry-backed primitive summaries. Direct API route `GET /v1/reflex/primitives` exposes the same registry as read-only summaries for agents/tools that do not need full traversal. API-native degraded/error envelopes include bounded `reflex_suggestions` for common failure classes.
 
 Acceptance:
 
 - Active object + risk can retrieve relevant primitive candidates without full ontology payload.
 - Cold payload gates remain explicit.
+- Ontology object/action classes include reflex primitives, triggers, actions, risks, affordances, and registry routing actions.
 
 ### Phase D — Dogfood golden scenarios
 

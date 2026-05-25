@@ -45,6 +45,7 @@ fn focus_failure(
     } else {
         "do_not_retry_unchanged"
     };
+    let reflex_suggestions = crate::routes::reflex::reflex_suggestions_for_failure(failure_class);
     (
         http_status,
         Json(json!({
@@ -52,7 +53,8 @@ fn focus_failure(
             "error": error, "failure_class": failure_class, "why": why,
             "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
             "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"],
-            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"], "error": {"code": failure_class, "message": error}}}
+            "reflex_suggestions": reflex_suggestions,
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class}, "recovery_hint": recovery_hint, "misuse_hint": misuse_hint, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_workpoint_resume"], "reflex_suggestions": reflex_suggestions, "error": {"code": failure_class, "message": error}}}
         })),
     )
 }

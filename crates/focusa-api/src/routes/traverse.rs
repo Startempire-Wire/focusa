@@ -849,6 +849,8 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             | "capabilities"
     );
     if !supported {
+        let reflex_suggestions =
+            crate::routes::reflex::reflex_suggestions_for_failure("validation_rejected");
         return json!({
             "status": "validation_rejected",
             "canonical": false,
@@ -878,7 +880,8 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
                 "collision_policy": "retry_with_longer_tag"
             },
             "next_tools": ["focusa_tool_doctor"],
-            "details": {"tool_result_v1": {"ok": false, "status": "validation_rejected", "failure_class": "validation_rejected", "canonical": false, "degraded": true}}
+            "reflex_suggestions": reflex_suggestions,
+            "details": {"tool_result_v1": {"ok": false, "status": "validation_rejected", "failure_class": "validation_rejected", "canonical": false, "degraded": true, "reflex_suggestions": reflex_suggestions}}
         });
     }
 
@@ -998,7 +1001,8 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         },
         "tags": tags,
         "next_tools": ["focusa_traverse", "focusa_trajectory_view", "focusa_workpoint_resume"],
-        "details": {"tool_result_v1": {"ok": !degraded, "status": if degraded { "degraded" } else { "completed" }, "failure_class": failure_class, "canonical": !degraded, "degraded": degraded}}
+        "reflex_suggestions": if full_payload_blocked { crate::routes::reflex::reflex_suggestions_for_failure("resource_exhausted") } else { Vec::new() },
+        "details": {"tool_result_v1": {"ok": !degraded, "status": if degraded { "degraded" } else { "completed" }, "failure_class": failure_class, "canonical": !degraded, "degraded": degraded, "reflex_suggestions": if full_payload_blocked { crate::routes::reflex::reflex_suggestions_for_failure("resource_exhausted") } else { Vec::new() }}}
     })
 }
 

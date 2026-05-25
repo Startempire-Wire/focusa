@@ -577,6 +577,7 @@ fn trajectory_failure(
     } else {
         "do_not_retry_unchanged"
     };
+    let reflex_suggestions = crate::routes::reflex::reflex_suggestions_for_failure(failure_class);
     (
         http_status,
         Json(json!({
@@ -584,7 +585,8 @@ fn trajectory_failure(
             "error": error, "failure_class": failure_class, "why": why,
             "recovery_hint": recovery_hint, "misuse_hint": misuse_hint,
             "next_tools": next_tools_value.clone(),
-            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": next_tools_value, "error": {"code": failure_class, "message": error}}}
+            "reflex_suggestions": reflex_suggestions,
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": failure_class, "summary": why, "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class}, "side_effects": [], "evidence_refs": [], "next_tools": next_tools_value, "reflex_suggestions": reflex_suggestions, "error": {"code": failure_class, "message": error}}}
         })),
     )
 }
@@ -993,11 +995,11 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let mut current_state = first_nonempty(&[persisted_current_state, fs_current]);
     let mut short_term_goal = first_nonempty(&[
         persisted_short_term_goal,
+        fs_current,
         workpoint_next,
         workpoint_action,
         frame_goal,
         frame_title,
-        fs_current,
     ]);
     let bootstrap_default_trajectory = persisted_trajectory.is_none()
         && project_bound
@@ -1039,6 +1041,15 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             .or_else(|| Some("Current verified state differs from desired end state".to_string())),
         _ => Some("Trajectory gap unclear until desired end state and current verified state are both present".to_string()),
     };
+    let projected_current_focus = first_nonempty(&[fs_current, short_term_goal.as_deref()]);
+    let focus_trajectory_sync = json!({
+        "current_focus": projected_current_focus.as_deref().map(|value| bounded(value, 240)),
+        "short_term_goal": short_term_goal.as_deref().map(|value| bounded(value, 240)),
+        "current_focus_source": if fs_current.is_some() { "focus_state" } else if short_term_goal.is_some() { "trajectory_short_term_goal" } else { "none" },
+        "short_term_goal_source": if persisted_short_term_goal.is_some() { "trajectory_record" } else if fs_current.is_some() { "focus_state_current_focus" } else if workpoint_next.is_some() { "workpoint_next_slice" } else if workpoint_action.is_some() { "workpoint_action" } else if frame_goal.is_some() || frame_title.is_some() { "focus_frame" } else { "none" },
+        "projection_only": true,
+        "authority_boundary": "Focus State and Trajectory remain separate authorities; this projection synchronizes read-model orientation only"
+    });
     let mid_level_goal = first_nonempty(&[
         short_term_goal.as_deref(),
         workpoint_action,
@@ -1390,6 +1401,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "clarity_gate": clarity_gate,
             "relevance_rationale": relevance_rationale,
             "current_state_delta": current_state_delta,
+            "focus_trajectory_sync": focus_trajectory_sync,
             "learning_refs": Vec::<String>::new(),
             "prediction_refs": Vec::<String>::new(),
             "ask_operator_if": ask_operator_if,
@@ -2124,6 +2136,56 @@ mod tests {
                     .as_str()
                     .unwrap_or_default()
                     .starts_with("workpoint:"))
+        );
+    }
+
+    #[test]
+    fn trajectory_view_syncs_focus_current_focus_and_short_term_goal_projection() {
+        let mut state = state_with_workpoint("/repo/focusa");
+        add_active_frame(&mut state, "/repo/focusa", "cont-a", "Frame title fallback");
+        if let Some(frame) = state.focus_stack.frames.last_mut() {
+            frame.focus_state.current_state =
+                "Focus State current focus drives short term".to_string();
+        }
+        let payload = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                session_id: None,
+                mode: None,
+                allow_prior_project_trajectory: false,
+            },
+        );
+        assert_eq!(
+            payload["trajectory"]["short_term_goal"].as_str(),
+            Some("Focus State current focus drives short term")
+        );
+        assert_eq!(
+            payload["intelligence_view"]["focus_trajectory_sync"]["short_term_goal_source"]
+                .as_str(),
+            Some("focus_state_current_focus")
+        );
+
+        let mut state = state_with_workpoint("/repo/focusa");
+        add_defined_trajectory(&mut state, "/repo/focusa", "cont-a");
+        let payload = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                session_id: None,
+                mode: None,
+                allow_prior_project_trajectory: false,
+            },
+        );
+        assert_eq!(
+            payload["intelligence_view"]["focus_trajectory_sync"]["current_focus"].as_str(),
+            Some("Use scoped short-term work")
+        );
+        assert_eq!(
+            payload["intelligence_view"]["focus_trajectory_sync"]["current_focus_source"].as_str(),
+            Some("trajectory_short_term_goal")
         );
     }
 

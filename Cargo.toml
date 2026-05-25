@@ -18,7 +18,7 @@ repository = "https://github.com/Startempire-Wire/focusa"
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -29,7 +29,7 @@ uuid = { version = "1", features = ["v7", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # HTTP API
-reqwest = { version = "0.12", features = ["json", "blocking", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 axum = { version = "0.8", features = ["json"] }
 tokio-stream = "0.1"
 async-stream = "0.3"

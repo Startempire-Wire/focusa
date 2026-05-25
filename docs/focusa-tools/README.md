@@ -82,4 +82,5 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 
 - [`focusa_resource_mode`](tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
 - [`focusa_traverse`](tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.
+- [`focusa_reflex_primitives`](tools/focusa_reflex_primitives.md) — read-only bounded Spec97 Reflex Primitive summaries. Contract doc path: `docs/focusa-tools/tools/focusa_reflex_primitives.md`.
 - [`focusa_silent_sessions`](tools/focusa_silent_sessions.md) — manage tmux-backed background SilentSessions.

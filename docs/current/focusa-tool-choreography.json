@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 58,
-  "edge_count": 174,
+  "tool_count": 59,
+  "edge_count": 177,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -43,6 +43,7 @@
         "focusa_tool_doctor",
         "focusa_resource_mode",
         "focusa_traverse",
+        "focusa_reflex_primitives",
         "focusa_workpoint_resume"
       ]
     },
@@ -102,6 +103,11 @@
     "focusa_traverse": [
       "focusa_active_object_resolve",
       "focusa_evidence_capture",
+      "focusa_workpoint_resume"
+    ],
+    "focusa_reflex_primitives": [
+      "focusa_traverse",
+      "focusa_tool_doctor",
       "focusa_workpoint_resume"
     ],
     "focusa_predict_record": [
@@ -354,1392 +360,1416 @@
     {
       "from": "focusa_project_identity",
       "to": "focusa_project_verify",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "project_identity",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_project_identity",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "project_identity",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_project_identity",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "project_identity",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_project_verify",
       "to": "focusa_trajectory_view",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "project_identity",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_project_verify",
       "to": "focusa_workpoint_resume",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "project_identity",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_project_verify",
       "to": "focusa_tool_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "project_identity",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_trajectory_view",
       "to": "focusa_trajectory_assess",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_view",
       "to": "focusa_trajectory_define_goal",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_view",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_define_goal",
       "to": "focusa_trajectory_assess",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_define_goal",
       "to": "focusa_trajectory_propose_workpoint",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_define_goal",
       "to": "focusa_trajectory_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_assess",
       "to": "focusa_trajectory_propose_workpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_assess",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_assess",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_propose_workpoint",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_propose_workpoint",
       "to": "focusa_active_object_resolve",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_propose_workpoint",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_checkpoint",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_checkpoint",
       "to": "focusa_trajectory_resume",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_checkpoint",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_resume",
       "to": "focusa_workpoint_resume",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_trajectory_resume",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_trajectory_resume",
       "to": "focusa_tool_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "trajectory",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_traverse",
       "to": "focusa_active_object_resolve",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "traversal",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_traverse",
       "to": "focusa_evidence_capture",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "traversal",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_traverse",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
+      "from_family": "traversal",
+      "to_family": "workpoint"
+    },
+    {
+      "from": "focusa_reflex_primitives",
+      "to": "focusa_traverse",
+      "weight": 1,
+      "reason": "recommended_next",
+      "from_family": "traversal",
+      "to_family": "traversal"
+    },
+    {
+      "from": "focusa_reflex_primitives",
+      "to": "focusa_tool_doctor",
+      "weight": 1,
+      "reason": "recommended_next",
+      "from_family": "traversal",
+      "to_family": "diagnostics_hygiene"
+    },
+    {
+      "from": "focusa_reflex_primitives",
+      "to": "focusa_workpoint_resume",
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "traversal",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_predict_record",
       "to": "focusa_evidence_capture",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_predict_record",
       "to": "focusa_predict_evaluate",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_record",
       "to": "focusa_metacog_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_recent",
       "to": "focusa_predict_stats",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_recent",
       "to": "focusa_predict_evaluate",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_recent",
       "to": "focusa_metacog_retrieve",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_evaluate",
       "to": "focusa_metacog_capture",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_evaluate",
       "to": "focusa_metacog_reflect",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_evaluate",
       "to": "focusa_predict_stats",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_stats",
       "to": "focusa_predict_recent",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_stats",
       "to": "focusa_metacog_doctor",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_predict_stats",
       "to": "focusa_tool_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_scratch",
       "to": "focusa_project_identity",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_scratch",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_scratch",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_decide",
       "to": "focusa_project_identity",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_decide",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_decide",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_constraint",
       "to": "focusa_project_identity",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_constraint",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_constraint",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_failure",
       "to": "focusa_tool_doctor",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_failure",
       "to": "focusa_workpoint_resume",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_failure",
       "to": "focusa_metacog_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_intent",
       "to": "focusa_project_identity",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_intent",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_intent",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_current_focus",
       "to": "focusa_trajectory_view",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_current_focus",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_current_focus",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_next_step",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_next_step",
       "to": "focusa_active_object_resolve",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_next_step",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_open_question",
       "to": "focusa_trajectory_assess",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_open_question",
       "to": "focusa_traverse",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "traversal"
     },
     {
       "from": "focusa_open_question",
       "to": "focusa_metacog_retrieve",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_recent_result",
       "to": "focusa_evidence_capture",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_recent_result",
       "to": "focusa_trajectory_assess",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_recent_result",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_note",
       "to": "focusa_project_identity",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_note",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_note",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "focus_state",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_work_loop_writer_status",
       "to": "focusa_work_loop_status",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_writer_status",
       "to": "focusa_work_loop_context",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_writer_status",
       "to": "focusa_work_loop_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_status",
       "to": "focusa_work_loop_writer_status",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_status",
       "to": "focusa_work_loop_context",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_status",
       "to": "focusa_work_loop_select_next",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_control",
       "to": "focusa_work_loop_writer_status",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_control",
       "to": "focusa_work_loop_status",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_control",
       "to": "focusa_work_loop_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_context",
       "to": "focusa_work_loop_checkpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_context",
       "to": "focusa_work_loop_status",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_context",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_work_loop_checkpoint",
       "to": "focusa_work_loop_select_next",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_checkpoint",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_work_loop_checkpoint",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_work_loop_select_next",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_work_loop_select_next",
       "to": "focusa_work_loop_context",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_work_loop_select_next",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_state_hygiene_doctor",
       "to": "focusa_state_hygiene_plan",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_state_hygiene_doctor",
       "to": "focusa_tool_doctor",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_state_hygiene_doctor",
       "to": "focusa_scratch",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "focus_state"
     },
     {
       "from": "focusa_state_hygiene_plan",
       "to": "focusa_state_hygiene_apply",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_state_hygiene_plan",
       "to": "focusa_state_hygiene_doctor",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_state_hygiene_plan",
       "to": "focusa_tool_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_state_hygiene_apply",
       "to": "focusa_state_hygiene_doctor",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_state_hygiene_apply",
       "to": "focusa_workpoint_resume",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_state_hygiene_apply",
       "to": "focusa_tool_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_silent_sessions",
       "to": "focusa_work_loop_status",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_silent_sessions",
       "to": "focusa_work_loop_checkpoint",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "work_loop"
     },
     {
       "from": "focusa_silent_sessions",
       "to": "focusa_resource_mode",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "work_loop",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_tool_doctor",
       "to": "focusa_resource_mode",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_tool_doctor",
       "to": "focusa_project_identity",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "project_identity"
     },
     {
       "from": "focusa_tool_doctor",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_resource_mode",
       "to": "focusa_traverse",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "traversal"
     },
     {
       "from": "focusa_resource_mode",
       "to": "focusa_trajectory_view",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_resource_mode",
       "to": "focusa_workpoint_resume",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "diagnostics_hygiene",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_active_object_resolve",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_active_object_resolve",
       "to": "focusa_evidence_capture",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_active_object_resolve",
       "to": "focusa_traverse",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "traversal"
     },
     {
       "from": "focusa_evidence_capture",
       "to": "focusa_workpoint_link_evidence",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_evidence_capture",
       "to": "focusa_trajectory_assess",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_evidence_capture",
       "to": "focusa_recent_result",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "focus_state"
     },
     {
       "from": "focusa_workpoint_checkpoint",
       "to": "focusa_workpoint_resume",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_workpoint_checkpoint",
       "to": "focusa_active_object_resolve",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_workpoint_checkpoint",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_workpoint_link_evidence",
       "to": "focusa_trajectory_assess",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_workpoint_link_evidence",
       "to": "focusa_workpoint_resume",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_workpoint_link_evidence",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_workpoint_resume",
       "to": "focusa_trajectory_view",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "trajectory"
     },
     {
       "from": "focusa_workpoint_resume",
       "to": "focusa_active_object_resolve",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_workpoint_resume",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "workpoint",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_tree_head",
       "to": "focusa_tree_path",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_head",
       "to": "focusa_tree_snapshot_state",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_head",
       "to": "focusa_lineage_tree",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_path",
       "to": "focusa_tree_snapshot_state",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_path",
       "to": "focusa_tree_diff_context",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_path",
       "to": "focusa_traverse",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "traversal"
     },
     {
       "from": "focusa_tree_snapshot_state",
       "to": "focusa_tree_recent_snapshots",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_snapshot_state",
       "to": "focusa_tree_diff_context",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_snapshot_state",
       "to": "focusa_tree_restore_state",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_restore_state",
       "to": "focusa_tree_head",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_restore_state",
       "to": "focusa_tree_path",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_restore_state",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_tree_diff_context",
       "to": "focusa_tree_restore_state",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_diff_context",
       "to": "focusa_tree_path",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_diff_context",
       "to": "focusa_metacog_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_capture",
       "to": "focusa_metacog_retrieve",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_capture",
       "to": "focusa_metacog_reflect",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_capture",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_metacog_retrieve",
       "to": "focusa_metacog_capture",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_retrieve",
       "to": "focusa_metacog_reflect",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_retrieve",
       "to": "focusa_predict_record",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_reflect",
       "to": "focusa_metacog_plan_adjust",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_reflect",
       "to": "focusa_metacog_capture",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_reflect",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_metacog_plan_adjust",
       "to": "focusa_metacog_evaluate_outcome",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_plan_adjust",
       "to": "focusa_predict_record",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_plan_adjust",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_metacog_evaluate_outcome",
       "to": "focusa_metacog_capture",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_evaluate_outcome",
       "to": "focusa_predict_stats",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_evaluate_outcome",
       "to": "focusa_decide",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "focus_state"
     },
     {
       "from": "focusa_tree_recent_snapshots",
       "to": "focusa_tree_diff_context",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_recent_snapshots",
       "to": "focusa_tree_snapshot_compare_latest",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_recent_snapshots",
       "to": "focusa_tree_snapshot_state",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_snapshot_compare_latest",
       "to": "focusa_tree_diff_context",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_snapshot_compare_latest",
       "to": "focusa_tree_restore_state",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_tree_snapshot_compare_latest",
       "to": "focusa_evidence_capture",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_metacog_recent_reflections",
       "to": "focusa_metacog_plan_adjust",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_recent_reflections",
       "to": "focusa_metacog_doctor",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_recent_reflections",
       "to": "focusa_metacog_reflect",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_recent_adjustments",
       "to": "focusa_metacog_evaluate_outcome",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_recent_adjustments",
       "to": "focusa_metacog_doctor",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_recent_adjustments",
       "to": "focusa_metacog_reflect",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_loop_run",
       "to": "focusa_predict_stats",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_loop_run",
       "to": "focusa_workpoint_checkpoint",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "workpoint"
     },
     {
       "from": "focusa_metacog_loop_run",
       "to": "focusa_metacog_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_doctor",
       "to": "focusa_metacog_retrieve",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_doctor",
       "to": "focusa_metacog_recent_reflections",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_metacog_doctor",
       "to": "focusa_tool_doctor",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "metacognition",
       "to_family": "diagnostics_hygiene"
     },
     {
       "from": "focusa_lineage_tree",
       "to": "focusa_li_tree_extract",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_lineage_tree",
       "to": "focusa_tree_path",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     },
     {
       "from": "focusa_lineage_tree",
       "to": "focusa_traverse",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "traversal"
     },
     {
       "from": "focusa_li_tree_extract",
       "to": "focusa_metacog_capture",
-      "rank": 1,
-      "weight": 1.0,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_li_tree_extract",
       "to": "focusa_metacog_reflect",
-      "rank": 2,
-      "weight": 0.5,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "metacognition"
     },
     {
       "from": "focusa_li_tree_extract",
       "to": "focusa_tree_snapshot_state",
-      "rank": 3,
-      "weight": 0.333,
+      "weight": 1,
+      "reason": "recommended_next",
       "from_family": "tree_lineage",
       "to_family": "tree_lineage"
     }

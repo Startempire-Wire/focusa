@@ -450,6 +450,8 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_trajectory_propose_workpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md`](docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md) |
 | `focusa_trajectory_checkpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_checkpoint.md`](docs/focusa-tools/tools/focusa_trajectory_checkpoint.md) |
 | `focusa_trajectory_resume` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_resume.md`](docs/focusa-tools/tools/focusa_trajectory_resume.md) |
+| `focusa_traverse` | Traversal | [`docs/focusa-tools/tools/focusa_traverse.md`](docs/focusa-tools/tools/focusa_traverse.md) |
+| `focusa_reflex_primitives` | Traversal | [`docs/focusa-tools/tools/focusa_reflex_primitives.md`](docs/focusa-tools/tools/focusa_reflex_primitives.md) |
 | `focusa_scratch` | Focus State | [`docs/focusa-tools/tools/focusa_scratch.md`](docs/focusa-tools/tools/focusa_scratch.md) |
 | `focusa_decide` | Focus State | [`docs/focusa-tools/tools/focusa_decide.md`](docs/focusa-tools/tools/focusa_decide.md) |
 | `focusa_constraint` | Focus State | [`docs/focusa-tools/tools/focusa_constraint.md`](docs/focusa-tools/tools/focusa_constraint.md) |
@@ -556,4 +558,5 @@ Trademark use is governed separately by `TRADEMARKS.md`. External contributions 
 - [focusa_project_verify](docs/focusa-tools/tools/focusa_project_verify.md) — verify expected ProjectIdentity fields.
 - [focusa_resource_mode](docs/focusa-tools/tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
 - [focusa_traverse](docs/focusa-tools/tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.
+- [focusa_reflex_primitives](docs/focusa-tools/tools/focusa_reflex_primitives.md) — read-only bounded Spec97 Reflex Primitive summaries.
 - [focusa_silent_sessions](docs/focusa-tools/tools/focusa_silent_sessions.md) — manage tmux-backed background SilentSessions.

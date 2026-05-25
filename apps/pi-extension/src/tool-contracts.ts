@@ -215,6 +215,23 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": ["api_domain_only"],
     "live_check": "contract_static plus /v1/traverse lineage smoke test"
   },
+  {
+    "name": "focusa_reflex_primitives",
+    "label": "Reflex Primitives",
+    "purpose": "Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority.",
+    "family": "traversal",
+    "ontology_action": "reflex.primitives.read",
+    "ontology_objects": ["ReflexPrimitive", "ReflexRegistry", "TraversalSurface"],
+    "api_routes": ["GET /v1/reflex/primitives"],
+    "cli_commands": [],
+    "core_surface": "Spec97 Reflex Primitive registry and bounded direct API",
+    "doc_path": "docs/focusa-tools/tools/focusa_reflex_primitives.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["api_domain_only"],
+    "live_check": "contract_static plus /v1/reflex/primitives recovery-family smoke test"
+  },
 
   {
     "name": "focusa_predict_record",
@@ -1354,6 +1371,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_traverse": [
     "focusa_active_object_resolve",
     "focusa_evidence_capture",
+    "focusa_workpoint_resume"
+  ],
+  "focusa_reflex_primitives": [
+    "focusa_traverse",
+    "focusa_tool_doctor",
     "focusa_workpoint_resume"
   ],
   "focusa_predict_record": [

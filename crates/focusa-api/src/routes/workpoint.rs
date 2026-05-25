@@ -1008,6 +1008,7 @@ fn workpoint_failure(
     } else {
         "do_not_retry_unchanged"
     };
+    let reflex_suggestions = crate::routes::reflex::reflex_suggestions_for_failure(failure_class);
     (
         http_status,
         Json(json!({
@@ -1020,6 +1021,7 @@ fn workpoint_failure(
             "recovery_hint": recovery_hint,
             "misuse_hint": misuse_hint,
             "next_tools": next_tools_value.clone(),
+            "reflex_suggestions": reflex_suggestions,
             "details": {
                 "tool_result_v1": {
                     "ok": false,
@@ -1034,6 +1036,7 @@ fn workpoint_failure(
                     "side_effects": [],
                     "evidence_refs": [],
                     "next_tools": next_tools_value,
+                    "reflex_suggestions": reflex_suggestions,
                     "error": {"code": failure_class, "message": error}
                 }
             }

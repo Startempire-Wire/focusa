@@ -351,10 +351,10 @@ function focusaToolResult(params: {
 }): FocusaToolResultV1 {
   const degraded = params.degraded ?? (params.status === "degraded" || params.status === "offline");
   const canonical = params.canonical ?? (!degraded && params.ok);
-  const summary = params.summary.slice(0, 500);
+  const summary = params.summary.slice(0, 240);
   const failureClass = params.failure_class ?? inferFailureClass(params.status, summary, params.error?.message, canonical, degraded);
   const guidance = recoveryHintForFailure(failureClass, params.status, params.tool);
-  const nextTools = params.next_tools?.length ? params.next_tools : guidance.next_tools ?? [];
+  const nextTools = (params.next_tools?.length ? params.next_tools : guidance.next_tools ?? []).slice(0, 4);
   const reflexSuggestions = reflexSuggestionsForFailure(failureClass, params.status, nextTools);
   return {
     ok: params.ok,
@@ -372,16 +372,31 @@ function focusaToolResult(params: {
       posture: params.retry?.posture ?? (params.ok ? "safe_retry" : "operator_required"),
       reason: params.retry?.reason ?? failureClass ?? undefined,
     },
-    recovery_hint: guidance.recovery_hint,
-    misuse_hint: guidance.misuse_hint,
+    recovery_hint: compactHint(guidance.recovery_hint),
+    misuse_hint: compactHint(guidance.misuse_hint),
     side_effects: params.side_effects ?? [],
     evidence_refs: params.evidence_refs ?? [],
     next_tools: nextTools,
     reflex_suggestions: reflexSuggestions,
     ontology_candidate_delta_refs: params.ontology_candidate_delta_refs ?? [],
     error: params.error ?? null,
-    raw: params.raw,
+    raw: compactApiEcho(params.raw),
   };
+}
+
+function compactHint(value?: string): string | undefined {
+  if (!value) return undefined;
+  return value.replace(/\s+/g, " ").trim().slice(0, 140);
+}
+
+function compactApiEcho(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const input = value as Record<string, any>;
+  const keys = ["status", "canonical", "degraded", "failure_class", "error", "why", "next_step_hint", "workpoint_id", "packet_id", "trajectory_id", "endpoint", "route_tier"];
+  const out: Record<string, unknown> = {};
+  for (const key of keys) if (input[key] !== undefined) out[key] = typeof input[key] === "string" ? input[key].slice(0, 240) : input[key];
+  if (Array.isArray(input.next_tools)) out.next_tools = input.next_tools.slice(0, 4);
+  return Object.keys(out).length ? out : { omitted: true, reason: "compact_api_echo" };
 }
 
 function focusaToolDetails(details: Record<string, unknown>, result: FocusaToolResultV1): Record<string, unknown> {
@@ -415,10 +430,10 @@ function blockedToolResponse(tool: string, family: string, summary: string, fail
     side_effects: [],
     evidence_refs: [],
     next_tools: nextTools,
-    raw,
+    raw: raw,
   });
   return {
-    content: [{ type: "text", text: `${summary}. Why: ${toolResult.misuse_hint || failureClass}. Next: ${toolResult.recovery_hint || toolResult.next_tools.join(" → ")}` }],
+    content: [{ type: "text", text: terseToolText(summary, failureClass, toolResult.next_tools) }],
     details: {
       ok: false,
       status: "blocked",
@@ -428,9 +443,18 @@ function blockedToolResponse(tool: string, family: string, summary: string, fail
       next_tools: toolResult.next_tools,
       reflex_suggestions: toolResult.reflex_suggestions,
       tool_result_v1: toolResult,
-      response: raw,
+      response: compactApiEcho(raw),
     },
   } as any;
+}
+
+function terseToolText(summary: string, failureClass: string | null, nextTools: string[] = []): string {
+  const next = nextTools.slice(0, 3).join(" → ") || "focusa_tool_doctor";
+  return `${summary}; class=${failureClass || "none"}; next=${next}`.slice(0, 220);
+}
+
+function timeoutPreservedText(surface: string, noun = "fallback"): string {
+  return `${surface} timeout_preserved; noncanonical ${noun}; next=doctor/resource_mode/retry`.slice(0, 160);
 }
 
 function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidence_refs: string[]; summary?: string } {
@@ -555,6 +579,19 @@ function annotateAutoRetry(result: any, attempts: number): any {
   return { ...result, details };
 }
 
+function capToolText(text: unknown, max = 700): string {
+  const normalized = String(text ?? "").replace(/\s+\n/g, "\n").trim();
+  return normalized.length <= max ? normalized : `${normalized.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function capToolOutputText(result: any): any {
+  if (!Array.isArray(result?.content)) return result;
+  return {
+    ...result,
+    content: result.content.map((entry: any) => entry?.type === "text" ? { ...entry, text: capToolText(entry.text) } : entry),
+  };
+}
+
 function withToolResultEnvelope(tool: any): any {
   if (!tool?.name?.startsWith?.("focusa_") || typeof tool.execute !== "function") return tool;
   const execute = tool.execute;
@@ -573,7 +610,7 @@ function withToolResultEnvelope(tool: any): any {
         details = (result?.details || {}) as Record<string, unknown>;
         toolResult = inferToolResult(tool.name, result);
       }
-      return { ...result, details: focusaToolDetails(details, toolResult) };
+      return capToolOutputText({ ...result, details: focusaToolDetails(details, toolResult) });
     },
   };
 }
@@ -1213,8 +1250,32 @@ export function registerTools(pi: ExtensionAPI) {
     return focusaRouteTier(path, method) === "cold" ? "cold_path_timeout" : "hot_path_timeout";
   }
 
+  function timeoutBudgetForRoute(path: string, method = "GET"): number {
+    const configured = S.cfg?.focusaApiTimeoutMs || 5000;
+    const tier = focusaRouteTier(path, method);
+    if (tier === "hot") return Math.min(configured, 2500);
+    if (tier === "cold") return Math.max(configured, 8000);
+    return configured;
+  }
+
+  function compactFallbackPacket(value: any): any {
+    if (!value || typeof value !== "object") return value;
+    return {
+      status: value.status || "timeout_preserved",
+      canonical: value.canonical === true,
+      degraded: value.degraded !== false,
+      failure_class: value.failure_class || "hot_path_timeout",
+      workpoint_id: value.workpoint_id || value.fallback_packet?.workpoint_id || null,
+      trajectory_id: value.trajectory_id || value.trajectory_candidate?.trajectory_id || null,
+      project_root: value.project_root || value.input?.project_root || null,
+      continuity_id: value.continuity_id || value.input?.continuity_id || null,
+      preserved_at: value.preserved_at || null,
+      next_step_hint: value.next_step_hint || "retry after doctor/resource_mode",
+    };
+  }
+
   async function focusaFetchDetailed(path: string, opts: RequestInit = {}): Promise<{ ok: boolean; status: number; body: any | null }> {
-    const timeout = S.cfg?.focusaApiTimeoutMs || 5000;
+    const timeout = timeoutBudgetForRoute(path, String(opts.method || "GET"));
     const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const token = S.cfg?.focusaToken || "";
     const ac = new AbortController();
@@ -1285,7 +1346,7 @@ export function registerTools(pi: ExtensionAPI) {
       continuity_id: body.continuity_id || null,
       session_id: body.session_id || null,
       preserved_at: new Date().toISOString(),
-      input: body,
+      input: compactApiEcho(body),
       next_step_hint: `Retry ${action} after focusa_tool_doctor/resource_mode; do not treat timeout fallback as canonical.`,
     };
     S.lastTrajectoryClarity = {
@@ -1305,7 +1366,7 @@ export function registerTools(pi: ExtensionAPI) {
     };
     try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallback); } catch { /* best effort */ }
     persistState();
-    return { content: [{ type: "text", text: `trajectory ${action} timeout_preserved → noncanonical fallback saved locally; retry after focusa_tool_doctor/resource_mode before treating as canonical.` }], details: { ok: false, status: "timeout_preserved", endpoint, canonical: false, degraded: true, advisory_only: true, failure_class: "hot_path_timeout", fallback, response, next_tools: nextTools } } as any;
+    return { content: [{ type: "text", text: timeoutPreservedText(`trajectory ${action}`) }], details: { ok: false, status: "timeout_preserved", endpoint, canonical: false, degraded: true, advisory_only: true, failure_class: "hot_path_timeout", fallback: compactFallbackPacket(fallback), response: compactApiEcho(response), next_tools: nextTools.slice(0, 4) } } as any;
   }
 
   function replayConsumerSurface(result: { ok: boolean; status: number; body: any | null }): {
@@ -1476,7 +1537,7 @@ export function registerTools(pi: ExtensionAPI) {
       const activeWriter = String(body.active_writer || "none");
       const status = String(body.status || body.current_task?.status || "unknown");
       const text = `work-loop writer-status → active_writer=${activeWriter} status=${status} preflight=read_only`;
-      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(result.status), active_writer: activeWriter, authorship_mode: body.authorship_mode, preflight: { mutates: false, writer_required_for: ["control", "context", "checkpoint", "select_next"] }, response: body } } as any;
+      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(result.status), active_writer: activeWriter, authorship_mode: body.authorship_mode, preflight: { mutates: false, writer_required_for: ["control", "context", "checkpoint", "select_next"] }, response: compactApiEcho(body) } } as any;
     },
   });
 
@@ -1582,7 +1643,7 @@ export function registerTools(pi: ExtensionAPI) {
         });
         return {
           content: [{ type: "text", text: `work-loop on → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
-          details: { ok: res.ok, action: String(action), status: res.status, response: res.body },
+          details: { ok: res.ok, action: String(action), status: res.status, response: compactApiEcho(res.body) },
         };
       }
 
@@ -1594,7 +1655,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `work-loop ${action} → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
-        details: { ok: res.ok, action: String(action), status: res.status, response: res.body },
+        details: { ok: res.ok, action: String(action), status: res.status, response: compactApiEcho(res.body) },
       };
     },
   });
@@ -1644,7 +1705,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `work-loop context → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
-        details: { ok: res.ok, status: res.status, response: res.body },
+        details: { ok: res.ok, status: res.status, response: compactApiEcho(res.body) },
       };
     },
   });
@@ -1666,7 +1727,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `work-loop checkpoint → ${explainWorkLoopResult(res, String(res.body?.checkpoint_id || res.body?.status || "accepted"))}` }],
-        details: { ok: res.ok, status: res.status, response: res.body },
+        details: { ok: res.ok, status: res.status, response: compactApiEcho(res.body) },
       };
     },
   });
@@ -1695,7 +1756,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `work-loop select-next → ${explainWorkLoopResult(res, String(res.body?.status || "accepted"))}` }],
-        details: { ok: res.ok, status: res.status, response: res.body },
+        details: { ok: res.ok, status: res.status, response: compactApiEcho(res.body) },
       };
     },
   });
@@ -2331,7 +2392,7 @@ export function registerTools(pi: ExtensionAPI) {
       ]));
       const recommendedAction = recommendations[0] || "Proceed with explicit project_root for project-aware tools and checkpoint before compaction.";
       const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"} drift=${contractDrift.drift_detected ? "yes" : "no"} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
-      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: health.body, resource_mode: resource.body, workpoint: workpoint.body, work_loop: loop.body, contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: contractDrift, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: sessionResolution || null }, recommendations, recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: `readiness=${ready ? "ready" : "degraded"} drift=${contractDrift.drift_detected ? "yes" : "no"}`, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools, spec92: { hook_records: S.spec92HookTelemetry.length, hook_counts: hookCounts, token_records: S.spec92TokenTelemetry.length, latest_token: latestToken } } } as any;
+      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: { drift_detected: contractDrift.drift_detected, missing_live: contractDrift.missing_live.slice(0, 6), stale_live_contracts: contractDrift.stale_live_contracts.slice(0, 6) }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: `readiness=${ready ? "ready" : "degraded"} drift=${contractDrift.drift_detected ? "yes" : "no"}`, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
     },
   });
 
@@ -2383,7 +2444,7 @@ export function registerTools(pi: ExtensionAPI) {
             preflight,
             intended_action: preflight ? action : undefined,
             next_tools: ["focusa_tool_doctor", "focusa_trajectory_view", "focusa_workpoint_resume", "focusa_traverse"],
-            response: body,
+            response: compactApiEcho(body),
           },
         } as any;
       }
@@ -2432,7 +2493,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
         const cachedIdentity = S.lastProjectIdentity && (!requestedRoot || normalizeProjectRoot(S.lastProjectIdentity.project_root) === requestedRoot) ? S.lastProjectIdentity : null;
-        return { content: [{ type: "text", text: `project identity timeout_preserved → ${cachedIdentity ? "cached identity returned as noncanonical advisory" : "no cached identity; retry after focusa_tool_doctor/resource_mode"}` }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/identity", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, failure_class: "hot_path_timeout", response: body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
+        return { content: [{ type: "text", text: timeoutPreservedText("project identity", cachedIdentity ? "cached identity" : "empty fallback") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/identity", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
       }
       const identity = body.project_identity || {};
       if (identity && Object.keys(identity).length) {
@@ -2468,7 +2529,7 @@ export function registerTools(pi: ExtensionAPI) {
           tool_result_v1: toolResult,
           failure_class: toolResult.failure_class || body.failure_class || null,
           next_tools: toolResult.next_tools || body.next_tools || ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
-          response: body,
+          response: compactApiEcho(body),
         },
       } as any;
     },
@@ -2494,7 +2555,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const requestedRoot = normalizeProjectRoot(p.project_root || p.cwd || S.sessionCwd || process.cwd());
         const cachedIdentity = S.lastProjectIdentity && (!requestedRoot || normalizeProjectRoot(S.lastProjectIdentity.project_root) === requestedRoot) ? S.lastProjectIdentity : null;
-        return { content: [{ type: "text", text: `project verify timeout_preserved → ${cachedIdentity ? "cached identity returned as noncanonical advisory" : "no cached identity; retry after focusa_tool_doctor/resource_mode"}` }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/verify", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, verification: { verified: false, reason: "hot_path_timeout" }, failure_class: "hot_path_timeout", response: body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
+        return { content: [{ type: "text", text: timeoutPreservedText("project verify", cachedIdentity ? "cached identity" : "empty fallback") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/project/verify", canonical: false, degraded: true, advisory_only: true, project_identity: cachedIdentity || {}, verification: { verified: false, reason: "hot_path_timeout" }, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"] } } as any;
       }
       const identity = body.project_identity || {};
       const verified = body.verification?.verified === true;
@@ -2522,9 +2583,36 @@ export function registerTools(pi: ExtensionAPI) {
           tool_result_v1: toolResult,
           failure_class: toolResult.failure_class || body.failure_class || null,
           next_tools: toolResult.next_tools || body.next_tools || ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
-          response: body,
+          response: compactApiEcho(body),
         },
       } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_reflex_primitives",
+    label: "Reflex Primitives",
+    description: "List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority.",
+    parameters: Type.Object({
+      family: Type.Optional(Type.String({ description: "Optional primitive family filter, e.g. recovery, evidence, resource." })),
+      query: Type.Optional(Type.String({ description: "Optional risk/object/action search text." })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, description: "Bounded result limit." })),
+      include_payload: Type.Optional(Type.Boolean({ description: "Cold opt-in for full primitive payloads; default false." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const query = new URLSearchParams();
+      if (p.family) query.set("family", String(p.family));
+      if (p.query) query.set("query", String(p.query));
+      query.set("limit", String(Math.max(1, Math.min(50, Number(p.limit || 20)))));
+      if (p.include_payload === true) query.set("include_payload", "true");
+      const result = await focusaFetchDetailed(`/reflex/primitives?${query.toString()}`);
+      const body = result.body || {};
+      if (!result.ok) return blockedToolResponse("focusa_reflex_primitives", "reflex", `reflex primitives blocked → ${explainWorkLoopResult(result, "reflex registry unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_traverse", "focusa_tool_doctor"]);
+      const items = Array.isArray(body.items) ? body.items : [];
+      const families = Array.from(new Set(items.map((item: any) => String(item.family || "unknown")))).slice(0, 6).join(",");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `reflex primitives → returned=${items.length} families=${families || "none"}`, tool: "focusa_reflex_primitives", family: "reflex", side_effects: [], evidence_refs: [], next_tools: ["focusa_traverse", "focusa_tool_doctor"], raw: body });
+      return { content: [{ type: "text", text: `reflex primitives → returned=${items.length} families=${families || "none"} truncated=${Boolean(body.bounds?.truncated)}` }], details: { ok: true, status: "completed", endpoint: "/v1/reflex/primitives", canonical: body.canonical === true, degraded: body.degraded === true, read_only: body.read_only === true, advisory_only: body.advisory_only === true, items, bounds: body.bounds || null, tool_result_v1: toolResult, next_tools: toolResult.next_tools || ["focusa_traverse"] } } as any;
     },
   });
 
@@ -2570,10 +2658,35 @@ export function registerTools(pi: ExtensionAPI) {
         S.lastTrajectoryClarity = fallback;
         try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
-        return { content: [{ type: "text", text: "trajectory view timeout_preserved → noncanonical cached clarity returned as advisory; retry after focusa_tool_doctor/resource_mode before treating as current." }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/view", canonical: false, degraded: true, advisory_only: true, trajectory: fallback, failure_class: "hot_path_timeout", response: body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_view", "focusa_workpoint_resume"] } } as any;
+        return { content: [{ type: "text", text: timeoutPreservedText("trajectory view", "cached clarity") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/view", canonical: false, degraded: true, advisory_only: true, trajectory: fallback, failure_class: "hot_path_timeout", response: compactApiEcho(body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_view", "focusa_workpoint_resume"] } } as any;
       }
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
+      if (trajectory.short_term_goal && !(body.intelligence_view?.focus_trajectory_sync?.current_focus)) {
+        body.intelligence_view = {
+          ...(body.intelligence_view || {}),
+          focus_trajectory_sync: {
+            ...(body.intelligence_view?.focus_trajectory_sync || {}),
+            current_focus: trajectory.short_term_goal,
+            current_focus_source: "trajectory_short_term_goal",
+            projection_only: true,
+          },
+        };
+      }
+      if (trajectory.short_term_goal || trajectory.current_state || trajectory.active_gap) {
+        S.lastTrajectoryClarity = {
+          ...(S.lastTrajectoryClarity || {}),
+          status: String(body.intelligence_view?.clarity_gate?.status || trajectory.definition_status || body.status || "unknown"),
+          recommended_action: String(body.intelligence_view?.clarity_gate?.recommended_action || body.intelligence_view?.context_sufficiency?.recommended_action || "unknown"),
+          project_root: String(project.project_root || projectRoot),
+          trajectory_id: trajectory.trajectory_id || null,
+          short_term_goal: trajectory.short_term_goal || null,
+          current_state: trajectory.current_state || null,
+          active_gap: trajectory.active_gap || null,
+          focus_trajectory_sync: body.intelligence_view?.focus_trajectory_sync || null,
+        };
+        persistState();
+      }
       const sufficiency = body.intelligence_view?.context_sufficiency || {};
       const posture = String(sufficiency.proceed_posture || sufficiency.recommended_action || "unknown");
       const projectMismatches = Array.isArray(project.mismatches) ? project.mismatches : [];
@@ -2610,7 +2723,7 @@ export function registerTools(pi: ExtensionAPI) {
           evidence_refs: toolResult.evidence_refs || [],
           side_effects: toolResult.side_effects || [],
           next_tools: toolResult.next_tools || body.next_tools || ["focusa_workpoint_resume", "focusa_active_object_resolve"],
-          response: body,
+          response: compactApiEcho(body),
         },
       } as any;
     },
@@ -2677,14 +2790,14 @@ export function registerTools(pi: ExtensionAPI) {
         };
         try { S.pi?.appendEntry("focusa-trajectory-timeout-fallback", fallbackCandidate); } catch { /* best effort */ }
         persistState();
-        return { content: [{ type: "text", text: "trajectory define_goal timeout_preserved → noncanonical candidate saved locally; retry after focusa_tool_doctor/resource_mode before treating as persisted." }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/define-goal", canonical: false, degraded: true, advisory_only: true, trajectory_candidate: fallbackCandidate, failure_class: "hot_path_timeout", response: b, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_define_goal", "focusa_trajectory_view"] } } as any;
+        return { content: [{ type: "text", text: timeoutPreservedText("trajectory define_goal", "candidate") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/define-goal", canonical: false, degraded: true, advisory_only: true, trajectory_candidate: fallbackCandidate, failure_class: "hot_path_timeout", response: compactApiEcho(b), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_define_goal", "focusa_trajectory_view"] } } as any;
       }
       const candidate = b.trajectory_candidate || {};
       const text = result.ok
         ? `trajectory define_goal → ${b.canonical === true ? "SET" : "NOT SET"} long_term=${String(candidate.long_term_goal || "missing")} desired=${String(candidate.desired_end_state || "missing")} definition=${String(candidate.definition_status || "unknown")} persisted=${b.persisted === true}`
         : `trajectory define_goal blocked → ${explainWorkLoopResult(result, "define failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "validation_rejected", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: p.supersession_evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_assess"] };
-      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/define-goal", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, trajectory_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_assess"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/define-goal", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, trajectory_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_assess"] } } as any;
     },
   });
 
@@ -2711,7 +2824,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("assess", "/v1/trajectory/assess", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"], { observed_state: body.observed_state || null, evidence_refs: body.evidence_refs || [] });
       const text = result.ok ? `trajectory assess → gaps=${Array.isArray(b.gaps) ? b.gaps.length : 0} action=${String(b.recommended_action || "unknown")} canonical=${b.canonical === true}` : `trajectory assess blocked → ${explainWorkLoopResult(result, "assess failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: p.evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_propose_workpoint"] };
-      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/assess", canonical: b.canonical === true, degraded: b.degraded === true, gaps: b.gaps || [], recommended_action: b.recommended_action || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_propose_workpoint"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/assess", canonical: b.canonical === true, degraded: b.degraded === true, gaps: b.gaps || [], recommended_action: b.recommended_action || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_propose_workpoint"] } } as any;
     },
   });
 
@@ -2741,7 +2854,7 @@ export function registerTools(pi: ExtensionAPI) {
       const blockers = Array.isArray(candidate.blockers) ? candidate.blockers.length : 0;
       const text = result.ok ? `trajectory propose_workpoint → advisory=${b.advisory_only === true} action=${String(candidate.action_intent?.action_type || "unknown")} checkpoint_required=${candidate.checkpoint_required === true} blockers=${blockers} no_execution=${b.no_execution_side_effects === true}` : `trajectory propose_workpoint blocked → ${explainWorkLoopResult(result, "proposal failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_checkpoint"] };
-      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/propose-workpoint", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, no_execution_side_effects: b.no_execution_side_effects === true, workpoint_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/propose-workpoint", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, no_execution_side_effects: b.no_execution_side_effects === true, workpoint_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
     },
   });
 
@@ -2768,7 +2881,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!result.ok && b.failure_class === "hot_path_timeout") return trajectoryTimeoutFallbackResult("checkpoint", "/v1/trajectory/checkpoint", body, b, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_checkpoint", "focusa_workpoint_checkpoint"], { trajectory_checkpoint: { summary: body.summary || "trajectory checkpoint timeout fallback", persisted: false } });
       const text = result.ok ? `trajectory checkpoint → status=${String(b.status || "unknown")} persisted=${b.persisted === true} canonical=${b.canonical === true}` : `trajectory checkpoint blocked → ${explainWorkLoopResult(result, "checkpoint failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_checkpoint"] };
-      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/checkpoint", canonical: b.canonical === true, degraded: b.degraded === true, persisted: b.persisted === true, advisory_only: b.advisory_only === true, trajectory_checkpoint: b.trajectory_checkpoint || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/checkpoint", canonical: b.canonical === true, degraded: b.degraded === true, persisted: b.persisted === true, advisory_only: b.advisory_only === true, trajectory_checkpoint: b.trajectory_checkpoint || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_checkpoint"] } } as any;
     },
   });
 
@@ -2795,7 +2908,7 @@ export function registerTools(pi: ExtensionAPI) {
       const packet = b.resume_packet || {};
       const text = result.ok ? `trajectory resume → status=${String(b.status || "unknown")} canonical=${b.canonical === true} project=${String(packet.project_identity?.status || "unknown")}` : `trajectory resume blocked → ${explainWorkLoopResult(result, "resume failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "degraded" && b.status !== "not_found", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: b.next_tools || ["focusa_workpoint_resume"] };
-      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/resume", canonical: b.canonical === true, degraded: b.degraded === true, resume_packet: packet, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: b, next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_resume"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/resume", canonical: b.canonical === true, degraded: b.degraded === true, resume_packet: packet, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_workpoint_resume"] } } as any;
     },
   });
 
@@ -2858,7 +2971,7 @@ export function registerTools(pi: ExtensionAPI) {
       const text = res.ok
         ? `evidence capture → linked ${p.evidence_ref}`
         : [`evidence capture blocked → ${explainWorkLoopResult(res, "link failed")}`, recovery?.text].filter(Boolean).join("\n");
-      return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, failure_class: res.body?.failure_class || null, scope_recovery_context: recovery?.details || null, request_scope: { project_root: projectRoot, continuity_id: sessionIdentity?.continuity_id || null }, project_root_permission_posture: projectRootPermissionPosture(projectRoot), response: res.body, next_tools: recovery?.details?.safe_next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok: res.ok, status: String(res.status), evidence_ref: p.evidence_ref, failure_class: res.body?.failure_class || null, scope_recovery_context: recovery?.details || null, request_scope: { project_root: projectRoot, continuity_id: sessionIdentity?.continuity_id || null }, project_root_permission_posture: projectRootPermissionPosture(projectRoot), response: compactApiEcho(res.body), next_tools: recovery?.details?.safe_next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"] } } as any;
     },
   });
 
@@ -2962,8 +3075,8 @@ export function registerTools(pi: ExtensionAPI) {
         try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
         return {
-          content: [{ type: "text", text: "workpoint checkpoint timeout_preserved → noncanonical fallback saved locally; retry after focusa_tool_doctor/resource_mode before treating as canonical." }],
-          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/checkpoint", canonical: false, degraded: true, failure_class: "hot_path_timeout", project_root_permission_posture: projectRootPermissionPosture(projectRoot), request: payload, response: res.body, fallback_packet: fallback, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] },
+          content: [{ type: "text", text: timeoutPreservedText("workpoint checkpoint") }],
+          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/checkpoint", canonical: false, degraded: true, failure_class: "hot_path_timeout", project_root_permission_posture: projectRootPermissionPosture(projectRoot), request: compactApiEcho(payload), response: compactApiEcho(res.body), fallback_packet: compactFallbackPacket(fallback), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] },
         } as any;
       }
       const text = res.ok
@@ -2973,7 +3086,7 @@ export function registerTools(pi: ExtensionAPI) {
           : `workpoint checkpoint blocked → ${explainWorkLoopResult(res, "checkpoint failed")}`;
       return {
         content: [{ type: "text", text }],
-        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/checkpoint", project_root_permission_posture: projectRootPermissionPosture(projectRoot), request: payload, response: res.body },
+        details: { ok: res.ok, status: res.status, endpoint: "/workpoint/checkpoint", project_root_permission_posture: projectRootPermissionPosture(projectRoot), request: compactApiEcho(payload), response: compactApiEcho(res.body) },
       };
     },
   });
@@ -3021,7 +3134,7 @@ export function registerTools(pi: ExtensionAPI) {
         : `workpoint evidence link blocked → ${explainWorkLoopResult(res, "link failed")}`;
       return {
         content: [{ type: "text", text }],
-        details: { ok: res.ok, status: String(res.status), reason: res.ok ? "linked" : "blocked", endpoint: "/workpoint/evidence/link", project_root_permission_posture: projectRootPermissionPosture(projectRoot), response: res.body },
+        details: { ok: res.ok, status: String(res.status), reason: res.ok ? "linked" : "blocked", endpoint: "/workpoint/evidence/link", project_root_permission_posture: projectRootPermissionPosture(projectRoot), response: compactApiEcho(res.body) },
       } as any;
     },
   });
@@ -3079,8 +3192,8 @@ export function registerTools(pi: ExtensionAPI) {
         try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
         return {
-          content: [{ type: "text", text: "workpoint resume timeout_preserved → using noncanonical local fallback; retry after focusa_tool_doctor/resource_mode before treating as canonical." }],
-          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/resume", canonical: false, degraded: true, failure_class: "hot_path_timeout", fallback_packet: fallback, scope_recovery_context: recovery?.details || null, request: payload, response: res.body, next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"] },
+          content: [{ type: "text", text: timeoutPreservedText("workpoint resume", "local fallback") }],
+          details: { ok: false, status: "timeout_preserved", endpoint: "/workpoint/resume", canonical: false, degraded: true, failure_class: "hot_path_timeout", fallback_packet: compactFallbackPacket(fallback), scope_recovery_context: compactApiEcho(recovery?.details || null), request: compactApiEcho(payload), response: compactApiEcho(res.body), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_workpoint_resume", "focusa_traverse"] },
         } as any;
       }
       const text = res.ok && !rejected
@@ -3106,7 +3219,7 @@ export function registerTools(pi: ExtensionAPI) {
       const recoveryText = recoveryPacket ? `\nrecovery → ${recoveryPacket.safe_next_action}` : "";
       return {
         content: [{ type: "text", text: `${text}${recoveryText}` }],
-        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical, degraded: res.body?.degraded === true || !canonical, failure_class: toolResult.failure_class || null, recovery_packet: recoveryPacket, scope_recovery_context: recovery?.details || null, resume_packet_v2: v2, rendered_summary: res.body?.rendered_summary || "", tool_result_v1: toolResult, next_tools: toolResult.next_tools || recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"], request: payload, response: res.body },
+        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical, degraded: res.body?.degraded === true || !canonical, failure_class: toolResult.failure_class || null, recovery_packet: compactApiEcho(recoveryPacket), scope_recovery_context: compactApiEcho(recovery?.details || null), resume_packet_v2: compactApiEcho(v2), rendered_summary: String(res.body?.rendered_summary || "").slice(0, 240), tool_result_v1: toolResult, next_tools: (toolResult.next_tools || recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"]).slice(0, 4), request: compactApiEcho(payload), response: compactApiEcho(res.body) },
       };
     },
   });
@@ -4152,7 +4265,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       if (!res.ok || !res.body) {
         return {
           content: [{ type: "text", text: `lineage tree → ${explainWorkLoopResult(res, "ok")}` }],
-          details: { ok: false, status: res.status, response: res.body ?? null },
+          details: { ok: false, status: res.status, response: compactApiEcho(res.body) ?? null },
         } as any;
       }
 
@@ -4196,7 +4309,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       if (!res.ok || !res.body) {
         return {
           content: [{ type: "text", text: `li extract → ${explainWorkLoopResult(res, "ok")}` }],
-          details: { ok: false, status: res.status, response: res.body ?? null },
+          details: { ok: false, status: res.status, response: compactApiEcho(res.body) ?? null },
         } as any;
       }
 
