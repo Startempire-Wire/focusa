@@ -408,7 +408,17 @@ async fn stream_messages_response(
         response = response.header(CONTENT_TYPE, ct.clone());
     }
 
-    Ok(response.body(Body::from_stream(body_stream)).unwrap())
+    response.body(Body::from_stream(body_stream)).map_err(|err| {
+        proxy_failure(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Could not build Anthropic stream response",
+            "proxy_response_build_failed",
+            format!("Anthropic stream response builder failed: {err}"),
+            "Run focusa_tool_doctor and retry after verifying proxy headers/upstream response shape.",
+            "Likely invalid upstream response headers or malformed streaming response metadata.",
+            vec!["focusa_tool_doctor"],
+        )
+    })
 }
 
 /// POST /proxy/v1/chat/completions — OpenAI proxy with turn tracking.
