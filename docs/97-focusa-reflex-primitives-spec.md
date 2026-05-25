@@ -69,7 +69,7 @@ These gaps block claiming Spec97 implementation beyond vocabulary/spec language:
 | `G97-reflex-envelope-metadata` | Phase B | Closed for Pi tool envelopes by `tool_result_v1.reflex_suggestions` in `apps/pi-extension/src/tools.ts` plus `tests/spec97_reflex_envelope_metadata_static_test.sh`; follow-up API-native envelope parity can be added with ontology routing. | Keep primitive ids bounded and registry-backed; do not let suggestions override operator steering or retry posture. |
 | `G97-ontology-reflex-routing` | Phase C | Closed for bounded traversal by `surface=reflex_primitives` in `/v1/traverse`, backed by `docs/current/focusa-reflex-primitives.json` and `tests/spec97_reflex_traverse_routing_static_test.sh`. | Optional future work: direct `/v1/reflex/primitives` route and deeper ontology object classes. |
 | `G97-golden-reflex-scenarios` | Phase D | Closed by `docs/current/spec97-reflex-golden-scenarios.json` and `tests/spec97_reflex_golden_scenarios_static_test.sh`; five scenarios cover identity, continuity, recovery/evidence, resource, and execution. | Future runtime dogfood can add live scenario execution, but static scenario/probe consistency is now gated. |
-| `G97-utility-card-reflex-language` | Phase E | Awareness/Utility Card names Trajectory/Workpoint/Focusa guidance, but not concise reflex affordances. | Add minimal, non-noisy reflex naming only where it improves next action selection. |
+| `G97-utility-card-reflex-language` | Phase E | Closed by `crates/focusa-api/src/routes/awareness.rs` and `tests/spec97_reflex_utility_card_static_test.sh`; Utility Card now names reflex affordances only for blocked/degraded next-step routing. | Keep language concise and avoid metacognitive noise. |
 
 ---
 
@@ -497,6 +497,8 @@ Acceptance:
 - Add docs/Utility Card language that names reflexes only when useful.
 - Avoid turning reflex metadata into visible noise.
 - Present reflexes as concise next-action affordances, not cognitive prose.
+
+Current Utility Card wording names reflex affordances only when blocked/degraded: follow `reflex_suggestions` or traverse `surface=reflex_primitives` for the smallest safe next step.
 
 Acceptance:
 
