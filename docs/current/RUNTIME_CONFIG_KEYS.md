@@ -11,14 +11,14 @@ Current local Focusa runtime configuration keys used by bounded memory/payload p
 
 ## Metacognition store caps
 
-These keys bound the metacognition runtime store and hot index. They mirror `FocusaConfig` fields (`metacog_max_captures`, `metacog_max_reflections`, `metacog_max_adjustments`, `metacog_ttl_minutes`, `metacog_retrieve_max_k`) and are exposed by `GET /v1/metacognition/status`.
+These keys bound the metacognition runtime store and hot index. They mirror `FocusaConfig` fields (`metacog_max_captures`, `metacog_max_reflections`, `metacog_max_adjustments`, `metacog_ttl_minutes`, `metacog_retrieve_max_k`) and are exposed by `GET /v1/metacognition/status`. Evaluations use the adjustment cap/TTL family and are visible through `evaluation_memory` plus `/v1/metacognition/evaluations/recent`.
 
 | Key | Default | Meaning |
 |---|---:|---|
 | `FOCUSA_METACOG_MAX_CAPTURES` | `1000` | Maximum retained capture records and capture hot-index entries. |
 | `FOCUSA_METACOG_MAX_REFLECTIONS` | `500` | Maximum retained reflection records. |
-| `FOCUSA_METACOG_MAX_ADJUSTMENTS` | `500` | Maximum retained adjustment records. |
-| `FOCUSA_METACOG_TTL_MINUTES` | `10080` | TTL for metacognition captures/reflections/adjustments before prune/eviction. |
+| `FOCUSA_METACOG_MAX_ADJUSTMENTS` | `500` | Maximum retained adjustment records and evaluation records. |
+| `FOCUSA_METACOG_TTL_MINUTES` | `10080` | TTL for metacognition captures/reflections/adjustments/evaluations before prune/eviction. |
 | `FOCUSA_METACOG_RETRIEVE_MAX_K` | `50` | Hard maximum retrieval candidates returned by `/v1/metacognition/retrieve`. |
 
 Eviction telemetry appears in `/v1/metacognition/status` under `eviction_telemetry` and in `/v1/telemetry/memory` store/cap surfaces.

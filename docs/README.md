@@ -386,7 +386,7 @@ Focusa uses **Beads** as the authoritative system of record for tasks and long-t
 
 🚧 **Current snapshot: v0.9.12-dev**
 
-The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition surfaces, prediction loop, agent-first polish commands, compaction fallbacks, Workpoint scope guard, state hygiene tools, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
+The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition capture/retrieve/reflect/adjust/evaluate plus evaluation readback/promotion, prediction loop, ontology memory-pipeline artifacts, work-loop dispatch-readiness health, agent-first polish commands, compaction fallbacks, Workpoint scope guard, state hygiene tools, explicit source-available/commercial licensing boundary, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
 
 ---
 

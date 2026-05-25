@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Judge whether an adjustment improved results and whether the learning should be promoted.
+Judge whether an adjustment improved results and whether the learning should be promoted. Evaluations are persisted as first-class records; successful evaluations promote a bounded `promoted_learning` capture back into retrieval memory and can be listed through `/v1/metacognition/evaluations/recent` or `focusa metacognition recent-evaluations`.
 
 ## When to use
 
@@ -45,8 +45,8 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 - Family: Metacognition.
 - Side effects: `write_state`.
 - Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `POST /v1/metacognition/evaluate`
-- CLI commands: `focusa metacognition evaluate`
+- API routes: `POST /v1/metacognition/evaluate`; readback via `GET /v1/metacognition/evaluations/recent`
+- CLI commands: `focusa metacognition evaluate`; readback via `focusa metacognition recent-evaluations`
 - Parity: `full`.
 - Core surface: Metacognition store/retriever.
 - Live check: contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking.

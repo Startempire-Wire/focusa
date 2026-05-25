@@ -34,8 +34,8 @@ In plain terms, Focusa gives an agent:
 - a **continuation contract** after compaction (`Workpoint`),
 - a way to **save proof without bloating prompts** (`Evidence` + handles),
 - a **lineage/snapshot system** for recovery,
-- a **metacognition loop** for reusable learning,
-- a **work-loop control surface** with writer ownership,
+- a **metacognition loop** for reusable learning, persisted evaluations, and bounded promotion back into retrieval memory,
+- a **work-loop control surface** with writer ownership and hot-path dispatch-readiness diagnostics,
 - and a common result envelope so tools return predictable status, retry, evidence, and next-tool guidance.
 
 Focusa is local-first. State lives on the machine running the daemon, under the project/data directory, and can be inspected through the CLI/API.
@@ -62,7 +62,7 @@ When Focusa is working well, an agent should:
 5. **Notice drift.** Workpoint drift checks can tell whether the agent is still working on the expected action/object.
 6. **Avoid prompt bloat.** Large outputs become handles or evidence refs instead of raw transcript paste.
 7. **Recover from uncertainty.** Tool results include status, retry posture, canonical/degraded state, and next-tool hints.
-8. **Learn with discipline.** Metacognition tools include quality gates, evidence refs, and evaluation metrics instead of unconstrained note-taking.
+8. **Learn with discipline.** Metacognition tools include quality gates, evidence refs, persisted evaluation records, and bounded promotion back into retrieval memory instead of unconstrained note-taking.
 9. **Respect ownership.** Work-loop mutation tools expose writer conflicts and preflight state instead of silently taking over.
 10. **Remain inspectable.** The CLI/API expose state, lineage, snapshots, events, memory, ontology, Workpoints, and tool health.
 

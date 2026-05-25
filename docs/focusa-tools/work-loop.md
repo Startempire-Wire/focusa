@@ -9,4 +9,4 @@ This is a navigation page. Each linked page documents exactly one tool with desc
 - [`focusa_work_loop_checkpoint`](tools/focusa_work_loop_checkpoint.md)
 - [`focusa_work_loop_select_next`](tools/focusa_work_loop_select_next.md)
 
-Work-loop status tools use the bounded summary route by default; replay and deep diagnostics are cold paths and must be opt-in.
+Work-loop status tools use the bounded summary route by default; replay and deep diagnostics are cold paths and must be opt-in. The hot `/v1/work-loop/health` surface reports dispatch readiness, boundary reason, pause flags, and transport degradation so agents can decide whether to inspect writer/status/deep before dispatching or retrying.

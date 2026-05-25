@@ -75,7 +75,7 @@ Options:
 - `workpoint` — scoped checkpoint/current/resume continuity operations; canonical checkpoint/resume accepts `--project-root` and `--continuity-id`.
 - `state snapshot` — create/recent/restore/diff/compare-latest snapshot parity for `/v1/focus/snapshots*`.
 - `lineage extract` — bounded lineage signal extraction for decision/constraint/risk compounding.
-- `metacognition recent-reflections` / `recent-adjustments` — read recent learning packets.
+- `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 
 ## Common examples
@@ -101,6 +101,7 @@ focusa state snapshot compare-latest --snapshot-reason "pre-risk check" --json
 focusa lineage extract --max-candidates 12 --json
 focusa metacognition recent-reflections --limit 5 --json
 focusa metacognition recent-adjustments --limit 5 --json
+focusa metacognition recent-evaluations --limit 5 --json
 focusa project identity --project-root /home/wirebot/focusa --json
 focusa project verify --project-root /home/wirebot/focusa --project-id focusa --json
 focusa trajectory view --project-root /home/wirebot/focusa --mode summary --json
