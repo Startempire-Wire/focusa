@@ -15,7 +15,7 @@ echo "=== SPEC §15: Continuous pruning test ==="
 
 # Get initial telemetry
 INITIAL=$(curl -s "${BASE_URL}/v1/telemetry/tokens")
-INITIAL_EVENTS=$(echo "$INITIAL" | jq '.total_events')
+INITIAL_PROMPT=$(echo "$INITIAL" | jq '.total_prompt_tokens')
 
 # Run multiple turns
 for i in $(seq 1 20); do
@@ -28,17 +28,24 @@ for i in $(seq 1 20); do
     -d "{\"turn_id\":\"${TURN}\",\"assistant_output\":\"prune ${i}\",\"tokens\":{\"input\":50,\"output\":25}}" >/dev/null
 done
 
-# Get final telemetry
-FINAL=$(curl -s "${BASE_URL}/v1/telemetry/tokens")
-FINAL_EVENTS=$(echo "$FINAL" | jq '.total_events')
-FINAL_PROMPT=$(echo "$FINAL" | jq '.total_prompt_tokens')
+# Get final telemetry. Turn completion materialization may be asynchronous.
+FINAL=""
+FINAL_PROMPT=0
+for _ in $(seq 1 20); do
+  FINAL=$(curl -s "${BASE_URL}/v1/telemetry/tokens")
+  FINAL_PROMPT=$(echo "$FINAL" | jq '.total_prompt_tokens')
+  if [ "$FINAL_PROMPT" -gt "$INITIAL_PROMPT" ]; then
+    break
+  fi
+  sleep 0.1
+done
 
-# Test 1: Events accumulated
-if [ "$FINAL_EVENTS" -gt "$INITIAL_EVENTS" ]; then
-  DIFF=$((FINAL_EVENTS - INITIAL_EVENTS))
-  log_pass "Events grew: +${DIFF} (${INITIAL_EVENTS} → ${FINAL_EVENTS})"
+# Test 1: Token telemetry accumulated
+if [ "$FINAL_PROMPT" -gt "$INITIAL_PROMPT" ]; then
+  DIFF=$((FINAL_PROMPT - INITIAL_PROMPT))
+  log_pass "Prompt tokens grew: +${DIFF} (${INITIAL_PROMPT} → ${FINAL_PROMPT})"
 else
-  log_fail "Events not growing"
+  log_fail "Prompt tokens not growing"
 fi
 
 # Test 2: Token growth bounded
