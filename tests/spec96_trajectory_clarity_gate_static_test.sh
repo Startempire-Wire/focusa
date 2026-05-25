@@ -57,6 +57,13 @@ else
   exit 1
 fi
 
+if rg -n 'bootstrap_default_trajectory|bootstrap_default|needs_definition|trajectory bootstrap default is advisory|BOOTSTRAP DEFAULT' "$TRAJECTORY" "$TOOLS" "$DOC_VIEW" >/dev/null; then
+  echo "✓ PASS: verified project trajectory bootstrap returns explicit noncanonical default instead of NOT SET"
+else
+  echo "✗ FAIL: verified project trajectory bootstrap can still return opaque NOT SET" >&2
+  exit 1
+fi
+
 if rg -n 'prior_project_fallback_advisory|trajectoryFallback|fallback_source_continuity_id|trajectory similarity/fallback is advisory only' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" "${ROOT_DIR}/apps/pi-extension/src/state.ts" >/dev/null; then
   echo "✓ PASS: Utility Card labels prior trajectory fallback as advisory, not canonical set state"
 else

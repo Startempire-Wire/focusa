@@ -568,8 +568,15 @@ fn trajectory_failure(
     let error = error.into();
     let why = why.into();
     let next_tools_value = json!(next_tools);
-    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "scope_mismatch");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_safe = !matches!(
+        failure_class,
+        "validation_rejected" | "not_found" | "scope_mismatch"
+    );
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     (
         http_status,
         Json(json!({
@@ -635,12 +642,9 @@ async fn dispatch_event(
     state: &Arc<AppState>,
     event: FocusaEvent,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    let _guard = tokio::time::timeout(
-        Duration::from_millis(1500),
-        state.write_serial_lock.lock(),
-    )
-    .await
-    .map_err(|_| trajectory_dispatch_timeout())?;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| trajectory_dispatch_timeout())?;
     let current = { state.focusa.read().await.clone() };
     let result = reducer::reduce_with_meta(current, event, None, None, false)
         .map_err(trajectory_reducer_rejected)?;
@@ -984,10 +988,10 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     // Spec96: Workpoint/frame text may shape short-term goals and candidates,
     // but must not silently become the project long-term goal or desired end
     // state. Those require persisted Trajectory state or Focus State intent.
-    let long_term_goal = first_nonempty(&[persisted_long_term_goal, fs_intent]);
-    let desired_end_state = first_nonempty(&[persisted_desired_end_state, fs_intent]);
-    let current_state = first_nonempty(&[persisted_current_state, fs_current]);
-    let short_term_goal = first_nonempty(&[
+    let mut long_term_goal = first_nonempty(&[persisted_long_term_goal, fs_intent]);
+    let mut desired_end_state = first_nonempty(&[persisted_desired_end_state, fs_intent]);
+    let mut current_state = first_nonempty(&[persisted_current_state, fs_current]);
+    let mut short_term_goal = first_nonempty(&[
         persisted_short_term_goal,
         workpoint_next,
         workpoint_action,
@@ -995,6 +999,39 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         frame_title,
         fs_current,
     ]);
+    let bootstrap_default_trajectory = persisted_trajectory.is_none()
+        && project_bound
+        && scope_match
+        && project_identity_status == "verified"
+        && long_term_goal.is_none()
+        && desired_end_state.is_none();
+    if bootstrap_default_trajectory {
+        let project_label = project_identity_record
+            .get("canonical_name")
+            .and_then(Value::as_str)
+            .or_else(|| {
+                project_identity_record
+                    .get("project_id")
+                    .and_then(Value::as_str)
+            })
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or(project_root.as_str());
+        long_term_goal = Some(format!(
+            "Maintain and improve {project_label} within verified project scope"
+        ));
+        desired_end_state = Some(
+            "Verified project sessions have explicit operator-defined trajectory, Workpoint, and evidence before durable work"
+                .to_string(),
+        );
+        current_state.get_or_insert_with(|| {
+            "Project identity is verified; durable trajectory goal is not operator-defined yet"
+                .to_string()
+        });
+        short_term_goal.get_or_insert_with(|| {
+            "Define the project trajectory goal or checkpoint the current operator mission"
+                .to_string()
+        });
+    }
     let active_gap = match (desired_end_state.as_deref(), current_state.as_deref()) {
         (Some(desired), Some(current)) if desired == current => None,
         (Some(_), Some(_)) => first_nonempty(&[workpoint_next, workpoint_action])
@@ -1216,7 +1253,8 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     };
     let canonical = status == "completed"
         && project_identity_status == "verified"
-        && !using_prior_project_trajectory;
+        && !using_prior_project_trajectory
+        && !bootstrap_default_trajectory;
     let active_trajectory_id = persisted_trajectory
         .map(|record| record.trajectory_id.clone())
         .unwrap_or_else(|| {
@@ -1308,6 +1346,8 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "low_level_goal": low_level_goal.as_deref().map(|value| bounded(value, 240)),
             "active_gap": active_gap,
             "similarity_group": similarity_group,
+            "bootstrap_default": bootstrap_default_trajectory,
+            "needs_definition": bootstrap_default_trajectory,
             "durable_lifecycle": {
                 "persisted": persisted_trajectory.is_some(),
                 "active_trajectory_id": state.trajectory.active_trajectory_id.clone(),
@@ -1365,9 +1405,17 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "decisions": focus_state.map(|fs| top_strings(&fs.decisions, 4, 160)).unwrap_or_default(),
             "constraints": focus_state.map(|fs| top_strings(&fs.constraints, 4, 180)).unwrap_or_default(),
         },
-        "next_tools": if status == "not_found" { json!(["focusa_trajectory_define_goal", "focusa_project_identity"]) } else { json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"]) },
+        "next_tools": if bootstrap_default_trajectory {
+            json!(["focusa_trajectory_define_goal", "focusa_workpoint_checkpoint", "focusa_project_identity"])
+        } else if status == "not_found" {
+            json!(["focusa_trajectory_define_goal", "focusa_project_identity"])
+        } else {
+            json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"])
+        },
         "warnings": if canonical {
             Vec::<String>::new()
+        } else if bootstrap_default_trajectory {
+            vec!["trajectory bootstrap default is advisory; define or confirm the project goal before treating it as canonical".to_string()]
         } else if using_prior_project_trajectory {
             vec!["using prior project trajectory as reload fallback; refresh short-term goal/current state when needed".to_string()]
         } else if status == "not_found" {
@@ -2021,22 +2069,51 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(payload["status"].as_str(), Some("not_found"));
-        assert_eq!(payload["trajectory"]["long_term_goal"].as_str(), None);
-        assert_eq!(payload["trajectory"]["desired_end_state"].as_str(), None);
+        assert_eq!(payload["status"].as_str(), Some("completed"));
+        assert_eq!(payload["canonical"].as_bool(), Some(false));
+        assert_eq!(
+            payload["trajectory"]["bootstrap_default"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            payload["trajectory"]["long_term_goal"].as_str(),
+            Some("Maintain and improve focusa within verified project scope")
+        );
+        assert_eq!(
+            payload["trajectory"]["desired_end_state"].as_str(),
+            Some(
+                "Verified project sessions have explicit operator-defined trajectory, Workpoint, and evidence before durable work"
+            )
+        );
         assert_eq!(
             payload["trajectory"]["short_term_goal"].as_str(),
             Some("Implement hot-path trajectory view")
         );
         assert_eq!(
             payload["intelligence_view"]["context_sufficiency"]["proceed_posture"].as_str(),
-            Some("operator_required")
+            Some("verify_first")
         );
         assert!(
             payload["intelligence_view"]["ask_operator_if"]
                 .as_array()
                 .unwrap()
-                .contains(&json!("confirm the project long-term goal"))
+                .is_empty()
+        );
+        assert!(
+            payload["next_tools"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("focusa_trajectory_define_goal"))
+        );
+        assert!(
+            payload["warnings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|warning| warning
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("bootstrap default is advisory"))
         );
         assert!(
             payload["intelligence_view"]["relevance_rationale"]
@@ -2116,9 +2193,13 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(payload["status"].as_str(), Some("not_found"));
+        assert_eq!(payload["status"].as_str(), Some("completed"));
         assert_eq!(payload["canonical"].as_bool(), Some(false));
         assert_eq!(payload["degraded"].as_bool(), Some(false));
+        assert_eq!(
+            payload["trajectory"]["bootstrap_default"].as_bool(),
+            Some(true)
+        );
         assert_eq!(
             payload["project_identity"]["status"].as_str(),
             Some("verified")
@@ -2289,9 +2370,13 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(continuity_changed["status"].as_str(), Some("not_found"));
+        assert_eq!(continuity_changed["status"].as_str(), Some("completed"));
         assert_eq!(continuity_changed["canonical"].as_bool(), Some(false));
         assert_eq!(continuity_changed["degraded"].as_bool(), Some(false));
+        assert_eq!(
+            continuity_changed["trajectory"]["bootstrap_default"].as_bool(),
+            Some(true)
+        );
         assert_eq!(
             continuity_changed["project_identity"]["mismatches"]
                 .as_array()

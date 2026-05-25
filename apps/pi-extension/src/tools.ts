@@ -2531,14 +2531,17 @@ export function registerTools(pi: ExtensionAPI) {
       const posture = String(sufficiency.proceed_posture || sufficiency.recommended_action || "unknown");
       const projectMismatches = Array.isArray(project.mismatches) ? project.mismatches : [];
       const trajectoryUnset = body.status === "not_found" && String(project.status || "") === "verified" && projectMismatches.length === 0;
-      const recovery = trajectoryUnset ? null : scopeRecoveryContext(body, projectRoot, String(p.continuity_id || S.continuityId || ""), "trajectory_view");
-      const trajectoryText = trajectoryUnset
-        ? `trajectory view → NOT SET for project=${String(project.project_root || projectRoot)}; definition=unclear; posture=${posture}; next=focusa_trajectory_define_goal`
-        : trajectory.fallback_prior_project_trajectory === true
-          ? `trajectory view → PRIOR PROJECT FALLBACK long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} short=${String(trajectory.short_term_goal || "missing")} posture=${posture}; refresh short-term goal when needed`
-          : body.canonical === true
-            ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
-            : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
+      const trajectoryBootstrapDefault = trajectory.bootstrap_default === true || trajectory.needs_definition === true;
+      const recovery = trajectoryUnset || trajectoryBootstrapDefault ? null : scopeRecoveryContext(body, projectRoot, String(p.continuity_id || S.continuityId || ""), "trajectory_view");
+      const trajectoryText = trajectoryBootstrapDefault
+        ? `trajectory view → BOOTSTRAP DEFAULT project=${String(project.project_root || projectRoot)} long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} posture=${posture}; needs=focusa_trajectory_define_goal`
+        : trajectoryUnset
+          ? `trajectory view → NOT SET for project=${String(project.project_root || projectRoot)}; definition=unclear; posture=${posture}; next=focusa_trajectory_define_goal`
+          : trajectory.fallback_prior_project_trajectory === true
+            ? `trajectory view → PRIOR PROJECT FALLBACK long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} short=${String(trajectory.short_term_goal || "missing")} posture=${posture}; refresh short-term goal when needed`
+            : body.canonical === true
+              ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
+              : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
       const text = result.ok
         ? [trajectoryText, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;

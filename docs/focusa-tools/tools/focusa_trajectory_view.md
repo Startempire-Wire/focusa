@@ -32,6 +32,7 @@ Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 - `trajectory.definition_status`.
 - high-level, mid-level, and low-level trajectory goals; desired end state; current state; short-term goal; active gap.
 - Optional `allow_prior_project_trajectory=true` returns a same-project prior trajectory as an advisory reload fallback when continuity changed; refresh short-term goal/current state as needed.
+- When ProjectIdentity is verified but no durable trajectory exists, `trajectory.bootstrap_default=true` returns an explicit noncanonical advisory goal instead of an empty/NOT SET projection; define/confirm the project goal before treating it as canonical.
 - `trajectory.similarity_group` with advisory group keys and `must_not_merge_sessions=true`.
 - `trajectory.lifecycle.clarity_gate` and `intelligence_view.clarity_gate` with `clear|provisional|unclear|conflicted` status and `proceed|verify_first|operator_input` guidance.
 - evidence refs and blockers.
@@ -47,6 +48,7 @@ Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 
 - `failure_class=scope_mismatch` or `status=degraded`: verify ProjectIdentity before trusting context.
 - Same high-level trajectory similarity is advisory only; distinct mid/low goals or continuity IDs remain separate sessions unless the caller explicitly opts into prior-project reload fallback.
+- `trajectory.bootstrap_default=true`: bootstrap projection is advisory only; use `focusa_trajectory_define_goal` or checkpoint the current explicit mission before durable work.
 - `definition_status=unclear`: define/confirm goal before proceeding.
 - `recommended_action=verify_first`: verify local evidence or Workpoint before acting.
 - `recommended_action=operator_input`: ask only for missing trajectory facts, not broad instructions.
