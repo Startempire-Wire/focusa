@@ -10,11 +10,12 @@
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
+  import WorkLoopPeek from '$lib/components/WorkLoopPeek.svelte';
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
 
-  type Tab = 'focus' | 'mission' | 'trajectory' | 'workpoint' | 'proof' | 'gate' | 'sync' | 'settings';
+  type Tab = 'focus' | 'mission' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -30,7 +31,7 @@
   async function poll() {
     try {
       const state = await fetchJson('/v1/state/dump', 5000);
-      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead] = await Promise.all([
+      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -40,6 +41,7 @@
         safe(() => postJson('/v1/workpoint/resume', {}, 5000)),
         safe(() => fetchJson('/v1/work-loop/status?summary_only=true')),
         safe(() => fetchJson('/v1/work-loop/health')),
+        safe(() => fetchJson('/v1/work-loop/checkpoints')),
         safe(() => fetchJson('/v1/telemetry/memory')),
         safe(() => fetchJson('/v1/events/recent?limit=5')),
         safe(() => fetchJson('/v1/telemetry/token-budget/status?limit=5')),
@@ -62,6 +64,7 @@
         workpointResume,
         workLoop,
         workLoopHealth,
+        workLoopCheckpoints,
         memoryTelemetry,
         ontologyContractsVersion: contracts?.version ?? null,
         ontologyContractsCount: Array.isArray(contracts?.contracts) ? contracts.contracts.length : 0,
@@ -115,6 +118,9 @@
     <button class="tab" class:active={activeTab === 'proof'} onclick={() => activeTab = 'proof'}>
       Proof
     </button>
+    <button class="tab" class:active={activeTab === 'workloop'} onclick={() => activeTab = 'workloop'}>
+      Loop
+    </button>
     <button class="tab" class:active={activeTab === 'gate'} onclick={() => activeTab = 'gate'}>
       Gate
       {#if gateStore.surfacedCount > 0}
@@ -142,6 +148,8 @@
     <WorkpointPeek />
   {:else if activeTab === 'proof'}
     <ProofPeek />
+  {:else if activeTab === 'workloop'}
+    <WorkLoopPeek />
   {:else if activeTab === 'gate'}
     <GatePanel />
   {:else if activeTab === 'sync'}

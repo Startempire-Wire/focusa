@@ -7,6 +7,7 @@ export interface RuntimeSnapshot {
   workpointResume: any | null;
   workLoop: any | null;
   workLoopHealth: any | null;
+  workLoopCheckpoints: any | null;
   memoryTelemetry: any | null;
   ontologyContractsVersion: string | null;
   ontologyContractsCount: number;
@@ -32,6 +33,7 @@ function createRuntimeStore() {
     workpointResume: null,
     workLoop: null,
     workLoopHealth: null,
+    workLoopCheckpoints: null,
     memoryTelemetry: null,
     ontologyContractsVersion: null,
     ontologyContractsCount: 0,
