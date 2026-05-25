@@ -1657,7 +1657,7 @@ export function registerTools(pi: ExtensionAPI) {
 
   function summarizeWorkpointResponse(body: any): string {
     const status = String(body?.status || "unknown");
-    const id = String(body?.workpoint_id || body?.active_workpoint_id || "none");
+    const id = String(body?.workpoint_id || body?.active_workpoint_id || body?.requested_workpoint_id || "none");
     const canonical = typeof body?.canonical === "boolean" ? String(body.canonical) : "unknown";
     const next = String(body?.next_step_hint || body?.resume_packet?.next_slice || body?.workpoint?.next_slice || "resume from typed workpoint packet");
     return `status=${status} id=${id} canonical=${canonical} next=${next}`;

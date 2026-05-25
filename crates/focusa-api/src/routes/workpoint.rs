@@ -1866,11 +1866,13 @@ async fn resume(
                 req.continuity_id.as_deref(),
             )
         });
+    let requested_workpoint_id = req.workpoint_id;
     let Some(record) = record else {
         return Ok(Json(json!({
             "status": "not_found",
             "canonical": false,
             "workpoint_id": null,
+            "requested_workpoint_id": requested_workpoint_id,
             "warnings": ["no workpoint available to resume"],
             "next_step_hint": "checkpoint the current mission/action before retrying resume"
         })));
