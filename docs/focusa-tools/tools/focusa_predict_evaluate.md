@@ -14,6 +14,8 @@ See [Predictive Power Guide](../../current/PREDICTIVE_POWER_GUIDE.md).
 
 The tool should return a visible summary plus structured details. Inspect `details.tool_result_v1` for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`. Predictions are advisory signals only; they never choose work or override operator steering.
 
+If `prediction_id` is missing, the Pi tool classifies the result as `failure_class=not_found` and routes recovery through `focusa_predict_recent` or `focusa_predict_record` instead of ambiguous retry.
+
 ## Safety
 
 - No raw provider payloads.

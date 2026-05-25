@@ -4254,7 +4254,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const { prediction_id, ...payload } = params as any;
       const res = await focusaFetchDetailed(`/predictions/${encodeURIComponent(prediction_id)}/evaluate`, { method: "POST", body: JSON.stringify(payload) });
       const body = res.body || {};
-      if (!res.ok) return blockedToolResponse("focusa_predict_evaluate", "prediction", `prediction evaluate blocked → ${explainWorkLoopResult(res, "prediction evaluation unavailable")}`, body.failure_class || (res.status === 404 ? "unknown_ambiguous_completion" : "daemon_unavailable"), body, ["focusa_predict_recent", "focusa_tool_doctor"]);
+      if (!res.ok) return blockedToolResponse("focusa_predict_evaluate", "prediction", `prediction evaluate blocked → ${explainWorkLoopResult(res, "prediction evaluation unavailable")}`, body.failure_class || (res.status === 404 ? "not_found" : "daemon_unavailable"), body, ["focusa_predict_recent", "focusa_predict_record", "focusa_tool_doctor"]);
       const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction evaluate → ${body.status || "accepted"}`, tool: "focusa_predict_evaluate", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_stats", "focusa_metacog_capture"], raw: body });
       return { content: [{ type: "text", text: `prediction evaluate → ${body.status || "accepted"}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
