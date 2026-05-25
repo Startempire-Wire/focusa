@@ -22,6 +22,7 @@ Workpoints are the current build's typed continuation contract for Focusa/Pi con
 - `canonical=true`: authoritative current Focusa state.
 - `canonical=false` or degraded fallback: bounded recovery hint only.
 - `pending`: accepted into command path but not yet safe to rely on; retry current/resume.
+- Resume rendering is read-model authoritative: if only the telemetry event dispatch is saturated, `/v1/workpoint/resume` still returns the already-rendered packet with `resume_render_dispatch_warning` instead of blocking continuation.
 
 ## Minimal CLI flow
 

@@ -12,8 +12,14 @@ WRITER_ID="${FOCUSA_DOGFOOD_WRITER_ID:-focusa-dogfood-$$}"
 RUN_SLOW="${FOCUSA_DOGFOOD_SLOW:-0}"
 RUN_MUTATING_LOOP="${FOCUSA_DOGFOOD_MUTATING_LOOP:-0}"
 TMP_DIR="$(mktemp -d /tmp/focusa-dogfood.XXXXXX)"
+LATEST_SUMMARY_PATH="${FOCUSA_DOGFOOD_LATEST_SUMMARY:-/tmp/focusa-dogfood-latest.json}"
+LATEST_REPORT_PATH="${FOCUSA_DOGFOOD_LATEST_REPORT:-/tmp/focusa-dogfood-latest.md}"
 PASSED=0
 FAILED=0
+PASS_NAMES=()
+FAIL_NAMES=()
+SKIP_NAMES=()
+BOUNDED_DEGRADED_NAMES=()
 
 cleanup() {
   if [[ "${FOCUSA_DOGFOOD_KEEP_ARTIFACTS:-0}" != "1" ]]; then
@@ -26,14 +32,67 @@ trap cleanup EXIT
 
 cd "$ROOT_DIR"
 
-pass() { echo "✓ PASS: $1"; PASSED=$((PASSED+1)); }
-fail() { echo "✗ FAIL: $1${2:+ :: $2}"; FAILED=$((FAILED+1)); }
+pass() { echo "✓ PASS: $1"; PASSED=$((PASSED+1)); PASS_NAMES+=("$1"); }
+fail() { echo "✗ FAIL: $1${2:+ :: $2}"; FAILED=$((FAILED+1)); FAIL_NAMES+=("$1${2:+ :: $2}"); }
+skip() { echo "↷ SKIP: $1${2:+ ($2)}"; SKIP_NAMES+=("$1${2:+ ($2)}"); }
+json_array() {
+  if [[ "$#" -eq 0 ]]; then echo '[]'; else printf '%s\n' "$@" | jq -R . | jq -s .; fi
+}
+write_summary_artifacts() {
+  local status="failed"
+  [[ "$FAILED" -eq 0 ]] && status="passed"
+  local pass_json fail_json skip_json degraded_json
+  pass_json="$(json_array "${PASS_NAMES[@]}")"
+  fail_json="$(json_array "${FAIL_NAMES[@]}")"
+  skip_json="$(json_array "${SKIP_NAMES[@]}")"
+  degraded_json="$(json_array "${BOUNDED_DEGRADED_NAMES[@]}")"
+  jq -n \
+    --arg schema "focusa.dogfood.summary.v1" \
+    --arg status "$status" \
+    --arg project_root "$PROJECT_ROOT" \
+    --arg continuity_id "$CONTINUITY_ID" \
+    --arg base_url "$V1" \
+    --arg artifact_dir "$TMP_DIR" \
+    --arg latest_summary "$LATEST_SUMMARY_PATH" \
+    --arg latest_report "$LATEST_REPORT_PATH" \
+    --argjson passed "$PASSED" \
+    --argjson failed "$FAILED" \
+    --argjson passes "$pass_json" \
+    --argjson failures "$fail_json" \
+    --argjson skipped "$skip_json" \
+    --argjson bounded_degraded "$degraded_json" \
+    '{schema:$schema,status:$status,passed:$passed,failed:$failed,project_root:$project_root,continuity_id:$continuity_id,base_url:$base_url,artifact_dir:$artifact_dir,latest_summary:$latest_summary,latest_report:$latest_report,passes:$passes,failures:$failures,skipped:$skipped,bounded_degraded:$bounded_degraded,evidence_capture:{target_ref:"tests/focusa_dogfood_test.sh",result:("Focusa dogfood " + $status + ": " + ($passed|tostring) + " pass, " + ($failed|tostring) + " fail; artifacts=" + $artifact_dir),evidence_ref:($artifact_dir + " + tests/focusa_dogfood_test.sh")}}' \
+    >"$TMP_DIR/summary.json"
+  {
+    echo "# Focusa Dogfood Report"
+    echo
+    echo "- status: $status"
+    echo "- passed: $PASSED"
+    echo "- failed: $FAILED"
+    echo "- artifacts: $TMP_DIR"
+    echo "- continuity_id: $CONTINUITY_ID"
+    echo "- latest_summary: $LATEST_SUMMARY_PATH"
+    echo
+    echo "## Bounded degraded gates"
+    if [[ "${#BOUNDED_DEGRADED_NAMES[@]}" -eq 0 ]]; then echo "- none"; else printf -- '- %s\n' "${BOUNDED_DEGRADED_NAMES[@]}"; fi
+    echo
+    echo "## Skipped gates"
+    if [[ "${#SKIP_NAMES[@]}" -eq 0 ]]; then echo "- none"; else printf -- '- %s\n' "${SKIP_NAMES[@]}"; fi
+    echo
+    echo "## Evidence capture"
+    echo '```json'
+    jq '.evidence_capture' "$TMP_DIR/summary.json"
+    echo '```'
+  } >"$TMP_DIR/report.md"
+  cp "$TMP_DIR/summary.json" "$LATEST_SUMMARY_PATH"
+  cp "$TMP_DIR/report.md" "$LATEST_REPORT_PATH"
+}
 
 need_cmd() {
   if command -v "$1" >/dev/null 2>&1; then pass "cmd:$1"; else fail "cmd:$1" "missing"; fi
 }
 optional_cmd() {
-  if command -v "$1" >/dev/null 2>&1; then pass "cmd:$1"; else echo "↷ SKIP: cmd:$1 (${2:-optional})"; fi
+  if command -v "$1" >/dev/null 2>&1; then pass "cmd:$1"; else skip "cmd:$1" "${2:-optional}"; fi
 }
 
 request() {
@@ -75,6 +134,7 @@ assert_cmd_or_bounded_degraded() {
   if "$@" >"$out" 2>&1; then
     pass "$name"
   elif grep -q '"status":"pending"' "$out" && grep -q '"failure_class":"resource_exhausted"' "$out" && grep -q '"retry_posture":"safe_retry"' "$out"; then
+    BOUNDED_DEGRADED_NAMES+=("$name: resource_exhausted safe_retry")
     pass "$name bounded_degraded_resource_exhausted"
   else
     fail "$name" "$(tail -c 1000 "$out" 2>/dev/null || true)"
@@ -175,7 +235,7 @@ assert_cmd_or_bounded_degraded "lowmem_surgical_agent_stress" bash tests/spec96_
 if [[ "$RUN_MUTATING_LOOP" == "1" ]]; then
   assert_cmd "focusa_tool_stress_existing" bash tests/focusa_tool_stress_test.sh
 else
-  echo "↷ SKIP: focusa_tool_stress_existing (set FOCUSA_DOGFOOD_MUTATING_LOOP=1)"
+  skip "focusa_tool_stress_existing" "set FOCUSA_DOGFOOD_MUTATING_LOOP=1"
 fi
 
 # 9. Cargo gate can be slow; opt in for local release proof.
@@ -186,12 +246,15 @@ if [[ "$RUN_SLOW" == "1" ]]; then
     fail "cargo_test_workspace" "cargo missing but FOCUSA_DOGFOOD_SLOW=1"
   fi
 else
-  echo "↷ SKIP: cargo_test_workspace (set FOCUSA_DOGFOOD_SLOW=1)"
+  skip "cargo_test_workspace" "set FOCUSA_DOGFOOD_SLOW=1"
 fi
 
 echo
 echo "=== FOCUSA DOGFOOD RESULTS ==="
+write_summary_artifacts
 echo "passed=$PASSED failed=$FAILED artifacts=$TMP_DIR"
+echo "summary=$TMP_DIR/summary.json latest=$LATEST_SUMMARY_PATH"
+echo "report=$TMP_DIR/report.md latest=$LATEST_REPORT_PATH"
 if [[ "$FAILED" -ne 0 ]]; then
   exit 1
 fi

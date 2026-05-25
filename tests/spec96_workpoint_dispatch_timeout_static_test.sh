@@ -17,4 +17,11 @@ else
   exit 1
 fi
 
+if rg -n 'resume_render_dispatch_warning|packet returned from read model to preserve continuation' "$WORKPOINT" >/dev/null; then
+  echo "✓ PASS: Workpoint resume telemetry dispatch saturation no longer blocks rendered packet"
+else
+  echo "✗ FAIL: Workpoint resume can be blocked by telemetry dispatch saturation" >&2
+  exit 1
+fi
+
 echo "SPEC96 Workpoint dispatch timeout static test: PASS"

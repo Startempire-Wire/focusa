@@ -1908,7 +1908,7 @@ async fn resume(
     );
     drop(focusa);
 
-    dispatch_event(
+    let resume_render_dispatch_warning = match dispatch_event(
         &state,
         FocusaEvent::WorkpointResumeRendered {
             workpoint_id: Some(workpoint_id),
@@ -1916,7 +1916,15 @@ async fn resume(
             rendered_summary: summary.clone(),
         },
     )
-    .await?;
+    .await
+    {
+        Ok(()) => None,
+        Err((_status, Json(body))) => Some(json!({
+            "warning": "resume render telemetry event was not enqueued; returning the already-rendered canonical packet instead of blocking continuation",
+            "dispatch_result": body,
+            "recovery": "resume packet is usable; run focusa_resource_mode or focusa_tool_doctor if telemetry dispatch remains saturated"
+        })),
+    };
 
     let tool_result = packet_v2
         .pointer("/details/tool_result_v1")
@@ -1926,6 +1934,13 @@ async fn resume(
         .get("failure_class")
         .cloned()
         .unwrap_or(Value::Null);
+    let mut warnings = mismatch_warnings;
+    if !canonical {
+        warnings.push("resume packet is non-canonical fallback because project folder/continuity context is unbound or packet is non-canonical".to_string());
+    }
+    if resume_render_dispatch_warning.is_some() {
+        warnings.push("resume render telemetry dispatch degraded; packet returned from read model to preserve continuation".to_string());
+    }
     Ok(Json(json!({
         "status": "completed",
         "schema_version": "focusa.workpoint_resume_packet.v2",
@@ -1936,7 +1951,8 @@ async fn resume(
         "resume_packet": packet,
         "resume_packet_v2": packet_v2,
         "rendered_summary": summary,
-        "warnings": if canonical { mismatch_warnings } else { let mut w = mismatch_warnings; w.push("resume packet is non-canonical fallback because project folder/continuity context is unbound or packet is non-canonical".to_string()); w },
+        "warnings": warnings,
+        "resume_render_dispatch_warning": resume_render_dispatch_warning,
         "session_continuity": session_continuity,
         "identity_confidence": identity_confidence,
         "identity_confidence_percent": identity_confidence.get("percent").and_then(Value::as_u64).unwrap_or(0),
