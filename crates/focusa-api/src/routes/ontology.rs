@@ -7266,7 +7266,31 @@ fn eval_gate_passed(eval_results: &[Value]) -> bool {
     })
 }
 
-fn memory_pipeline_payload(body: &MemoryPipelineRequest) -> Value {
+fn ontology_runtime_dir(state: &AppState, category: &str) -> PathBuf {
+    Path::new(&state.config.data_dir)
+        .join("runtime")
+        .join("ontology")
+        .join(category)
+}
+
+fn persist_ontology_artifact(
+    state: &AppState,
+    category: &str,
+    id: &str,
+    payload: &Value,
+) -> Option<String> {
+    let dir = ontology_runtime_dir(state, category);
+    let path = dir.join(format!("{id}.json"));
+    fs::create_dir_all(&dir).ok()?;
+    let bytes = serde_json::to_vec_pretty(payload).ok()?;
+    fs::write(&path, bytes).ok()?;
+    Some(path.display().to_string())
+}
+
+fn memory_pipeline_payload(
+    body: &MemoryPipelineRequest,
+    persisted_artifact: Option<Value>,
+) -> Value {
     let capped_limit = body.limit.unwrap_or(10).clamp(1, 25);
     let evidence_present = !body.evidence_refs.is_empty();
     let eval_passed = eval_gate_passed(&body.eval_results);
@@ -7337,11 +7361,48 @@ fn memory_pipeline_payload(body: &MemoryPipelineRequest) -> Value {
             "eval_results": body.eval_results.iter().take(8).cloned().collect::<Vec<_>>(),
         },
         "stages": stages,
+        "durable_artifact": persisted_artifact,
     })
 }
 
-async fn memory_pipeline(Json(body): Json<MemoryPipelineRequest>) -> Json<Value> {
-    Json(memory_pipeline_payload(&body))
+async fn memory_pipeline(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<MemoryPipelineRequest>,
+) -> Json<Value> {
+    let evidence_present = !body.evidence_refs.is_empty();
+    let eval_passed = eval_gate_passed(&body.eval_results);
+    let repeated = body.repeated_validation_count.unwrap_or(0);
+    let semantic_ready = evidence_present && eval_passed;
+    let procedural_ready = semantic_ready && repeated >= 2;
+    let artifact_id = format!(
+        "memory-pipeline-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
+    let artifact = if semantic_ready {
+        let payload = json!({
+            "schema": "focusa.ontology.memory_pipeline_artifact.v1",
+            "artifact_id": artifact_id,
+            "created_at": Utc::now().to_rfc3339(),
+            "pipeline_state": if procedural_ready { "procedural_candidate_ready" } else { "semantic_candidate_ready" },
+            "evidence_refs": body.evidence_refs.iter().take(16).cloned().collect::<Vec<_>>(),
+            "synthesis_artifacts": body.synthesis_artifacts.iter().take(16).cloned().collect::<Vec<_>>(),
+            "eval_results": body.eval_results.iter().take(16).cloned().collect::<Vec<_>>(),
+            "repeated_validation_count": repeated,
+            "canonical_truth_mutation": false,
+            "promotion_target": if procedural_ready { "procedural_playbook_candidate" } else { "semantic_metacog_candidate" },
+        });
+        persist_ontology_artifact(&state, "memory-pipeline", &artifact_id, &payload).map(|path| {
+            json!({
+                "artifact_id": artifact_id,
+                "storage_path": path,
+                "written": true,
+                "promotion_target": payload.get("promotion_target").cloned().unwrap_or(Value::Null),
+            })
+        })
+    } else {
+        None
+    };
+    Json(memory_pipeline_payload(&body, artifact))
 }
 
 fn intelligence_dashboard_payload(focusa: &FocusaState) -> Value {
@@ -7449,8 +7510,15 @@ fn ontology_failure(
     let error = error.into();
     let why = why.into();
     let next_tools_value = json!(next_tools);
-    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "scope_mismatch" | "permission_denied");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_safe = !matches!(
+        failure_class,
+        "validation_rejected" | "not_found" | "scope_mismatch" | "permission_denied"
+    );
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     (
         http_status,
         Json(json!({
@@ -9660,7 +9728,7 @@ mod tests {
             lesson_age_days: Some(40),
             limit: Some(10),
         };
-        let blocked_payload = memory_pipeline_payload(&blocked);
+        let blocked_payload = memory_pipeline_payload(&blocked, None);
         assert_eq!(
             blocked_payload["canonical_truth_mutation"].as_bool(),
             Some(false)
@@ -9686,7 +9754,10 @@ mod tests {
             lesson_age_days: Some(1),
             limit: Some(10),
         };
-        let payload = memory_pipeline_payload(&promoted);
+        let payload = memory_pipeline_payload(
+            &promoted,
+            Some(json!({"written":true,"artifact_id":"test"})),
+        );
         assert_eq!(
             payload["source"].as_str(),
             Some("ontology_memory_promotion_pipeline")
