@@ -3,8 +3,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 
-if rg -n 'check_scope_or_daemon' "$TOOLS" >/dev/null; then
-  echo "✗ FAIL: Pi tool_result fallback emits non-contract retry posture check_scope_or_daemon" >&2
+if rg -n 'check_scope_or_daemon|checkpoint_first' "$TOOLS" >/dev/null; then
+  echo "✗ FAIL: Pi tool_result fallback emits non-contract retry posture" >&2
   exit 1
 fi
 
