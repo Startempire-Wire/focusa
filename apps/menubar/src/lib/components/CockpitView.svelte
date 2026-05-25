@@ -42,7 +42,7 @@
   }
 </script>
 
-<section class="mission-grid" aria-label="Focusa mission control">
+<section class="cockpit-grid" aria-label="Focusa cockpit">
   <article class="card" class:ok={daemonOk} class:bad={!daemonOk}>
     <div class="label">DAEMON</div>
     <div class="value">{daemonOk ? 'Live' : 'Unavailable'}</div>
@@ -132,7 +132,7 @@
 </section>
 
 <style>
-  .mission-grid {
+  .cockpit-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--sp-2);

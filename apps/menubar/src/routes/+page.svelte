@@ -6,7 +6,7 @@
   import FocusView from '$lib/components/FocusView.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
-  import MissionControl from '$lib/components/MissionControl.svelte';
+  import CockpitView from '$lib/components/CockpitView.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
@@ -15,7 +15,7 @@
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
 
-  type Tab = 'focus' | 'mission' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'settings';
+  type Tab = 'focus' | 'cockpit' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -106,7 +106,7 @@
     <button class="tab primary" class:active={activeTab === 'focus'} aria-pressed={activeTab === 'focus'} title="Focus bubble" onclick={() => activeTab = 'focus'}>
       <span class="tab-mark">◌</span><span>Focus</span>
     </button>
-    <button class="tab primary" class:active={activeTab === 'mission'} aria-pressed={activeTab === 'mission'} title="Cockpit" onclick={() => activeTab = 'mission'}>
+    <button class="tab primary" class:active={activeTab === 'cockpit'} aria-pressed={activeTab === 'cockpit'} title="Cockpit" onclick={() => activeTab = 'cockpit'}>
       <span class="tab-mark">◇</span><span>Now</span>
     </button>
     <button class="tab" class:active={activeTab === 'trajectory'} aria-pressed={activeTab === 'trajectory'} title="Trajectory" onclick={() => activeTab = 'trajectory'}>
@@ -140,8 +140,8 @@
 <main class="content">
   {#if activeTab === 'focus'}
     <FocusView />
-  {:else if activeTab === 'mission'}
-    <MissionControl />
+  {:else if activeTab === 'cockpit'}
+    <CockpitView />
   {:else if activeTab === 'trajectory'}
     <TrajectoryPeek />
   {:else if activeTab === 'workpoint'}

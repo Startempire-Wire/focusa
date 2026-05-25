@@ -18,8 +18,8 @@ assert_has() {
 
 assert_has apps/menubar/src/lib/api.ts 'postJson|normalizeToolResult|isDegraded|summarizeError|DEFAULT_API_URL' 'shared menubar API client exposes runtime-cockpit helpers'
 assert_has apps/menubar/src/routes/+page.svelte '/v1/project/identity|/v1/trajectory/view\?mode=summary|/v1/workpoint/resume|/v1/work-loop/health|/v1/telemetry/memory|/v1/doctor' 'menubar poll includes current Focusa cockpit hot surfaces'
-assert_has apps/menubar/src/lib/components/MissionControl.svelte 'PROJECT|TRAJECTORY|POST /v1/workpoint/resume|GET /v1/work-loop/health|GET /v1/telemetry/memory|GET /v1/doctor' 'mission panel started cockpit surface expansion'
-assert_has apps/menubar/src/lib/components/MissionControl.svelte 'envelopeLabel|envelopeTone|evidenceCount|class:watch|class:bad|class="chip"' 'mission panel renders calm result-envelope/status chips'
+assert_has apps/menubar/src/lib/components/CockpitView.svelte 'PROJECT|TRAJECTORY|POST /v1/workpoint/resume|GET /v1/work-loop/health|GET /v1/telemetry/memory|GET /v1/doctor' 'cockpit panel includes current Focusa surfaces'
+assert_has apps/menubar/src/lib/components/CockpitView.svelte 'envelopeLabel|envelopeTone|evidenceCount|class:watch|class:bad|class="chip"' 'cockpit panel renders calm result-envelope/status chips'
 assert_has apps/menubar/src/lib/components/TrajectoryPeek.svelte 'Active gap|Long-term goal|Desired end state|Next Workpoint|Evidence refs|Checks / risks' 'trajectory peek renders current trajectory surfaces calmly'
 assert_has apps/menubar/src/routes/+page.svelte "TrajectoryPeek|activeTab === 'trajectory'" 'trajectory peek is reachable from menubar shell'
 assert_has apps/menubar/src/lib/components/WorkpointPeek.svelte 'Continuation contract|Current action|Next action|Target objects|Evidence refs|Blockers|Do not drift' 'workpoint peek renders canonical continuation surfaces calmly'
@@ -31,6 +31,9 @@ assert_has apps/menubar/src/routes/+page.svelte '/v1/work-loop/checkpoints' 'men
 assert_has apps/menubar/src/lib/components/WorkLoopPeek.svelte 'Dispatch posture|Active task|Pause flags|Recent checkpoints|writer' 'work-loop peek renders readiness and checkpoint surfaces calmly'
 assert_has apps/menubar/src/routes/+page.svelte "WorkLoopPeek|activeTab === 'workloop'" 'work-loop peek is reachable from menubar shell'
 assert_has apps/menubar/src/routes/+page.svelte 'aria-label="Focusa peeks"|tab-mark|icon-only|quiet|scrollbar-width: none' 'menubar navigation uses calm aesthetic peek tabs only where needed'
+assert_has apps/menubar/src/routes/+page.svelte "activeTab === 'cockpit'|CockpitView" 'menubar uses cockpit naming instead of mission naming'
+assert_has apps/menubar/src/lib/components/CockpitView.svelte 'cockpit-grid|Focusa cockpit' 'cockpit component naming is polished'
+assert_has apps/menubar/src/lib/components/Settings.svelte 'v0\.9\.12-dev|Direct network binding exposes Focusa' 'settings polish updates version and remote security copy'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then

@@ -170,9 +170,8 @@
       <div class="help-item">
         <div class="help-num">2</div>
         <div class="help-text">
-          <strong>Remote daemon</strong> — on your server, run:
+          <strong>Remote daemon</strong> — prefer the SSH tunnel below. Direct network binding exposes Focusa on your network and should only be used on trusted/private links:
           <code>FOCUSA_BIND=0.0.0.0:8787 focusa-daemon</code>
-          Then click "Remote…" above and enter the server IP.
         </div>
       </div>
       <div class="help-item">
@@ -188,7 +187,7 @@
 
   <!-- About -->
   <section class="section about">
-    <span>Focusa v0.9.9</span>
+    <span>Focusa v0.9.12-dev</span>
     <span>·</span>
     <span>Cognitive Governance</span>
   </section>
