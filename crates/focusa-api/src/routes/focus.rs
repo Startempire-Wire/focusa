@@ -726,9 +726,11 @@ async fn update_delta(
                 "reason": "target_frame_id_not_found",
                 "target_frame_id": target_frame_id,
                 "active_frame_id": active_frame_id,
-                "retry_posture": "refresh_scoped_frame",
+                "retry_posture": "safe_retry",
+                "retry": {"safe": true, "posture": "safe_retry", "reason": "frame_unavailable"},
                 "safe_recovery": "call /v1/focus/frame/current with continuity_id or checkpoint a fresh Workpoint/Focus frame",
-                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true}}
+                "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
+                "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true, "retry": {"safe": true, "posture": "safe_retry", "reason": "frame_unavailable"}, "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"]}}
             })));
         }
     }
