@@ -77,7 +77,7 @@ fn constitution_not_active() -> Value {
                 "degraded": true,
                 "failure_class": "not_found",
                 "summary": "No constitution version is currently active in Focusa state.",
-                "retry": {"safe": true, "posture": "safe_retry", "reason": "not_found"},
+                "retry": {"safe": false, "posture": "do_not_retry_unchanged", "reason": "not_found"},
                 "side_effects": [],
                 "evidence_refs": [],
                 "next_tools": ["focusa_tool_doctor", "focusa_traverse"],

@@ -36,7 +36,7 @@ fn training_not_found(error: impl Into<String>) -> (StatusCode, Json<Value>) {
             "recovery_hint": "List contribution queue items before approving by item_id.",
             "misuse_hint": "Likely stale item_id, wrong daemon instance, or already processed contribution.",
             "next_tools": ["focusa_tool_doctor", "focusa_traverse"],
-            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": "not_found", "summary": "contribution queue item not found", "retry": {"safe": true, "posture": "safe_retry", "reason": "not_found"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_traverse"], "error": {"code": "not_found", "message": error}}}
+            "details": {"tool_result_v1": {"ok": false, "status": "blocked", "canonical": false, "degraded": true, "failure_class": "not_found", "summary": "contribution queue item not found", "retry": {"safe": false, "posture": "do_not_retry_unchanged", "reason": "not_found"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_tool_doctor", "focusa_traverse"], "error": {"code": "not_found", "message": error}}}
         })),
     )
 }
