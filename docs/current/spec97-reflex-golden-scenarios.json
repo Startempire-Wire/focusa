@@ -1,0 +1,63 @@
+{
+  "schema": "focusa.reflex_golden_scenarios.v1",
+  "version": "spec97.reflex_golden_scenarios.v1",
+  "status": "implemented_static_eval",
+  "scenario_count": 5,
+  "scenarios": [
+    {
+      "scenario_id": "unsafe_root_identity_recovery",
+      "family": "identity",
+      "trigger": "session starts or tool writes from /root or another unsafe broad root",
+      "context_inputs": ["ProjectIdentity", "Workpoint", "Trajectory"],
+      "primitive_chain": ["reject_unsafe_root", "bind_project_root", "confirm_continuity_scope"],
+      "functional_surfaces": ["focusa_project_identity", "focusa_project_verify", "focusa_workpoint_resume", "focusa_traverse"],
+      "evidence_output": "verified ProjectIdentity or typed scope_mismatch/no-op envelope with next_tools",
+      "escalation_boundary": "multiple plausible roots or operator confirms unusual safe root",
+      "acceptance_probe": "tests/spec96_project_identity_quorum_static_test.sh"
+    },
+    {
+      "scenario_id": "compaction_resume_continuity",
+      "family": "continuity",
+      "trigger": "compaction/model switch/session resume with uncertain Workpoint",
+      "context_inputs": ["Workpoint", "Trajectory", "FocusState", "Lineage"],
+      "primitive_chain": ["checkpoint_before_compaction", "resume_from_canonical_workpoint", "hydrate_sparse_summary"],
+      "functional_surfaces": ["focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"],
+      "evidence_output": "WorkpointResumePacketV2 or explicit noncanonical recovery packet",
+      "escalation_boundary": "no canonical packet and operator ask unclear",
+      "acceptance_probe": "tests/spec96_traverse_resume_v2_golden_eval_test.sh"
+    },
+    {
+      "scenario_id": "scope_mismatch_evidence_guard",
+      "family": "recovery",
+      "trigger": "evidence link or Workpoint packet returns scope_mismatch",
+      "context_inputs": ["tool_result_v1", "ProjectIdentity", "Workpoint", "Evidence"],
+      "primitive_chain": ["diagnose_scope_mismatch", "detect_cross_project_packet", "link_file_api_test_proof"],
+      "functional_surfaces": ["focusa_project_verify", "focusa_workpoint_resume", "focusa_workpoint_link_evidence", "focusa_evidence_capture"],
+      "evidence_output": "proof preserved as evidence handle or blocked with do_not_retry_unchanged posture",
+      "escalation_boundary": "operator chooses migration or supersession",
+      "acceptance_probe": "tests/spec96_scope_recovery_feedback_static_test.sh"
+    },
+    {
+      "scenario_id": "resource_pressure_summary_recovery",
+      "family": "resource",
+      "trigger": "hot timeout, LowMem, or full payload request under pressure",
+      "context_inputs": ["ResourceMode", "Traverse", "Telemetry", "BoundedRoutes"],
+      "primitive_chain": ["resource_mode_fallback", "prefer_summary_hot_path", "gate_full_payload", "degrade_with_recovery"],
+      "functional_surfaces": ["focusa_resource_mode", "focusa_traverse", "focusa_tool_doctor"],
+      "evidence_output": "bounded degraded envelope with rehydrate refs and no official tool disappearance",
+      "escalation_boundary": "daemon unhealthy after bounded recovery",
+      "acceptance_probe": "tests/spec96_lowmem_surgical_agent_static_test.sh"
+    },
+    {
+      "scenario_id": "writer_and_citation_task_closure",
+      "family": "execution",
+      "trigger": "task completion/closure or work-loop mutation requested",
+      "context_inputs": ["WorkLoop", "Beads", "Evidence", "Policy"],
+      "primitive_chain": ["preflight_writer_ownership", "enforce_verification_before_persist", "close_task_with_citations"],
+      "functional_surfaces": ["focusa_work_loop_writer_status", "focusa_evidence_capture", "bd close", "bd sync"],
+      "evidence_output": "closed bead includes code/spec/evidence citations or remains open with missing-evidence gap",
+      "escalation_boundary": "writer conflict, destructive action, or verification impossible",
+      "acceptance_probe": "tests/spec97_reflex_golden_scenarios_static_test.sh"
+    }
+  ]
+}
