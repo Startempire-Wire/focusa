@@ -514,7 +514,7 @@ Focusa is source-available under the Focusa Business Source License 1.1 in `LICE
 
 Free use is limited to personal, educational, evaluation, and non-commercial local use. Commercial, team/company, hosted-service, client-delivery, redistribution, or product-embedding use requires a paid commercial license from Startempire Wire; see `COMMERCIAL.md`.
 
-Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`.
+Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`. Commercial support expectations are in `SUPPORT_TERMS.md`.
 
 - [focusa_predict_record](docs/focusa-tools/tools/focusa_predict_record.md)
 

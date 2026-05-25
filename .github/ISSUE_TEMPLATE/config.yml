@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Commercial licensing
+    url: https://github.com/Startempire-Wire/focusa/blob/main/COMMERCIAL.md
+    about: Commercial/team/hosted/client use requires a paid license.
+  - name: Contribution policy
+    url: https://github.com/Startempire-Wire/focusa/blob/main/CONTRIBUTING.md
+    about: External contributions require prior approval and may require a CLA.
+  - name: Support terms
+    url: https://github.com/Startempire-Wire/focusa/blob/main/SUPPORT_TERMS.md
+    about: Support expectations for evaluation and commercial use.
