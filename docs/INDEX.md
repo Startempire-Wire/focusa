@@ -145,6 +145,22 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | [76-retention-forgetting-and-decay-policy.md](76-retention-forgetting-and-decay-policy.md)                 | Retention, forgetting, and decay policy        |
 | [77-ontology-governance-versioning-and-migration.md](77-ontology-governance-versioning-and-migration.md)   | Ontology governance, versioning, and migration |
 
+## Recent Implementation / Hardening Specs
+
+| # | File | Subsystem |
+| --- | --- | --- |
+| 89 | [89-focusa-tool-suite-improvement-hardening-spec.md](89-focusa-tool-suite-improvement-hardening-spec.md) | Tool-suite hardening |
+| 90 | [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) | Ontology-backed tool contracts |
+| 91 | [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) | Live tool proof harness |
+| 92 | [92-agent-first-polish-hooks-efficiency-spec.md](92-agent-first-polish-hooks-efficiency-spec.md) | Agent-first polish, recovery, prediction |
+| 93 | [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) | Non-Pi agent awareness |
+| 94 | [94-focusa-intent-preserving-memory-rpc-optimization-sow.md](94-focusa-intent-preserving-memory-rpc-optimization-sow.md) | Intent-preserving memory/RPC optimization |
+| 95 | [95-focusa-ontology-low-latency-intelligence-enhancer-sow.md](95-focusa-ontology-low-latency-intelligence-enhancer-sow.md) | Ontology low-latency intelligence |
+| 96 | [96-trajectory-projection-and-daemon-stability-spec.md](96-trajectory-projection-and-daemon-stability-spec.md) | Trajectory projection and daemon stability |
+| 97 | [97-focusa-reflex-primitives-spec.md](97-focusa-reflex-primitives-spec.md) | Universal reflex primitives |
+
+---
+
 ## Advanced Systems
 
 | #   | File                                                                       | Subsystem                            |
