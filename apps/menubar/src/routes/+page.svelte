@@ -102,35 +102,35 @@
     <div class="status-dot" class:connected={focusStore.connected === 'connected'} class:error={focusStore.connected === 'error'}></div>
     <span class="header-title">Focusa</span>
   </div>
-  <nav class="tabs">
-    <button class="tab" class:active={activeTab === 'focus'} onclick={() => activeTab = 'focus'}>
-      Focus
+  <nav class="tabs" aria-label="Focusa peeks">
+    <button class="tab primary" class:active={activeTab === 'focus'} aria-pressed={activeTab === 'focus'} title="Focus bubble" onclick={() => activeTab = 'focus'}>
+      <span class="tab-mark">◌</span><span>Focus</span>
     </button>
-    <button class="tab" class:active={activeTab === 'mission'} onclick={() => activeTab = 'mission'}>
-      Mission
+    <button class="tab primary" class:active={activeTab === 'mission'} aria-pressed={activeTab === 'mission'} title="Cockpit" onclick={() => activeTab = 'mission'}>
+      <span class="tab-mark">◇</span><span>Now</span>
     </button>
-    <button class="tab" class:active={activeTab === 'trajectory'} onclick={() => activeTab = 'trajectory'}>
-      Traj
+    <button class="tab" class:active={activeTab === 'trajectory'} aria-pressed={activeTab === 'trajectory'} title="Trajectory" onclick={() => activeTab = 'trajectory'}>
+      <span class="tab-mark">↗</span><span>Path</span>
     </button>
-    <button class="tab" class:active={activeTab === 'workpoint'} onclick={() => activeTab = 'workpoint'}>
-      WP
+    <button class="tab" class:active={activeTab === 'workpoint'} aria-pressed={activeTab === 'workpoint'} title="Workpoint" onclick={() => activeTab = 'workpoint'}>
+      <span class="tab-mark">□</span><span>WP</span>
     </button>
-    <button class="tab" class:active={activeTab === 'proof'} onclick={() => activeTab = 'proof'}>
-      Proof
+    <button class="tab" class:active={activeTab === 'proof'} aria-pressed={activeTab === 'proof'} title="Proof" onclick={() => activeTab = 'proof'}>
+      <span class="tab-mark">✓</span><span>Proof</span>
     </button>
-    <button class="tab" class:active={activeTab === 'workloop'} onclick={() => activeTab = 'workloop'}>
-      Loop
+    <button class="tab" class:active={activeTab === 'workloop'} aria-pressed={activeTab === 'workloop'} title="Work Loop" onclick={() => activeTab = 'workloop'}>
+      <span class="tab-mark">∞</span><span>Loop</span>
     </button>
-    <button class="tab" class:active={activeTab === 'gate'} onclick={() => activeTab = 'gate'}>
-      Gate
+    <button class="tab quiet" class:active={activeTab === 'gate'} aria-pressed={activeTab === 'gate'} title="Focus Gate" onclick={() => activeTab = 'gate'}>
+      <span class="tab-mark">⌁</span><span>Gate</span>
       {#if gateStore.surfacedCount > 0}
         <span class="badge">{gateStore.surfacedCount}</span>
       {/if}
     </button>
-    <button class="tab" class:active={activeTab === 'sync'} onclick={() => activeTab = 'sync'}>
-      Sync
+    <button class="tab quiet" class:active={activeTab === 'sync'} aria-pressed={activeTab === 'sync'} title="Sync" onclick={() => activeTab = 'sync'}>
+      <span class="tab-mark">⇄</span><span>Sync</span>
     </button>
-    <button class="tab" class:active={activeTab === 'settings'} onclick={() => activeTab = 'settings'}>
+    <button class="tab icon-only quiet" class:active={activeTab === 'settings'} aria-pressed={activeTab === 'settings'} title="Settings" aria-label="Settings" onclick={() => activeTab = 'settings'}>
       ⚙
     </button>
   </nav>
@@ -197,33 +197,67 @@
 
   .tabs {
     display: flex;
-    gap: 2px;
+    align-items: center;
+    gap: 3px;
+    max-width: 245px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px;
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: var(--r-full);
+    background: color-mix(in srgb, var(--bg-elevated) 65%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
+  .tabs::-webkit-scrollbar { display: none; }
 
   .tab {
     font-family: var(--font);
-    font-size: var(--text-xs);
-    font-weight: 500;
+    font-size: 10px;
+    font-weight: 600;
     color: var(--fg-tertiary);
-    background: none;
-    border: none;
-    padding: var(--sp-1) var(--sp-2);
-    border-radius: var(--r-sm);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 4px 7px;
+    border-radius: var(--r-full);
     cursor: pointer;
-    transition: all var(--dur-fast) var(--ease);
+    transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
     display: flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+
+  .tab-mark {
+    color: var(--fg-tertiary);
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .tab.quiet:not(.active) span:not(.badge) {
+    opacity: 0.82;
+  }
+
+  .tab.icon-only {
+    width: 24px;
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .tab:hover {
     color: var(--fg-secondary);
     background: var(--bg-hover);
+    transform: translateY(-1px);
   }
 
   .tab.active {
     color: var(--fg);
-    background: var(--bg-elevated);
+    background: color-mix(in srgb, var(--accent) 16%, var(--bg-panel));
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  }
+
+  .tab.active .tab-mark {
+    color: var(--accent);
   }
 
   .badge {

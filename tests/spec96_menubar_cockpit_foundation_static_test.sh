@@ -30,6 +30,7 @@ assert_has apps/menubar/src/routes/+page.svelte "ProofPeek|activeTab === 'proof'
 assert_has apps/menubar/src/routes/+page.svelte '/v1/work-loop/checkpoints' 'menubar poll includes work-loop checkpoints surface'
 assert_has apps/menubar/src/lib/components/WorkLoopPeek.svelte 'Dispatch posture|Active task|Pause flags|Recent checkpoints|writer' 'work-loop peek renders readiness and checkpoint surfaces calmly'
 assert_has apps/menubar/src/routes/+page.svelte "WorkLoopPeek|activeTab === 'workloop'" 'work-loop peek is reachable from menubar shell'
+assert_has apps/menubar/src/routes/+page.svelte 'aria-label="Focusa peeks"|tab-mark|icon-only|quiet|scrollbar-width: none' 'menubar navigation uses calm aesthetic peek tabs only where needed'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then
