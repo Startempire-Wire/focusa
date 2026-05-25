@@ -24,4 +24,11 @@ else
   exit 1
 fi
 
+if rg -n '_ if status\.is_client_error\(\) => "validation_rejected"' "$ERR" >/dev/null; then
+  echo "✓ PASS: generic client errors use validation_rejected instead of ambiguous completion"
+else
+  echo "✗ FAIL: generic client errors still fall through to ambiguous completion" >&2
+  exit 1
+fi
+
 echo "SPEC96 API error envelope agent taxonomy static test: PASS"

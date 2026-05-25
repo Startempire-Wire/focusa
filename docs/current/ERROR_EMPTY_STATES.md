@@ -58,6 +58,8 @@ Non-JSON HTTP errors are wrapped by API middleware with:
 - `severity`
 - `correlation_id`
 
+Generic 4xx client errors classify as `validation_rejected` with request-correction recovery; `unknown_ambiguous_completion` is reserved for outcomes where side effects cannot be proven.
+
 ## Empty states
 
 ### No active Workpoint
