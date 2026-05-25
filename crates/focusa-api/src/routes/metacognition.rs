@@ -503,7 +503,9 @@ async fn capture(
     let index_entry = capture_index_entry(&rec);
     append_capture_index_entry(&state, &index_entry);
 
-    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut s = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     s.captures.push(rec);
     s.capture_hot_index.push(index_entry);
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
@@ -570,7 +572,9 @@ async fn retrieve(
     let cfg = metacog_store_config(&state.config);
     let now = Utc::now();
     let (in_memory_records, in_memory_index) = {
-        let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if s.capture_hot_index.is_empty() && !s.captures.is_empty() {
             s.capture_hot_index = rebuild_capture_hot_index(&s.captures, cfg, now);
         }
@@ -756,7 +760,9 @@ async fn reflect(
         &json!(rec),
     );
 
-    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut s = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     s.reflections.push(rec.clone());
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
@@ -783,7 +789,9 @@ async fn adjust(
     require_scope(&headers, &state, "metacognition:write")?;
 
     let in_mem_exists = {
-        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         s.reflections
             .iter()
             .any(|r| r.reflection_id == body.reflection_id)
@@ -817,7 +825,9 @@ async fn adjust(
         &metacog_record_path(&state, "adjustments", &adjustment_id),
         &json!(rec),
     );
-    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut s = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     s.adjustments.push(rec.clone());
     prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
 
@@ -847,7 +857,9 @@ async fn evaluate(
     require_scope(&headers, &state, "metacognition:write")?;
 
     let in_mem_exists = {
-        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         s.adjustments
             .iter()
             .any(|a| a.adjustment_id == body.adjustment_id)
@@ -882,9 +894,53 @@ async fn evaluate(
         &metacog_record_path(&state, "evaluations", &evaluation_id),
         &json!(rec),
     );
-    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+
+    let promoted_capture = if rec.promote_learning {
+        let capture_id = format!("promoted-{}", now.timestamp_nanos_opt().unwrap_or_default());
+        let capture_storage_path = metacog_record_path(&state, "captures", &capture_id)
+            .display()
+            .to_string();
+        let capture = CaptureRecord {
+            capture_id: capture_id.clone(),
+            created_at: now,
+            kind: "promoted_learning".to_string(),
+            content: format!(
+                "Promoted adjustment {} after observed metrics: {}",
+                rec.adjustment_id,
+                rec.observed_metrics.join(", ")
+            ),
+            rationale: Some(format!(
+                "Evaluation {} marked result={} with promote_learning=true",
+                rec.evaluation_id, rec.result
+            )),
+            confidence: Some(1.0),
+            strategy_class: Some("metacognition_evaluation".to_string()),
+            storage_path: capture_storage_path,
+        };
+        persist_json_record(
+            &metacog_record_path(&state, "captures", &capture_id),
+            &json!(capture),
+        );
+        let index_entry = capture_index_entry(&capture);
+        append_capture_index_entry(&state, &index_entry);
+        Some((capture, index_entry))
+    } else {
+        None
+    };
+
+    let mut s = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     s.evaluations.push(rec.clone());
+    if let Some((capture, index_entry)) = promoted_capture.clone() {
+        s.captures.push(capture);
+        s.capture_hot_index.push(index_entry);
+    }
     prune_metacog_store(&mut s, now, metacog_store_config(&state.config));
+
+    let promoted_capture_id = promoted_capture
+        .as_ref()
+        .map(|(capture, _)| capture.capture_id.clone());
 
     Ok(Json(json!({
         "evaluation_id": evaluation_id,
@@ -894,8 +950,9 @@ async fn evaluate(
         },
         "result": rec.result,
         "promote_learning": rec.promote_learning,
+        "promoted_capture_id": promoted_capture_id,
         "storage_path": storage_path,
-        "next_step_hint": if rec.promote_learning { "promote or reuse the evaluated learning signal" } else { "collect observed_metrics before promoting this learning signal" }
+        "next_step_hint": if rec.promote_learning { "promoted learning was written back into metacognition retrieval memory" } else { "collect observed_metrics before promoting this learning signal" }
     })))
 }
 
@@ -913,7 +970,9 @@ async fn metacog_status(
     let cfg = metacog_store_config(&state.config);
     let disk_captures = load_capture_records_from_disk(&state);
     let disk_evaluations = load_evaluation_records_from_disk(&state);
-    let mut s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut s = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let mut by_id: HashMap<String, CaptureRecord> = HashMap::new();
     for rec in disk_captures {
         by_id.insert(rec.capture_id.clone(), rec);
@@ -969,7 +1028,9 @@ async fn get_capture(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:read")?;
     let in_mem = {
-        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         s.captures
             .iter()
             .find(|rec| rec.capture_id == capture_id)
@@ -1006,7 +1067,9 @@ async fn recent_reflections(
 
     let mut by_id: HashMap<String, ReflectionRecord> = HashMap::new();
     {
-        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.reflections {
             by_id.insert(rec.reflection_id.clone(), rec.clone());
         }
@@ -1060,7 +1123,9 @@ async fn recent_adjustments(
 
     let mut by_id: HashMap<String, AdjustmentRecord> = HashMap::new();
     {
-        let s = store().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         for rec in &s.adjustments {
             by_id.insert(rec.adjustment_id.clone(), rec.clone());
         }
