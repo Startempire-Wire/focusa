@@ -333,6 +333,9 @@ echo "Tests passed: ${PASSED}"
 echo "Tests failed: ${FAILED}"
 echo ""
 
+curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"pi-extension-contract-complete"}' >/dev/null || true
+
 if [ $FAILED -eq 0 ]; then
   echo -e "${GREEN}All strict Pi extension contract checks passed${NC}"
   exit 0
