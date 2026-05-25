@@ -74,7 +74,8 @@ fn severity(status: StatusCode) -> &'static str {
 
 fn failure_class(status: StatusCode) -> &'static str {
     match status {
-        StatusCode::NOT_FOUND | StatusCode::METHOD_NOT_ALLOWED => "unknown_ambiguous_completion",
+        StatusCode::NOT_FOUND => "not_found",
+        StatusCode::METHOD_NOT_ALLOWED => "validation_rejected",
         StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => "permission_denied",
         StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => "daemon_unavailable",
         StatusCode::UNPROCESSABLE_ENTITY | StatusCode::BAD_REQUEST => "validation_rejected",
@@ -117,6 +118,8 @@ fn next_tools(status: StatusCode) -> Vec<&'static str> {
 }
 
 pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
+    let request_method = req.method().as_str().to_string();
+    let request_path = req.uri().path().to_string();
     let incoming_corr = req
         .headers()
         .get("x-correlation-id")
@@ -158,6 +161,7 @@ pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
         "message": status_message(status),
         "what_failed": status_message(status),
         "likely_why": status.canonical_reason().unwrap_or("unknown"),
+        "request": {"method": request_method, "path": request_path},
         "safe_recovery": recovery_command(status),
         "recovery_hint": recovery_hint,
         "misuse_hint": misuse_hint,
@@ -170,6 +174,8 @@ pub async fn error_envelope_layer(req: Request, next: Next) -> Response {
         "details": {
             "http_status": status.as_u16(),
             "reason": status.canonical_reason().unwrap_or("unknown"),
+            "request_method": request_method,
+            "request_path": request_path,
             "tool_result_v1": {
                 "ok": false,
                 "status": "blocked",
