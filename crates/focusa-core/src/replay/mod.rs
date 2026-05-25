@@ -355,20 +355,30 @@ pub fn export_from_replay(
     Ok(examples)
 }
 
-fn extract_sft_example(_before: &FocusaState, after: &FocusaState) -> Option<serde_json::Value> {
-    // Extract turn completion for SFT
-    // In a real implementation, this would look at the active_turn
-    // and frame state to build a training example
+fn extract_sft_example(before: &FocusaState, after: &FocusaState) -> Option<serde_json::Value> {
+    let turn = before.active_turn.as_ref()?;
+    let instruction = turn.raw_user_input.as_deref()?.trim();
+    if instruction.is_empty() {
+        return None;
+    }
+    let assistant_node = after.clt.nodes.iter().rev().find_map(|node| match &node.payload {
+        CltPayload::Interaction { role, content_ref } if role == "assistant" => {
+            content_ref.as_deref().map(str::trim).filter(|s| !s.is_empty())
+        }
+        _ => None,
+    })?;
 
-    after.active_turn.as_ref().map(|_turn| {
-        serde_json::json!({
-            "instruction": "placeholder - would extract from turn",
-            "response": "placeholder - would extract from assistant_output",
-            "metadata": {
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-            }
-        })
-    })
+    Some(serde_json::json!({
+        "instruction": instruction,
+        "response": assistant_node,
+        "metadata": {
+            "turn_id": turn.turn_id,
+            "adapter_id": turn.adapter_id,
+            "harness_name": turn.harness_name,
+            "started_at": turn.started_at,
+            "clt_head": after.clt.head_id,
+        }
+    }))
 }
 
 fn extract_preference_example(
@@ -744,6 +754,50 @@ mod tests {
         for rule in &state.memory.procedural {
             assert!(rule.weight < 100.0); // Should be decayed
         }
+    }
+
+    #[test]
+    fn test_export_sft_uses_real_turn_and_clt_content() {
+        let mut before = FocusaState::default();
+        before = reducer::reduce(
+            before,
+            FocusaEvent::TurnStarted {
+                turn_id: "turn-replay-1".to_string(),
+                harness_name: "pi".to_string(),
+                adapter_id: "adapter".to_string(),
+                raw_user_input: Some("Summarize the active Workpoint".to_string()),
+            },
+        )
+        .unwrap()
+        .new_state;
+        let after = reducer::reduce(
+            before.clone(),
+            FocusaEvent::TurnCompleted {
+                turn_id: "turn-replay-1".to_string(),
+                harness_name: "pi".to_string(),
+                raw_user_input: Some("Summarize the active Workpoint".to_string()),
+                assistant_output: Some("Active Workpoint is ready for resume.".to_string()),
+                artifacts_used: vec![],
+                errors: vec![],
+                prompt_tokens: None,
+                completion_tokens: None,
+            },
+        )
+        .unwrap()
+        .new_state;
+        let result = ReplayResult {
+            initial_state: FocusaState::default(),
+            final_state: after.clone(),
+            states: vec![(Utc::now(), before), (Utc::now(), after)],
+            events_replayed: 2,
+            errors: vec![],
+        };
+
+        let examples = export_from_replay(&result, "sft").unwrap();
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0]["instruction"], "Summarize the active Workpoint");
+        assert_eq!(examples[0]["response"], "Active Workpoint is ready for resume.");
+        assert_eq!(examples[0]["metadata"]["turn_id"], "turn-replay-1");
     }
 
     // SMOKE TEST: Export dataset families
