@@ -60,6 +60,11 @@ pub enum MetacognitionCmd {
         #[arg(long, default_value_t = 5)]
         limit: u32,
     },
+    /// List recent evaluation packets.
+    RecentEvaluations {
+        #[arg(long, default_value_t = 5)]
+        limit: u32,
+    },
     /// Compound metacognition workflows.
     #[command(subcommand)]
     Loop(MetacognitionLoopCmd),
@@ -266,9 +271,15 @@ async fn run_loop(api: &ApiClient, json_mode: bool, args: LoopRunArgs) -> anyhow
         );
         println!(
             "  capture={} reflection={} adjustment={}",
-            result["capture"]["capture_id"].as_str().unwrap_or("unknown"),
-            result["reflect"]["reflection_id"].as_str().unwrap_or("unknown"),
-            result["adjust"]["adjustment_id"].as_str().unwrap_or("unknown")
+            result["capture"]["capture_id"]
+                .as_str()
+                .unwrap_or("unknown"),
+            result["reflect"]["reflection_id"]
+                .as_str()
+                .unwrap_or("unknown"),
+            result["adjust"]["adjustment_id"]
+                .as_str()
+                .unwrap_or("unknown")
         );
         println!(
             "  retrieved_candidates={} selected_updates={}",
@@ -311,7 +322,9 @@ async fn run_promote(
             .await?;
         let id = require_non_empty(
             "adjustment_id",
-            created_adjustment["adjustment_id"].as_str().unwrap_or_default(),
+            created_adjustment["adjustment_id"]
+                .as_str()
+                .unwrap_or_default(),
         )?;
         adjustment = Some(created_adjustment);
         id
@@ -345,9 +358,13 @@ async fn run_promote(
         );
         println!(
             "  adjustment={} result={} promote={}",
-            result["adjustment"]["adjustment_id"].as_str().unwrap_or("unknown"),
+            result["adjustment"]["adjustment_id"]
+                .as_str()
+                .unwrap_or("unknown"),
             result["evaluation"]["result"].as_str().unwrap_or("unknown"),
-            result["evaluation"]["promote_learning"].as_bool().unwrap_or(false)
+            result["evaluation"]["promote_learning"]
+                .as_bool()
+                .unwrap_or(false)
         );
     }
 
@@ -419,7 +436,9 @@ async fn run_doctor(
     } else {
         println!(
             "metacognition doctor: candidates={} avg_confidence={}",
-            result["diagnostics"]["candidate_count"].as_u64().unwrap_or(0),
+            result["diagnostics"]["candidate_count"]
+                .as_u64()
+                .unwrap_or(0),
             result["diagnostics"]["avg_confidence"]
                 .as_f64()
                 .map(|v| format!("{v:.2}"))
@@ -427,9 +446,15 @@ async fn run_doctor(
         );
         println!(
             "  with_confidence={} without_confidence={} truncated={}",
-            result["diagnostics"]["with_confidence"].as_u64().unwrap_or(0),
-            result["diagnostics"]["without_confidence"].as_u64().unwrap_or(0),
-            result["diagnostics"]["truncated"].as_bool().unwrap_or(false)
+            result["diagnostics"]["with_confidence"]
+                .as_u64()
+                .unwrap_or(0),
+            result["diagnostics"]["without_confidence"]
+                .as_u64()
+                .unwrap_or(0),
+            result["diagnostics"]["truncated"]
+                .as_bool()
+                .unwrap_or(false)
         );
     }
 
@@ -462,7 +487,10 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 print_json(&resp)?;
             } else {
-                println!("metacognition capture: {}", resp["capture_id"].as_str().unwrap_or("ok"));
+                println!(
+                    "metacognition capture: {}",
+                    resp["capture_id"].as_str().unwrap_or("ok")
+                );
             }
         }
         MetacognitionCmd::Retrieve {
@@ -505,7 +533,10 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 print_json(&resp)?;
             } else {
-                println!("metacognition reflect: {}", resp["reflection_id"].as_str().unwrap_or("ok"));
+                println!(
+                    "metacognition reflect: {}",
+                    resp["reflection_id"].as_str().unwrap_or("ok")
+                );
             }
         }
         MetacognitionCmd::Adjust {
@@ -524,7 +555,10 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 print_json(&resp)?;
             } else {
-                println!("metacognition adjust: {}", resp["adjustment_id"].as_str().unwrap_or("ok"));
+                println!(
+                    "metacognition adjust: {}",
+                    resp["adjustment_id"].as_str().unwrap_or("ok")
+                );
             }
         }
         MetacognitionCmd::Evaluate {
@@ -552,27 +586,55 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
         }
         MetacognitionCmd::RecentReflections { limit } => {
             let resp = api
-                .get(&format!("/v1/metacognition/reflections/recent?limit={limit}"))
+                .get(&format!(
+                    "/v1/metacognition/reflections/recent?limit={limit}"
+                ))
                 .await?;
             if json_mode {
                 print_json(&resp)?;
             } else {
                 println!(
                     "metacognition recent-reflections: count={}",
-                    resp["reflections"].as_array().map(|items| items.len()).unwrap_or(0)
+                    resp["reflections"]
+                        .as_array()
+                        .map(|items| items.len())
+                        .unwrap_or(0)
                 );
             }
         }
         MetacognitionCmd::RecentAdjustments { limit } => {
             let resp = api
-                .get(&format!("/v1/metacognition/adjustments/recent?limit={limit}"))
+                .get(&format!(
+                    "/v1/metacognition/adjustments/recent?limit={limit}"
+                ))
                 .await?;
             if json_mode {
                 print_json(&resp)?;
             } else {
                 println!(
                     "metacognition recent-adjustments: count={}",
-                    resp["adjustments"].as_array().map(|items| items.len()).unwrap_or(0)
+                    resp["adjustments"]
+                        .as_array()
+                        .map(|items| items.len())
+                        .unwrap_or(0)
+                );
+            }
+        }
+        MetacognitionCmd::RecentEvaluations { limit } => {
+            let resp = api
+                .get(&format!(
+                    "/v1/metacognition/evaluations/recent?limit={limit}"
+                ))
+                .await?;
+            if json_mode {
+                print_json(&resp)?;
+            } else {
+                println!(
+                    "metacognition recent-evaluations: count={}",
+                    resp["evaluations"]
+                        .as_array()
+                        .map(|items| items.len())
+                        .unwrap_or(0)
                 );
             }
         }

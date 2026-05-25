@@ -1114,6 +1114,64 @@ async fn recent_reflections(
     })))
 }
 
+async fn recent_evaluations(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<RecentMetacogQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    require_scope(&headers, &state, "metacognition:read")?;
+
+    let mut by_id: HashMap<String, EvaluationRecord> = HashMap::new();
+    {
+        let s = store()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        for rec in &s.evaluations {
+            by_id.insert(rec.evaluation_id.clone(), rec.clone());
+        }
+    }
+    for rec in load_evaluation_records_from_disk(&state) {
+        by_id.entry(rec.evaluation_id.clone()).or_insert(rec);
+    }
+
+    let limit = budgeted_requested_limit(
+        query.limit,
+        recent_artifacts_default_limit(),
+        recent_artifacts_hard_limit(),
+    );
+    let total = by_id.len();
+    let cursor = query.cursor.unwrap_or(0).min(total);
+    let mut items = by_id.into_values().collect::<Vec<_>>();
+    items.sort_by_key(|r| std::cmp::Reverse(r.created_at));
+    let window = items
+        .into_iter()
+        .skip(cursor)
+        .take(limit)
+        .collect::<Vec<_>>();
+    let next_cursor = (cursor + window.len() < total).then(|| (cursor + window.len()).to_string());
+
+    Ok(Json(json!({
+        "status": "ok",
+        "total": total,
+        "returned": window.len(),
+        "limit": limit,
+        "cursor": cursor,
+        "next_cursor": next_cursor,
+        "truncated": next_cursor.is_some() || cursor > 0,
+        "metadata": {"summary_only": true, "cursor": cursor, "limit": limit, "next_cursor": next_cursor},
+        "rehydrate": {"route": "/v1/metacognition/evaluations/recent", "include_full_record": true},
+        "evaluations": window.into_iter().map(|rec| json!({
+            "evaluation_id": rec.evaluation_id,
+            "adjustment_id": rec.adjustment_id,
+            "created_at": rec.created_at,
+            "result": rec.result,
+            "promote_learning": rec.promote_learning,
+            "observed_metrics": rec.observed_metrics,
+            "storage_path": rec.storage_path,
+        })).collect::<Vec<_>>()
+    })))
+}
+
 async fn recent_adjustments(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1184,6 +1242,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/v1/metacognition/adjustments/recent",
             get(recent_adjustments),
+        )
+        .route(
+            "/v1/metacognition/evaluations/recent",
+            get(recent_evaluations),
         )
         .route("/v1/metacognition/evaluate", post(evaluate))
 }

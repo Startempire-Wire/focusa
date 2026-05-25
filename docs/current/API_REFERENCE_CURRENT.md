@@ -160,6 +160,7 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `GET /v1/metacognition/reflections/recent`
 - `POST /v1/metacognition/adjust`
 - `GET /v1/metacognition/adjustments/recent`
+- `GET /v1/metacognition/evaluations/recent`
 - `POST /v1/metacognition/evaluate`
 
 ### ontology
