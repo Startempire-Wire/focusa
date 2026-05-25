@@ -164,6 +164,8 @@ fn work_loop_failure(
     let next_tools = json!(["focusa_work_loop_writer_status", "focusa_work_loop_status", "focusa_tool_doctor"]);
     let recovery_hint = "Check writer/status first, then retry the work-loop mutation only if dispatch health and writer ownership are clear.";
     let misuse_hint = "Likely daemon command channel, writer ownership, Pi RPC dependency, or out-of-order work-loop mutation issue.";
+    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "permission_denied" | "writer_conflict" | "approval_required");
+    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
     (
         http_status,
         Json(json!({
@@ -182,7 +184,7 @@ fn work_loop_failure(
                     "canonical": false,
                     "degraded": true,
                     "summary": format!("work-loop {action} blocked"),
-                    "retry": {"safe": true, "posture": "safe_retry", "reason": failure_class},
+                    "retry": {"safe": retry_safe, "posture": retry_posture, "reason": failure_class},
                     "recovery_hint": recovery_hint,
                     "misuse_hint": misuse_hint,
                     "side_effects": [],
