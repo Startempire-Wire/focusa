@@ -513,7 +513,13 @@ async fn call_reflection_llm(
         tracing::debug!("Reflection LLM: bypass (test mode or no key)");
         return (vec![], vec![], vec![], None, false);
     }
-    let api_key = std::env::var("MINIMAX_API_KEY").unwrap();
+    let api_key = match std::env::var("MINIMAX_API_KEY") {
+        Ok(key) if !key.is_empty() => key,
+        _ => {
+            tracing::debug!("Reflection LLM: bypass (API key unavailable after precheck)");
+            return (vec![], vec![], vec![], None, false);
+        }
+    };
 
     let prompt = format!(
         r#"You are Focusa's reflection engine. Analyze the current cognitive state and recent activity.
