@@ -41,6 +41,7 @@ assert_has docs/current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md 'Implemented in the
 assert_has docs/current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md '✅ Implemented|Partial: read-only Trajectory peek implemented|Read-only Work Loop peek implemented' 'up-to-speed spec tracks implemented vs remaining slices'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 assert_has apps/menubar/package.json '"@sveltejs/vite-plugin-svelte": "\^5\.0\.0"' 'menubar npm parity uses Vite-6-compatible Svelte plugin'
+assert_has apps/menubar/src-tauri/tauri.conf.json '"beforeBuildCommand": "npm run build"' 'Tauri package proof uses npm build command available in CI'
 assert_has .github/workflows/ci.yml 'name: Menubar|npm run tauri build -- --bundles app|Validate macOS bundle|apps/menubar/package-lock.json' 'root CI owns menubar npm and Tauri package proof'
 assert_has docs/current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md 'npm ci.*resolved|wirebot.*no accessible.*cargo|root-only.*/root/.cargo/bin/cargo' 'menubar packaging gaps distinguish resolved npm parity from Cargo blocker'
 

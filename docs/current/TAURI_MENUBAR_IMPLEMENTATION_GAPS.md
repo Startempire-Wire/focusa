@@ -21,7 +21,7 @@
 
 - `npm ci` parity is now resolved by upgrading `@sveltejs/vite-plugin-svelte` to `^5.0.0`; npm and Bun check/build paths both pass.
 - Tauri config still uses `csp: null`; security posture needs a compatibility pass.
-- Full Tauri packaging is owned by root GitHub Actions CI via the root `.github/workflows/ci.yml` Menubar job; local server packaging is optional and may be blocked when `wirebot` has no accessible `cargo`.
+- Full Tauri packaging is owned by root GitHub Actions CI via the root `.github/workflows/ci.yml` Menubar job; Tauri uses npm build commands so CI does not require Bun.
 
 ## Remaining Phase 1 gaps — ambient cockpit MVP
 
