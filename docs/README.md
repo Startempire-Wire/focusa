@@ -77,10 +77,10 @@ This allows agents to improve **without identity drift**.
 - Control agents explicitly
 
 ### Menubar GUI
-- Visualize focus and autonomy
-- Inspect evidence and calibration
-- Adjust preferences via sliders
-- Review CS suggestions visually
+- Current audit: [`current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
+- Up-to-speed spec: [`current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)
+- Target role: compact runtime cockpit for project identity, trajectory, canonical Workpoints, evidence, predictions, metacognition, lineage, work-loop readiness, and health.
+- Older GUI docs are design direction unless reconciled with the current audit/spec.
 
 ---
 
