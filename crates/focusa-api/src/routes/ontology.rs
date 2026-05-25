@@ -8,6 +8,7 @@ use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, env_limit, full_payload_blocked_by_pressure,
     pressure_status, record_json_response_size,
 };
+use crate::routes::predictions::{read_predictions, write_predictions};
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -7287,6 +7288,30 @@ fn persist_ontology_artifact(
     Some(path.display().to_string())
 }
 
+fn record_memory_pipeline_prediction(
+    artifact: &Value,
+    evidence_refs: &[String],
+    procedural_ready: bool,
+) -> Option<String> {
+    let prediction_id = Uuid::now_v7().to_string();
+    let payload = json!({
+        "prediction_id": prediction_id,
+        "prediction_type": "ontology_memory_pipeline_promotion",
+        "predicted_outcome": if procedural_ready { "procedural candidate will improve repeated recovery" } else { "semantic candidate will improve future retrieval" },
+        "confidence": if procedural_ready { 0.82 } else { 0.72 },
+        "recommended_action": if procedural_ready { "evaluate procedural playbook candidate after next repeated use" } else { "retrieve promoted semantic candidate in the next related task" },
+        "why": "Ontology memory pipeline passed evidence/evaluation gates and persisted a promotion artifact.",
+        "context_refs": evidence_refs.iter().take(8).cloned().collect::<Vec<_>>(),
+        "artifact_ref": artifact.get("artifact_id").cloned().unwrap_or(Value::Null),
+        "created_at": Utc::now().to_rfc3339(),
+        "source": "ontology_memory_pipeline",
+    });
+    let mut predictions = read_predictions();
+    predictions.push(payload);
+    write_predictions(predictions).ok()?;
+    Some(prediction_id)
+}
+
 fn memory_pipeline_payload(
     body: &MemoryPipelineRequest,
     persisted_artifact: Option<Value>,
@@ -7378,6 +7403,7 @@ async fn memory_pipeline(
         "memory-pipeline-{}",
         Utc::now().timestamp_nanos_opt().unwrap_or_default()
     );
+    let mut prediction_record_id = None;
     let artifact = if semantic_ready {
         let payload = json!({
             "schema": "focusa.ontology.memory_pipeline_artifact.v1",
@@ -7392,17 +7418,29 @@ async fn memory_pipeline(
             "promotion_target": if procedural_ready { "procedural_playbook_candidate" } else { "semantic_metacog_candidate" },
         });
         persist_ontology_artifact(&state, "memory-pipeline", &artifact_id, &payload).map(|path| {
-            json!({
+            let artifact = json!({
                 "artifact_id": artifact_id,
                 "storage_path": path,
                 "written": true,
                 "promotion_target": payload.get("promotion_target").cloned().unwrap_or(Value::Null),
-            })
+            });
+            prediction_record_id =
+                record_memory_pipeline_prediction(&artifact, &body.evidence_refs, procedural_ready);
+            artifact
         })
     } else {
         None
     };
-    Json(memory_pipeline_payload(&body, artifact))
+    let mut payload = memory_pipeline_payload(&body, artifact);
+    if let Some(object) = payload.as_object_mut() {
+        object.insert(
+            "prediction_record".to_string(),
+            prediction_record_id
+                .map(|prediction_id| json!({"prediction_id": prediction_id, "written": true}))
+                .unwrap_or(Value::Null),
+        );
+    }
+    Json(payload)
 }
 
 fn intelligence_dashboard_payload(focusa: &FocusaState) -> Value {

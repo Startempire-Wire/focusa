@@ -161,11 +161,26 @@ fn work_loop_failure(
     failure_class: &str,
     why: String,
 ) -> (StatusCode, Json<Value>) {
-    let next_tools = json!(["focusa_work_loop_writer_status", "focusa_work_loop_status", "focusa_tool_doctor"]);
+    let next_tools = json!([
+        "focusa_work_loop_writer_status",
+        "focusa_work_loop_status",
+        "focusa_tool_doctor"
+    ]);
     let recovery_hint = "Check writer/status first, then retry the work-loop mutation only if dispatch health and writer ownership are clear.";
     let misuse_hint = "Likely daemon command channel, writer ownership, Pi RPC dependency, or out-of-order work-loop mutation issue.";
-    let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found" | "permission_denied" | "writer_conflict" | "approval_required");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_safe = !matches!(
+        failure_class,
+        "validation_rejected"
+            | "not_found"
+            | "permission_denied"
+            | "writer_conflict"
+            | "approval_required"
+    );
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     (
         http_status,
         Json(json!({
@@ -197,7 +212,10 @@ fn work_loop_failure(
     )
 }
 
-fn work_loop_dispatch_failed(action: &str, err: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
+fn work_loop_dispatch_failed(
+    action: &str,
+    err: impl std::fmt::Display,
+) -> (StatusCode, Json<Value>) {
     work_loop_failure(
         StatusCode::SERVICE_UNAVAILABLE,
         action,
@@ -211,7 +229,9 @@ fn work_loop_dispatch_timeout(action: &str) -> (StatusCode, Json<Value>) {
         StatusCode::ACCEPTED,
         action,
         "resource_exhausted",
-        format!("work-loop dispatch timed out before enqueue for {action}; command backlog may be saturated"),
+        format!(
+            "work-loop dispatch timed out before enqueue for {action}; command backlog may be saturated"
+        ),
     )
 }
 
@@ -807,9 +827,7 @@ async fn maybe_auto_advance_from_blocked(
             parent_work_item_id,
         })
         .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
 
     let _ = state
         .command_tx
@@ -945,9 +963,7 @@ async fn maybe_select_global_ready_work_item(
             },
         })
         .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
 
     sleep(Duration::from_millis(120)).await;
     Ok(true)
@@ -1027,9 +1043,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                         reason: "re-selected work after unassigned turn state".to_string(),
                     })
                     .await
-                    .map_err(|e| {
-                        work_loop_dispatch_failed("work_loop_dispatch", e)
-                    })?;
+                    .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
 
                 let prompt =
                     render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
@@ -1117,9 +1131,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
             reason: reason.to_string(),
         })
         .await
-        .map_err(|e| {
-            work_loop_dispatch_failed("work_loop_dispatch", e)
-        })?;
+        .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
 
     let prompt = render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
     dispatch_pi_prompt(state, prompt).await?;
@@ -1873,6 +1885,13 @@ async fn health(
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
     let active_writer = state.active_writer.read().await.clone();
+    let boundary_reason = continuation_boundary_reason(wl);
+    let dispatch_ready = wl.enabled
+        && boundary_reason.is_none()
+        && !wl.pause_flags.operator_override_active
+        && !wl.pause_flags.destructive_confirmation_required
+        && !wl.pause_flags.governance_decision_pending
+        && wl.status != focusa_core::types::WorkLoopStatus::TransportDegraded;
     let payload = json!({
         "status": "ok",
         "route_tier": "hot",
@@ -1883,6 +1902,13 @@ async fn health(
         "current_task_id": wl.current_task.as_ref().map(|task| task.work_item_id.clone()),
         "last_completed_task_id": wl.last_completed_task_id,
         "active_writer": active_writer,
+        "dispatch_readiness": {
+            "ready": dispatch_ready,
+            "boundary_reason": boundary_reason,
+            "transport_status": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded { "degraded" } else { "healthy" },
+            "pause_flags": wl.pause_flags,
+            "next_step": if dispatch_ready { "dispatch may proceed via work-loop control or heartbeat" } else { "inspect writer/status/deep before dispatching or retrying" },
+        },
         "deep_status_route": "/v1/work-loop/status/deep",
         "cold_omitted": [
             "policy", "run", "blocker_package", "secondary_loop_eval_artifacts",
@@ -2470,9 +2496,7 @@ async fn start_pi_driver(
         cmd.current_dir(cwd);
     }
 
-    let mut child = cmd.spawn().map_err(|e| {
-        work_loop_pi_spawn_failed(e)
-    })?;
+    let mut child = cmd.spawn().map_err(|e| work_loop_pi_spawn_failed(e))?;
     let stdin = child
         .stdin
         .take()
@@ -2794,12 +2818,9 @@ async fn ingest_transport_event(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    let _guard = tokio::time::timeout(
-        Duration::from_millis(1500),
-        state.write_serial_lock.lock(),
-    )
-    .await
-    .map_err(|_| work_loop_dispatch_timeout("work_loop_ingest_transport_lock"))?;
+    let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
+        .await
+        .map_err(|_| work_loop_dispatch_timeout("work_loop_ingest_transport_lock"))?;
     send_work_loop_action(
         &state,
         "work_loop_ingest_transport",

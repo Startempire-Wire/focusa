@@ -48,7 +48,7 @@ fn store_path() -> PathBuf {
         .join("data/spec92_predictions.json")
 }
 
-fn read_predictions() -> Vec<Value> {
+pub(crate) fn read_predictions() -> Vec<Value> {
     let path = store_path();
     fs::read_to_string(path)
         .ok()
@@ -76,7 +76,7 @@ fn write_predictions_to(
     Ok(predictions)
 }
 
-fn write_predictions(predictions: Vec<Value>) -> std::io::Result<Vec<Value>> {
+pub(crate) fn write_predictions(predictions: Vec<Value>) -> std::io::Result<Vec<Value>> {
     write_predictions_to(&store_path(), predictions)
 }
 
