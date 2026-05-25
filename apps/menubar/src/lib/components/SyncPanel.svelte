@@ -1,6 +1,7 @@
 <!-- SyncPanel.svelte — Multi-device sync status and controls (docs/43) -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fetchJson, postJson, summarizeError } from '$lib/api';
   import AddPeerModal from './AddPeerModal.svelte';
 
   interface Peer {
@@ -30,17 +31,13 @@
   let syncInProgress: Set<string> = new Set();
   let peerErrors: Map<string, string> = new Map();
 
-  const API_BASE = 'http://127.0.0.1:8787';
-
   async function fetchPeers() {
     try {
-      const res = await fetch(`${API_BASE}/v1/sync/peers`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await fetchJson<{ peers?: Peer[] }>('/v1/sync/peers');
       peers = data.peers || [];
       peerErrors.clear();
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Failed to fetch peers';
+      error = summarizeError(e);
     } finally {
       loading = false;
     }
@@ -48,17 +45,11 @@
 
   async function fetchPeerStatus(peerId: string) {
     try {
-      const res = await fetch(`${API_BASE}/v1/sync/status/${peerId}`);
-      if (!res.ok) {
-        peerErrors.set(peerId, `HTTP ${res.status}`);
-        peerStatuses.delete(peerId);
-        return;
-      }
-      const data = await res.json();
+      const data = await fetchJson<PeerStatus>(`/v1/sync/status/${peerId}`);
       peerStatuses.set(peerId, data);
       peerErrors.delete(peerId);
     } catch (e) {
-      peerErrors.set(peerId, e instanceof Error ? e.message : 'Network error');
+      peerErrors.set(peerId, summarizeError(e));
       peerStatuses.delete(peerId);
     }
   }
@@ -68,15 +59,11 @@
     syncInProgress = syncInProgress;
 
     try {
-      const res = await fetch(`${API_BASE}/v1/sync/pull/${peerId}`, { method: 'POST' });
-      if (!res.ok) {
-        peerErrors.set(peerId, `Sync failed: HTTP ${res.status}`);
-      } else {
-        peerErrors.delete(peerId);
-      }
+      await postJson(`/v1/sync/pull/${peerId}`);
+      peerErrors.delete(peerId);
       await fetchPeerStatus(peerId);
     } catch (e) {
-      peerErrors.set(peerId, e instanceof Error ? e.message : 'Network error');
+      peerErrors.set(peerId, `Sync failed: ${summarizeError(e)}`);
     } finally {
       syncInProgress.delete(peerId);
       syncInProgress = syncInProgress;

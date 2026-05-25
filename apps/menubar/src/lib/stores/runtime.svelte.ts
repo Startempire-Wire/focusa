@@ -1,7 +1,13 @@
 export interface RuntimeSnapshot {
   health: any | null;
+  doctor: any | null;
+  projectIdentity: any | null;
+  trajectory: any | null;
   workpoint: any | null;
+  workpointResume: any | null;
   workLoop: any | null;
+  workLoopHealth: any | null;
+  memoryTelemetry: any | null;
   ontologyContractsVersion: string | null;
   ontologyContractsCount: number;
   recentEventCount: number;
@@ -13,8 +19,14 @@ export interface RuntimeSnapshot {
 function createRuntimeStore() {
   let snapshot = $state<RuntimeSnapshot>({
     health: null,
+    doctor: null,
+    projectIdentity: null,
+    trajectory: null,
     workpoint: null,
+    workpointResume: null,
     workLoop: null,
+    workLoopHealth: null,
+    memoryTelemetry: null,
     ontologyContractsVersion: null,
     ontologyContractsCount: 0,
     recentEventCount: 0,

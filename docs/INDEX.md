@@ -43,6 +43,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 11  | [11-menubar-ui-spec.md](11-menubar-ui-spec.md)             | Older menubar UI design direction; reconcile with current audit/spec before implementation |
 | current | [current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md](current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md) | Current Tauri menubar lag-behind audit |
 | current | [current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md) | Current implementation spec for a fully up-to-speed runtime cockpit app |
+| current | [current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md](current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) | Remaining implementation gaps and first implementation slice for the menubar cockpit |
 
 ---
 

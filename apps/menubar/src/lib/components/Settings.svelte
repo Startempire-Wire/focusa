@@ -3,11 +3,12 @@
   Connection configuration, test, status display.
 -->
 <script lang="ts">
+  import { DEFAULT_API_URL, setApiUrl } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
 
   // Initialize directly — ssr=false so localStorage is always available
-  let url = $state(localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787');
+  let url = $state(localStorage.getItem('focusa_api_url') || DEFAULT_API_URL);
   let saved = $state(false);
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; msg: string } | null>(null);
@@ -16,7 +17,7 @@
 
   function save() {
     try {
-      localStorage.setItem('focusa_api_url', url);
+      setApiUrl(url);
     } catch {}
     saved = true;
     setTimeout(() => saved = false, 2000);
@@ -43,7 +44,7 @@
   }
 
   function setLocal() {
-    url = 'http://127.0.0.1:8787';
+    url = DEFAULT_API_URL;
     save();
   }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fetchJson } from '$lib/api';
+  import { fetchJson, postJson } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -16,27 +16,47 @@
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
 
+  async function safe<T>(load: () => Promise<T>): Promise<T | null> {
+    try {
+      return await load();
+    } catch {
+      return null;
+    }
+  }
+
   async function poll() {
     try {
-      const [state, health, contracts, workpoint, workLoop, events, tokenBudget, cacheMetadata] = await Promise.all([
-        fetchJson('/v1/state/dump', 5000),
-        fetchJson('/v1/health'),
-        fetchJson('/v1/ontology/tool-contracts'),
-        fetchJson('/v1/workpoint/current'),
-        fetchJson('/v1/work-loop/status'),
-        fetchJson('/v1/events/recent?limit=5'),
-        fetchJson('/v1/telemetry/token-budget/status?limit=5'),
-        fetchJson('/v1/telemetry/cache-metadata/status?limit=5'),
+      const state = await fetchJson('/v1/state/dump', 5000);
+      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, memoryTelemetry, events, tokenBudget, cacheMetadata] = await Promise.all([
+        safe(() => fetchJson('/v1/health')),
+        safe(() => fetchJson('/v1/doctor', 5000)),
+        safe(() => fetchJson('/v1/ontology/tool-contracts')),
+        safe(() => fetchJson('/v1/project/identity')),
+        safe(() => fetchJson('/v1/trajectory/view?mode=summary')),
+        safe(() => fetchJson('/v1/workpoint/current')),
+        safe(() => postJson('/v1/workpoint/resume', {}, 5000)),
+        safe(() => fetchJson('/v1/work-loop/status?summary_only=true')),
+        safe(() => fetchJson('/v1/work-loop/health')),
+        safe(() => fetchJson('/v1/telemetry/memory')),
+        safe(() => fetchJson('/v1/events/recent?limit=5')),
+        safe(() => fetchJson('/v1/telemetry/token-budget/status?limit=5')),
+        safe(() => fetchJson('/v1/telemetry/cache-metadata/status?limit=5')),
       ]);
       focusStore.update(state);
       gateStore.update(state.focus_gate);
       runtimeStore.update({
         health,
+        doctor,
+        projectIdentity,
+        trajectory,
         workpoint,
+        workpointResume,
         workLoop,
-        ontologyContractsVersion: contracts.version ?? null,
-        ontologyContractsCount: Array.isArray(contracts.contracts) ? contracts.contracts.length : 0,
-        recentEventCount: Array.isArray(events.events) ? events.events.length : 0,
+        workLoopHealth,
+        memoryTelemetry,
+        ontologyContractsVersion: contracts?.version ?? null,
+        ontologyContractsCount: Array.isArray(contracts?.contracts) ? contracts.contracts.length : 0,
+        recentEventCount: Array.isArray(events?.events) ? events.events.length : 0,
         tokenBudget,
         cacheMetadata,
         releaseProof: { status: 'ready', summary: 'run focusa release prove --tag <tag>' },

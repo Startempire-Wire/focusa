@@ -1,6 +1,7 @@
 <!-- AddPeerModal.svelte — Modal dialog for adding sync peers -->
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { postJson, summarizeError } from '$lib/api';
 
   export let isOpen = false;
 
@@ -11,8 +12,6 @@
   let endpoint = '';
   let loading = false;
   let error: string | null = null;
-
-  const API_BASE = 'http://127.0.0.1:8787';
 
   function reset() {
     peerId = '';
@@ -45,21 +44,11 @@
     error = null;
 
     try {
-      const res = await fetch(`${API_BASE}/v1/sync/peers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ peer_id: peerId, name, endpoint })
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-
+      await postJson('/v1/sync/peers', { peer_id: peerId, name, endpoint });
       dispatch('success', { peerId, name, endpoint });
       close();
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Failed to register peer';
+      error = summarizeError(e);
     } finally {
       loading = false;
     }

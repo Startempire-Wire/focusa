@@ -3,8 +3,12 @@
 
   let s = $derived(runtimeStore.snapshot);
   let daemonOk = $derived(s.health?.ok === true);
-  let workpoint = $derived(s.workpoint ?? {});
-  let workLoop = $derived(s.workLoop ?? {});
+  let doctor = $derived(s.doctor ?? {});
+  let project = $derived(s.projectIdentity ?? {});
+  let trajectory = $derived(s.trajectory ?? {});
+  let workpoint = $derived(s.workpointResume ?? s.workpoint ?? {});
+  let workLoop = $derived(s.workLoopHealth ?? s.workLoop ?? {});
+  let memory = $derived(s.memoryTelemetry ?? {});
   let token = $derived(s.tokenBudget ?? {});
   let cache = $derived(s.cacheMetadata ?? {});
   let release = $derived(s.releaseProof ?? {});
@@ -24,18 +28,32 @@
     <code>curl /v1/health</code>
   </article>
 
-  <article class="card">
-    <div class="label">WORKPOINT</div>
-    <div class="value">{text(workpoint.status ?? (workpoint.canonical ? 'canonical' : 'unknown'))}</div>
-    <div class="meta">{text(workpoint.mission ?? workpoint.resume_packet?.mission, 'no mission')}</div>
-    <code>focusa_workpoint_resume</code>
+  <article class="card" class:ok={project.status === 'verified'}>
+    <div class="label">PROJECT</div>
+    <div class="value">{text(project.project_id ?? project.project?.id ?? project.canonical_name, 'unknown')}</div>
+    <div class="meta">{text(project.project_root ?? project.root ?? project.workspace_root, 'no verified root')}</div>
+    <code>GET /v1/project/identity</code>
   </article>
 
   <article class="card">
+    <div class="label">TRAJECTORY</div>
+    <div class="value">{text(trajectory.status ?? trajectory.posture ?? 'pending')}</div>
+    <div class="meta">{text(trajectory.gap ?? trajectory.active_gap ?? trajectory.short_term_goal, 'no active gap')}</div>
+    <code>GET /v1/trajectory/view</code>
+  </article>
+
+  <article class="card" class:ok={workpoint.canonical === true} class:bad={workpoint.canonical === false || workpoint.degraded === true}>
+    <div class="label">WORKPOINT</div>
+    <div class="value">{text(workpoint.status ?? (workpoint.canonical ? 'canonical' : 'unknown'))}</div>
+    <div class="meta">{text(workpoint.next_action ?? workpoint.next ?? workpoint.mission ?? workpoint.resume_packet?.mission, 'no mission')}</div>
+    <code>POST /v1/workpoint/resume</code>
+  </article>
+
+  <article class="card" class:watch={workLoop.dispatch_ready === false || workLoop.degraded === true}>
     <div class="label">WORK LOOP</div>
-    <div class="value">{text(workLoop.status ?? workLoop.work_loop?.status)}</div>
-    <div class="meta">{text(workLoop.current_task?.id ?? workLoop.current_work_item_id, 'no active task')}</div>
-    <code>focusa status --agent</code>
+    <div class="value">{text(workLoop.dispatch_ready ?? workLoop.status ?? workLoop.work_loop?.status)}</div>
+    <div class="meta">{text(workLoop.boundary_reason ?? workLoop.current_task?.id ?? workLoop.current_work_item_id, 'no active boundary')}</div>
+    <code>GET /v1/work-loop/health</code>
   </article>
 
   <article class="card">
@@ -43,6 +61,13 @@
     <div class="value">{s.ontologyContractsCount}</div>
     <div class="meta">{text(s.ontologyContractsVersion, 'no version')}</div>
     <code>node scripts/validate-focusa-tool-contracts.mjs</code>
+  </article>
+
+  <article class="card" class:watch={memory.pressure_status === 'lowmem' || memory.pressure_status === 'emergency'}>
+    <div class="label">MEMORY</div>
+    <div class="value">{text(memory.pressure_status ?? memory.status, 'normal')}</div>
+    <div class="meta">rss {text(memory.rss_kb ?? memory.current_rss_kb, 'n/a')}kb · peak {text(memory.peak_rss_kb, 'n/a')}kb</div>
+    <code>GET /v1/telemetry/memory</code>
   </article>
 
   <article class="card" class:watch={token.status === 'watch' || token.status === 'high' || token.status === 'critical'}>
@@ -66,11 +91,11 @@
     <code>focusa release prove --tag &lt;tag&gt;</code>
   </article>
 
-  <article class="card" class:bad={!!runtimeStore.errorMsg}>
+  <article class="card" class:bad={!!runtimeStore.errorMsg || doctor.status === 'degraded'}>
     <div class="label">RECOVERY</div>
-    <div class="value">{runtimeStore.errorMsg ? 'Holdover' : 'Ready'}</div>
-    <div class="meta">{runtimeStore.errorMsg ?? 'daemon reachable'}</div>
-    <code>systemctl restart focusa-daemon</code>
+    <div class="value">{runtimeStore.errorMsg ? 'Holdover' : text(doctor.status, 'Ready')}</div>
+    <div class="meta">{runtimeStore.errorMsg ?? text(doctor.summary ?? doctor.recommended_action, 'daemon reachable')}</div>
+    <code>GET /v1/doctor</code>
   </article>
 </section>
 
