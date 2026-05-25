@@ -128,7 +128,10 @@ fn get_client() -> &'static Client {
         Client::builder()
             .timeout(std::time::Duration::from_secs(300))
             .build()
-            .expect("failed to build HTTP client")
+            .unwrap_or_else(|err| {
+                tracing::error!(error = %err, "Proxy HTTP client builder failed; using default reqwest client fallback");
+                Client::new()
+            })
     })
 }
 
