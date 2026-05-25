@@ -35,6 +35,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `GET /v1/lineage/node/{clt_node_id}`
 - `GET /v1/lineage/path/{clt_node_id}`
 - `GET /v1/lineage/children/{clt_node_id}`
+- `GET /v1/lineage/neighborhood/{clt_node_id}`
 - `GET /v1/lineage/summaries`
 - `GET /v1/references`
 - `GET /v1/references/search`
@@ -151,7 +152,9 @@ ECS resolve/content/rehydrate readback uses complete live handle metadata when a
 Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `validation_rejected`; absent IDs return typed `not_found` instead of accepted no-op semantics.
 
 ### metacognition
+- `GET /v1/metacognition/status`
 - `POST /v1/metacognition/capture`
+- `GET /v1/metacognition/captures/{capture_id}`
 - `POST /v1/metacognition/retrieve`
 - `POST /v1/metacognition/reflect`
 - `GET /v1/metacognition/reflections/recent`
@@ -167,6 +170,21 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `GET /v1/ontology/tool-contracts`
 - `GET /v1/ontology/tool-choreography`
 - `POST /v1/ontology/actions`
+- `GET /v1/ontology/adjacency`
+- `GET /v1/ontology/working-set`
+- `GET /v1/ontology/communities`
+- `POST /v1/ontology/context`
+- `GET /v1/ontology/affordances`
+- `POST /v1/ontology/retrieval-governor`
+- `POST /v1/ontology/tool-result-proposals`
+- `POST /v1/ontology/execution-critic`
+- `POST /v1/ontology/reflection-synthesizer`
+- `POST /v1/ontology/memory-pipeline`
+- `GET /v1/ontology/intelligence-dashboard`
+
+### project
+- `GET /v1/project/identity`
+- `POST /v1/project/verify`
 
 ### predictions
 - `POST /v1/predictions`
@@ -190,11 +208,16 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `GET /v1/reflect/scheduler`
 - `POST /v1/reflect/scheduler/tick`
 
+### resource
+- `GET /v1/resource/mode`
+- `POST /v1/resource/mode`
+
 ### rfm
 - `GET /v1/rfm`
 
 ### session
 - `GET /v1/status`
+- `GET /v1/status/deep`
 - `GET /v1/state/dump`
 - `POST /v1/session/start`
 - `POST /v1/session/resume`
@@ -223,6 +246,7 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `POST /v1/sync/transfer`
 
 ### telemetry
+- `GET /v1/telemetry/memory`
 - `GET /v1/telemetry/tokens`
 - `GET /v1/telemetry/token-budget/status`
 - `POST /v1/telemetry/token-budget`
@@ -236,7 +260,12 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `POST /v1/telemetry/event`
 - `POST /v1/telemetry/trace`
 - `GET /v1/telemetry/trace`
+- `POST /v1/telemetry/trace/batch`
 - `GET /v1/telemetry/trace/stats`
+- `GET /v1/telemetry/events`
+- `GET /v1/telemetry/productivity`
+- `GET /v1/telemetry/autonomy`
+- `GET /v1/debug/set-pressure-threshold`
 
 ### threads
 - `GET /v1/threads`
@@ -280,13 +309,19 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `GET /v1/uxp`
 - `GET /v1/ufi`
 
+### traverse
+- `POST /v1/traverse`
+- `POST /v1/traverse/verify-tags`
+
 ### visual_workflow
 - `POST /v1/visual-workflow/evidence/store`
 - `GET /v1/visual-workflow/evidence`
 
 ### work_loop
 - `GET /v1/work-loop`
+- `GET /v1/work-loop/health`
 - `GET /v1/work-loop/status` (agent tools default to `?summary_only=true` for bounded reads)
+- `GET /v1/work-loop/status/deep`
 - `GET /v1/work-loop/replay/closure-evidence`
 - `GET /v1/work-loop/replay/closure-bundle`
 - `POST /v1/work-loop/enable`
@@ -317,3 +352,4 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `POST /v1/workpoint/active-object/resolve`
 - `POST /v1/workpoint/evidence/link`
 - `POST /v1/workpoint/drift-check`
+- `GET /v1/workpoint/idempotency-cache`

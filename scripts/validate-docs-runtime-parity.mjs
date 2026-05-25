@@ -35,6 +35,21 @@ const checks = [
   ['scripts/prove-openclaw-focusa-injection-live.mjs', 'focusa-awareness: injected card session='],
 ];
 const failures = [];
+
+function methodRouteInventory() {
+  const routesDir = path.join(root, 'crates/focusa-api/src/routes');
+  const entries = [];
+  for (const file of fs.readdirSync(routesDir).filter((name) => name.endsWith('.rs')).sort()) {
+    const text = fs.readFileSync(path.join(routesDir, file), 'utf8');
+    for (const match of text.matchAll(/\.route\(\s*"([^"]+)"\s*,\s*(get|post|patch|delete|put)\(/g)) {
+      const route = match[1];
+      const method = match[2].toUpperCase();
+      if (route.startsWith('/v1/')) entries.push({ file, method, route });
+    }
+  }
+  return entries;
+}
+
 for (const [file, needle] of checks) {
   const full = path.join(root, file);
   if (!fs.existsSync(full)) {
@@ -44,10 +59,20 @@ for (const [file, needle] of checks) {
   const text = fs.readFileSync(full, 'utf8');
   if (!text.includes(needle)) failures.push(`${file}: missing ${needle}`);
 }
+const apiRefPath = path.join(root, 'docs/current/API_REFERENCE_CURRENT.md');
+if (fs.existsSync(apiRefPath)) {
+  const apiRef = fs.readFileSync(apiRefPath, 'utf8');
+  for (const entry of methodRouteInventory()) {
+    if (!apiRef.includes(`${entry.method} ${entry.route}`)) {
+      failures.push(`docs/current/API_REFERENCE_CURRENT.md: missing registered route ${entry.method} ${entry.route} (${entry.file})`);
+    }
+  }
+}
+
 if (failures.length) {
   console.error('Docs/runtime parity validation: failed');
   for (const failure of failures) console.error(`FAIL ${failure}`);
   process.exit(1);
 }
 console.log('Docs/runtime parity validation: passed');
-console.log('claims=Spec92/Spec93 awareness, CLI/API refs, OpenClaw plugin, proof scripts');
+console.log('claims=Spec92/Spec93 awareness, CLI/API refs, route inventory parity, OpenClaw plugin, proof scripts');
