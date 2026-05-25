@@ -2,36 +2,44 @@
 
 **Source spec:** [`TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)  
 **Audit source:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
+**Last updated:** after `git:9de260c`.
 
-## Phase 0 gaps — foundation
+## Implemented in the current menubar slice
 
-- Shared API client is too small: no `postJson`, no envelope normalization, no shared error summarizer.
-- `SyncPanel` and `AddPeerModal` still hardcode `http://127.0.0.1:8787` instead of the configured API base.
-- Clean `npm ci` fails because package-lock/npm dependency resolution conflicts with Vite/Svelte plugin versions; Bun path works.
-- `bun run check` can fail on clean checkout before `.svelte-kit/tsconfig.json` exists.
-- Menubar version is stale (`0.9.9`) compared with current public snapshot language (`v0.9.12-dev`).
-- Tauri config uses `csp: null`; security posture needs a later compatibility pass.
+- Shared API client now includes `postJson`, `requestJson`, result-envelope normalization, degradation detection, and shared error summarization.
+- `SyncPanel` and `AddPeerModal` use the shared API base; only the default/placeholder URL remains hardcoded.
+- `bun run check` now runs `svelte-kit sync` before `svelte-check`, so clean check no longer depends on a prior build.
+- Menubar version metadata and visible About copy now use `0.9.12-dev`.
+- Cockpit/Now surface polls current runtime hot surfaces: project identity, trajectory view, Workpoint resume, work-loop health/checkpoints, doctor, memory telemetry, prediction stats/recent, metacognition evaluations, snapshots, and lineage head.
+- Cockpit cards show calm status chips for canonical/degraded/status/evidence/readiness/memory posture.
+- Read-only peeks exist for Trajectory, Workpoint, Proof, and Work Loop.
+- Default Focus view now restores original bubble/cloud spirit: current bubble, background clouds, ambient stack depth, and quieter empty states.
+- Gate/Sync copy now frames signals and peers as ambient awareness, not focus-changing control UI.
+- Static guard exists at `tests/spec96_menubar_cockpit_foundation_static_test.sh`.
 
-## Phase 1 gaps — ambient cockpit MVP
+## Remaining Phase 0 gaps — foundation
 
-- Current Mission panel does not fetch project identity, trajectory view, Workpoint resume, work-loop health, doctor, or memory telemetry.
-- Workpoint card uses `/v1/workpoint/current`; canonical continuation UI needs `/v1/workpoint/resume`.
-- Work-loop card uses summary status but not hot-path `/v1/work-loop/health` dispatch readiness.
-- There is no normalized display for `status`, `canonical`, `degraded`, `failure_class`, `retry`, `evidence_refs`, or `next_tools`.
-- UI is still tab-like; spec target is ambient bubble + progressive drawers.
+- `npm ci` still fails because npm/package-lock dependency resolution conflicts with Vite/Svelte plugin versions; Bun path is the validated path.
+- Tauri config still uses `csp: null`; security posture needs a compatibility pass.
+- Full Tauri packaging (`bun tauri build`) has not been proven in this slice.
 
-## Phase 2+ gaps — depth
+## Remaining Phase 1 gaps — ambient cockpit MVP
 
-- Trajectory drawer absent.
-- Workpoint drawer absent.
-- Proof drawer absent: evidence, predictions, metacognition evaluations, lineage/snapshots.
-- Work-loop advanced drawer absent: writer ownership, pause flags, checkpoints, preflighted controls.
-- Focus/Gate still uses old tab language and Add Peer still uses modal UI; later work should convert to non-modal drawers.
+- Navigation is visually calmer but still implemented as tabs; future work should evolve this into true peek drawers while keeping keyboard/accessibility behavior.
+- Ambient menubar icon state is not yet driven by daemon/project/workpoint/work-loop readiness.
+- Release proof remains a placeholder card instead of reading a real release/proof artifact state.
 
-## First implementation slice
+## Remaining Phase 2+ gaps — depth
 
-1. Expand shared API client.
-2. Move Sync/AddPeer to shared API base.
-3. Add runtime store fields for project, trajectory, Workpoint resume, work-loop health, doctor, and memory telemetry.
-4. Expand Mission panel into an initial Cockpit view while preserving calm card styling.
-5. Add validation for build/check and no hardcoded API base outside defaults/docs.
+- Trajectory and Workpoint peeks are read-only; assess/propose/checkpoint/drift/evidence-link flows are not exposed yet.
+- Proof peek is read-only and summary-only; it does not yet support prediction evaluation or snapshot diff.
+- Work-loop peek is read-only; preflighted controls are not exposed yet.
+- Add Peer still uses a modal-style component; spec target is non-modal drawer/inline confirmation.
+- Focus/Gate mutation flows remain minimal; suppress/pin/surface controls need confirmation/result-envelope display before expansion.
+
+## Next recommended implementation slices
+
+1. **Tauri packaging/security pass:** verify or document Bun-only install, test `bun tauri build` where platform dependencies allow, and evaluate a minimal CSP.
+2. **True drawer shell:** keep the current peek labels but move secondary surfaces into a drawer/peek interaction model rather than dense tabs.
+3. **Ambient tray state:** map daemon/project/workpoint/work-loop posture to the tray icon states from the original spec.
+4. **Safe read-to-write affordances:** add confirmation-gated drift check and evidence link first; defer work-loop mutations until writer preflight UX is explicit.

@@ -37,6 +37,8 @@ assert_has apps/menubar/src/lib/components/Settings.svelte 'v0\.9\.12-dev|Direct
 assert_has apps/menubar/src/lib/components/FocusView.svelte 'CURRENT BUBBLE|BACKGROUND CLOUDS|ambient-orbit|thought-cloud|focus-bubble|Quiet surface|Focusa is out of view' 'default focus view preserves original bubble/cloud hierarchy and calm empty states'
 assert_has apps/menubar/src/lib/components/GatePanel.svelte 'Gate is quiet|SOFT CANDIDATES|AMBIENT SIGNALS|do not switch focus for you' 'gate panel copy remains ambient awareness, not control UI'
 assert_has apps/menubar/src/lib/components/SyncPanel.svelte 'Peer awareness; no automatic ownership changes|Local-first mode is fine|Pull gently|Listening for peers' 'sync panel copy remains calm local-first awareness'
+assert_has docs/current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md 'Implemented in the current menubar slice|Remaining Phase 0 gaps|Next recommended implementation slices|git:9de260c' 'menubar implementation gaps doc reflects current post-audit status'
+assert_has docs/current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md '✅ Implemented|Partial: read-only Trajectory peek implemented|Read-only Work Loop peek implemented' 'up-to-speed spec tracks implemented vs remaining slices'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then

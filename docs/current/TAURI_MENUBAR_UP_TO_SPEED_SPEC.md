@@ -290,33 +290,33 @@ Every card should render normalized fields when present:
 
 ### Phase 1 — Ambient Cockpit MVP
 
-- Central API client.
-- Ambient icon state plus default Focus/Workpoint bubble.
-- Cockpit drawer with health, doctor, project identity, trajectory view, Workpoint resume, work-loop health, memory telemetry.
-- Result envelope badges inside drawers, not on the menubar icon.
+- Central API client. ✅ Implemented.
+- Ambient icon state plus default Focus/Workpoint bubble. Partial: Focus bubble/cloud hierarchy implemented; tray icon state remains future work.
+- Cockpit drawer with health, doctor, project identity, trajectory view, Workpoint resume, work-loop health, memory telemetry. Partial: Cockpit/Now peek implemented; true drawer shell remains future work.
+- Result envelope badges inside drawers, not on the menubar icon. ✅ Implemented for Cockpit/Workpoint status chips.
 
 **Acceptance:** collapsed app stays calm; opened cockpit answers project, trajectory, Workpoint canonicality, dispatch readiness, and memory pressure in one view.
 
 ### Phase 2 — Workpoint + Trajectory depth
 
-- Full Trajectory drawer.
-- Full Workpoint drawer.
-- Drift check and evidence link flows.
+- Full Trajectory drawer. Partial: read-only Trajectory peek implemented.
+- Full Workpoint drawer. Partial: read-only Workpoint peek implemented.
+- Drift check and evidence link flows. Future work.
 
 **Acceptance:** operator can determine the exact next safe continuation action and supporting evidence without CLI.
 
 ### Phase 3 — Proof systems
 
-- Prediction recent/stats/evaluate.
-- Metacognition status/recent/evaluations.
-- Lineage head/tree and recent snapshots/diff.
+- Prediction recent/stats/evaluate. Partial: recent/stats visible; evaluate remains future work.
+- Metacognition status/recent/evaluations. Partial: status/evaluations visible.
+- Lineage head/tree and recent snapshots/diff. Partial: lineage head and recent snapshots visible; tree/diff remain future work.
 
 **Acceptance:** operator can inspect why state is trusted and what learning/prediction evidence supports it.
 
 ### Phase 4 — Work Loop controls
 
-- Health/status/checkpoints.
-- Preflighted pause/resume/stop/context/checkpoint/select-next in an advanced drawer only.
+- Health/status/checkpoints. ✅ Read-only Work Loop peek implemented.
+- Preflighted pause/resume/stop/context/checkpoint/select-next in an advanced drawer only. Future work.
 
 **Acceptance:** app can safely show continuous work-loop posture by default and expose controls only without stealing writer ownership.
 

@@ -3,10 +3,11 @@
 **Scope:** `apps/menubar` Tauri/Svelte app compared with current Focusa runtime/API docs.  
 **Snapshot audited:** repo `5b6ed37` plus current working tree, public snapshot `v0.9.12-dev`.  
 **Audit date:** 2026-05-25.
+**Implementation update:** see [`TAURI_MENUBAR_IMPLEMENTATION_GAPS.md`](TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) for current post-audit gap status after `git:9de260c`.
 
 ## Executive summary
 
-The menubar app builds with Bun and provides a useful basic status tray, but it lags the current Focusa runtime by a large margin. It mostly visualizes legacy/global Focus State, Focus Gate, Sync, and a thin Mission panel. The current product center of gravity has moved to project identity, Trajectory, Workpoints, evidence, prediction, metacognition, bounded traversal, work-loop dispatch readiness, resource/memory modes, and agent recovery UX; those surfaces are missing or represented as placeholders.
+At initial audit time, the menubar app built with Bun and provided a useful basic status tray, but lagged the current Focusa runtime by a large margin. Since then, the implementation has gained shared API plumbing, a Cockpit/Now surface, Trajectory/Workpoint/Proof/Work Loop peeks, calmer Focus bubble/cloud hierarchy, and ambient Gate/Sync copy. Remaining gaps are tracked in the implementation gaps document.
 
 ## Validation result
 
