@@ -367,6 +367,8 @@ That proof verified a rebuilt installed daemon and CLI through direct live API/C
 
 Current hardening gates also cover bounded CLI smoke, tool stress, extended soak, parallel hot-route load, context-pressure warning copy, dynamic choreography weighting, and safe audit/profiling checks. These prove Focusa preserves scoped project/trajectory/Workpoint/evidence anchors under pressure instead of treating context pressure as lost continuity.
 
+Focusa-native dogfood is documented in `docs/current/FOCUSA_DOGFOOD.md` and runnable with `bash tests/focusa_dogfood_test.sh`. It validates agent-facing UX loops across daemon health, tool contracts, trajectory, Workpoint continuity, evidence, metacognition, prediction, and resource pressure.
+
 Proof marker:
 
 ```text

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.tool_contracts.v1",
-  "version": "spec90.tool_contracts.v1",
+  "generated_at": "2026-05-25T01:33:47.760Z",
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -347,7 +347,7 @@
     {
       "name": "focusa_scratch",
       "label": "Scratchpad",
-      "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
       "family": "focus_state",
       "ontology_action": "focus_state.scratch",
       "ontology_objects": [
@@ -368,7 +368,7 @@
     {
       "name": "focusa_decide",
       "label": "Record Decision",
-      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
+      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
       "family": "focus_state",
       "ontology_action": "focus_state.decide",
       "ontology_objects": [
@@ -391,7 +391,7 @@
     {
       "name": "focusa_constraint",
       "label": "Record Constraint",
-      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
+      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
       "family": "focus_state",
       "ontology_action": "focus_state.constraint",
       "ontology_objects": [
@@ -437,7 +437,7 @@
     {
       "name": "focusa_intent",
       "label": "Set Intent",
-      "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
+      "purpose": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.intent",
       "ontology_objects": [
@@ -460,7 +460,7 @@
     {
       "name": "focusa_current_focus",
       "label": "Set Current Focus",
-      "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
+      "purpose": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.current.focus",
       "ontology_objects": [
@@ -793,8 +793,6 @@
       ],
       "api_routes": [],
       "cli_commands": [
-        "stat",
-        "as-user",
         "tmux list-sessions",
         "tmux new-session",
         "tmux attach-session",
@@ -805,7 +803,7 @@
         "tmux send-keys C-c",
         "tmux kill-session"
       ],
-      "core_surface": "Pi-local tmux SilentSession controller with project-root owner detection",
+      "core_surface": "Pi-local tmux SilentSession controller",
       "doc_path": "docs/focusa-tools/tools/focusa_silent_sessions.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "process_control",
@@ -813,7 +811,7 @@
       "exemptions": [
         "pi_only"
       ],
-      "live_check": "contract_static plus optional tmux list-sessions/stat owner probe; kill/send/start require explicit approval flags"
+      "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start require explicit approval flags"
     },
     {
       "name": "focusa_tool_doctor",
