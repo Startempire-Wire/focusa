@@ -63,7 +63,7 @@ bun run build
 ```bash
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 gh run list --limit 6 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
-gh release view v0.9.11-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
+gh release view v0.9.12-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
 ```
 
 For current real proof see:

@@ -1,5 +1,5 @@
 # Focusa — Product Requirements Document (PRD)
-**Version:** v0.9.0-dev snapshot  
+**Version:** architecture snapshot `v0.9.0-dev`; current runtime snapshot `v0.9.12-dev`
 **Status:** Active development; current runtime implemented across core/API/CLI/Pi with additional design surfaces evolving  
 **Audience:** Engineers, Agent Implementers, Technical Stakeholders  
 **Product Type:** Local Cognitive Runtime / Harness-Agnostic Proxy  

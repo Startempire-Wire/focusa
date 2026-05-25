@@ -510,9 +510,11 @@ The main `focusa` skill is the router and mental model. Focused companion skills
 
 ## License
 
-Proprietary — Startempire Wire
+Focusa is source-available under the Focusa Business Source License 1.1 in `LICENSE.md`.
 
-Part of the Startempire Wire ecosystem.
+Free use is limited to personal, educational, evaluation, and non-commercial local use. Commercial, team/company, hosted-service, client-delivery, redistribution, or product-embedding use requires a paid commercial license from Startempire Wire; see `COMMERCIAL.md`.
+
+Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`.
 
 - [focusa_predict_record](docs/focusa-tools/tools/focusa_predict_record.md)
 

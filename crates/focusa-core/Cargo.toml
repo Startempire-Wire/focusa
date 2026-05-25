@@ -3,7 +3,7 @@ name = "focusa-core"
 description = "Focusa cognitive runtime core — all cognition primitives and deterministic prompt assembly"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 
 [dependencies]
 tokio = { workspace = true }
