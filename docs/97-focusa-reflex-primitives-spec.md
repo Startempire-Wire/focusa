@@ -65,7 +65,7 @@ These gaps block claiming Spec97 implementation beyond vocabulary/spec language:
 | Gap id | Dependency/phase | Evidence of gap | Immediate development requirement |
 |---|---|---|---|
 | `G97-live-contract-parity` | Spec91 live proof dependency | `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json` returned `status=failed`, `payload_equal=false`; live daemon registry still has stale `approval_placeholder`, missing `tmux pipe-pane`, and old schema field compared with static JSON. | Rebuild/restart or otherwise refresh the running daemon so live `/v1/ontology/tool-contracts` equals `docs/current/focusa-tool-contracts.json`, then record passing live proof. |
-| `G97-primitive-registry` | Phase A | Repository search finds no `focusa-reflex-primitives.json`, `reflex_primitives` module, `/v1/reflex/primitives`, or `focusa_traverse` reflex surface outside this draft. | Add read-only primitive registry covering all ten families, with `primitive_id`, authority boundary, context inputs, escalation boundary, hot/cold posture, and tool/route mappings. |
+| `G97-primitive-registry` | Phase A | Closed by `docs/current/focusa-reflex-primitives.json` plus `tests/spec97_reflex_primitive_registry_static_test.sh`; registry is read-only and covers all ten families. | Remaining follow-up is optional API/traverse projection, tracked by `G97-ontology-reflex-routing`. |
 | `G97-reflex-envelope-metadata` | Phase B | Repository search finds no `reflex_suggestion` metadata in tool envelopes/contracts. | Extend relevant `tool_result_v1`/recovery envelopes with bounded primitive ids for scope mismatch, pending, degraded, resource pressure, missing evidence, and stale Workpoint. |
 | `G97-ontology-reflex-routing` | Phase C | Ontology has strong action/risk/affordance surfaces, but no reflex primitive object/action/risk classes or traverse selector for primitive summaries. | Add ontology classes/registry projection for ReflexPrimitive, ReflexTrigger, ReflexRisk, ReflexAffordance, and bounded traverse retrieval by family/risk/object. |
 | `G97-golden-reflex-scenarios` | Phase D | No tests named for Spec97/reflex scenarios; existing Spec94-96 tests prove substrates, not `Trigger -> Context -> Reflex -> Evidence -> Escalation` scenarios. | Add at least five golden scenario tests covering identity, evidence, continuity, recovery/resource, and governance/execution reflex chains. |
@@ -439,6 +439,8 @@ This spec does not:
 - Add a static registry describing primitive families and mappings to existing tools/routes.
 - Include authority boundary, context inputs, escalation boundary, and hot/cold posture.
 - Expose via bounded docs and optional API/traverse projection.
+
+Current registry: `docs/current/focusa-reflex-primitives.json` (`schema=focusa.reflex_primitives.v1`, `version=spec97.reflex_primitives.v1`).
 
 Acceptance:
 

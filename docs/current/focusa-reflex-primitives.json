@@ -1,0 +1,973 @@
+{
+  "schema": "focusa.reflex_primitives.v1",
+  "version": "spec97.reflex_primitives.v1",
+  "status": "read_only_registry",
+  "primitive_count": 40,
+  "families": [
+    "continuity",
+    "evidence",
+    "execution",
+    "governance",
+    "identity",
+    "learning",
+    "recovery",
+    "resource",
+    "salience",
+    "scope"
+  ],
+  "authority_note": "Registry is advisory/read-only. Mutation remains in existing Focusa tools/routes.",
+  "primitives": [
+    {
+      "primitive_id": "bind_project_root",
+      "family": "identity",
+      "trigger": "broad_or_unsafe_cwd_or_session_start",
+      "context_inputs": [
+        "ProjectIdentity",
+        "Workpoint",
+        "Trajectory"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_project_identity"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ProjectIdentity"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "reject_unsafe_root",
+      "family": "identity",
+      "trigger": "unsafe_project_root_supplied",
+      "context_inputs": [
+        "ProjectIdentity",
+        "Workpoint",
+        "Trajectory"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_project_verify"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ProjectIdentity"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "confirm_continuity_scope",
+      "family": "identity",
+      "trigger": "compaction_resume_or_model_switch",
+      "context_inputs": [
+        "ProjectIdentity",
+        "Workpoint",
+        "Trajectory"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_resume"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "WorkpointResumePacket"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "detect_cross_project_packet",
+      "family": "identity",
+      "trigger": "packet_read_with_scope_mismatch",
+      "context_inputs": [
+        "ProjectIdentity",
+        "Workpoint",
+        "Trajectory"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_project_verify"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "WorkpointResumePacket"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "resolve_active_object",
+      "family": "scope",
+      "trigger": "ambiguous_evidence_or_action_target",
+      "context_inputs": [
+        "Ontology",
+        "Workpoint",
+        "FocusState",
+        "FocusGate"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_active_object_resolve"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ActiveObjectRef"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "enforce_do_not_drift",
+      "family": "scope",
+      "trigger": "action_crosses_workpoint_boundary",
+      "context_inputs": [
+        "Ontology",
+        "Workpoint",
+        "FocusState",
+        "FocusGate"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_resume"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "Workpoint"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "steering_reset_slice",
+      "family": "scope",
+      "trigger": "operator_changes_subject",
+      "context_inputs": [
+        "Ontology",
+        "Workpoint",
+        "FocusState",
+        "FocusGate"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_work_loop_context"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "CurrentAsk"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "guard_stale_focus_state",
+      "family": "scope",
+      "trigger": "stale_irrelevant_focus_slot",
+      "context_inputs": [
+        "Ontology",
+        "Workpoint",
+        "FocusState",
+        "FocusGate"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_state_hygiene_plan"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "FocusState"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "checkpoint_before_compaction",
+      "family": "continuity",
+      "trigger": "compaction_model_switch_or_context_pressure",
+      "context_inputs": [
+        "Workpoint",
+        "Trajectory",
+        "FocusState",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_checkpoint"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "WorkpointCheckpoint"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "resume_from_canonical_workpoint",
+      "family": "continuity",
+      "trigger": "session_resume_or_uncertainty",
+      "context_inputs": [
+        "Workpoint",
+        "Trajectory",
+        "FocusState",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_resume"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "WorkpointResumePacket"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "hydrate_sparse_summary",
+      "family": "continuity",
+      "trigger": "compaction_summary_has_empty_fields",
+      "context_inputs": [
+        "Workpoint",
+        "Trajectory",
+        "FocusState",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_resume"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "WorkpointResumePacket"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "snapshot_before_risky_change",
+      "family": "continuity",
+      "trigger": "risky_edit_restore_or_compare",
+      "context_inputs": [
+        "Workpoint",
+        "Trajectory",
+        "FocusState",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_tree_snapshot_state"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "TreeSnapshot"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "capture_ci_proof",
+      "family": "evidence",
+      "trigger": "ci_run_completed",
+      "context_inputs": [
+        "Workpoint",
+        "Evidence",
+        "Trajectory",
+        "ECS"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_evidence_capture"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "EvidenceRef"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "summarize_large_artifact",
+      "family": "evidence",
+      "trigger": "tool_output_exceeds_budget",
+      "context_inputs": [
+        "Workpoint",
+        "Evidence",
+        "Trajectory",
+        "ECS"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_evidence_capture"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ArtifactHandle"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "require_evidence_for_claim",
+      "family": "evidence",
+      "trigger": "completion_or_release_claim",
+      "context_inputs": [
+        "Workpoint",
+        "Evidence",
+        "Trajectory",
+        "ECS"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_link_evidence"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "EvidenceRef"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "link_file_api_test_proof",
+      "family": "evidence",
+      "trigger": "file_api_or_test_proof_observed",
+      "context_inputs": [
+        "Workpoint",
+        "Evidence",
+        "Trajectory",
+        "ECS"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_workpoint_link_evidence"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "EvidenceRef"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "route_noncanonical_result",
+      "family": "recovery",
+      "trigger": "canonical_false_or_degraded_true",
+      "context_inputs": [
+        "tool_result_v1",
+        "ResourceMode",
+        "ToolDoctor"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_tool_doctor"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ToolResult"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "retry_safe_pending",
+      "family": "recovery",
+      "trigger": "pending_with_safe_retry_posture",
+      "context_inputs": [
+        "tool_result_v1",
+        "ResourceMode",
+        "ToolDoctor"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_tool_doctor"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ToolResult"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "diagnose_scope_mismatch",
+      "family": "recovery",
+      "trigger": "scope_mismatch_failure_class",
+      "context_inputs": [
+        "tool_result_v1",
+        "ResourceMode",
+        "ToolDoctor"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_project_verify"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ProjectIdentity"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "resource_mode_fallback",
+      "family": "recovery",
+      "trigger": "resource_exhausted_or_cold_timeout",
+      "context_inputs": [
+        "tool_result_v1",
+        "ResourceMode",
+        "ToolDoctor"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_resource_mode"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ResourceMode"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "surface_repeated_failure",
+      "family": "salience",
+      "trigger": "repeated_error_fingerprint",
+      "context_inputs": [
+        "FocusGate",
+        "FocusState",
+        "Ontology",
+        "OperatorSteering"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_current_focus"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "FocusGateCandidate"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "suppress_irrelevant_context",
+      "family": "salience",
+      "trigger": "focus_slice_relevance_fails",
+      "context_inputs": [
+        "FocusGate",
+        "FocusState",
+        "Ontology",
+        "OperatorSteering"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_traverse"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "FocusSlice"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "pin_operator_priority",
+      "family": "salience",
+      "trigger": "explicit_operator_priority",
+      "context_inputs": [
+        "FocusGate",
+        "FocusState",
+        "Ontology",
+        "OperatorSteering"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_work_loop_context"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "OperatorDirective"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "decay_resolved_candidate",
+      "family": "salience",
+      "trigger": "resolved_or_suppressed_signal",
+      "context_inputs": [
+        "FocusGate",
+        "FocusState",
+        "Ontology",
+        "OperatorSteering"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_state_hygiene_plan"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "FocusGateCandidate"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "preflight_writer_ownership",
+      "family": "execution",
+      "trigger": "work_loop_mutation_requested",
+      "context_inputs": [
+        "WorkLoop",
+        "Beads",
+        "Evidence",
+        "Policy"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_work_loop_writer_status"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "WorkLoopWriter"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "select_next_ready_work",
+      "family": "execution",
+      "trigger": "task_complete_or_no_blocker",
+      "context_inputs": [
+        "WorkLoop",
+        "Beads",
+        "Evidence",
+        "Policy"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_work_loop_select_next"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "Bead"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "enforce_verification_before_persist",
+      "family": "execution",
+      "trigger": "completion_or_close_requested",
+      "context_inputs": [
+        "WorkLoop",
+        "Beads",
+        "Evidence",
+        "Policy"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_evidence_capture"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "EvidenceRef"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "close_task_with_citations",
+      "family": "execution",
+      "trigger": "task_done_with_evidence",
+      "context_inputs": [
+        "WorkLoop",
+        "Beads",
+        "Evidence",
+        "Policy"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_evidence_capture"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "Bead"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "record_forecast_before_risk",
+      "family": "learning",
+      "trigger": "risky_or_uncertain_action",
+      "context_inputs": [
+        "Prediction",
+        "Metacognition",
+        "Evidence",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_predict_record"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "Prediction"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "evaluate_prediction_after_outcome",
+      "family": "learning",
+      "trigger": "prediction_outcome_observed",
+      "context_inputs": [
+        "Prediction",
+        "Metacognition",
+        "Evidence",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_predict_evaluate"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "PredictionEvaluation"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "promote_evidence_backed_lesson",
+      "family": "learning",
+      "trigger": "repeated_validated_lesson",
+      "context_inputs": [
+        "Prediction",
+        "Metacognition",
+        "Evidence",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_metacog_capture"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "MetacogSignal"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "decay_stale_learning",
+      "family": "learning",
+      "trigger": "old_low_utility_learning_signal",
+      "context_inputs": [
+        "Prediction",
+        "Metacognition",
+        "Evidence",
+        "Lineage"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_metacog_doctor"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "MetacogSignal"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "prefer_summary_hot_path",
+      "family": "resource",
+      "trigger": "broad_status_or_context_requested",
+      "context_inputs": [
+        "ResourceMode",
+        "Traverse",
+        "Telemetry",
+        "BoundedRoutes"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_traverse"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "TraversalSlice"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "gate_full_payload",
+      "family": "resource",
+      "trigger": "full_lineage_or_ontology_requested",
+      "context_inputs": [
+        "ResourceMode",
+        "Traverse",
+        "Telemetry",
+        "BoundedRoutes"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_traverse"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "TraversalSlice"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "degrade_with_recovery",
+      "family": "resource",
+      "trigger": "route_timeout_or_resource_pressure",
+      "context_inputs": [
+        "ResourceMode",
+        "Traverse",
+        "Telemetry",
+        "BoundedRoutes"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_resource_mode"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ResourceMode"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "preserve_tool_affordances_lowmem",
+      "family": "resource",
+      "trigger": "lowmem_active",
+      "context_inputs": [
+        "ResourceMode",
+        "Traverse",
+        "Telemetry",
+        "BoundedRoutes"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_resource_mode"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ToolContract"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "require_destructive_confirmation",
+      "family": "governance",
+      "trigger": "destructive_or_system_action",
+      "context_inputs": [
+        "OperatorSteering",
+        "Policy",
+        "ApprovalGate",
+        "WorkLoop"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_work_loop_control"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ApprovalGate"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "proposal_not_direct_write",
+      "family": "governance",
+      "trigger": "governance_changing_action",
+      "context_inputs": [
+        "OperatorSteering",
+        "Policy",
+        "ApprovalGate",
+        "WorkLoop"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_traverse"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "Proposal"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "operator_steering_supersedes_loop",
+      "family": "governance",
+      "trigger": "operator_redirects_task",
+      "context_inputs": [
+        "OperatorSteering",
+        "Policy",
+        "ApprovalGate",
+        "WorkLoop"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_work_loop_context"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "OperatorDirective"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "approval_gate_state_hygiene",
+      "family": "governance",
+      "trigger": "state_hygiene_apply_requested",
+      "context_inputs": [
+        "OperatorSteering",
+        "Policy",
+        "ApprovalGate",
+        "WorkLoop"
+      ],
+      "reflex_action": {
+        "kind": "route_to_existing_surface",
+        "recommended_tool": "focusa_state_hygiene_plan"
+      },
+      "evidence_output": {
+        "kind": "bounded_status_or_evidence_ref",
+        "object": "ApprovalGate"
+      },
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_scope_conflict_unsafe_action_missing_evidence_or_repeated_degradation_persists",
+      "authority_boundary": "uses_existing_focusa_authorities_only; no direct reducer bypass; operator steering remains supreme",
+      "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
+      "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
+      "implementation_status": "registry_only_existing_substrate"
+    }
+  ]
+}
