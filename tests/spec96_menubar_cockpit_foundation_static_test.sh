@@ -34,6 +34,7 @@ assert_has apps/menubar/src/routes/+page.svelte 'aria-label="Focusa peeks"|tab-m
 assert_has apps/menubar/src/routes/+page.svelte "activeTab === 'cockpit'|CockpitView" 'menubar uses cockpit naming instead of mission naming'
 assert_has apps/menubar/src/lib/components/CockpitView.svelte 'cockpit-grid|Focusa cockpit' 'cockpit component naming is polished'
 assert_has apps/menubar/src/lib/components/Settings.svelte 'v0\.9\.12-dev|Direct network binding exposes Focusa' 'settings polish updates version and remote security copy'
+assert_has apps/menubar/src/lib/components/FocusView.svelte 'CURRENT BUBBLE|BACKGROUND CLOUDS|ambient-orbit|thought-cloud|focus-bubble' 'default focus view preserves original bubble/cloud hierarchy'
 assert_has apps/menubar/package.json 'svelte-kit sync && svelte-check' 'menubar check script generates SvelteKit tsconfig first'
 
 if rg -n 'http://127\.0\.0\.1:8787' "${MENUBAR}/src" | rg -v 'src/lib/api.ts|placeholder=' >/tmp/menubar-hardcoded-api.txt; then

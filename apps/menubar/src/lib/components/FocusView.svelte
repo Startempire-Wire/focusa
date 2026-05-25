@@ -76,15 +76,22 @@
   <!-- Active focus view -->
   <div class="focus-view">
     {#if active}
-      <section>
-        <div class="section-label">ACTIVE FOCUS</div>
-        <div class="frame-card active">
+      <section class="focus-bubble-section">
+        <div class="ambient-orbit" aria-hidden="true">
+          {#each paused.slice(0, 4) as frame, index}
+            <span class="thought-cloud" style={`--i: ${index};`} title={frame.title}></span>
+          {/each}
+        </div>
+        <div class="section-label">CURRENT BUBBLE</div>
+        <div class="frame-card active focus-bubble">
           <div class="frame-header">
             <span class="frame-status" title={active.status}>{statusIcon(active.status)}</span>
             <span class="frame-title">{active.title}</span>
           </div>
           {#if active.goal}
             <div class="frame-goal">{active.goal}</div>
+          {:else if active.focus_state.intent}
+            <div class="frame-goal">{active.focus_state.intent}</div>
           {/if}
           <div class="frame-meta">
             <span title="Turns">{active.stats.turn_count} turns</span>
@@ -153,7 +160,7 @@
 
     {#if paused.length > 0}
       <section>
-        <div class="section-label">PAUSED ({paused.length})</div>
+        <div class="section-label">BACKGROUND CLOUDS ({paused.length})</div>
         {#each paused as frame}
           <div class="frame-card paused">
             <div class="frame-header">
@@ -175,7 +182,7 @@
 
     <!-- Stack depth indicator -->
     <div class="stack-info">
-      <span>Stack depth: {focusStore.frameCount}</span>
+      <span>ambient stack depth: {focusStore.frameCount}</span>
       <span>·</span>
       <span>v{focusStore.version}</span>
     </div>
@@ -253,6 +260,32 @@
     gap: var(--sp-3);
   }
 
+  .focus-bubble-section {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .ambient-orbit {
+    position: absolute;
+    inset: -10px 0 auto 0;
+    height: 86px;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.55;
+  }
+
+  .thought-cloud {
+    position: absolute;
+    width: calc(42px + var(--i) * 9px);
+    height: calc(22px + var(--i) * 4px);
+    left: calc(12% + var(--i) * 19%);
+    top: calc(6px + var(--i) * 7px);
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
+    filter: blur(0.1px);
+  }
+
   .section-label {
     font-size: 10px;
     font-weight: 700;
@@ -267,12 +300,20 @@
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     padding: var(--sp-3);
-    transition: background var(--dur-fast) var(--ease);
+    transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
   }
 
   .frame-card.active {
-    border-color: var(--accent);
-    border-left: 3px solid var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  }
+
+  .focus-bubble {
+    border-radius: 28px;
+    padding: var(--sp-4);
+    background:
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 52%),
+      var(--bg-panel);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .frame-card.paused {
