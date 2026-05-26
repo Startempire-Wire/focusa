@@ -16,7 +16,7 @@ rg -n '/v1/project/card|focusa.project_card.v1|trajectory_define_goal|prediction
 rg -n 'Card|/v1/project/card|current_ask' "$CLI" >/dev/null \
   || fail "project card CLI parity missing"
 
-rg -n 'focusa_project_card|/project/card|focusa.project_card.v1|focusa_trajectory_define_goal' "$TOOLS" "$CONTRACTS" >/dev/null \
+rg -n 'focusa_project_card|/project/card|focusa.project_card.v1|focusa_trajectory_define_goal|prior_session_context|success_sequence|recommended_first_event' "$TOOLS" "$CONTRACTS" >/dev/null \
   || fail "project card Pi tool/contract parity missing"
 
 rg -n 'focusa project card|GET /v1/project/card|ontology objects → trajectory hierarchy → prediction|advisory-only' "$DOC" "$ROOT/docs/current/API_REFERENCE_CURRENT.md" "$ROOT/docs/current/CLI_REFERENCE_CURRENT.md" >/dev/null \

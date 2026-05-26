@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Build an advisory project-intelligence card that fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap and next-step evaluation.
+Build an advisory project-intelligence card that fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prior-session context, prediction, and metacog signals for bootstrap/re-bootstrap and next-step evaluation.
 
 ## When to use
 
@@ -22,7 +22,7 @@ Build an advisory project-intelligence card that fuses ProjectIdentity, ontology
 
 ## Expected result
 
-Returns `schema=focusa.project_card.v1`, `project_identity`, bounded `ontology` counts, `trajectory` ladder context, `active_workpoint`, `evidence`, `prediction` stats/recent records, metacog retrieval prompts, bootstrap/re-bootstrap candidate, possibilities, and next tool guidance.
+Returns `schema=focusa.project_card.v1`, `project_identity`, bounded `ontology` counts, `trajectory` ladder context, `prior_session_context` (HLG/MLG/STG/waypoints, recent decisions/results, algorithm outcomes, prediction summary, metacog prompt), `success_sequence` (recommended next event sequence), `active_workpoint`, `evidence`, `prediction` stats/recent records, metacog retrieval prompts, bootstrap/re-bootstrap candidate, possibilities, and next tool guidance.
 
 The card is advisory-only. Use `focusa_trajectory_define_goal` or `focusa_trajectory_assess` for trajectory writes/reviews.
 
@@ -39,3 +39,4 @@ focusa_project_card project_root="/home/wirebot/focusa" current_ask="Choose the 
 - API routes: `GET /v1/project/card`.
 - CLI commands: `focusa project card`.
 - Core surface: Spec98 ontology-grounded project-intelligence flywheel.
+- Prominent fields: `prior_session_context`, `success_sequence`, `bootstrap.candidate.prior_context_inputs`.
