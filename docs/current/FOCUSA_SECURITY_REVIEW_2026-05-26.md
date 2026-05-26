@@ -152,7 +152,7 @@ Recommendations:
 
 ## Remediation update — non-loopback auth guard
 
-The daemon now fails closed before acquiring the runtime lock when `FOCUSA_BIND` resolves to a non-loopback address and neither `FOCUSA_AUTH_TOKEN` nor `auth_token` is configured. The failure code is `INSECURE_BIND_WITHOUT_AUTH`; loopback local-first operation remains allowed.
+The daemon now fails closed before acquiring the runtime lock when `FOCUSA_BIND` resolves to a non-loopback address and no enforced `FOCUSA_AUTH_TOKEN` is configured. The failure code is `INSECURE_BIND_WITHOUT_AUTH`; loopback local-first operation remains allowed. Config-file `auth_token` is not trusted for non-loopback exposure because current middleware enforces env tokens only.
 
 Validation: `tests/security_non_loopback_auth_guard_static_test.sh`, `cargo test -p focusa-api bind_auth_guard`, and `cargo check -p focusa-api` passed.
 

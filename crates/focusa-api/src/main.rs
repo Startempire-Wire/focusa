@@ -117,15 +117,10 @@ fn process_alive(pid: u32) -> bool {
     Path::new(&format!("/proc/{pid}")).exists()
 }
 
-fn auth_token_configured(config: &FocusaConfig) -> bool {
+fn enforced_auth_token_configured() -> bool {
     std::env::var("FOCUSA_AUTH_TOKEN")
         .map(|token| !token.trim().is_empty())
         .unwrap_or(false)
-        || config
-            .auth_token
-            .as_deref()
-            .map(|token| !token.trim().is_empty())
-            .unwrap_or(false)
 }
 
 fn bind_is_loopback(bind: &str) -> bool {
@@ -135,11 +130,11 @@ fn bind_is_loopback(bind: &str) -> bool {
 }
 
 fn enforce_bind_auth_guard(config: &FocusaConfig) -> anyhow::Result<()> {
-    if bind_is_loopback(&config.api_bind) || auth_token_configured(config) {
+    if bind_is_loopback(&config.api_bind) || enforced_auth_token_configured() {
         return Ok(());
     }
     Err(anyhow!(
-        "[INSECURE_BIND_WITHOUT_AUTH] FOCUSA_BIND={} is non-loopback but no FOCUSA_AUTH_TOKEN/auth_token is configured; set auth or bind to 127.0.0.1",
+        "[INSECURE_BIND_WITHOUT_AUTH] FOCUSA_BIND={} is non-loopback but no enforced FOCUSA_AUTH_TOKEN is configured; set FOCUSA_AUTH_TOKEN or bind to 127.0.0.1",
         config.api_bind
     ))
 }
@@ -265,13 +260,17 @@ mod tests {
     }
 
     #[test]
-    fn bind_auth_guard_allows_non_loopback_with_token() {
+    fn bind_auth_guard_rejects_non_loopback_with_config_only_token() {
+        if std::env::var("FOCUSA_AUTH_TOKEN").is_ok() {
+            return;
+        }
         let config = FocusaConfig {
             api_bind: "0.0.0.0:8787".to_string(),
-            auth_token: Some("configured-token".to_string()),
+            auth_token: Some("configured-token-not-enforced-by-middleware".to_string()),
             ..FocusaConfig::default()
         };
-        assert!(enforce_bind_auth_guard(&config).is_ok());
+        let err = enforce_bind_auth_guard(&config).expect_err("config-only token is not enforced");
+        assert!(err.to_string().contains("FOCUSA_AUTH_TOKEN"));
     }
 
     #[test]

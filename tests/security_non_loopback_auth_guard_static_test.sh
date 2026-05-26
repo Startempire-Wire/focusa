@@ -8,7 +8,7 @@ for needle in \
   "fn enforce_bind_auth_guard" \
   "INSECURE_BIND_WITHOUT_AUTH" \
   "bind_is_loopback" \
-  "auth_token_configured" \
+  "enforced_auth_token_configured" \
   "enforce_bind_auth_guard(&config)?"; do
   if ! grep -Fq "$needle" "$MAIN"; then
     echo "missing non-loopback auth guard marker: $needle" >&2
@@ -16,8 +16,13 @@ for needle in \
   fi
 done
 
-if ! grep -Fq "FOCUSA_AUTH_TOKEN" "$AUTH"; then
-  echo "auth middleware must document/use FOCUSA_AUTH_TOKEN" >&2
+if ! grep -Fq "FOCUSA_AUTH_TOKEN" "$AUTH" || grep -Fq "Config token check" "$AUTH"; then
+  echo "auth middleware must enforce/document FOCUSA_AUTH_TOKEN only until config-token middleware exists" >&2
+  exit 1
+fi
+
+if ! grep -Fq "bind_auth_guard_rejects_non_loopback_with_config_only_token" "$MAIN"; then
+  echo "non-loopback guard must reject config-only token mismatch" >&2
   exit 1
 fi
 

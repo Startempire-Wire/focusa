@@ -20,7 +20,7 @@ Evidence baseline:
 | Area | Current status | Evidence | Gap / required next action |
 | --- | --- | --- | --- |
 | V1 Architecture, design, threat modeling | Partial | Architecture docs, Workpoint/Trajectory authority boundaries, this matrix review | Add explicit threat model diagrams and data-flow trust boundaries for daemon/API/Pi/menubar/sync. |
-| V2 Authentication | Partial | `FOCUSA_AUTH_TOKEN` middleware; non-loopback startup guard | Add token storage/rotation docs; config `auth_token` is defined but middleware currently only uses env. |
+| V2 Authentication | Partial | `FOCUSA_AUTH_TOKEN` middleware; non-loopback startup guard | Token storage/rotation docs still needed; non-loopback exposure now requires env-enforced `FOCUSA_AUTH_TOKEN` until config-token middleware exists. |
 | V3 Session management | Mostly N/A / partial | Focusa is local daemon; session/continuity IDs exist | Clarify that continuity IDs are not auth/session secrets. Add session fixation/replay notes for sync/remote use. |
 | V4 Access control | Partial | Work Loop writer ownership; Workpoint project_root+continuity guard; token routes exist | Add route-level scope/permission matrix for read vs write vs service-control routes. |
 | V5 Validation, sanitization, encoding | Partial | TypeBox validation in Pi tools; route validation varies; no runtime unwrap gate | Add Rust route schema/size limits for all mutation endpoints. |
