@@ -135,6 +135,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/END_OF_TASK_LEARNING_LOOP.md](current/END_OF_TASK_LEARNING_LOOP.md) — required prediction/metacog closure loop for compaction cards, trajectory reviews, and final work reports.
 - [current/PROJECT_INTELLIGENCE_FLYWHEEL.md](current/PROJECT_INTELLIGENCE_FLYWHEEL.md) — ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding.
 - [current/PREDICTION_ALGORITHMS_IMPLEMENTED.md](current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) — implemented lightweight prediction formulas behind project-card algorithmic intelligence.
+- [current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md](current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion and Focusa Workpoint/prediction flow.
 - [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) — dataset-agnostic prediction substrate, with stocks as the first domain adapter.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.

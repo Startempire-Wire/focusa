@@ -476,6 +476,7 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/PREDICTIVE_POWER_GUIDE.md`](docs/current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
 - [`docs/current/PROJECT_INTELLIGENCE_FLYWHEEL.md`](docs/current/PROJECT_INTELLIGENCE_FLYWHEEL.md) — ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding.
 - [`docs/current/PREDICTION_ALGORITHMS_IMPLEMENTED.md`](docs/current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) — implemented lightweight prediction formulas behind project-card algorithmic intelligence.
+- [`docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md`](docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion and Workpoint/prediction flow.
 - [`docs/current/AGENT_COMMAND_COOKBOOK.md`](docs/current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
 - [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](docs/90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 current tool contract/parity hardening plan.
 - [`docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`](docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current machine-readable tool contract registry table.
