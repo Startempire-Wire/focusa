@@ -47,6 +47,9 @@ enum Commands {
         /// Agent-first status envelope with Workpoint, Work-loop, token, and cache details.
         #[arg(long)]
         agent: bool,
+        /// Operator-facing session card with project, trajectory, Workpoint, evidence, health, and next action.
+        #[arg(long)]
+        operator: bool,
     },
 
     /// Run first-run Operator Preview onboarding.
@@ -300,10 +303,84 @@ async fn main() -> anyhow::Result<()> {
             }
             Ok(())
         }
-        Commands::Status { agent } => {
+        Commands::Status { agent, operator } => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/status").await?;
-            if agent {
+            if operator {
+                let health = api.get("/v1/health").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","ok":false,"error":err.to_string()}),
+                );
+                let project = api.get("/v1/project/identity").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let trajectory = api.get("/v1/trajectory/view?mode=summary").await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                );
+                let workpoint = api.post("/v1/workpoint/resume", &serde_json::json!({"mode":"operator_summary"})).await.unwrap_or_else(
+                    |err| serde_json::json!({"status":"blocked","canonical":false,"error":err.to_string()}),
+                );
+                let evidence_count = workpoint
+                    .get("evidence_refs")
+                    .and_then(|v| v.as_array())
+                    .map(|items| items.len())
+                    .unwrap_or(0);
+                let project_root = project
+                    .pointer("/project_identity/project_root")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unbound");
+                let continuity = workpoint
+                    .get("continuity_id")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| workpoint.pointer("/resume_packet/continuity_id").and_then(|v| v.as_str()))
+                    .unwrap_or("unknown");
+                let trajectory_summary = trajectory
+                    .get("summary")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| trajectory.get("current_state").and_then(|v| v.as_str()))
+                    .unwrap_or("trajectory unavailable or not yet defined");
+                let active_gap = trajectory
+                    .get("gap")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| trajectory.get("active_gap").and_then(|v| v.as_str()))
+                    .unwrap_or("unknown");
+                let workpoint_id = workpoint
+                    .get("workpoint_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("none");
+                let next_action = workpoint
+                    .get("next_step_hint")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| workpoint.get("rendered_summary").and_then(|v| v.as_str()))
+                    .unwrap_or("run focusa workpoint resume --mode compact_prompt");
+                let envelope = serde_json::json!({
+                    "status": "completed",
+                    "summary": "Focusa operator session card",
+                    "project": project_root,
+                    "continuity": continuity,
+                    "trajectory": trajectory_summary,
+                    "active_gap": active_gap,
+                    "active_workpoint": workpoint_id,
+                    "next_action": next_action,
+                    "evidence_count": evidence_count,
+                    "drift_status": "run focusa workpoint drift-check with the latest action to verify",
+                    "health": if health.get("ok").and_then(|v| v.as_bool()) == Some(true) { "healthy" } else { "blocked" },
+                    "details": {"status": resp, "health": health, "project": project, "trajectory": trajectory, "workpoint": workpoint}
+                });
+                if cli.json {
+                    println!("{}", serde_json::to_string_pretty(&envelope)?);
+                } else {
+                    println!("FOCUSA SESSION CARD");
+                    println!("Project: {}", envelope["project"].as_str().unwrap_or("unbound"));
+                    println!("Continuity: {}", envelope["continuity"].as_str().unwrap_or("unknown"));
+                    println!("Trajectory: {}", envelope["trajectory"].as_str().unwrap_or("unavailable"));
+                    println!("Active Gap: {}", envelope["active_gap"].as_str().unwrap_or("unknown"));
+                    println!("Active Workpoint: {}", envelope["active_workpoint"].as_str().unwrap_or("none"));
+                    println!("Next Action: {}", envelope["next_action"].as_str().unwrap_or("resume workpoint"));
+                    println!("Evidence: {} refs linked", envelope["evidence_count"].as_u64().unwrap_or(0));
+                    println!("Drift Status: {}", envelope["drift_status"].as_str().unwrap_or("unknown"));
+                    println!("Health: {}", envelope["health"].as_str().unwrap_or("unknown"));
+                }
+            } else if agent {
                 let workpoint = api.get("/v1/workpoint/current").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
                 );

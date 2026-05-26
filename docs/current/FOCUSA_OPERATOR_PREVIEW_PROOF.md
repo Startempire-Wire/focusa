@@ -23,6 +23,7 @@ A developer can start a real AI coding session, create a Workpoint, attach evide
 | Drift check catches wrong target/action | Implemented | `focusa workpoint drift-check --latest-action <action>` |
 | Non-Pi manual awareness card | Implemented | `focusa awareness card --adapter-id manual --workspace-id local --agent-id cli` |
 | First-run Operator Preview onboarding | Implemented in CLI | `focusa onboard --agent pi` or `focusa onboard --agent manual` |
+| Operator session card | Implemented in CLI | `focusa status --operator` |
 
 ## Golden proof path
 
@@ -41,9 +42,10 @@ cargo build --release --bins
 # 2. Run first-run onboarding in the checkout you want to protect.
 focusa onboard --agent pi
 
-# 3. Inspect health/repair guidance.
+# 3. Inspect health/repair guidance and the visible session card.
 focusa doctor
 focusa doctor --json
+focusa status --operator
 
 # 4. Create or resume the Workpoint.
 focusa workpoint resume --mode compact_prompt

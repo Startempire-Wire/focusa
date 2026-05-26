@@ -255,6 +255,7 @@ cargo run --bin focusa-daemon
 
 # In another shell
 cargo run --bin focusa -- status
+cargo run --bin focusa -- status --operator
 cargo run --bin focusa -- onboard --agent manual
 cargo run --bin focusa -- workpoint current
 
