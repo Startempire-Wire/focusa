@@ -172,3 +172,13 @@ After the initial review, `npm audit fix --package-lock-only` was run for `apps/
 - Pi extension audit now reports 0 vulnerabilities.
 - Menubar audit now reports only 3 low `cookie` findings through `@sveltejs/kit`; npm marks the remaining automated fix as breaking (`npm audit fix --force` would install an incompatible SvelteKit version), so this is a manual framework-upgrade/triage item.
 - Validation: `apps/pi-extension` `npx tsc --noEmit` passed; `apps/menubar` `npm run check -- --threshold warning` passed.
+
+## Remediation update — RustSec audit
+
+`cargo-audit` was installed for review and `tests/security_cargo_audit_gate.sh` was added as a repeatable gate. `Cargo.lock` was patched with `cargo update` for:
+
+- `rustls-webpki` 0.103.9 → 0.103.13.
+- `quinn-proto` 0.11.13 → 0.11.14.
+- `rand` 0.8.5 → 0.8.6.
+
+Result: RustSec vulnerabilities now report 0. Remaining informational warnings: `paste` unmaintained via `parquet`/`ratatui`; `lru` unsound via `ratatui`/TUI. Validation: `cargo check -p focusa-api -p focusa-cli -p focusa-tui` passed with `CARGO_TARGET_DIR=/tmp/focusa-security-check-target`.
