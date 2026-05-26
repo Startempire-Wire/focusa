@@ -45,11 +45,19 @@ fn release_proof_file_stem(tag: &str) -> String {
         .collect()
 }
 
-fn persist_release_proof(tag: &str, response: &Value) -> anyhow::Result<(String, String)> {
+fn persist_release_proof(tag: &str, response: &mut Value) -> anyhow::Result<(String, String)> {
     let dir = release_proof_dir();
     fs::create_dir_all(&dir)?;
     let tag_path = dir.join(format!("{}.json", release_proof_file_stem(tag)));
     let latest_path = dir.join("latest.json");
+    let tag_path_display = tag_path.display().to_string();
+    let latest_path_display = latest_path.display().to_string();
+
+    response["proof_artifact"] = json!({
+        "tag_path": tag_path_display,
+        "latest_path": latest_path_display,
+    });
+
     let body = serde_json::to_string_pretty(response)?;
     fs::write(&tag_path, &body)?;
     fs::write(&latest_path, body)?;
@@ -130,13 +138,8 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 "details": { "tag": tag, "gates": results },
             });
 
-            match persist_release_proof(&tag, &response) {
-                Ok((tag_path, latest_path)) => {
-                    response["proof_artifact"] = json!({
-                        "tag_path": tag_path,
-                        "latest_path": latest_path,
-                    });
-                }
+            match persist_release_proof(&tag, &mut response) {
+                Ok((_tag_path, _latest_path)) => {}
                 Err(err) => {
                     if let Some(warnings) = response["warnings"].as_array_mut() {
                         warnings.push(json!(format!("failed to persist release proof artifact: {err}")));
