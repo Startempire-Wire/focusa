@@ -46,7 +46,12 @@ impl ApiClient {
         let client = ClientBuilder::new()
             .timeout(Duration::from_secs(timeout))
             .build()
-            .expect("Failed to build HTTP client");
+            .unwrap_or_else(|err| {
+                eprintln!(
+                    "[API_CLIENT_INIT_FALLBACK] failed to build configured HTTP client; using reqwest default client: {err}"
+                );
+                Client::new()
+            });
 
         Self { client, base }
     }
