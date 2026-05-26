@@ -24,7 +24,7 @@ This lets lessons answer: **which project object did this improve, falsify, risk
 
 ## Bootstrap and re-bootstrap
 
-At session start, project resume, low-confidence trajectory, or stale goal detection, Focusa should build a project card from:
+At session start, project resume, low-confidence trajectory, or stale goal detection, Focusa should build a project card from `GET /v1/project/card` / `focusa project card`, which fuses:
 
 1. `focusa_project_identity`
 2. `focusa_traverse(surface=ontology)` bounded object context
@@ -33,7 +33,7 @@ At session start, project resume, low-confidence trajectory, or stale goal detec
 5. relevant metacog lessons
 6. evidence/workpoint state
 
-If no current trajectory exists, the bootstrap prompt should offer a **learning-informed trajectory** as the first draft. If a trajectory exists but conflicts with evidence/predictions/lessons, re-bootstrap should propose a refreshed hierarchy rather than silently continue stale goals.
+If no current trajectory exists, the bootstrap prompt should offer a **learning-informed trajectory** as the first draft. If a trajectory exists but conflicts with evidence/predictions/lessons, re-bootstrap should propose a refreshed hierarchy rather than silently continue stale goals. The card is advisory-only; `focusa_trajectory_define_goal` remains the explicit write path.
 
 ## Project card fields
 

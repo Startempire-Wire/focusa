@@ -73,6 +73,23 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "live_check": "contract_static plus /v1/project/identity safe probe and quorum status"
   },
   {
+    "name": "focusa_project_card",
+    "label": "Project Card",
+    "purpose": "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.",
+    "family": "project_identity",
+    "ontology_action": "project.card",
+    "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "PredictionRecord", "MetacognitionStore", "OntologyState"],
+    "api_routes": ["GET /v1/project/card"],
+    "cli_commands": ["focusa project card"],
+    "core_surface": "Spec98 ontology-grounded project-intelligence flywheel",
+    "doc_path": "docs/focusa-tools/tools/focusa_project_card.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance"
+  },
+  {
     "name": "focusa_project_verify",
     "label": "Project Verify",
     "purpose": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
@@ -1329,9 +1346,16 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_project_identity": [
+    "focusa_project_card",
     "focusa_project_verify",
     "focusa_trajectory_view",
     "focusa_workpoint_resume"
+  ],
+  "focusa_project_card": [
+    "focusa_traverse",
+    "focusa_trajectory_view",
+    "focusa_metacog_retrieve",
+    "focusa_predict_record"
   ],
   "focusa_project_verify": [
     "focusa_trajectory_view",

@@ -2539,6 +2539,36 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_project_card",
+    label: "Focusa Project Card",
+    description: "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals.",
+    promptSnippet: "Use at bootstrap/re-bootstrap, project reviews, and next-step evaluation before refreshing trajectory hierarchy.",
+    parameters: Type.Object({
+      cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
+      project_root: Type.Optional(Type.String({ description: "Optional expected project root folder." })),
+      current_ask: Type.Optional(Type.String({ description: "Optional current ask used to seed bootstrap/re-bootstrap candidate." })),
+    }),
+    async execute(_id, params) {
+      const p = params as { cwd?: string; project_root?: string; current_ask?: string };
+      const query = new URLSearchParams();
+      query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
+      if (p.project_root) query.set("project_root", p.project_root);
+      if (p.current_ask) query.set("current_ask", p.current_ask);
+      const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
+      const body = result.body || {};
+      const project = body.project_identity || {};
+      const bootstrap = body.bootstrap || {};
+      const prediction = body.prediction || {};
+      const ontology = body.ontology || {};
+      const text = result.ok
+        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} root=${String(project.project_root || "unknown")} bootstrap_needed=${bootstrap.needed === true} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_objects=${String(ontology.objects ?? "unknown")}`
+        : `project card blocked → ${explainWorkLoopResult(result, "project card unavailable")}`;
+      const toolResult = body.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(body.status || "completed") : "blocked", canonical: false, degraded: !result.ok, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"] };
+      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card", advisory_only: body.advisory_only !== false, project_identity: project, trajectory: body.trajectory || null, ontology, evidence: body.evidence || null, prediction, metacognition: body.metacognition || null, active_workpoint: body.active_workpoint || null, bootstrap, possibilities: body.possibilities || [], next_step_quality_rule: body.next_step_quality_rule || null, tool_result_v1: toolResult, next_tools: toolResult.next_tools || body.next_tools || ["focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"], response: compactApiEcho(body) } } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_project_verify",
     label: "Focusa Project Verify",
     description: "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state.",

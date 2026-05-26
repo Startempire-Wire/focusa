@@ -4,6 +4,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+- Added `/v1/project/card`, `focusa project card`, and `focusa_project_card` so ontology, trajectory, Workpoint/evidence, prediction, and metacog signals synthesize advisory bootstrap/re-bootstrap project intelligence.
 - Added end-of-task learning-loop and project-intelligence flywheel surfaces so prediction/metacog signals feed ontology-grounded project cards, trajectory bootstrap/re-bootstrap, compaction cards, and final reports.
 - Added Pi extension check/typecheck scripts and verified current Pi, menubar, Rust workspace, release build, and restarted daemon.
 - Refreshed GitHub Release workflow notes to generate current functional dogfood proof language and added a static guard against stale fixed-count/generic release claims.

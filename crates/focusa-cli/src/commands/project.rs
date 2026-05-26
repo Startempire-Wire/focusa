@@ -13,6 +13,15 @@ pub enum ProjectCmd {
         #[arg(long)]
         project_root: Option<String>,
     },
+    /// Build advisory Project Card from identity, ontology, trajectory, prediction, evidence, and learning-loop signals.
+    Card {
+        #[arg(long)]
+        cwd: Option<String>,
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        current_ask: Option<String>,
+    },
     /// Verify expected project identity signals against discovered ProjectIdentity.
     Verify {
         #[arg(long)]
@@ -96,6 +105,18 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 format!("/v1/project/identity?{}", qs.join("&"))
             };
             ("identity", api.get(&path).await?)
+        }
+        ProjectCmd::Card { cwd, project_root, current_ask } => {
+            let mut qs = Vec::new();
+            push_query(&mut qs, "cwd", cwd.as_deref());
+            push_query(&mut qs, "project_root", project_root.as_deref());
+            push_query(&mut qs, "current_ask", current_ask.as_deref());
+            let path = if qs.is_empty() {
+                "/v1/project/card".to_string()
+            } else {
+                format!("/v1/project/card?{}", qs.join("&"))
+            };
+            ("card", api.get(&path).await?)
         }
         ProjectCmd::Verify {
             cwd,

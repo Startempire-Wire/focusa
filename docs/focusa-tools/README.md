@@ -26,6 +26,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 ## All tools
 
 - [`focusa_project_identity`](tools/focusa_project_identity.md)
+- [`focusa_project_card`](tools/focusa_project_card.md)
 - [`focusa_project_verify`](tools/focusa_project_verify.md)
 - [`focusa_trajectory_view`](tools/focusa_trajectory_view.md)
 - [`focusa_trajectory_resume`](tools/focusa_trajectory_resume.md)

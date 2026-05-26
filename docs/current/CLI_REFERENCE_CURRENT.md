@@ -113,6 +113,7 @@ focusa metacognition recent-reflections --limit 5 --json
 focusa metacognition recent-adjustments --limit 5 --json
 focusa metacognition recent-evaluations --limit 5 --json
 focusa project identity --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
+focusa project card --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --current-ask "Choose the next evidence-backed step" --json
 focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
 focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
 focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --mid-level-goal "Close release blockers" --short-term-goal "Run current validation gates" --waypoint "CLI/API parity proof" --waypoint "Public docs proof" --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json

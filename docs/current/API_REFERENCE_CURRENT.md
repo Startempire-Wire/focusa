@@ -190,7 +190,10 @@ Ontology adjacency/context evidence-handle projections include bounded `trajecto
 
 ### project
 - `GET /v1/project/identity`
+- `GET /v1/project/card`
 - `POST /v1/project/verify`
+
+Project cards are advisory `focusa.project_card.v1` summaries that fuse ProjectIdentity, bounded ontology counts, trajectory ladder context, Workpoint/evidence status, prediction stats/recent outcomes, and metacog retrieval prompts into bootstrap/re-bootstrap guidance.
 
 ### predictions
 - `POST /v1/predictions`

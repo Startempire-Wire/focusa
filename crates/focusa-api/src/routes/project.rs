@@ -3,6 +3,7 @@
 //! ProjectIdentity is a bounded, hot-path-safe orientation record. It composes
 //! filesystem/project signals; it does not select work or mutate cognitive state.
 
+use crate::routes::predictions::read_predictions;
 use crate::server::AppState;
 use axum::{
     Json, Router,
@@ -21,6 +22,7 @@ use std::time::{Duration, Instant};
 pub struct ProjectIdentityQuery {
     pub cwd: Option<String>,
     pub project_root: Option<String>,
+    pub current_ask: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -1248,10 +1250,124 @@ async fn verify(
     ))
 }
 
+fn prediction_stats_card(predictions: &[Value]) -> Value {
+    let evaluated: Vec<&Value> = predictions
+        .iter()
+        .filter(|p| !p.get("score").unwrap_or(&Value::Null).is_null())
+        .collect();
+    let score_sum: f64 = evaluated
+        .iter()
+        .filter_map(|p| p.get("score").and_then(Value::as_f64))
+        .sum();
+    json!({
+        "total": predictions.len(),
+        "evaluated": evaluated.len(),
+        "accuracy": if evaluated.is_empty() { 0.0 } else { score_sum / evaluated.len() as f64 },
+        "recent_open": predictions.iter().rev().filter(|p| p.get("score").unwrap_or(&Value::Null).is_null()).take(5).cloned().collect::<Vec<_>>(),
+        "recent_evaluated": predictions.iter().rev().filter(|p| !p.get("score").unwrap_or(&Value::Null).is_null()).take(5).cloned().collect::<Vec<_>>(),
+    })
+}
+
+async fn card(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ProjectIdentityQuery>,
+) -> Json<Value> {
+    let identity_payload = project_identity_payload_for_scope(
+        query.cwd.as_deref(),
+        query.project_root.as_deref(),
+    );
+    let project = identity_payload
+        .get("project_identity")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let focusa = state.focusa.read().await;
+    let trajectory = focusa.trajectory_ladder_context();
+    let active_workpoint = focusa
+        .workpoint
+        .active_workpoint_id
+        .and_then(|id| focusa.workpoint.records.iter().find(|record| record.workpoint_id == id))
+        .or_else(|| focusa.workpoint.records.last())
+        .map(|record| json!({
+            "workpoint_id": record.workpoint_id,
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "canonical": record.canonical,
+            "status": format!("{:?}", record.status),
+            "mission": record.mission,
+            "next_slice": record.next_slice,
+            "active_object_refs": record.active_object_refs,
+            "verification_count": record.verification_records.len(),
+            "blocker_count": record.blockers.len(),
+        }));
+    let ontology = json!({
+        "objects": focusa.ontology.objects.len(),
+        "links": focusa.ontology.links.len(),
+        "proposals": focusa.ontology.proposals.len(),
+        "verifications": focusa.ontology.verifications.len(),
+        "working_set_refreshes": focusa.ontology.working_set_refreshes.len(),
+    });
+    let evidence = json!({
+        "reference_handles": focusa.reference_index.handles.len(),
+        "workpoint_verifications": focusa.workpoint.records.iter().map(|record| record.verification_records.len()).sum::<usize>(),
+    });
+    drop(focusa);
+
+    let predictions = read_predictions();
+    let prediction = prediction_stats_card(&predictions);
+    let current_ask = query.current_ask.as_deref().unwrap_or_default().trim();
+    let project_name = project
+        .get("canonical_name")
+        .and_then(Value::as_str)
+        .or_else(|| project.get("project_id").and_then(Value::as_str))
+        .unwrap_or("project");
+    let trajectory_hlt = trajectory.as_ref().and_then(|t| t.hlt.clone());
+    let trajectory_stg = trajectory.as_ref().and_then(|t| t.stg.clone());
+    let bootstrap_needed = trajectory_hlt.as_deref().unwrap_or_default().trim().is_empty();
+    let next_gap = trajectory_stg
+        .clone()
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| if current_ask.is_empty() { None } else { Some(current_ask.to_string()) })
+        .unwrap_or_else(|| "refresh trajectory from project card".to_string());
+
+    Json(json!({
+        "status": "completed",
+        "schema": "focusa.project_card.v1",
+        "advisory_only": true,
+        "project_identity": project,
+        "trajectory": trajectory,
+        "ontology": ontology,
+        "evidence": evidence,
+        "prediction": prediction,
+        "metacognition": {
+            "summary": "Retrieve relevant lessons with /v1/metacognition/retrieve using project card + current ask.",
+            "next_tools": ["focusa_metacog_retrieve", "focusa_metacog_doctor"]
+        },
+        "active_workpoint": active_workpoint,
+        "bootstrap": {
+            "needed": bootstrap_needed,
+            "candidate": {
+                "long_term_goal": format!("Strengthen {project_name} project intelligence through ontology-grounded trajectory, evidence, prediction, and metacog loops"),
+                "desired_end_state": format!("{project_name} has an up-to-date project card, trajectory hierarchy, evidence-backed next step, evaluated predictions, and condensed reusable lessons"),
+                "short_term_goal": next_gap,
+                "goal_source": "project_card_learning_flywheel"
+            },
+            "next_tools": if bootstrap_needed { json!(["focusa_trajectory_define_goal", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"]) } else { json!(["focusa_trajectory_assess", "focusa_metacog_retrieve", "focusa_predict_record"]) }
+        },
+        "possibilities": [
+            {"kind": "trajectory_refresh", "action": "assess whether current project card evidence changes active trajectory gap"},
+            {"kind": "prediction", "action": "record the next bounded prediction tied to the selected trajectory gap"},
+            {"kind": "metacog", "action": "retrieve and condense lessons for similar project-card decisions"}
+        ],
+        "next_step_quality_rule": "best next step ties to trajectory gap, ontology refs, prediction rationale, evidence proof, and reusable lesson potential",
+        "next_tools": ["focusa_project_identity", "focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"]
+    }))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/project/identity", get(identity))
         .route("/v1/project/verify", post(verify))
+        .route("/v1/project/card", get(card))
 }
 
 #[cfg(test)]
