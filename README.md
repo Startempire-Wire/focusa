@@ -4,9 +4,11 @@
 >
 > Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
 
-**Current public snapshot:** `v0.9.13-dev`
+**Current public snapshot:** `v0.9.13-dev` / **Focusa Operator Preview**
 **Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
+
+**Preview promise:** a developer can start a real AI coding session, create a Workpoint, attach evidence, recover after compaction/session drift, and continue without losing the thread.
 
 ---
 
@@ -65,6 +67,26 @@ When Focusa is working well, an agent should:
 8. **Learn with discipline.** Metacognition tools include quality gates, evidence refs, persisted evaluation records, and bounded promotion back into retrieval memory instead of unconstrained note-taking.
 9. **Respect ownership.** Work-loop mutation tools expose writer conflicts and preflight state instead of silently taking over.
 10. **Remain inspectable.** The CLI/API expose state, lineage, snapshots, events, memory, ontology, Workpoints, and tool health.
+
+---
+
+## Operator Preview maturity table
+
+| Surface | Status | Release posture |
+|---|---|---|
+| Workpoint checkpoint/resume | Implemented | Primary supported workflow |
+| Evidence link | Implemented | Primary supported workflow |
+| `focusa onboard` | Implemented | First-run Operator Preview flow |
+| `focusa doctor` | Implemented | Supported diagnostics/repair surface |
+| Manual awareness card | Implemented | Supported non-Pi fallback path |
+| Trajectory view | Implemented/advisory | Supported orientation layer; not task authority |
+| Pi extension | Implemented | Best-supported deep harness path |
+| CLI/API | Implemented | Supported operator surface |
+| Work-loop | Implemented but advanced | Preview/advanced |
+| Metacognition | Implemented, bounded | Preview/advanced |
+| Ontology governance | Partial/design-forward | Experimental unless marked current in `docs/current/` |
+| GUI/menubar | In progress | Not primary Operator Preview surface |
+| Team/multi-user/cloud sync | Future | Not in preview |
 
 ---
 
@@ -233,6 +255,7 @@ cargo run --bin focusa-daemon
 
 # In another shell
 cargo run --bin focusa -- status
+cargo run --bin focusa -- onboard --agent manual
 cargo run --bin focusa -- workpoint current
 ```
 
@@ -424,9 +447,11 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/WORKPOINT_LIFECYCLE_GUIDE.md`](docs/current/WORKPOINT_LIFECYCLE_GUIDE.md) — current Workpoint usage and recovery flow.
 - [`docs/current/TOOL_RESULT_ENVELOPE_V1.md`](docs/current/TOOL_RESULT_ENVELOPE_V1.md) — current structured tool result contract.
 - [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
+- [`docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md`](docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md) — buyer-readable Operator Preview proof pack and release gates.
 - [`docs/current/PORTABILITY_AUDIT.md`](docs/current/PORTABILITY_AUDIT.md) — external tester portability matrix, fixed gaps, and remaining caveats.
 - [`docs/current/VALIDATION_AND_RELEASE_PROOF.md`](docs/current/VALIDATION_AND_RELEASE_PROOF.md) — current validation and real runtime proof expectations.
 - [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md) — copy/paste commands for release, restart, GitHub proof, and cleanup.
+- [`templates/workpoint-session.md`](templates/workpoint-session.md), [`templates/evidence-checklist.md`](templates/evidence-checklist.md), [`templates/agentops-sop.md`](templates/agentops-sop.md) — buyer-ready Operator Preview session templates.
 - [`docs/92-agent-first-polish-hooks-efficiency-spec.md`](docs/92-agent-first-polish-hooks-efficiency-spec.md) — next polish spec for hooks, token/cache UX, agent command center, and predictive power.
 - [`docs/current/HOOK_COVERAGE.md`](docs/current/HOOK_COVERAGE.md) — current Pi hook coverage and Spec92 hook telemetry commands.
 - [`docs/current/EFFICIENCY_GUIDE.md`](docs/current/EFFICIENCY_GUIDE.md) — current token-budget telemetry and planned cache metadata commands.
@@ -521,7 +546,7 @@ Focusa is source-available under the Focusa Business Source License 1.1 in `LICE
 
 Free use is limited to personal, educational, evaluation, and non-commercial local use. Commercial, team/company, hosted-service, client-delivery, redistribution, or product-embedding use requires a paid commercial license from Startempire Wire; see `COMMERCIAL.md`.
 
-Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`. Commercial support expectations are in `SUPPORT_TERMS.md`.
+Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`. Commercial support expectations are in `SUPPORT_TERMS.md`. Common licensing questions are answered in `LICENSE-FAQ.md`.
 
 - [focusa_predict_record](docs/focusa-tools/tools/focusa_predict_record.md)
 
