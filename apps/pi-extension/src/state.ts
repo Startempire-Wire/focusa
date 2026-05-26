@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { FocusaConfig } from "./config.js";
+import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
 
 export type PiCurrentAskKind = "question" | "instruction" | "correction" | "meta" | "unknown";
 
@@ -837,7 +837,7 @@ export async function kickstartFocusaDaemon(reason = "health_check"): Promise<bo
   if (now - last < (S.cfg.daemonRestartCooldownMs || 5_000)) return false;
 
   S.daemonRestartAttempts.push(now);
-  const cmd = S.cfg.daemonRestartCommand || "systemctl start focusa-daemon || systemctl restart focusa-daemon";
+  const cmd = S.cfg.daemonRestartCommand || DEFAULT_DAEMON_RESTART_COMMAND;
   S.daemonRestartInFlight = (async () => {
     try {
       await S.pi!.exec("bash", ["-lc", cmd]);

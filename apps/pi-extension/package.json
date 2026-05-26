@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Focusa cognitive integration extension for Pi coding agent",
+  "engines": {
+    "node": ">=20"
+  },
   "pi": {
     "extensions": ["./src/index.ts"]
   },

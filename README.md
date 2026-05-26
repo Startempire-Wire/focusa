@@ -244,10 +244,12 @@ http://127.0.0.1:8787
 
 ### Installed service pattern
 
-A deployed local service typically runs:
+A deployed local service typically runs the built daemon from the checkout or from an install directory on `PATH`:
 
-```text
-/home/wirebot/focusa/target/release/focusa-daemon
+```bash
+./target/release/focusa-daemon
+# or, after installing/copying binaries:
+focusa-daemon
 ```
 
 Health check:
@@ -311,12 +313,14 @@ description: Use when preserving Focusa cognitive state, resuming after compacti
 ---
 ```
 
-Validate skill loading with Pi's actual loader:
+Validate skill loading with Pi's actual loader, resolving the global npm install instead of assuming a host-specific Node path:
 
 ```bash
-node --input-type=module - <<'NODE'
-import { loadSkills } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
-const r = loadSkills({ cwd: process.cwd(), agentDir: '/root/.pi/agent', skillPaths: [], includeDefaults: true });
+PI_AGENT_DIR="${PI_AGENT_DIR:-$HOME/.pi/agent}"
+PI_PKG_ROOT="${PI_PKG_ROOT:-$(npm root -g)/@mariozechner/pi-coding-agent}"
+PI_PKG_ROOT="$PI_PKG_ROOT" PI_AGENT_DIR="$PI_AGENT_DIR" node --input-type=module - <<'NODE'
+const mod = await import(`${process.env.PI_PKG_ROOT}/dist/core/skills.js`);
+const r = mod.loadSkills({ cwd: process.cwd(), agentDir: process.env.PI_AGENT_DIR, skillPaths: [], includeDefaults: true });
 console.log(r.skills.map(s => [s.name, s.description.length, s.filePath]));
 console.log(r.diagnostics);
 NODE
@@ -420,6 +424,7 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/WORKPOINT_LIFECYCLE_GUIDE.md`](docs/current/WORKPOINT_LIFECYCLE_GUIDE.md) — current Workpoint usage and recovery flow.
 - [`docs/current/TOOL_RESULT_ENVELOPE_V1.md`](docs/current/TOOL_RESULT_ENVELOPE_V1.md) — current structured tool result contract.
 - [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
+- [`docs/current/PORTABILITY_AUDIT.md`](docs/current/PORTABILITY_AUDIT.md) — external tester portability matrix, fixed gaps, and remaining caveats.
 - [`docs/current/VALIDATION_AND_RELEASE_PROOF.md`](docs/current/VALIDATION_AND_RELEASE_PROOF.md) — current validation and real runtime proof expectations.
 - [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md) — copy/paste commands for release, restart, GitHub proof, and cleanup.
 - [`docs/92-agent-first-polish-hooks-efficiency-spec.md`](docs/92-agent-first-polish-hooks-efficiency-spec.md) — next polish spec for hooks, token/cache UX, agent command center, and predictive power.
