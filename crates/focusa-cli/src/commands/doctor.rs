@@ -65,7 +65,7 @@ async fn api_check(api: &ApiClient, name: &str, path: &str) -> Value {
             "path": path,
             "what_failed": name,
             "likely_why": err.to_string(),
-            "safe_recovery": "systemctl status focusa-daemon && journalctl -u focusa-daemon -n 80 --no-pager",
+            "safe_recovery": "focusa start || focusa-daemon; journalctl is optional for Linux service installs",
             "command": format!("curl -sS {}{} | jq .", api.base_url(), path),
             "fallback": "focusa start",
             "docs": ["docs/current/TROUBLESHOOTING_CURRENT.md"],
@@ -153,7 +153,7 @@ pub async fn run(json_mode: bool) -> anyhow::Result<()> {
             "node scripts/validate-focusa-tool-contracts.mjs",
             "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures"
         ],
-        "recovery": ["focusa start", "systemctl status focusa-daemon", "journalctl -u focusa-daemon -n 80 --no-pager"],
+        "recovery": ["focusa start", "focusa-daemon", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
         "evidence_refs": ["docs/current/EFFICIENCY_GUIDE.md", "docs/current/HOOK_COVERAGE.md", "docs/current/VALIDATION_AND_RELEASE_PROOF.md"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md", "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
         "warnings": [],
@@ -184,7 +184,7 @@ pub async fn run(json_mode: bool) -> anyhow::Result<()> {
             response["why"].as_str().unwrap_or("Spec92 doctor")
         );
         println!("Command: focusa doctor");
-        println!("Recovery: focusa start && systemctl status focusa-daemon");
+        println!("Recovery: focusa start || focusa-daemon");
         println!("Evidence: docs/current/EFFICIENCY_GUIDE.md, docs/current/HOOK_COVERAGE.md");
         println!("Docs: docs/92-agent-first-polish-hooks-efficiency-spec.md");
     }

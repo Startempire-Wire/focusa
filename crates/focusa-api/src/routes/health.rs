@@ -72,8 +72,9 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             ],
             "recovery_commands": [
                 "focusa start",
-                "systemctl status focusa-daemon",
-                "journalctl -u focusa-daemon -n 80 --no-pager"
+                "focusa start",
+                "focusa-daemon",
+                "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"
             ],
             "status_fields": ["status", "summary", "next_action", "why", "commands", "recovery", "details.checks"]
         },

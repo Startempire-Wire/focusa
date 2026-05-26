@@ -34,7 +34,7 @@ fn envelope(status: &str, summary: String, next_action: &str, details: Value) ->
         "next_action": next_action,
         "why": "Spec92 continue resumes bounded, governed work-loop execution without relying on transcript tail.",
         "commands": ["focusa continue", "focusa work-loop status", "focusa_workpoint_resume"],
-        "recovery": ["focusa doctor", "focusa continue --enable --parent-work-item-id <id>", "journalctl -u focusa-daemon -n 80 --no-pager"],
+        "recovery": ["focusa doctor", "focusa start", "focusa continue --enable --parent-work-item-id <id>", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
         "evidence_refs": ["/v1/work-loop/status?summary_only=true", "/v1/workpoint/current"],
         "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md", "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
         "warnings": [],

@@ -131,7 +131,7 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 "next_action": if blocked == 0 { format!("If publishing, create/push tag {tag} and verify GitHub release assets") } else { "Fix the first blocked gate, then rerun focusa release prove --tag <tag>".to_string() },
                 "why": "Spec92 requires one command that orchestrates validation, live safe proof, Guardian scan, and release evidence before publication.",
                 "commands": ["focusa release prove --tag <tag>", "focusa release prove --tag <tag> --github", "gh release view <tag> --json name,tagName,isDraft,isPrerelease,url,assets"],
-                "recovery": ["focusa doctor", "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures", "journalctl -u focusa-daemon -n 80 --no-pager"],
+                "recovery": ["focusa doctor", "focusa start", "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
                 "evidence_refs": ["docs/current/VALIDATION_AND_RELEASE_PROOF.md", "docs/current/PRODUCTION_RELEASE_COMMANDS.md"],
                 "docs": ["docs/92-agent-first-polish-hooks-efficiency-spec.md", "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
                 "warnings": if fast { vec!["fast mode skipped cargo check/clippy/test"] } else { Vec::<&str>::new() },

@@ -210,14 +210,14 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
             "API_TIMEOUT",
             "API request timed out",
             "daemon overloaded or unreachable",
-            "focusa doctor && systemctl status focusa-daemon --no-pager",
+            "focusa doctor && focusa start",
         )
     } else if message.contains("[API_CONNECT_ERROR]") {
         (
             "API_CONNECT_ERROR",
             "Could not connect to Focusa API",
             "daemon down or port unavailable",
-            "focusa start || systemctl restart focusa-daemon",
+            "focusa start || focusa-daemon",
         )
     } else if message.contains("[API_HTTP_ERROR]") {
         (
@@ -325,7 +325,7 @@ async fn main() -> anyhow::Result<()> {
                     "next_action": "Use focusa continue to resume governed work or focusa doctor for full diagnostics",
                     "why": "Spec92 requires a direct agent-first status view for current runtime/workflow state.",
                     "commands": ["focusa status --agent", "focusa continue", "focusa doctor"],
-                    "recovery": ["focusa start", "journalctl -u focusa-daemon -n 80 --no-pager"],
+                    "recovery": ["focusa start", "focusa-daemon", "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"],
                     "evidence_refs": ["/v1/status", "/v1/workpoint/current", "/v1/work-loop/status?summary_only=true"],
                     "docs": ["docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"],
                     "warnings": [],
@@ -355,7 +355,7 @@ async fn main() -> anyhow::Result<()> {
                         envelope["why"].as_str().unwrap_or("Spec92 agent status")
                     );
                     println!("Command: focusa continue");
-                    println!("Recovery: focusa doctor && systemctl status focusa-daemon");
+                    println!("Recovery: focusa doctor && focusa start");
                     println!("Evidence: /v1/status, /v1/workpoint/current, /v1/work-loop/status?summary_only=true");
                     println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
                 }
