@@ -3,6 +3,7 @@ name = "focusa-api"
 description = "Focusa daemon — long-lived process hosting cognitive state and local HTTP API"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license-file.workspace = true
 
 [[bin]]

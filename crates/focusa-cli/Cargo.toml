@@ -3,6 +3,7 @@ name = "focusa-cli"
 description = "Focusa CLI — primary control interface for engineers"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license-file.workspace = true
 
 [[bin]]

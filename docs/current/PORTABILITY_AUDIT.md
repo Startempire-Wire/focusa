@@ -21,7 +21,7 @@ Scope: Rust workspace, CLI, daemon/API, TUI, Tauri menubar, Pi extension, script
    - Files: `apps/pi-extension/src/config.ts`, `apps/pi-extension/src/state.ts`.
 
 2. **Explicit toolchain floors**
-   - Rust workspace now declares `rust-version = "1.85"` for edition 2024 compatibility.
+   - Rust workspace and member crates now declare/inherit `rust-version = "1.85"` for edition 2024 compatibility.
    - JS packages now declare Node `>=20`.
    - CI menubar job now runs on Node 22 for a current LTS-like tester path.
    - Files: `Cargo.toml`, `apps/menubar/package.json`, `apps/pi-extension/package.json`, `.github/workflows/ci.yml`.

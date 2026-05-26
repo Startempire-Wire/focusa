@@ -1,8 +1,9 @@
 [package]
 name = "focusa-tui"
-version = "0.1.0"
-edition = "2024"
-license-file = "../../LICENSE.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
 
 [[bin]]
 name = "focusa-tui"
