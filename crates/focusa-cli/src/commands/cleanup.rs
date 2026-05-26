@@ -76,13 +76,32 @@ fn move_recoverable(path: &Path, root: &Path, dry_run: bool) -> Value {
 }
 
 fn simple_tmp_glob_match(name: &str, pattern: &str) -> bool {
+    if name.contains('/') || name.contains('\\') {
+        return false;
+    }
     let Some(rest) = pattern.strip_prefix("/tmp/") else {
         return false;
     };
-    let Some((prefix, suffix)) = rest.split_once('*') else {
+    if !rest.contains('*') {
         return name == rest;
-    };
-    name.starts_with(prefix) && name.ends_with(suffix)
+    }
+    let mut cursor = 0usize;
+    let anchored_start = !rest.starts_with('*');
+    let anchored_end = !rest.ends_with('*');
+    let parts: Vec<&str> = rest.split('*').filter(|part| !part.is_empty()).collect();
+    if parts.is_empty() {
+        return true;
+    }
+    if anchored_start && !name.starts_with(parts[0]) {
+        return false;
+    }
+    for part in &parts {
+        let Some(pos) = name[cursor..].find(part) else {
+            return false;
+        };
+        cursor += pos + part.len();
+    }
+    !anchored_end || name.ends_with(parts[parts.len() - 1])
 }
 
 fn expand_glob(pattern: &str) -> Vec<PathBuf> {
@@ -100,6 +119,28 @@ fn expand_glob(pattern: &str) -> Vec<PathBuf> {
             simple_tmp_glob_match(name, pattern).then(|| entry.path())
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tmp_glob_match_is_prefix_suffix_only_under_tmp() {
+        assert!(simple_tmp_glob_match("focusa-audit.json", "/tmp/*focusa*.json"));
+        assert!(simple_tmp_glob_match("specgates-123", "/tmp/specgates*"));
+        assert!(!simple_tmp_glob_match("../focusa-audit.json", "/tmp/*focusa*.json"));
+        assert!(!simple_tmp_glob_match("focusa-audit.log", "/tmp/*focusa*.json"));
+        assert!(!simple_tmp_glob_match("focusa-audit.json", "../tmp/*focusa*.json"));
+    }
+
+    #[test]
+    fn safe_target_keeps_absolute_paths_inside_trash_root() {
+        let root = Path::new("/tmp/focusa-trash-root");
+        let target = safe_target(Path::new("/tmp/focusa-audit.json"), root);
+        assert!(target.starts_with(root));
+        assert_eq!(target, root.join("tmp/focusa-audit.json"));
+    }
 }
 
 pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
