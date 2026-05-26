@@ -450,7 +450,7 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::{handle_summaries, limit_handles, resolve_handle_with_disk_fallback};
     use chrono::Utc;
-    use focusa_core::types::{HandleKind, HandleRef};
+    use focusa_core::types::{HandleKind, HandleRef, TrajectoryLadderContext};
     use uuid::Uuid;
 
     fn handle(label: &str, kind: HandleKind, pinned: bool) -> HandleRef {
@@ -483,7 +483,14 @@ mod tests {
 
     #[test]
     fn handle_summaries_strip_blob_metadata() {
-        let items = vec![handle("artifact", HandleKind::Text, true)];
+        let mut item = handle("artifact", HandleKind::Text, true);
+        item.trajectory = Some(TrajectoryLadderContext {
+            trajectory_id: Some("traj-test".to_string()),
+            hlt: Some("High-level target".to_string()),
+            stg: Some("Short-term target".to_string()),
+            ..TrajectoryLadderContext::default()
+        });
+        let items = vec![item];
         let summary = handle_summaries(&items);
         assert_eq!(summary.len(), 1);
         assert_eq!(summary[0]["label"], "artifact");
@@ -491,6 +498,18 @@ mod tests {
         assert_eq!(summary[0]["pinned"], true);
         assert!(summary[0].get("sha256").is_none());
         assert!(summary[0].get("size").is_none());
+        assert_eq!(
+            summary[0]
+                .pointer("/trajectory/trajectory_id")
+                .and_then(|v| v.as_str()),
+            Some("traj-test")
+        );
+        assert_eq!(
+            summary[0]
+                .pointer("/trajectory/hlt")
+                .and_then(|v| v.as_str()),
+            Some("High-level target")
+        );
     }
 
     #[test]

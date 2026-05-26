@@ -1015,6 +1015,41 @@ impl Default for FocusaState {
     }
 }
 
+#[cfg(test)]
+mod focusa_state_tests {
+    use super::*;
+
+    #[test]
+    fn trajectory_ladder_context_prefers_active_record() {
+        let mut state = FocusaState::new();
+        state.trajectory.records.push(TrajectoryProjectionRecord {
+            trajectory_id: "inactive".to_string(),
+            long_term_goal: "Inactive HLT".to_string(),
+            desired_end_state: "Inactive desired".to_string(),
+            ..TrajectoryProjectionRecord::default()
+        });
+        state.trajectory.records.push(TrajectoryProjectionRecord {
+            trajectory_id: "active".to_string(),
+            project_root: Some("/tmp/project".to_string()),
+            continuity_id: Some("cont".to_string()),
+            long_term_goal: "Active HLT".to_string(),
+            desired_end_state: "Active desired".to_string(),
+            mid_level_goal: Some("Active MLG".to_string()),
+            short_term_goal: Some("Active STG".to_string()),
+            waypoints: vec!["one".to_string(); 10],
+            ..TrajectoryProjectionRecord::default()
+        });
+        state.trajectory.active_trajectory_id = Some("active".to_string());
+
+        let context = state.trajectory_ladder_context().expect("context");
+        assert_eq!(context.trajectory_id.as_deref(), Some("active"));
+        assert_eq!(context.hlt.as_deref(), Some("Active HLT"));
+        assert_eq!(context.mlg.as_deref(), Some("Active MLG"));
+        assert_eq!(context.stg.as_deref(), Some("Active STG"));
+        assert_eq!(context.waypoints.len(), 8);
+    }
+}
+
 // ─── Session ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

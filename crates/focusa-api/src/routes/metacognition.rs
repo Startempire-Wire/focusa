@@ -1358,6 +1358,22 @@ mod tests {
     }
 
     #[test]
+    fn capture_tags_include_trajectory_ladder_words() {
+        let mut rec = capture("with-trajectory", chrono::Utc::now());
+        rec.trajectory = Some(TrajectoryLadderContext {
+            trajectory_id: Some("traj-test".to_string()),
+            hlt: Some("High-level target".to_string()),
+            mlg: Some("Mid-level objective".to_string()),
+            stg: Some("Short-term checkpoint".to_string()),
+            ..TrajectoryLadderContext::default()
+        });
+        let tags = tags_for_capture(&rec);
+        assert!(tags.contains(&"traj-test".to_string()));
+        assert!(tags.contains(&"high-level".to_string()));
+        assert!(tags.contains(&"short-term".to_string()));
+    }
+
+    #[test]
     fn prune_metacog_store_applies_ttl() {
         let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
         let mut store = MetaStore::default();

@@ -1062,6 +1062,64 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
 
+    fn state_with_trajectory() -> FocusaState {
+        let mut state = FocusaState::new();
+        state.trajectory.active_trajectory_id = Some("traj-test".to_string());
+        state
+            .trajectory
+            .records
+            .push(focusa_core::types::TrajectoryProjectionRecord {
+                trajectory_id: "traj-test".to_string(),
+                project_root: Some("/tmp/focusa-test".to_string()),
+                continuity_id: Some("cont-test".to_string()),
+                long_term_goal: "High-level target".to_string(),
+                mid_level_goal: Some("Mid-level target".to_string()),
+                short_term_goal: Some("Short-term target".to_string()),
+                waypoints: vec!["Waypoint A".to_string(), "Waypoint B".to_string()],
+                ..focusa_core::types::TrajectoryProjectionRecord::default()
+            });
+        state
+    }
+
+    #[test]
+    fn trajectory_surface_projects_ladder_context() {
+        let state = state_with_trajectory();
+        let res = traverse_response(
+            &state,
+            TraverseRequest {
+                surface: "trajectory".to_string(),
+                selector: Some("window".to_string()),
+                limit: Some(1),
+                ..TraverseRequest::default()
+            },
+            false,
+        );
+        let trajectory = res
+            .pointer("/items/0/data/trajectory")
+            .expect("trajectory projection");
+        assert_eq!(
+            trajectory.get("long_term_goal").and_then(Value::as_str),
+            Some("High-level target")
+        );
+        assert_eq!(
+            trajectory.get("mid_level_goal").and_then(Value::as_str),
+            Some("Mid-level target")
+        );
+        assert_eq!(
+            trajectory
+                .pointer("/trajectory_ladder/trajectory_id")
+                .and_then(Value::as_str),
+            Some("traj-test")
+        );
+        assert_eq!(
+            trajectory
+                .get("waypoints")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(2)
+        );
+    }
+
     #[test]
     fn unsupported_surface_returns_blocked_tool_envelope() {
         let state = FocusaState::new();
