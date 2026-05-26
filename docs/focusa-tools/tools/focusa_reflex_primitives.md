@@ -17,7 +17,7 @@ Use when a blocked/degraded result includes `reflex_suggestions`, or when an age
 
 ## Expected result
 
-A successful call returns `status=completed`, `read_only=true`, `advisory_only=true`, bounded `items`, `bounds`, and `details.tool_result_v1`.
+A successful call returns `status=completed`, `read_only=true`, `advisory_only=true`, bounded `items`, `bounds`, and `details.tool_result_v1`. If blocked, inspect `failure_class` and follow the returned recovery/next-tool hints instead of guessing.
 
 ## Output contract
 
@@ -34,7 +34,7 @@ Default items include primitive id, family, trigger, recommended tool, authority
 
 - Family: Traversal.
 - Side effects: `read_state`.
-- Result envelope: `tool_result_v1`.
+- Result envelope: `tool_result_v1` with `failure_class`, retry posture, recovery hints, and bounded next tools when blocked/degraded.
 - API route: `GET /v1/reflex/primitives`.
 - CLI commands: none.
 - Parity: `domain`; exemptions: `api_domain_only`.
