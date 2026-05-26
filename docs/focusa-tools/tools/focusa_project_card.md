@@ -22,7 +22,7 @@ Build an advisory project-intelligence card that fuses ProjectIdentity, ontology
 
 ## Expected result
 
-Returns `schema=focusa.project_card.v1`, `project_identity`, bounded `ontology` counts, `trajectory` ladder context, `prior_session_context` (HLG/MLG/STG/waypoints, recent decisions/results, algorithm outcomes, prediction summary, metacog prompt), `success_sequence` (recommended next event sequence), `active_workpoint`, `evidence`, `prediction` stats/recent records, metacog retrieval prompts, bootstrap/re-bootstrap candidate, possibilities, and next tool guidance.
+Returns `schema=focusa.project_card.v1`, `project_identity`, bounded `ontology` counts, `trajectory` ladder context, `prior_session_context` (HLG/MLG/STG/waypoints, recent decisions/results, algorithm outcomes, prediction summary, metacog prompt), `success_sequence` (outcome-aware recommended next event sequence), `algorithmic_intelligence.outcome_learning`, `active_workpoint`, `evidence`, `prediction` stats/recent records, metacog retrieval prompts, bootstrap/re-bootstrap candidate, possibilities, and next tool guidance. The Pi tool keeps its echoed response compact to reduce hot-path timeout risk.
 
 The card is advisory-only. Use `focusa_trajectory_define_goal` or `focusa_trajectory_assess` for trajectory writes/reviews.
 

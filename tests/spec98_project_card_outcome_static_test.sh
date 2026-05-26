@@ -10,8 +10,8 @@ DOC="$ROOT/docs/current/PREDICTION_ALGORITHMS_IMPLEMENTED.md"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
-rg -n 'ProjectCardOutcomeRequest|/v1/project/card/outcome|project_card_algorithm_outcomes\.jsonl|append_project_card_algorithm_outcome|project_card_run_exists|update_weights_from_algorithm_outcome|prior_session_context|recent_decisions|focus_goal_signals' "$API" >/dev/null \
-  || fail "project card outcome API/persistence/prior-context is missing"
+rg -n 'ProjectCardOutcomeRequest|/v1/project/card/outcome|project_card_algorithm_outcomes\.jsonl|append_project_card_algorithm_outcome|project_card_run_exists|update_weights_from_algorithm_outcome|projected_project_card_weights|TAIL_BYTES|project_card_outcome_stats|outcome_learning|outcome_bias|prior_session_context|recent_decisions|focus_goal_signals' "$API" >/dev/null \
+  || fail "project card outcome API/persistence/prior-context/outcome ranking/hot-path optimization is missing"
 
 rg -n 'CardOutcome|/v1/project/card/outcome|algorithm_run_id|evidence_refs' "$CLI" >/dev/null \
   || fail "project card outcome CLI is missing"

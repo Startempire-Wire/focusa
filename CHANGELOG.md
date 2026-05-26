@@ -4,6 +4,8 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+- Reduced project-card hot-path timeout risk with read-only projected weights, bounded JSONL outcome tails, and compact Pi response echoes.
+- Made project-card `success_sequence` outcome-aware using stored algorithm-run outcome scores.
 - Added Pi `focusa_project_card_outcome` tool parity and synchronized public tool contract registry/choreography docs.
 - Surfaced project-card `prior_session_context` and `success_sequence` prominently in the Pi `focusa_project_card` tool response.
 - Added prior-informed project-card bootstrap context from trajectory HLG/MLG/STG/waypoints, recent Focus decisions/results, prediction stats, algorithm outcomes, and metacog prompts.

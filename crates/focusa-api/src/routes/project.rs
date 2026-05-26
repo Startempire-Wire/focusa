@@ -13,7 +13,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -1419,6 +1419,11 @@ fn update_project_card_weights(mut weights: BTreeMap<String, f64>, prediction_ac
     weights
 }
 
+fn projected_project_card_weights(prediction_accuracy: f64, evaluated_predictions: usize) -> BTreeMap<String, f64> {
+    // Read-only projection for hot GET /project/card; persisted learning happens on explicit outcomes.
+    update_project_card_weights(load_project_card_weights(), prediction_accuracy, evaluated_predictions)
+}
+
 fn append_jsonl(path: PathBuf, record: &Value) {
     if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
     if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path)
@@ -1451,18 +1456,36 @@ fn update_weights_from_algorithm_outcome(score: f64) -> BTreeMap<String, f64> {
 }
 
 fn recent_jsonl_values(path: PathBuf, limit: usize) -> Vec<Value> {
-    fs::read_to_string(path)
-        .map(|text| {
-            let mut values = text
-                .lines()
-                .rev()
-                .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-                .take(limit)
-                .collect::<Vec<_>>();
-            values.reverse();
-            values
-        })
-        .unwrap_or_default()
+    const TAIL_BYTES: u64 = 128 * 1024;
+    let Ok(mut file) = fs::File::open(path) else { return vec![]; };
+    let len = file.metadata().map(|m| m.len()).unwrap_or(0);
+    let start = len.saturating_sub(TAIL_BYTES);
+    if file.seek(SeekFrom::Start(start)).is_err() { return vec![]; }
+    let mut text = String::new();
+    if file.read_to_string(&mut text).is_err() { return vec![]; }
+    let lines = text.lines().skip(if start > 0 { 1 } else { 0 }).collect::<Vec<_>>();
+    let mut values = lines
+        .iter()
+        .rev()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .take(limit)
+        .collect::<Vec<_>>();
+    values.reverse();
+    values
+}
+
+fn project_card_outcome_stats(outcomes: &[Value]) -> (usize, f64, f64) {
+    let scores = outcomes
+        .iter()
+        .filter_map(|outcome| outcome.get("score").and_then(Value::as_f64))
+        .map(|score| score.clamp(0.0, 1.0))
+        .collect::<Vec<_>>();
+    if scores.is_empty() {
+        return (0, 0.5, 0.0);
+    }
+    let average = scores.iter().sum::<f64>() / scores.len() as f64;
+    let recent = scores.last().copied().unwrap_or(average);
+    (scores.len(), average, recent)
 }
 
 fn sequence_probability(algorithmic: &Value, key: &str) -> f64 {
@@ -1484,6 +1507,9 @@ fn project_success_sequence(
     let execute_p = sequence_probability(algorithmic, "execute_next_step");
     let refresh_p = sequence_probability(algorithmic, "refresh_trajectory");
     let learn_p = sequence_probability(algorithmic, "evaluate_predictions_and_lessons");
+    let outcome_count = algorithmic.get("outcome_learning").and_then(|v| v.get("outcome_count")).and_then(Value::as_u64).unwrap_or(0);
+    let outcome_avg = algorithmic.get("outcome_learning").and_then(|v| v.get("average_score")).and_then(Value::as_f64).unwrap_or(0.5);
+    let outcome_bias = if outcome_count == 0 { "neutral_no_outcomes" } else if outcome_avg >= 0.75 { "execute_bias_from_successful_outcomes" } else if outcome_avg <= 0.45 { "learn_or_refresh_bias_from_weak_outcomes" } else { "balanced_outcome_bias" };
     let hlg = long_term_goal.unwrap_or("unknown high-level goal");
     let desired = desired_end_state.unwrap_or("verified successful end state");
     let current = current_state.unwrap_or("current state unclear");
@@ -1516,6 +1542,9 @@ fn project_success_sequence(
             "execute_probability": execute_p,
             "refresh_probability": refresh_p,
             "learn_probability": learn_p,
+            "outcome_count": outcome_count,
+            "outcome_average_score": outcome_avg,
+            "outcome_bias": outcome_bias,
             "expected_utility": algorithmic.get("expected_utility").cloned().unwrap_or(Value::Null)
         },
         "events": events
@@ -1530,10 +1559,11 @@ fn project_card_algorithmic_scores(
     evaluated_predictions: usize,
     open_predictions: usize,
     blocker_count: usize,
+    outcome_count: usize,
+    average_outcome_score: f64,
+    recent_outcome_score: f64,
 ) -> Value {
-    let mut weights = load_project_card_weights();
-    weights = update_project_card_weights(weights, prediction_accuracy, evaluated_predictions);
-    persist_project_card_weights(&weights);
+    let weights = projected_project_card_weights(prediction_accuracy, evaluated_predictions);
     let w = |key: &str, fallback: f64| weights.get(key).copied().unwrap_or(fallback).clamp(0.05, 0.50);
     let ontology_signal = (ontology_objects as f64 / 20.0).clamp(0.0, 1.0);
     let evidence_signal = (evidence_refs as f64 / 10.0).clamp(0.0, 1.0);
@@ -1541,12 +1571,15 @@ fn project_card_algorithmic_scores(
     let trajectory_signal = if trajectory_present { 1.0 } else { 0.0 };
     let open_prediction_signal = (open_predictions as f64 / 10.0).clamp(0.0, 1.0);
     let blocker_penalty = (blocker_count as f64 / 5.0).clamp(0.0, 1.0);
+    let outcome_confidence = (outcome_count as f64 / 8.0).clamp(0.0, 1.0);
+    let outcome_success_signal = (average_outcome_score * 0.7 + recent_outcome_score * 0.3).clamp(0.0, 1.0);
     let readiness = normalized_weighted_score(&[
         (trajectory_signal, w("trajectory", 0.24)),
         (ontology_signal, w("ontology", 0.16)),
         (evidence_signal, w("evidence", 0.22)),
         (prediction_signal, w("prediction", 0.22)),
         (1.0 - blocker_penalty, w("blocker", 0.16)),
+        (outcome_success_signal, outcome_confidence * 0.18),
     ]);
     let bootstrap_need = normalized_weighted_score(&[
         (1.0 - trajectory_signal, w("trajectory", 0.24)),
@@ -1554,16 +1587,22 @@ fn project_card_algorithmic_scores(
         (1.0 - ontology_signal, w("ontology", 0.16)),
         (open_prediction_signal, w("open_prediction", 0.14)),
         (blocker_penalty, w("blocker", 0.16)),
+        (1.0 - outcome_success_signal, outcome_confidence * 0.12),
     ]);
     let learn_need = normalized_weighted_score(&[
         (open_prediction_signal, w("open_prediction", 0.14)),
         (1.0 - prediction_signal, w("prediction", 0.22)),
         (evidence_signal, w("evidence", 0.22)),
         (1.0 - exponential_decay(evaluated_predictions as f64, 0.08), w("learn_decay", 0.20)),
+        (1.0 - outcome_success_signal, outcome_confidence * 0.20),
     ]);
     let action_scores = vec![readiness, bootstrap_need, learn_need];
     let probabilities = softmax(&action_scores.iter().map(|s| logit((*s).clamp(0.01, 0.99))).collect::<Vec<_>>());
-    let utilities = vec![0.85, 0.78, 0.72];
+    let utilities = vec![
+        (0.82 + outcome_success_signal * outcome_confidence * 0.10).clamp(0.60, 0.95),
+        (0.76 + (1.0 - outcome_success_signal) * outcome_confidence * 0.08).clamp(0.60, 0.90),
+        (0.72 + (1.0 - outcome_success_signal) * outcome_confidence * 0.12).clamp(0.60, 0.90),
+    ];
     json!({
         "implemented_algorithms": [
             "normalized_weighted_score", "sigmoid", "logit", "softmax", "expected_value", "exponential_decay", "ema", "z_score", "brier_score", "log_loss"
@@ -1571,6 +1610,7 @@ fn project_card_algorithmic_scores(
         "storage": {
             "weights_path": project_card_weights_path().to_string_lossy(),
             "runs_path": project_card_runs_path().to_string_lossy(),
+            "outcomes_path": project_card_outcomes_path().to_string_lossy(),
             "persistence": "jsonl_algorithm_runs_plus_compact_weights_json",
             "portable": true
         },
@@ -1582,7 +1622,17 @@ fn project_card_algorithmic_scores(
             "prediction_accuracy": prediction_signal,
             "open_prediction_pressure": open_prediction_signal,
             "blocker_penalty": blocker_penalty,
-            "evidence_z_score": z_score(evidence_refs as f64, 5.0, 2.0)
+            "evidence_z_score": z_score(evidence_refs as f64, 5.0, 2.0),
+            "outcome_success": outcome_success_signal,
+            "outcome_confidence": outcome_confidence
+        },
+        "outcome_learning": {
+            "outcome_count": outcome_count,
+            "average_score": average_outcome_score,
+            "recent_score": recent_outcome_score,
+            "success_signal": outcome_success_signal,
+            "confidence": outcome_confidence,
+            "effect": "biases readiness/refresh/learn scores and expected utility"
         },
         "scores": {
             "readiness_to_execute": readiness,
@@ -1665,7 +1715,8 @@ async fn card(
     })).collect::<Vec<_>>();
     drop(focusa);
 
-    let recent_algorithm_outcomes = recent_jsonl_values(project_card_outcomes_path(), 5);
+    let recent_algorithm_outcomes = recent_jsonl_values(project_card_outcomes_path(), 20);
+    let (outcome_count, average_outcome_score, recent_outcome_score) = project_card_outcome_stats(&recent_algorithm_outcomes);
     let predictions = read_predictions();
     let prediction = prediction_stats_card(&predictions);
     let current_ask = query.current_ask.as_deref().unwrap_or_default().trim();
@@ -1688,6 +1739,9 @@ async fn card(
         evaluated_predictions,
         open_predictions,
         active_blockers,
+        outcome_count,
+        average_outcome_score,
+        recent_outcome_score,
     );
     let algorithm_run_id = uuid::Uuid::now_v7().to_string();
     append_project_card_algorithm_run(&json!({
@@ -1700,7 +1754,8 @@ async fn card(
         "scores": algorithmic_intelligence.get("scores").cloned().unwrap_or(Value::Null),
         "action_probabilities": algorithmic_intelligence.get("action_probabilities").cloned().unwrap_or(Value::Null),
         "expected_utility": algorithmic_intelligence.get("expected_utility").cloned().unwrap_or(Value::Null),
-        "formula_version": "project_card_algorithmic_intelligence.v1"
+        "outcome_learning": algorithmic_intelligence.get("outcome_learning").cloned().unwrap_or(Value::Null),
+        "formula_version": "project_card_algorithmic_intelligence.v2"
     }));
     let next_gap = trajectory_stg
         .clone()

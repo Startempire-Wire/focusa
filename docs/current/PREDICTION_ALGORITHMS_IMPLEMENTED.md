@@ -42,7 +42,8 @@ Then they produce:
 - Learned weights: `project_card_signal_weights.json`
 - Each project-card call records signals, weights, scores, probabilities, expected utility, project root, current ask, and formula version.
 - `POST /v1/project/card/outcome` / `focusa project card-outcome` attaches final results to a specific `algorithm_run_id`.
-- Weights update conservatively from evaluated prediction accuracy and explicit algorithm-run outcomes, and remain clamped for stability.
+- `success_sequence.ranking_basis` includes outcome count, average score, and outcome bias; outcome scores now influence readiness/refresh/learn probabilities and expected utility.
+- Hot-path project-card GET projects prediction-informed weights without persisting them; explicit algorithm-run outcomes persist learned weights and remain clamped for stability.
 - Storage stays portable and append-friendly: no DB migration required for local-first installs.
 
 ## Why these first
