@@ -1,7 +1,10 @@
 //! Release proof orchestration — Spec92 §9.
 
 use clap::Subcommand;
+use focusa_core::types::default_focusa_data_dir;
 use serde_json::{Value, json};
+use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Subcommand, Debug)]
@@ -20,6 +23,37 @@ pub enum ReleaseCmd {
         #[arg(long)]
         fast: bool,
     },
+}
+
+fn release_proof_dir() -> PathBuf {
+    let configured = std::env::var("FOCUSA_DATA_DIR").unwrap_or_else(|_| default_focusa_data_dir());
+    let expanded = if configured == "~" {
+        std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from(configured))
+    } else if let Some(rest) = configured.strip_prefix("~/") {
+        std::env::var("HOME")
+            .map(|home| PathBuf::from(home).join(rest))
+            .unwrap_or_else(|_| PathBuf::from(configured))
+    } else {
+        PathBuf::from(configured)
+    };
+    expanded.join("release-proof")
+}
+
+fn release_proof_file_stem(tag: &str) -> String {
+    tag.chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_') { ch } else { '_' })
+        .collect()
+}
+
+fn persist_release_proof(tag: &str, response: &Value) -> anyhow::Result<(String, String)> {
+    let dir = release_proof_dir();
+    fs::create_dir_all(&dir)?;
+    let tag_path = dir.join(format!("{}.json", release_proof_file_stem(tag)));
+    let latest_path = dir.join("latest.json");
+    let body = serde_json::to_string_pretty(response)?;
+    fs::write(&tag_path, &body)?;
+    fs::write(&latest_path, body)?;
+    Ok((tag_path.display().to_string(), latest_path.display().to_string()))
 }
 
 fn run_gate(name: &str, command: &str) -> Value {
@@ -83,7 +117,7 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 .iter()
                 .filter(|r| r.get("status").and_then(|v| v.as_str()) == Some("blocked"))
                 .count();
-            let response = json!({
+            let mut response = json!({
                 "status": if blocked == 0 { "completed" } else { "blocked" },
                 "summary": if blocked == 0 { format!("Release proof passed for {tag}") } else { format!("Release proof blocked for {tag}: {blocked} gate(s) failed") },
                 "next_action": if blocked == 0 { format!("If publishing, create/push tag {tag} and verify GitHub release assets") } else { "Fix the first blocked gate, then rerun focusa release prove --tag <tag>".to_string() },
@@ -95,6 +129,20 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 "warnings": if fast { vec!["fast mode skipped cargo check/clippy/test"] } else { Vec::<&str>::new() },
                 "details": { "tag": tag, "gates": results },
             });
+
+            match persist_release_proof(&tag, &response) {
+                Ok((tag_path, latest_path)) => {
+                    response["proof_artifact"] = json!({
+                        "tag_path": tag_path,
+                        "latest_path": latest_path,
+                    });
+                }
+                Err(err) => {
+                    response["warnings"].as_array_mut().map(|warnings| {
+                        warnings.push(json!(format!("failed to persist release proof artifact: {err}")));
+                    });
+                }
+            }
 
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&response)?);
@@ -126,6 +174,13 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!(
                     "Evidence: docs/current/VALIDATION_AND_RELEASE_PROOF.md, docs/current/PRODUCTION_RELEASE_COMMANDS.md"
                 );
+                if let Some(path) = response
+                    .get("proof_artifact")
+                    .and_then(|artifact| artifact.get("latest_path"))
+                    .and_then(|v| v.as_str())
+                {
+                    println!("Proof artifact: {path}");
+                }
                 println!("Docs: docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md");
             }
         }
