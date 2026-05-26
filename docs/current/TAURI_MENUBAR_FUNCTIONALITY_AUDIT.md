@@ -3,7 +3,7 @@
 **Scope:** `apps/menubar` Tauri/Svelte app compared with current Focusa runtime/API docs.
 **Snapshot audited:** repo `5b6ed37` plus current working tree, public snapshot `v0.9.13-dev`.
 **Audit date:** 2026-05-25.
-**Implementation update:** see [`TAURI_MENUBAR_IMPLEMENTATION_GAPS.md`](TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) for current post-audit gap status after `git:f1de649`.
+**Implementation update:** see [`TAURI_MENUBAR_IMPLEMENTATION_GAPS.md`](TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) for current post-audit gap status after the `v0.9.13-dev` HLT dogfood slice.
 
 ## Executive summary
 
