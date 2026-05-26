@@ -1530,6 +1530,22 @@ fn project_success_sequence(
     } else {
         "execute_highest_ev_slice"
     };
+    let path_candidates = vec![
+        json!({"path_id":"execute_path", "first_event":"execute_highest_ev_slice", "sequence":["orient_project_card","forecast_next_action","execute_highest_ev_slice","prove_outcome","evaluate_and_compound"], "cost": (1.0 - execute_p + (1.0 - outcome_avg) * 0.35).max(0.01), "success_probability": execute_p, "why":"lowest cost when readiness and prior outcomes are strong"}),
+        json!({"path_id":"refresh_path", "first_event":"refresh_or_confirm_trajectory", "sequence":["orient_project_card","refresh_or_confirm_trajectory","retrieve_lessons","forecast_next_action","execute_highest_ev_slice","prove_outcome"], "cost": (1.0 - refresh_p + if outcome_avg < 0.5 { 0.0 } else { 0.20 }).max(0.01), "success_probability": refresh_p, "why":"preferred when trajectory uncertainty or weak outcomes make direct execution risky"}),
+        json!({"path_id":"learn_path", "first_event":"retrieve_lessons", "sequence":["orient_project_card","retrieve_lessons","forecast_next_action","execute_highest_ev_slice","prove_outcome","evaluate_and_compound"], "cost": (1.0 - learn_p + if outcome_count == 0 { 0.0 } else { 0.10 }).max(0.01), "success_probability": learn_p, "why":"preferred when metacog/prediction learning is the fastest risk reducer"}),
+    ];
+    let shortest_path = path_candidates
+        .iter()
+        .min_by(|a, b| a.get("cost").and_then(Value::as_f64).unwrap_or(f64::INFINITY).partial_cmp(&b.get("cost").and_then(Value::as_f64).unwrap_or(f64::INFINITY)).unwrap_or(std::cmp::Ordering::Equal))
+        .cloned()
+        .unwrap_or_else(|| json!({"path_id":"unknown", "sequence":[]}));
+    let eliminated_candidates = path_candidates.iter().filter(|candidate| candidate.get("path_id") != shortest_path.get("path_id")).map(|candidate| json!({
+        "path_id": candidate.get("path_id").cloned().unwrap_or(Value::Null),
+        "reason": if candidate.get("cost").and_then(Value::as_f64).unwrap_or(0.0) > shortest_path.get("cost").and_then(Value::as_f64).unwrap_or(0.0) { "higher_weighted_cost_to_success" } else { "lower_predicted_success_probability" },
+        "cost": candidate.get("cost").cloned().unwrap_or(Value::Null),
+        "success_probability": candidate.get("success_probability").cloned().unwrap_or(Value::Null),
+    })).collect::<Vec<_>>();
     json!({
         "schema": "focusa.project_success_sequence.v1",
         "advisory_only": true,
@@ -1546,6 +1562,13 @@ fn project_success_sequence(
             "outcome_average_score": outcome_avg,
             "outcome_bias": outcome_bias,
             "expected_utility": algorithmic.get("expected_utility").cloned().unwrap_or(Value::Null)
+        },
+        "shortest_path_to_success": {
+            "method": "weighted_path_elimination_v1",
+            "cost_model": "lower cost = lower risk + fewer uncertainty reducers + better prior outcomes",
+            "selected": shortest_path,
+            "candidates": path_candidates,
+            "eliminated_candidates": eliminated_candidates
         },
         "events": events
     })

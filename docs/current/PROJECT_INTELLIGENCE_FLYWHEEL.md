@@ -65,7 +65,7 @@ The sequence stages are:
 6. prove outcome,
 7. evaluate and compound.
 
-This lets a model ask: **what event should happen next for the most productive/profitable/successful path?** The sequence is outcome-aware: recent `project_card_algorithm_outcomes.jsonl` scores bias readiness, refresh, learning, and expected utility. Hot-path reads use bounded JSONL tails and project weights are projected read-only on card GET; persisted learning happens on explicit outcomes. The answer stays advisory; operator steering and explicit trajectory writes remain authoritative.
+This lets a model ask: **what event should happen next for the most productive/profitable/successful path?** The sequence is outcome-aware: recent `project_card_algorithm_outcomes.jsonl` scores bias readiness, refresh, learning, and expected utility. It also exposes `shortest_path_to_success`, a weighted path-elimination view over execute/refresh/learn routes with selected path, rejected paths, and elimination reasons. Hot-path reads use bounded JSONL tails and project weights are projected read-only on card GET; persisted learning happens on explicit outcomes. The answer stays advisory; operator steering and explicit trajectory writes remain authoritative.
 
 Bootstrap quality rule: when prior data exists, define or refresh HLG/MLG/STG from `prior_session_context` plus explicit operator steering; use predictions for risk/expected-value, metacog for reusable lessons, and decisions for durable architectural boundaries.
 

@@ -4,6 +4,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+- Added `success_sequence.shortest_path_to_success` with weighted path candidates and eliminated-path reasons.
 - Reduced prediction hot-path timeout risk with an mtime/size keyed prediction-store cache and compact evaluate responses.
 - Reduced project-card hot-path timeout risk with read-only projected weights, bounded JSONL outcome tails, and compact Pi response echoes.
 - Made project-card `success_sequence` outcome-aware using stored algorithm-run outcome scores.
