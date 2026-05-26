@@ -67,6 +67,9 @@ When Focusa is working well, an agent should:
 8. **Learn with discipline.** Metacognition tools include quality gates, evidence refs, persisted evaluation records, and bounded promotion back into retrieval memory instead of unconstrained note-taking.
 9. **Respect ownership.** Work-loop mutation tools expose writer conflicts and preflight state instead of silently taking over.
 10. **Remain inspectable.** The CLI/API expose state, lineage, snapshots, events, memory, ontology, Workpoints, and tool health.
+11. **Follow the trajectory ladder.** HLT (High-Level Trajectory) → MLG (Mid-Level Goal) → STG (Short-Term Goal) → Waypoints steer toward the project north star; the Workpoint remains the immediate continuation contract.
+12. **Plan proactively from the HLT.** Once the HLT is known, the agent should derive MLGs/STGs/Waypoints and keep moving toward them instead of passively waiting or reacting turn-by-turn, unless a risk/approval gate blocks action.
+13. **Defer while offering routes.** The operator has authority; the agent should still actively offer HLT-aligned Waypoints, STGs, and MLGs as optional route guidance along the way.
 
 ---
 
@@ -82,6 +85,7 @@ When Focusa is working well, an agent should:
 | `focusa status --operator` | Implemented | One-screen session card for buyers/operators |
 | `focusa workpoint resume --copy-prompt` | Implemented | Paste-ready manual continuation packet for non-Pi agents |
 | Golden demo script | Implemented | `scripts/demo-workpoint-happy-path.sh` proves the happy path |
+| Trajectory ladder | Implemented/advisory | HLT → MLG → STG → Waypoints steer toward the project north star |
 | Trajectory view | Implemented/advisory | Supported orientation layer; not task authority |
 | Pi extension | Implemented | Best-supported deep harness path |
 | CLI/API | Implemented | Supported operator surface |

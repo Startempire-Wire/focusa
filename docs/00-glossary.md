@@ -276,6 +276,38 @@ The following are explicitly out of scope for Focusa:
 
 ---
 
+## Trajectory Hierarchy
+
+**Definition**
+The **Trajectory Hierarchy** is the project-orientation ladder that steers work from the ultimate project direction down to executable slices.
+
+**Canonical Acronyms**
+- **HLT** — **High-Level Trajectory**: the ultimate project direction/north star. It describes what the project is trying to become.
+- **MLG** — **Mid-Level Goal**: an intermediate milestone derived from the HLT. MLGs group related STGs and keep multi-step progress aligned.
+- **STG** — **Short-Term Goal**: the immediate goal derived from the HLT through the current MLG/context. STGs guide the next bounded work slice.
+- **Waypoint** — a concrete progress marker or checkpoint along an MLG/STG path. Waypoints help agents know where they are and what proof remains.
+
+**Derivation Rule**
+
+```text
+HLT → MLG → STG → Waypoints → Workpoint
+```
+
+**Authority Rule**
+- HLT, MLGs, STGs, and Waypoints steer orientation.
+- Once a model knows the HLT, it must proactively plan toward the HLT instead of passively waiting or reacting turn-by-turn, except at explicit risk/approval gates.
+- The model must defer to operator authority while actively offering HLT-aligned Waypoints, STGs, and MLGs as optional route guidance along the way.
+- Workpoints remain the canonical immediate continuation contract.
+- Evidence proves waypoint/STG progress.
+- Operator steering wins over all trajectory projections.
+
+**What It Is Not**
+- Not autonomous task authority.
+- Not a replacement for Beads.
+- Not a reason to merge sessions without project_root + continuity_id match.
+
+---
+
 ## Canonical Cognitive Flow
 
 ```

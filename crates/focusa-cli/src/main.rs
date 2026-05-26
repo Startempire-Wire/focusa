@@ -358,6 +358,7 @@ async fn main() -> anyhow::Result<()> {
                     "project": project_root,
                     "continuity": continuity,
                     "trajectory": trajectory_summary,
+                    "trajectory_ladder": "HLT (High-Level Trajectory) -> MLG (Mid-Level Goal) -> STG (Short-Term Goal) -> Waypoints -> Workpoint; defer to operator while actively offering HLT-aligned route guidance",
                     "active_gap": active_gap,
                     "active_workpoint": workpoint_id,
                     "next_action": next_action,
@@ -373,6 +374,7 @@ async fn main() -> anyhow::Result<()> {
                     println!("Project: {}", envelope["project"].as_str().unwrap_or("unbound"));
                     println!("Continuity: {}", envelope["continuity"].as_str().unwrap_or("unknown"));
                     println!("Trajectory: {}", envelope["trajectory"].as_str().unwrap_or("unavailable"));
+                    println!("Trajectory Ladder: {}", envelope["trajectory_ladder"].as_str().unwrap_or("HLT -> MLG -> STG -> Waypoints -> Workpoint"));
                     println!("Active Gap: {}", envelope["active_gap"].as_str().unwrap_or("unknown"));
                     println!("Active Workpoint: {}", envelope["active_workpoint"].as_str().unwrap_or("none"));
                     println!("Next Action: {}", envelope["next_action"].as_str().unwrap_or("resume workpoint"));

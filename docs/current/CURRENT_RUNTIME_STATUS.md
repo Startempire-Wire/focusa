@@ -25,6 +25,7 @@
 - Source-available licensing boundary is explicit: root `LICENSE.md`, `COMMERCIAL.md`, `TRADEMARKS.md`, `CONTRIBUTING.md`, support terms, and commercial/CLA templates are present; Cargo metadata points to `LICENSE.md` instead of MIT.
 - Spec97 Reflex Primitives are implemented as a read-only registry, direct `GET /v1/reflex/primitives` API, Pi `focusa_reflex_primitives` tool, `surface=reflex_primitives` traversal, API/Pi `reflex_suggestions`, ontology reflex classes/actions, and runtime dogfood gates.
 - Spec96 Focus current-focus ↔ Trajectory short-term-goal sync is implemented, so verified trajectory context can hydrate sparse Focus slices across compaction/reload.
+- Official trajectory ladder language is HLT (High-Level Trajectory) → MLG (Mid-Level Goal) → STG (Short-Term Goal) → Waypoints → Workpoint; STGs and Waypoints derive from the HLT through MLGs.
 - Low-resource hardening is active: Tokio/reqwest features are narrowed, cold payloads require explicit opt-in, Pi result text/details are capped, and hot routes use compact fallback envelopes under pressure.
 
 ## Current proof files

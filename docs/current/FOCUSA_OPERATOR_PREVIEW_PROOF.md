@@ -19,6 +19,7 @@ A developer can start a real AI coding session, create a Workpoint, attach evide
 | Workpoint checkpoint creates canonical packet | Implemented | `focusa workpoint checkpoint --project-root <root> --continuity-id <id>` |
 | Workpoint resume returns usable continuation packet | Implemented | `focusa workpoint resume --mode compact_prompt` |
 | Evidence link is visible in Workpoint state | Implemented | `focusa workpoint evidence-link --target-ref <ref> --result <summary>` |
+| Trajectory ladder terms are explicit | Implemented/advisory | HLT → MLG → STG → Waypoints → Workpoint; defer to operator while offering route guidance |
 | Trajectory view is scoped/advisory | Implemented/advisory | `focusa trajectory view --project-root <root> --mode summary` |
 | Drift check catches wrong target/action | Implemented | `focusa workpoint drift-check --latest-action <action>` |
 | Non-Pi manual awareness card | Implemented | `focusa awareness card --adapter-id manual --workspace-id local --agent-id cli` |
@@ -74,6 +75,7 @@ A passing preview proof should show:
 - license/commercial files visible,
 - Workpoint canonical or explicitly degraded,
 - resume packet includes project root, continuity id, mission, next action, blockers, and evidence refs,
+- Trajectory ladder is explicit: HLT (High-Level Trajectory) → MLG (Mid-Level Goal) → STG (Short-Term Goal) → Waypoints → Workpoint,
 - Trajectory is advisory and does not override Workpoint/project scope,
 - doctor reports exact recovery command when anything blocks,
 - manual mode gives a copy/paste card for non-Pi agents.

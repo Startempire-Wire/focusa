@@ -13,13 +13,18 @@ It is not yet the default go-to framework for every agent type. The missing piec
 It keeps any agent aligned to:
 
 - the correct project,
-- the real long-term goal,
+- the **HLT (High-Level Trajectory)** — the ultimate project direction,
+- **MLGs (Mid-Level Goals)** derived from the HLT,
+- **STGs (Short-Term Goals)** derived from the current HLT/MLG context,
+- **Waypoints** that mark concrete progress along MLG/STG paths,
 - desired end state,
 - current verified state,
 - active gap,
 - evidence and uncertainty,
 - drift boundaries,
 - and the next bounded Workpoint candidate.
+
+Official trajectory ladder: `HLT → MLG → STG → Waypoints → Workpoint`. HLT/MLG/STG/Waypoints steer the project; Workpoints remain the canonical immediate continuation contract. Once an agent/model knows the HLT, it should proactively derive the next MLG/STG/Waypoints and move toward the HLT instead of passively waiting or reacting turn-by-turn, unless an explicit risk/approval gate blocks action. Operator authority still wins: the model should defer to the operator while actively offering HLT-aligned Waypoints, STGs, and MLGs as optional route guidance.
 
 Focusa should complement agents, not replace them. Agents do the work; Focusa keeps them oriented, continuous, evidence-grounded, and recoverable.
 
@@ -83,6 +88,9 @@ Promise: install Focusa locally and every agent gets the same project trajectory
 
 - Per-project first; global memory only supports project-scoped trajectory.
 - Trajectory is advisory orientation, not task authority.
+- HLT is the ultimate trajectory; MLGs, STGs, and Waypoints derive downward from it and steer bounded work.
+- HLT knowledge creates a proactive planning obligation: derive the next MLG/STG/Waypoint and continue unless risk, destructive action, or operator approval boundaries block movement.
+- Operator deference and proactive route-offering coexist: agents should not override the operator, but should keep suggesting useful HLT-aligned Waypoints, STGs, and MLGs.
 - Workpoints remain canonical immediate continuation.
 - Evidence is the completion currency.
 - Operator steering wins.

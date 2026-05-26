@@ -21,7 +21,9 @@
 
   let longTerm = $derived(trajectory.long_term_goal ?? trajectory.long_term ?? trajectory.goal?.long_term_goal);
   let desired = $derived(trajectory.desired_end_state ?? trajectory.desired ?? trajectory.goal?.desired_end_state);
-  let shortTerm = $derived(trajectory.short_term_goal ?? trajectory.short_term ?? trajectory.goal?.short_term_goal);
+  let midLevel = $derived(trajectory.mid_level_goal ?? trajectory.mid_level_goals ?? trajectory.mlg ?? trajectory.goal?.mid_level_goal);
+  let shortTerm = $derived(trajectory.short_term_goal ?? trajectory.short_term ?? trajectory.stg ?? trajectory.goal?.short_term_goal);
+  let waypoints = $derived(list(trajectory.waypoints ?? trajectory.waypoint ?? trajectory.progress_markers));
   let current = $derived(trajectory.current_state ?? trajectory.current ?? trajectory.observed_state);
   let gap = $derived(trajectory.gap ?? trajectory.active_gap ?? trajectory.recommended_action);
   let posture = $derived(trajectory.posture ?? trajectory.status ?? 'summary');
@@ -33,8 +35,9 @@
 <section class="trajectory-peek" aria-label="Trajectory peek">
   <header class="peek-header">
     <div>
-      <div class="eyebrow">TRAJECTORY</div>
-      <h2>{text(shortTerm ?? longTerm, 'No trajectory yet')}</h2>
+      <div class="eyebrow">HLT → MLG → STG → Waypoints</div>
+      <h2>{text(shortTerm ?? midLevel ?? longTerm, 'No trajectory yet')}</h2>
+      <p class="definition">HLT = High-Level Trajectory. MLG = Mid-Level Goal. STG = Short-Term Goal. Defer to the operator while actively offering HLT-aligned MLGs, STGs, and Waypoints.</p>
     </div>
     <span class="status-chip" class:watch={posture === 'verify_first'}>{text(posture, 'summary')}</span>
   </header>
@@ -52,8 +55,20 @@
 
   <div class="bubble-grid">
     <article class="bubble-card">
-      <div class="label">Long-term goal</div>
+      <div class="label">HLT / High-Level Trajectory</div>
       <p>{text(longTerm, 'not defined')}</p>
+    </article>
+    <article class="bubble-card">
+      <div class="label">MLG / Mid-Level Goal</div>
+      <p>{text(midLevel, 'derived from HLT')}</p>
+    </article>
+    <article class="bubble-card">
+      <div class="label">STG / Short-Term Goal</div>
+      <p>{text(shortTerm, 'derived from HLT + MLG after assessment')}</p>
+    </article>
+    <article class="bubble-card">
+      <div class="label">Waypoints</div>
+      <p>{waypoints.length ? waypoints.slice(0, 3).join(' → ') : 'concrete progress markers derive from STG'}</p>
     </article>
     <article class="bubble-card">
       <div class="label">Desired end state</div>
@@ -162,6 +177,11 @@
     color: var(--fg-secondary);
     font-size: var(--text-sm);
     line-height: 1.45;
+  }
+  .definition {
+    max-width: 56ch;
+    color: var(--fg-tertiary);
+    font-size: var(--text-xs);
   }
   .proof-row {
     display: grid;

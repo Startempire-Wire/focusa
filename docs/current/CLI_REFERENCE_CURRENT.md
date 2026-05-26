@@ -63,7 +63,7 @@ Options:
 ## Current agent-first command groups
 
 - `onboard` — first-run Operator Preview setup for `pi`, `manual`, and other agent paths.
-- `status --operator` — human session card with project, continuity, trajectory, active Workpoint, next action, evidence count, drift hint, and health.
+- `status --operator` — human session card with project, continuity, trajectory ladder (HLT → MLG → STG → Waypoints → Workpoint), proactive-planning doctrine, active Workpoint, next action, evidence count, drift hint, and health.
 - `doctor` — full agent-first health/readiness check.
 - `continue` — governed continuous-work resume and state refresh.
 - `release prove` — safe release proof workflow, including optional GitHub release verification.
@@ -98,9 +98,9 @@ focusa predict stats
 focusa tokens doctor
 focusa cache doctor
 focusa focus update --decision "Use scoped Workpoints for project continuation." --json
-focusa workpoint checkpoint --project-root /home/wirebot/focusa --continuity-id cont-1 --mission "Audit tools" --next-action "Run parity gates" --json
-focusa workpoint current --project-root /home/wirebot/focusa --continuity-id cont-1 --json
-focusa workpoint resume --project-root /home/wirebot/focusa --continuity-id cont-1 --json
+focusa workpoint checkpoint --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --mission "Audit tools" --next-action "Run parity gates" --json
+focusa workpoint current --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
+focusa workpoint resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
 focusa workpoint resume --copy-prompt
 focusa state snapshot recent --limit 5 --json
 focusa state snapshot compare-latest --snapshot-reason "pre-risk check" --json
@@ -108,10 +108,10 @@ focusa lineage extract --max-candidates 12 --json
 focusa metacognition recent-reflections --limit 5 --json
 focusa metacognition recent-adjustments --limit 5 --json
 focusa metacognition recent-evaluations --limit 5 --json
-focusa project identity --project-root /home/wirebot/focusa --json
-focusa project verify --project-root /home/wirebot/focusa --project-id focusa --json
-focusa trajectory view --project-root /home/wirebot/focusa --mode summary --json
-focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --project-root /home/wirebot/focusa --json
+focusa project identity --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
+focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
+focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
+focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa traverse read --surface workpoints --selector current --limit 1 --json
 focusa traverse verify-tags --surface workpoints --tag focusa://workpoints/current/item/example --json
 focusa resource status --json
