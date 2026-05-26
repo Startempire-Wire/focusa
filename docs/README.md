@@ -144,6 +144,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) — five-part whole-project security review and remediation backlog.
 - [current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md) — Focusa mapped against OWASP ASVS, OWASP API Top 10, CWE Top 25, STRIDE, and CIS Controls v8.
 - [current/API_ROUTE_PERMISSION_MATRIX.md](current/API_ROUTE_PERMISSION_MATRIX.md) — intended API route scopes and route-family authorization baseline.
+- [current/API_RESOURCE_LIMITS.md](current/API_RESOURCE_LIMITS.md) — API request body limit and resource-exhaustion posture.
 - [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) — privacy classes and handling rules for Focusa persisted state.
 - [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) — reviewed shell/external command boundary and runtime unwrap static policy.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.

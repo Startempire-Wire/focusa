@@ -10,7 +10,7 @@ use crate::middleware;
 use crate::routes;
 use crate::routes::bounded::{observe_resource_mode_transition, resource_mode_status};
 use crate::routes::sse::EventBroadcaster;
-use axum::Router;
+use axum::{Router, extract::DefaultBodyLimit};
 use axum::middleware as axum_mw;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
 use focusa_core::types::{
@@ -296,6 +296,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::awareness::router())
         .merge(routes::tokens::router())
         .merge(routes::sse::router())
+        .layer(DefaultBodyLimit::max(routes::bounded::env_limit(
+            "FOCUSA_API_MAX_BODY_BYTES",
+            1_048_576,
+        )))
         .layer(axum_mw::from_fn(middleware::auth::auth_layer))
         .layer(axum_mw::from_fn(
             middleware::error_envelope::error_envelope_layer,
