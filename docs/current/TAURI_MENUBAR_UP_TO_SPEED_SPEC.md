@@ -218,7 +218,7 @@ Keep legacy Focus State visually central because that is the original app's emot
 ### Build/version
 
 - show app package version, Tauri config version, daemon version, runtime snapshot string.
-- update menubar version from stale `0.9.9` to the chosen app release version.
+- menubar package, Tauri config, Rust crate, and Settings footer currently use `0.9.13-dev`; keep future releases synchronized.
 - decide Bun-only or npm parity:
   - Bun-only: remove stale npm lock or document npm unsupported.
   - npm parity: align Vite/Svelte plugin versions so `npm ci` passes.

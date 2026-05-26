@@ -46,9 +46,9 @@ At initial audit time, the menubar app built with Bun and provided a useful basi
 | P1 | Doctor/resource/memory telemetry shallow | App shows token/cache but not daemon doctor, memory pressure, LowMem, route budgets. | `/v1/doctor`, `/v1/telemetry/memory`, `/v1/resource-mode` equivalents | Add Health panel with doctor summary, RSS pressure, resource mode, degraded routes. |
 | P1 | Tool result envelope/status not visualized | Operators need canonical/degraded/retry/failure_class indicators. | `docs/current/TOOL_RESULT_ENVELOPE_V1.md` | Normalize cards to display `status`, `canonical`, `degraded`, `failure_class`, `retry`, `next_tools`. |
 | P2 | API base duplicated/hardcoded in Sync/AddPeer | Sync ignores user-configured API URL, breaking remote/tunnel settings. | `SyncPanel.svelte`, `AddPeerModal.svelte` | Use shared `fetchJson`/`getApiUrl` everywhere. |
-| P2 | Version stale | Menubar says `0.9.9`; public snapshot is `v0.9.13-dev`. | `package.json`, `tauri.conf.json`, `Settings.svelte`, README | Centralize/display build/runtime version; update package/Tauri version when release policy is decided. |
+| P2 | Runtime/build version visibility partial | Menubar package, Tauri config, Rust crate, and Settings footer now show `0.9.13-dev`; remaining gap is explicit runtime-vs-app version comparison in the UI. | `package.json`, `tauri.conf.json`, `src-tauri/Cargo.toml`, `Settings.svelte`, README | Show app package version, Tauri config version, daemon version, and runtime snapshot string together. |
 | P2 | Release proof is a placeholder | Mission panel hardcodes `releaseProof: ready` instead of reading proof state. | `src/routes/+page.svelte` | Either remove placeholder or wire to release/evidence/proof artifact status. |
-| P2 | Dependency install path inconsistent | Docs say `bun install`, but `npm ci` fails despite package-lock existing. | `package-lock.json`, `package.json` | Choose Bun-only and remove/ignore npm lock, or align Vite/plugin versions so `npm ci` works. |
+| P2 | Dependency install path needs policy clarity | `npm ci`, `bun install`, `bun run check`, and `bun run build` pass, but the project still carries both npm and Bun lockfiles without a documented policy. | `package-lock.json`, `bun.lock`, `package.json` | Document npm+Bun parity expectations or choose one canonical install path. |
 | P2 | No interaction controls for Focus State/Gate | App is mostly read-only; no safe push/update/suppress/pin flows. | `/v1/focus/update`, `/v1/focus-gate/*` | Add approval-gated mutations with explicit result envelope display. |
 | P3 | Security posture broad | `csp: null`, remote daemon guidance suggests `0.0.0.0` without auth warning. | `tauri.conf.json`, `Settings.svelte` | Add safer CSP where possible and stronger remote-connection warnings/tunnel-first UX. |
 
@@ -59,7 +59,7 @@ At initial audit time, the menubar app built with Bun and provided a useful basi
 3. **Add runtime overview v2:** project identity, trajectory, canonical Workpoint resume, work-loop health, doctor, memory/resource status.
 4. **Add cognition panels:** Evidence, Prediction, Metacognition, Lineage/Snapshots.
 5. **Add safe mutations:** Focus update, gate suppress/pin/surface, Workpoint checkpoint/evidence capture, with confirmation for risky writes.
-6. **Polish release/packaging:** version consistency, Tauri CSP, app screenshots, macOS release proof.
+6. **Polish release/packaging:** runtime/app version comparison, Tauri CSP, app screenshots, macOS release proof.
 
 ## Definition of up-to-speed
 
