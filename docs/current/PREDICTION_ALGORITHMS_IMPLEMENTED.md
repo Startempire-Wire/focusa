@@ -41,7 +41,8 @@ Then they produce:
 - Algorithm-outcome ledger: `project_card_algorithm_outcomes.jsonl`
 - Learned weights: `project_card_signal_weights.json`
 - Each project-card call records signals, weights, scores, probabilities, expected utility, project root, current ask, and formula version.
-- `POST /v1/project/card/outcome` / `focusa project card-outcome` attaches final results to a specific `algorithm_run_id`.
+- `POST /v1/project/card/outcome` / `focusa project card-outcome` attaches final results to a specific `algorithm_run_id`, including elapsed wall-clock timing and token usage when supplied by API/Pi.
+- `trajectory_report_card` and `efficiency_summary` expose HLT/LTG/MTG/STG, waypoint accomplishments, elapsed `HH:MM:SS`, and token totals for future prediction comparisons.
 - `success_sequence.ranking_basis` includes outcome count, average score, and outcome bias; outcome scores now influence readiness/refresh/learn probabilities and expected utility.
 - Hot-path project-card GET projects prediction-informed weights without persisting them; explicit algorithm-run outcomes persist learned weights and remain clamped for stability.
 - Prediction read paths use an mtime/size keyed in-process store cache, and prediction evaluation returns a compact result summary to reduce tool-wrapper payload cost.
