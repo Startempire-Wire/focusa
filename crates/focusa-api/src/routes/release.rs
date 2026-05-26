@@ -2,7 +2,7 @@ use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
 use serde_json::{Value, json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 fn latest_proof_path(state: &AppState) -> PathBuf {
@@ -11,7 +11,7 @@ fn latest_proof_path(state: &AppState) -> PathBuf {
         .join("latest.json")
 }
 
-fn manual_gate(path: &PathBuf) -> Value {
+fn manual_gate(path: &Path) -> Value {
     json!({
         "status": "manual_proof_required",
         "canonical": true,

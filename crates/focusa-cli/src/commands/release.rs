@@ -138,9 +138,9 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                     });
                 }
                 Err(err) => {
-                    response["warnings"].as_array_mut().map(|warnings| {
+                    if let Some(warnings) = response["warnings"].as_array_mut() {
                         warnings.push(json!(format!("failed to persist release proof artifact: {err}")));
-                    });
+                    }
                 }
             }
 
