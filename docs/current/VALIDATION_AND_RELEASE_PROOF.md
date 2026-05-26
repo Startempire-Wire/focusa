@@ -67,6 +67,9 @@ node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures
 tests/spec97_reflex_runtime_dogfood_test.sh
 focusa workpoint current
 focusa workpoint resume
+focusa status --operator
+focusa workpoint resume --copy-prompt
+scripts/demo-workpoint-happy-path.sh
 ```
 
 ## Mac app proof
@@ -84,6 +87,15 @@ bun run build
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 gh run list --limit 6 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
 gh release view v0.9.13-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
+```
+
+For Operator Preview proof, also verify first-run and manual-continuation surfaces:
+
+```bash
+focusa onboard --agent manual
+focusa status --operator
+focusa workpoint resume --copy-prompt
+scripts/demo-workpoint-happy-path.sh
 ```
 
 For current real proof see:

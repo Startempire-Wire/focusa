@@ -79,6 +79,9 @@ When Focusa is working well, an agent should:
 | `focusa onboard` | Implemented | First-run Operator Preview flow |
 | `focusa doctor` | Implemented | Supported diagnostics/repair surface |
 | Manual awareness card | Implemented | Supported non-Pi fallback path |
+| `focusa status --operator` | Implemented | One-screen session card for buyers/operators |
+| `focusa workpoint resume --copy-prompt` | Implemented | Paste-ready manual continuation packet for non-Pi agents |
+| Golden demo script | Implemented | `scripts/demo-workpoint-happy-path.sh` proves the happy path |
 | Trajectory view | Implemented/advisory | Supported orientation layer; not task authority |
 | Pi extension | Implemented | Best-supported deep harness path |
 | CLI/API | Implemented | Supported operator surface |

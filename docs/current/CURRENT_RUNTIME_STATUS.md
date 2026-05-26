@@ -1,7 +1,7 @@
 # Current Runtime Status
 
 **Snapshot:** `v0.9.13-dev`
-**Repo head when written:** public-docs refresh after `a5a5164`
+**Repo head when written:** Operator Preview docs sync after `9ba6d04`
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
@@ -11,13 +11,13 @@
 - CLI binary: `focusa` from `focusa-cli`.
 - Pi extension under `apps/pi-extension` exposing 59 current `focusa_*` tools.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
-- Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link.
+- Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link; CLI `focusa workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor; evaluations persist as first-class records, successful evaluations promote learning back into retrieval memory, and API/CLI readback includes `evaluations/recent`.
 - Work-loop APIs and Pi tools for status, writer-status, control, context, checkpoint, and select-next; `/v1/work-loop/health` exposes dispatch readiness, boundary reason, pause flags, and transport degradation while deep diagnostics remain opt-in.
 - Tree/lineage/snapshot tools and lineage API surfaces.
 - Focus State bounded write tools and scratchpad separation.
 - State hygiene doctor/plan/apply surfaces; apply is approval-gated, non-destructive, and records an auditable Focus State note through `/v1/focus/update`.
-- Agent-first polish surfaces: `focusa doctor`, `focusa status --agent`, `focusa continue`, `focusa release prove`, `focusa cleanup --safe`, token/cache doctors, hook telemetry, and error-empty recovery envelopes.
+- Agent-first polish surfaces: `focusa onboard`, `focusa doctor`, `focusa status --agent`, `focusa status --operator`, `focusa continue`, `focusa release prove`, `focusa cleanup --safe`, token/cache doctors, hook telemetry, and error-empty recovery envelopes.
 - Prediction loop API/CLI/Pi tools for bounded record/recent/evaluate/stats workflows; ontology memory-pipeline promotions now persist durable artifacts and create prediction follow-up records.
 - Project/session isolation: frames and Workpoints carry `project_root + continuity_id`; cross-project and same-root/different-continuity packets reject, while temporal `session_id` changes preserve continuity only after hard gates match.
 - Pi project-root resolution persists the last verified safe project folder across Pi sessions and reuses it when the next session starts from a broad cwd such as `/root`.
@@ -41,6 +41,7 @@
 - `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
 - `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`
 - `docs/evidence/PUBLIC_DOCS_SPEC97_REFRESH_2026-05-25.md`
+- `docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md`
 
 ## Current verification commands
 
@@ -52,6 +53,9 @@ cargo clippy --workspace -- -D warnings
 ./scripts/ci/run-spec-gates.sh
 tests/spec97_reflex_runtime_dogfood_test.sh
 curl -sS --max-time 5 http://127.0.0.1:8787/v1/health | jq .
+focusa status --operator
+focusa workpoint resume --copy-prompt
+scripts/demo-workpoint-happy-path.sh
 ```
 
 See [`PRODUCTION_RELEASE_COMMANDS.md`](PRODUCTION_RELEASE_COMMANDS.md) for full release, restart, GitHub, and cleanup commands.

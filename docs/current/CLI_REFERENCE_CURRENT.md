@@ -11,6 +11,7 @@ Commands:
   start          Start the Focusa daemon
   stop           Stop the Focusa daemon
   status         Show daemon status
+  onboard        First-run Operator Preview setup
   doctor         Run full agent-first doctor checks
   cleanup        Recoverable cleanup of generated residue
   continue       Resume governed continuous work and refresh state
@@ -61,6 +62,8 @@ Options:
 
 ## Current agent-first command groups
 
+- `onboard` — first-run Operator Preview setup for `pi`, `manual`, and other agent paths.
+- `status --operator` — human session card with project, continuity, trajectory, active Workpoint, next action, evidence count, drift hint, and health.
 - `doctor` — full agent-first health/readiness check.
 - `continue` — governed continuous-work resume and state refresh.
 - `release prove` — safe release proof workflow, including optional GitHub release verification.
@@ -72,7 +75,7 @@ Options:
 - `traverse` — bounded surgical traversal and tag verification parity for `/v1/traverse`.
 - `resource` — ResourceMode/LowMem status and override parity for `/v1/resource/mode`.
 - `focus update` — Focus State slot parity for `/v1/focus/update` (`--decision`, `--constraint`, `--failure`, `--intent`, `--current-focus`, `--next-step`, `--open-question`, `--recent-result`, `--note`).
-- `workpoint` — scoped checkpoint/current/resume continuity operations; canonical checkpoint/resume accepts `--project-root` and `--continuity-id`.
+- `workpoint` — scoped checkpoint/current/resume continuity operations; canonical checkpoint/resume accepts `--project-root` and `--continuity-id`; `workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
 - `state snapshot` — create/recent/restore/diff/compare-latest snapshot parity for `/v1/focus/snapshots*`.
 - `lineage extract` — bounded lineage signal extraction for decision/constraint/risk compounding.
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
@@ -82,6 +85,8 @@ Options:
 
 ```bash
 focusa status --agent
+focusa status --operator
+focusa onboard --agent manual
 focusa doctor --json
 focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith --continuity-id cont-1
 focusa continue --json
@@ -96,6 +101,7 @@ focusa focus update --decision "Use scoped Workpoints for project continuation."
 focusa workpoint checkpoint --project-root /home/wirebot/focusa --continuity-id cont-1 --mission "Audit tools" --next-action "Run parity gates" --json
 focusa workpoint current --project-root /home/wirebot/focusa --continuity-id cont-1 --json
 focusa workpoint resume --project-root /home/wirebot/focusa --continuity-id cont-1 --json
+focusa workpoint resume --copy-prompt
 focusa state snapshot recent --limit 5 --json
 focusa state snapshot compare-latest --snapshot-reason "pre-risk check" --json
 focusa lineage extract --max-candidates 12 --json

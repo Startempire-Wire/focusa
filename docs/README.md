@@ -120,6 +120,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/TOOL_RESULT_ENVELOPE_V1.md](current/TOOL_RESULT_ENVELOPE_V1.md) — structured tool result contract.
 - [current/TROUBLESHOOTING_CURRENT.md](current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
 - [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof.
+- [current/FOCUSA_OPERATOR_PREVIEW_PROOF.md](current/FOCUSA_OPERATOR_PREVIEW_PROOF.md) — Operator Preview proof pack for onboarding, Workpoint continuation, evidence, drift, and non-Pi/manual flows.
 - [current/PRODUCTION_RELEASE_COMMANDS.md](current/PRODUCTION_RELEASE_COMMANDS.md) — release, restart, GitHub proof, and cleanup commands.
 - [92-agent-first-polish-hooks-efficiency-spec.md](92-agent-first-polish-hooks-efficiency-spec.md) — agent-first polish, hooks, token/cache UX, and predictive-power spec.
 - [current/HOOK_COVERAGE.md](current/HOOK_COVERAGE.md) — current Pi hook coverage and Spec92 hook telemetry commands.

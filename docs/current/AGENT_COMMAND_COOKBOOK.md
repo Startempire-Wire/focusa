@@ -10,6 +10,7 @@ Copy/paste commands for agent-first Focusa operation.
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 focusa doctor
 focusa status --agent
+focusa status --operator
 bd ready
 ```
 
@@ -34,6 +35,12 @@ focusa_workpoint_checkpoint checkpoint_reason="before_compact" mission="..." nex
 
 ```text
 focusa_workpoint_resume mode="compact_prompt"
+```
+
+For non-Pi/manual agents:
+
+```bash
+focusa workpoint resume --copy-prompt
 ```
 
 If daemon was down:

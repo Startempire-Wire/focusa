@@ -3,7 +3,7 @@
 ## Version
 
 - Snapshot: `v0.9.13-dev` / Operator Preview
-- Proof commit: `ea520a4` plus subsequent portability/onboarding commits in this workstream
+- Proof commits: `ccd4449` golden demo, `704b7fb` operator session card, `9ba6d04` copy-prompt, plus this public-doc sync
 - Release posture: source-available commercial preview, Workpoint-first and proof-first
 
 ## Commercially supported preview promise
@@ -89,12 +89,12 @@ A passing preview proof should show:
 
 ## Release gates for Operator Preview
 
-- [ ] `focusa onboard` works in a clean checkout.
-- [ ] `focusa doctor` gives human and JSON repair guidance.
-- [ ] Workpoint checkpoint/resume works with explicit `project_root` + `continuity_id`.
-- [ ] Evidence link appears in Workpoint state/resume path.
-- [ ] Trajectory view remains advisory/scoped.
-- [ ] Manual awareness card works for non-Pi agents.
-- [ ] A golden demo script proves onboarding → Workpoint → evidence → resume → drift check.
-- [ ] README maturity table and known limits are visible.
-- [ ] Commercial/license docs are present and linked.
+- [x] `focusa onboard` works in a clean checkout.
+- [x] `focusa doctor` gives human and JSON repair guidance.
+- [x] Workpoint checkpoint/resume works with explicit `project_root` + `continuity_id`.
+- [x] Evidence link appears in Workpoint state/resume path.
+- [x] Trajectory view remains advisory/scoped.
+- [x] Manual awareness card works for non-Pi agents.
+- [x] A golden demo script proves onboarding → Workpoint → evidence → resume → drift check.
+- [x] README maturity table and known limits are visible.
+- [x] Commercial/license docs are present and linked.

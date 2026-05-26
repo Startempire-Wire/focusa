@@ -18,9 +18,11 @@ focusa --json doctor
 ```bash
 focusa status --agent
 focusa --json status --agent
+focusa status --operator
+focusa --json status --operator
 ```
 
-`focusa status --agent` returns a standard Spec92 envelope combining live `/v1/status`, Workpoint, Work-loop, token-budget, and cache metadata surfaces.
+`focusa status --agent` returns a standard Spec92 envelope combining live `/v1/status`, Workpoint, Work-loop, token-budget, and cache metadata surfaces. `focusa status --operator` returns the current Operator Preview session card: project, continuity, trajectory, active Workpoint, next action, evidence count, drift hint, and health.
 
 ## Continue
 

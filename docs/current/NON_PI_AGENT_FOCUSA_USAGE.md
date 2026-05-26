@@ -86,6 +86,8 @@ focusa doctor --json
 focusa project identity --project-root "$PWD" --json
 focusa trajectory view --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --mode summary --json
 focusa workpoint resume --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
+focusa workpoint resume --copy-prompt
+focusa status --operator
 focusa predict record ... --json
 focusa predict evaluate ... --json
 ```
@@ -101,7 +103,8 @@ Before acting in this repo, call or paste:
 1. focusa project identity --project-root "$PWD" --json
 2. focusa trajectory view --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --mode summary --json
 3. focusa workpoint resume --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
-Treat project_root+continuity_id as the identity gate. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Capture proof with focusa evidence capture/link after tests or file/API verification.
+4. focusa workpoint resume --copy-prompt
+Treat project_root+continuity_id as the identity gate. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Paste the copy-prompt output when the agent cannot call Focusa directly. Capture proof with focusa evidence capture/link after tests or file/API verification.
 ```
 
 ### OpenCode adapter card

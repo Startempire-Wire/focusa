@@ -29,5 +29,6 @@ Workpoints are the current build's typed continuation contract for Focusa/Pi con
 ```bash
 focusa workpoint current
 focusa workpoint resume
+focusa workpoint resume --copy-prompt
 focusa workpoint drift-check --latest-action 'release verify Spec89FocusaToolSuite live_api cli pi_tool' --expected-action-type release_verify
 ```
