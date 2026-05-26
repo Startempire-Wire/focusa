@@ -26,6 +26,14 @@ A developer can start a real AI coding session, create a Workpoint, attach evide
 
 ## Golden proof path
 
+One command proves the core Operator Preview loop:
+
+```bash
+scripts/demo-workpoint-happy-path.sh
+```
+
+Manual equivalent:
+
 ```bash
 # 1. Build/install Focusa binaries or use cargo run.
 cargo build --release --bins

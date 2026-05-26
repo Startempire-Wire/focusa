@@ -257,6 +257,9 @@ cargo run --bin focusa-daemon
 cargo run --bin focusa -- status
 cargo run --bin focusa -- onboard --agent manual
 cargo run --bin focusa -- workpoint current
+
+# Optional golden proof loop
+bash scripts/demo-workpoint-happy-path.sh
 ```
 
 Default API URL:
