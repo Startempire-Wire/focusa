@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, stampWorkpointPacketForCurrentPiSession, persistState } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -584,6 +584,52 @@ function capToolText(text: unknown, max = 700): string {
   return normalized.length <= max ? normalized : `${normalized.slice(0, Math.max(0, max - 1))}…`;
 }
 
+function formatOperatorDateTime(ms: number): string {
+  return new Date(ms).toLocaleString("en-US", { timeZone: "America/Los_Angeles", year: "2-digit", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+}
+
+function formatElapsedHms(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function currentTaskTimingAndTokens() {
+  const now = Date.now();
+  const elapsedMs = Math.max(0, now - (S.currentTaskStartTime || S.sessionStartTime || now));
+  const providerTotal = S.currentTaskProviderInputTokens + S.currentTaskProviderOutputTokens;
+  const estimatedTotal = S.currentTaskInputTokenEstimate + S.currentTaskOutputTokenEstimate + estimateTokens(JSON.stringify(S.toolUsageBatch || []));
+  const totalTokens = providerTotal > 0 ? providerTotal : estimatedTotal;
+  return {
+    task_timing: {
+      started_at: new Date(S.currentTaskStartTime || S.sessionStartTime || now).toISOString(),
+      started_at_operator: formatOperatorDateTime(S.currentTaskStartTime || S.sessionStartTime || now),
+      completed_at: new Date(now).toISOString(),
+      completed_at_operator: formatOperatorDateTime(now),
+      elapsed_ms: elapsedMs,
+      elapsed_seconds: Math.floor(elapsedMs / 1000),
+      elapsed_hms: formatElapsedHms(elapsedMs),
+      turn_start: S.currentTaskTurnStart,
+      turn_end: S.turnCount,
+      turn_count: Math.max(0, S.turnCount - (S.currentTaskTurnStart || S.turnCount) + 1),
+      task_label: S.currentTaskLabel || S.currentAsk?.text || "",
+    },
+    token_usage: {
+      provider_input_tokens: S.currentTaskProviderInputTokens,
+      provider_output_tokens: S.currentTaskProviderOutputTokens,
+      provider_total_tokens: providerTotal,
+      estimated_input_tokens: S.currentTaskInputTokenEstimate,
+      estimated_output_tokens: S.currentTaskOutputTokenEstimate,
+      estimated_total_tokens: estimatedTotal,
+      total_tokens: totalTokens,
+      counting_method: providerTotal > 0 ? "provider_usage_when_available" : "estimate_chars_div_4_fallback",
+      tool_calls: S.currentTaskToolCalls,
+    },
+  };
+}
+
 function capToolOutputText(result: any): any {
   if (!Array.isArray(result?.content)) return result;
   return {
@@ -599,6 +645,7 @@ function withToolResultEnvelope(tool: any): any {
     ...tool,
     promptSnippet: tool.promptSnippet || defaultFocusaPromptSnippet(tool.name, tool.description),
     async execute(id: string, params: unknown) {
+      S.currentTaskToolCalls += 1;
       const executionParams = paramsWithAutoIdempotency(tool.name, params, id);
       let result = await execute(id, executionParams);
       let details = (result?.details || {}) as Record<string, unknown>;
@@ -2565,15 +2612,18 @@ export function registerTools(pi: ExtensionAPI) {
       const priorDecisionCount = Array.isArray(prior.recent_decisions) ? prior.recent_decisions.length : 0;
       const priorOutcomeCount = Array.isArray(prior.recent_algorithm_outcomes) ? prior.recent_algorithm_outcomes.length : 0;
       const sequence = body.success_sequence || {};
+      const efficiency = body.efficiency_summary || body.trajectory_report_card?.time_and_tokens || {};
+      const trajectoryReport = body.trajectory_report_card || {};
+      const waypointSummary = trajectoryReport.accomplishment_summary || {};
       const shortest = sequence.shortest_path_to_success || {};
       const selectedPath = shortest.selected || {};
       const eliminatedCount = Array.isArray(shortest.eliminated_candidates) ? shortest.eliminated_candidates.length : 0;
       const text = result.ok
-        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} root=${String(project.project_root || "unknown")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(priorLadder.high_level_goal || body.trajectory?.hlt || "missing").slice(0, 80)} stg=${String(priorLadder.short_term_goal || body.trajectory?.stg || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_objects=${String(ontology.objects ?? "unknown")}`
+        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} root=${String(project.project_root || "unknown")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(priorLadder.high_level_goal || body.trajectory?.hlt || "missing").slice(0, 80)} stg=${String(priorLadder.short_term_goal || body.trajectory?.stg || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_objects=${String(ontology.objects ?? "unknown")}`
         : `project card blocked → ${explainWorkLoopResult(result, "project card unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(body.status || "completed") : "blocked", canonical: false, degraded: !result.ok, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_project_card_outcome", "focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve"] };
-      const compactResponse = { status: body.status, schema: body.schema, algorithm_run_id: body.algorithm_run_id, bootstrap_needed: bootstrap.needed, recommended_first_event: sequence.recommended_first_event, ranking_basis: sequence.ranking_basis, shortest_path_to_success: { selected: selectedPath, eliminated_candidates: shortest.eliminated_candidates || [] }, outcome_learning: body.algorithmic_intelligence?.outcome_learning, next_tools: body.next_tools };
-      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card", advisory_only: body.advisory_only !== false, project_identity: project, trajectory: body.trajectory || null, prior_session_context: prior, success_sequence: sequence, ontology, evidence: body.evidence || null, prediction, algorithmic_intelligence: { outcome_learning: body.algorithmic_intelligence?.outcome_learning || null, expected_utility: body.algorithmic_intelligence?.expected_utility || null }, metacognition: body.metacognition || null, active_workpoint: body.active_workpoint || null, bootstrap, possibilities: body.possibilities || [], next_step_quality_rule: body.next_step_quality_rule || null, tool_result_v1: toolResult, next_tools: toolResult.next_tools || body.next_tools || ["focusa_project_card_outcome", "focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve"], response: compactResponse } } as any;
+      const compactResponse = { status: body.status, schema: body.schema, algorithm_run_id: body.algorithm_run_id, bootstrap_needed: bootstrap.needed, trajectory_report_card: trajectoryReport, efficiency_summary: efficiency, recommended_first_event: sequence.recommended_first_event, ranking_basis: sequence.ranking_basis, shortest_path_to_success: { selected: selectedPath, eliminated_candidates: shortest.eliminated_candidates || [] }, outcome_learning: body.algorithmic_intelligence?.outcome_learning, next_tools: body.next_tools };
+      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card", advisory_only: body.advisory_only !== false, project_identity: project, trajectory: body.trajectory || null, trajectory_report_card: trajectoryReport, efficiency_summary: efficiency, prior_session_context: prior, success_sequence: sequence, ontology, evidence: body.evidence || null, prediction, algorithmic_intelligence: { outcome_learning: body.algorithmic_intelligence?.outcome_learning || null, expected_utility: body.algorithmic_intelligence?.expected_utility || null }, metacognition: body.metacognition || null, active_workpoint: body.active_workpoint || null, bootstrap, possibilities: body.possibilities || [], next_step_quality_rule: body.next_step_quality_rule || null, tool_result_v1: toolResult, next_tools: toolResult.next_tools || body.next_tools || ["focusa_project_card_outcome", "focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve"], response: compactResponse } } as any;
     },
   });
 
@@ -2589,9 +2639,12 @@ export function registerTools(pi: ExtensionAPI) {
       evidence_refs: Type.Optional(Type.Array(Type.String(), { description: "Evidence refs proving the outcome." })),
       project_root: Type.Optional(Type.String({ description: "Optional project root associated with the run." })),
       notes: Type.Optional(Type.String({ description: "Optional bounded note about the result." })),
+      task_timing: Type.Optional(Type.Any({ description: "Optional override timing object; Pi auto-populates elapsed task timing when omitted." })),
+      token_usage: Type.Optional(Type.Any({ description: "Optional override token usage object; Pi auto-populates provider/estimated token counts when omitted." })),
     }),
     async execute(_id, params) {
-      const p = params as { algorithm_run_id: string; actual_outcome: string; score?: number; evidence_refs?: string[]; project_root?: string; notes?: string };
+      const p = params as { algorithm_run_id: string; actual_outcome: string; score?: number; evidence_refs?: string[]; project_root?: string; notes?: string; task_timing?: any; token_usage?: any };
+      const autoAccounting = currentTaskTimingAndTokens();
       const payload = {
         algorithm_run_id: p.algorithm_run_id,
         actual_outcome: p.actual_outcome,
@@ -2599,12 +2652,14 @@ export function registerTools(pi: ExtensionAPI) {
         evidence_refs: Array.isArray(p.evidence_refs) ? p.evidence_refs : [],
         project_root: p.project_root || S.sessionCwd || process.cwd(),
         notes: p.notes,
+        task_timing: p.task_timing || autoAccounting.task_timing,
+        token_usage: p.token_usage || autoAccounting.token_usage,
       };
       const result = await focusaFetchDetailed("/project/card/outcome", { method: "POST", body: JSON.stringify(payload) });
       const body = result.body || {};
       const outcome = body.outcome || {};
       const text = result.ok && String(body.status || "") === "recorded"
-        ? `project card outcome → recorded run=${String(outcome.algorithm_run_id || p.algorithm_run_id)} score=${String(outcome.score ?? payload.score ?? "default")} evidence=${Array.isArray(outcome.evidence_refs) ? outcome.evidence_refs.length : payload.evidence_refs.length}`
+        ? `project card outcome → recorded run=${String(outcome.algorithm_run_id || p.algorithm_run_id)} score=${String(outcome.score ?? payload.score ?? "default")} elapsed=${String(outcome.task_timing?.elapsed_hms || payload.task_timing.elapsed_hms)} tokens=${String(outcome.token_usage?.total_tokens ?? payload.token_usage.total_tokens)} evidence=${Array.isArray(outcome.evidence_refs) ? outcome.evidence_refs.length : payload.evidence_refs.length}`
         : `project card outcome blocked → ${explainWorkLoopResult(result, "outcome unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok && body.status === "recorded", status: result.ok ? String(body.status || "completed") : "blocked", canonical: false, degraded: !result.ok, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: ["project_card_algorithm_outcome_append", "project_card_weight_update"], evidence_refs: payload.evidence_refs, next_tools: body.flywheel?.next_tools || ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"] };
       return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card/outcome", advisory_only: false, outcome, storage: body.storage || null, flywheel: body.flywheel || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], request: compactApiEcho(payload), response: compactApiEcho(body), next_tools: toolResult.next_tools || body.flywheel?.next_tools || ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"] } } as any;

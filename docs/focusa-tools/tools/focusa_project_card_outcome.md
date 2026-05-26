@@ -21,10 +21,12 @@ Attach a verified result to a specific project-card `algorithm_run_id` so future
 - `evidence_refs` — optional bounded proof handles.
 - `project_root` — optional project root associated with the run.
 - `notes` — optional bounded result note.
+- `task_timing` — optional elapsed wall-clock timing object; Pi auto-populates start/completion time and `elapsed_hms` when omitted.
+- `token_usage` — optional token accounting object; Pi auto-populates provider counts when available plus estimated fallback counts.
 
 ## Expected result
 
-Returns `schema=focusa.project_card_algorithm_outcome.v1`, the persisted `outcome`, storage paths, and flywheel guidance. Side effects: appends `project_card_algorithm_outcomes.jsonl` and updates `project_card_signal_weights.json`.
+Returns `schema=focusa.project_card_algorithm_outcome.v1`, the persisted `outcome`, storage paths, and flywheel guidance. Side effects: appends `project_card_algorithm_outcomes.jsonl` and updates `project_card_signal_weights.json`. Outcomes include elapsed wall-clock time and token usage when supplied/auto-populated, enabling later completion-time/token comparisons for similar tasks.
 
 ## Example
 

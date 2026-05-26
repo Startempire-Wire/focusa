@@ -159,8 +159,16 @@ export const S = {
   // Intuition signals (§36.2, §34.2D)
   compilationErrors: [] as number[],
   fileEditCounts: {} as Record<string, number>,
-  // Session timing
+  // Session/task timing + token accounting
   sessionStartTime: Date.now(),
+  currentTaskStartTime: Date.now(),
+  currentTaskLabel: "",
+  currentTaskTurnStart: 0,
+  currentTaskInputTokenEstimate: 0,
+  currentTaskOutputTokenEstimate: 0,
+  currentTaskProviderInputTokens: 0,
+  currentTaskProviderOutputTokens: 0,
+  currentTaskToolCalls: 0,
   longSessionSignaled: false,
   // WBM cataloguing (§29)
   cataloguedDecisions: [] as string[],

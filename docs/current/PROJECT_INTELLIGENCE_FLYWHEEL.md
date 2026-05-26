@@ -69,6 +69,10 @@ This lets a model ask: **what event should happen next for the most productive/p
 
 Bootstrap quality rule: when prior data exists, define or refresh HLG/MLG/STG from `prior_session_context` plus explicit operator steering; use predictions for risk/expected-value, metacog for reusable lessons, and decisions for durable architectural boundaries.
 
+## TrajectoryReporting elapsed + token card
+
+`GET /v1/project/card` includes `trajectory_report_card`, a reporting card for operator-visible progress. It summarizes HLT/LTG/MTG/STG hierarchy, waypoint accomplishment status from recent outcomes, and `time_and_tokens` from project-card outcomes. End-of-task reports should include elapsed wall-clock time (`HH:MM:SS`), total tokens, trajectory hierarchy, and waypoint accomplishments so similar task completion time/token cost can improve.
+
 ## Next-step quality rule
 
 A next step is strong when it is:

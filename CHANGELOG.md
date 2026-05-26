@@ -4,6 +4,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+- Added TrajectoryReporting card fields for HLT/LTG/MTG/STG, waypoint accomplishment status, elapsed wall-clock time, and token efficiency.
 - Surfaced `shortest_path_to_success` selected path/cost/eliminations in Pi `focusa_project_card` UX.
 - Added `success_sequence.shortest_path_to_success` with weighted path candidates and eliminated-path reasons.
 - Reduced prediction hot-path timeout risk with an mtime/size keyed prediction-store cache and compact evaluate responses.

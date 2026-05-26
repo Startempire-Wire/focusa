@@ -44,6 +44,10 @@ pub struct ProjectCardOutcomeRequest {
     pub evidence_refs: Vec<String>,
     pub project_root: Option<String>,
     pub notes: Option<String>,
+    #[serde(default)]
+    pub task_timing: Value,
+    #[serde(default)]
+    pub token_usage: Value,
 }
 
 #[derive(Debug, Clone)]
@@ -1474,6 +1478,71 @@ fn recent_jsonl_values(path: PathBuf, limit: usize) -> Vec<Value> {
     values
 }
 
+fn format_elapsed_hms(seconds: u64) -> String {
+    let hours = seconds / 3600;
+    let minutes = (seconds % 3600) / 60;
+    let secs = seconds % 60;
+    format!("{hours:02}:{minutes:02}:{secs:02}")
+}
+
+fn trajectory_reporting_card(trajectory: &Option<focusa_core::types::TrajectoryLadderContext>, record: &Value, efficiency: &Value, outcomes: &[Value]) -> Value {
+    let waypoints = trajectory.as_ref().map(|t| t.waypoints.clone()).unwrap_or_default();
+    let recent_text = outcomes.iter().rev().take(8).map(|outcome| format!("{} {}", outcome.get("actual_outcome").and_then(Value::as_str).unwrap_or(""), outcome.get("notes").and_then(Value::as_str).unwrap_or(""))).collect::<Vec<_>>().join("\n").to_lowercase();
+    let waypoint_cards = waypoints.iter().enumerate().map(|(idx, waypoint)| {
+        let marker = waypoint.to_lowercase();
+        let accomplished = !marker.is_empty() && recent_text.contains(&marker.chars().take(48).collect::<String>());
+        json!({
+            "index": idx + 1,
+            "waypoint": waypoint,
+            "status": if accomplished { "accomplished_by_recent_outcome" } else { "open_or_unproven" },
+            "evidence_hint": if accomplished { "recent_project_card_outcome" } else { "capture evidence/outcome when complete" }
+        })
+    }).collect::<Vec<_>>();
+    json!({
+        "schema": "focusa.trajectory_reporting_card.v1",
+        "hierarchy": {
+            "hlt": trajectory.as_ref().and_then(|t| t.hlt.clone()).or_else(|| record.get("root_long_term_goal").and_then(Value::as_str).map(str::to_string)),
+            "ltg": record.get("long_term_goal").and_then(Value::as_str).or_else(|| record.get("root_long_term_goal").and_then(Value::as_str)),
+            "desired_end_state": record.get("desired_end_state").and_then(Value::as_str),
+            "mtg": trajectory.as_ref().and_then(|t| t.mlg.clone()).or_else(|| record.get("mid_level_goal").and_then(Value::as_str).map(str::to_string)),
+            "stg": trajectory.as_ref().and_then(|t| t.stg.clone()).or_else(|| record.get("short_term_goal").and_then(Value::as_str).map(str::to_string)),
+        },
+        "waypoints": waypoint_cards,
+        "accomplishment_summary": {
+            "waypoints_total": waypoints.len(),
+            "waypoints_accomplished_by_recent_outcomes": waypoint_cards.iter().filter(|item| item.get("status").and_then(Value::as_str) == Some("accomplished_by_recent_outcome")).count(),
+            "recent_outcomes_considered": outcomes.len(),
+        },
+        "time_and_tokens": efficiency,
+        "operator_report_rule": "End-of-task reports include elapsed time, total tokens, trajectory hierarchy, and waypoint accomplishments."
+    })
+}
+
+fn project_card_efficiency_summary(outcomes: &[Value]) -> Value {
+    let durations = outcomes
+        .iter()
+        .filter_map(|outcome| outcome.pointer("/task_timing/elapsed_seconds").and_then(Value::as_u64))
+        .collect::<Vec<_>>();
+    let token_totals = outcomes
+        .iter()
+        .filter_map(|outcome| outcome.pointer("/token_usage/total_tokens").and_then(Value::as_u64))
+        .collect::<Vec<_>>();
+    let avg_duration = if durations.is_empty() { 0 } else { durations.iter().sum::<u64>() / durations.len() as u64 };
+    let avg_tokens = if token_totals.is_empty() { 0 } else { token_totals.iter().sum::<u64>() / token_totals.len() as u64 };
+    json!({
+        "schema": "focusa.project_efficiency_summary.v1",
+        "outcome_count_with_timing": durations.len(),
+        "outcome_count_with_tokens": token_totals.len(),
+        "average_elapsed_seconds": avg_duration,
+        "average_elapsed_hms": format_elapsed_hms(avg_duration),
+        "last_elapsed_seconds": durations.last().copied().unwrap_or(0),
+        "last_elapsed_hms": format_elapsed_hms(durations.last().copied().unwrap_or(0)),
+        "average_total_tokens": avg_tokens,
+        "last_total_tokens": token_totals.last().copied().unwrap_or(0),
+        "goal": "improve completion time and token efficiency for similar tasks"
+    })
+}
+
 fn project_card_outcome_stats(outcomes: &[Value]) -> (usize, f64, f64) {
     let scores = outcomes
         .iter()
@@ -1687,6 +1756,14 @@ async fn card(
         .unwrap_or_else(|| json!({}));
     let focusa = state.focusa.read().await;
     let trajectory = focusa.trajectory_ladder_context();
+    let active_trajectory_record = focusa
+        .trajectory
+        .active_trajectory_id
+        .as_ref()
+        .and_then(|id| focusa.trajectory.records.iter().find(|record| &record.trajectory_id == id))
+        .or_else(|| focusa.trajectory.records.last())
+        .and_then(|record| serde_json::to_value(record).ok())
+        .unwrap_or(Value::Null);
     let active_workpoint = focusa
         .workpoint
         .active_workpoint_id
@@ -1740,6 +1817,7 @@ async fn card(
 
     let recent_algorithm_outcomes = recent_jsonl_values(project_card_outcomes_path(), 20);
     let (outcome_count, average_outcome_score, recent_outcome_score) = project_card_outcome_stats(&recent_algorithm_outcomes);
+    let efficiency_summary = project_card_efficiency_summary(&recent_algorithm_outcomes);
     let predictions = read_predictions();
     let prediction = prediction_stats_card(&predictions);
     let current_ask = query.current_ask.as_deref().unwrap_or_default().trim();
@@ -1778,7 +1856,9 @@ async fn card(
         "action_probabilities": algorithmic_intelligence.get("action_probabilities").cloned().unwrap_or(Value::Null),
         "expected_utility": algorithmic_intelligence.get("expected_utility").cloned().unwrap_or(Value::Null),
         "outcome_learning": algorithmic_intelligence.get("outcome_learning").cloned().unwrap_or(Value::Null),
-        "formula_version": "project_card_algorithmic_intelligence.v2"
+        "efficiency_summary": efficiency_summary,
+        "prediction_feed": {"elapsed_and_tokens_included": true, "waypoint_accomplishments_included": true},
+        "formula_version": "project_card_algorithmic_intelligence.v3"
     }));
     let next_gap = trajectory_stg
         .clone()
@@ -1794,6 +1874,7 @@ async fn card(
         &algorithmic_intelligence,
     );
     let trajectory_waypoints = trajectory.as_ref().map(|t| t.waypoints.clone()).unwrap_or_default();
+    let trajectory_report_card = trajectory_reporting_card(&trajectory, &active_trajectory_record, &efficiency_summary, &recent_algorithm_outcomes);
     let prior_session_context = json!({
         "schema": "focusa.project_prior_context.v1",
         "advisory_only": true,
@@ -1823,6 +1904,8 @@ async fn card(
         "algorithmic_intelligence": algorithmic_intelligence,
         "algorithm_run_id": algorithm_run_id,
         "success_sequence": sequence_plan,
+        "efficiency_summary": efficiency_summary,
+        "trajectory_report_card": trajectory_report_card,
         "prior_session_context": prior_session_context,
         "metacognition": {
             "summary": "Retrieve relevant lessons with /v1/metacognition/retrieve using project card + current ask.",
@@ -1881,6 +1964,8 @@ async fn card_outcome(Json(body): Json<ProjectCardOutcomeRequest>) -> Json<Value
         "score": score,
         "evidence_refs": body.evidence_refs,
         "notes": body.notes,
+        "task_timing": body.task_timing,
+        "token_usage": body.token_usage,
         "learned_weights_after": learned_weights,
         "formula_version": "project_card_algorithmic_intelligence.v1"
     });

@@ -905,8 +905,17 @@ export function registerTurns(pi: ExtensionAPI) {
     const packageUpdateCommand = /^\s*(update|pi\s+update|\/update)\s*$/i.test(String(text));
     const askKind = packageUpdateCommand ? "meta" : classifyCurrentAsk(String(text));
     const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
+    const newTaskText = storedAskText.slice(0, 500);
+    S.currentTaskStartTime = Date.now();
+    S.currentTaskLabel = newTaskText;
+    S.currentTaskTurnStart = S.turnCount + 1;
+    S.currentTaskInputTokenEstimate = estimateTokens(newTaskText);
+    S.currentTaskOutputTokenEstimate = 0;
+    S.currentTaskProviderInputTokens = 0;
+    S.currentTaskProviderOutputTokens = 0;
+    S.currentTaskToolCalls = 0;
     S.currentAsk = {
-      text: storedAskText.slice(0, 500),
+      text: newTaskText,
       kind: askKind,
       sourceTurnId,
       updatedAt: Date.now(),
@@ -1157,17 +1166,23 @@ export function registerTurns(pi: ExtensionAPI) {
         });
       }
 
+      const promptTokens = ev.usage?.inputTokens || ev.usage?.input || 0;
+      const completionTokens = ev.usage?.outputTokens || ev.usage?.output || 0;
+      S.currentTaskProviderInputTokens += promptTokens;
+      S.currentTaskProviderOutputTokens += completionTokens;
+      S.currentTaskOutputTokenEstimate += estimateTokens(assistantOutput);
+
       focusaPost("/turn/complete", {
         turn_id: `pi-turn-${S.turnCount}`,
         frame_id: S.activeFrameId,
         assistant_output: assistantOutput,
         artifacts: [],
         errors: [],
-        prompt_tokens: ev.usage?.inputTokens || ev.usage?.input || 0,
-        completion_tokens: ev.usage?.outputTokens || ev.usage?.output || 0,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
         tokens: {
-          input: ev.usage?.inputTokens || ev.usage?.input || 0,
-          output: ev.usage?.outputTokens || ev.usage?.output || 0,
+          input: promptTokens,
+          output: completionTokens,
           cache_read: ev.usage?.cacheReadInputTokens || 0,
           cache_write: ev.usage?.cacheCreationInputTokens || 0,
         },
@@ -1176,6 +1191,7 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §33.4: Flush batched tool usage
     if (S.focusaAvailable && S.toolUsageBatch.length) {
+      S.currentTaskToolCalls += S.toolUsageBatch.length;
       focusaPost("/telemetry/tool-usage", { turn_id: `pi-turn-${S.turnCount}`, tools: S.toolUsageBatch });
       queueTraceTelemetry({
         event_type: "tools_invoked",
