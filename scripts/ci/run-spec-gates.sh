@@ -74,3 +74,4 @@ run_gate ./tests/golden_tasks_comparative_eval.sh
 run_gate ./tests/spec96_menubar_cockpit_foundation_static_test.sh
 run_gate ./tests/release_notes_workflow_static_test.sh
 run_gate ./tests/release_proof_status_route_static_test.sh
+run_gate ./tests/spec80_impl_parquet_export_support_test.sh
