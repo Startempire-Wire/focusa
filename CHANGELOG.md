@@ -2,6 +2,11 @@
 
 Focusa is under active development. Versions below are current snapshot tags, not finished-product declarations.
 
+## Unreleased — post-release HLT dogfood hardening
+
+- Refreshed GitHub Release workflow notes to generate current functional dogfood proof language and added a static guard against stale fixed-count/generic release claims.
+- Hardened the menubar cockpit slice after dogfood: current version docs, manual release-proof gate, shared API-base audit status, sync write confirmations, and stronger Spec96 static coverage.
+
 ## Unreleased — project-root terminology and trajectory accuracy
 
 - Clarified public/runtime language: `project_root` is the project folder/container holding related files, while Trajectory is the functional route from current state to destination and waypoints.
