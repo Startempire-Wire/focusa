@@ -13,6 +13,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::io::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -1344,6 +1345,75 @@ fn prediction_stats_card(predictions: &[Value]) -> Value {
     })
 }
 
+fn focusa_data_dir() -> PathBuf {
+    if let Some(home) = std::env::var_os("FOCUSA_HOME") {
+        return PathBuf::from(home).join("data");
+    }
+    if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
+        return PathBuf::from(data_home).join("focusa");
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        return PathBuf::from(home).join(".local/share/focusa");
+    }
+    std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("data")
+}
+
+fn project_card_weights_path() -> PathBuf {
+    focusa_data_dir().join("project_card_signal_weights.json")
+}
+
+fn project_card_runs_path() -> PathBuf {
+    focusa_data_dir().join("project_card_algorithm_runs.jsonl")
+}
+
+fn default_project_card_weights() -> BTreeMap<String, f64> {
+    BTreeMap::from([
+        ("trajectory".to_string(), 0.24),
+        ("ontology".to_string(), 0.16),
+        ("evidence".to_string(), 0.22),
+        ("prediction".to_string(), 0.22),
+        ("blocker".to_string(), 0.16),
+        ("open_prediction".to_string(), 0.14),
+        ("learn_decay".to_string(), 0.20),
+    ])
+}
+
+fn load_project_card_weights() -> BTreeMap<String, f64> {
+    fs::read_to_string(project_card_weights_path())
+        .ok()
+        .and_then(|text| serde_json::from_str::<BTreeMap<String, f64>>(&text).ok())
+        .map(|weights| weights.into_iter().map(|(k, v)| (k, v.clamp(0.05, 0.50))).collect())
+        .unwrap_or_else(default_project_card_weights)
+}
+
+fn persist_project_card_weights(weights: &BTreeMap<String, f64>) {
+    let path = project_card_weights_path();
+    if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
+    if let Ok(bytes) = serde_json::to_vec_pretty(weights) { let _ = fs::write(path, bytes); }
+}
+
+fn update_project_card_weights(mut weights: BTreeMap<String, f64>, prediction_accuracy: f64, evaluated_predictions: usize) -> BTreeMap<String, f64> {
+    if evaluated_predictions == 0 { return weights; }
+    let delta = ((prediction_accuracy - 0.5) * 0.02).clamp(-0.01, 0.01);
+    for key in ["prediction", "evidence", "trajectory"] {
+        if let Some(value) = weights.get_mut(key) { *value = (*value + delta).clamp(0.05, 0.50); }
+    }
+    for key in ["open_prediction", "blocker"] {
+        if let Some(value) = weights.get_mut(key) { *value = (*value - delta / 2.0).clamp(0.05, 0.50); }
+    }
+    weights
+}
+
+fn append_project_card_algorithm_run(run: &Value) {
+    let path = project_card_runs_path();
+    if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path)
+        && let Ok(line) = serde_json::to_string(run)
+    {
+        let _ = writeln!(file, "{line}");
+    }
+}
+
 fn project_card_algorithmic_scores(
     trajectory_present: bool,
     ontology_objects: usize,
@@ -1353,6 +1423,10 @@ fn project_card_algorithmic_scores(
     open_predictions: usize,
     blocker_count: usize,
 ) -> Value {
+    let mut weights = load_project_card_weights();
+    weights = update_project_card_weights(weights, prediction_accuracy, evaluated_predictions);
+    persist_project_card_weights(&weights);
+    let w = |key: &str, fallback: f64| weights.get(key).copied().unwrap_or(fallback).clamp(0.05, 0.50);
     let ontology_signal = (ontology_objects as f64 / 20.0).clamp(0.0, 1.0);
     let evidence_signal = (evidence_refs as f64 / 10.0).clamp(0.0, 1.0);
     let prediction_signal = if evaluated_predictions > 0 { prediction_accuracy.clamp(0.0, 1.0) } else { 0.35 };
@@ -1360,24 +1434,24 @@ fn project_card_algorithmic_scores(
     let open_prediction_signal = (open_predictions as f64 / 10.0).clamp(0.0, 1.0);
     let blocker_penalty = (blocker_count as f64 / 5.0).clamp(0.0, 1.0);
     let readiness = normalized_weighted_score(&[
-        (trajectory_signal, 0.24),
-        (ontology_signal, 0.16),
-        (evidence_signal, 0.22),
-        (prediction_signal, 0.22),
-        (1.0 - blocker_penalty, 0.16),
+        (trajectory_signal, w("trajectory", 0.24)),
+        (ontology_signal, w("ontology", 0.16)),
+        (evidence_signal, w("evidence", 0.22)),
+        (prediction_signal, w("prediction", 0.22)),
+        (1.0 - blocker_penalty, w("blocker", 0.16)),
     ]);
     let bootstrap_need = normalized_weighted_score(&[
-        (1.0 - trajectory_signal, 0.40),
-        (1.0 - evidence_signal, 0.18),
-        (1.0 - ontology_signal, 0.14),
-        (open_prediction_signal, 0.14),
-        (blocker_penalty, 0.14),
+        (1.0 - trajectory_signal, w("trajectory", 0.24)),
+        (1.0 - evidence_signal, w("evidence", 0.22)),
+        (1.0 - ontology_signal, w("ontology", 0.16)),
+        (open_prediction_signal, w("open_prediction", 0.14)),
+        (blocker_penalty, w("blocker", 0.16)),
     ]);
     let learn_need = normalized_weighted_score(&[
-        (open_prediction_signal, 0.30),
-        (1.0 - prediction_signal, 0.30),
-        (evidence_signal, 0.20),
-        (1.0 - exponential_decay(evaluated_predictions as f64, 0.08), 0.20),
+        (open_prediction_signal, w("open_prediction", 0.14)),
+        (1.0 - prediction_signal, w("prediction", 0.22)),
+        (evidence_signal, w("evidence", 0.22)),
+        (1.0 - exponential_decay(evaluated_predictions as f64, 0.08), w("learn_decay", 0.20)),
     ]);
     let action_scores = vec![readiness, bootstrap_need, learn_need];
     let probabilities = softmax(&action_scores.iter().map(|s| logit((*s).clamp(0.01, 0.99))).collect::<Vec<_>>());
@@ -1386,6 +1460,13 @@ fn project_card_algorithmic_scores(
         "implemented_algorithms": [
             "normalized_weighted_score", "sigmoid", "logit", "softmax", "expected_value", "exponential_decay", "ema", "z_score", "brier_score", "log_loss"
         ],
+        "storage": {
+            "weights_path": project_card_weights_path().to_string_lossy(),
+            "runs_path": project_card_runs_path().to_string_lossy(),
+            "persistence": "jsonl_algorithm_runs_plus_compact_weights_json",
+            "portable": true
+        },
+        "learned_weights": weights,
         "signals": {
             "trajectory": trajectory_signal,
             "ontology": ontology_signal,
@@ -1481,6 +1562,19 @@ async fn card(
         open_predictions,
         active_blockers,
     );
+    let algorithm_run_id = uuid::Uuid::now_v7().to_string();
+    append_project_card_algorithm_run(&json!({
+        "algorithm_run_id": algorithm_run_id,
+        "ts": chrono::Utc::now().to_rfc3339(),
+        "project_root": project.get("project_root").and_then(Value::as_str).unwrap_or("unknown"),
+        "current_ask": current_ask,
+        "signals": algorithmic_intelligence.get("signals").cloned().unwrap_or(Value::Null),
+        "learned_weights": algorithmic_intelligence.get("learned_weights").cloned().unwrap_or(Value::Null),
+        "scores": algorithmic_intelligence.get("scores").cloned().unwrap_or(Value::Null),
+        "action_probabilities": algorithmic_intelligence.get("action_probabilities").cloned().unwrap_or(Value::Null),
+        "expected_utility": algorithmic_intelligence.get("expected_utility").cloned().unwrap_or(Value::Null),
+        "formula_version": "project_card_algorithmic_intelligence.v1"
+    }));
     let next_gap = trajectory_stg
         .clone()
         .filter(|value| !value.trim().is_empty())
@@ -1497,6 +1591,7 @@ async fn card(
         "evidence": evidence,
         "prediction": prediction,
         "algorithmic_intelligence": algorithmic_intelligence,
+        "algorithm_run_id": algorithm_run_id,
         "metacognition": {
             "summary": "Retrieve relevant lessons with /v1/metacognition/retrieve using project card + current ask.",
             "next_tools": ["focusa_metacog_retrieve", "focusa_metacog_doctor"]

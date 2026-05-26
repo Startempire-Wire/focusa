@@ -1,6 +1,6 @@
 # Prediction Algorithms Implemented
 
-Focusa now includes a dependency-free prediction math core surfaced through `GET /v1/project/card` as `algorithmic_intelligence`.
+Focusa now includes a dependency-free prediction math core surfaced through `GET /v1/project/card` as `algorithmic_intelligence`. Project-card algorithm runs are persisted as a portable JSONL ledger and learned signal weights are stored as compact JSON.
 
 ## Implemented formulas
 
@@ -34,6 +34,14 @@ Then they produce:
 - `risk_probability`
 - softmax action probabilities
 - expected utility
+
+## Persistence and learning
+
+- Algorithm-run ledger: `project_card_algorithm_runs.jsonl`
+- Learned weights: `project_card_signal_weights.json`
+- Each project-card call records signals, weights, scores, probabilities, expected utility, project root, current ask, and formula version.
+- Weights update conservatively from evaluated prediction accuracy and remain clamped for stability.
+- Storage stays portable and append-friendly: no DB migration required for local-first installs.
 
 ## Why these first
 
