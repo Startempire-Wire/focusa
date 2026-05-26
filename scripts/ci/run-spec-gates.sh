@@ -71,3 +71,5 @@ run_gate ./tests/ontology_world_contract_test.sh
 run_gate ./tests/golden_tasks_eval.sh
 run_gate ./tests/scope_routing_regression_eval.sh
 run_gate ./tests/golden_tasks_comparative_eval.sh
+run_gate ./tests/spec96_menubar_cockpit_foundation_static_test.sh
+run_gate ./tests/release_notes_workflow_static_test.sh
