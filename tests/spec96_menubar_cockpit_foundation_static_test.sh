@@ -35,7 +35,7 @@ assert_has apps/menubar/src/routes/+page.svelte "activeTab === 'cockpit'|Cockpit
 assert_has apps/menubar/src/lib/components/CockpitView.svelte 'cockpit-grid|Focusa cockpit' 'cockpit component naming is polished'
 assert_has apps/menubar/src/lib/components/Settings.svelte 'v0\.9\.13-dev' 'settings polish shows current menubar version'
 assert_has apps/menubar/src/lib/components/Settings.svelte 'Direct network binding exposes Focusa' 'settings polish includes remote security copy'
-assert_has apps/menubar/src/routes/+page.svelte 'manual_proof_required' 'release proof card avoids hardcoded ready state'
+assert_has apps/menubar/src/routes/+page.svelte '/v1/release/proof/status|manual_proof_required' 'release proof card reads API posture and avoids hardcoded ready state'
 assert_has apps/menubar/src/lib/components/CockpitView.svelte 'manual gate|manual_proof_required' 'release proof UI renders manual proof gate'
 assert_has apps/menubar/src/lib/components/FocusView.svelte 'CURRENT BUBBLE|BACKGROUND CLOUDS|ambient-orbit|thought-cloud|focus-bubble|Quiet surface|Focusa is out of view' 'default focus view preserves original bubble/cloud hierarchy and calm empty states'
 assert_has apps/menubar/src/lib/components/GatePanel.svelte 'Gate is quiet|SOFT CANDIDATES|AMBIENT SIGNALS|do not switch focus for you' 'gate panel copy remains ambient awareness, not control UI'

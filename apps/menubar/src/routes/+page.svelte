@@ -31,7 +31,7 @@
   async function poll() {
     try {
       const state = await fetchJson('/v1/state/dump', 5000);
-      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead] = await Promise.all([
+      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -52,6 +52,7 @@
         safe(() => fetchJson('/v1/metacognition/evaluations/recent?limit=5')),
         safe(() => fetchJson('/v1/focus/snapshots/recent?limit=5')),
         safe(() => fetchJson('/v1/lineage/head')),
+        safe(() => fetchJson('/v1/release/proof/status')),
       ]);
       focusStore.update(state);
       gateStore.update(state.focus_gate);
@@ -77,9 +78,9 @@
         metacogEvaluations,
         snapshotsRecent,
         lineageHead,
-        releaseProof: {
+        releaseProof: releaseProof ?? {
           status: 'manual_proof_required',
-          summary: 'No release-proof endpoint wired yet; run focusa release prove --tag <tag> before publish.',
+          summary: 'Release-proof endpoint unavailable; run focusa release prove --tag <tag> before publish.',
         },
       });
     } catch (e: any) {
