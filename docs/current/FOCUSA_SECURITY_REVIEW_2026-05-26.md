@@ -164,3 +164,11 @@ Recommendations:
 - Tool suite safe audit is green.
 - Disk pressure is reduced enough to proceed.
 - Security review found no confirmed committed secret, but did find dependency and deployment-hardening work before any broader exposure or release claim.
+
+## Remediation update — npm audit triage
+
+After the initial review, `npm audit fix --package-lock-only` was run for `apps/pi-extension` and `apps/menubar`.
+
+- Pi extension audit now reports 0 vulnerabilities.
+- Menubar audit now reports only 3 low `cookie` findings through `@sveltejs/kit`; npm marks the remaining automated fix as breaking (`npm audit fix --force` would install an incompatible SvelteKit version), so this is a manual framework-upgrade/triage item.
+- Validation: `apps/pi-extension` `npx tsc --noEmit` passed; `apps/menubar` `npm run check -- --threshold warning` passed.
