@@ -1,7 +1,7 @@
 # Tauri Menubar Functionality Audit
 
-**Scope:** `apps/menubar` Tauri/Svelte app compared with current Focusa runtime/API docs.  
-**Snapshot audited:** repo `5b6ed37` plus current working tree, public snapshot `v0.9.12-dev`.  
+**Scope:** `apps/menubar` Tauri/Svelte app compared with current Focusa runtime/API docs.
+**Snapshot audited:** repo `5b6ed37` plus current working tree, public snapshot `v0.9.13-dev`.
 **Audit date:** 2026-05-25.
 **Implementation update:** see [`TAURI_MENUBAR_IMPLEMENTATION_GAPS.md`](TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) for current post-audit gap status after `git:9de260c`.
 
@@ -46,7 +46,7 @@ At initial audit time, the menubar app built with Bun and provided a useful basi
 | P1 | Doctor/resource/memory telemetry shallow | App shows token/cache but not daemon doctor, memory pressure, LowMem, route budgets. | `/v1/doctor`, `/v1/telemetry/memory`, `/v1/resource-mode` equivalents | Add Health panel with doctor summary, RSS pressure, resource mode, degraded routes. |
 | P1 | Tool result envelope/status not visualized | Operators need canonical/degraded/retry/failure_class indicators. | `docs/current/TOOL_RESULT_ENVELOPE_V1.md` | Normalize cards to display `status`, `canonical`, `degraded`, `failure_class`, `retry`, `next_tools`. |
 | P2 | API base duplicated/hardcoded in Sync/AddPeer | Sync ignores user-configured API URL, breaking remote/tunnel settings. | `SyncPanel.svelte`, `AddPeerModal.svelte` | Use shared `fetchJson`/`getApiUrl` everywhere. |
-| P2 | Version stale | Menubar says `0.9.9`; public snapshot is `v0.9.12-dev`. | `package.json`, `tauri.conf.json`, `Settings.svelte`, README | Centralize/display build/runtime version; update package/Tauri version when release policy is decided. |
+| P2 | Version stale | Menubar says `0.9.9`; public snapshot is `v0.9.13-dev`. | `package.json`, `tauri.conf.json`, `Settings.svelte`, README | Centralize/display build/runtime version; update package/Tauri version when release policy is decided. |
 | P2 | Release proof is a placeholder | Mission panel hardcodes `releaseProof: ready` instead of reading proof state. | `src/routes/+page.svelte` | Either remove placeholder or wire to release/evidence/proof artifact status. |
 | P2 | Dependency install path inconsistent | Docs say `bun install`, but `npm ci` fails despite package-lock existing. | `package-lock.json`, `package.json` | Choose Bun-only and remove/ignore npm lock, or align Vite/plugin versions so `npm ci` works. |
 | P2 | No interaction controls for Focus State/Gate | App is mostly read-only; no safe push/update/suppress/pin flows. | `/v1/focus/update`, `/v1/focus-gate/*` | Add approval-gated mutations with explicit result envelope display. |

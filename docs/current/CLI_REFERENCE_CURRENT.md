@@ -85,7 +85,7 @@ focusa status --agent
 focusa doctor --json
 focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith --continuity-id cont-1
 focusa continue --json
-focusa release prove --tag v0.9.12-dev --fast --github --json
+focusa release prove --tag v0.9.13-dev --fast --github --json
 focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence"
 focusa predict recent --limit 20
 focusa predict evaluate <prediction_id> --actual-outcome completed --score 1.0

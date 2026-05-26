@@ -3,7 +3,7 @@
 **Current public docs map with core architecture, runtime surfaces, ontology/Pi alignment, and implementation evidence.**
 Focusa remains under active development; docs describe logical snapshots and may include older design-direction material.
 
-**Current docs/runtime snapshot:** `v0.9.12-dev`
+**Current docs/runtime snapshot:** `v0.9.13-dev`
 
 Older architecture/spec documents may retain historical `v0.9.0-dev` snapshot language when describing design-era context.
 

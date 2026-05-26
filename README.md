@@ -4,8 +4,8 @@
 >
 > Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
 
-**Current public snapshot:** `v0.9.12-dev`
-**Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.  
+**Current public snapshot:** `v0.9.13-dev`
+**Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
 ---

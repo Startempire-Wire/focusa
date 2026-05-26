@@ -1,8 +1,8 @@
 # Tauri Menubar Up-to-Speed Spec
 
-**Product:** Focusa Tauri menubar app (`apps/menubar`)  
-**Target runtime:** Focusa `v0.9.12-dev` current state  
-**Status:** implementation spec  
+**Product:** Focusa Tauri menubar app (`apps/menubar`)
+**Target runtime:** Focusa `v0.9.13-dev` current state
+**Status:** implementation spec
 **Source audit:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
 
 ## 1. Goal

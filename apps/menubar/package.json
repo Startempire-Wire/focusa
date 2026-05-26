@@ -1,6 +1,6 @@
 {
   "name": "focusa-menubar",
-  "version": "0.9.12-dev",
+  "version": "0.9.13-dev",
   "private": true,
   "scripts": {
     "dev": "vite dev",

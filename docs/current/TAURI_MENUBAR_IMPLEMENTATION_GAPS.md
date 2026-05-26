@@ -9,7 +9,7 @@
 - Shared API client now includes `postJson`, `requestJson`, result-envelope normalization, degradation detection, and shared error summarization.
 - `SyncPanel` and `AddPeerModal` use the shared API base; only the default/placeholder URL remains hardcoded.
 - `bun run check` now runs `svelte-kit sync` before `svelte-check`, so clean check no longer depends on a prior build.
-- Menubar version metadata and visible About copy now use `0.9.12-dev`.
+- Menubar version metadata and visible About copy now use `0.9.13-dev`.
 - Cockpit/Now surface polls current runtime hot surfaces: project identity, trajectory view, Workpoint resume, work-loop health/checkpoints, doctor, memory telemetry, prediction stats/recent, metacognition evaluations, snapshots, and lineage head.
 - Cockpit cards show calm status chips for canonical/degraded/status/evidence/readiness/memory posture.
 - Read-only peeks exist for Trajectory, Workpoint, Proof, and Work Loop.

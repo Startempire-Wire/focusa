@@ -21,7 +21,7 @@ Spec90 turns this into a self-verifying system.
 
 ## 4. Current-build baseline
 
-As of `v0.9.12-dev` / current public snapshot:
+As of `v0.9.13-dev` / current public snapshot:
 
 - Pi extension exposes 59 `focusa_*` tools from `apps/pi-extension/src/tools.ts`, including read-only `focusa_reflex_primitives`.
 - Root docs include one individual doc per tool under `docs/focusa-tools/tools/`.

@@ -1,6 +1,6 @@
 # Current Runtime Status
 
-**Snapshot:** `v0.9.12-dev`
+**Snapshot:** `v0.9.13-dev`
 **Repo head when written:** public-docs refresh after `a5a5164`
 **State:** current development build, not a finished product.
 

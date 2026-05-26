@@ -164,7 +164,7 @@ Companion Pi skills mirror these docs: `focusa-workpoint`, `focusa-metacognition
 ## Status
 
 Focusa is under active development.
-The current `v0.9.12-dev` snapshot focuses on correctness, transparency, continuity, prediction accountability, compaction recovery, and live proof over marketing claims.
+The current `v0.9.13-dev` snapshot focuses on correctness, transparency, continuity, prediction accountability, compaction recovery, and live proof over marketing claims.
 
 ---
 
@@ -384,7 +384,7 @@ Focusa uses **Beads** as the authoritative system of record for tasks and long-t
 
 ## Status
 
-🚧 **Current snapshot: v0.9.12-dev**
+🚧 **Current snapshot: v0.9.13-dev**
 
 The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition capture/retrieve/reflect/adjust/evaluate plus evaluation readback/promotion, prediction loop, ontology memory-pipeline artifacts, work-loop dispatch-readiness health, agent-first polish commands, compaction fallbacks, Workpoint scope guard, state hygiene tools, explicit source-available/commercial licensing boundary, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
 
