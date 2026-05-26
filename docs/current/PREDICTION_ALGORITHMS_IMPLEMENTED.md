@@ -44,6 +44,7 @@ Then they produce:
 - `POST /v1/project/card/outcome` / `focusa project card-outcome` attaches final results to a specific `algorithm_run_id`.
 - `success_sequence.ranking_basis` includes outcome count, average score, and outcome bias; outcome scores now influence readiness/refresh/learn probabilities and expected utility.
 - Hot-path project-card GET projects prediction-informed weights without persisting them; explicit algorithm-run outcomes persist learned weights and remain clamped for stability.
+- Prediction read paths use an mtime/size keyed in-process store cache, and prediction evaluation returns a compact result summary to reduce tool-wrapper payload cost.
 - Storage stays portable and append-friendly: no DB migration required for local-first installs.
 
 ## Why these first

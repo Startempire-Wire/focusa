@@ -12,7 +12,8 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::SystemTime;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -54,6 +55,20 @@ struct CaptureOutcomeBody {
     limit: Option<usize>,
 }
 
+#[derive(Debug, Clone, Default)]
+struct PredictionStoreCache {
+    path: Option<PathBuf>,
+    modified: Option<SystemTime>,
+    len: u64,
+    values: Vec<Value>,
+}
+
+static PREDICTION_CACHE: OnceLock<Mutex<PredictionStoreCache>> = OnceLock::new();
+
+fn prediction_cache() -> &'static Mutex<PredictionStoreCache> {
+    PREDICTION_CACHE.get_or_init(|| Mutex::new(PredictionStoreCache::default()))
+}
+
 fn store_path() -> PathBuf {
     if let Some(home) = std::env::var_os("FOCUSA_HOME") {
         return PathBuf::from(home).join("data/spec92_predictions.json");
@@ -71,10 +86,25 @@ fn store_path() -> PathBuf {
 
 pub(crate) fn read_predictions() -> Vec<Value> {
     let path = store_path();
-    fs::read_to_string(path)
+    let metadata = fs::metadata(&path).ok();
+    let modified = metadata.as_ref().and_then(|m| m.modified().ok());
+    let len = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+    if let Ok(cache) = prediction_cache().lock() {
+        if cache.path.as_ref() == Some(&path) && cache.modified == modified && cache.len == len {
+            return cache.values.clone();
+        }
+    }
+    let values = fs::read_to_string(&path)
         .ok()
         .and_then(|s| serde_json::from_str::<Vec<Value>>(&s).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    if let Ok(mut cache) = prediction_cache().lock() {
+        cache.path = Some(path);
+        cache.modified = modified;
+        cache.len = len;
+        cache.values = values.clone();
+    }
+    values
 }
 
 fn bound_predictions(mut predictions: Vec<Value>) -> Vec<Value> {
@@ -142,6 +172,18 @@ fn bound_ontology_context(value: Value) -> Value {
     })
 }
 
+fn compact_prediction_result(prediction: &Value) -> Value {
+    json!({
+        "prediction_id": prediction.get("prediction_id").cloned().unwrap_or(Value::Null),
+        "prediction_type": prediction.get("prediction_type").cloned().unwrap_or(Value::Null),
+        "predicted_outcome": prediction.get("predicted_outcome").cloned().unwrap_or(Value::Null),
+        "actual_outcome": prediction.get("actual_outcome").cloned().unwrap_or(Value::Null),
+        "score": prediction.get("score").cloned().unwrap_or(Value::Null),
+        "evaluated_at": prediction.get("evaluated_at").cloned().unwrap_or(Value::Null),
+        "learning_signal_ref": prediction.get("learning_signal_ref").cloned().unwrap_or(Value::Null),
+    })
+}
+
 fn ontology_context_summary(value: &Value) -> String {
     if !value.is_object() {
         return "none".to_string();
@@ -192,6 +234,13 @@ fn write_predictions_to(
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(&predictions)?)?;
+    let metadata = fs::metadata(path).ok();
+    if let Ok(mut cache) = prediction_cache().lock() {
+        cache.path = Some(path.to_path_buf());
+        cache.modified = metadata.as_ref().and_then(|m| m.modified().ok());
+        cache.len = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+        cache.values = predictions.clone();
+    }
     Ok(predictions)
 }
 
@@ -324,7 +373,7 @@ async fn evaluate(
     match updated {
         Some(prediction) => match write_predictions(predictions) {
             Ok(_) => Json(
-                json!({"status":"evaluated", "prediction": prediction, "metacog_capture_id": promoted_capture_id, "flywheel": {"prediction_to_metacog": promoted_capture_id.is_some(), "next_tools": ["focusa_metacog_retrieve", "focusa_predict_record"]}}),
+                json!({"status":"evaluated", "prediction": compact_prediction_result(&prediction), "metacog_capture_id": promoted_capture_id, "flywheel": {"prediction_to_metacog": promoted_capture_id.is_some(), "next_tools": ["focusa_metacog_retrieve", "focusa_predict_record"]}}),
             ),
             Err(err) => Json(
                 json!({"status":"blocked", "what_failed":"write prediction store", "likely_why":err.to_string(), "safe_recovery":"check data directory permissions"}),
