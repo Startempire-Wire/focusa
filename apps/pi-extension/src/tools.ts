@@ -2342,6 +2342,9 @@ export function registerTools(pi: ExtensionAPI) {
         const live = liveContractList.find((item: any) => item?.name === contract.name);
         return live && JSON.stringify(live) !== JSON.stringify(contract);
       }).map((contract) => contract.name);
+      const repairProjectRoot = S.lastProjectRootResolution?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
+      const portableDaemonRestart =
+        "if command -v focusa-daemon >/dev/null 2>&1; then nohup focusa-daemon >/tmp/focusa-daemon.log 2>&1 & elif command -v systemctl >/dev/null 2>&1; then systemctl restart focusa-daemon; else echo 'start focusa-daemon manually from this checkout' >&2; fi";
       const contractDrift = {
         live_ok: liveContracts.ok,
         static_count: FOCUSA_TOOL_CONTRACTS.length,
@@ -2352,9 +2355,9 @@ export function registerTools(pi: ExtensionAPI) {
         stale_live_contracts,
         drift_detected: !liveContracts.ok || missing_live.length > 0 || extra_live.length > 0 || stale_live_contracts.length > 0,
         repair_commands: [
-          "cd ${FOCUSA_PROJECT_ROOT:-/home/wirebot/focusa}",
+          `cd ${repairProjectRoot}`,
           "cargo build --release --bins",
-          "systemctl restart focusa-daemon",
+          portableDaemonRestart,
           "curl -sS --max-time 5 http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'",
           "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures",
         ],
