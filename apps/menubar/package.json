@@ -30,5 +30,8 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0"
   },
+  "overrides": {
+    "cookie": "^1.1.1"
+  },
   "type": "module"
 }

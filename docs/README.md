@@ -148,6 +148,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/PATH_TRAVERSAL_SECURITY_TESTS.md](current/PATH_TRAVERSAL_SECURITY_TESTS.md) — CWE-22 path traversal coverage and path-sensitive route inventory.
 - [current/TAMPER_EVIDENT_EVENT_CHAIN.md](current/TAMPER_EVIDENT_EVENT_CHAIN.md) — SQLite event hash-chain checkpoints for repudiation detection.
 - [current/DATA_RETENTION_BACKUP_DELETION_POLICY.md](current/DATA_RETENTION_BACKUP_DELETION_POLICY.md) — local-first persisted-state retention, backup, restore, and deletion policy.
+- [current/RUSTSEC_INFORMATIONAL_EXCEPTIONS.md](current/RUSTSEC_INFORMATIONAL_EXCEPTIONS.md) — accepted informational RustSec exceptions and review triggers.
 - [current/DYNAMIC_API_SECURITY_SMOKE.md](current/DYNAMIC_API_SECURITY_SMOKE.md) — dynamic local API malformed JSON and oversized-body security smoke.
 - [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) — privacy classes and handling rules for Focusa persisted state.
 - [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) — reviewed shell/external command boundary and runtime unwrap static policy.

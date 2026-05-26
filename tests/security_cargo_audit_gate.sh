@@ -27,5 +27,25 @@ if [[ "$vulns" != "0" ]]; then
   jq -r '.vulnerabilities.list[] | "RUSTSEC: \(.advisory.id) \(.advisory.package) \(.package.version) — \(.advisory.title)"' "$OUT" >&2
   exit 1
 fi
-warnings="$(jq -r '((.warnings.unmaintained // []) | length) + ((.warnings.unsound // []) | length) + ((.warnings.yanked // []) | length)' "$OUT")"
-echo "✓ cargo-audit vulnerabilities=0 warnings=$warnings report=$OUT"
+read -r warnings accepted_warnings < <(python3 - "$OUT" <<'PY'
+import json, sys
+from pathlib import Path
+accepted = {"RUSTSEC-2024-0436"}  # paste via parquet; see docs/current/RUSTSEC_INFORMATIONAL_EXCEPTIONS.md
+payload = json.loads(Path(sys.argv[1]).read_text())
+warnings = []
+accepted_count = 0
+for bucket in ("unmaintained", "unsound", "yanked"):
+    for item in payload.get("warnings", {}).get(bucket, []) or []:
+        advisory_id = (item.get("advisory") or {}).get("id")
+        if advisory_id in accepted:
+            accepted_count += 1
+        else:
+            warnings.append(item)
+print(len(warnings), accepted_count)
+PY
+)
+if [[ "$warnings" != "0" ]]; then
+  jq -r '.warnings | to_entries[] | .value[]? | "RUSTSEC warning: \(.advisory.id) \(.advisory.package) \(.package.version) — \(.advisory.title)"' "$OUT" >&2
+  exit 1
+fi
+echo "✓ cargo-audit vulnerabilities=0 warnings=$warnings accepted_warnings=$accepted_warnings report=$OUT"
