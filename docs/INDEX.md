@@ -50,6 +50,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | current | [current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md](current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md) | Focusa-native prediction/metacognition/ontology flywheel substrate |
 | current | [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) | Proposed project-vitals/stuck-detector/governor layer for continuous coding agents |
 | current | [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) | Five-part whole-project security review and remediation backlog |
+| current | [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) | Privacy classes and handling rules for Focusa persisted state |
 | current | [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) | Reviewed shell/external command boundary and runtime unwrap static policy |
 
 ---

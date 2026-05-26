@@ -156,6 +156,11 @@ The daemon now fails closed before acquiring the runtime lock when `FOCUSA_BIND`
 
 Validation: `tests/security_non_loopback_auth_guard_static_test.sh`, `cargo test -p focusa-api bind_auth_guard`, and `cargo check -p focusa-api` passed.
 
+
+## Remediation update — persisted-state privacy classes
+
+`docs/current/PERSISTED_STATE_PRIVACY_CLASSES.md` now classifies Focusa persisted stores from P0 public to P4 secret, documents handling rules for Focus State, Workpoint, Trajectory, predictions, metacognition, evidence, telemetry/events, ECS/reference store, and peer sync tokens, and states that raw provider payloads/secrets must not be persisted. `tests/security_persisted_state_privacy_static_test.sh` verifies privacy doc markers, tool-doc evidence/ref guidance, bounded Pi evidence refs, bounded ontology context, and absence of private key blocks in the repo.
+
 ## Immediate remediation backlog
 
 1. Upgrade/triage npm audit vulnerabilities in `apps/pi-extension` and `apps/menubar`.

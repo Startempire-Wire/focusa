@@ -142,6 +142,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md](current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md) — code-based 1–10 feature maturity ratings and underdeveloped workflow gaps.
 - [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) — proposed project-vitals/stuck-detector/governor layer for continuous coding agents.
 - [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) — five-part whole-project security review and remediation backlog.
+- [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) — privacy classes and handling rules for Focusa persisted state.
 - [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) — reviewed shell/external command boundary and runtime unwrap static policy.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.
 - [evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md](evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md) — live OpenClaw/Wirebot Focusa awareness activation proof.
