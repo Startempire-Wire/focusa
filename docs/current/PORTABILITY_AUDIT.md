@@ -33,6 +33,7 @@ Scope: Rust workspace, CLI, daemon/API, TUI, Tauri menubar, Pi extension, script
 
 4. **Release artifact coverage**
    - Release workflow now publishes Linux x64 glibc Rust binaries in addition to macOS Rust binaries.
+   - Release menubar packaging pins Bun `1.3.6` instead of floating `latest`.
    - File: `.github/workflows/release.yml`.
 
 ## Remaining portability caveats
