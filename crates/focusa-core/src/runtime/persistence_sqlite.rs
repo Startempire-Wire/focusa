@@ -9,6 +9,7 @@
 use crate::types::{EventLogEntry, FocusaConfig, FocusaState, SessionId};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tracing::debug;
@@ -32,6 +33,36 @@ pub struct RawEventLogRow {
     pub timestamp: DateTime<Utc>,
     pub session_id: Option<SessionId>,
     pub payload_json: String,
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
+}
+
+fn event_chain_hash(
+    previous_hash: &str,
+    event_id: &str,
+    timestamp: &str,
+    payload_sha256: &str,
+) -> String {
+    sha256_hex(format!("{previous_hash}\n{event_id}\n{timestamp}\n{payload_sha256}").as_bytes())
+}
+
+fn latest_event_hash_checkpoint(conn: &Connection) -> anyhow::Result<Option<(i64, String)>> {
+    conn.query_row(
+        r#"
+        SELECT chain_index, event_hash
+        FROM event_hash_chain
+        ORDER BY chain_index DESC
+        LIMIT 1
+        "#,
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )
+    .optional()
+    .map_err(Into::into)
 }
 
 impl SqlitePersistence {
@@ -87,6 +118,18 @@ impl SqlitePersistence {
             CREATE INDEX IF NOT EXISTS idx_events_machine ON events(machine_id);
             CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
             CREATE INDEX IF NOT EXISTS idx_events_thread ON events(thread_id);
+
+            CREATE TABLE IF NOT EXISTS event_hash_chain (
+              event_id TEXT PRIMARY KEY,
+              chain_index INTEGER NOT NULL,
+              previous_hash TEXT NOT NULL,
+              payload_sha256 TEXT NOT NULL,
+              event_hash TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              FOREIGN KEY(event_id) REFERENCES events(event_id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_event_hash_chain_index ON event_hash_chain(chain_index);
 
             CREATE TABLE IF NOT EXISTS peers (
                 peer_id TEXT PRIMARY KEY,
@@ -561,14 +604,19 @@ impl SqlitePersistence {
 
     pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
         let payload_json = serde_json::to_string(entry)?;
+        let event_id = entry.id.to_string();
+        let timestamp = entry.timestamp.to_rfc3339();
+        let payload_sha256 = sha256_hex(payload_json.as_bytes());
 
         // Avoid re-locking the same mutex (machine_id() also locks conn).
-        let (conn, machine_id) = {
-            let conn = self
-                .conn
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let machine_id = entry.machine_id.clone().or_else(|| {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let machine_id = entry
+            .machine_id
+            .clone()
+            .or_else(|| {
                 conn.query_row(
                     "SELECT value FROM meta WHERE key = 'machine_id'",
                     [],
@@ -577,9 +625,8 @@ impl SqlitePersistence {
                 .optional()
                 .ok()
                 .flatten()
-            });
-            (conn, machine_id.unwrap_or_else(|| "unknown".to_string()))
-        };
+            })
+            .unwrap_or_else(|| "unknown".to_string());
 
         conn.execute(
             r#"
@@ -590,16 +637,37 @@ impl SqlitePersistence {
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             "#,
             params![
-                entry.id.to_string(),
-                entry.timestamp.to_rfc3339(),
+                event_id.as_str(),
+                timestamp.as_str(),
                 format!("{:?}", entry.origin),
                 entry.correlation_id.clone(),
-                payload_json,
+                payload_json.as_str(),
                 machine_id,
                 entry.instance_id.map(|v| v.to_string()),
                 entry.session_id.map(|v| v.to_string()),
                 entry.thread_id.map(|v| v.to_string()),
                 entry.is_observation as i32,
+            ],
+        )?;
+
+        let (chain_index, previous_hash) = latest_event_hash_checkpoint(&conn)?
+            .map(|(index, hash)| (index + 1, hash))
+            .unwrap_or_else(|| (0, "GENESIS".to_string()));
+        let event_hash = event_chain_hash(&previous_hash, &event_id, &timestamp, &payload_sha256);
+        conn.execute(
+            r#"
+            INSERT INTO event_hash_chain(
+              event_id, chain_index, previous_hash, payload_sha256, event_hash, created_at
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            "#,
+            params![
+                event_id.as_str(),
+                chain_index,
+                previous_hash.as_str(),
+                payload_sha256.as_str(),
+                event_hash.as_str(),
+                timestamp.as_str(),
             ],
         )?;
 

@@ -146,6 +146,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/API_ROUTE_PERMISSION_MATRIX.md](current/API_ROUTE_PERMISSION_MATRIX.md) — intended API route scopes and route-family authorization baseline.
 - [current/API_RESOURCE_LIMITS.md](current/API_RESOURCE_LIMITS.md) — API request body limit and resource-exhaustion posture.
 - [current/PATH_TRAVERSAL_SECURITY_TESTS.md](current/PATH_TRAVERSAL_SECURITY_TESTS.md) — CWE-22 path traversal coverage and path-sensitive route inventory.
+- [current/TAMPER_EVIDENT_EVENT_CHAIN.md](current/TAMPER_EVIDENT_EVENT_CHAIN.md) — SQLite event hash-chain checkpoints for repudiation detection.
 - [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) — privacy classes and handling rules for Focusa persisted state.
 - [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) — reviewed shell/external command boundary and runtime unwrap static policy.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.

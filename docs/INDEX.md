@@ -54,6 +54,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | current | [current/API_ROUTE_PERMISSION_MATRIX.md](current/API_ROUTE_PERMISSION_MATRIX.md) | Intended API route scopes and route-family authorization baseline |
 | current | [current/API_RESOURCE_LIMITS.md](current/API_RESOURCE_LIMITS.md) | API request body limit and resource-exhaustion posture |
 | current | [current/PATH_TRAVERSAL_SECURITY_TESTS.md](current/PATH_TRAVERSAL_SECURITY_TESTS.md) | CWE-22 path traversal coverage and path-sensitive route inventory |
+| current | [current/TAMPER_EVIDENT_EVENT_CHAIN.md](current/TAMPER_EVIDENT_EVENT_CHAIN.md) | SQLite event hash-chain checkpoints for repudiation detection |
 | current | [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) | Privacy classes and handling rules for Focusa persisted state |
 | current | [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) | Reviewed shell/external command boundary and runtime unwrap static policy |
 
