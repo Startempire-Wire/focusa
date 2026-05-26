@@ -78,6 +78,8 @@ Options:
 - `workpoint` — scoped checkpoint/current/resume continuity operations; canonical checkpoint/resume accepts `--project-root` and `--continuity-id`; `workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
 - `state snapshot` — create/recent/restore/diff/compare-latest snapshot parity for `/v1/focus/snapshots*`.
 - `lineage extract` — bounded lineage signal extraction for decision/constraint/risk compounding.
+- `ecs list` / `ecs resolve` — print trajectory summaries for handles when API responses carry bounded trajectory context.
+- `metacognition capture` / `reflect` / `adjust` / `evaluate` — print trajectory summaries when learning packets are bound to the active trajectory.
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 

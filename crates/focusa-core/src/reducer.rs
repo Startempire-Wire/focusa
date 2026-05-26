@@ -439,12 +439,16 @@ pub fn reduce_with_meta(
             // Record turn completion in CLT (conversation depth tracking).
             {
                 use crate::clt;
+                let metadata = CltMetadata {
+                    trajectory: state.trajectory_ladder_context(),
+                    ..CltMetadata::default()
+                };
                 clt::append_interaction(
                     &mut state.clt,
                     state.session.as_ref().map(|s| s.session_id),
                     "assistant",
                     assistant_output.as_deref(),
-                    CltMetadata::default(),
+                    metadata,
                 );
             }
 
@@ -3874,6 +3878,7 @@ mod tests {
                 created_at: Utc::now(),
                 session_id: None,
                 pinned: false,
+                trajectory: None,
             },
             storage_uri: "ecs://abc".into(),
         };
@@ -3897,6 +3902,7 @@ mod tests {
                 created_at: Utc::now(),
                 session_id: None,
                 pinned: false,
+                trajectory: None,
             },
             storage_uri: "ecs://abc".into(),
         };
@@ -3913,6 +3919,7 @@ mod tests {
                 created_at: Utc::now(),
                 session_id: None,
                 pinned: false,
+                trajectory: None,
             },
             storage_uri: "ecs://def".into(),
         };
@@ -3935,6 +3942,7 @@ mod tests {
                     created_at: Utc::now(),
                     session_id: None,
                     pinned: false,
+                    trajectory: None,
                 },
                 storage_uri: "ecs://abc".into(),
             },
@@ -3966,6 +3974,7 @@ mod tests {
                     created_at: Utc::now(),
                     session_id: None,
                     pinned: false,
+                    trajectory: None,
                 },
                 storage_uri: "ecs://abc".into(),
             },

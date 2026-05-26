@@ -217,7 +217,11 @@ async fn store_artifact(
         }
     };
 
-    Ok(Json(json!({"id": handle_id, "status": "accepted"})))
+    Ok(Json(json!({
+        "id": handle_id,
+        "status": "accepted",
+        "trajectory": state.focusa.read().await.trajectory_ladder_context(),
+    })))
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -273,6 +277,7 @@ fn handle_summaries(handles: &[HandleRef]) -> Vec<serde_json::Value> {
                 "label": handle.label,
                 "created_at": handle.created_at,
                 "pinned": handle.pinned,
+                "trajectory": handle.trajectory,
             })
         })
         .collect()
@@ -361,6 +366,7 @@ async fn get_content(
         "handle_id": handle_id,
         "content_b64": base64::engine::general_purpose::STANDARD.encode(&content),
         "size": content.len(),
+        "trajectory": handle.trajectory,
     })))
 }
 
@@ -427,6 +433,7 @@ async fn rehydrate(
         "content": truncated,
         "truncated": text.len() > max_chars,
         "original_size": content.len(),
+        "trajectory": handle.trajectory,
     })))
 }
 
@@ -456,6 +463,7 @@ mod tests {
             created_at: Utc::now(),
             session_id: None,
             pinned,
+            trajectory: None,
         }
     }
 

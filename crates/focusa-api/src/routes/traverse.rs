@@ -436,6 +436,7 @@ fn active_workpoint_value(state: &FocusaState) -> Option<Value> {
 fn trajectory_items(state: &FocusaState) -> Vec<Value> {
     let frame = active_frame_value(state);
     let workpoint = active_workpoint_value(state);
+    let ladder = state.trajectory_ladder_context();
     vec![json!({
         "id": "active_project_trajectory",
         "project_identity": {
@@ -444,10 +445,38 @@ fn trajectory_items(state: &FocusaState) -> Vec<Value> {
             "workpoint_id": workpoint.as_ref().and_then(|w| w.get("workpoint_id")).cloned().unwrap_or(Value::Null),
         },
         "trajectory": {
-            "long_term_goal": frame.as_ref().and_then(|f| f.get("goal")).cloned().unwrap_or(Value::Null),
-            "current_state": frame.as_ref().and_then(|f| f.pointer("/focus_state/current_state")).cloned().unwrap_or(Value::Null),
-            "active_gap": workpoint.as_ref().and_then(|w| w.get("next_slice")).cloned().unwrap_or(Value::Null),
+            "long_term_goal": ladder
+                .as_ref()
+                .and_then(|ctx| ctx.hlt.clone())
+                .map(Value::String)
+                .or_else(|| frame.as_ref().and_then(|f| f.get("goal")).cloned())
+                .unwrap_or(Value::Null),
+            "mid_level_goal": ladder
+                .as_ref()
+                .and_then(|ctx| ctx.mlg.clone())
+                .map(Value::String)
+                .unwrap_or(Value::Null),
+            "short_term_goal": ladder
+                .as_ref()
+                .and_then(|ctx| ctx.stg.clone())
+                .map(Value::String)
+                .unwrap_or(Value::Null),
+            "waypoints": ladder
+                .as_ref()
+                .map(|ctx| json!(ctx.waypoints))
+                .unwrap_or(Value::Null),
+            "current_state": frame
+                .as_ref()
+                .and_then(|f| f.pointer("/focus_state/current_state"))
+                .cloned()
+                .unwrap_or(Value::Null),
+            "active_gap": workpoint
+                .as_ref()
+                .and_then(|w| w.get("next_slice"))
+                .cloned()
+                .unwrap_or(Value::Null),
             "workpoint_candidate": workpoint,
+            "trajectory_ladder": ladder,
         },
         "advisory_only": true,
     })]

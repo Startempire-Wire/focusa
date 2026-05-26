@@ -727,7 +727,13 @@ fn object_required_properties(object_type: &str) -> &'static [&'static str] {
         "convention" => &["id", "rule_text", "convention_kind", "status"],
         "constraint" => &["id", "rule_text", "scope", "enforcement_level"],
         "risk" => &["id", "title", "severity", "status"],
-        "trajectory_hlt" => &["id", "title", "ultimate_direction", "operator_authority", "status"],
+        "trajectory_hlt" => &[
+            "id",
+            "title",
+            "ultimate_direction",
+            "operator_authority",
+            "status",
+        ],
         "trajectory_mlg" => &["id", "title", "hlt_id", "objective", "status"],
         "trajectory_stg" => &["id", "title", "mlg_id", "bounded_goal", "status"],
         "trajectory_waypoint" => &["id", "title", "stg_id", "evidence_policy", "status"],
@@ -9930,6 +9936,7 @@ mod tests {
             created_at: Utc::now(),
             session_id: focusa.session.as_ref().map(|session| session.session_id),
             pinned: true,
+            trajectory: None,
         });
         let bounded = bounded_summary_projection(&focusa, None);
         let combined = combined_projection(&focusa, None);

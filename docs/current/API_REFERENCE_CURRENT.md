@@ -97,6 +97,7 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `POST /v1/ecs/rehydrate/{handle_id}`
 
 ECS resolve/content/rehydrate readback uses complete live handle metadata when available and falls back to canonical `ecs/handles/{handle_id}.json` metadata for legacy lossy state before reading content-addressed blobs.
+ECS handles and ECS readback responses include bounded `trajectory` context when an active trajectory is available (`hlt`, `mlg`, `stg`, waypoints, project root, continuity id, active Workpoint).
 
 ### env
 - `GET /v1/env`
@@ -162,6 +163,8 @@ Procedural reinforce validates `rule_id` before dispatch. Empty IDs return `vali
 - `GET /v1/metacognition/adjustments/recent`
 - `GET /v1/metacognition/evaluations/recent`
 - `POST /v1/metacognition/evaluate`
+
+Metacognition capture/reflection/adjustment/evaluation records include bounded `trajectory` context when an active trajectory is available; capture hot-index tags include trajectory words for HLT/STG-aligned retrieval.
 
 ### ontology
 - `GET /v1/ontology/primitives`

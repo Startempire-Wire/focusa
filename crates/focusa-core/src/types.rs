@@ -952,6 +952,32 @@ pub struct FocusaState {
 }
 
 impl FocusaState {
+    /// Return bounded trajectory ladder context for cross-cutting tools/artifacts.
+    pub fn trajectory_ladder_context(&self) -> Option<TrajectoryLadderContext> {
+        let trajectory = self
+            .trajectory
+            .active_trajectory_id
+            .as_ref()
+            .and_then(|id| {
+                self.trajectory
+                    .records
+                    .iter()
+                    .find(|record| &record.trajectory_id == id)
+            })
+            .or_else(|| self.trajectory.records.last())?;
+
+        Some(TrajectoryLadderContext {
+            trajectory_id: Some(trajectory.trajectory_id.clone()).filter(|value| !value.is_empty()),
+            project_root: trajectory.project_root.clone(),
+            continuity_id: trajectory.continuity_id.clone(),
+            hlt: Some(trajectory.long_term_goal.clone()).filter(|value| !value.trim().is_empty()),
+            mlg: trajectory.mid_level_goal.clone(),
+            stg: trajectory.short_term_goal.clone(),
+            waypoints: trajectory.waypoints.iter().take(8).cloned().collect(),
+            active_workpoint_id: trajectory.active_workpoint_id.clone(),
+        })
+    }
+
     /// Create a new empty state for a fresh session.
     pub fn new() -> Self {
         Self {
@@ -1250,6 +1276,27 @@ pub struct ReferenceIndex {
     pub handles: Vec<HandleRef>,
 }
 
+/// Bounded trajectory ladder context carried by cross-cutting artifacts.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TrajectoryLadderContext {
+    #[serde(default)]
+    pub trajectory_id: Option<String>,
+    #[serde(default)]
+    pub project_root: Option<String>,
+    #[serde(default)]
+    pub continuity_id: Option<String>,
+    #[serde(default)]
+    pub hlt: Option<String>,
+    #[serde(default)]
+    pub mlg: Option<String>,
+    #[serde(default)]
+    pub stg: Option<String>,
+    #[serde(default)]
+    pub waypoints: Vec<String>,
+    #[serde(default)]
+    pub active_workpoint_id: Option<WorkpointId>,
+}
+
 /// Prompt-safe handle reference.
 ///
 /// Prompt representation: `[HANDLE:<kind>:<id> "<label>"]`
@@ -1266,6 +1313,8 @@ pub struct HandleRef {
     pub created_at: DateTime<Utc>,
     pub session_id: Option<SessionId>,
     pub pinned: bool,
+    #[serde(default)]
+    pub trajectory: Option<TrajectoryLadderContext>,
 }
 
 /// MVP — 7 handle kinds.
@@ -2406,6 +2455,8 @@ pub struct CltMetadata {
     pub task_id: Option<String>,
     pub agent_id: Option<String>,
     pub model_id: Option<String>,
+    #[serde(default)]
+    pub trajectory: Option<TrajectoryLadderContext>,
 }
 
 /// CLT tree state.

@@ -146,6 +146,17 @@ fn print_json(value: &Value) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn print_trajectory_summary(value: &Value) {
+    let Some(trajectory) = value.get("trajectory") else {
+        return;
+    };
+    let hlt = trajectory.get("hlt").and_then(Value::as_str).unwrap_or("?");
+    let stg = trajectory.get("stg").and_then(Value::as_str).unwrap_or("?");
+    if hlt != "?" || stg != "?" {
+        println!("trajectory: HLT={} STG={}", hlt, stg);
+    }
+}
+
 struct LoopRunArgs {
     kind: String,
     content: String,
@@ -491,6 +502,7 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
                     "metacognition capture: {}",
                     resp["capture_id"].as_str().unwrap_or("ok")
                 );
+                print_trajectory_summary(&resp);
             }
         }
         MetacognitionCmd::Retrieve {
@@ -537,6 +549,7 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
                     "metacognition reflect: {}",
                     resp["reflection_id"].as_str().unwrap_or("ok")
                 );
+                print_trajectory_summary(&resp);
             }
         }
         MetacognitionCmd::Adjust {
@@ -559,6 +572,7 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
                     "metacognition adjust: {}",
                     resp["adjustment_id"].as_str().unwrap_or("ok")
                 );
+                print_trajectory_summary(&resp);
             }
         }
         MetacognitionCmd::Evaluate {
@@ -582,6 +596,7 @@ pub async fn run(cmd: MetacognitionCmd, json_mode: bool) -> anyhow::Result<()> {
                     resp["result"].as_str().unwrap_or("unknown"),
                     resp["promote_learning"].as_bool().unwrap_or(false)
                 );
+                print_trajectory_summary(&resp);
             }
         }
         MetacognitionCmd::RecentReflections { limit } => {

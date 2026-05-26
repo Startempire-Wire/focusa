@@ -60,6 +60,7 @@ impl ReferenceStore {
             created_at: now,
             session_id,
             pinned: false,
+            trajectory: None,
         };
 
         // Write metadata

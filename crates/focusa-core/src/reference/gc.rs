@@ -70,6 +70,7 @@ mod tests {
             created_at: Utc::now() - Duration::days(30),
             session_id: None,
             pinned: true,
+            trajectory: None,
         });
         let eligible = find_eligible(&state, Duration::hours(1));
         assert!(eligible.is_empty());
@@ -88,6 +89,7 @@ mod tests {
             created_at: Utc::now() - Duration::days(30),
             session_id: None,
             pinned: false,
+            trajectory: None,
         });
         let eligible = find_eligible(&state, Duration::hours(1));
         assert_eq!(eligible.len(), 1);
@@ -106,6 +108,7 @@ mod tests {
             created_at: Utc::now(),
             session_id: None,
             pinned: false,
+            trajectory: None,
         });
         let eligible = find_eligible(&state, Duration::hours(24));
         assert!(eligible.is_empty());

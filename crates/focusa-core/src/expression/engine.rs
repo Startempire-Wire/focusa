@@ -875,6 +875,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             session_id: None,
             pinned: false,
+            trajectory: None,
         }];
 
         let result = assemble(&state, None, &[], &handles, "test", &config);

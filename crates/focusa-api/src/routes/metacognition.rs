@@ -19,6 +19,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
+use focusa_core::types::TrajectoryLadderContext;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::cmp::Reverse;
@@ -36,6 +37,8 @@ struct CaptureRecord {
     confidence: Option<f64>,
     strategy_class: Option<String>,
     storage_path: String,
+    #[serde(default)]
+    trajectory: Option<TrajectoryLadderContext>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +50,8 @@ struct ReflectionRecord {
     hypotheses: Vec<String>,
     strategy_updates: Vec<String>,
     storage_path: String,
+    #[serde(default)]
+    trajectory: Option<TrajectoryLadderContext>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,6 +61,8 @@ struct AdjustmentRecord {
     selected_updates: Vec<String>,
     created_at: chrono::DateTime<chrono::Utc>,
     storage_path: String,
+    #[serde(default)]
+    trajectory: Option<TrajectoryLadderContext>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +74,8 @@ struct EvaluationRecord {
     promote_learning: bool,
     created_at: chrono::DateTime<chrono::Utc>,
     storage_path: String,
+    #[serde(default)]
+    trajectory: Option<TrajectoryLadderContext>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,6 +90,8 @@ struct CaptureIndexEntry {
     #[serde(default)]
     has_rationale: bool,
     storage_path: String,
+    #[serde(default)]
+    trajectory: Option<TrajectoryLadderContext>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -168,6 +179,28 @@ fn tags_for_capture(capture: &CaptureRecord) -> Vec<String> {
     if let Some(strategy) = &capture.strategy_class {
         tags.push(strategy.to_ascii_lowercase());
     }
+    if let Some(trajectory) = &capture.trajectory {
+        for value in [
+            trajectory.trajectory_id.as_deref(),
+            trajectory.hlt.as_deref(),
+            trajectory.mlg.as_deref(),
+            trajectory.stg.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            for word in value
+                .split(|c: char| !c.is_alphanumeric() && c != '_' && c != '-')
+                .filter(|w| w.len() >= 3)
+                .take(4)
+            {
+                let tag = word.to_ascii_lowercase();
+                if !tags.contains(&tag) {
+                    tags.push(tag);
+                }
+            }
+        }
+    }
     for word in capture
         .content
         .split(|c: char| !c.is_alphanumeric() && c != '_' && c != '-')
@@ -193,6 +226,7 @@ fn capture_index_entry(capture: &CaptureRecord) -> CaptureIndexEntry {
         strategy_class: capture.strategy_class.clone(),
         has_rationale: capture.rationale.is_some(),
         storage_path: capture.storage_path.clone(),
+        trajectory: capture.trajectory.clone(),
     }
 }
 
@@ -447,6 +481,10 @@ fn require_scope(
     }
 }
 
+async fn active_trajectory_context(state: &AppState) -> Option<TrajectoryLadderContext> {
+    state.focusa.read().await.trajectory_ladder_context()
+}
+
 #[derive(Debug, Deserialize)]
 struct CaptureBody {
     kind: String,
@@ -484,6 +522,7 @@ async fn capture(
     let storage_path = metacog_record_path(&state, "captures", &capture_id)
         .display()
         .to_string();
+    let trajectory = active_trajectory_context(&state).await;
     let rec = CaptureRecord {
         capture_id: capture_id.clone(),
         created_at: Utc::now(),
@@ -493,6 +532,7 @@ async fn capture(
         confidence: body.confidence,
         strategy_class: body.strategy_class,
         storage_path: storage_path.clone(),
+        trajectory: trajectory.clone(),
     };
 
     persist_json_record(
@@ -515,6 +555,7 @@ async fn capture(
         "stored": true,
         "linked_turn_id": Value::Null,
         "storage_path": storage_path,
+        "trajectory": trajectory,
     })))
 }
 
@@ -745,6 +786,7 @@ async fn reflect(
     let storage_path = metacog_record_path(&state, "reflections", &reflection_id)
         .display()
         .to_string();
+    let trajectory = active_trajectory_context(&state).await;
     let rec = ReflectionRecord {
         reflection_id: reflection_id.clone(),
         created_at: Utc::now(),
@@ -753,6 +795,7 @@ async fn reflect(
         hypotheses: vec!["strategy mismatch in recent turns".into()],
         strategy_updates: strategy_updates.clone(),
         storage_path: storage_path.clone(),
+        trajectory: trajectory.clone(),
     };
 
     persist_json_record(
@@ -771,6 +814,7 @@ async fn reflect(
         "hypotheses": rec.hypotheses,
         "strategy_updates": strategy_updates,
         "storage_path": storage_path,
+        "trajectory": trajectory,
     })))
 }
 
@@ -814,12 +858,14 @@ async fn adjust(
     let storage_path = metacog_record_path(&state, "adjustments", &adjustment_id)
         .display()
         .to_string();
+    let trajectory = active_trajectory_context(&state).await;
     let rec = AdjustmentRecord {
         adjustment_id: adjustment_id.clone(),
         reflection_id: body.reflection_id,
         selected_updates: body.selected_updates.clone(),
         created_at: Utc::now(),
         storage_path: storage_path.clone(),
+        trajectory: trajectory.clone(),
     };
     persist_json_record(
         &metacog_record_path(&state, "adjustments", &adjustment_id),
@@ -839,6 +885,7 @@ async fn adjust(
             "rework_loop_rate": -0.1,
         },
         "storage_path": storage_path,
+        "trajectory": trajectory,
     })))
 }
 
@@ -881,6 +928,7 @@ async fn evaluate(
     let storage_path = metacog_record_path(&state, "evaluations", &evaluation_id)
         .display()
         .to_string();
+    let trajectory = active_trajectory_context(&state).await;
     let rec = EvaluationRecord {
         evaluation_id: evaluation_id.clone(),
         adjustment_id: body.adjustment_id,
@@ -889,6 +937,7 @@ async fn evaluate(
         promote_learning: promote,
         created_at: now,
         storage_path: storage_path.clone(),
+        trajectory: trajectory.clone(),
     };
     persist_json_record(
         &metacog_record_path(&state, "evaluations", &evaluation_id),
@@ -916,6 +965,7 @@ async fn evaluate(
             confidence: Some(1.0),
             strategy_class: Some("metacognition_evaluation".to_string()),
             storage_path: capture_storage_path,
+            trajectory: trajectory.clone(),
         };
         persist_json_record(
             &metacog_record_path(&state, "captures", &capture_id),
@@ -952,6 +1002,7 @@ async fn evaluate(
         "promote_learning": rec.promote_learning,
         "promoted_capture_id": promoted_capture_id,
         "storage_path": storage_path,
+        "trajectory": trajectory,
         "next_step_hint": if rec.promote_learning { "promoted learning was written back into metacognition retrieval memory" } else { "collect observed_metrics before promoting this learning signal" }
     })))
 }
@@ -1265,6 +1316,7 @@ mod tests {
             confidence: None,
             strategy_class: None,
             storage_path: format!("/tmp/capture-{id}.json"),
+            trajectory: None,
         }
     }
 
@@ -1277,6 +1329,7 @@ mod tests {
             hypotheses: vec![],
             strategy_updates: vec![],
             storage_path: format!("/tmp/reflection-{id}.json"),
+            trajectory: None,
         }
     }
 
@@ -1287,6 +1340,7 @@ mod tests {
             selected_updates: vec![],
             created_at,
             storage_path: format!("/tmp/adjustment-{id}.json"),
+            trajectory: None,
         }
     }
 
@@ -1299,6 +1353,7 @@ mod tests {
             promote_learning: true,
             created_at,
             storage_path: format!("/tmp/evaluation-{id}.json"),
+            trajectory: None,
         }
     }
 

@@ -4506,7 +4506,8 @@ Return:
                 content,
             } => {
                 let session_id = self.state.session.as_ref().map(|s| s.session_id);
-                let handle = self.ecs.store(kind, label, &content, session_id)?;
+                let mut handle = self.ecs.store(kind, label, &content, session_id)?;
+                handle.trajectory = self.state.trajectory_ladder_context();
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     handle: handle.clone(),
                     storage_uri: format!("ecs://{}", handle.sha256),
@@ -5082,13 +5083,11 @@ Return:
         };
 
         let session_id = self.state.session.as_ref().map(|s| s.session_id);
-        clt::append_interaction(
-            &mut self.state.clt,
-            session_id,
-            role,
-            None,
-            CltMetadata::default(),
-        );
+        let metadata = CltMetadata {
+            trajectory: self.state.trajectory_ladder_context(),
+            ..CltMetadata::default()
+        };
+        clt::append_interaction(&mut self.state.clt, session_id, role, None, metadata);
     }
 }
 

@@ -2,7 +2,32 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use serde_json::json;
+use serde_json::{Value, json};
+
+fn trajectory_summary(value: &Value) -> Option<String> {
+    let trajectory = value.get("trajectory")?;
+    let hlt = trajectory
+        .get("hlt")
+        .or_else(|| trajectory.get("long_term_goal"))
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    let stg = trajectory
+        .get("stg")
+        .or_else(|| trajectory.get("short_term_goal"))
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    if hlt == "?" && stg == "?" {
+        None
+    } else {
+        Some(format!("trajectory: HLT={} STG={}", hlt, stg))
+    }
+}
+
+fn print_trajectory_summary(value: &Value) {
+    if let Some(summary) = trajectory_summary(value) {
+        println!("  {summary}");
+    }
+}
 
 #[derive(Subcommand)]
 pub enum EcsCmd {
@@ -68,6 +93,7 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!("✓ Stored {} ({} bytes)", label, content.len());
+                print_trajectory_summary(&resp);
             }
         }
         EcsCmd::Resolve { handle_id } | EcsCmd::Meta { handle_id } => {
@@ -79,6 +105,7 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("  kind:  {}", handle["kind"].as_str().unwrap_or("?"));
                 println!("  label: {}", handle["label"].as_str().unwrap_or("?"));
                 println!("  size:  {} bytes", handle["size"].as_u64().unwrap_or(0));
+                print_trajectory_summary(handle);
             } else {
                 println!("Handle not found");
             }
@@ -95,11 +122,15 @@ pub async fn run(cmd: EcsCmd, json_mode: bool) -> anyhow::Result<()> {
                         for handle in handles {
                             let id = handle["id"].as_str().unwrap_or("?");
                             let short_id = if id.len() >= 8 { &id[..8] } else { id };
+                            let trajectory = trajectory_summary(handle)
+                                .map(|summary| format!(" — {summary}"))
+                                .unwrap_or_default();
                             println!(
-                                "  {} [{}] {}",
+                                "  {} [{}] {}{}",
                                 short_id,
                                 handle["kind"].as_str().unwrap_or("?"),
                                 handle["label"].as_str().unwrap_or("?"),
+                                trajectory,
                             );
                         }
                     }
