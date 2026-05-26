@@ -24,10 +24,14 @@ else
   log_fail "export run format validation does not match parquet contract"
 fi
 
-if rg -n 'fn write_parquet\(|"encoding": "parquet_placeholder_v1"|ExportFormat::Parquet => write_parquet' "$CLI_FILE" >/dev/null 2>&1; then
-  log_pass "CLI write path supports parquet output format"
+if rg -n '"encoding": "parquet_placeholder_v1"' "$CLI_FILE" >/dev/null 2>&1; then
+  log_fail "CLI parquet write path still uses placeholder encoding"
+elif rg -n 'fn write_parquet\(' "$CLI_FILE" >/dev/null 2>&1 \
+  && rg -n 'SerializedFileWriter|record_json|ByteArrayType' "$CLI_FILE" >/dev/null 2>&1 \
+  && rg -n 'ExportFormat::Parquet => write_parquet' "$CLI_FILE" >/dev/null 2>&1; then
+  log_pass "CLI write path supports real parquet output format"
 else
-  log_fail "CLI parquet write path is missing"
+  log_fail "CLI parquet write path is missing real writer/dispatch"
 fi
 
 if rg -n 'fn write_jsonl\(|ExportFormat::Jsonl => write_jsonl' "$CLI_FILE" >/dev/null 2>&1; then
