@@ -131,6 +131,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/MAC_APP_MISSION_CONTROL.md](current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
 - [current/PREDICTIVE_POWER_GUIDE.md](current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
 - [current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md](current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md) — normalized signal substrate for prediction/metacognition/ontology flywheel.
+- [current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md](current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md) — current maturity verdict for predictive and metacognitive feature sets.
 - [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) — dataset-agnostic prediction substrate, with stocks as the first domain adapter.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
