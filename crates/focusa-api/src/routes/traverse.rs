@@ -826,6 +826,20 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "updated_at",
             ],
         ),
+        "evidence" | "ecs" | "references" => (
+            &["id", "kind", "label", "trajectory", "created_at"],
+            &[
+                "id",
+                "kind",
+                "label",
+                "trajectory",
+                "created_at",
+                "pinned",
+                "session_id",
+                "size",
+                "sha256",
+            ],
+        ),
         _ => (
             &["id", "label", "summary", "status"],
             &[
@@ -1117,6 +1131,50 @@ mod tests {
                 .and_then(Value::as_array)
                 .map(Vec::len),
             Some(2)
+        );
+    }
+
+    #[test]
+    fn evidence_surface_default_projection_includes_trajectory_context() {
+        let mut state = state_with_trajectory();
+        let trajectory = state.trajectory_ladder_context();
+        state
+            .reference_index
+            .handles
+            .push(focusa_core::types::HandleRef {
+                id: uuid::Uuid::now_v7(),
+                kind: focusa_core::types::HandleKind::Text,
+                label: "proof-handle".to_string(),
+                size: 123,
+                sha256: "deadbeef".to_string(),
+                created_at: chrono::Utc::now(),
+                session_id: None,
+                pinned: false,
+                trajectory,
+            });
+        let res = traverse_response(
+            &state,
+            TraverseRequest {
+                surface: "evidence".to_string(),
+                selector: Some("window".to_string()),
+                limit: Some(1),
+                ..TraverseRequest::default()
+            },
+            false,
+        );
+        let item = res.pointer("/items/0/data").expect("evidence item");
+        assert_eq!(
+            item.get("label").and_then(Value::as_str),
+            Some("proof-handle")
+        );
+        assert_eq!(
+            item.pointer("/trajectory/trajectory_id")
+                .and_then(Value::as_str),
+            Some("traj-test")
+        );
+        assert!(
+            item.get("sha256").is_none(),
+            "sha256 stays out of default projection"
         );
     }
 
