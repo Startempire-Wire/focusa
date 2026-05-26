@@ -1,22 +1,23 @@
 # UIAI Browser Diagnostics → Focusa Integration Spec
 
-**Status:** design spec for local integration.  
+**Status:** current local integration guide; UIAI diagnostics baseline implemented in `uiai-engine` commit `1221d80`.  
 **UIAI companion spec:** `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`.  
 **Scope:** turn local browser console/network/runtime failures into bounded Focusa evidence, predictions, and Workpoint continuity.
 
 ## 1. Purpose
 
-UIAI Engine can provide browser interaction and visual QA through local Rod/Chrome sessions. The diagnostics upgrade will expose console errors, JS exceptions, and network failures as structured session data. Focusa should consume those diagnostics as evidence so models troubleshoot real web issues with proof instead of guessing from screenshots.
+UIAI Engine provides browser interaction, visual QA, and implemented browser diagnostics through local Rod/Chrome sessions. Console errors, JS exceptions, and network failures are exposed as structured session data. Focusa should consume those diagnostics as evidence so models troubleshoot real web issues with proof instead of guessing from screenshots.
 
 ## 2. Current verified baseline
 
-Local inspection of `localhost:7456` and `/home/wpuiai/uiai-engine` showed:
+Local implementation in `/home/wpuiai/uiai-engine` now includes:
 
-- UIAI service is healthy at `localhost:7456`.
-- Current browser tools include open, screenshot, scroll, click, hover, type, eval, snapshot, DOM, navigate, resize, CSS, wait, fill, select, press, back, forward, text, cookies, and close.
-- Current browser tools do not expose console/network/devtools/HAR/trace/diagnostic data.
-- Current session route code is in `/home/wpuiai/uiai-engine/internal/routes/session.go`.
-- Current session state code is in `/home/wpuiai/uiai-engine/internal/vision/session.go`.
+- UIAI service target: `localhost:7456`.
+- Browser tools include open, screenshot, scroll, click, hover, type, eval, snapshot, DOM, navigate, resize, CSS, wait, fill, select, press, back, forward, text, cookies, close, `browser_diagnostics`, and `browser_diagnostics_clear`.
+- Diagnostics expose bounded console logs/errors, JS exceptions, network requests, failed requests, and summary counts.
+- Full HAR, trace export, source-map stack mapping, and raw body/header capture are not implemented in the baseline.
+- Session routes live in `/home/wpuiai/uiai-engine/internal/routes/session.go`.
+- Session diagnostics recorder lives in `/home/wpuiai/uiai-engine/internal/vision/diagnostics.go` and is attached from `/home/wpuiai/uiai-engine/internal/vision/session.go`.
 
 ## 3. Integration goals
 
@@ -33,7 +34,7 @@ Local inspection of `localhost:7456` and `/home/wpuiai/uiai-engine` showed:
 - Focusa does not treat diagnostics as canonical project truth without source/test verification.
 - Focusa does not bypass UIAI redaction or local security boundaries.
 
-## 5. Proposed browser evidence flow
+## 5. Browser evidence flow
 
 1. Start or resume a Focusa Workpoint for the web issue.
 2. Open/reuse a UIAI browser session for the failing URL.
