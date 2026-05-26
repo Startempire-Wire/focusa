@@ -29,13 +29,59 @@ function packetField(packet: any, key: string): string {
   return String(packet?.[key] || "").trim();
 }
 
+function compactText(value: unknown, fallback = "unknown", max = 180): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return fallback;
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
+}
+
+async function buildLearningCompactionCard(currentAsk: string, mission: string, nextSlice: string): Promise<string> {
+  if (!S.focusaAvailable) {
+    return [
+      "## Learning Loop",
+      "- Predictive/metacog context unavailable because Focusa is offline.",
+      "- End-of-task report still should record: task summary, prediction outcome, reusable lesson, and next possibility.",
+    ].join("\n");
+  }
+  const ask = compactText(currentAsk || nextSlice || mission || "current session", "current session", 240);
+  const lines: string[] = ["## Task Summary", `- Mission: ${compactText(mission || ask)}`, `- Current/next slice: ${compactText(nextSlice || ask)}`];
+  try {
+    const stats = await focusaFetch("/predictions/stats");
+    if (stats) {
+      lines.push("## Predictive Context");
+      lines.push(`- Stats: total=${stats.total_predictions ?? stats.total ?? "unknown"}; evaluated=${stats.evaluated_predictions ?? stats.evaluated ?? "unknown"}; accuracy=${compactText(stats.global_accuracy ?? stats.accuracy ?? "unknown", "unknown", 60)}`);
+      lines.push("- At end-of-task: evaluate relevant open predictions, then record the next bounded prediction.");
+    }
+  } catch {
+    lines.push("## Predictive Context", "- Prediction stats unavailable; call focusa_predict_recent/stats before final task report when possible.");
+  }
+  try {
+    const metacog = await focusaFetch("/metacognition/retrieve", {
+      method: "POST",
+      body: JSON.stringify({ current_ask: ask, scope_tags: ["end_of_task", "compaction", "trajectory_review"], k: 3 }),
+    });
+    const candidates = Array.isArray(metacog?.candidates) ? metacog.candidates : [];
+    lines.push("## Metacog Context");
+    if (candidates.length) {
+      candidates.slice(0, 3).forEach((c: any, i: number) => lines.push(`- Lesson ${i + 1}: ${compactText(c.content || c.kind || c.capture_id, "signal", 180)}`));
+    } else {
+      lines.push("- No matching lessons; capture one at end-of-task if outcome teaches a reusable strategy.");
+    }
+    lines.push("- At end-of-task: capture/refine reusable lesson only when evidence or outcome changed future behavior.");
+  } catch {
+    lines.push("## Metacog Context", "- Metacog retrieve unavailable; run focusa_metacog_doctor/retrieve in trajectory review or wrap-up.");
+  }
+  lines.push("## Possibilities", "- Next possibilities should be framed as bounded predictions + trajectory gaps, not vague brainstorms.");
+  return lines.join("\n");
+}
+
 function semanticCurrentAsk(): string {
   const text = String(S.currentAsk?.text || "").trim();
   if (!text || isExplicitContinuationAsk(text) || isNonTaskStatusLikeText(text)) return "";
   return text;
 }
 
-function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
+async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Promise<string> {
   const candidatePacket = normalizeWorkpointResumePacketEnvelope(workpointPacket) || getScopedWorkpointPacket() || {};
   const packet = isWorkpointPacketScopedToCurrentSession(candidatePacket) ? candidatePacket : {};
   const rendered = String(Object.keys(packet).length ? (packet?.rendered_summary || S.activeWorkpointSummary || "") : "").trim();
@@ -65,6 +111,7 @@ function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
   if (!failures.length) failures.push("No active failure records in Focusa state.");
   if (!notes.length && rendered) notes.push(`Workpoint summary: ${rendered}`);
   const bullet = (items: string[]) => items.length ? items.slice(0, 12).map((x) => `- ${x}`).join("\n") : "- Not populated by Focusa; no safe related fallback available.";
+  const learningCard = await buildLearningCompactionCard(ask, mission, nextSlice);
   const v2Prompt = formatResumePacketV2ForPrompt(packet);
   const workpointSection = v2Prompt ? [
     "# Workpoint Resume Packet",
@@ -84,6 +131,8 @@ function buildCompactionFallbackSummary(fs: any, workpointPacket: any): string {
     `## Recent Results\n${bullet(recentResults.length ? recentResults : ["No recent_results slot entries; use Workpoint packet, git/beads, and evidence docs as the related fallback source."])}`,
     `## Artifacts\n${bullet(artifactLines.length ? artifactLines : ["No artifact slot entries; use active project root and Workpoint refs as fallback anchors."])}`,
     `## Notes\n${bullet(notes.length ? notes : ["Fallback summary hydrated from Workpoint, Focus State shadow, current ask, and session metadata."])}`,
+    learningCard,
+    "## End-of-task Report Contract\n- Include task summary, evidence/proof, prediction outcome/evaluation, metacog lesson, next possibility, and follow-up prediction.",
   ].join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
@@ -317,7 +366,7 @@ export function registerCompaction(pi: ExtensionAPI) {
         const ascc = await focusaFetch("/ascc/state");
         if (ascc?.focus_state) {
           const fs = ascc.focus_state;
-          const summary = buildCompactionFallbackSummary(fs, workpointPacket);
+          const summary = await buildCompactionFallbackSummary(fs, workpointPacket);
           const ev = event as any;
           return {
             compaction: {
@@ -405,8 +454,8 @@ export function registerCompaction(pi: ExtensionAPI) {
           const scopedPacket = getScopedWorkpointPacket();
           const v2Prompt = formatResumePacketV2ForPrompt(scopedPacket);
           const directive = v2Prompt
-            ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Then use focusa_trajectory_view for orientation and focusa_traverse for bounded supporting slices. Never use transcript tail as authority.`
-            : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, or focusa_tool_doctor before trusting any carryover.`;
+            ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Then use focusa_trajectory_view for orientation and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
+            : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, focusa_metacog_doctor, focusa_predict_recent/stats, or focusa_tool_doctor before trusting any carryover.`;
           const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
           const steerMessage = `# Compaction Complete${note}
 ## Last Active Focus
@@ -417,6 +466,13 @@ ${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootA
 ${directive}
 
 ---
+
+## End-of-task Learning Loop
+Before claiming task completion or writing a final work report:
+- Summarize the task outcome and proof.
+- Run/consult focusa_predict_recent or focusa_predict_stats; evaluate relevant predictions with focusa_predict_evaluate.
+- Run/consult focusa_metacog_doctor or focusa_metacog_retrieve; capture reusable lessons with focusa_metacog_capture when evidence-backed.
+- Cross-reference the next possibility as a bounded prediction plus trajectory gap.
 
 ## Focusa Tool Guidance
 When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:

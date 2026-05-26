@@ -92,7 +92,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_trajectory_view",
     "label": "Trajectory View",
-    "purpose": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, and next Workpoint candidate.",
+    "purpose": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, next Workpoint candidate, and learning-loop context for task closure.",
     "family": "trajectory",
     "ontology_action": "trajectory.view",
     "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
@@ -104,7 +104,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "side_effect_profile": "read_state",
     "parity_status": "domain",
     "exemptions": ["domain_cli_only"],
-    "live_check": "contract_static plus /v1/trajectory/view safe probe and ProjectIdentity status"
+    "live_check": "contract_static plus /v1/trajectory/view safe probe, ProjectIdentity status, and prediction/metacog closure cross-reference"
   },
 
   {
@@ -128,7 +128,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_trajectory_assess",
     "label": "Trajectory Assess",
-    "purpose": "Assess project current state against desired Trajectory end state and return gaps/recommended action.",
+    "purpose": "Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons.",
     "family": "trajectory",
     "ontology_action": "trajectory.assess",
     "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
@@ -182,7 +182,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_trajectory_resume",
     "label": "Trajectory Resume",
-    "purpose": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume.",
+    "purpose": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts.",
     "family": "trajectory",
     "ontology_action": "trajectory.resume",
     "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],
@@ -236,7 +236,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_predict_record",
     "label": "Record Prediction",
-    "purpose": "Record a bounded, inspectable Focusa prediction.",
+    "purpose": "Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports.",
     "family": "metacognition",
     "ontology_action": "prediction.record",
     "ontology_objects": ["PredictionRecord", "MetacognitionStore"],
@@ -270,7 +270,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_predict_evaluate",
     "label": "Evaluate Prediction",
-    "purpose": "Evaluate a Focusa prediction against an actual outcome and optional score.",
+    "purpose": "Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist.",
     "family": "metacognition",
     "ontology_action": "prediction.evaluate",
     "ontology_objects": ["PredictionRecord", "MetacognitionStore"],
@@ -287,7 +287,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_predict_stats",
     "label": "Prediction Stats",
-    "purpose": "Report Focusa prediction accuracy/calibration stats.",
+    "purpose": "Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports.",
     "family": "metacognition",
     "ontology_action": "prediction.stats",
     "ontology_objects": ["PredictionRecord", "MetacognitionStore"],
