@@ -186,6 +186,8 @@ Metacognition capture/reflection/adjustment/evaluation records include bounded `
 - `POST /v1/ontology/memory-pipeline`
 - `GET /v1/ontology/intelligence-dashboard`
 
+Ontology adjacency/context evidence-handle projections include bounded `trajectory` context when HandleRef metadata has it. Pi Focus Slice evidence lines surface STG alignment from that context while keeping ontology payloads bounded.
+
 ### project
 - `GET /v1/project/identity`
 - `POST /v1/project/verify`
