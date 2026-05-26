@@ -281,7 +281,9 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");
+    if let Err(err) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("[TRACING_INIT_WARNING] failed to set tracing subscriber: {err}");
+    }
 
     let result: anyhow::Result<()> = match cli.command {
         Commands::Start => {

@@ -226,9 +226,11 @@ fn parse_transcript(transcript: &str) -> (String, String) {
             current_content = String::new();
 
             // Add content after "> "
-            let simple_content = simple_marker_content.unwrap().trim_start();
-            if !simple_content.is_empty() {
-                current_content.push_str(simple_content);
+            if let Some(simple_content) = simple_marker_content {
+                let simple_content = simple_content.trim_start();
+                if !simple_content.is_empty() {
+                    current_content.push_str(simple_content);
+                }
             }
         } else {
             // Regular content line - add to current speaker or default to assistant
