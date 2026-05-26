@@ -43,92 +43,49 @@ jobs:
             COMMITS=$(git log --oneline --no-merges | head -50)
           fi
           
-          # Write notes to file (heredoc avoids escaping issues)
+          # Write current, non-stale notes to file (heredoc avoids escaping issues).
+          # Keep this release page functional and evidence-oriented; avoid fixed route/test counts.
           cat > /tmp/release-notes.md << NOTES_EOF
-          ## Focusa ${TAG} — Cognitive Governance Framework
+          ## Focusa ${TAG} — Functional Dogfood Release
 
-          **Local-first cognitive proxy** that governs focus, context fidelity, and priority emergence for AI agents.
+          Focusa is a local-first cognitive runtime for agent continuity, scope authority, evidence, recovery, trajectory, and tool governance.
 
-          ### 🧠 Core Engine (22 modules)
-          - **Focus Stack (HEC)** — hierarchical frame push/pop/pause/resume with depth limit (8)
-          - **Focus Gate** — salience-weighted candidate queue with decay, suppression, pinning
-          - **Intuition Engine** — async signal producer detecting error repetition, inactivity, nesting depth, long-running tasks
-          - **Expression Engine** — deterministic prompt assembly with 10 ASCC slots, 6-step degradation cascade, token budget enforcement
-          - **Core Reducer** — pure-functional state machine handling 15 event types with 7 structural invariants
-          - **Context Lineage Tree (CLT)** — append-only tree tracking decision/observation/interaction lineage
-          - **UXP/UFI** — 7 user experience profile dimensions (EMA learning, α≤0.1) + 14 friction indicators in 3 tiers
-          - **Autonomy Calibration** — 6 ARI dimensions, 6 autonomy levels (AL0→AL5), TTL-based grant expiry
-          - **Agent Constitution** — SemVer-versioned immutable reasoning charter with Constitution Synthesizer
-          - **Proposal Resolution Engine (PRE)** — submit, score (5 criteria), resolve, reject, expire, garbage collect
-          - **Reliability Focus Mode (RFM)** — 4 levels (R0→R3), 4 microcell validators, AIS-based escalation/de-escalation
-          - **Cache Permission Matrix** — 5-tier classes (C0 immutable → C4 forbidden), 6 bust categories
-          - **Threads/Thesis/Instances** — persistent cognitive workspaces with fork, archive, resume
-          - **Agent Skills** — 18 skills in 4 categories, 6 prohibited skill guards
-          - **Capability Permissions** — 3 token types (Owner/Agent/Integration), scope-based validation
-          - **Training Dataset Export** — 4 dataset families, PII detection (heuristic), JSONL output
-          - **Data Contribution Pipeline** — enqueue → approve → submit workflow
-          - **Telemetry (CTL)** — model token tracking, focus transition events, per-task cost accounting
-          - **ECS Garbage Collector** — age-based eligibility, session protection, pinned immunity
-          - **Semantic + Procedural Memory** — embedding-based recall with decay, procedural rule store
+          ### What this release proves
+          - **Functional snapshot** — this tag passed the Release workflow gate: workspace tests and clippy before artifacts.
+          - **Dogfood-driven quality** — release notes are generated from the actual tag delta, not stale static claims.
+          - **macOS artifacts** — CLI, daemon, TUI, and Tauri menubar app assets are built by GitHub Actions.
+          - **Public traceability** — commits since the prior tag are included below for auditability.
 
-          ### 🔌 Proxy Adapters
-          - **OpenAI HTTP Proxy (Mode B)** — \`POST /proxy/v1/chat/completions\` with ASCC injection + passthrough fallback
-          - **ACP Proxy (Mode A+B)** — JSON-RPC 2.0 parsing with cognition injection
-          - **Letta Adapter** — 4 harness types (ClaudeCode, CodexCli, GeminiCli, Generic) with per-harness capabilities
-          - **Passthrough Adapter** — zero-modification relay
+          ### Downloads
+          | Platform | Asset | Description |
+          |----------|-------|-------------|
+          | macOS Apple Silicon | \`focusa-${TAG}-aarch64-apple-darwin\` | CLI |
+          | macOS Intel | \`focusa-${TAG}-x86_64-apple-darwin\` | CLI |
+          | macOS Apple Silicon | \`focusa-daemon-${TAG}-aarch64-apple-darwin\` | API daemon |
+          | macOS Intel | \`focusa-daemon-${TAG}-x86_64-apple-darwin\` | API daemon |
+          | macOS Apple Silicon | \`focusa-tui-${TAG}-aarch64-apple-darwin\` | TUI dashboard |
+          | macOS Intel | \`focusa-tui-${TAG}-x86_64-apple-darwin\` | TUI dashboard |
+          | macOS Apple Silicon / Intel | \`Focusa_*\` DMG / app archives | Menubar app |
 
-          ### 🖥 Interfaces
-          - **REST API** — 38 routes across 14 domains (Axum, default \`127.0.0.1:8787\`)
-          - **CLI** — 14 command domains (\`focusa focus push\`, \`focusa gate list\`, \`focusa state dump\`, etc.)
-          - **TUI** — 14 ratatui views (focus stack, state, gate, events, proposals, telemetry, etc.)
-          - **Menubar App** — SvelteKit + Tauri v2 desktop app with 6 components, 3 reactive stores, design tokens
-          - **SSE Event Stream** — \`GET /v1/events/stream\` real-time tail of event log
-          - **Bearer Auth Middleware** — optional \`FOCUSA_AUTH_TOKEN\` (local-first: off by default)
-
-          ### 🏗 Architecture
-          - **Rust monorepo** — 4 workspace crates (\`focusa-core\`, \`focusa-cli\`, \`focusa-api\`, \`focusa-tui\`)
-          - **~13,000 LOC** across 106 Rust source files
-          - **96 unit tests**, zero warnings, zero clippy errors
-          - **Event-sourced** — append-only JSONL event log, deterministic reducer replay
-          - **Local filesystem persistence** — \`~/.focusa/state.json\`, \`~/.focusa/events.jsonl\`
-          - **Performance budget** — hot path <20ms, worker jobs <200ms, gate signal ingest <5ms
-          - **Edition 2024** (Rust nightly 1.94.0)
-
-          ### 📦 Downloads (macOS only for testing)
-
-          | Platform | Binary | Description |
-          |----------|--------|-------------|
-          | **macOS Apple Silicon** | \`focusa-${TAG}-aarch64-apple-darwin\` | CLI + daemon |
-          | **macOS Intel** | \`focusa-${TAG}-x86_64-apple-darwin\` | CLI + daemon |
-          | **macOS Apple Silicon** | \`focusa-tui-${TAG}-aarch64-apple-darwin\` | TUI dashboard |
-          | **macOS Intel** | \`focusa-tui-${TAG}-x86_64-apple-darwin\` | TUI dashboard |
-
-          ### 🚀 Quick Start (macOS)
+          ### Quick Start (macOS)
           \`\`\`bash
-          # Download and extract the binary
-          tar -xzf focusa-${TAG}-*.tar.gz
-          tar -xzf focusa-tui-${TAG}-*.tar.gz
-          
-          # Start the daemon
+          # Download and extract matching CLI/daemon assets from this release.
+          chmod +x ./focusa-${TAG}-<your-platform> ./focusa-daemon-${TAG}-<your-platform>
+
+          # Start the daemon.
           ./focusa-daemon-${TAG}-<your-platform>
-          
-          # In another terminal — push a focus frame
-          ./focusa-${TAG}-<your-platform> focus push "Build auth" --goal "Implement OAuth2" --beads-issue-id "AUTH-1"
-          
-          # Check status
+
+          # In another terminal, check status.
           ./focusa-${TAG}-<your-platform> status
-          
-          # Launch TUI dashboard
-          ./focusa-tui-${TAG}-<your-platform>
           \`\`\`
 
-          ### Commits
+          ### Commits since previous tag
           \`\`\`
           ${COMMITS}
           \`\`\`
 
           ---
-          *Full spec: 67 design documents. Local-first. Privacy-preserving. No cloud dependency.*
+          Local-first. Source-available. Functional proof is the GitHub Release workflow plus attached assets for this tag.
           NOTES_EOF
 
       - name: Create GitHub Release
