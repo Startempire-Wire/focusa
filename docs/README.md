@@ -133,6 +133,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md](current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md) — normalized signal substrate for prediction/metacognition/ontology flywheel.
 - [current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md](current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md) — current maturity verdict for predictive and metacognitive feature sets.
 - [current/END_OF_TASK_LEARNING_LOOP.md](current/END_OF_TASK_LEARNING_LOOP.md) — required prediction/metacog closure loop for compaction cards, trajectory reviews, and final work reports.
+- [current/PROJECT_INTELLIGENCE_FLYWHEEL.md](current/PROJECT_INTELLIGENCE_FLYWHEEL.md) — ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding.
 - [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) — dataset-agnostic prediction substrate, with stocks as the first domain adapter.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.

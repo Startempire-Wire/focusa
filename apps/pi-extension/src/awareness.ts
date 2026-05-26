@@ -71,12 +71,14 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     "1. Where am I? project_root + continuity_id → focusa_project_identity / focusa_project_verify.",
     "2. What kind of project is this? canonical name, repo, root/live/local URLs, deploy target/location, workspace kind, infra/architecture boundaries → focusa_project_identity + focusa_traverse.",
     "3. Where are we going? current state, destination, waypoints → focusa_trajectory_view / define_goal / assess.",
-    "4. What is the next useful move? mission + active object + next anchor → focusa_workpoint_resume / checkpoint.",
-    "5. What proof changes confidence? tests/API/file handles → focusa_active_object_resolve + focusa_evidence_capture/link.",
-    "6. What compounds? prediction outcome + reusable lesson → focusa_predict_record + focusa_predict_evaluate + focusa_metacog_*.",
+    "4. What does the ontology say? project/trajectory/workpoint/evidence/prediction/metacog objects → focusa_traverse surface=ontology.",
+    "5. What is the next useful move? mission + active object + next anchor → focusa_workpoint_resume / checkpoint.",
+    "6. What proof changes confidence? tests/API/file handles → focusa_active_object_resolve + focusa_evidence_capture/link.",
+    "7. What compounds? prediction outcome + reusable lesson → focusa_predict_record + focusa_predict_evaluate + focusa_metacog_*.",
+    "8. What can re-bootstrap? project card + learned signals can propose/refresh trajectory hierarchy when goals are stale or missing.",
   ];
   const routeHints = [
-    "Tool routes: Orient = focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume; Execute = focusa_active_object_resolve → focusa_workpoint_checkpoint; Prove = focusa_evidence_capture / focusa_workpoint_link_evidence → focusa_trajectory_assess; Learn = focusa_predict_record → focusa_predict_evaluate → focusa_metacog_capture/retrieve; Recover = focusa_tool_doctor → focusa_resource_mode/focusa_traverse/focusa_workpoint_resume.",
+    "Tool routes: Orient = focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume; Ontology = focusa_traverse(surface=ontology) to bind project/trajectory/workpoint/evidence/prediction/metacog objects; Execute = focusa_active_object_resolve → focusa_workpoint_checkpoint; Prove = focusa_evidence_capture / focusa_workpoint_link_evidence → focusa_trajectory_assess; Learn = focusa_predict_record → focusa_predict_evaluate → focusa_metacog_capture/retrieve; Re-bootstrap = metacog/prediction/project-card signals → focusa_trajectory_define_goal/assess; Recover = focusa_tool_doctor → focusa_resource_mode/focusa_traverse/focusa_workpoint_resume.",
     "Missing active Pi frame fallback: Attentive and awaiting operator direction; keep helping from operator/repo context, then checkpoint/resume once scope is safe.",
     "Focus State tools (scratch/decide/constraint/failure/etc.) are note/decision slots; use them with the project route, not instead of it.",
   ];
@@ -106,7 +108,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     next ? `Next anchor: ${next}` : "Next anchor: call focusa_workpoint_resume with current continuity_id if resuming project work or uncertain.",
     projectRoot ? `Project folder: project_root=${projectRoot}${safeScope ? "" : " (broad/unsafe)"}` : "Project folder: bind work to the folder containing project files; reject cross-project resume packets.",
     scopedPacket && continuityId ? `Continuity: continuity_id=${continuityId}` : "Continuity: no Workpoint continuity verified for this Pi session; use resume/checkpoint before trusting same-root state.",
-    trajectoryFallback ? `Trajectory: prior-project fallback only from continuity=${compact(trajectory.fallback_source_continuity_id, "unknown", 80)}; refresh/define current continuity before durable trajectory writes.` : trajectorySet ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.` : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes.",
+    trajectoryFallback ? `Trajectory: prior-project fallback only from continuity=${compact(trajectory.fallback_source_continuity_id, "unknown", 80)}; refresh/define current continuity before durable trajectory writes.` : trajectorySet ? `Trajectory: high=${compact(trajectory.long_term_goal)}; current=${compact(trajectory.current_state)}; gap=${compact(trajectory.active_gap || trajectory.short_term_goal)}.` : "Trajectory: not hydrated in Utility Card memory; run focusa_trajectory_view before durable state writes; if missing/stale, re-bootstrap from project card + ontology + prediction/metacog signals.",
     "",
     ...friendlyQ,
     ...routeHints,

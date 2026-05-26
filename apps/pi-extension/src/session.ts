@@ -158,7 +158,17 @@ function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; dra
   const repoGoal = `Improve and verify ${projectName} as the active project`;
   return [
     {
-      label: `A) Infer from current task — ${short}`,
+      label: `A) Learning-informed project card — bootstrap from ontology + predictions + metacog signals`,
+      draft: {
+        long_term_goal: `Strengthen ${projectName} project intelligence and next-step quality through ontology-grounded trajectory, prediction, evidence, and metacog loops`,
+        desired_end_state: `${projectName} has an up-to-date trajectory hierarchy, project card, evidence-backed next step, evaluated predictions, and condensed reusable lessons`,
+        short_term_goal: short,
+        current_state: current,
+        goal_source: "inferred_context",
+      },
+    },
+    {
+      label: `B) Infer from current task — ${short}`,
       draft: {
         long_term_goal: seed,
         desired_end_state: `Completed and verified: ${seed}`,
@@ -168,7 +178,7 @@ function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; dra
       },
     },
     {
-      label: `B) Project-level default — ${repoGoal}`,
+      label: `C) Project-level default — ${repoGoal}`,
       draft: {
         long_term_goal: repoGoal,
         desired_end_state: `${projectName} has a clear trajectory, active Workpoint, and passing evidence for the current change path`,
@@ -178,7 +188,7 @@ function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; dra
       },
     },
     {
-      label: "C) Short-term only for now — keep high-level goal broad",
+      label: "D) Short-term only for now — keep high-level goal broad",
       draft: {
         long_term_goal: repoGoal,
         desired_end_state: `${projectName} remains directionally aligned while the current short-term goal is refined`,
@@ -187,8 +197,8 @@ function trajectoryDraftOptions(projectRoot: string): Array<{ label: string; dra
         goal_source: "inferred_context",
       },
     },
-    { label: "D) Skip for now", draft: null },
-    { label: "E) Custom edit (typing)", draft: null },
+    { label: "E) Skip for now", draft: null },
+    { label: "F) Custom edit (typing)", draft: null },
   ];
 }
 

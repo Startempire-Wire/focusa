@@ -9,6 +9,10 @@
   "pi": {
     "extensions": ["./src/index.ts"]
   },
+  "scripts": {
+    "check": "tsc -p tsconfig.json --pretty false",
+    "typecheck": "tsc -p tsconfig.json --pretty false"
+  },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"
   },
