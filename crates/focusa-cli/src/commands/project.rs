@@ -22,6 +22,21 @@ pub enum ProjectCmd {
         #[arg(long)]
         current_ask: Option<String>,
     },
+    /// Attach final outcome/evaluation to a project-card algorithm_run_id.
+    CardOutcome {
+        #[arg(long)]
+        algorithm_run_id: String,
+        #[arg(long)]
+        actual_outcome: String,
+        #[arg(long)]
+        score: Option<f64>,
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long = "evidence-ref")]
+        evidence_refs: Vec<String>,
+        #[arg(long)]
+        notes: Option<String>,
+    },
     /// Verify expected project identity signals against discovered ProjectIdentity.
     Verify {
         #[arg(long)]
@@ -117,6 +132,17 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 format!("/v1/project/card?{}", qs.join("&"))
             };
             ("card", api.get(&path).await?)
+        }
+        ProjectCmd::CardOutcome { algorithm_run_id, actual_outcome, score, project_root, evidence_refs, notes } => {
+            let body = json!({
+                "algorithm_run_id": algorithm_run_id,
+                "actual_outcome": actual_outcome,
+                "score": score,
+                "project_root": project_root,
+                "evidence_refs": evidence_refs,
+                "notes": notes,
+            });
+            ("card-outcome", api.post("/v1/project/card/outcome", &body).await?)
         }
         ProjectCmd::Verify {
             cwd,

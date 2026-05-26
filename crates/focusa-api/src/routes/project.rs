@@ -35,6 +35,17 @@ pub struct ProjectVerifyRequest {
     pub repo_remote: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct ProjectCardOutcomeRequest {
+    pub algorithm_run_id: String,
+    pub actual_outcome: String,
+    pub score: Option<f64>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub project_root: Option<String>,
+    pub notes: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 struct ProjectSignal {
     source: &'static str,
@@ -1366,6 +1377,10 @@ fn project_card_runs_path() -> PathBuf {
     focusa_data_dir().join("project_card_algorithm_runs.jsonl")
 }
 
+fn project_card_outcomes_path() -> PathBuf {
+    focusa_data_dir().join("project_card_algorithm_outcomes.jsonl")
+}
+
 fn default_project_card_weights() -> BTreeMap<String, f64> {
     BTreeMap::from([
         ("trajectory".to_string(), 0.24),
@@ -1404,14 +1419,107 @@ fn update_project_card_weights(mut weights: BTreeMap<String, f64>, prediction_ac
     weights
 }
 
-fn append_project_card_algorithm_run(run: &Value) {
-    let path = project_card_runs_path();
+fn append_jsonl(path: PathBuf, record: &Value) {
     if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
     if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path)
-        && let Ok(line) = serde_json::to_string(run)
+        && let Ok(line) = serde_json::to_string(record)
     {
         let _ = writeln!(file, "{line}");
     }
+}
+
+fn append_project_card_algorithm_run(run: &Value) {
+    append_jsonl(project_card_runs_path(), run);
+}
+
+fn append_project_card_algorithm_outcome(outcome: &Value) {
+    append_jsonl(project_card_outcomes_path(), outcome);
+}
+
+fn project_card_run_exists(algorithm_run_id: &str) -> bool {
+    let needle = format!("\"algorithm_run_id\":\"{}\"", algorithm_run_id.replace('"', ""));
+    fs::read_to_string(project_card_runs_path())
+        .map(|text| text.lines().any(|line| line.contains(&needle)))
+        .unwrap_or(false)
+}
+
+fn update_weights_from_algorithm_outcome(score: f64) -> BTreeMap<String, f64> {
+    let weights = load_project_card_weights();
+    let updated = update_project_card_weights(weights, score.clamp(0.0, 1.0), 1);
+    persist_project_card_weights(&updated);
+    updated
+}
+
+fn recent_jsonl_values(path: PathBuf, limit: usize) -> Vec<Value> {
+    fs::read_to_string(path)
+        .map(|text| {
+            let mut values = text
+                .lines()
+                .rev()
+                .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+                .take(limit)
+                .collect::<Vec<_>>();
+            values.reverse();
+            values
+        })
+        .unwrap_or_default()
+}
+
+fn sequence_probability(algorithmic: &Value, key: &str) -> f64 {
+    algorithmic
+        .get("action_probabilities")
+        .and_then(|v| v.get(key))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0)
+}
+
+fn project_success_sequence(
+    project_name: &str,
+    long_term_goal: Option<&str>,
+    desired_end_state: Option<&str>,
+    current_state: Option<&str>,
+    active_gap: Option<&str>,
+    algorithmic: &Value,
+) -> Value {
+    let execute_p = sequence_probability(algorithmic, "execute_next_step");
+    let refresh_p = sequence_probability(algorithmic, "refresh_trajectory");
+    let learn_p = sequence_probability(algorithmic, "evaluate_predictions_and_lessons");
+    let hlg = long_term_goal.unwrap_or("unknown high-level goal");
+    let desired = desired_end_state.unwrap_or("verified successful end state");
+    let current = current_state.unwrap_or("current state unclear");
+    let gap = active_gap.unwrap_or("refresh project card and trajectory gap");
+    let events = vec![
+        json!({"order": 1, "event": "orient_project_card", "goal_link": hlg, "action": "Read project card, ontology objects, trajectory hierarchy, active Workpoint, prediction stats, and metacog prompts.", "tool_route": ["focusa_project_card", "focusa_traverse", "focusa_trajectory_view"], "success_metric": "project identity, trajectory, ontology, evidence, prediction, and learning context are visible"}),
+        json!({"order": 2, "event": "refresh_or_confirm_trajectory", "goal_link": hlg, "action": format!("Confirm path from '{current}' to '{desired}' and isolate active gap: {gap}"), "tool_route": ["focusa_trajectory_assess", "focusa_trajectory_define_goal"], "success_metric": "HLG/desired/current/gap alignment is explicit"}),
+        json!({"order": 3, "event": "retrieve_lessons", "goal_link": hlg, "action": "Retrieve metacog lessons and anti-patterns relevant to this project goal and gap.", "tool_route": ["focusa_metacog_retrieve", "focusa_metacog_doctor"], "success_metric": "top reusable lessons influence the next action"}),
+        json!({"order": 4, "event": "forecast_next_action", "goal_link": hlg, "action": "Record bounded prediction for the selected next action, with ontology refs and evidence expectation.", "tool_route": ["focusa_predict_record"], "success_metric": "prediction exists before action is claimed"}),
+        json!({"order": 5, "event": "execute_highest_ev_slice", "goal_link": hlg, "action": format!("Execute the smallest high expected-value slice toward: {gap}"), "tool_route": ["focusa_active_object_resolve", "focusa_workpoint_checkpoint"], "success_metric": "small slice completed without drift"}),
+        json!({"order": 6, "event": "prove_outcome", "goal_link": desired, "action": "Capture evidence and link it to the active Workpoint/trajectory gap.", "tool_route": ["focusa_evidence_capture", "focusa_workpoint_link_evidence", "focusa_trajectory_assess"], "success_metric": "proof handle exists and trajectory state is updated"}),
+        json!({"order": 7, "event": "evaluate_and_compound", "goal_link": hlg, "action": "Evaluate predictions, capture condensed lesson, persist algorithm run, and update learned weights.", "tool_route": ["focusa_predict_evaluate", "focusa_metacog_capture", "focusa_project_card"], "success_metric": "future project cards get better from this outcome"}),
+    ];
+    let recommended_first = if refresh_p >= execute_p && refresh_p >= learn_p {
+        "refresh_or_confirm_trajectory"
+    } else if learn_p >= execute_p {
+        "retrieve_lessons"
+    } else {
+        "execute_highest_ev_slice"
+    };
+    json!({
+        "schema": "focusa.project_success_sequence.v1",
+        "advisory_only": true,
+        "project": project_name,
+        "long_term_goal": hlg,
+        "desired_end_state": desired,
+        "active_gap": gap,
+        "recommended_first_event": recommended_first,
+        "ranking_basis": {
+            "execute_probability": execute_p,
+            "refresh_probability": refresh_p,
+            "learn_probability": learn_p,
+            "expected_utility": algorithmic.get("expected_utility").cloned().unwrap_or(Value::Null)
+        },
+        "events": events
+    })
 }
 
 fn project_card_algorithmic_scores(
@@ -1537,8 +1645,27 @@ async fn card(
         "reference_handles": reference_handles,
         "workpoint_verifications": workpoint_verifications,
     });
+    let recent_frames = focusa.focus_stack.frames.iter().rev().take(5).map(|frame| json!({
+        "frame_id": frame.id,
+        "title": frame.title,
+        "goal": frame.goal,
+        "project_root": frame.project_root,
+        "continuity_id": frame.continuity_id,
+        "status": format!("{:?}", frame.status),
+    })).collect::<Vec<_>>();
+    let recent_decisions = focusa.focus_stack.frames.iter().rev()
+        .flat_map(|frame| frame.focus_state.decisions.iter().rev().take(4).cloned())
+        .take(10)
+        .collect::<Vec<_>>();
+    let focus_goal_signals = focusa.focus_stack.frames.iter().rev().take(5).map(|frame| json!({
+        "intent": frame.focus_state.intent,
+        "current_state": frame.focus_state.current_state,
+        "next_steps": frame.focus_state.next_steps.iter().take(3).cloned().collect::<Vec<_>>(),
+        "recent_results": frame.focus_state.recent_results.iter().take(3).cloned().collect::<Vec<_>>(),
+    })).collect::<Vec<_>>();
     drop(focusa);
 
+    let recent_algorithm_outcomes = recent_jsonl_values(project_card_outcomes_path(), 5);
     let predictions = read_predictions();
     let prediction = prediction_stats_card(&predictions);
     let current_ask = query.current_ask.as_deref().unwrap_or_default().trim();
@@ -1580,6 +1707,31 @@ async fn card(
         .filter(|value| !value.trim().is_empty())
         .or_else(|| if current_ask.is_empty() { None } else { Some(current_ask.to_string()) })
         .unwrap_or_else(|| "refresh trajectory from project card".to_string());
+    let sequence_plan = project_success_sequence(
+        project_name,
+        trajectory_hlt.as_deref(),
+        trajectory.as_ref().and_then(|t| t.mlg.as_deref()).or(Some("verified successful end state")),
+        None,
+        Some(&next_gap),
+        &algorithmic_intelligence,
+    );
+    let trajectory_waypoints = trajectory.as_ref().map(|t| t.waypoints.clone()).unwrap_or_default();
+    let prior_session_context = json!({
+        "schema": "focusa.project_prior_context.v1",
+        "advisory_only": true,
+        "trajectory_ladder": {
+            "high_level_goal": trajectory_hlt,
+            "mid_level_goal": trajectory.as_ref().and_then(|t| t.mlg.clone()),
+            "short_term_goal": trajectory_stg,
+            "waypoints": trajectory_waypoints,
+        },
+        "recent_frames": recent_frames,
+        "recent_decisions": recent_decisions,
+        "focus_goal_signals": focus_goal_signals,
+        "recent_algorithm_outcomes": recent_algorithm_outcomes,
+        "prediction_summary": prediction.clone(),
+        "metacognition_prompt": "Retrieve lessons for the trajectory ladder, recent decisions, outcomes, and current ask before defining bootstrap goals."
+    });
 
     Json(json!({
         "status": "completed",
@@ -1592,6 +1744,8 @@ async fn card(
         "prediction": prediction,
         "algorithmic_intelligence": algorithmic_intelligence,
         "algorithm_run_id": algorithm_run_id,
+        "success_sequence": sequence_plan,
+        "prior_session_context": prior_session_context,
         "metacognition": {
             "summary": "Retrieve relevant lessons with /v1/metacognition/retrieve using project card + current ask.",
             "next_tools": ["focusa_metacog_retrieve", "focusa_metacog_doctor"]
@@ -1603,6 +1757,7 @@ async fn card(
                 "long_term_goal": format!("Strengthen {project_name} project intelligence through ontology-grounded trajectory, evidence, prediction, and metacog loops"),
                 "desired_end_state": format!("{project_name} has an up-to-date project card, trajectory hierarchy, evidence-backed next step, evaluated predictions, and condensed reusable lessons"),
                 "short_term_goal": next_gap,
+                "prior_context_inputs": ["trajectory_ladder", "recent_decisions", "prediction_summary", "recent_algorithm_outcomes", "metacognition_prompt"],
                 "goal_source": "project_card_learning_flywheel"
             },
             "next_tools": if bootstrap_needed { json!(["focusa_trajectory_define_goal", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"]) } else { json!(["focusa_trajectory_assess", "focusa_metacog_retrieve", "focusa_predict_record"]) }
@@ -1617,11 +1772,56 @@ async fn card(
     }))
 }
 
+async fn card_outcome(Json(body): Json<ProjectCardOutcomeRequest>) -> Json<Value> {
+    let algorithm_run_id = body.algorithm_run_id.trim();
+    if algorithm_run_id.is_empty() || body.actual_outcome.trim().is_empty() {
+        return Json(json!({
+            "status": "blocked",
+            "failure_class": "validation_rejected",
+            "reason": "algorithm_run_id and actual_outcome are required",
+            "next_tools": ["focusa_project_card"]
+        }));
+    }
+    if !project_card_run_exists(algorithm_run_id) {
+        return Json(json!({
+            "status": "not_found",
+            "failure_class": "not_found",
+            "algorithm_run_id": algorithm_run_id,
+            "recovery_hint": "call /v1/project/card to create a fresh algorithm_run_id, then attach the outcome",
+            "next_tools": ["focusa_project_card"]
+        }));
+    }
+    let score = body.score.unwrap_or(1.0).clamp(0.0, 1.0);
+    let learned_weights = update_weights_from_algorithm_outcome(score);
+    let outcome_id = uuid::Uuid::now_v7().to_string();
+    let record = json!({
+        "outcome_id": outcome_id,
+        "algorithm_run_id": algorithm_run_id,
+        "ts": chrono::Utc::now().to_rfc3339(),
+        "project_root": body.project_root,
+        "actual_outcome": body.actual_outcome,
+        "score": score,
+        "evidence_refs": body.evidence_refs,
+        "notes": body.notes,
+        "learned_weights_after": learned_weights,
+        "formula_version": "project_card_algorithmic_intelligence.v1"
+    });
+    append_project_card_algorithm_outcome(&record);
+    Json(json!({
+        "status": "recorded",
+        "schema": "focusa.project_card_algorithm_outcome.v1",
+        "outcome": record,
+        "storage": {"outcomes_path": project_card_outcomes_path().to_string_lossy(), "weights_path": project_card_weights_path().to_string_lossy()},
+        "flywheel": {"outcome_to_weights": true, "next_tools": ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"]}
+    }))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/project/identity", get(identity))
         .route("/v1/project/verify", post(verify))
         .route("/v1/project/card", get(card))
+        .route("/v1/project/card/outcome", post(card_outcome))
 }
 
 #[cfg(test)]

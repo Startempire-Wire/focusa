@@ -38,9 +38,11 @@ Then they produce:
 ## Persistence and learning
 
 - Algorithm-run ledger: `project_card_algorithm_runs.jsonl`
+- Algorithm-outcome ledger: `project_card_algorithm_outcomes.jsonl`
 - Learned weights: `project_card_signal_weights.json`
 - Each project-card call records signals, weights, scores, probabilities, expected utility, project root, current ask, and formula version.
-- Weights update conservatively from evaluated prediction accuracy and remain clamped for stability.
+- `POST /v1/project/card/outcome` / `focusa project card-outcome` attaches final results to a specific `algorithm_run_id`.
+- Weights update conservatively from evaluated prediction accuracy and explicit algorithm-run outcomes, and remain clamped for stability.
 - Storage stays portable and append-friendly: no DB migration required for local-first installs.
 
 ## Why these first

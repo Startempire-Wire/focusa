@@ -47,6 +47,28 @@ A project card should summarize:
 - metacognition: top reusable lessons and anti-patterns
 - possibilities: bounded next options ranked by evidence and expected value
 
+## Prior-informed bootstrap
+
+`GET /v1/project/card` includes `prior_session_context`, so bootstrap candidates can be informed by previous sessions instead of starting blank. The packet carries the trajectory ladder (HLG/MLG/STG/waypoints), recent Focus decisions, recent frame goals/results, prediction summary, recent algorithm-run outcomes, and a metacog retrieval prompt.
+
+## Trajectory Success Sequence
+
+`GET /v1/project/card` includes `success_sequence`, an advisory ordered event plan derived from the high-level trajectory goal, active gap, ontology context, prediction probabilities, metacog prompts, and expected utility.
+
+The sequence stages are:
+
+1. orient project card,
+2. refresh/confirm trajectory,
+3. retrieve lessons,
+4. forecast next action,
+5. execute highest expected-value slice,
+6. prove outcome,
+7. evaluate and compound.
+
+This lets a model ask: **what event should happen next for the most productive/profitable/successful path?** The answer stays advisory; operator steering and explicit trajectory writes remain authoritative.
+
+Bootstrap quality rule: when prior data exists, define or refresh HLG/MLG/STG from `prior_session_context` plus explicit operator steering; use predictions for risk/expected-value, metacog for reusable lessons, and decisions for durable architectural boundaries.
+
 ## Next-step quality rule
 
 A next step is strong when it is:
