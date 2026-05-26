@@ -2,7 +2,7 @@
 
 **Source spec:** [`TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)  
 **Audit source:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
-**Last updated:** after `git:9de260c`.
+**Last updated:** after `git:f1de649`.
 
 ## Implemented in the current menubar slice
 
@@ -15,7 +15,7 @@
 - Read-only peeks exist for Trajectory, Workpoint, Proof, and Work Loop.
 - Default Focus view now restores original bubble/cloud spirit: current bubble, background clouds, ambient stack depth, and quieter empty states.
 - Gate/Sync copy now frames signals and peers as ambient awareness, not focus-changing control UI.
-- Static guard exists at `tests/spec96_menubar_cockpit_foundation_static_test.sh`.
+- Static guard exists at `tests/spec96_menubar_cockpit_foundation_static_test.sh` and now checks current version plus manual release-proof gating.
 
 ## Remaining Phase 0 gaps — foundation
 
@@ -27,7 +27,7 @@
 
 - Navigation is visually calmer but still implemented as tabs; future work should evolve this into true peek drawers while keeping keyboard/accessibility behavior.
 - Ambient menubar icon state is not yet driven by daemon/project/workpoint/work-loop readiness.
-- Release proof remains a placeholder card instead of reading a real release/proof artifact state.
+- Release proof is explicitly manual-gated (`manual_proof_required`) until a real release/proof artifact state is available from an API or artifact source.
 
 ## Remaining Phase 2+ gaps — depth
 
