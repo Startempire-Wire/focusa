@@ -16,6 +16,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -1565,6 +1566,67 @@ fn sequence_probability(algorithmic: &Value, key: &str) -> f64 {
         .unwrap_or(0.0)
 }
 
+fn git_lines(project_root: &str, args: &[&str], limit: usize) -> Vec<String> {
+    if project_root.trim().is_empty() || !Path::new(project_root).exists() { return vec![]; }
+    Command::new("git")
+        .arg("-C")
+        .arg(project_root)
+        .args(args)
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).lines().map(str::trim).filter(|line| !line.is_empty()).take(limit).map(str::to_string).collect())
+        .unwrap_or_default()
+}
+
+fn infer_action_from_paths(paths: &[String], current_ask: &str) -> String {
+    let joined = format!("{} {}", current_ask.to_lowercase(), paths.join(" ").to_lowercase());
+    if joined.contains("test") || joined.contains("spec") { "verify_or_fix_tests".to_string() }
+    else if joined.contains("doc") || joined.contains("readme") { "update_docs".to_string() }
+    else if joined.contains("route") || joined.contains("api") { "patch_api_flow".to_string() }
+    else if joined.contains("component") || joined.contains("svelte") || joined.contains("ui") { "patch_ui_flow".to_string() }
+    else if joined.contains("config") || joined.contains("package") { "patch_configuration".to_string() }
+    else { "infer_and_continue_project_slice".to_string() }
+}
+
+fn inferred_workpoint_candidate(
+    project_root: Option<&str>,
+    current_ask: &str,
+    trajectory_stg: Option<&str>,
+    active_workpoint: &Option<Value>,
+    prediction: &Value,
+    ontology: &Value,
+    recent_frames: &[Value],
+    recent_decisions: &[String],
+    focus_goal_signals: &[Value],
+) -> Value {
+    let Some(root) = project_root.filter(|root| !root.trim().is_empty()) else { return Value::Null; };
+    let status = git_lines(root, &["status", "--short"], 12);
+    let changed = if status.is_empty() { git_lines(root, &["diff", "--name-only", "HEAD"], 12) } else { status.iter().map(|line| line.trim_start_matches(|c: char| c.is_whitespace() || c == 'M' || c == 'A' || c == 'D' || c == 'R' || c == '?' || c == '!').trim().to_string()).collect::<Vec<_>>() };
+    let recent = git_lines(root, &["log", "--name-only", "--pretty=format:", "-n", "3"], 16);
+    let target_objects = changed.iter().chain(recent.iter()).filter(|line| !line.trim().is_empty()).take(10).cloned().collect::<Vec<_>>();
+    let prediction_total = prediction.get("total").and_then(Value::as_u64).unwrap_or(0);
+    let ontology_objects = ontology.get("objects").and_then(Value::as_u64).unwrap_or(0);
+    let source_count = status.len() + recent.len() + usize::from(active_workpoint.is_some()) + usize::from(!current_ask.trim().is_empty()) + usize::from(trajectory_stg.is_some()) + recent_frames.len() + recent_decisions.len() + focus_goal_signals.len() + usize::from(prediction_total > 0) + usize::from(ontology_objects > 0);
+    if source_count == 0 { return Value::Null; }
+    let action_type = infer_action_from_paths(&target_objects, current_ask);
+    let next_action = trajectory_stg.filter(|s| !s.trim().is_empty()).or_else(|| if current_ask.trim().is_empty() { None } else { Some(current_ask) }).unwrap_or("infer next slice from recent project activity");
+    json!({
+        "schema": "focusa.inferred_workpoint_candidate.v1",
+        "advisory_only": true,
+        "inference_reason": "verified project scope but no canonical Workpoint packet; infer from prior session workpath, prediction, metacognition prompt, ontology, trajectory STG, file changes, git activity, current ask, and prior active Workpoint when available",
+        "confidence": if !target_objects.is_empty() && (!current_ask.trim().is_empty() || trajectory_stg.is_some()) { "medium" } else { "low" },
+        "project_root": root,
+        "mission": next_action,
+        "current_action": action_type,
+        "next_action": next_action,
+        "target_objects": target_objects,
+        "source_signals": {"git_status": status, "git_recent_files": recent, "prior_session_workpath": recent_frames, "recent_decisions": recent_decisions, "focus_goal_signals": focus_goal_signals, "prediction_summary": prediction, "ontology_summary": ontology, "metacognition_prompt": "retrieve lessons for inferred Workpoint before checkpointing", "had_prior_workpoint": active_workpoint.is_some(), "current_ask_present": !current_ask.trim().is_empty(), "trajectory_stg_present": trajectory_stg.is_some()},
+        "checkpoint_payload_hint": {"mission": next_action, "current_action": action_type, "target_objects": target_objects, "next_action": next_action, "canonical": true},
+        "operator_prompt_required": false
+    })
+}
+
 fn project_success_sequence(
     project_name: &str,
     long_term_goal: Option<&str>,
@@ -1875,6 +1937,17 @@ async fn card(
         .filter(|value| !value.trim().is_empty())
         .or_else(|| if current_ask.is_empty() { None } else { Some(current_ask.to_string()) })
         .unwrap_or_else(|| "refresh trajectory from project card".to_string());
+    let inferred_workpoint = inferred_workpoint_candidate(
+        project.get("project_root").and_then(Value::as_str),
+        current_ask,
+        trajectory_stg.as_deref(),
+        &active_workpoint,
+        &prediction,
+        &ontology,
+        &recent_frames,
+        &recent_decisions,
+        &focus_goal_signals,
+    );
     let sequence_plan = project_success_sequence(
         project_name,
         trajectory_hlt.as_deref(),
@@ -1926,6 +1999,7 @@ async fn card(
         "algorithmic_intelligence": algorithmic_intelligence,
         "algorithm_run_id": algorithm_run_id,
         "success_sequence": sequence_plan,
+        "inferred_workpoint_candidate": inferred_workpoint,
         "efficiency_summary": efficiency_summary,
         "trajectory_report_card": trajectory_report_card,
         "crosswire_health": crosswire_health,
@@ -1941,10 +2015,11 @@ async fn card(
                 "long_term_goal": format!("Strengthen {project_name} project intelligence through ontology-grounded trajectory, evidence, prediction, and metacog loops"),
                 "desired_end_state": format!("{project_name} has an up-to-date project card, trajectory hierarchy, evidence-backed next step, evaluated predictions, and condensed reusable lessons"),
                 "short_term_goal": next_gap,
-                "prior_context_inputs": ["trajectory_ladder", "recent_decisions", "prediction_summary", "recent_algorithm_outcomes", "metacognition_prompt"],
+                "prior_context_inputs": ["trajectory_ladder", "recent_decisions", "prediction_summary", "recent_algorithm_outcomes", "metacognition_prompt", "inferred_workpoint_candidate"],
+                "inferred_workpoint_candidate": inferred_workpoint,
                 "goal_source": "project_card_learning_flywheel"
             },
-            "next_tools": if bootstrap_needed { json!(["focusa_trajectory_define_goal", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"]) } else { json!(["focusa_trajectory_assess", "focusa_metacog_retrieve", "focusa_predict_record"]) }
+            "next_tools": if bootstrap_needed { json!(["focusa_trajectory_define_goal", "focusa_workpoint_checkpoint", "focusa_trajectory_view", "focusa_metacog_retrieve", "focusa_predict_record"]) } else { json!(["focusa_workpoint_checkpoint", "focusa_trajectory_assess", "focusa_metacog_retrieve", "focusa_predict_record"]) }
         },
         "possibilities": [
             {"kind": "trajectory_refresh", "action": "assess whether current project card evidence changes active trajectory gap"},

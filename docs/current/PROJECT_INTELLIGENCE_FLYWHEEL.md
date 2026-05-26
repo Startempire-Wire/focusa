@@ -33,7 +33,7 @@ At session start, project resume, low-confidence trajectory, or stale goal detec
 5. relevant metacog lessons
 6. evidence/workpoint state
 
-If no current trajectory exists, the bootstrap prompt should offer a **learning-informed trajectory** as the first draft. If a trajectory exists but conflicts with evidence/predictions/lessons, re-bootstrap should propose a refreshed hierarchy rather than silently continue stale goals. The card is advisory-only; `focusa_trajectory_define_goal` remains the explicit write path.
+If no current trajectory exists, the bootstrap prompt should offer a **learning-informed trajectory** as the first draft. If a trajectory exists but conflicts with evidence/predictions/lessons, re-bootstrap should propose a refreshed hierarchy rather than silently continue stale goals. If project scope is verified but no canonical Workpoint packet exists, bootstrap returns `inferred_workpoint_candidate` from prior session workpath, prediction summary, metacog prompt, ontology/effective objects, trajectory STG, current ask, file changes, git status/log, and prior Focusa activity so an agent can checkpoint and continue without punting the inference back to the operator. The card is advisory-only; `focusa_trajectory_define_goal` remains the explicit trajectory write path and `focusa_workpoint_checkpoint` remains the explicit Workpoint write path.
 
 ## Project card fields
 

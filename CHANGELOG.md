@@ -4,6 +4,7 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+- Expanded bootstrap `inferred_workpoint_candidate` to use prior session workpath, prediction, metacog prompt, ontology, trajectory STG, file changes, git activity, current ask, and prior Workpoint signals.
 - Added project-card `crosswire_health` and effective ontology bridge status so reporting cards show whether each signal feeds future predictions.
 - Documented TrajectoryReporting elapsed/token cards across public API, CLI, README, project-card, and prediction algorithm docs.
 - Added TrajectoryReporting card fields for HLT/LTG/MTG/STG, waypoint accomplishment status, elapsed wall-clock time, and token efficiency.
