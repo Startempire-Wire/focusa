@@ -23,5 +23,10 @@ assert_has docs/current/RUNTIME_CONFIG_KEYS.md 'evaluation_memory|/v1/metacognit
 assert_has docs/focusa-tools/work-loop.md '/v1/work-loop/health.*dispatch readiness' 'work-loop tool docs include health readiness semantics'
 assert_has docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md 'promote.*retrieval memory|evaluations/recent|recent-evaluations' 'metacog evaluate tool doc includes persisted evaluation/promotion readback'
 assert_has docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md 'Metacognition evaluation.*durable readback|Ontology memory pipeline.*prediction follow-up|Public licensing metadata' 'tool audit documents latest gap closures'
+assert_has README.md 'focusa status --operator|focusa workpoint resume --copy-prompt|scripts/demo-workpoint-happy-path.sh' 'README reflects Operator Preview command surface'
+assert_has docs/current/CLI_REFERENCE_CURRENT.md 'status --operator|workpoint resume --copy-prompt|focusa onboard --agent manual' 'CLI reference reflects Operator Preview commands'
+assert_has docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md 'focusa onboard --agent pi|focusa status --operator|focusa workpoint resume --copy-prompt|scripts/demo-workpoint-happy-path.sh' 'Operator Preview proof keeps golden path commands'
+assert_has docs/current/NON_PI_AGENT_FOCUSA_USAGE.md 'focusa workpoint resume --copy-prompt|focusa status --operator' 'Non-Pi docs include manual continuation commands'
+assert_has docs/current/VALIDATION_AND_RELEASE_PROOF.md 'focusa status --operator|focusa workpoint resume --copy-prompt|scripts/demo-workpoint-happy-path.sh' 'Release proof includes Operator Preview validation commands'
 
-echo "SPEC96 Public docs current features static test: PASS"
+ echo "SPEC96 Public docs current features static test: PASS"
