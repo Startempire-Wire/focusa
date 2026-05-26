@@ -25,6 +25,8 @@ focusa_metacog_capture kind="docs_workflow" content="One tool per doc improves p
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
+When an active project trajectory exists, metacognition records and hot-index tags can include bounded `trajectory` context. Use it to retrieve reusable lessons by HLT/MLG/STG alignment; it remains advisory and does not override project_root + continuity_id.
+
 ## Recovery notes
 
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.

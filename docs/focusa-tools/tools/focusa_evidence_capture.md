@@ -31,6 +31,8 @@ The tool should return a visible summary plus structured details. For Pi tools, 
 
 Project-aware results include `details.project_root_permission_posture` with root owner, current user, cross-user `/home` posture, and `as-user` guidance before file-affecting follow-up work.
 
+Trajectory-aware evidence: when an active project trajectory exists, resulting ECS/reference handles and bounded evidence surfaces can carry `trajectory` context (`trajectory_id`, `hlt`, `mlg`, `stg`, waypoints, project root, continuity id). Treat that context as proof alignment metadata, not as Workpoint identity authority.
+
 ## Recovery notes
 
 - If Focusa is unavailable, run `focusa_tool_doctor` or check `/v1/health`.

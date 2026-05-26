@@ -24,6 +24,8 @@ A successful call returns a bounded slice, traversal metadata, stable tags, and 
 
 Current adapters include `trajectory`, `lineage`, `ontology`, `focus_stack`, `workpoints`, `evidence`/`ecs`/`references`, `metacognition`, `predictions`, `telemetry`/`commands`/`turns`, `snapshots`, and `tool_registry`/`capabilities`. Defaults are bounded; full payloads require explicit cold opt-in.
 
+Trajectory context: `trajectory` slices expose the ladder directly; `evidence`/`ecs`/`references` default projections include bounded handle-level `trajectory` context when present so proof handles remain HLT/STG-aligned without requesting full payloads.
+
 ## Output contract
 
 Responses include `items`, `traversal` metadata, `tag_scheme`, item/range/window/surface `tags`, `verified_tags`, `stale_tags`, `canonical/degraded`, `failure_class`, `next_tools`, and `details.tool_result_v1`.
