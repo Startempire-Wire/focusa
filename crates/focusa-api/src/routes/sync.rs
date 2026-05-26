@@ -160,6 +160,21 @@ fn sync_validation_failed(
     )
 }
 
+fn sync_validation_rejected(
+    field: &str,
+    reason: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
+    sync_failure(
+        StatusCode::BAD_REQUEST,
+        format!("rejected {field}: {reason}"),
+        "validation_rejected",
+        format!("Sync field {field} is not accepted by this endpoint."),
+        "Remove the rejected field or move the secret to approved secret storage before retrying.",
+        "Likely unsafe secret persistence or unsupported sync credential configuration.",
+        &["focusa_tool_doctor"],
+    )
+}
+
 #[derive(Deserialize)]
 struct RegisterPeerBody {
     peer_id: String,
@@ -193,6 +208,17 @@ async fn register_peer(
     State(state): State<Arc<AppState>>,
     Json(body): Json<RegisterPeerBody>,
 ) -> SyncResult {
+    if body
+        .auth_token
+        .as_deref()
+        .map(|token| !token.trim().is_empty())
+        .unwrap_or(false)
+    {
+        return Err(sync_validation_rejected(
+            "auth_token",
+            "peer auth_token persistence is disabled; configure peer auth outside Focusa state until encrypted secret storage exists",
+        ));
+    }
     state
         .persistence
         .add_peer(

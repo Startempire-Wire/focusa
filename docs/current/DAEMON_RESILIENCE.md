@@ -57,7 +57,7 @@ Relevant config keys:
 ```json
 {
   "daemonAutoRestart": true,
-  "daemonRestartCommand": "systemctl start focusa-daemon || systemctl restart focusa-daemon",
+  "daemonRestartCommand": "systemctl restart focusa-daemon",
   "daemonRestartCooldownMs": 5000,
   "daemonRestartMaxPerHour": 20,
   "daemonRecoveryProbeMs": 750

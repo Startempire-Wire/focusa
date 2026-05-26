@@ -26,8 +26,8 @@ if unwrap_hits:
     sys.exit(1)
 
 shell_patterns = [
-    ('apps/pi-extension/src/state.ts', 'S.pi!.exec("bash", ["-lc", cmd])'),
-    ('apps/pi-extension/src/config.ts', 'systemctl start focusa-daemon || systemctl restart focusa-daemon'),
+    ('apps/pi-extension/src/state.ts', 'S.pi!.exec("systemctl", ["restart", "focusa-daemon"])'),
+    ('apps/pi-extension/src/config.ts', 'DEFAULT_DAEMON_RESTART_COMMAND = "systemctl restart focusa-daemon"'),
     ('crates/focusa-cli/src/commands/release.rs', 'Command::new("bash").arg("-lc").arg(command).output()'),
     ('crates/focusa-core/src/runtime/daemon.rs', 'tokio::process::Command::new("bash")'),
 ]

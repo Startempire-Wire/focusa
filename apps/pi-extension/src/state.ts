@@ -840,7 +840,8 @@ export async function kickstartFocusaDaemon(reason = "health_check"): Promise<bo
   const cmd = S.cfg.daemonRestartCommand || DEFAULT_DAEMON_RESTART_COMMAND;
   S.daemonRestartInFlight = (async () => {
     try {
-      await S.pi!.exec("bash", ["-lc", cmd]);
+      if (cmd !== DEFAULT_DAEMON_RESTART_COMMAND) return false;
+      await S.pi!.exec("systemctl", ["restart", "focusa-daemon"]);
       for (let i = 0; i < 12; i++) {
         await sleep(S.cfg?.daemonRecoveryProbeMs || 750);
         const h = await focusaFetch("/health");

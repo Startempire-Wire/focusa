@@ -6,8 +6,7 @@ import { dirname, join } from "path";
 
 const RESERVED_PI_KEYS = new Set(["extensions", "skills", "prompts", "themes", "packages"]);
 
-export const DEFAULT_DAEMON_RESTART_COMMAND =
-  "if command -v focusa-daemon >/dev/null 2>&1; then nohup focusa-daemon >/tmp/focusa-daemon.log 2>&1 & elif command -v systemctl >/dev/null 2>&1; then systemctl start focusa-daemon || systemctl restart focusa-daemon; else exit 127; fi";
+export const DEFAULT_DAEMON_RESTART_COMMAND = "systemctl restart focusa-daemon";
 
 function isPlainObject(value: unknown): value is Record<string, any> {
   return !!value && typeof value === "object" && !Array.isArray(value);

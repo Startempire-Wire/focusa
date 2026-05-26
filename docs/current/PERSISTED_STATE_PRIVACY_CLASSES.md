@@ -25,7 +25,7 @@ Status: current privacy classification for local Focusa stores. Focusa is local-
 | Evidence refs | P1/P2 | Refs are handles; linked artifacts may be P3 and require separate protection. |
 | Telemetry/events | P1/P2 | Counts/status low risk; event payloads may include summaries. |
 | ECS/reference store | P2/P3 | Artifact offloading surface; use handles and retrieval budgets. |
-| Peer sync tokens | P4 | `auth_token` fields are credentials and must not be exposed in reports. |
+| Peer sync tokens | P4 | `auth_token` fields are credentials; peer registration rejects token persistence until encrypted secret storage exists. |
 
 ## Persistence rules
 
