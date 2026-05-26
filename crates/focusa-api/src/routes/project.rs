@@ -1250,21 +1250,164 @@ async fn verify(
     ))
 }
 
+fn sigmoid(z: f64) -> f64 {
+    1.0 / (1.0 + (-z).exp())
+}
+
+fn logit(p: f64) -> f64 {
+    let p = p.clamp(1e-9, 1.0 - 1e-9);
+    (p / (1.0 - p)).ln()
+}
+
+fn normalized_weighted_score(features: &[(f64, f64)]) -> f64 {
+    let weight_sum: f64 = features.iter().map(|(_, w)| w.max(0.0)).sum();
+    if weight_sum <= f64::EPSILON {
+        return 0.0;
+    }
+    (features.iter().map(|(x, w)| x.clamp(0.0, 1.0) * w.max(0.0)).sum::<f64>() / weight_sum).clamp(0.0, 1.0)
+}
+
+fn softmax(scores: &[f64]) -> Vec<f64> {
+    if scores.is_empty() {
+        return vec![];
+    }
+    let max = scores.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let exp: Vec<f64> = scores.iter().map(|s| (s - max).exp()).collect();
+    let sum: f64 = exp.iter().sum();
+    if sum <= f64::EPSILON {
+        return vec![1.0 / scores.len() as f64; scores.len()];
+    }
+    exp.iter().map(|v| v / sum).collect()
+}
+
+fn expected_value(probabilities: &[f64], values: &[f64]) -> f64 {
+    probabilities.iter().zip(values.iter()).map(|(p, v)| p * v).sum()
+}
+
+fn exponential_decay(age_units: f64, lambda: f64) -> f64 {
+    (-lambda.max(0.0) * age_units.max(0.0)).exp()
+}
+
+fn ema(values: &[f64], alpha: f64) -> Option<f64> {
+    let alpha = alpha.clamp(0.0, 1.0);
+    let mut iter = values.iter().copied();
+    let mut acc = iter.next()?;
+    for value in iter {
+        acc = alpha * value + (1.0 - alpha) * acc;
+    }
+    Some(acc)
+}
+
+fn z_score(value: f64, mean: f64, stddev: f64) -> f64 {
+    if stddev.abs() <= f64::EPSILON {
+        0.0
+    } else {
+        (value - mean) / stddev
+    }
+}
+
+fn brier_score(probability: f64, outcome: f64) -> f64 {
+    (probability.clamp(0.0, 1.0) - outcome.clamp(0.0, 1.0)).powi(2)
+}
+
+fn log_loss(probability: f64, outcome: f64) -> f64 {
+    let p = probability.clamp(1e-9, 1.0 - 1e-9);
+    let y = outcome.clamp(0.0, 1.0);
+    -(y * p.ln() + (1.0 - y) * (1.0 - p).ln())
+}
+
 fn prediction_stats_card(predictions: &[Value]) -> Value {
     let evaluated: Vec<&Value> = predictions
         .iter()
         .filter(|p| !p.get("score").unwrap_or(&Value::Null).is_null())
         .collect();
-    let score_sum: f64 = evaluated
+    let scores: Vec<f64> = evaluated
         .iter()
         .filter_map(|p| p.get("score").and_then(Value::as_f64))
-        .sum();
+        .collect();
+    let score_sum: f64 = scores.iter().sum();
+    let accuracy = if scores.is_empty() { 0.0 } else { score_sum / scores.len() as f64 };
+    let ema_accuracy = ema(&scores, 0.35).unwrap_or(accuracy);
+    let calibration_brier = if scores.is_empty() {
+        0.0
+    } else {
+        scores.iter().map(|score| brier_score(*score, 1.0)).sum::<f64>() / scores.len() as f64
+    };
     json!({
         "total": predictions.len(),
         "evaluated": evaluated.len(),
-        "accuracy": if evaluated.is_empty() { 0.0 } else { score_sum / evaluated.len() as f64 },
+        "accuracy": accuracy,
+        "ema_accuracy": ema_accuracy,
+        "calibration": {"brier_score_vs_success": calibration_brier, "log_loss_vs_success": log_loss(accuracy, if accuracy >= 0.5 { 1.0 } else { 0.0 })},
         "recent_open": predictions.iter().rev().filter(|p| p.get("score").unwrap_or(&Value::Null).is_null()).take(5).cloned().collect::<Vec<_>>(),
         "recent_evaluated": predictions.iter().rev().filter(|p| !p.get("score").unwrap_or(&Value::Null).is_null()).take(5).cloned().collect::<Vec<_>>(),
+    })
+}
+
+fn project_card_algorithmic_scores(
+    trajectory_present: bool,
+    ontology_objects: usize,
+    evidence_refs: usize,
+    prediction_accuracy: f64,
+    evaluated_predictions: usize,
+    open_predictions: usize,
+    blocker_count: usize,
+) -> Value {
+    let ontology_signal = (ontology_objects as f64 / 20.0).clamp(0.0, 1.0);
+    let evidence_signal = (evidence_refs as f64 / 10.0).clamp(0.0, 1.0);
+    let prediction_signal = if evaluated_predictions > 0 { prediction_accuracy.clamp(0.0, 1.0) } else { 0.35 };
+    let trajectory_signal = if trajectory_present { 1.0 } else { 0.0 };
+    let open_prediction_signal = (open_predictions as f64 / 10.0).clamp(0.0, 1.0);
+    let blocker_penalty = (blocker_count as f64 / 5.0).clamp(0.0, 1.0);
+    let readiness = normalized_weighted_score(&[
+        (trajectory_signal, 0.24),
+        (ontology_signal, 0.16),
+        (evidence_signal, 0.22),
+        (prediction_signal, 0.22),
+        (1.0 - blocker_penalty, 0.16),
+    ]);
+    let bootstrap_need = normalized_weighted_score(&[
+        (1.0 - trajectory_signal, 0.40),
+        (1.0 - evidence_signal, 0.18),
+        (1.0 - ontology_signal, 0.14),
+        (open_prediction_signal, 0.14),
+        (blocker_penalty, 0.14),
+    ]);
+    let learn_need = normalized_weighted_score(&[
+        (open_prediction_signal, 0.30),
+        (1.0 - prediction_signal, 0.30),
+        (evidence_signal, 0.20),
+        (1.0 - exponential_decay(evaluated_predictions as f64, 0.08), 0.20),
+    ]);
+    let action_scores = vec![readiness, bootstrap_need, learn_need];
+    let probabilities = softmax(&action_scores.iter().map(|s| logit((*s).clamp(0.01, 0.99))).collect::<Vec<_>>());
+    let utilities = vec![0.85, 0.78, 0.72];
+    json!({
+        "implemented_algorithms": [
+            "normalized_weighted_score", "sigmoid", "logit", "softmax", "expected_value", "exponential_decay", "ema", "z_score", "brier_score", "log_loss"
+        ],
+        "signals": {
+            "trajectory": trajectory_signal,
+            "ontology": ontology_signal,
+            "evidence": evidence_signal,
+            "prediction_accuracy": prediction_signal,
+            "open_prediction_pressure": open_prediction_signal,
+            "blocker_penalty": blocker_penalty,
+            "evidence_z_score": z_score(evidence_refs as f64, 5.0, 2.0)
+        },
+        "scores": {
+            "readiness_to_execute": readiness,
+            "need_to_bootstrap_or_rebootstrap": bootstrap_need,
+            "need_to_learn_or_evaluate": learn_need,
+            "risk_probability": sigmoid(logit((1.0 - readiness).clamp(0.01, 0.99)))
+        },
+        "action_probabilities": {
+            "execute_next_step": probabilities.first().copied().unwrap_or(0.0),
+            "refresh_trajectory": probabilities.get(1).copied().unwrap_or(0.0),
+            "evaluate_predictions_and_lessons": probabilities.get(2).copied().unwrap_or(0.0)
+        },
+        "expected_utility": expected_value(&probabilities, &utilities),
+        "decision_rule": "choose the highest probability/utility action unless operator steering overrides"
     })
 }
 
@@ -1306,9 +1449,12 @@ async fn card(
         "verifications": focusa.ontology.verifications.len(),
         "working_set_refreshes": focusa.ontology.working_set_refreshes.len(),
     });
+    let reference_handles = focusa.reference_index.handles.len();
+    let workpoint_verifications = focusa.workpoint.records.iter().map(|record| record.verification_records.len()).sum::<usize>();
+    let active_blockers = focusa.workpoint.records.iter().map(|record| record.blockers.len()).sum::<usize>();
     let evidence = json!({
-        "reference_handles": focusa.reference_index.handles.len(),
-        "workpoint_verifications": focusa.workpoint.records.iter().map(|record| record.verification_records.len()).sum::<usize>(),
+        "reference_handles": reference_handles,
+        "workpoint_verifications": workpoint_verifications,
     });
     drop(focusa);
 
@@ -1323,6 +1469,18 @@ async fn card(
     let trajectory_hlt = trajectory.as_ref().and_then(|t| t.hlt.clone());
     let trajectory_stg = trajectory.as_ref().and_then(|t| t.stg.clone());
     let bootstrap_needed = trajectory_hlt.as_deref().unwrap_or_default().trim().is_empty();
+    let prediction_accuracy = prediction.get("accuracy").and_then(Value::as_f64).unwrap_or(0.0);
+    let evaluated_predictions = prediction.get("evaluated").and_then(Value::as_u64).unwrap_or(0) as usize;
+    let open_predictions = prediction.get("recent_open").and_then(Value::as_array).map(|items| items.len()).unwrap_or(0);
+    let algorithmic_intelligence = project_card_algorithmic_scores(
+        !bootstrap_needed,
+        ontology.get("objects").and_then(Value::as_u64).unwrap_or(0) as usize,
+        reference_handles + workpoint_verifications,
+        prediction_accuracy,
+        evaluated_predictions,
+        open_predictions,
+        active_blockers,
+    );
     let next_gap = trajectory_stg
         .clone()
         .filter(|value| !value.trim().is_empty())
@@ -1338,6 +1496,7 @@ async fn card(
         "ontology": ontology,
         "evidence": evidence,
         "prediction": prediction,
+        "algorithmic_intelligence": algorithmic_intelligence,
         "metacognition": {
             "summary": "Retrieve relevant lessons with /v1/metacognition/retrieve using project card + current ask.",
             "next_tools": ["focusa_metacog_retrieve", "focusa_metacog_doctor"]

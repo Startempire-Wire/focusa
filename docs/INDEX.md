@@ -51,6 +51,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | current | [current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md](current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md) | Current maturity verdict for predictive and metacognitive feature sets |
 | current | [current/END_OF_TASK_LEARNING_LOOP.md](current/END_OF_TASK_LEARNING_LOOP.md) | Required prediction/metacog closure loop for compaction cards, trajectory reviews, and final work reports |
 | current | [current/PROJECT_INTELLIGENCE_FLYWHEEL.md](current/PROJECT_INTELLIGENCE_FLYWHEEL.md) | Ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding |
+| current | [current/PREDICTION_ALGORITHMS_IMPLEMENTED.md](current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) | Implemented lightweight prediction formulas behind project-card algorithmic intelligence |
 | current | [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) | Proposed project-vitals/stuck-detector/governor layer for continuous coding agents |
 | current | [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) | Five-part whole-project security review and remediation backlog |
 | current | [current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md) | Focusa mapped against OWASP ASVS, OWASP API Top 10, CWE Top 25, STRIDE, and CIS Controls v8 |
