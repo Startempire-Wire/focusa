@@ -40,7 +40,10 @@ pub async fn run(cmd: OntologyCmd, json: bool) -> anyhow::Result<()> {
                 .and_then(|v| v.as_array())
                 .map(|v| v.len())
                 .unwrap_or(0);
-            println!("ontology {}: action_types={} link_types={}", label, action_count, link_count);
+            println!(
+                "ontology {}: action_types={} link_types={}",
+                label, action_count, link_count
+            );
         }
         _ => {
             println!("{}", serde_json::to_string_pretty(&resp)?);

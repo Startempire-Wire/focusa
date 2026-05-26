@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Create a project-scoped trajectory goal candidate. It validates long-term goal and desired end state, records provenance and lifecycle status in the response, and does not mutate task/execution authority. Root goal supersession requires operator confirmation or durable supersession evidence.
+Create a project-scoped trajectory goal candidate. It validates HLT (High-Level Trajectory), optional MLG/STG/Waypoints, and desired end state, records provenance and lifecycle status in the response, and does not mutate task/execution authority. Root goal supersession requires operator confirmation or durable supersession evidence.
 
 ## When to use
 
@@ -18,8 +18,11 @@ Create a project-scoped trajectory goal candidate. It validates long-term goal a
   "project_root": "<focusa-repo>",
   "session_id": "pi-session",
   "continuity_id": "logical-workstream-id",
-  "long_term_goal": "Stable project goal",
+  "long_term_goal": "Stable project HLT",
   "desired_end_state": "Evidence-backed desired end state",
+  "mid_level_goal": "Current MLG derived from the HLT",
+  "short_term_goal": "Current STG derived from the MLG",
+  "waypoints": ["First proof waypoint", "Second proof waypoint"],
   "operator_confirmed": true,
   "required_checks": ["test or live proof command"],
   "not_done_if": ["required checks have not run"]
@@ -28,7 +31,7 @@ Create a project-scoped trajectory goal candidate. It validates long-term goal a
 
 ## Expected result
 
-Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `trajectory_candidate.definition_status`, `root_goal_change_allowed`, lifecycle `source_precedence`, `next_tools`, and recovery posture. Persisted trajectories include the Spec96 definition-of-done proof contract: `desired_end_state`, `required_evidence_refs`, `required_checks`, `acceptance_risks`, and `not_done_if`.
+Returns `tool_result_v1` details backed by the `/v1/trajectory/*` endpoint. The result is project-scoped, bounded, and explicit about `canonical`, `degraded`, `advisory_only`, `trajectory_candidate.definition_status`, `trajectory_candidate.mid_level_goal`, `trajectory_candidate.short_term_goal`, `trajectory_candidate.waypoints`, `root_goal_change_allowed`, lifecycle `source_precedence`, `next_tools`, and recovery posture. Persisted trajectories include the Spec96 definition-of-done proof contract: `desired_end_state`, `required_evidence_refs`, `required_checks`, `acceptance_risks`, and `not_done_if`.
 
 ## Recovery notes
 

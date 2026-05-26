@@ -19,6 +19,7 @@ use focusa_core::types::{
     SignalOrigin, TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord,
     TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord,
     TrajectoryMilestoneStatus, TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
+    trajectory_caps,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -41,7 +42,9 @@ pub struct TrajectoryDefineGoalRequest {
     pub session_identity: Option<FocusaSessionIdentity>,
     pub long_term_goal: String,
     pub desired_end_state: String,
+    pub mid_level_goal: Option<String>,
     pub short_term_goal: Option<String>,
+    pub waypoints: Option<Vec<String>>,
     pub current_state: Option<String>,
     pub goal_source: Option<String>,
     pub supersedes_trajectory_id: Option<String>,
@@ -492,9 +495,31 @@ fn trajectory_record_from_define_payload(
             confidence,
         },
     ];
+    if body.mid_level_goal.is_some() {
+        goal_provenance.push(TrajectoryGoalProvenanceRecord {
+            field: "mid_level_goal".to_string(),
+            source: source.clone(),
+            source_ref: body.idempotency_key.clone(),
+            inferred,
+            confidence,
+        });
+    }
     if body.short_term_goal.is_some() {
         goal_provenance.push(TrajectoryGoalProvenanceRecord {
             field: "short_term_goal".to_string(),
+            source: source.clone(),
+            source_ref: body.idempotency_key.clone(),
+            inferred,
+            confidence,
+        });
+    }
+    if body
+        .waypoints
+        .as_ref()
+        .is_some_and(|items| !items.is_empty())
+    {
+        goal_provenance.push(TrajectoryGoalProvenanceRecord {
+            field: "waypoints".to_string(),
             source: source.clone(),
             source_ref: body.idempotency_key.clone(),
             inferred,
@@ -520,10 +545,22 @@ fn trajectory_record_from_define_payload(
         root_long_term_goal: long_term_goal.clone(),
         long_term_goal,
         desired_end_state: desired_end_state.clone(),
+        mid_level_goal: body
+            .mid_level_goal
+            .as_deref()
+            .map(|value| bounded(value, 240)),
         short_term_goal: body
             .short_term_goal
             .as_deref()
             .map(|value| bounded(value, 240)),
+        waypoints: body
+            .waypoints
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|value| clean(Some(&value)).map(|cleaned| bounded(&cleaned, 160)))
+            .take(trajectory_caps::MILESTONES)
+            .collect(),
         current_state: body
             .current_state
             .as_deref()
@@ -980,8 +1017,13 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         persisted_trajectory.map(|record| record.desired_end_state.as_str());
     let persisted_current_state =
         persisted_trajectory.and_then(|record| record.current_state.as_deref());
+    let persisted_mid_level_goal =
+        persisted_trajectory.and_then(|record| record.mid_level_goal.as_deref());
     let persisted_short_term_goal =
         persisted_trajectory.and_then(|record| record.short_term_goal.as_deref());
+    let persisted_waypoints = persisted_trajectory
+        .map(|record| record.waypoints.clone())
+        .unwrap_or_default();
     let workpoint_next = workpoint.and_then(|record| record.next_slice.as_deref());
     let workpoint_action = workpoint
         .and_then(|record| record.action_intent.as_ref())
@@ -1051,12 +1093,26 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "authority_boundary": "Focus State and Trajectory remain separate authorities; this projection synchronizes read-model orientation only"
     });
     let mid_level_goal = first_nonempty(&[
+        persisted_mid_level_goal,
         short_term_goal.as_deref(),
         workpoint_action,
         frame_goal,
         frame_title,
         fs_current,
     ]);
+    let mut waypoints = persisted_waypoints;
+    if waypoints.is_empty() {
+        if let Some(gap) = active_gap.as_deref() {
+            waypoints.push(format!("Close active gap: {}", bounded(gap, 120)));
+        }
+        if let Some(stg) = short_term_goal.as_deref() {
+            waypoints.push(format!("Advance STG: {}", bounded(stg, 120)));
+        }
+        if let Some(mlg) = mid_level_goal.as_deref() {
+            waypoints.push(format!("Validate MLG: {}", bounded(mlg, 120)));
+        }
+        waypoints.truncate(4);
+    }
     let low_level_goal = first_nonempty(&[
         workpoint_next,
         workpoint_action,
@@ -1355,6 +1411,14 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "short_term_goal": short_term_goal.as_deref().map(|value| bounded(value, 240)),
             "mid_level_goal": mid_level_goal.as_deref().map(|value| bounded(value, 240)),
             "low_level_goal": low_level_goal.as_deref().map(|value| bounded(value, 240)),
+            "trajectory_ladder": {
+                "hlt": long_term_goal.as_deref().map(|value| bounded(value, 240)),
+                "mlg": mid_level_goal.as_deref().map(|value| bounded(value, 240)),
+                "stg": short_term_goal.as_deref().map(|value| bounded(value, 240)),
+                "waypoints": waypoints.clone(),
+                "rule": "HLT -> MLG -> STG -> Waypoints -> Workpoint; defer to operator while actively offering HLT-aligned route guidance"
+            },
+            "waypoints": waypoints,
             "active_gap": active_gap,
             "similarity_group": similarity_group,
             "bootstrap_default": bootstrap_default_trajectory,
@@ -1472,7 +1536,9 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
             "definition_status": lifecycle_status,
             "long_term_goal": bounded(&body.long_term_goal, 240),
             "desired_end_state": bounded(&body.desired_end_state, 240),
+            "mid_level_goal": body.mid_level_goal.as_deref().map(|value| bounded(value, 240)),
             "short_term_goal": body.short_term_goal.as_deref().map(|value| bounded(value, 240)),
+            "waypoints": body.waypoints.clone().unwrap_or_default().into_iter().filter_map(|value| clean(Some(&value)).map(|cleaned| bounded(&cleaned, 160))).take(trajectory_caps::MILESTONES).collect::<Vec<_>>(),
             "current_state": body.current_state.as_deref().map(|value| bounded(value, 240)),
             "goal_source": body.goal_source.as_deref().unwrap_or("operator"),
             "operator_confirmed": body.operator_confirmed.unwrap_or_else(|| body.goal_source.as_deref().unwrap_or("operator") == "operator"),

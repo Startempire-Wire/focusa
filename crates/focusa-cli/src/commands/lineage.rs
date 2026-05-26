@@ -72,23 +72,31 @@ fn print_json(value: &Value) -> anyhow::Result<()> {
 fn bounded_unique_signals(nodes: &[Value], keys: &[&str], cap: usize) -> Vec<String> {
     let mut out = Vec::new();
     for node in nodes {
-        let Some(payload) = node.get("payload").and_then(Value::as_object) else { continue; };
+        let Some(payload) = node.get("payload").and_then(Value::as_object) else {
+            continue;
+        };
         for key in keys {
-            let Some(value) = payload.get(*key) else { continue; };
+            let Some(value) = payload.get(*key) else {
+                continue;
+            };
             if let Some(items) = value.as_array() {
                 for item in items {
                     let text = item.as_str().unwrap_or("").trim().to_string();
                     if !text.is_empty() && !out.contains(&text) {
                         out.push(text);
                     }
-                    if out.len() >= cap { return out; }
+                    if out.len() >= cap {
+                        return out;
+                    }
                 }
             } else {
                 let text = value.as_str().unwrap_or("").trim().to_string();
                 if !text.is_empty() && !out.contains(&text) {
                     out.push(text);
                 }
-                if out.len() >= cap { return out; }
+                if out.len() >= cap {
+                    return out;
+                }
             }
         }
     }
@@ -105,7 +113,10 @@ pub async fn run(cmd: LineageCmd, json: bool) -> anyhow::Result<()> {
             if json {
                 print_json(&resp)?;
             } else {
-                println!("Lineage head: {}", resp["head"].as_str().unwrap_or("unknown"));
+                println!(
+                    "Lineage head: {}",
+                    resp["head"].as_str().unwrap_or("unknown")
+                );
             }
         }
         LineageCmd::Tree { session_id } => {
@@ -141,15 +152,23 @@ pub async fn run(cmd: LineageCmd, json: bool) -> anyhow::Result<()> {
             if json {
                 print_json(&resp)?;
             } else {
-                println!("Lineage path depth: {}", resp["depth"].as_u64().unwrap_or(0));
+                println!(
+                    "Lineage path depth: {}",
+                    resp["depth"].as_u64().unwrap_or(0)
+                );
             }
         }
         LineageCmd::Children { clt_node_id } => {
-            let resp = api.get(&format!("/v1/lineage/children/{clt_node_id}")).await?;
+            let resp = api
+                .get(&format!("/v1/lineage/children/{clt_node_id}"))
+                .await?;
             if json {
                 print_json(&resp)?;
             } else {
-                println!("Lineage children total: {}", resp["total"].as_u64().unwrap_or(0));
+                println!(
+                    "Lineage children total: {}",
+                    resp["total"].as_u64().unwrap_or(0)
+                );
             }
         }
         LineageCmd::Summaries { session_id } => {
@@ -158,10 +177,16 @@ pub async fn run(cmd: LineageCmd, json: bool) -> anyhow::Result<()> {
             if json {
                 print_json(&resp)?;
             } else {
-                println!("Lineage summary nodes: {}", resp["total"].as_u64().unwrap_or(0));
+                println!(
+                    "Lineage summary nodes: {}",
+                    resp["total"].as_u64().unwrap_or(0)
+                );
             }
         }
-        LineageCmd::Extract { max_candidates, session_id } => {
+        LineageCmd::Extract {
+            max_candidates,
+            session_id,
+        } => {
             let cap = max_candidates.clamp(1, 50);
             let mut path = format!("/v1/lineage/tree?selector=summaries&limit={cap}");
             if let Some(session) = session_id.filter(|session| !session.trim().is_empty()) {
@@ -173,12 +198,23 @@ pub async fn run(cmd: LineageCmd, json: bool) -> anyhow::Result<()> {
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
-            let decisions = bounded_unique_signals(&nodes, &["decisions", "decision", "decision_text"], cap);
-            let constraints = bounded_unique_signals(&nodes, &["constraints", "constraint", "constraint_text"], cap);
-            let risks = bounded_unique_signals(&nodes, &["risks", "risk", "blockers", "blocker"], cap);
+            let decisions =
+                bounded_unique_signals(&nodes, &["decisions", "decision", "decision_text"], cap);
+            let constraints = bounded_unique_signals(
+                &nodes,
+                &["constraints", "constraint", "constraint_text"],
+                cap,
+            );
+            let risks =
+                bounded_unique_signals(&nodes, &["risks", "risk", "blockers", "blocker"], cap);
             let summary_nodes = nodes
                 .iter()
-                .filter(|node| node.get("node_type").and_then(Value::as_str).unwrap_or("").eq_ignore_ascii_case("summary"))
+                .filter(|node| {
+                    node.get("node_type")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .eq_ignore_ascii_case("summary")
+                })
                 .count();
             let reflection_trigger = summary_nodes >= cap / 3 || risks.len() >= 3;
             let out = json!({
@@ -197,10 +233,21 @@ pub async fn run(cmd: LineageCmd, json: bool) -> anyhow::Result<()> {
             } else {
                 println!(
                     "Lineage extract: decisions={} constraints={} risks={} trigger={}",
-                    out.pointer("/signals/decisions").and_then(Value::as_array).map(|v| v.len()).unwrap_or(0),
-                    out.pointer("/signals/constraints").and_then(Value::as_array).map(|v| v.len()).unwrap_or(0),
-                    out.pointer("/signals/risks").and_then(Value::as_array).map(|v| v.len()).unwrap_or(0),
-                    out.get("reflection_trigger").and_then(Value::as_bool).unwrap_or(false),
+                    out.pointer("/signals/decisions")
+                        .and_then(Value::as_array)
+                        .map(|v| v.len())
+                        .unwrap_or(0),
+                    out.pointer("/signals/constraints")
+                        .and_then(Value::as_array)
+                        .map(|v| v.len())
+                        .unwrap_or(0),
+                    out.pointer("/signals/risks")
+                        .and_then(Value::as_array)
+                        .map(|v| v.len())
+                        .unwrap_or(0),
+                    out.get("reflection_trigger")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false),
                 );
             }
         }

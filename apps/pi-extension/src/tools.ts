@@ -2740,7 +2740,9 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       long_term_goal: Type.String({ description: "Stable project-level long-term goal." }),
       desired_end_state: Type.String({ description: "Evidence-backed desired project end state." }),
-      short_term_goal: Type.Optional(Type.String({ description: "Current short-term project goal." })),
+      mid_level_goal: Type.Optional(Type.String({ description: "Current mid-level goal (MLG) derived from the HLT." })),
+      short_term_goal: Type.Optional(Type.String({ description: "Current short-term goal (STG) derived from the HLT/MLG." })),
+      waypoints: Type.Optional(Type.Array(Type.String(), { description: "Concrete HLT-aligned progress markers along the MLG/STG path." })),
       current_state: Type.Optional(Type.String({ description: "Current verified state if known." })),
       goal_source: Type.Optional(Type.String({ description: "operator|durable_supersession|focus_state|workpoint|beads|imported|inferred_context" })),
       supersedes_trajectory_id: Type.Optional(Type.String({ description: "Prior trajectory id if this supersedes one." })),
@@ -2786,7 +2788,9 @@ export function registerTools(pi: ExtensionAPI) {
           trajectory_id: null,
           long_term_goal: body.long_term_goal || null,
           desired_end_state: body.desired_end_state || null,
+          mid_level_goal: body.mid_level_goal || null,
           short_term_goal: body.short_term_goal || null,
+          waypoints: body.waypoints || [],
           current_state: body.current_state || null,
           active_gap: body.short_term_goal || null,
           timeout_preserved: true,
@@ -2796,12 +2800,12 @@ export function registerTools(pi: ExtensionAPI) {
         return { content: [{ type: "text", text: timeoutPreservedText("trajectory define_goal", "candidate") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/define-goal", canonical: false, degraded: true, advisory_only: true, trajectory_candidate: fallbackCandidate, failure_class: "hot_path_timeout", response: compactApiEcho(b), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_define_goal", "focusa_trajectory_view"] } } as any;
       }
       const pendingCandidate = String(b.status || "") === "pending" && !b.trajectory_candidate
-        ? { long_term_goal: body.long_term_goal, desired_end_state: body.desired_end_state, short_term_goal: body.short_term_goal, current_state: body.current_state, definition_status: "pending" }
+        ? { long_term_goal: body.long_term_goal, desired_end_state: body.desired_end_state, mid_level_goal: body.mid_level_goal, short_term_goal: body.short_term_goal, waypoints: body.waypoints || [], current_state: body.current_state, definition_status: "pending" }
         : null;
       const candidate = b.trajectory_candidate || pendingCandidate || {};
       const defineLabel = String(b.status || "") === "pending" ? "PENDING" : b.canonical === true ? "SET" : "NOT SET";
       const text = result.ok
-        ? `trajectory define_goal → ${defineLabel} long_term=${String(candidate.long_term_goal || "missing")} desired=${String(candidate.desired_end_state || "missing")} definition=${String(candidate.definition_status || "unknown")} persisted=${b.persisted === true}`
+        ? `trajectory define_goal → ${defineLabel} HLT=${String(candidate.long_term_goal || "missing")} MLG=${String(candidate.mid_level_goal || "missing")} STG=${String(candidate.short_term_goal || "missing")} waypoints=${Array.isArray(candidate.waypoints) ? candidate.waypoints.length : 0} definition=${String(candidate.definition_status || "unknown")} persisted=${b.persisted === true}`
         : `trajectory define_goal blocked → ${explainWorkLoopResult(result, "define failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "validation_rejected", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: p.supersession_evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_assess"] };
       return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/define-goal", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, trajectory_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_assess"] } } as any;

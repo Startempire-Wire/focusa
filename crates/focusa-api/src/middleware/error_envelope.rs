@@ -55,9 +55,7 @@ fn recovery_command(status: StatusCode) -> &'static str {
         StatusCode::SERVICE_UNAVAILABLE | StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
             "focusa start || focusa-daemon; journalctl is optional for Linux service installs"
         }
-        _ if status.is_server_error() => {
-            "focusa doctor && focusa start"
-        }
+        _ if status.is_server_error() => "focusa doctor && focusa start",
         _ => "check request body/route, then retry with --json for details",
     }
 }

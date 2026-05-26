@@ -28,7 +28,9 @@ pub enum ReleaseCmd {
 fn release_proof_dir() -> PathBuf {
     let configured = std::env::var("FOCUSA_DATA_DIR").unwrap_or_else(|_| default_focusa_data_dir());
     let expanded = if configured == "~" {
-        std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from(configured))
+        std::env::var("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from(configured))
     } else if let Some(rest) = configured.strip_prefix("~/") {
         std::env::var("HOME")
             .map(|home| PathBuf::from(home).join(rest))
@@ -41,7 +43,13 @@ fn release_proof_dir() -> PathBuf {
 
 fn release_proof_file_stem(tag: &str) -> String {
     tag.chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_') { ch } else { '_' })
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_') {
+                ch
+            } else {
+                '_'
+            }
+        })
         .collect()
 }
 
@@ -61,7 +69,10 @@ fn persist_release_proof(tag: &str, response: &mut Value) -> anyhow::Result<(Str
     let body = serde_json::to_string_pretty(response)?;
     fs::write(&tag_path, &body)?;
     fs::write(&latest_path, body)?;
-    Ok((tag_path.display().to_string(), latest_path.display().to_string()))
+    Ok((
+        tag_path.display().to_string(),
+        latest_path.display().to_string(),
+    ))
 }
 
 fn run_gate(name: &str, command: &str) -> Value {
@@ -142,7 +153,9 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 Ok((_tag_path, _latest_path)) => {}
                 Err(err) => {
                     if let Some(warnings) = response["warnings"].as_array_mut() {
-                        warnings.push(json!(format!("failed to persist release proof artifact: {err}")));
+                        warnings.push(json!(format!(
+                            "failed to persist release proof artifact: {err}"
+                        )));
                     }
                 }
             }

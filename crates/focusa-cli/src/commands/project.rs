@@ -32,7 +32,9 @@ fn encode(value: &str) -> String {
     value
         .bytes()
         .flat_map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => vec![b as char],
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' | b':' => {
+                vec![b as char]
+            }
             b' ' => vec!['+'],
             _ => format!("%{b:02X}").chars().collect(),
         })
@@ -46,16 +48,37 @@ fn push_query(qs: &mut Vec<String>, key: &str, value: Option<&str>) {
 }
 
 fn print_summary(label: &str, resp: &Value) {
-    let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
-    let canonical = resp.get("canonical").and_then(Value::as_bool).unwrap_or(false);
+    let status = resp
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let canonical = resp
+        .get("canonical")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     let null_value = Value::Null;
     let project = resp.get("project_identity").unwrap_or(&null_value);
-    let root = project.get("project_root").and_then(Value::as_str).unwrap_or("unbound");
-    let confidence = project.get("confidence").and_then(Value::as_str).unwrap_or("unknown");
-    let project_status = project.get("status").and_then(Value::as_str).unwrap_or("unknown");
-    println!("project {label}: status={status} canonical={canonical} project_status={project_status} confidence={confidence}");
+    let root = project
+        .get("project_root")
+        .and_then(Value::as_str)
+        .unwrap_or("unbound");
+    let confidence = project
+        .get("confidence")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let project_status = project
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    println!(
+        "project {label}: status={status} canonical={canonical} project_status={project_status} confidence={confidence}"
+    );
     println!("  project_root: {root}");
-    if let Some(next) = resp.get("verification").and_then(|v| v.get("required_recovery")).and_then(Value::as_str) {
+    if let Some(next) = resp
+        .get("verification")
+        .and_then(|v| v.get("required_recovery"))
+        .and_then(Value::as_str)
+    {
         println!("  recovery: {next}");
     }
 }
@@ -67,10 +90,20 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
-            let path = if qs.is_empty() { "/v1/project/identity".to_string() } else { format!("/v1/project/identity?{}", qs.join("&")) };
+            let path = if qs.is_empty() {
+                "/v1/project/identity".to_string()
+            } else {
+                format!("/v1/project/identity?{}", qs.join("&"))
+            };
             ("identity", api.get(&path).await?)
         }
-        ProjectCmd::Verify { cwd, project_root, project_id, canonical_name, repo_remote } => {
+        ProjectCmd::Verify {
+            cwd,
+            project_root,
+            project_id,
+            canonical_name,
+            repo_remote,
+        } => {
             let body = json!({
                 "cwd": cwd,
                 "project_root": project_root,

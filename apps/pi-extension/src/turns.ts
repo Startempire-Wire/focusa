@@ -284,11 +284,11 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     "local_vs_live_boundary=project-root-relative by default, but DNS/live roots may live outside repo; verify sources before assuming .local is active",
   ].filter(Boolean).join("; ");
   const goals = [
-    trajectory.long_term_goal ? `high=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",
-    trajectory.mid_level_goal ? `mid=${boundedTrajectoryText(trajectory.mid_level_goal, 160)}` : "",
+    trajectory.long_term_goal ? `HLT=${boundedTrajectoryText(trajectory.long_term_goal, 180)}` : "",
+    trajectory.mid_level_goal ? `MLG=${boundedTrajectoryText(trajectory.mid_level_goal, 160)}` : "",
+    trajectory.short_term_goal ? `STG=${boundedTrajectoryText(trajectory.short_term_goal, 160)}` : "",
     trajectory.low_level_goal ? `low=${boundedTrajectoryText(trajectory.low_level_goal, 160)}` : "",
     trajectory.desired_end_state ? `desired=${boundedTrajectoryText(trajectory.desired_end_state, 180)}` : "",
-    trajectory.short_term_goal ? `short=${boundedTrajectoryText(trajectory.short_term_goal, 160)}` : "",
   ].filter(Boolean).join("; ");
   const similarityGroup = trajectory.similarity_group || intelligence.similarity_group || {};
   const similarityBits = [
@@ -299,6 +299,11 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     "authority=project_root+continuity_id",
     similarityGroup.must_not_merge_sessions ? "must_not_merge_sessions=true" : "",
   ].filter(Boolean).join("; ");
+  const waypoints = Array.isArray(trajectory.waypoints)
+    ? trajectory.waypoints.slice(0, 5).map((item: any) => boundedTrajectoryText(item, 120)).filter(Boolean)
+    : Array.isArray(trajectory.trajectory_ladder?.waypoints)
+      ? trajectory.trajectory_ladder.waypoints.slice(0, 5).map((item: any) => boundedTrajectoryText(item, 120)).filter(Boolean)
+      : [];
   const evidence = Array.isArray(trajectory.evidence_refs)
     ? trajectory.evidence_refs.slice(0, 4).map((item: any) => boundedTrajectoryText(item.evidence_ref || item.result || item.target_ref, 120)).filter(Boolean)
     : [];
@@ -319,7 +324,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     infraParts.length ? `PROJECT_INFRA: ${infraParts.join("; ")}` : "PROJECT_INFRA: unknown; use focusa_project_identity plus focusa_traverse before architectural assumptions",
     `PROJECT_ENVIRONMENT: ${environmentBits}`,
     `PROJECT_ARCHITECTURE: ${isProjectRootAuthoritySafe(projectRoot) ? buildProjectArchitectureDigestLine(projectRoot) : "withheld_until_safe_project_root"}`,
-    goals ? `TRAJECTORY_GOALS: ${goals}` : "TRAJECTORY_GOALS: definition_status=unclear",
+    goals ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "derive_next"}; rule=operator_deference_plus_proactive_route_offers` : "TRAJECTORY_LADDER: definition_status=unclear; derive HLT→MLG→STG→Waypoints before durable work",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
     `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,
     `ACTIVE_GAP: ${boundedTrajectoryText(trajectory.active_gap, 220) || "unclear"}`,

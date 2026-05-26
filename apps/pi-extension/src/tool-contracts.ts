@@ -110,7 +110,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_trajectory_define_goal",
     "label": "Trajectory Define Goal",
-    "purpose": "Create an advisory per-project Trajectory goal candidate without changing task or execution authority.",
+    "purpose": "Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority.",
     "family": "trajectory",
     "ontology_action": "trajectory.define_goal",
     "ontology_objects": ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "FocusState"],

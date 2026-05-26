@@ -143,6 +143,7 @@ fn upsert_workpoint_record(
 }
 
 fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
+    truncate_front(&mut record.waypoints, trajectory_caps::MILESTONES);
     truncate_front(&mut record.milestones, trajectory_caps::MILESTONES);
     for milestone in &mut record.milestones {
         truncate_front(

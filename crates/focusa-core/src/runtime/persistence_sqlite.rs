@@ -57,7 +57,10 @@ impl SqlitePersistence {
     }
 
     fn init_schema(&self) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
 
         conn.execute_batch(
             r#"
@@ -171,7 +174,10 @@ impl SqlitePersistence {
         endpoint: &str,
         auth_token: Option<&str>,
     ) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute(
             r#"
             INSERT INTO peers(peer_id, name, endpoint, auth_token, created_at, status)
@@ -187,13 +193,19 @@ impl SqlitePersistence {
     }
 
     pub fn remove_peer(&self, peer_id: &str) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute("DELETE FROM peers WHERE peer_id = ?1", params![peer_id])?;
         Ok(())
     }
 
     pub fn list_peers(&self) -> anyhow::Result<Vec<PeerRecord>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut stmt = conn.prepare(
             r#"
             SELECT peer_id, name, endpoint, auth_token, created_at, last_seen_at, status
@@ -220,7 +232,10 @@ impl SqlitePersistence {
     }
 
     pub fn update_peer_status(&self, peer_id: &str, status: &str) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute(
             "UPDATE peers SET status = ?2, last_seen_at = ?3 WHERE peer_id = ?1",
             params![peer_id, status, Utc::now().to_rfc3339()],
@@ -231,7 +246,10 @@ impl SqlitePersistence {
     // ─── Sync Cursors ──────────────────────────────────────────────────────
 
     pub fn get_cursor(&self, peer_id: &str) -> anyhow::Result<Option<SyncCursor>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let row: Option<(Option<String>, Option<String>, String)> = conn
             .query_row(
                 "SELECT last_event_id, last_event_ts, updated_at FROM sync_cursors WHERE peer_id = ?1",
@@ -253,7 +271,10 @@ impl SqlitePersistence {
         last_event_id: Option<&str>,
         last_event_ts: Option<&str>,
     ) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute(
             r#"
             INSERT INTO sync_cursors(peer_id, last_event_id, last_event_ts, updated_at)
@@ -276,7 +297,10 @@ impl SqlitePersistence {
     // ─── Events for Sync ───────────────────────────────────────────────────
 
     pub fn event_exists(&self, event_id: &str) -> anyhow::Result<bool> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM events WHERE event_id = ?1",
             params![event_id],
@@ -287,7 +311,10 @@ impl SqlitePersistence {
 
     /// Idempotency helper: has a turn_completed event already been persisted for turn_id?
     pub fn turn_completed_exists(&self, turn_id: &str) -> anyhow::Result<bool> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
 
         // Note: FocusaEvent uses #[serde(tag = "type")] without rename_all,
         // so variant names serialize as PascalCase (TurnCompleted, not turn_completed).
@@ -319,7 +346,10 @@ impl SqlitePersistence {
         since_id: Option<&str>,
         limit: usize,
     ) -> anyhow::Result<Vec<EventLogEntry>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut stmt = conn.prepare(
             r#"
             SELECT event_id, ts, origin, correlation_id, payload_json,
@@ -384,7 +414,10 @@ impl SqlitePersistence {
         since_id: Option<&str>,
         limit: usize,
     ) -> anyhow::Result<Vec<RawEventLogRow>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut stmt = conn.prepare(
             r#"
             SELECT event_id, ts, session_id, payload_json
@@ -420,7 +453,10 @@ impl SqlitePersistence {
     }
 
     pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let ts = Utc::now();
         let state_json = serde_json::to_string(state)?;
         conn.execute(
@@ -438,7 +474,10 @@ impl SqlitePersistence {
     }
 
     pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let row: Option<String> = conn
             .query_row(
                 "SELECT state_json FROM snapshots WHERE name='focusa'",
@@ -461,7 +500,10 @@ impl SqlitePersistence {
     }
 
     pub fn machine_id(&self) -> anyhow::Result<String> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let id: Option<String> = conn
             .query_row(
                 "SELECT value FROM meta WHERE key = 'machine_id'",
@@ -475,7 +517,10 @@ impl SqlitePersistence {
 
     /// Latest persisted event timestamp (RFC3339), if any.
     pub fn latest_event_timestamp(&self) -> anyhow::Result<Option<String>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let ts: Option<String> = conn
             .query_row("SELECT MAX(ts) FROM events", [], |row| row.get(0))
             .optional()?
@@ -485,7 +530,10 @@ impl SqlitePersistence {
 
     /// Get the N most recent events as JSON values.
     pub fn recent_events(&self, limit: usize) -> anyhow::Result<Vec<serde_json::Value>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut stmt =
             conn.prepare("SELECT payload_json FROM events ORDER BY ts DESC, rowid DESC LIMIT ?1")?;
         let rows = stmt.query_map([limit as i64], |row| {
@@ -503,7 +551,10 @@ impl SqlitePersistence {
 
     /// Current count of persisted events.
     pub fn event_count(&self) -> anyhow::Result<u64> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let count: i64 = conn.query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))?;
         Ok(count.max(0) as u64)
     }
@@ -513,7 +564,10 @@ impl SqlitePersistence {
 
         // Avoid re-locking the same mutex (machine_id() also locks conn).
         let (conn, machine_id) = {
-            let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let conn = self
+                .conn
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             let machine_id = entry.machine_id.clone().or_else(|| {
                 conn.query_row(
                     "SELECT value FROM meta WHERE key = 'machine_id'",
@@ -553,7 +607,10 @@ impl SqlitePersistence {
     }
     /// Ensure confidence calibration table exists.
     pub fn ensure_calibration_table(&self) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute(
             r#"CREATE TABLE IF NOT EXISTS confidence_calibration (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -577,7 +634,10 @@ impl SqlitePersistence {
         confidence: f64,
         context: &str,
     ) -> anyhow::Result<i64> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute(
             "INSERT INTO confidence_calibration (prediction_type, predicted_confidence, context, created_at) VALUES (?1, ?2, ?3, ?4)",
             rusqlite::params![prediction_type, confidence, context, chrono::Utc::now().to_rfc3339()],
@@ -587,7 +647,10 @@ impl SqlitePersistence {
 
     /// Record the outcome for a prediction.
     pub fn resolve_confidence(&self, id: i64, outcome: &str, correct: bool) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         conn.execute(
             "UPDATE confidence_calibration SET outcome=?1, outcome_correct=?2, resolved_at=?3 WHERE id=?4",
             rusqlite::params![outcome, if correct { 1i64 } else { 0i64 }, chrono::Utc::now().to_rfc3339(), id],
@@ -597,7 +660,10 @@ impl SqlitePersistence {
 
     /// Get calibration stats: for each confidence bucket, what % were correct?
     pub fn calibration_stats(&self) -> anyhow::Result<Vec<(String, f64, f64, u64)>> {
-        let conn = self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut stmt = conn.prepare(
             r#"SELECT 
                 CASE 

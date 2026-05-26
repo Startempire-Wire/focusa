@@ -51,8 +51,11 @@ fn detect_project_root(explicit: Option<String>) -> anyhow::Result<PathBuf> {
 
 fn has_git_repo(project_root: &Path) -> bool {
     project_root.join(".git").exists()
-        || shell_output(&["git", "rev-parse", "--is-inside-work-tree"], Some(project_root))
-            .as_deref()
+        || shell_output(
+            &["git", "rev-parse", "--is-inside-work-tree"],
+            Some(project_root),
+        )
+        .as_deref()
             == Some("true")
 }
 
@@ -66,7 +69,11 @@ fn pi_extension_visible(project_root: &Path) -> bool {
     project_root.join("apps/pi-extension/package.json").exists()
         || std::env::var("HOME")
             .ok()
-            .map(|home| PathBuf::from(home).join(".pi/skills/focusa/SKILL.md").exists())
+            .map(|home| {
+                PathBuf::from(home)
+                    .join(".pi/skills/focusa/SKILL.md")
+                    .exists()
+            })
             .unwrap_or(false)
 }
 
@@ -74,7 +81,9 @@ fn encode_query(value: &str) -> String {
     value
         .bytes()
         .map(|byte| match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => (byte as char).to_string(),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                (byte as char).to_string()
+            }
             _ => format!("%{byte:02X}"),
         })
         .collect()
@@ -86,21 +95,58 @@ fn ok_status(ok: bool) -> &'static str {
 
 fn print_human(response: &Value) {
     println!("FOCUSA OPERATOR PREVIEW ONBOARDING");
-    println!("Status: {}", response["status"].as_str().unwrap_or("unknown"));
-    println!("Project: {}", response["project_root"].as_str().unwrap_or("unknown"));
-    println!("Agent mode: {}", response["agent"].as_str().unwrap_or("manual"));
-    println!("Daemon: {}", response["checks"]["daemon"].as_str().unwrap_or("unknown"));
-    println!("API health: {}", response["checks"]["api_health"].as_str().unwrap_or("unknown"));
-    println!("Git repo: {}", response["checks"]["git_repo"].as_str().unwrap_or("unknown"));
-    println!("License: {}", response["checks"]["license"].as_str().unwrap_or("unknown"));
-    println!("Pi extension: {}", response["checks"]["pi_extension"].as_str().unwrap_or("unknown"));
-    if let Some(id) = response.pointer("/workpoint/workpoint_id").and_then(Value::as_str) {
+    println!(
+        "Status: {}",
+        response["status"].as_str().unwrap_or("unknown")
+    );
+    println!(
+        "Project: {}",
+        response["project_root"].as_str().unwrap_or("unknown")
+    );
+    println!(
+        "Agent mode: {}",
+        response["agent"].as_str().unwrap_or("manual")
+    );
+    println!(
+        "Daemon: {}",
+        response["checks"]["daemon"].as_str().unwrap_or("unknown")
+    );
+    println!(
+        "API health: {}",
+        response["checks"]["api_health"]
+            .as_str()
+            .unwrap_or("unknown")
+    );
+    println!(
+        "Git repo: {}",
+        response["checks"]["git_repo"].as_str().unwrap_or("unknown")
+    );
+    println!(
+        "License: {}",
+        response["checks"]["license"].as_str().unwrap_or("unknown")
+    );
+    println!(
+        "Pi extension: {}",
+        response["checks"]["pi_extension"]
+            .as_str()
+            .unwrap_or("unknown")
+    );
+    if let Some(id) = response
+        .pointer("/workpoint/workpoint_id")
+        .and_then(Value::as_str)
+    {
         println!("Demo Workpoint: {id}");
     }
-    if let Some(summary) = response.pointer("/resume/rendered_summary").and_then(Value::as_str) {
+    if let Some(summary) = response
+        .pointer("/resume/rendered_summary")
+        .and_then(Value::as_str)
+    {
         println!("Resume: {summary}");
     }
-    println!("Next: {}", response["next_command"].as_str().unwrap_or("focusa doctor"));
+    println!(
+        "Next: {}",
+        response["next_command"].as_str().unwrap_or("focusa doctor")
+    );
 }
 
 pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
@@ -168,7 +214,11 @@ pub async fn run(args: OnboardArgs, json_mode: bool) -> anyhow::Result<()> {
             .unwrap_or_else(|err| json!({"status":"blocked","error":err.to_string()}));
     }
 
-    let status = if health_ok && git_repo && license { "ready" } else { "needs_attention" };
+    let status = if health_ok && git_repo && license {
+        "ready"
+    } else {
+        "needs_attention"
+    };
     let response = json!({
         "status": status,
         "agent": args.agent,

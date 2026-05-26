@@ -128,7 +128,10 @@ pub async fn run_state(cmd: StateCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("snapshot create: {}", resp["snapshot_id"].as_str().unwrap_or("unknown"));
+                println!(
+                    "snapshot create: {}",
+                    resp["snapshot_id"].as_str().unwrap_or("unknown")
+                );
             }
         }
         StateCmd::Snapshot(SnapshotCmd::Restore {
@@ -143,18 +146,26 @@ pub async fn run_state(cmd: StateCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                println!("snapshot restore: {}", resp["snapshot_id"].as_str().unwrap_or("unknown"));
+                println!(
+                    "snapshot restore: {}",
+                    resp["snapshot_id"].as_str().unwrap_or("unknown")
+                );
             }
         }
         StateCmd::Snapshot(SnapshotCmd::Recent { limit }) => {
             let bounded = limit.clamp(1, 20);
-            let resp = api.get(&format!("/v1/focus/snapshots/recent?limit={bounded}")).await?;
+            let resp = api
+                .get(&format!("/v1/focus/snapshots/recent?limit={bounded}"))
+                .await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
                 println!(
                     "snapshot recent: count={}",
-                    resp["snapshots"].as_array().map(|items| items.len()).unwrap_or(0)
+                    resp["snapshots"]
+                        .as_array()
+                        .map(|items| items.len())
+                        .unwrap_or(0)
                 );
             }
         }

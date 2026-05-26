@@ -361,12 +361,18 @@ fn extract_sft_example(before: &FocusaState, after: &FocusaState) -> Option<serd
     if instruction.is_empty() {
         return None;
     }
-    let assistant_node = after.clt.nodes.iter().rev().find_map(|node| match &node.payload {
-        CltPayload::Interaction { role, content_ref } if role == "assistant" => {
-            content_ref.as_deref().map(str::trim).filter(|s| !s.is_empty())
-        }
-        _ => None,
-    })?;
+    let assistant_node = after
+        .clt
+        .nodes
+        .iter()
+        .rev()
+        .find_map(|node| match &node.payload {
+            CltPayload::Interaction { role, content_ref } if role == "assistant" => content_ref
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty()),
+            _ => None,
+        })?;
 
     Some(serde_json::json!({
         "instruction": instruction,
@@ -796,7 +802,10 @@ mod tests {
         let examples = export_from_replay(&result, "sft").unwrap();
         assert_eq!(examples.len(), 1);
         assert_eq!(examples[0]["instruction"], "Summarize the active Workpoint");
-        assert_eq!(examples[0]["response"], "Active Workpoint is ready for resume.");
+        assert_eq!(
+            examples[0]["response"],
+            "Active Workpoint is ready for resume."
+        );
         assert_eq!(examples[0]["metadata"]["turn_id"], "turn-replay-1");
     }
 

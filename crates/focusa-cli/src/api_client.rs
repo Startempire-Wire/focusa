@@ -75,7 +75,12 @@ impl ApiClient {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("[API_HTTP_ERROR] status={} url={} body={}", status, url, body);
+            anyhow::bail!(
+                "[API_HTTP_ERROR] status={} url={} body={}",
+                status,
+                url,
+                body
+            );
         }
         resp.json()
             .await
@@ -86,7 +91,12 @@ impl ApiClient {
         self.post_with_headers(path, body, &[]).await
     }
 
-    pub async fn post_with_headers(&self, path: &str, body: &Value, headers: &[(&str, &str)]) -> anyhow::Result<Value> {
+    pub async fn post_with_headers(
+        &self,
+        path: &str,
+        body: &Value,
+        headers: &[(&str, &str)],
+    ) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
         let mut req = self.client.post(&url).json(body);
         for (key, value) in headers {
@@ -99,7 +109,12 @@ impl ApiClient {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("[API_HTTP_ERROR] status={} url={} body={}", status, url, body);
+            anyhow::bail!(
+                "[API_HTTP_ERROR] status={} url={} body={}",
+                status,
+                url,
+                body
+            );
         }
         resp.json()
             .await

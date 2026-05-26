@@ -111,7 +111,9 @@ impl Daemon {
         // Sync loaded state immediately so the API sees it before run() is called.
         {
             let mut shared = shared_state.try_write().map_err(|_| {
-                anyhow::anyhow!("shared Focusa state write lock unavailable during daemon construction")
+                anyhow::anyhow!(
+                    "shared Focusa state write lock unavailable during daemon construction"
+                )
             })?;
             *shared = state.clone();
         }

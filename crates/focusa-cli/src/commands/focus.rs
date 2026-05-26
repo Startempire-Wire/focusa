@@ -166,7 +166,10 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
+                let status = resp
+                    .get("status")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown");
                 println!("focus update: status={status}");
             }
         }

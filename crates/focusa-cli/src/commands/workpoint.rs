@@ -122,7 +122,9 @@ fn query_escape(value: &str) -> String {
     value
         .bytes()
         .map(|byte| match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => (byte as char).to_string(),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                (byte as char).to_string()
+            }
             _ => format!("%{byte:02X}"),
         })
         .collect()
@@ -149,15 +151,23 @@ fn print_copy_prompt(resp: &Value) {
         println!("{summary}\n");
     }
     println!("You are continuing this project under Focusa Workpoint authority.");
-    println!("Use the Workpoint packet below as the continuation contract, not the transcript tail.");
+    println!(
+        "Use the Workpoint packet below as the continuation contract, not the transcript tail."
+    );
     println!("Respect operator steering if a fresh instruction conflicts with this packet.\n");
     println!("```json");
-    println!("{}", serde_json::to_string_pretty(resp).unwrap_or_else(|_| resp.to_string()));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(resp).unwrap_or_else(|_| resp.to_string())
+    );
     println!("```");
 }
 
 fn print_human_summary(resp: &Value, label: &str) {
-    let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
+    let status = resp
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
     let canonical = resp
         .get("canonical")
         .and_then(Value::as_bool)
@@ -227,17 +237,29 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                     "verification_hooks": [],
                     "status": "ready",
                 });
-                if let Some(target) = target_ref_for_refs.filter(|target| !target.trim().is_empty()) {
+                if let Some(target) = target_ref_for_refs.filter(|target| !target.trim().is_empty())
+                {
                     body["active_object_refs"] = json!([target]);
                 }
             }
-            ("checkpoint", api.post("/v1/workpoint/checkpoint", &body).await?)
+            (
+                "checkpoint",
+                api.post("/v1/workpoint/checkpoint", &body).await?,
+            )
         }
-        WorkpointCmd::Current { project_root, continuity_id } => (
+        WorkpointCmd::Current {
+            project_root,
+            continuity_id,
+        } => (
             "current",
             api.get(&current_path(project_root, continuity_id)).await?,
         ),
-        WorkpointCmd::Resume { mode, project_root, continuity_id, copy_prompt: should_copy_prompt } => {
+        WorkpointCmd::Resume {
+            mode,
+            project_root,
+            continuity_id,
+            copy_prompt: should_copy_prompt,
+        } => {
             copy_prompt = should_copy_prompt;
             (
                 "resume",
@@ -270,9 +292,19 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
         ),
         WorkpointCmd::ResolveObject { hint } => (
             "resolve-object",
-            api.post("/v1/workpoint/active-object/resolve", &json!({ "hint": hint })).await?,
+            api.post(
+                "/v1/workpoint/active-object/resolve",
+                &json!({ "hint": hint }),
+            )
+            .await?,
         ),
-        WorkpointCmd::EvidenceLink { workpoint_id, target_ref, result, evidence_ref, writer_id } => (
+        WorkpointCmd::EvidenceLink {
+            workpoint_id,
+            target_ref,
+            result,
+            evidence_ref,
+            writer_id,
+        } => (
             "evidence-link",
             api.post_with_headers(
                 "/v1/workpoint/evidence/link",
@@ -314,7 +346,10 @@ mod tests {
     #[test]
     fn current_path_encodes_scope_query() {
         assert_eq!(
-            current_path(Some("/tmp/focusa-project".to_string()), Some("a b".to_string())),
+            current_path(
+                Some("/tmp/focusa-project".to_string()),
+                Some("a b".to_string())
+            ),
             "/v1/workpoint/current?project_root=%2Ftmp%2Ffocusa-project&continuity_id=a%20b"
         );
     }

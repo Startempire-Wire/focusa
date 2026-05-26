@@ -49,14 +49,18 @@ async fn proof_status(State(state): State<Arc<AppState>>) -> Json<serde_json::Va
         let mut payload = manual_gate(&path);
         payload["status"] = json!("proof_artifact_invalid");
         payload["degraded"] = json!(true);
-        payload["summary"] = json!("Release proof artifact exists but is not valid JSON; rerun release proof.");
+        payload["summary"] =
+            json!("Release proof artifact exists but is not valid JSON; rerun release proof.");
         payload["details"]["tool_result_v1"]["status"] = json!("proof_artifact_invalid");
         payload["details"]["tool_result_v1"]["degraded"] = json!(true);
         payload["details"]["tool_result_v1"]["failure_class"] = json!("invalid_artifact");
         return Json(payload);
     };
 
-    let proof_status = proof.get("status").and_then(Value::as_str).unwrap_or("unknown");
+    let proof_status = proof
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
     let proven = proof_status == "completed";
     Json(json!({
         "status": if proven { "proven" } else { proof_status },

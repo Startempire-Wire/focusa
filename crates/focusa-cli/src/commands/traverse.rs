@@ -71,14 +71,37 @@ fn traverse_body(args: TraverseArgs) -> Value {
 }
 
 fn print_summary(resp: &Value) {
-    let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
-    let surface = resp.get("surface").and_then(Value::as_str).unwrap_or("unknown");
-    let selector = resp.get("selector").and_then(Value::as_str).unwrap_or("unknown");
-    let returned = resp.pointer("/traversal/returned").and_then(Value::as_u64).unwrap_or(0);
-    let total = resp.pointer("/traversal/total").and_then(Value::as_u64).unwrap_or(returned);
-    let truncated = resp.pointer("/traversal/truncated").and_then(Value::as_bool).unwrap_or(false);
-    println!("traverse: status={status} surface={surface} selector={selector} returned={returned}/{total} truncated={truncated}");
-    if let Some(next_cursor) = resp.pointer("/traversal/next_cursor").and_then(Value::as_str) {
+    let status = resp
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let surface = resp
+        .get("surface")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let selector = resp
+        .get("selector")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let returned = resp
+        .pointer("/traversal/returned")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let total = resp
+        .pointer("/traversal/total")
+        .and_then(Value::as_u64)
+        .unwrap_or(returned);
+    let truncated = resp
+        .pointer("/traversal/truncated")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    println!(
+        "traverse: status={status} surface={surface} selector={selector} returned={returned}/{total} truncated={truncated}"
+    );
+    if let Some(next_cursor) = resp
+        .pointer("/traversal/next_cursor")
+        .and_then(Value::as_str)
+    {
         println!("  next_cursor: {next_cursor}");
     }
     if let Some(stale) = resp.get("stale_tags").and_then(Value::as_array) {
@@ -90,11 +113,21 @@ pub async fn run(cmd: TraverseCmd, json_output: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let resp = match cmd {
         TraverseCmd::Read(args) => api.post("/v1/traverse", &traverse_body(args)).await?,
-        TraverseCmd::VerifyTags { surface, selector, tags } => api.post("/v1/traverse/verify-tags", &json!({
-            "surface": surface,
-            "selector": selector,
-            "tags": tags,
-        })).await?,
+        TraverseCmd::VerifyTags {
+            surface,
+            selector,
+            tags,
+        } => {
+            api.post(
+                "/v1/traverse/verify-tags",
+                &json!({
+                    "surface": surface,
+                    "selector": selector,
+                    "tags": tags,
+                }),
+            )
+            .await?
+        }
     };
     if json_output {
         println!("{}", serde_json::to_string_pretty(&resp)?);

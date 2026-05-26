@@ -34,9 +34,18 @@ pub enum ResourceCmd {
 }
 
 fn print_summary(resp: &Value) {
-    let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
-    let mode = resp.pointer("/resource_mode/mode").and_then(Value::as_str).unwrap_or("unknown");
-    let reason = resp.pointer("/resource_mode/reason").and_then(Value::as_str).unwrap_or("unknown");
+    let status = resp
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let mode = resp
+        .pointer("/resource_mode/mode")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let reason = resp
+        .pointer("/resource_mode/reason")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
     println!("resource mode: status={status} mode={mode} reason={reason}");
     if let Some(summary) = resp.get("summary").and_then(Value::as_str) {
         println!("  summary: {summary}");
