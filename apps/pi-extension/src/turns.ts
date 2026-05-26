@@ -640,7 +640,11 @@ export function registerTurns(pi: ExtensionAPI) {
       ? ontologyPayload.blocked_affordances.slice(0, 4).map((item: any) => String(item.name || item.id || item))
       : [];
     const ontologyEvidenceLines = Array.isArray(ontologyPayload?.evidence_handles)
-      ? ontologyPayload.evidence_handles.slice(0, 4).map((item: any) => `${item.kind || "evidence"}:${item.label || item.id || "unknown"}`)
+      ? ontologyPayload.evidence_handles.slice(0, 4).map((item: any) => {
+        const trajectory = item?.trajectory || {};
+        const stg = boundedTrajectoryText(trajectory.stg || trajectory.short_term_goal, 70);
+        return `${item.kind || "evidence"}:${item.label || item.id || "unknown"}${stg ? ` (STG=${stg})` : ""}`;
+      })
       : [];
     const ontologyUncertaintyLines = Array.isArray(ontologyPayload?.uncertainty_flags)
       ? ontologyPayload.uncertainty_flags.slice(0, 6).map((item: any) => String(item))

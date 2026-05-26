@@ -17,7 +17,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
-use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind};
+use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -5825,6 +5825,16 @@ pub fn ontology_read_index_cache_metadata(focusa: &FocusaState) -> Value {
     })
 }
 
+fn evidence_handle_summary(handle: &HandleRef) -> Value {
+    json!({
+        "id": handle.id,
+        "kind": handle.kind,
+        "label": handle.label,
+        "pinned": handle.pinned,
+        "trajectory": handle.trajectory,
+    })
+}
+
 fn adjacency_index_payload(
     focusa: &FocusaState,
     frame_id: Option<&str>,
@@ -5863,7 +5873,7 @@ fn adjacency_index_payload(
             .iter()
             .filter(|handle| handle.label.contains(id))
             .take(8)
-            .map(|handle| json!({"id":handle.id, "kind":handle.kind, "label":handle.label}))
+            .map(evidence_handle_summary)
             .collect::<Vec<_>>();
         let related_workpoints = focusa.workpoint.records.iter().filter(|record| record.active_object_refs.iter().any(|target| target.contains(id) || id.contains(target))).take(8).map(|record| json!({"workpoint_id":record.workpoint_id, "action_intent":record.action_intent, "confidence":record.confidence})).collect::<Vec<_>>();
         let action_affordance_ids = index
@@ -6372,14 +6382,7 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
         .iter()
         .rev()
         .take(8)
-        .map(|handle| {
-            json!({
-                "id": handle.id,
-                "kind": handle.kind,
-                "label": handle.label,
-                "pinned": handle.pinned,
-            })
-        })
+        .map(evidence_handle_summary)
         .collect::<Vec<_>>();
     let affordances = affordances_payload(
         focusa,
@@ -8737,7 +8740,9 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use focusa_core::types::{FocusaState, HandleKind, HandleRef, SessionState, SessionStatus};
+    use focusa_core::types::{
+        FocusaState, HandleKind, HandleRef, SessionState, SessionStatus, TrajectoryLadderContext,
+    };
     use serde_json::json;
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -9440,6 +9445,23 @@ mod tests {
             "evidence_ref": "test:fixture"
         }));
 
+        focusa.reference_index.handles.push(HandleRef {
+            id: Uuid::now_v7(),
+            kind: HandleKind::Text,
+            label: "file:a proof".to_string(),
+            size: 123,
+            sha256: "deadbeef".to_string(),
+            created_at: Utc::now(),
+            session_id: None,
+            pinned: false,
+            trajectory: Some(TrajectoryLadderContext {
+                trajectory_id: Some("traj-ontology".to_string()),
+                hlt: Some("Ontology HLT".to_string()),
+                stg: Some("Ontology STG".to_string()),
+                ..TrajectoryLadderContext::default()
+            }),
+        });
+
         let payload = adjacency_index_payload(&focusa, None, Some("file:a"), 10);
         assert_eq!(payload["source_state_version"].as_u64(), Some(42));
         assert_eq!(payload["canonical_truth_mutation"].as_bool(), Some(false));
@@ -9453,6 +9475,11 @@ mod tests {
             Some("verified")
         );
         assert_eq!(node["uncertainty"].as_str(), Some("projection_only"));
+        assert_eq!(
+            node.pointer("/related_evidence_handles/0/trajectory/trajectory_id")
+                .and_then(Value::as_str),
+            Some("traj-ontology")
+        );
     }
 
     #[test]
@@ -9559,6 +9586,22 @@ mod tests {
             "status": "active",
             "membership_class": "deterministic"
         }));
+        focusa.reference_index.handles.push(HandleRef {
+            id: Uuid::now_v7(),
+            kind: HandleKind::Text,
+            label: "ontology-context-proof".to_string(),
+            size: 123,
+            sha256: "deadbeef".to_string(),
+            created_at: Utc::now(),
+            session_id: None,
+            pinned: false,
+            trajectory: Some(TrajectoryLadderContext {
+                trajectory_id: Some("traj-context".to_string()),
+                hlt: Some("Context HLT".to_string()),
+                stg: Some("Context STG".to_string()),
+                ..TrajectoryLadderContext::default()
+            }),
+        });
         let body = OntologyContextRequest {
             current_ask: Some("verify ontology context".to_string()),
             frame_id: None,
@@ -9588,6 +9631,12 @@ mod tests {
                 })
         );
         assert!(payload["rehydrate"]["routes"].as_array().is_some());
+        assert_eq!(
+            payload
+                .pointer("/evidence_handles/0/trajectory/trajectory_id")
+                .and_then(Value::as_str),
+            Some("traj-context")
+        );
     }
 
     #[test]
