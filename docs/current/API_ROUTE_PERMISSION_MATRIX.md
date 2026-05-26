@@ -80,3 +80,7 @@ Status: security design baseline. This matrix defines the intended route scopes 
 - Health remains public; no other route is public on non-loopback deployments.
 - Tests verify default authenticated token context cannot mutate state.
 - Tool/CLI docs mention required scopes for admin/service/proxy/control routes.
+
+## Enforcement update
+
+`crates/focusa-api/src/middleware/route_scope.rs` now enforces this route-family scope baseline whenever `FOCUSA_AUTH_TOKEN` is configured. Default authenticated tokens remain read-oriented via `permission_context`; mutation routes require explicit write/control/admin scopes in `x-focusa-permissions`. `tests/security_api_route_scope_dynamic_test.sh` starts a temporary auth-enabled daemon and verifies unauthenticated reads return 401, default-token writes return 403, and `telemetry:write` can write telemetry.
