@@ -141,6 +141,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md](current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md) — whole-organism brain/body analogy, maturity gaps, and exhaustive docs cross-reference.
 - [current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md](current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md) — code-based 1–10 feature maturity ratings and underdeveloped workflow gaps.
 - [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) — proposed project-vitals/stuck-detector/governor layer for continuous coding agents.
+- [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) — five-part whole-project security review and remediation backlog.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.
 - [evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md](evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md) — live OpenClaw/Wirebot Focusa awareness activation proof.
 - [current/NON_PI_AGENT_FOCUSA_USAGE.md](current/NON_PI_AGENT_FOCUSA_USAGE.md) — Focusa awareness for OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and other non-Pi agents.
