@@ -64,6 +64,10 @@ Relevant config keys:
 }
 ```
 
+## Bind/auth safety
+
+The daemon allows unauthenticated local-first use only on loopback binds such as `127.0.0.1:8787` or `[::1]:8787`. Startup fails with `INSECURE_BIND_WITHOUT_AUTH` when `FOCUSA_BIND` is non-loopback and neither `FOCUSA_AUTH_TOKEN` nor `auth_token` is configured.
+
 ## Recovery commands
 
 ```bash

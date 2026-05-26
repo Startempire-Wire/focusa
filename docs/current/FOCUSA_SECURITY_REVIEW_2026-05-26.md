@@ -149,6 +149,13 @@ Recommendations:
 - Add redaction tests for secret-like strings in persisted user-facing summaries where appropriate.
 - Add backup/retention policy and secure-delete expectations for local SQLite/event stores.
 
+
+## Remediation update — non-loopback auth guard
+
+The daemon now fails closed before acquiring the runtime lock when `FOCUSA_BIND` resolves to a non-loopback address and neither `FOCUSA_AUTH_TOKEN` nor `auth_token` is configured. The failure code is `INSECURE_BIND_WITHOUT_AUTH`; loopback local-first operation remains allowed.
+
+Validation: `tests/security_non_loopback_auth_guard_static_test.sh`, `cargo test -p focusa-api bind_auth_guard`, and `cargo check -p focusa-api` passed.
+
 ## Immediate remediation backlog
 
 1. Upgrade/triage npm audit vulnerabilities in `apps/pi-extension` and `apps/menubar`.

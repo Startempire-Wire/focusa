@@ -20,6 +20,7 @@ use focusa_core::runtime::daemon::Daemon;
 use focusa_core::types::{FocusaConfig, FocusaState};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
+use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
@@ -116,6 +117,33 @@ fn process_alive(pid: u32) -> bool {
     Path::new(&format!("/proc/{pid}")).exists()
 }
 
+fn auth_token_configured(config: &FocusaConfig) -> bool {
+    std::env::var("FOCUSA_AUTH_TOKEN")
+        .map(|token| !token.trim().is_empty())
+        .unwrap_or(false)
+        || config
+            .auth_token
+            .as_deref()
+            .map(|token| !token.trim().is_empty())
+            .unwrap_or(false)
+}
+
+fn bind_is_loopback(bind: &str) -> bool {
+    bind.to_socket_addrs()
+        .map(|mut addrs| addrs.all(|addr| addr.ip().is_loopback()))
+        .unwrap_or(false)
+}
+
+fn enforce_bind_auth_guard(config: &FocusaConfig) -> anyhow::Result<()> {
+    if bind_is_loopback(&config.api_bind) || auth_token_configured(config) {
+        return Ok(());
+    }
+    Err(anyhow!(
+        "[INSECURE_BIND_WITHOUT_AUTH] FOCUSA_BIND={} is non-loopback but no FOCUSA_AUTH_TOKEN/auth_token is configured; set auth or bind to 127.0.0.1",
+        config.api_bind
+    ))
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -137,6 +165,7 @@ async fn main() -> anyhow::Result<()> {
         config.data_dir = data_dir;
     }
     config.data_dir = resolved_data_dir(&config).to_string_lossy().into_owned();
+    enforce_bind_auth_guard(&config)?;
 
     let _instance_lock = DaemonInstanceLock::acquire(&config)?;
 
@@ -224,5 +253,38 @@ mod tests {
             expand_home_dir("/tmp/focusa", Some(Path::new("/home/focusa-user"))),
             PathBuf::from("/tmp/focusa")
         );
+    }
+
+    #[test]
+    fn bind_auth_guard_allows_loopback_without_token() {
+        let mut config = FocusaConfig::default();
+        config.api_bind = "127.0.0.1:8787".to_string();
+        assert!(enforce_bind_auth_guard(&config).is_ok());
+        config.api_bind = "[::1]:8787".to_string();
+        assert!(enforce_bind_auth_guard(&config).is_ok());
+    }
+
+    #[test]
+    fn bind_auth_guard_allows_non_loopback_with_token() {
+        let config = FocusaConfig {
+            api_bind: "0.0.0.0:8787".to_string(),
+            auth_token: Some("configured-token".to_string()),
+            ..FocusaConfig::default()
+        };
+        assert!(enforce_bind_auth_guard(&config).is_ok());
+    }
+
+    #[test]
+    fn bind_auth_guard_rejects_non_loopback_without_token_when_env_absent() {
+        if std::env::var("FOCUSA_AUTH_TOKEN").is_ok() {
+            return;
+        }
+        let config = FocusaConfig {
+            api_bind: "0.0.0.0:8787".to_string(),
+            auth_token: None,
+            ..FocusaConfig::default()
+        };
+        let err = enforce_bind_auth_guard(&config).expect_err("non-loopback requires auth");
+        assert!(err.to_string().contains("INSECURE_BIND_WITHOUT_AUTH"));
     }
 }
