@@ -1,17 +1,27 @@
 # Focusa Tool Contract Registry
+
 **Spec:** [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](../90-ontology-backed-tool-contracts-parity-spec.md)
+
 This page documents the current machine-readable contract registry in `apps/pi-extension/src/tool-contracts.ts`. It is current-build truth only.
+
 Validation: `node scripts/validate-focusa-tool-contracts.mjs`.
+
 JSON projection: [`focusa-tool-contracts.json`](focusa-tool-contracts.json).
-Current count: **61 Focusa tools**.
+
+Current count: **62 Focusa tools**.
+
 Ontology API projections: `GET /v1/ontology/tool-contracts` and `GET /v1/ontology/tool-choreography`.
+
 `apps/pi-extension/src/tool-contracts.ts` also derives `spec96.tool_affordance_catalog.v1` from the registry. Each affordance carries when-to-use, when-not-to-use, default inputs, side effects, safety posture, failure classes, recovery guidance, example invocation, expected result shape, and exact per-tool likely next tools. Pi Focus Slice `TOOL_AFFORDANCES` uses this catalog to expose `best_next`, `recovery`, and `do_not_use` guidance without requiring a model to read source code.
+
 ## Contracts
+
 | Tool | Family | Ontology action | API routes | CLI commands | Parity | Doc |
 | --- | --- | --- | --- | --- | --- | --- |
 | `focusa_project_identity` | `project_identity` | `project.identity` | GET /v1/project/identity | focusa project identity | `domain` | [`doc`](../focusa-tools/tools/focusa_project_identity.md) |
 | `focusa_project_card` | `project_identity` | `project.card` | GET /v1/project/card | focusa project card | `domain` | [`doc`](../focusa-tools/tools/focusa_project_card.md) |
 | `focusa_project_card_outcome` | `project_identity` | `project.card_outcome` | POST /v1/project/card/outcome | focusa project card-outcome | `full` | [`doc`](../focusa-tools/tools/focusa_project_card_outcome.md) |
+| `focusa_session_transfer` | `workpoint` | `session.transfer` | GET /v1/project/card, POST /v1/workpoint/checkpoint, POST /v1/workpoint/resume, GET /v1/trajectory/view | — | `pi_only` | [`doc`](../focusa-tools/tools/focusa_session_transfer.md) |
 | `focusa_project_verify` | `project_identity` | `project.verify` | POST /v1/project/verify | focusa project verify | `domain` | [`doc`](../focusa-tools/tools/focusa_project_verify.md) |
 | `focusa_trajectory_view` | `trajectory` | `trajectory.view` | GET /v1/trajectory/view | focusa trajectory view | `domain` | [`doc`](../focusa-tools/tools/focusa_trajectory_view.md) |
 | `focusa_trajectory_define_goal` | `trajectory` | `trajectory.define_goal` | POST /v1/trajectory/define-goal | focusa trajectory define-goal | `domain` | [`doc`](../focusa-tools/tools/focusa_trajectory_define_goal.md) |

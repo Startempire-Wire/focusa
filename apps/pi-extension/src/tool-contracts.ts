@@ -107,6 +107,23 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id"
   },
   {
+    "name": "focusa_session_transfer",
+    "label": "Session Transfer",
+    "purpose": "Save or continue a long Focusa/Pi work session like a game-save by composing project card, inferred Workpoint, Workpoint checkpoint/resume, and trajectory view.",
+    "family": "workpoint",
+    "ontology_action": "session.transfer",
+    "ontology_objects": ["ProjectIdentity", "WorkpointRecord", "TrajectoryProjection", "PredictionRecord", "MetacognitionStore"],
+    "api_routes": ["GET /v1/project/card", "POST /v1/workpoint/checkpoint", "POST /v1/workpoint/resume", "GET /v1/trajectory/view"],
+    "cli_commands": [],
+    "core_surface": "Focusa session transfer save/continue wrapper",
+    "doc_path": "docs/focusa-tools/tools/focusa_session_transfer.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "save_may_checkpoint_workpoint",
+    "parity_status": "pi_only",
+    "exemptions": ["pi_only"],
+    "live_check": "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively"
+  },
+  {
     "name": "focusa_project_verify",
     "label": "Project Verify",
     "purpose": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
@@ -1378,6 +1395,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_project_card",
     "focusa_predict_record",
     "focusa_metacog_capture"
+  ],
+  "focusa_session_transfer": [
+    "focusa_workpoint_resume",
+    "focusa_project_card",
+    "focusa_trajectory_view"
   ],
   "focusa_project_verify": [
     "focusa_trajectory_view",

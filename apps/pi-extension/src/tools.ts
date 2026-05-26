@@ -2669,6 +2669,75 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_session_transfer",
+    label: "Focusa Session Transfer",
+    description: "Easy save/continue wrapper for moving long work between Pi sessions without forking: save a Workpoint packet or continue from project card + Workpoint + trajectory.",
+    promptSnippet: "Use when operator wants to save or continue a long Focusa/Pi session like a game save.",
+    parameters: Type.Object({
+      action: Type.String({ description: "save|continue|status" }),
+      project_root: Type.Optional(Type.String({ description: "Project root to transfer; defaults to Pi cwd/session cwd." })),
+      current_ask: Type.Optional(Type.String({ description: "Current resume/save intent." })),
+      mission: Type.Optional(Type.String({ description: "Optional save mission; defaults to current ask or inferred Workpoint mission." })),
+      next_action: Type.Optional(Type.String({ description: "Optional exact next action for save." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional logical continuity id; defaults to project continuity." })),
+    }),
+    async execute(_id, params) {
+      const p = params as { action: string; project_root?: string; current_ask?: string; mission?: string; next_action?: string; continuity_id?: string };
+      const action = String(p.action || "status").toLowerCase();
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root || S.sessionCwd || process.cwd());
+      const continuityId = p.continuity_id || ensureContinuityId(projectRoot);
+      const currentAsk = p.current_ask || S.currentAsk?.text || (action === "continue" ? "Continue latest saved Focusa work like a game save" : "Save current Focusa work for transfer");
+      const cardQuery = new URLSearchParams();
+      cardQuery.set("project_root", projectRoot);
+      cardQuery.set("cwd", projectRoot);
+      cardQuery.set("current_ask", currentAsk);
+      const cardRes = await focusaFetchDetailed(`/project/card?${cardQuery.toString()}`, { method: "GET" });
+      const card = cardRes.body || {};
+      const inferred = card.inferred_workpoint_candidate || card.bootstrap?.candidate?.inferred_workpoint_candidate || {};
+      let checkpoint: any = null;
+      let resume: any = null;
+      let trajectory: any = null;
+      if (action === "save") {
+        const hint = inferred.checkpoint_payload_hint || {};
+        const mission = p.mission || hint.mission || inferred.mission || currentAsk;
+        const nextAction = p.next_action || hint.next_action || inferred.next_action || "Continue from saved Focusa session transfer packet";
+        checkpoint = await focusaFetchDetailed("/workpoint/checkpoint", {
+          method: "POST",
+          body: JSON.stringify({
+            mission,
+            next_action: nextAction,
+            next_slice: nextAction,
+            current_action: hint.current_action || inferred.current_action || "session_transfer_save",
+            action_type: hint.current_action || inferred.current_action || "session_transfer_save",
+            target_objects: hint.target_objects || inferred.target_objects || [],
+            active_object_refs: hint.target_objects || inferred.target_objects || [],
+            project_root: projectRoot,
+            continuity_id: continuityId,
+            session_id: S.sessionFrameKey,
+            source_turn_id: `pi-turn-${S.turnCount}`,
+            canonical: true,
+            checkpoint_reason: "session_transfer_save",
+            idempotency_key: `session-transfer:${projectRoot}:${continuityId}:${Date.now()}`,
+          }),
+        });
+      }
+      if (action === "continue" || action === "status" || action === "save") {
+        resume = await focusaFetchDetailed("/workpoint/resume", { method: "POST", body: JSON.stringify({ project_root: projectRoot, continuity_id: continuityId, session_id: S.sessionFrameKey, mode: "compact_prompt" }) });
+        const tq = new URLSearchParams();
+        tq.set("project_root", projectRoot);
+        tq.set("continuity_id", continuityId);
+        tq.set("allow_prior_project_trajectory", "true");
+        trajectory = await focusaFetchDetailed(`/trajectory/view?${tq.toString()}`, { method: "GET" });
+      }
+      const ok = cardRes.ok && (action !== "save" || checkpoint?.ok) && (action === "save" || resume?.ok || card.inferred_workpoint_candidate);
+      const shortest = card.success_sequence?.shortest_path_to_success?.selected || {};
+      const text = `session transfer ${action} → project=${String(card.project_identity?.canonical_name || card.project_identity?.project_id || projectRoot)} root=${projectRoot} saved=${checkpoint?.ok === true} resume=${String(resume?.body?.status || resume?.status || "not_run")} inferred_wp=${String(inferred.current_action || "none")} shortest=${String(shortest.path_id || "unknown")}`;
+      const toolResult = card.details?.tool_result_v1 || { ok, status: ok ? "completed" : "blocked", canonical: resume?.body?.canonical === true || checkpoint?.body?.canonical === true, degraded: !ok, failure_class: ok ? null : (card.failure_class || resume?.body?.failure_class || checkpoint?.body?.failure_class || null), retry: { safe: true, posture: "safe_retry" }, side_effects: checkpoint?.ok ? ["workpoint_checkpoint"] : [], evidence_refs: [], next_tools: ["focusa_project_card", "focusa_workpoint_resume", "focusa_trajectory_view"] };
+      return { content: [{ type: "text", text }], details: { ok, status: ok ? "completed" : "blocked", endpoint: "session_transfer_wrapper", action, project_root: projectRoot, continuity_id: continuityId, save_packet: checkpoint?.body || null, resume_packet: resume?.body || null, trajectory: trajectory?.body || null, project_card: { algorithm_run_id: card.algorithm_run_id, inferred_workpoint_candidate: inferred, trajectory_report_card: card.trajectory_report_card, crosswire_health: card.crosswire_health, success_sequence: card.success_sequence }, operator_handoff: { command: `cd ${projectRoot} && pi`, first_tool: `focusa_session_transfer action=\"continue\" project_root=\"${projectRoot}\" continuity_id=\"${continuityId}\"`, authority_boundary: "project_root_plus_continuity_id" }, tool_result_v1: toolResult, next_tools: ["focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"] } } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_project_verify",
     label: "Focusa Project Verify",
     description: "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state.",
