@@ -75,4 +75,5 @@ run_gate bash ./tests/spec96_menubar_cockpit_foundation_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
 run_gate bash ./tests/release_proof_status_route_static_test.sh
 run_gate bash ./tests/spec80_impl_parquet_export_support_test.sh
+run_gate bash ./tests/spec96_trajectory_context_tool_docs_static_test.sh
 run_gate bash ./tests/spec96_static_false_positive_guard_test.sh
