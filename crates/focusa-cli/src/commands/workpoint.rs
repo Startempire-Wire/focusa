@@ -65,6 +65,9 @@ pub enum WorkpointCmd {
         /// Stable logical workstream id for canonical resume.
         #[arg(long)]
         continuity_id: Option<String>,
+        /// Print a paste-ready continuation prompt for non-Pi agents.
+        #[arg(long)]
+        copy_prompt: bool,
     },
     /// Detect whether latest action drifted away from the active workpoint.
     DriftCheck {
@@ -140,6 +143,19 @@ fn current_path(project_root: Option<String>, continuity_id: Option<String>) -> 
     }
 }
 
+fn print_copy_prompt(resp: &Value) {
+    println!("Paste this into your AI coding agent:\n");
+    if let Some(summary) = resp.get("rendered_summary").and_then(Value::as_str) {
+        println!("{summary}\n");
+    }
+    println!("You are continuing this project under Focusa Workpoint authority.");
+    println!("Use the Workpoint packet below as the continuation contract, not the transcript tail.");
+    println!("Respect operator steering if a fresh instruction conflicts with this packet.\n");
+    println!("```json");
+    println!("{}", serde_json::to_string_pretty(resp).unwrap_or_else(|_| resp.to_string()));
+    println!("```");
+}
+
 fn print_human_summary(resp: &Value, label: &str) {
     let status = resp.get("status").and_then(Value::as_str).unwrap_or("unknown");
     let canonical = resp
@@ -175,6 +191,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
     // Workpoint checkpoint/resume may enqueue reducer events and wait for read-model visibility;
     // keep CLI UX bounded but longer than hot read probes, especially under LowMem backpressure.
     let api = ApiClient::with_timeout_secs(8);
+    let mut copy_prompt = false;
     let (label, resp) = match cmd {
         WorkpointCmd::Checkpoint {
             mission,
@@ -220,18 +237,21 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             "current",
             api.get(&current_path(project_root, continuity_id)).await?,
         ),
-        WorkpointCmd::Resume { mode, project_root, continuity_id } => (
-            "resume",
-            api.post(
-                "/v1/workpoint/resume",
-                &json!({
-                    "mode": mode,
-                    "project_root": project_root,
-                    "continuity_id": continuity_id,
-                }),
+        WorkpointCmd::Resume { mode, project_root, continuity_id, copy_prompt: should_copy_prompt } => {
+            copy_prompt = should_copy_prompt;
+            (
+                "resume",
+                api.post(
+                    "/v1/workpoint/resume",
+                    &json!({
+                        "mode": if should_copy_prompt { "compact_prompt" } else { mode.as_str() },
+                        "project_root": project_root,
+                        "continuity_id": continuity_id,
+                    }),
+                )
+                .await?,
             )
-            .await?,
-        ),
+        }
         WorkpointCmd::DriftCheck {
             latest_action,
             expected_action_type,
@@ -270,6 +290,8 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
 
     if json_output {
         println!("{}", serde_json::to_string_pretty(&resp)?);
+    } else if copy_prompt {
+        print_copy_prompt(&resp);
     } else {
         print_human_summary(&resp, label);
     }

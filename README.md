@@ -259,6 +259,9 @@ cargo run --bin focusa -- status --operator
 cargo run --bin focusa -- onboard --agent manual
 cargo run --bin focusa -- workpoint current
 
+# Manual continuation packet for non-Pi agents
+cargo run --bin focusa -- workpoint resume --copy-prompt
+
 # Optional golden proof loop
 bash scripts/demo-workpoint-happy-path.sh
 ```

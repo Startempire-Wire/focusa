@@ -15,5 +15,6 @@ focusa onboard --agent manual
 focusa workpoint resume --mode compact_prompt
 focusa workpoint evidence-link --target-ref "<ref>" --result "<summary>" --evidence-ref "<proof>"
 focusa workpoint drift-check --latest-action "<what changed>"
+focusa workpoint resume --copy-prompt
 focusa awareness card --adapter-id manual --workspace-id local --agent-id cli
 ```

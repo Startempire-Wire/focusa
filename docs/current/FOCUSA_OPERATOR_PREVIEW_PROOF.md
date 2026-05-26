@@ -22,6 +22,7 @@ A developer can start a real AI coding session, create a Workpoint, attach evide
 | Trajectory view is scoped/advisory | Implemented/advisory | `focusa trajectory view --project-root <root> --mode summary` |
 | Drift check catches wrong target/action | Implemented | `focusa workpoint drift-check --latest-action <action>` |
 | Non-Pi manual awareness card | Implemented | `focusa awareness card --adapter-id manual --workspace-id local --agent-id cli` |
+| Non-Pi Workpoint continuation prompt | Implemented | `focusa workpoint resume --copy-prompt` |
 | First-run Operator Preview onboarding | Implemented in CLI | `focusa onboard --agent pi` or `focusa onboard --agent manual` |
 | Operator session card | Implemented in CLI | `focusa status --operator` |
 
@@ -60,6 +61,7 @@ focusa workpoint evidence-link \
 focusa trajectory view --mode summary
 
 # 7. Generate non-Pi continuation context if not using Pi.
+focusa workpoint resume --copy-prompt
 focusa awareness card --adapter-id manual --workspace-id local --agent-id cli
 ```
 
