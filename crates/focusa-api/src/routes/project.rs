@@ -37,6 +37,17 @@ pub struct ProjectVerifyRequest {
 }
 
 #[derive(Debug, Deserialize, Default)]
+pub struct ProjectSessionTransferRequest {
+    pub action: String,
+    pub cwd: Option<String>,
+    pub project_root: Option<String>,
+    pub current_ask: Option<String>,
+    pub continuity_id: Option<String>,
+    pub mission: Option<String>,
+    pub next_action: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
 pub struct ProjectCardOutcomeRequest {
     pub algorithm_run_id: String,
     pub actual_outcome: String,
@@ -1386,6 +1397,10 @@ fn project_card_outcomes_path() -> PathBuf {
     focusa_data_dir().join("project_card_algorithm_outcomes.jsonl")
 }
 
+fn project_session_transfers_path() -> PathBuf {
+    focusa_data_dir().join("project_session_transfers.jsonl")
+}
+
 fn default_project_card_weights() -> BTreeMap<String, f64> {
     BTreeMap::from([
         ("trajectory".to_string(), 0.24),
@@ -1444,6 +1459,10 @@ fn append_project_card_algorithm_run(run: &Value) {
 
 fn append_project_card_algorithm_outcome(outcome: &Value) {
     append_jsonl(project_card_outcomes_path(), outcome);
+}
+
+fn append_project_session_transfer(record: &Value) {
+    append_jsonl(project_session_transfers_path(), record);
 }
 
 fn project_card_run_exists(algorithm_run_id: &str) -> bool {
@@ -2031,6 +2050,65 @@ async fn card(
     }))
 }
 
+async fn session_transfer(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<ProjectSessionTransferRequest>,
+) -> Json<Value> {
+    let action = body.action.trim().to_lowercase();
+    let query = ProjectIdentityQuery {
+        cwd: body.cwd.clone(),
+        project_root: body.project_root.clone(),
+        current_ask: body.current_ask.clone().or_else(|| Some(match action.as_str() {
+            "save" => "Save current Focusa work for transfer".to_string(),
+            "continue" => "Continue latest saved Focusa work like a game save".to_string(),
+            _ => "Inspect Focusa session transfer readiness".to_string(),
+        })),
+    };
+    let card_payload = card(State(state), Query(query)).await.0;
+    let project_root = card_payload.pointer("/project_identity/project_root").and_then(Value::as_str).or(body.project_root.as_deref()).unwrap_or("unknown");
+    let continuity_id = body.continuity_id.clone().unwrap_or_else(|| stable_fingerprint(&[project_root.to_string()]).replace("project-fnv1a64", "focusa-cont-project"));
+    let inferred = card_payload.get("inferred_workpoint_candidate").cloned().unwrap_or(Value::Null);
+    let hint = inferred.get("checkpoint_payload_hint").cloned().unwrap_or(Value::Null);
+    let mission = body.mission.clone()
+        .or_else(|| hint.get("mission").and_then(Value::as_str).map(str::to_string))
+        .or_else(|| inferred.get("mission").and_then(Value::as_str).map(str::to_string))
+        .unwrap_or_else(|| body.current_ask.clone().unwrap_or_else(|| "Resume saved Focusa work".to_string()));
+    let next_action = body.next_action.clone()
+        .or_else(|| hint.get("next_action").and_then(Value::as_str).map(str::to_string))
+        .or_else(|| inferred.get("next_action").and_then(Value::as_str).map(str::to_string))
+        .unwrap_or_else(|| "Continue from session-transfer packet".to_string());
+    let transfer_id = uuid::Uuid::now_v7().to_string();
+    let latest_prior = recent_jsonl_values(project_session_transfers_path(), 1).pop().unwrap_or(Value::Null);
+    let record = json!({
+        "schema": "focusa.project_session_transfer.v1",
+        "transfer_id": transfer_id,
+        "action": action,
+        "ts": chrono::Utc::now().to_rfc3339(),
+        "project_root": project_root,
+        "continuity_id": continuity_id,
+        "mission": mission,
+        "next_action": next_action,
+        "inferred_workpoint_candidate": inferred,
+        "checkpoint_payload_hint": hint,
+        "trajectory_report_card": card_payload.get("trajectory_report_card").cloned().unwrap_or(Value::Null),
+        "crosswire_health": card_payload.get("crosswire_health").cloned().unwrap_or(Value::Null),
+        "success_sequence": card_payload.get("success_sequence").cloned().unwrap_or(Value::Null),
+        "algorithm_run_id": card_payload.get("algorithm_run_id").cloned().unwrap_or(Value::Null),
+        "operator_handoff": {"command": format!("cd {project_root} && pi"), "first_tool": format!("focusa_session_transfer action=\"continue\" project_root=\"{project_root}\" continuity_id=\"{continuity_id}\""), "authority_boundary": "project_root_plus_continuity_id"}
+    });
+    if action == "save" { append_project_session_transfer(&record); }
+    Json(json!({
+        "status": "completed",
+        "schema": "focusa.project_session_transfer_response.v1",
+        "action": action,
+        "saved": action == "save",
+        "transfer": if action == "continue" && !latest_prior.is_null() { latest_prior.clone() } else { record },
+        "latest_prior_save": latest_prior,
+        "storage": {"transfers_path": project_session_transfers_path().to_string_lossy()},
+        "next_tools": ["focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"]
+    }))
+}
+
 async fn card_outcome(Json(body): Json<ProjectCardOutcomeRequest>) -> Json<Value> {
     let algorithm_run_id = body.algorithm_run_id.trim();
     if algorithm_run_id.is_empty() || body.actual_outcome.trim().is_empty() {
@@ -2083,6 +2161,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/project/verify", post(verify))
         .route("/v1/project/card", get(card))
         .route("/v1/project/card/outcome", post(card_outcome))
+        .route("/v1/project/session-transfer", post(session_transfer))
 }
 
 #[cfg(test)]

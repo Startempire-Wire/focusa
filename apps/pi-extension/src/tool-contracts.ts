@@ -113,14 +113,14 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "family": "workpoint",
     "ontology_action": "session.transfer",
     "ontology_objects": ["ProjectIdentity", "WorkpointRecord", "TrajectoryProjection", "PredictionRecord", "MetacognitionStore"],
-    "api_routes": ["GET /v1/project/card", "POST /v1/workpoint/checkpoint", "POST /v1/workpoint/resume", "GET /v1/trajectory/view"],
-    "cli_commands": [],
+    "api_routes": ["POST /v1/project/session-transfer", "GET /v1/project/card", "POST /v1/workpoint/checkpoint", "POST /v1/workpoint/resume", "GET /v1/trajectory/view"],
+    "cli_commands": ["focusa project session-transfer"],
     "core_surface": "Focusa session transfer save/continue wrapper",
     "doc_path": "docs/focusa-tools/tools/focusa_session_transfer.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "save_may_checkpoint_workpoint",
-    "parity_status": "pi_only",
-    "exemptions": ["pi_only"],
+    "parity_status": "full",
+    "exemptions": [],
     "live_check": "contract_static plus Pi tool typecheck; compose project-card/resume/checkpoint safe fixture when run interactively"
   },
   {

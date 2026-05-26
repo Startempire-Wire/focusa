@@ -192,6 +192,7 @@ Ontology adjacency/context evidence-handle projections include bounded `trajecto
 - `GET /v1/project/identity`
 - `GET /v1/project/card`
 - `POST /v1/project/card/outcome`
+- `POST /v1/project/session-transfer`
 - `POST /v1/project/verify`
 
 Project cards are advisory `focusa.project_card.v1` summaries that fuse ProjectIdentity, bounded ontology counts, trajectory ladder context, Workpoint/evidence status, prior-session decisions/results, prediction stats/recent outcomes, algorithm outcomes, elapsed/token efficiency, TrajectoryReporting hierarchy, waypoint accomplishment status, and metacog retrieval prompts into bootstrap/re-bootstrap guidance. `POST /v1/project/card/outcome` attaches final results to a specific `algorithm_run_id`, appends an outcome ledger row, persists optional `task_timing`/`token_usage`, and updates learned weights.

@@ -47,7 +47,8 @@ focusa_session_transfer action="continue" project_root="/path/to/project"
 - Side effects: `save` may checkpoint a Workpoint; `continue` and `status` are read/compose operations.
 - Result envelope: `tool_result_v1` with status, canonical/degraded posture, side effects, and next tools.
 - API routes composed: `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
-- CLI commands: none; Pi-only wrapper.
-- Parity: `pi_only`.
+- API routes: `POST /v1/project/session-transfer` persists save packets to `project_session_transfers.jsonl`.
+- CLI commands: `focusa project session-transfer`.
+- Parity: `full`.
 - Core surface: Focusa session transfer save/continue wrapper.
 - Contract source: `docs/current/focusa-tool-contracts.json`.

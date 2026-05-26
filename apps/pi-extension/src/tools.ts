@@ -2691,9 +2691,11 @@ export function registerTools(pi: ExtensionAPI) {
       cardQuery.set("project_root", projectRoot);
       cardQuery.set("cwd", projectRoot);
       cardQuery.set("current_ask", currentAsk);
+      const apiTransfer = await focusaFetchDetailed("/project/session-transfer", { method: "POST", body: JSON.stringify({ action, project_root: projectRoot, current_ask: currentAsk, continuity_id: continuityId, mission: p.mission, next_action: p.next_action }) });
+      const apiBody = apiTransfer.body || {};
       const cardRes = await focusaFetchDetailed(`/project/card?${cardQuery.toString()}`, { method: "GET" });
       const card = cardRes.body || {};
-      const inferred = card.inferred_workpoint_candidate || card.bootstrap?.candidate?.inferred_workpoint_candidate || {};
+      const inferred = apiBody.transfer?.inferred_workpoint_candidate || card.inferred_workpoint_candidate || card.bootstrap?.candidate?.inferred_workpoint_candidate || {};
       let checkpoint: any = null;
       let resume: any = null;
       let trajectory: any = null;
@@ -2729,11 +2731,11 @@ export function registerTools(pi: ExtensionAPI) {
         tq.set("allow_prior_project_trajectory", "true");
         trajectory = await focusaFetchDetailed(`/trajectory/view?${tq.toString()}`, { method: "GET" });
       }
-      const ok = cardRes.ok && (action !== "save" || checkpoint?.ok) && (action === "save" || resume?.ok || card.inferred_workpoint_candidate);
+      const ok = apiTransfer.ok && cardRes.ok && (action !== "save" || checkpoint?.ok) && (action === "save" || resume?.ok || card.inferred_workpoint_candidate || apiBody.transfer?.inferred_workpoint_candidate);
       const shortest = card.success_sequence?.shortest_path_to_success?.selected || {};
       const text = `session transfer ${action} → project=${String(card.project_identity?.canonical_name || card.project_identity?.project_id || projectRoot)} root=${projectRoot} saved=${checkpoint?.ok === true} resume=${String(resume?.body?.status || resume?.status || "not_run")} inferred_wp=${String(inferred.current_action || "none")} shortest=${String(shortest.path_id || "unknown")}`;
       const toolResult = card.details?.tool_result_v1 || { ok, status: ok ? "completed" : "blocked", canonical: resume?.body?.canonical === true || checkpoint?.body?.canonical === true, degraded: !ok, failure_class: ok ? null : (card.failure_class || resume?.body?.failure_class || checkpoint?.body?.failure_class || null), retry: { safe: true, posture: "safe_retry" }, side_effects: checkpoint?.ok ? ["workpoint_checkpoint"] : [], evidence_refs: [], next_tools: ["focusa_project_card", "focusa_workpoint_resume", "focusa_trajectory_view"] };
-      return { content: [{ type: "text", text }], details: { ok, status: ok ? "completed" : "blocked", endpoint: "session_transfer_wrapper", action, project_root: projectRoot, continuity_id: continuityId, save_packet: checkpoint?.body || null, resume_packet: resume?.body || null, trajectory: trajectory?.body || null, project_card: { algorithm_run_id: card.algorithm_run_id, inferred_workpoint_candidate: inferred, trajectory_report_card: card.trajectory_report_card, crosswire_health: card.crosswire_health, success_sequence: card.success_sequence }, operator_handoff: { command: `cd ${projectRoot} && pi`, first_tool: `focusa_session_transfer action=\"continue\" project_root=\"${projectRoot}\" continuity_id=\"${continuityId}\"`, authority_boundary: "project_root_plus_continuity_id" }, tool_result_v1: toolResult, next_tools: ["focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"] } } as any;
+      return { content: [{ type: "text", text }], details: { ok, status: ok ? "completed" : "blocked", endpoint: "session_transfer_wrapper", action, project_root: projectRoot, continuity_id: continuityId, api_transfer: apiBody, save_packet: checkpoint?.body || null, resume_packet: resume?.body || null, trajectory: trajectory?.body || null, project_card: { algorithm_run_id: card.algorithm_run_id, inferred_workpoint_candidate: inferred, trajectory_report_card: card.trajectory_report_card, crosswire_health: card.crosswire_health, success_sequence: card.success_sequence }, operator_handoff: apiBody.transfer?.operator_handoff || { command: `cd ${projectRoot} && pi`, first_tool: `focusa_session_transfer action=\"continue\" project_root=\"${projectRoot}\" continuity_id=\"${continuityId}\"`, authority_boundary: "project_root_plus_continuity_id" }, tool_result_v1: toolResult, next_tools: ["focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"] } } as any;
     },
   });
 

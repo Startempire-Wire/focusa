@@ -116,6 +116,8 @@ focusa project identity --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project card --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --current-ask "Choose the next evidence-backed step" --json
 focusa project card-outcome --algorithm-run-id <algorithm_run_id> --actual-outcome "completed" --score 1.0 --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --evidence-ref "test:pass" --json
 # API/Pi outcome payloads can include task_timing + token_usage; Pi auto-populates elapsed HH:MM:SS and token counts when omitted.
+focusa project session-transfer --action save --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --current-ask "Save current work like a game save" --json
+focusa project session-transfer --action continue --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
 focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
 focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --mid-level-goal "Close release blockers" --short-term-goal "Run current validation gates" --waypoint "CLI/API parity proof" --waypoint "Public docs proof" --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json

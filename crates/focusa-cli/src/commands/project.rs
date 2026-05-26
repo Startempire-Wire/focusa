@@ -37,6 +37,23 @@ pub enum ProjectCmd {
         #[arg(long)]
         notes: Option<String>,
     },
+    /// Save or continue a Focusa session-transfer packet.
+    SessionTransfer {
+        #[arg(long, default_value = "status")]
+        action: String,
+        #[arg(long)]
+        cwd: Option<String>,
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        current_ask: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
+        #[arg(long)]
+        mission: Option<String>,
+        #[arg(long)]
+        next_action: Option<String>,
+    },
     /// Verify expected project identity signals against discovered ProjectIdentity.
     Verify {
         #[arg(long)]
@@ -143,6 +160,18 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 "notes": notes,
             });
             ("card-outcome", api.post("/v1/project/card/outcome", &body).await?)
+        }
+        ProjectCmd::SessionTransfer { action, cwd, project_root, current_ask, continuity_id, mission, next_action } => {
+            let body = json!({
+                "action": action,
+                "cwd": cwd,
+                "project_root": project_root,
+                "current_ask": current_ask,
+                "continuity_id": continuity_id,
+                "mission": mission,
+                "next_action": next_action,
+            });
+            ("session-transfer", api.post("/v1/project/session-transfer", &body).await?)
         }
         ProjectCmd::Verify {
             cwd,
