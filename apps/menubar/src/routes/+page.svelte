@@ -77,7 +77,10 @@
         metacogEvaluations,
         snapshotsRecent,
         lineageHead,
-        releaseProof: { status: 'ready', summary: 'run focusa release prove --tag <tag>' },
+        releaseProof: {
+          status: 'manual_proof_required',
+          summary: 'No release-proof endpoint wired yet; run focusa release prove --tag <tag> before publish.',
+        },
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to connect';

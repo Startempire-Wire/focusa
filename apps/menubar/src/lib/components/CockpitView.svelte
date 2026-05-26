@@ -115,10 +115,11 @@
     <code>focusa cache doctor</code>
   </article>
 
-  <article class="card">
+  <article class="card" class:watch={release.status === 'manual_proof_required' || release.status === 'unavailable'}>
     <div class="label">RELEASE</div>
-    <div class="value">{text(release.status, 'ready')}</div>
-    <div class="meta">{text(release.summary, 'run proof before publish')}</div>
+    <div class="value">{text(release.status, 'manual_proof_required')}</div>
+    <div class="meta">{text(release.summary, 'No release-proof source wired yet; run proof before publish.')}</div>
+    <div class="chips"><span class="chip" class:watch={release.status !== 'proven'}>{release.status === 'proven' ? 'proven' : 'manual gate'}</span></div>
     <code>focusa release prove --tag &lt;tag&gt;</code>
   </article>
 
