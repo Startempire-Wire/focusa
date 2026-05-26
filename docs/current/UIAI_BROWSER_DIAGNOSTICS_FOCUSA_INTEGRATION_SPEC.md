@@ -23,8 +23,10 @@ Local implementation in `/home/wpuiai/uiai-engine` now includes:
 
 - Convert browser diagnostics into stable Focusa evidence refs.
 - Preserve reproduction context across compaction/model switch with Workpoints.
-- Use active object resolution to map browser evidence to likely source files, API routes, components, or docs.
+- Route browser debugging through Trajectory state/gaps so web failures connect to project goals.
+- Use active object resolution/ontology hints to map URL, stack, component, and endpoint evidence to likely source files, API routes, components, or docs.
 - Record bounded predictions before fixes and evaluate them after verification.
+- Capture metacognitive lessons only when diagnostics outcomes change future debugging behavior.
 - Keep UIAI as the local lightweight browser backend; do not require Playwright/Puppeteer for this path.
 
 ## 4. Non-goals
@@ -35,6 +37,8 @@ Local implementation in `/home/wpuiai/uiai-engine` now includes:
 - Focusa does not bypass UIAI redaction or local security boundaries.
 
 ## 5. Browser evidence flow
+
+Discovery rule for agents: if browser work involves a broken/blank page, console error, failed click/wait, unexpected navigation, CORS/API/network suspicion, or visual state mismatch, call UIAI `browser_diagnostics` before guessing or patching.
 
 1. Start or resume a Focusa Workpoint for the web issue.
 2. Open/reuse a UIAI browser session for the failing URL.
@@ -158,7 +162,17 @@ For browser debugging Workpoints, checkpoint fields should use:
 - `next_action`: exact next browser/API/source step.
 - `do_not_drift`: unrelated UI polish, unrelated backend refactors, unverified assumptions.
 
-## 10. Prediction and metacognition use
+## 10. Trajectory, ontology, prediction, and metacognition use
+
+### Trajectory
+
+Before or during browser debugging, agents should consult `focusa_trajectory_view` / `focusa_trajectory_assess` to decide whether the browser failure is part of the current project gap, a blocker, or unrelated drift. Stress-test and verification artifacts should be cited as evidence refs when assessing the trajectory state.
+
+### Ontology / active objects
+
+Use `focusa_active_object_resolve` with URL, stack frame, failed endpoint, component labels, and diagnostics evidence refs. Treat the result as a candidate object map until verified by code/tests.
+
+### Prediction
 
 Before patching:
 
@@ -173,7 +187,10 @@ Before patching:
 After verification:
 
 - Evaluate whether the prediction matched the actual cause.
-- Capture a reusable metacog lesson only if it changes future debugging behavior.
+
+### Metacognition
+
+Capture a reusable metacog lesson only if diagnostics evidence changes future debugging behavior, e.g. stress harness requirements, recurring failure classes, or better browser-evidence triage.
 
 ## 11. Acceptance checks
 
@@ -181,11 +198,19 @@ Focusa integration is acceptable when:
 
 - A UIAI diagnostics snapshot can be represented as one bounded `focusa_evidence_capture` result.
 - A Workpoint resume packet can tell the next agent the URL, current evidence, and next browser/source action without transcript tail reliance.
+- Trajectory assessment can cite UIAI diagnostics/stress evidence refs.
 - Active object resolution can use URL + stack + failed endpoint hints.
 - Prediction record/evaluate closes the loop after fix verification.
+- Metacog capture stores only evidence-backed reusable lessons.
 - UIAI companion docs link back to this Focusa integration spec.
 
-## 12. Cross-reference
+## 12. Discoverability checks
+
+UIAI tool metadata should make `browser_diagnostics` visible through these search terms: `diagnostics`, `console`, `network`, `error`, `exception`, `devtools`, `failed request`, `CORS`, `API failure`, `blank page`, `broken page`, and `visual failure`.
+
+Focusa-facing skills should mention `browser_diagnostics` as the browser evidence source before `focusa_evidence_capture`, `focusa_active_object_resolve`, `focusa_predict_record`, and metacog capture.
+
+## 13. Cross-reference
 
 - UIAI browser diagnostics spec: `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`
 - UIAI session docs: `/home/wpuiai/uiai-engine/docs/SESSION_API.md`
