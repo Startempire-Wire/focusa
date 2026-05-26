@@ -71,7 +71,7 @@ Bootstrap quality rule: when prior data exists, define or refresh HLG/MLG/STG fr
 
 ## TrajectoryReporting elapsed + token card
 
-`GET /v1/project/card` includes `trajectory_report_card`, a reporting card for operator-visible progress. It summarizes HLT/LTG/MTG/STG hierarchy, waypoint accomplishment status from recent outcomes, and `time_and_tokens` from project-card outcomes. End-of-task reports should include elapsed wall-clock time (`HH:MM:SS`), total tokens, trajectory hierarchy, and waypoint accomplishments so similar task completion time/token cost can improve.
+`GET /v1/project/card` includes `trajectory_report_card`, a reporting card for operator-visible progress. It summarizes HLT/LTG/MTG/STG hierarchy, waypoint accomplishment status from recent outcomes, and `time_and_tokens` from project-card outcomes. `crosswire_health` states whether ontology, trajectory, prediction, metacog, outcomes, elapsed/tokens, and waypoint reporting are feeding future predictions. End-of-task reports should include elapsed wall-clock time (`HH:MM:SS`), total tokens, trajectory hierarchy, and waypoint accomplishments so similar task completion time/token cost can improve.
 
 ## Next-step quality rule
 

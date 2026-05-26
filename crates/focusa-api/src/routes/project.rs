@@ -1781,12 +1781,22 @@ async fn card(
             "verification_count": record.verification_records.len(),
             "blocker_count": record.blockers.len(),
         }));
+    let runtime_ontology_objects = focusa.ontology.objects.len();
+    let derived_project_objects = 1usize
+        + usize::from(trajectory.is_some())
+        + usize::from(active_workpoint.is_some())
+        + focusa.workpoint.records.len().min(8)
+        + trajectory.as_ref().map(|t| t.waypoints.len().min(8)).unwrap_or(0);
+    let effective_ontology_objects = runtime_ontology_objects + derived_project_objects;
     let ontology = json!({
-        "objects": focusa.ontology.objects.len(),
+        "objects": effective_ontology_objects,
+        "runtime_objects": runtime_ontology_objects,
+        "derived_project_objects": derived_project_objects,
         "links": focusa.ontology.links.len(),
         "proposals": focusa.ontology.proposals.len(),
         "verifications": focusa.ontology.verifications.len(),
         "working_set_refreshes": focusa.ontology.working_set_refreshes.len(),
+        "bridge_status": if runtime_ontology_objects > 0 { "runtime_ontology_plus_project_derivatives" } else { "project_derivatives_used_until_runtime_ontology_populates" }
     });
     let reference_handles = focusa.reference_index.handles.len();
     let workpoint_verifications = focusa.workpoint.records.iter().map(|record| record.verification_records.len()).sum::<usize>();
@@ -1875,6 +1885,18 @@ async fn card(
     );
     let trajectory_waypoints = trajectory.as_ref().map(|t| t.waypoints.clone()).unwrap_or_default();
     let trajectory_report_card = trajectory_reporting_card(&trajectory, &active_trajectory_record, &efficiency_summary, &recent_algorithm_outcomes);
+    let crosswire_health = json!({
+        "schema": "focusa.project_crosswire_health.v1",
+        "ontology": {"wired": effective_ontology_objects > 0, "runtime_objects": runtime_ontology_objects, "effective_objects": effective_ontology_objects, "bridge_status": ontology.get("bridge_status").cloned().unwrap_or(Value::Null)},
+        "trajectory": {"wired": trajectory.is_some(), "has_hlt": trajectory.as_ref().and_then(|t| t.hlt.as_ref()).is_some(), "has_stg": trajectory.as_ref().and_then(|t| t.stg.as_ref()).is_some()},
+        "prediction": {"wired": true, "total": prediction.get("total").cloned().unwrap_or(Value::Null), "evaluated": prediction.get("evaluated").cloned().unwrap_or(Value::Null)},
+        "metacognition": {"wired": true, "mode": "retrieval_prompt_plus_outcome_capture"},
+        "outcomes": {"wired": outcome_count > 0, "count": outcome_count, "average_score": average_outcome_score},
+        "time_tokens": {"wired": efficiency_summary.get("outcome_count_with_timing").and_then(Value::as_u64).unwrap_or(0) > 0 || efficiency_summary.get("outcome_count_with_tokens").and_then(Value::as_u64).unwrap_or(0) > 0, "summary": efficiency_summary},
+        "waypoints": trajectory_report_card.get("accomplishment_summary").cloned().unwrap_or(Value::Null),
+        "prediction_feed": {"elapsed_tokens_waypoints_feed_future_predictions": true, "algorithm_run_records_efficiency": true, "outcome_records_efficiency": true},
+        "known_external_gap": "A running Pi session may need reload to pick up newly registered tools; API/static/live contracts are authoritative."
+    });
     let prior_session_context = json!({
         "schema": "focusa.project_prior_context.v1",
         "advisory_only": true,
@@ -1906,6 +1928,7 @@ async fn card(
         "success_sequence": sequence_plan,
         "efficiency_summary": efficiency_summary,
         "trajectory_report_card": trajectory_report_card,
+        "crosswire_health": crosswire_health,
         "prior_session_context": prior_session_context,
         "metacognition": {
             "summary": "Retrieve relevant lessons with /v1/metacognition/retrieve using project card + current ask.",
