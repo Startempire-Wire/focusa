@@ -2792,9 +2792,13 @@ export function registerTools(pi: ExtensionAPI) {
         persistState();
         return { content: [{ type: "text", text: timeoutPreservedText("trajectory define_goal", "candidate") }], details: { ok: false, status: "timeout_preserved", endpoint: "/v1/trajectory/define-goal", canonical: false, degraded: true, advisory_only: true, trajectory_candidate: fallbackCandidate, failure_class: "hot_path_timeout", response: compactApiEcho(b), next_tools: ["focusa_tool_doctor", "focusa_resource_mode", "focusa_trajectory_define_goal", "focusa_trajectory_view"] } } as any;
       }
-      const candidate = b.trajectory_candidate || {};
+      const pendingCandidate = String(b.status || "") === "pending" && !b.trajectory_candidate
+        ? { long_term_goal: body.long_term_goal, desired_end_state: body.desired_end_state, short_term_goal: body.short_term_goal, current_state: body.current_state, definition_status: "pending" }
+        : null;
+      const candidate = b.trajectory_candidate || pendingCandidate || {};
+      const defineLabel = String(b.status || "") === "pending" ? "PENDING" : b.canonical === true ? "SET" : "NOT SET";
       const text = result.ok
-        ? `trajectory define_goal → ${b.canonical === true ? "SET" : "NOT SET"} long_term=${String(candidate.long_term_goal || "missing")} desired=${String(candidate.desired_end_state || "missing")} definition=${String(candidate.definition_status || "unknown")} persisted=${b.persisted === true}`
+        ? `trajectory define_goal → ${defineLabel} long_term=${String(candidate.long_term_goal || "missing")} desired=${String(candidate.desired_end_state || "missing")} definition=${String(candidate.definition_status || "unknown")} persisted=${b.persisted === true}`
         : `trajectory define_goal blocked → ${explainWorkLoopResult(result, "define failed")}`;
       const toolResult = b.details?.tool_result_v1 || { ok: result.ok && b.status !== "validation_rejected", status: result.ok ? String(b.status || "completed") : String(result.status), canonical: b.canonical === true, degraded: b.degraded === true, failure_class: b.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: p.supersession_evidence_refs || [], next_tools: b.next_tools || ["focusa_trajectory_assess"] };
       return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: result.ok ? String(b.status || "completed") : String(result.status), endpoint: "/v1/trajectory/define-goal", canonical: b.canonical === true, degraded: b.degraded === true, advisory_only: b.advisory_only === true, trajectory_candidate: candidate, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], response: compactApiEcho(b), next_tools: toolResult.next_tools || b.next_tools || ["focusa_trajectory_assess"] } } as any;

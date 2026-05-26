@@ -1820,8 +1820,46 @@ async fn define_goal(
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
     drop(focusa);
     let mut side_effects = Vec::new();
+    let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
     if let Some(trajectory) = trajectory_record {
-        dispatch_event(&state, FocusaEvent::TrajectoryGoalDefined { trajectory }).await?;
+        if let Err((status, Json(mut pending_payload))) =
+            dispatch_event(&state, FocusaEvent::TrajectoryGoalDefined { trajectory }).await
+        {
+            if status == StatusCode::ACCEPTED
+                && pending_payload.get("status").and_then(Value::as_str) == Some("pending")
+            {
+                if let Some(obj) = pending_payload.as_object_mut() {
+                    obj.insert(
+                        "trajectory_id".to_string(),
+                        payload.get("trajectory_id").cloned().unwrap_or(Value::Null),
+                    );
+                    obj.insert(
+                        "trajectory_candidate".to_string(),
+                        payload
+                            .get("trajectory_candidate")
+                            .cloned()
+                            .unwrap_or(Value::Null),
+                    );
+                    obj.insert(
+                        "project_identity".to_string(),
+                        payload
+                            .get("project_identity")
+                            .cloned()
+                            .unwrap_or(Value::Null),
+                    );
+                    obj.insert("advisory_only".to_string(), Value::Bool(true));
+                    obj.insert("persisted".to_string(), Value::Bool(false));
+                    obj.insert("mutates_canonical_state".to_string(), Value::Bool(false));
+                    obj.insert("pending_candidate_preserved".to_string(), Value::Bool(true));
+                }
+                return Ok(Json(attach_trajectory_tool_result(
+                    pending_payload,
+                    vec![],
+                    evidence_refs,
+                )));
+            }
+            return Err((status, Json(pending_payload)));
+        }
         side_effects.push("trajectory_goal_defined");
         if let Some(obj) = payload.as_object_mut() {
             obj.insert("persisted".to_string(), Value::Bool(true));
@@ -1833,7 +1871,6 @@ async fn define_goal(
             );
         }
     }
-    let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
     Ok(Json(attach_trajectory_tool_result(
         payload,
         side_effects,
