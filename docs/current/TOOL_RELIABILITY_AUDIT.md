@@ -12,7 +12,7 @@ This audit is read-only for daemon/API probes. It validates all 59 registered to
 
 ## Latest safe audit result
 
-- Static contracts: passed (`tools=59`, `contracts=59`).
+- Static contracts: passed (`tools=61`, `contracts=61`).
 - Safe GET routes: passed for health, ontology tool contracts/choreography, focus current frame, lineage, metacog recent, predictions, project identity, resource mode, trajectory, work-loop summary, Workpoint current.
 - Current hardening gates: `tests/focusa_cli_parity_smoke_test.sh`, `tests/focusa_tool_stress_test.sh`, `tests/focusa_extended_soak_test.sh`, `tests/focusa_parallel_load_regression_test.sh`, `tests/spec96_focusa_aware_context_pressure_static_test.sh`, and `node scripts/audit-focusa-tool-suite-safe.mjs`.
 - Runtime proof includes extended soak RSS/status profiling, immediate scoped Workpoint checkpoint visibility, and live dynamic choreography adjustments from evaluated `tool_edge:from->to` prediction refs.
@@ -63,7 +63,7 @@ Focusa operating principle: **low memory = still reliable; high memory = opportu
 
 ## Latest all-tools implementation/spec audit
 
-- Contracts: passed (`tools=59`, `contracts=59`).
+- Contracts: passed (`tools=61`, `contracts=61`).
 - Static implementation/spec audit: passed (`failures=0`, `warnings=0`).
 - Filled gaps: concrete Focus State CLI update, scoped Workpoint CLI flags, metacog recent CLI, lineage extract CLI, snapshot API/CLI contract parity, Spec97 Reflex Primitive direct/traverse access, and API/Pi `reflex_suggestions`.
 - Live probes: hot/safe endpoints and Spec97 reflex dogfood passed with no failures in the safe suite; stale runtime registry can appear until daemon rebuild/restart reloads embedded registry.

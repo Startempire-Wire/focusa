@@ -36,6 +36,7 @@ focusa_project_card project_root="/home/wirebot/focusa" current_ask="Choose the 
 
 - Family: Project Identity.
 - Side effects: `read_state`.
+- Result envelope: `tool_result_v1` with status, recovery posture, side effects, evidence refs, and next tools when applicable.
 - API routes: `GET /v1/project/card`.
 - CLI commands: `focusa project card`.
 - Core surface: Spec98 ontology-grounded project-intelligence flywheel.

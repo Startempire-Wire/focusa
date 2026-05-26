@@ -1,8 +1,8 @@
 # Focusa Tool Choreography Map
 
-Current contract registry: **59 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, and metacognition.
+Current contract registry: **61 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, and metacognition.
 
-Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains 177 weighted per-tool edges and exact `per_tool_next_tools` for all 59 tools, including `focusa_reflex_primitives`. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
+Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains 185 weighted per-tool edges and exact `per_tool_next_tools` for all 61 tools, including `focusa_reflex_primitives` and `focusa_project_card_outcome`. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
 
 This map links tools by **model intent** so agents get compounding project results instead of using only basic note tools.
 

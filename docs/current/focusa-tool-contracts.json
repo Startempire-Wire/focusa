@@ -1,7 +1,7 @@
 {
   "schema": "spec90.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 60,
+  "tool_count": 61,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -57,6 +57,32 @@
         "domain_cli_only"
       ],
       "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance"
+    },
+    {
+      "name": "focusa_project_card_outcome",
+      "label": "Project Card Outcome",
+      "purpose": "Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve.",
+      "family": "project_identity",
+      "ontology_action": "project.card_outcome",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "PredictionRecord",
+        "MetacognitionStore",
+        "EvidenceRef"
+      ],
+      "api_routes": [
+        "POST /v1/project/card/outcome"
+      ],
+      "cli_commands": [
+        "focusa project card-outcome"
+      ],
+      "core_surface": "Spec98 project-card learning flywheel outcome attachment",
+      "doc_path": "docs/focusa-tools/tools/focusa_project_card_outcome.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_project_card_outcome",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id"
     },
     {
       "name": "focusa_project_verify",
@@ -403,7 +429,7 @@
     {
       "name": "focusa_scratch",
       "label": "Scratchpad",
-      "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
       "family": "focus_state",
       "ontology_action": "focus_state.scratch",
       "ontology_objects": [
@@ -424,7 +450,7 @@
     {
       "name": "focusa_decide",
       "label": "Record Decision",
-      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
+      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
       "family": "focus_state",
       "ontology_action": "focus_state.decide",
       "ontology_objects": [
@@ -447,7 +473,7 @@
     {
       "name": "focusa_constraint",
       "label": "Record Constraint",
-      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
+      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
       "family": "focus_state",
       "ontology_action": "focus_state.constraint",
       "ontology_objects": [
@@ -493,7 +519,7 @@
     {
       "name": "focusa_intent",
       "label": "Set Intent",
-      "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
+      "purpose": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.intent",
       "ontology_objects": [
@@ -516,7 +542,7 @@
     {
       "name": "focusa_current_focus",
       "label": "Set Current Focus",
-      "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
+      "purpose": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.current.focus",
       "ontology_objects": [

@@ -64,8 +64,8 @@ wait_health(){
 
 wait_health || { echo "=== FOCUSA CLI PARITY SMOKE RESULTS ==="; echo "passed=$PASSED failed=1 artifacts=$TMP_DIR"; exit 1; }
 run_json health '.status == "ok" or .ok == true' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/health
-run_json tool_contracts '.contracts | length == 59' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-contracts
-run_json tool_choreography '.schema == "focusa.tool_choreography.v1" and .tool_count == 59 and .edge_count >= 59 and (.per_tool_next_tools.focusa_project_identity | length > 0)' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-choreography
+run_json tool_contracts '.contracts | length == 61' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-contracts
+run_json tool_choreography '.schema == "focusa.tool_choreography.v1" and .tool_count == 61 and .edge_count >= 61 and (.per_tool_next_tools.focusa_project_identity | length > 0)' curl -fsS --max-time 8 http://127.0.0.1:8787/v1/ontology/tool-choreography
 run_json project_identity '.status == "completed" and .project_identity.status == "verified"' "$CLI" project identity --project-root "$PROJECT_ROOT" --json
 run_json trajectory_view '.project_identity != null and (.trajectory != null or .status != null)' "$CLI" trajectory view --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --mode summary --json
 run_json resource_status '.mode != null or .resource_mode != null' "$CLI" resource status --json

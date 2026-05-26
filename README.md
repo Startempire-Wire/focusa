@@ -490,6 +490,7 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | --- | --- | --- |
 | `focusa_project_identity` | Project Identity | [`docs/focusa-tools/tools/focusa_project_identity.md`](docs/focusa-tools/tools/focusa_project_identity.md) |
 | `focusa_project_card` | Project Identity | [`docs/focusa-tools/tools/focusa_project_card.md`](docs/focusa-tools/tools/focusa_project_card.md) |
+| `focusa_project_card_outcome` | Project Identity | [`docs/focusa-tools/tools/focusa_project_card_outcome.md`](docs/focusa-tools/tools/focusa_project_card_outcome.md) |
 | `focusa_project_verify` | Project Identity | [`docs/focusa-tools/tools/focusa_project_verify.md`](docs/focusa-tools/tools/focusa_project_verify.md) |
 | `focusa_trajectory_view` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_view.md`](docs/focusa-tools/tools/focusa_trajectory_view.md) |
 | `focusa_trajectory_define_goal` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_define_goal.md`](docs/focusa-tools/tools/focusa_trajectory_define_goal.md) |
@@ -603,6 +604,7 @@ Trademark use is governed separately by `TRADEMARKS.md`. External contributions 
 ## Focusa Tools
 - [focusa_project_identity](docs/focusa-tools/tools/focusa_project_identity.md) — resolve ProjectIdentity quorum for the project folder.
 - [focusa_project_card](docs/focusa-tools/tools/focusa_project_card.md) — synthesize ontology-grounded project intelligence for bootstrap/re-bootstrap.
+- [focusa_project_card_outcome](docs/focusa-tools/tools/focusa_project_card_outcome.md) — attach verified outcomes to project-card algorithm runs.
 - [focusa_project_verify](docs/focusa-tools/tools/focusa_project_verify.md) — verify expected ProjectIdentity fields.
 - [focusa_resource_mode](docs/focusa-tools/tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
 - [focusa_traverse](docs/focusa-tools/tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.

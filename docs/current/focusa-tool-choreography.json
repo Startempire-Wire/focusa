@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 60,
-  "edge_count": 182,
+  "tool_count": 61,
+  "edge_count": 185,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -67,10 +67,15 @@
       "focusa_workpoint_resume"
     ],
     "focusa_project_card": [
+      "focusa_project_card_outcome",
       "focusa_traverse",
       "focusa_trajectory_view",
-      "focusa_metacog_retrieve",
-      "focusa_predict_record"
+      "focusa_metacog_retrieve"
+    ],
+    "focusa_project_card_outcome": [
+      "focusa_project_card",
+      "focusa_predict_record",
+      "focusa_metacog_capture"
     ],
     "focusa_project_verify": [
       "focusa_trajectory_view",
@@ -390,26 +395,44 @@
     },
     {
       "from": "focusa_project_card",
-      "to": "focusa_traverse",
+      "to": "focusa_project_card_outcome",
       "weight": 10,
       "reason": "static_next_tool_route"
     },
     {
       "from": "focusa_project_card",
-      "to": "focusa_trajectory_view",
+      "to": "focusa_traverse",
       "weight": 9,
       "reason": "static_next_tool_route"
     },
     {
       "from": "focusa_project_card",
-      "to": "focusa_metacog_retrieve",
+      "to": "focusa_trajectory_view",
       "weight": 8,
       "reason": "static_next_tool_route"
     },
     {
       "from": "focusa_project_card",
-      "to": "focusa_predict_record",
+      "to": "focusa_metacog_retrieve",
       "weight": 7,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_project_card_outcome",
+      "to": "focusa_project_card",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_project_card_outcome",
+      "to": "focusa_predict_record",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_project_card_outcome",
+      "to": "focusa_metacog_capture",
+      "weight": 8,
       "reason": "static_next_tool_route"
     },
     {

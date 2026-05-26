@@ -10,7 +10,7 @@ Evidence snapshot:
 - Tests: 303 shell/TS/runtime/static gates under `tests/`
 - Menubar app: Svelte/Tauri slice under `apps/menubar/`
 - Pi extension: `apps/pi-extension/src/tools.ts`, `compaction.ts`, `state.ts`, `commands.ts`
-- Focused audit run: `node scripts/audit-focusa-tool-implementation-spec-gaps.mjs --json` returned 59 tools and 1 failure: TypeScript contract registry differs from JSON projection.
+- Focused audit run after project-card outcome parity returned 61 tools; TypeScript, JSON projection, and public registry docs are synchronized.
 - Prediction/metacognition flywheel pass added `capture-outcome`, ontology context, prediction→metacog capture, metacog→follow-up prediction, and `tests/spec98_prediction_metacog_flywheel_static_test.sh`.
 
 ## Summary: most underdeveloped/high-leverage areas
@@ -32,8 +32,8 @@ Evidence snapshot:
 | Core runtime daemon/state reducer | 8 | `crates/focusa-core/src/reducer.rs`, `runtime/daemon.rs`, `runtime/persistence_sqlite.rs`; `crates/focusa-api/src/server.rs` | Large reducer-backed runtime, persistence, daemon loops, event bus, API state. | Still active-dev; broad reducer complexity and some route/test-only unwraps require continued hardening. |
 | API surface | 8 | 53 route files; `crates/focusa-api/src/routes/*.rs`; `API_REFERENCE_CURRENT.md` | Broad HTTP API for focus, workpoints, trajectory, metacog, telemetry, events, resource, ontology, etc. | Route count is high; product paths need simplification around coding-agent workflows. |
 | CLI surface | 7 | 38 command files; `crates/focusa-cli/src/commands/*.rs`; `CLI_REFERENCE_CURRENT.md` | Broad CLI parity for core runtime features. | UX still expert-oriented; workflows require knowing many commands. |
-| Pi extension tool integration | 8 | `apps/pi-extension/src/tools.ts`, 59 tools, focused docs; tool wrapper/envelopes | Strongest agent integration; tool envelopes, recovery hints, compaction packets, project scope. | Contract registry drift surfaced in audit; Pi-first parity leaves other agents behind. |
-| Tool contract registry/parity | 7 | `docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md`; audit script | 59 tools tracked; API/CLI/docs parity intended. | Current audit failed on TS registry vs JSON projection drift; needs regeneration/fix. |
+| Pi extension tool integration | 8 | `apps/pi-extension/src/tools.ts`, 61 tools, focused docs; tool wrapper/envelopes | Strongest agent integration; tool envelopes, recovery hints, compaction packets, project scope. | Contract registry now includes project-card outcome parity; Pi-first parity still needs continued cross-agent visibility. |
+| Tool contract registry/parity | 8 | `docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md`; audit script | 61 tools tracked; API/CLI/docs parity intended. | Registry/docs projection synchronized; keep live proof after daemon rebuild/restart. |
 | Workpoint continuity | 9 | `routes/workpoint.rs`, `commands/workpoint.rs`, Pi tools, `WORKPOINT_LIFECYCLE_GUIDE.md` | Canonical checkpoint/resume/handoff contract; project_root + continuity gates; evidence linking. | Could be more automatic for coding-agent vitals and periodic consolidation. |
 | Trajectory/project north-star | 7 | `routes/trajectory.rs`, `commands/trajectory.rs`, `TRAJECTORY_GTM_AND_GAPS.md` | Per-project HLT/MLG/STG/Waypoint concepts and APIs. | Lifecycle quality metrics and obvious end-user flows still early. |
 | Project identity/scope guard | 8 | `routes/project.rs`, Workpoint guards, `WORKPOINT_SESSION_SCOPE_GUARD.md` | Strong project_root/continuity_id safety and cross-project rejection. | Needs tighter integration into coding vitals and all non-Pi adapters. |
@@ -69,7 +69,7 @@ Evidence snapshot:
 
 ## Recommended immediate build order
 
-1. Fix tool contract registry drift so focused tool audit returns green again.
+1. Keep tool contract registry drift green through static validation and live proof after each new Pi tool.
 2. Add `project_vitals` / coding sensory card: git status, changed files, tests/lint/typecheck state, CI state, bead state, daemon/resource status, Workpoint/Trajectory state.
 3. Add loop/stuck detector: repeated command failures, same-file churn, repeated investigation, repeated tool fallback, stale branch/CI red.
 4. Add autonomic coding-work governor: if vitals show pressure or stuckness, choose checkpoint/compact/narrow/retry/escalate/stop-unsafe.

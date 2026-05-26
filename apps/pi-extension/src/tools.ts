@@ -2574,6 +2574,40 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_project_card_outcome",
+    label: "Focusa Project Card Outcome",
+    description: "Attach a final outcome/result to a specific project-card algorithm_run_id and update learned project-card weights.",
+    promptSnippet: "Use after a project-card-guided action is verified, so future bootstrap/sequence planning learns from the result.",
+    parameters: Type.Object({
+      algorithm_run_id: Type.String({ description: "Project-card algorithm_run_id returned by focusa_project_card." }),
+      actual_outcome: Type.String({ description: "Observed final outcome/result for that algorithm run." }),
+      score: Type.Optional(Type.Number({ description: "Optional outcome score from 0.0 to 1.0; defaults to 1.0." })),
+      evidence_refs: Type.Optional(Type.Array(Type.String(), { description: "Evidence refs proving the outcome." })),
+      project_root: Type.Optional(Type.String({ description: "Optional project root associated with the run." })),
+      notes: Type.Optional(Type.String({ description: "Optional bounded note about the result." })),
+    }),
+    async execute(_id, params) {
+      const p = params as { algorithm_run_id: string; actual_outcome: string; score?: number; evidence_refs?: string[]; project_root?: string; notes?: string };
+      const payload = {
+        algorithm_run_id: p.algorithm_run_id,
+        actual_outcome: p.actual_outcome,
+        score: typeof p.score === "number" ? p.score : undefined,
+        evidence_refs: Array.isArray(p.evidence_refs) ? p.evidence_refs : [],
+        project_root: p.project_root || S.sessionCwd || process.cwd(),
+        notes: p.notes,
+      };
+      const result = await focusaFetchDetailed("/project/card/outcome", { method: "POST", body: JSON.stringify(payload) });
+      const body = result.body || {};
+      const outcome = body.outcome || {};
+      const text = result.ok && String(body.status || "") === "recorded"
+        ? `project card outcome → recorded run=${String(outcome.algorithm_run_id || p.algorithm_run_id)} score=${String(outcome.score ?? payload.score ?? "default")} evidence=${Array.isArray(outcome.evidence_refs) ? outcome.evidence_refs.length : payload.evidence_refs.length}`
+        : `project card outcome blocked → ${explainWorkLoopResult(result, "outcome unavailable")}`;
+      const toolResult = body.details?.tool_result_v1 || { ok: result.ok && body.status === "recorded", status: result.ok ? String(body.status || "completed") : "blocked", canonical: false, degraded: !result.ok, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: ["project_card_algorithm_outcome_append", "project_card_weight_update"], evidence_refs: payload.evidence_refs, next_tools: body.flywheel?.next_tools || ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"] };
+      return { content: [{ type: "text", text }], details: { ok: toolResult.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card/outcome", advisory_only: false, outcome, storage: body.storage || null, flywheel: body.flywheel || null, tool_result_v1: toolResult, failure_class: toolResult.failure_class || null, side_effects: toolResult.side_effects || [], evidence_refs: toolResult.evidence_refs || [], request: compactApiEcho(payload), response: compactApiEcho(body), next_tools: toolResult.next_tools || body.flywheel?.next_tools || ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"] } } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_project_verify",
     label: "Focusa Project Verify",
     description: "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state.",

@@ -65,4 +65,4 @@ Every current `focusa_*` tool has one individual doc under:
 docs/focusa-tools/tools/<tool-name>.md
 ```
 
-Current public count: 59 tools. Spec97 adds `focusa_reflex_primitives` for read-only Reflex Primitive summaries; it pairs with direct `GET /v1/reflex/primitives`, `surface=reflex_primitives` traversal, and bounded `reflex_suggestions` in result envelopes.
+Current public count: 61 tools. Spec97 adds `focusa_reflex_primitives` for read-only Reflex Primitive summaries; Spec98 adds `focusa_project_card_outcome` for project-card learning outcomes. These pair with direct APIs, traversal/context surfaces, and bounded result envelopes.

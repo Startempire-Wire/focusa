@@ -90,6 +90,23 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "live_check": "contract_static plus /v1/project/card safe probe and bootstrap/re-bootstrap guidance"
   },
   {
+    "name": "focusa_project_card_outcome",
+    "label": "Project Card Outcome",
+    "purpose": "Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve.",
+    "family": "project_identity",
+    "ontology_action": "project.card_outcome",
+    "ontology_objects": ["ProjectIdentity", "PredictionRecord", "MetacognitionStore", "EvidenceRef"],
+    "api_routes": ["POST /v1/project/card/outcome"],
+    "cli_commands": ["focusa project card-outcome"],
+    "core_surface": "Spec98 project-card learning flywheel outcome attachment",
+    "doc_path": "docs/focusa-tools/tools/focusa_project_card_outcome.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_project_card_outcome",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/project/card/outcome safe fixture using a fresh project-card algorithm_run_id"
+  },
+  {
     "name": "focusa_project_verify",
     "label": "Project Verify",
     "purpose": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
@@ -1352,10 +1369,15 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_workpoint_resume"
   ],
   "focusa_project_card": [
+    "focusa_project_card_outcome",
     "focusa_traverse",
     "focusa_trajectory_view",
-    "focusa_metacog_retrieve",
-    "focusa_predict_record"
+    "focusa_metacog_retrieve"
+  ],
+  "focusa_project_card_outcome": [
+    "focusa_project_card",
+    "focusa_predict_record",
+    "focusa_metacog_capture"
   ],
   "focusa_project_verify": [
     "focusa_trajectory_view",
