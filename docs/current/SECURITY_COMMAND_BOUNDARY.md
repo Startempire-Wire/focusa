@@ -16,7 +16,7 @@ These shell-command hotspots existed at the time of the 2026-05-26 security revi
 | --- | --- | --- | --- |
 | `apps/pi-extension/src/state.ts` | `S.pi!.exec("bash", ["-lc", cmd])` daemon kickstart | Config-controlled shell command can restart services | Trusted local config only; operator approval for service restart; prefer fixed arg-vector command later. |
 | `apps/pi-extension/src/config.ts` | default `systemctl start/restart focusa-daemon` | Service restart from Pi extension | Local-only recovery path; keep documented and approval-gated in operator workflows. |
-| `crates/focusa-cli/src/commands/cleanup.rs` | `bash -lc` cleanup command | Shell injection if command input is attacker-controlled | Preserve runtime-critical paths; only use curated cleanup commands. |
+| `crates/focusa-cli/src/commands/cleanup.rs` | removed `bash -lc` cleanup glob expansion | Former shell glob expansion could widen CWE-78 surface | Uses bounded Rust `/tmp` `read_dir` plus simple prefix/suffix matching; static gate rejects regression. |
 | `crates/focusa-cli/src/commands/release.rs` | `bash -lc` release proof command | Release command injection if command source is untrusted | Use fixed release command list; do not pass untrusted user strings. |
 | `crates/focusa-core/src/runtime/daemon.rs` | `bash -c` with `wb wiki create` | Shell quoting risk from generated title/path/temp path | Replace with arg-vector/stdi­n implementation when feasible. |
 
@@ -33,5 +33,5 @@ These commands use direct argv-style execution and are lower risk but still part
 
 1. Convert runtime `bash -c` Wiki write to `Command::new("wb").args([...]).stdin(...)` if `wb` supports stdin content.
 2. Replace configurable Pi daemon restart shell with explicit command enum or fixed argv arrays.
-3. Keep cleanup/release shell execution restricted to curated commands and preserve-path guards.
+3. Keep release shell execution restricted to curated commands and preserve-path guards.
 4. Keep static gate updated when a hotspot is removed or deliberately reviewed.

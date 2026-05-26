@@ -28,7 +28,6 @@ if unwrap_hits:
 shell_patterns = [
     ('apps/pi-extension/src/state.ts', 'S.pi!.exec("bash", ["-lc", cmd])'),
     ('apps/pi-extension/src/config.ts', 'systemctl start focusa-daemon || systemctl restart focusa-daemon'),
-    ('crates/focusa-cli/src/commands/cleanup.rs', 'Command::new("bash").arg("-lc").arg(cmd).output()'),
     ('crates/focusa-cli/src/commands/release.rs', 'Command::new("bash").arg("-lc").arg(command).output()'),
     ('crates/focusa-core/src/runtime/daemon.rs', 'tokio::process::Command::new("bash")'),
 ]
@@ -39,6 +38,11 @@ for file, marker in shell_patterns:
         missing.append(f'{file}: expected reviewed shell hotspot marker missing/changed: {marker}')
 if missing:
     print('\n'.join(missing), file=sys.stderr)
+    sys.exit(1)
+
+cleanup_text=Path('crates/focusa-cli/src/commands/cleanup.rs').read_text(errors='ignore')
+if 'Command::new("bash")' in cleanup_text or 'compgen -G' in cleanup_text or 'simple_tmp_glob_match' not in cleanup_text:
+    print('cleanup glob expansion must remain shell-free and bounded to /tmp simple glob matching', file=sys.stderr)
     sys.exit(1)
 
 # Reject new bash -lc/-c shell execution outside the reviewed allowlist above.

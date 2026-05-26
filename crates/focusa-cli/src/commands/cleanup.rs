@@ -4,7 +4,6 @@ use clap::Args;
 use serde_json::{Value, json};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 #[derive(Args, Debug)]
 pub struct CleanupArgs {
@@ -76,19 +75,31 @@ fn move_recoverable(path: &Path, root: &Path, dry_run: bool) -> Value {
     }
 }
 
+fn simple_tmp_glob_match(name: &str, pattern: &str) -> bool {
+    let Some(rest) = pattern.strip_prefix("/tmp/") else {
+        return false;
+    };
+    let Some((prefix, suffix)) = rest.split_once('*') else {
+        return name == rest;
+    };
+    name.starts_with(prefix) && name.ends_with(suffix)
+}
+
 fn expand_glob(pattern: &str) -> Vec<PathBuf> {
-    let cmd = format!("compgen -G '{}'", pattern.replace('\'', "'\\''"));
-    let output = Command::new("bash").arg("-lc").arg(cmd).output();
-    output
+    if !pattern.starts_with("/tmp/") || !pattern.contains('*') {
+        let path = PathBuf::from(pattern);
+        return path.exists().then_some(path).into_iter().collect();
+    }
+    fs::read_dir("/tmp")
         .ok()
-        .map(|out| {
-            String::from_utf8_lossy(&out.stdout)
-                .lines()
-                .filter(|line| !line.trim().is_empty())
-                .map(PathBuf::from)
-                .collect()
+        .into_iter()
+        .flat_map(|entries| entries.filter_map(Result::ok))
+        .filter_map(|entry| {
+            let name = entry.file_name();
+            let name = name.to_str()?;
+            simple_tmp_glob_match(name, pattern).then(|| entry.path())
         })
-        .unwrap_or_default()
+        .collect()
 }
 
 pub async fn run(args: CleanupArgs, json_mode: bool) -> anyhow::Result<()> {
