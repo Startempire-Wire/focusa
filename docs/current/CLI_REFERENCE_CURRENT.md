@@ -68,7 +68,7 @@ Options:
 - `continue` — governed continuous-work resume and state refresh.
 - `release prove` — safe release proof workflow, including optional GitHub release verification.
 - `cleanup --safe` — recoverable cleanup of generated residue.
-- `predict` — bounded prediction record/evaluate/recent/stats loop.
+- `predict` — bounded prediction record/evaluate/capture-outcome/recent/stats loop with trajectory and ontology context.
 - `tokens` and `cache` — token-budget and cache-metadata operational visibility.
 - `project` — Project identity discovery/verification parity for `/v1/project/*`.
 - `trajectory` — Trajectory view/define/assess/propose/checkpoint/resume parity for `/v1/trajectory/*`.
@@ -94,9 +94,10 @@ focusa doctor --json
 focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith --continuity-id cont-1
 focusa continue --json
 focusa release prove --tag v0.9.13-dev --fast --github --json
-focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence"
+focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence" --ontology-context '{"object_refs":["Workpoint"],"tool_refs":["focusa_workpoint_resume"]}'
 focusa predict recent --limit 20
 focusa predict evaluate <prediction_id> --actual-outcome completed --score 1.0
+focusa predict capture-outcome --prediction-type next_action_success --actual-outcome completed --score 1.0 --ontology-context '{"object_refs":["Workpoint"],"tool_refs":["focusa_workpoint_resume"]}'
 focusa predict stats
 focusa tokens doctor
 focusa cache doctor

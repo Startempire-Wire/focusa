@@ -1,6 +1,6 @@
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use serde_json::json;
+use serde_json::{Value, json};
 
 #[derive(Subcommand, Debug)]
 pub enum PredictCmd {
@@ -18,6 +18,8 @@ pub enum PredictCmd {
         why: String,
         #[arg(long, value_delimiter = ',')]
         context_refs: Vec<String>,
+        #[arg(long)]
+        ontology_context: Option<String>,
     },
     /// Evaluate a prediction by id.
     Evaluate {
@@ -29,6 +31,23 @@ pub enum PredictCmd {
         #[arg(long)]
         learning_signal_ref: Option<String>,
     },
+    /// Auto-capture an outcome across recent matching unevaluated predictions.
+    CaptureOutcome {
+        #[arg(long)]
+        actual_outcome: String,
+        #[arg(long)]
+        prediction_type: Option<String>,
+        #[arg(long, value_delimiter = ',')]
+        context_refs: Vec<String>,
+        #[arg(long)]
+        ontology_context: Option<String>,
+        #[arg(long)]
+        score: Option<f64>,
+        #[arg(long)]
+        learning_signal_ref: Option<String>,
+        #[arg(long)]
+        limit: Option<u32>,
+    },
     /// Recent predictions.
     Recent {
         #[arg(long, default_value_t = 20)]
@@ -36,6 +55,13 @@ pub enum PredictCmd {
     },
     /// Accuracy/calibration stats.
     Stats,
+}
+
+fn parse_ontology_context(raw: Option<String>) -> anyhow::Result<Value> {
+    match raw {
+        Some(s) if !s.trim().is_empty() => Ok(serde_json::from_str(&s)?),
+        _ => Ok(Value::Null),
+    }
 }
 
 pub async fn run(cmd: PredictCmd, json_mode: bool) -> anyhow::Result<()> {
@@ -48,12 +74,15 @@ pub async fn run(cmd: PredictCmd, json_mode: bool) -> anyhow::Result<()> {
             recommended_action,
             why,
             context_refs,
+            ontology_context,
         } => {
+            let ontology_context = parse_ontology_context(ontology_context)?;
             api.post(
                 "/v1/predictions",
                 &json!({
                     "prediction_type": prediction_type,
                     "context_refs": context_refs,
+                    "ontology_context": ontology_context,
                     "predicted_outcome": predicted_outcome,
                     "confidence": confidence,
                     "recommended_action": recommended_action,
@@ -74,6 +103,29 @@ pub async fn run(cmd: PredictCmd, json_mode: bool) -> anyhow::Result<()> {
                     "actual_outcome": actual_outcome,
                     "score": score,
                     "learning_signal_ref": learning_signal_ref,
+                }),
+            )
+            .await?
+        }
+        PredictCmd::CaptureOutcome {
+            actual_outcome,
+            prediction_type,
+            context_refs,
+            ontology_context,
+            score,
+            learning_signal_ref,
+            limit,
+        } => {
+            api.post(
+                "/v1/predictions/capture-outcome",
+                &json!({
+                    "actual_outcome": actual_outcome,
+                    "prediction_type": prediction_type,
+                    "context_refs": context_refs,
+                    "ontology_context": parse_ontology_context(ontology_context)?,
+                    "score": score,
+                    "learning_signal_ref": learning_signal_ref,
+                    "limit": limit,
                 }),
             )
             .await?

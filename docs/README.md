@@ -130,12 +130,16 @@ This is **institutional intelligence**, not novelty AI.
 - [current/ERROR_EMPTY_STATES.md](current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
 - [current/MAC_APP_MISSION_CONTROL.md](current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
 - [current/PREDICTIVE_POWER_GUIDE.md](current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
+- [current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md](current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md) — normalized signal substrate for prediction/metacognition/ontology flywheel.
+- [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) — dataset-agnostic prediction substrate, with stocks as the first domain adapter.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
 - [current/FOCUSA_AGENT_UTILITY_CARD.md](current/FOCUSA_AGENT_UTILITY_CARD.md) — startup/reload runtime awareness card contract.
 - [current/FOCUSA_FRIENDLY_ONBOARDING.md](current/FOCUSA_FRIENDLY_ONBOARDING.md) — friendly project onboarding Q for agents.
 - [current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) — linked tool routes for compounding project workflows.
 - [current/FOCUSA_MODEL_VISIBLE_AWARENESS.md](current/FOCUSA_MODEL_VISIBLE_AWARENESS.md) — what Focusa shows the LLM and section precedence.
+- [current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md](current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md) — whole-organism brain/body analogy, maturity gaps, and exhaustive docs cross-reference.
+- [current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md](current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md) — code-based 1–10 feature maturity ratings and underdeveloped workflow gaps.
 - [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.
 - [evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md](evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md) — live OpenClaw/Wirebot Focusa awareness activation proof.
 - [current/NON_PI_AGENT_FOCUSA_USAGE.md](current/NON_PI_AGENT_FOCUSA_USAGE.md) — Focusa awareness for OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and other non-Pi agents.

@@ -4,7 +4,7 @@ First-class Spec92 prediction tool.
 
 ## Purpose
 
-Use this tool to work with bounded, inspectable Focusa prediction records. Predictions guide agent behavior and never override operator steering.
+Use this tool to work with bounded, inspectable Focusa prediction records. Predictions guide agent behavior and never override operator steering. Pass bounded `ontology_context` when available so forecasts bind to objects/actions/tools/evidence.
 
 ## API / CLI parity
 
@@ -18,6 +18,7 @@ The tool should return a visible summary plus structured details. Inspect `detai
 
 - No raw provider payloads.
 - Use evidence refs/handles in context refs.
+- Use bounded ontology refs (`object_refs`, `action_refs`, `tool_refs`, `evidence_refs`, `relation_refs`) instead of raw data.
 - Evaluate predictions after actual outcomes are known.
 
 ## Contract summary

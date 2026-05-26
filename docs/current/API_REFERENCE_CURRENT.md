@@ -194,9 +194,12 @@ Ontology adjacency/context evidence-handle projections include bounded `trajecto
 
 ### predictions
 - `POST /v1/predictions`
+- `POST /v1/predictions/capture-outcome`
 - `GET /v1/predictions/recent`
 - `GET /v1/predictions/stats`
 - `POST /v1/predictions/{prediction_id}/evaluate`
+
+Prediction records include bounded `trajectory` and `ontology_context` fields. Manual evaluation and `capture-outcome` feed successful outcomes into metacognition capture memory; promoted metacognition evaluations create follow-up predictions, forming a prediction ↔ metacognition flywheel.
 
 ### proposals
 - `GET /v1/proposals`

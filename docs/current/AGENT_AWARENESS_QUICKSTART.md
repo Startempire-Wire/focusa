@@ -24,7 +24,8 @@ Use this as internal orientation, not a blocker:
 6. **Doctor first when uncertain.** If Focusa seems stale/offline/blocked/degraded, call `focusa_tool_doctor` before guessing.
 7. **Missing-frame fallback stays helpful.** If no active Pi frame is available, use `Attentive and awaiting operator direction`: continue from operator/repo context, then checkpoint/resume once scope is safe.
 8. **Evidence is first-class.** After tests, release proof, API proof, or file proof, call `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
-9. **Predictions are measurable.** Before risky or uncertain next action, call `focusa_predict_record`; after outcome, call `focusa_predict_evaluate`.
+9. **Predictions are measurable and regular.** Before risky, uncertain, or high-leverage next action, call `focusa_predict_record` with bounded ontology context; after proof/test/CI/evidence, call `focusa_predict_evaluate` or capture outcome.
+10. **Metacognition compounds regularly.** Retrieve prior lessons before similar work, and after meaningful outcomes evaluate/promote learning so it can feed the next prediction.
 10. **Compaction must be useful.** Sparse Focusa slots should use related Workpoint/current-ask/frame/local-shadow/session fallbacks, never random filler or bare `none`.
 11. **Identity has axes.** Project scope is `project_root`; logical session/workstream identity is `continuity_id`; Pi `session_id` is temporal metadata; trajectory/goals are corroborating evidence.
 12. **Context pressure is Focusa-aware.** Focusa checkpoints and resumes scoped anchors under pressure; warnings say anchors are unconfirmed, not degraded, and `/fork`, `/new`, or handoff are optional UI-isolation paths only when anchors are unconfirmed.

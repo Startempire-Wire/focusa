@@ -11,6 +11,7 @@ use crate::routes::bounded::{
     budgeted_default_limit, budgeted_hard_limit, budgeted_requested_limit,
 };
 use crate::routes::permissions::{forbid, permission_context};
+use crate::routes::predictions::append_prediction_record;
 use crate::server::AppState;
 use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -433,6 +434,22 @@ fn reflection_exists_on_disk(state: &AppState, reflection_id: &str) -> bool {
     metacog_record_path(state, "reflections", reflection_id).exists()
 }
 
+fn load_reflection_record(state: &AppState, reflection_id: &str) -> Option<ReflectionRecord> {
+    let in_mem = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .reflections
+        .iter()
+        .find(|rec| rec.reflection_id == reflection_id)
+        .cloned();
+    in_mem.or_else(|| {
+        let path = metacog_record_path(state, "reflections", reflection_id);
+        fs::read(path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<ReflectionRecord>(&bytes).ok())
+    })
+}
+
 fn load_evaluation_records_from_disk(state: &AppState) -> Vec<EvaluationRecord> {
     let mut out = Vec::new();
     let dir = metacog_category_dir(state, "evaluations");
@@ -454,8 +471,30 @@ fn load_evaluation_records_from_disk(state: &AppState) -> Vec<EvaluationRecord> 
     out
 }
 
-fn adjustment_exists_on_disk(state: &AppState, adjustment_id: &str) -> bool {
-    metacog_record_path(state, "adjustments", adjustment_id).exists()
+fn load_adjustment_record(state: &AppState, adjustment_id: &str) -> Option<AdjustmentRecord> {
+    let in_mem = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .adjustments
+        .iter()
+        .find(|rec| rec.adjustment_id == adjustment_id)
+        .cloned();
+    in_mem.or_else(|| {
+        let path = metacog_record_path(state, "adjustments", adjustment_id);
+        fs::read(path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<AdjustmentRecord>(&bytes).ok())
+    })
+}
+
+fn promotion_score(observed_metrics: &[String], selected_updates: &[String]) -> f64 {
+    let metric_score = (observed_metrics.len() as f64 * 0.25).min(0.75);
+    let update_score = if selected_updates.is_empty() {
+        0.0
+    } else {
+        0.25
+    };
+    (metric_score + update_score).clamp(0.0, 1.0)
 }
 
 static METACOG_STORE: OnceLock<Mutex<MetaStore>> = OnceLock::new();
@@ -483,6 +522,51 @@ fn require_scope(
 
 async fn active_trajectory_context(state: &AppState) -> Option<TrajectoryLadderContext> {
     state.focusa.read().await.trajectory_ladder_context()
+}
+
+pub(crate) async fn capture_learning_signal(
+    state: &AppState,
+    kind: &str,
+    content: &str,
+    rationale: Option<String>,
+    confidence: Option<f64>,
+    strategy_class: Option<String>,
+) -> Option<String> {
+    if kind.trim().is_empty() || content.trim().is_empty() {
+        return None;
+    }
+    let capture_id = format!(
+        "auto-{}",
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    );
+    let storage_path = metacog_record_path(state, "captures", &capture_id)
+        .display()
+        .to_string();
+    let trajectory = active_trajectory_context(state).await;
+    let rec = CaptureRecord {
+        capture_id: capture_id.clone(),
+        created_at: Utc::now(),
+        kind: kind.to_string(),
+        content: content.to_string(),
+        rationale,
+        confidence,
+        strategy_class,
+        storage_path: storage_path.clone(),
+        trajectory,
+    };
+    persist_json_record(
+        &metacog_record_path(state, "captures", &capture_id),
+        &json!(rec),
+    );
+    let index_entry = capture_index_entry(&rec);
+    append_capture_index_entry(state, &index_entry);
+    let mut s = store()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    s.captures.push(rec);
+    s.capture_hot_index.push(index_entry);
+    prune_metacog_store(&mut s, Utc::now(), metacog_store_config(&state.config));
+    Some(capture_id)
 }
 
 #[derive(Debug, Deserialize)]
@@ -903,15 +987,8 @@ async fn evaluate(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "metacognition:write")?;
 
-    let in_mem_exists = {
-        let s = store()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        s.adjustments
-            .iter()
-            .any(|a| a.adjustment_id == body.adjustment_id)
-    };
-    if !in_mem_exists && !adjustment_exists_on_disk(&state, &body.adjustment_id) {
+    let adjustment = load_adjustment_record(&state, &body.adjustment_id);
+    let Some(adjustment) = adjustment else {
         return Err((
             StatusCode::NOT_FOUND,
             Json(json!({
@@ -920,9 +997,10 @@ async fn evaluate(
                 "reason": "adjustment_id does not exist"
             })),
         ));
-    }
-
-    let promote = !body.observed_metrics.is_empty();
+    };
+    let reflection = load_reflection_record(&state, &adjustment.reflection_id);
+    let score = promotion_score(&body.observed_metrics, &adjustment.selected_updates);
+    let promote = score >= 0.5;
     let now = Utc::now();
     let evaluation_id = format!("eval-{}", now.timestamp_nanos_opt().unwrap_or_default());
     let storage_path = metacog_record_path(&state, "evaluations", &evaluation_id)
@@ -954,15 +1032,20 @@ async fn evaluate(
             created_at: now,
             kind: "promoted_learning".to_string(),
             content: format!(
-                "Promoted adjustment {} after observed metrics: {}",
+                "Promoted adjustment {}. Selected updates: {}. Observed metrics: {}. Reflection hypotheses: {}",
                 rec.adjustment_id,
-                rec.observed_metrics.join(", ")
+                adjustment.selected_updates.join("; "),
+                rec.observed_metrics.join(", "),
+                reflection
+                    .as_ref()
+                    .map(|r| r.hypotheses.join("; "))
+                    .unwrap_or_default()
             ),
             rationale: Some(format!(
-                "Evaluation {} marked result={} with promote_learning=true",
-                rec.evaluation_id, rec.result
+                "Evaluation {} marked result={} with promotion_score={:.2}; promoted learning is now retrievable.",
+                rec.evaluation_id, rec.result, score
             )),
-            confidence: Some(1.0),
+            confidence: Some(score),
             strategy_class: Some("metacognition_evaluation".to_string()),
             storage_path: capture_storage_path,
             trajectory: trajectory.clone(),
@@ -992,18 +1075,49 @@ async fn evaluate(
         .as_ref()
         .map(|(capture, _)| capture.capture_id.clone());
 
+    let follow_up_prediction = if rec.promote_learning {
+        append_prediction_record(json!({
+            "prediction_type": "metacog_learning_transfer",
+            "context_refs": [rec.evaluation_id.clone(), rec.adjustment_id.clone()],
+            "ontology_context": {
+                "object_refs": ["MetacognitionEvaluation", "PredictionMetacogFlywheel"],
+                "action_refs": ["evaluate_outcome", "promote_learning", "record_next_prediction"],
+                "tool_refs": ["focusa_metacog_evaluate_outcome", "focusa_predict_record"],
+                "evidence_refs": [storage_path.clone()],
+                "relation_refs": ["evaluation_promotes_capture", "capture_informs_prediction"]
+            },
+            "predicted_outcome": "promoted learning improves the next similar action",
+            "confidence": score,
+            "recommended_action": "retrieve promoted metacognition before the next similar decision and record the next prediction",
+            "why": "Metacognition evaluation promoted a bounded learning signal; prediction follow-up keeps the learning flywheel measurable.",
+            "trajectory": trajectory,
+            "actual_outcome": null,
+            "evaluated_at": null,
+            "score": null,
+            "learning_signal_ref": promoted_capture_id.clone(),
+            "outcome_capture": null
+        })).ok()
+    } else {
+        None
+    };
+
     Ok(Json(json!({
         "evaluation_id": evaluation_id,
         "adjustment_id": rec.adjustment_id,
         "delta_scorecard": {
             "metrics_observed": rec.observed_metrics,
+            "selected_updates": adjustment.selected_updates,
+            "promotion_score": score,
+            "threshold": 0.5,
         },
         "result": rec.result,
         "promote_learning": rec.promote_learning,
         "promoted_capture_id": promoted_capture_id,
+        "follow_up_prediction": follow_up_prediction,
+        "flywheel": {"metacog_to_prediction": follow_up_prediction.is_some(), "next_tools": ["focusa_predict_recent", "focusa_predict_evaluate", "focusa_metacog_retrieve"]},
         "storage_path": storage_path,
         "trajectory": trajectory,
-        "next_step_hint": if rec.promote_learning { "promoted learning was written back into metacognition retrieval memory" } else { "collect observed_metrics before promoting this learning signal" }
+        "next_step_hint": if rec.promote_learning { "promoted learning was written back into metacognition retrieval memory and a follow-up prediction was recorded" } else { "collect observed_metrics before promoting this learning signal" }
     })))
 }
 

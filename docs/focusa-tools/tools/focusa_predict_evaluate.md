@@ -4,7 +4,7 @@ First-class Spec92 prediction tool.
 
 ## Purpose
 
-Use this tool to work with bounded, inspectable Focusa prediction records. Predictions guide agent behavior and never override operator steering.
+Use this tool to work with bounded, inspectable Focusa prediction records. Predictions guide agent behavior and never override operator steering. Successful evaluations feed metacognition capture memory so the next similar decision can retrieve the lesson.
 
 ## API / CLI parity
 
@@ -21,11 +21,12 @@ If `prediction_id` is missing, the Pi tool classifies the result as `failure_cla
 - No raw provider payloads.
 - Use evidence refs/handles in context refs.
 - Evaluate predictions after actual outcomes are known.
+- Treat returned `metacog_capture_id` / flywheel hints as the next learning context; retrieve metacognition before the next similar action.
 
 ## Contract summary
 
 - Family: Metacognition.
-- Side effects: `write_prediction_evaluation`.
+- Side effects: `write_prediction_evaluation`; may write a metacognition capture for high-scoring outcomes.
 - Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
 - API routes: `POST /v1/predictions/{prediction_id}/evaluate`
 - CLI commands: `focusa predict evaluate`

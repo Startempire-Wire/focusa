@@ -4403,9 +4403,11 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       recommended_action: Type.String({ description: "Recommended action if this prediction matters." }),
       why: Type.String({ description: "Evidence-calibrated explanation." }),
       context_refs: Type.Optional(Type.Array(Type.String({ description: "Evidence refs or handles." }))),
+      ontology_context: Type.Optional(Type.Any({ description: "Bounded ontology refs: object_refs, action_refs, tool_refs, evidence_refs, relation_refs." })),
     }),
     async execute(_id, params) {
-      const res = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify(params) });
+      const payload = params && typeof params === "object" ? { ...(params as any) } : params;
+      const res = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify(payload) });
       const body = res.body || {};
       if (!res.ok) return blockedToolResponse("focusa_predict_record", "prediction", `prediction record blocked → ${explainWorkLoopResult(res, "prediction write unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_predict_recent"]);
       const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction record → ${body.status || "accepted"}`, tool: "focusa_predict_record", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"], raw: body });
@@ -4444,7 +4446,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const res = await focusaFetchDetailed(`/predictions/${encodeURIComponent(prediction_id)}/evaluate`, { method: "POST", body: JSON.stringify(payload) });
       const body = res.body || {};
       if (!res.ok) return blockedToolResponse("focusa_predict_evaluate", "prediction", `prediction evaluate blocked → ${explainWorkLoopResult(res, "prediction evaluation unavailable")}`, body.failure_class || (res.status === 404 ? "not_found" : "daemon_unavailable"), body, ["focusa_predict_recent", "focusa_predict_record", "focusa_tool_doctor"]);
-      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction evaluate → ${body.status || "accepted"}`, tool: "focusa_predict_evaluate", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_stats", "focusa_metacog_capture"], raw: body });
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction evaluate → ${body.status || "accepted"}`, tool: "focusa_predict_evaluate", family: "prediction", side_effects: ["prediction_store", "metacog_capture_if_score_high"], evidence_refs: [], next_tools: ["focusa_predict_stats", "focusa_metacog_retrieve", "focusa_predict_record"], raw: body });
       return { content: [{ type: "text", text: `prediction evaluate → ${body.status || "accepted"}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });

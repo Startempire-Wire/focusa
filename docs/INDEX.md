@@ -44,6 +44,10 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | current | [current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md](current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md) | Current Tauri menubar lag-behind audit |
 | current | [current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md) | Current implementation spec for a fully up-to-speed runtime cockpit app |
 | current | [current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md](current/TAURI_MENUBAR_IMPLEMENTATION_GAPS.md) | Remaining implementation gaps and first implementation slice for the menubar cockpit |
+| current | [current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md](current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md) | Whole-organism brain/body analogy, maturity gaps, and exhaustive docs cross-reference |
+| current | [current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md](current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md) | Code-based 1–10 feature maturity ratings and underdeveloped workflow gaps |
+| current | [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) | Dataset-agnostic prediction substrate, with stocks as the first domain adapter |
+| current | [current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md](current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md) | Focusa-native prediction/metacognition/ontology flywheel substrate |
 
 ---
 
