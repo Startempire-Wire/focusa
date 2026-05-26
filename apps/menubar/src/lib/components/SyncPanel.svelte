@@ -30,6 +30,7 @@
   let showAddModal = false;
   let syncInProgress: Set<string> = new Set();
   let peerErrors: Map<string, string> = new Map();
+  let confirmPullPeerId: string | null = null;
 
   async function fetchPeers() {
     try {
@@ -54,13 +55,19 @@
     }
   }
 
-  async function triggerSync(peerId: string) {
+  async function requestPull(peerId: string) {
+    if (confirmPullPeerId !== peerId) {
+      confirmPullPeerId = peerId;
+      return;
+    }
+
     syncInProgress.add(peerId);
     syncInProgress = syncInProgress;
 
     try {
       await postJson(`/v1/sync/pull/${peerId}`);
       peerErrors.delete(peerId);
+      confirmPullPeerId = null;
       await fetchPeerStatus(peerId);
     } catch (e) {
       peerErrors.set(peerId, `Sync failed: ${summarizeError(e)}`);
@@ -94,6 +101,7 @@
   }
 
   function handlePeerAdded(e: CustomEvent) {
+    confirmPullPeerId = null;
     peers = [...peers, {
       peer_id: e.detail.peerId,
       name: e.detail.name,
@@ -199,14 +207,14 @@
             <button
               class="btn-sync"
               class:syncing={syncBusy}
-              on:click={() => triggerSync(peer.peer_id)}
+              on:click={() => requestPull(peer.peer_id)}
               disabled={syncBusy}
             >
               {#if syncBusy}
                 <span class="spinner-small"></span>
                 Checking…
               {:else}
-                Pull gently
+                {confirmPullPeerId === peer.peer_id ? 'Confirm pull' : 'Pull gently'}
               {/if}
             </button>
           </div>

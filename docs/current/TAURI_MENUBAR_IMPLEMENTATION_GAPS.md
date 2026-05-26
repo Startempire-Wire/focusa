@@ -15,7 +15,7 @@
 - Read-only peeks exist for Trajectory, Workpoint, Proof, and Work Loop.
 - Default Focus view now restores original bubble/cloud spirit: current bubble, background clouds, ambient stack depth, and quieter empty states.
 - Gate/Sync copy now frames signals and peers as ambient awareness, not focus-changing control UI.
-- Static guard exists at `tests/spec96_menubar_cockpit_foundation_static_test.sh` and now checks current version plus manual release-proof gating.
+- Static guard exists at `tests/spec96_menubar_cockpit_foundation_static_test.sh` and now checks current version, manual release-proof gating, shared API base, and sync write confirmations.
 
 ## Remaining Phase 0 gaps — foundation
 
@@ -34,7 +34,7 @@
 - Trajectory and Workpoint peeks are read-only; assess/propose/checkpoint/drift/evidence-link flows are not exposed yet.
 - Proof peek is read-only and summary-only; it does not yet support prediction evaluation or snapshot diff.
 - Work-loop peek is read-only; preflighted controls are not exposed yet.
-- Add Peer still uses a modal-style component; spec target is non-modal drawer/inline confirmation.
+- Add Peer still uses a modal-style component, but the write is explicitly confirmation-gated; spec target remains non-modal drawer/inline confirmation.
 - Focus/Gate mutation flows remain minimal; suppress/pin/surface controls need confirmation/result-envelope display before expansion.
 
 ## Next recommended implementation slices

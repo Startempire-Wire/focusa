@@ -12,12 +12,14 @@
   let endpoint = '';
   let loading = false;
   let error: string | null = null;
+  let confirmAdd = false;
 
   function reset() {
     peerId = '';
     name = '';
     endpoint = '';
     error = null;
+    confirmAdd = false;
   }
 
   function close() {
@@ -37,6 +39,11 @@
       new URL(endpoint);
     } catch {
       error = 'Invalid endpoint URL';
+      return;
+    }
+
+    if (!confirmAdd) {
+      error = 'Confirm this peer before adding it';
       return;
     }
 
@@ -65,6 +72,7 @@
     name = '';
     endpoint = '';
     error = null;
+    confirmAdd = false;
   }
 </script>
 
@@ -121,11 +129,16 @@
           <span class="hint">HTTP URL of the peer's daemon</span>
         </div>
 
+        <label class="confirm-add">
+          <input type="checkbox" bind:checked={confirmAdd} disabled={loading} />
+          <span>Confirm this peer is trusted and should be added.</span>
+        </label>
+
         <div class="actions">
           <button type="button" class="btn-cancel" on:click={close} disabled={loading}>
             Cancel
           </button>
-          <button type="submit" class="btn-submit" disabled={loading}>
+          <button type="submit" class="btn-submit" disabled={loading || !confirmAdd}>
             {#if loading}
               Adding...
             {:else}
@@ -235,6 +248,20 @@
     border-radius: 6px;
     color: #ef4444;
     font-size: 13px;
+  }
+
+  .confirm-add {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .confirm-add input {
+    width: auto;
+    margin-top: 2px;
   }
 
   .actions {
