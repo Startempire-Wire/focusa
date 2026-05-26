@@ -56,6 +56,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | current | [current/PATH_TRAVERSAL_SECURITY_TESTS.md](current/PATH_TRAVERSAL_SECURITY_TESTS.md) | CWE-22 path traversal coverage and path-sensitive route inventory |
 | current | [current/TAMPER_EVIDENT_EVENT_CHAIN.md](current/TAMPER_EVIDENT_EVENT_CHAIN.md) | SQLite event hash-chain checkpoints for repudiation detection |
 | current | [current/DATA_RETENTION_BACKUP_DELETION_POLICY.md](current/DATA_RETENTION_BACKUP_DELETION_POLICY.md) | Local-first persisted-state retention, backup, restore, and deletion policy |
+| current | [current/DYNAMIC_API_SECURITY_SMOKE.md](current/DYNAMIC_API_SECURITY_SMOKE.md) | Dynamic local API malformed JSON and oversized-body security smoke |
 | current | [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) | Privacy classes and handling rules for Focusa persisted state |
 | current | [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) | Reviewed shell/external command boundary and runtime unwrap static policy |
 
