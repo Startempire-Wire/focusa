@@ -1728,6 +1728,7 @@ fn infer_action_from_paths(paths: &[String], current_ask: &str) -> String {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn inferred_workpoint_candidate(
     project_root: Option<&str>,
     current_ask: &str,
@@ -1921,6 +1922,7 @@ fn project_success_sequence(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn project_card_algorithmic_scores(
     trajectory_present: bool,
     ontology_objects: usize,
@@ -1980,14 +1982,14 @@ fn project_card_algorithmic_scores(
         ),
         (1.0 - outcome_success_signal, outcome_confidence * 0.20),
     ]);
-    let action_scores = vec![readiness, bootstrap_need, learn_need];
+    let action_scores = [readiness, bootstrap_need, learn_need];
     let probabilities = softmax(
         &action_scores
             .iter()
             .map(|s| logit((*s).clamp(0.01, 0.99)))
             .collect::<Vec<_>>(),
     );
-    let utilities = vec![
+    let utilities = [
         (0.82 + outcome_success_signal * outcome_confidence * 0.10).clamp(0.60, 0.95),
         (0.76 + (1.0 - outcome_success_signal) * outcome_confidence * 0.08).clamp(0.60, 0.90),
         (0.72 + (1.0 - outcome_success_signal) * outcome_confidence * 0.12).clamp(0.60, 0.90),

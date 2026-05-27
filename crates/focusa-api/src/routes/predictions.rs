@@ -89,10 +89,12 @@ pub(crate) fn read_predictions() -> Vec<Value> {
     let metadata = fs::metadata(&path).ok();
     let modified = metadata.as_ref().and_then(|m| m.modified().ok());
     let len = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-    if let Ok(cache) = prediction_cache().lock() {
-        if cache.path.as_ref() == Some(&path) && cache.modified == modified && cache.len == len {
-            return cache.values.clone();
-        }
+    if let Ok(cache) = prediction_cache().lock()
+        && cache.path.as_ref() == Some(&path)
+        && cache.modified == modified
+        && cache.len == len
+    {
+        return cache.values.clone();
     }
     let values = fs::read_to_string(&path)
         .ok()
@@ -345,30 +347,29 @@ async fn evaluate(
         break;
     }
     let mut promoted_capture_id = None;
-    if let Some(prediction) = &updated {
-        if prediction
+    if let Some(prediction) = &updated
+        && prediction
             .get("score")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0)
             >= 0.5
-        {
-            promoted_capture_id = capture_learning_signal(
-                &state,
-                "prediction_outcome",
-                &format!(
-                    "Prediction {} scored {}. Expected: {}. Actual: {}. Recommended action was: {}. Ontology: {}",
-                    prediction.get("prediction_id").and_then(|v| v.as_str()).unwrap_or("unknown"),
-                    prediction.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                    prediction.get("predicted_outcome").and_then(|v| v.as_str()).unwrap_or(""),
-                    prediction.get("actual_outcome").and_then(|v| v.as_str()).unwrap_or(""),
-                    prediction.get("recommended_action").and_then(|v| v.as_str()).unwrap_or(""),
-                    ontology_context_summary(prediction.get("ontology_context").unwrap_or(&Value::Null))
-                ),
-                Some("Prediction evaluation fed the metacognition retrieval loop.".to_string()),
-                prediction.get("score").and_then(|v| v.as_f64()),
-                Some("prediction_metacog_flywheel".to_string()),
-            ).await;
-        }
+    {
+        promoted_capture_id = capture_learning_signal(
+            &state,
+            "prediction_outcome",
+            &format!(
+                "Prediction {} scored {}. Expected: {}. Actual: {}. Recommended action was: {}. Ontology: {}",
+                prediction.get("prediction_id").and_then(|v| v.as_str()).unwrap_or("unknown"),
+                prediction.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                prediction.get("predicted_outcome").and_then(|v| v.as_str()).unwrap_or(""),
+                prediction.get("actual_outcome").and_then(|v| v.as_str()).unwrap_or(""),
+                prediction.get("recommended_action").and_then(|v| v.as_str()).unwrap_or(""),
+                ontology_context_summary(prediction.get("ontology_context").unwrap_or(&Value::Null))
+            ),
+            Some("Prediction evaluation fed the metacognition retrieval loop.".to_string()),
+            prediction.get("score").and_then(|v| v.as_f64()),
+            Some("prediction_metacog_flywheel".to_string()),
+        ).await;
     }
     match updated {
         Some(prediction) => match write_predictions(predictions) {
@@ -400,10 +401,10 @@ async fn capture_outcome(
         if !payload.get("score").unwrap_or(&Value::Null).is_null() {
             continue;
         }
-        if let Some(prediction_type) = body.prediction_type.as_deref() {
-            if payload.get("prediction_type").and_then(|v| v.as_str()) != Some(prediction_type) {
-                continue;
-            }
+        if let Some(prediction_type) = body.prediction_type.as_deref()
+            && payload.get("prediction_type").and_then(|v| v.as_str()) != Some(prediction_type)
+        {
+            continue;
         }
         let record_refs = payload
             .get("context_refs")
@@ -449,8 +450,7 @@ async fn capture_outcome(
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0)
             >= 0.5
-        {
-            if let Some(capture_id) = capture_learning_signal(
+            && let Some(capture_id) = capture_learning_signal(
                 &state,
                 "prediction_outcome",
                 &format!(
@@ -464,9 +464,9 @@ async fn capture_outcome(
                 Some("Prediction auto outcome capture fed metacognition retrieval memory.".to_string()),
                 prediction.get("score").and_then(|v| v.as_f64()),
                 Some("prediction_metacog_flywheel".to_string()),
-            ).await {
-                metacog_capture_ids.push(capture_id);
-            }
+            ).await
+        {
+            metacog_capture_ids.push(capture_id);
         }
     }
     match write_predictions(predictions) {

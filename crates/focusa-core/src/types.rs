@@ -974,7 +974,7 @@ impl FocusaState {
             mlg: trajectory.mid_level_goal.clone(),
             stg: trajectory.short_term_goal.clone(),
             waypoints: trajectory.waypoints.iter().take(8).cloned().collect(),
-            active_workpoint_id: trajectory.active_workpoint_id.clone(),
+            active_workpoint_id: trajectory.active_workpoint_id,
         })
     }
 
@@ -1504,6 +1504,7 @@ pub struct AsccSlotMetadata {
 /// it does not belong in Focusa.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[allow(clippy::large_enum_variant)]
 pub enum FocusaEvent {
     // Instance lifecycle (multi-device / multi-surface observability)
     InstanceConnected {

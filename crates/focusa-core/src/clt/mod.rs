@@ -37,14 +37,13 @@ pub fn retain_hot_window(clt: &mut CltState, max_nodes: usize) -> usize {
     clt.nodes.drain(0..removed);
     let existing_ids: std::collections::HashSet<String> =
         clt.nodes.iter().map(|node| node.node_id.clone()).collect();
-    if let Some(first) = clt.nodes.first_mut() {
-        if first
+    if let Some(first) = clt.nodes.first_mut()
+        && first
             .parent_id
             .as_ref()
             .is_some_and(|parent| !existing_ids.contains(parent))
-        {
-            first.parent_id = None;
-        }
+    {
+        first.parent_id = None;
     }
     removed
 }
