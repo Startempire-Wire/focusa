@@ -3263,16 +3263,20 @@ export function registerTools(pi: ExtensionAPI) {
         if (predictionResult.ok) sideEffects.push("prediction_store");
       }
       let metacogResult: any = null;
-      if (p.create_metacog === true) {
+      const diagnosticSignalCount = consoleItems.length + exceptionItems.length + failedItems.length;
+      const recurringOrSignificant = diagnostics.recurring === true || diagnostics.recurring_pattern === true || diagnosticSignalCount >= 2 || failedItems.length >= 1 || exceptionItems.length >= 1;
+      if (p.create_metacog === true && recurringOrSignificant) {
         metacogResult = await callSpec80Tool("focusa_metacog_capture", "/metacognition/capture", {
           kind: "browser_diagnostics_pattern",
           content: `Browser diagnostics pattern for ${targetRef}: ${resultSummary}`.slice(0, SPEC81_LIMITS.longText),
-          rationale: "Captured from typed UIAI/browser diagnostics intake so future agents can reuse concrete failure evidence.",
+          rationale: "Captured from typed UIAI/browser diagnostics intake because the envelope contains recurring or significant browser failure evidence.",
           evidence_refs: evidenceRefs,
           confidence: 0.74,
           strategy_class: "browser_debugging",
         }, { method: "POST", writer: true });
         if (metacogResult.ok) sideEffects.push("metacog_capture");
+      } else if (p.create_metacog === true) {
+        sideEffects.push("metacog_skipped_low_signal");
       }
       const ok = p.attach_to_workpoint === false || evidenceResult?.ok === true;
       const status = ok ? "completed" : "blocked";
