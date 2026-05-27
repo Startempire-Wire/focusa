@@ -22,6 +22,7 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 - Focus State write recovery may adopt the current safe active Workpoint scope before creating a frame; it must not create `/root` frames.
 - `/v1/workpoint/resume` rejects same-project/different-continuity packets with `status: rejected_continuity_mismatch`.
 - Same-project/same-continuity post-compaction `session_id` changes are recorded as `session_continuity` metadata.
+- **Model-switch project preservation (emergency fix 4, 2026-05-27):** After `model_select` fires `checkpointDiscontinuity`, if the session already has a verified `lastProjectIdentity` (confidence: high|medium), the subsequent `focusa_project_identity` tool must NOT overwrite it with a different project's identity. The Pi extension preserves the existing verified identity and returns it instead. This prevents cross-project overwrite during model-switch bootstrap when the daemon or project_root_cache returns a different project's root.
 - `identity_confidence_percent` explains corroborating alignment; it never overrides hard gate failures.
 
 ## Scenario matrix
@@ -34,6 +35,7 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 | Different projects | Distinct by project_root before continuity is considered. |
 | Broad/root home scopes like `/root` | Not canonical; packet is quarantined and latest operator instruction wins. |
 | Same project + same continuity + changed session_id after compaction | Same logical session; temporal session drift only. |
+| Model switch / new model after session has verified project identity | Same logical session; preserve existing `lastProjectIdentity` even if `focusa_project_identity` returns a different project. Do not overwrite with project_root_cache or re-bootstrap identity. |
 
 ## Recovery
 

@@ -100,3 +100,19 @@ Validation:
 - `git diff --check` — pass.
 - Focused static proof: `rg -n "setSessionName" apps/pi-extension/src` returns no matches.
 - `tests/pi_extension_contract_test.sh` static/app sections pass, but full strict run currently has one unrelated daemon seed failure: `/v1/focus/push` rejected with `session_inactive`/`closed` after `/v1/session/start`.
+
+## Emergency follow-up 4: Auto-bootstrap overwrites valid in-session project identity on model switch
+
+**Observed:** During a PTM (plan-the-marriage) Pi session, model switch at L813 triggered Focusa auto-bootstrap. PTM project identity was correctly set at L827 (lastProjectIdentity: plan-the-marriage, confidence: medium). After the model switch, model re-ran `focusa_project_identity` at L848 using cached project_root from `/root/.pi/agent/focusa-project-root.json` which returned Focusa project (`/home/wirebot/focusa`). At L849, focusa-state was overwritten with Focusa project, losing the PTM identity.
+
+**Root cause:** `focusa_project_identity` tool in `tools.ts` unconditionally overwrites `S.lastProjectIdentity` when the daemon returns an identity result, even when that result is for a different project than the session already holds. SPEC96 Emergency fix 2 (session isolation) covers cross-session cross-contamination but does not cover same-session cross-project overwrite during model-switch bootstrap.
+
+**Fix:**
+
+- Added project identity preservation guard in `focusa_project_identity` tool execution (`apps/pi-extension/src/tools.ts:2609`): when `S.lastProjectIdentity` is verified (confidence: high|medium) AND the incoming identity is for a different normalized project_root, the tool returns the preserved identity instead of overwriting.
+- Guard logic: normalize both roots → check `existingRoot !== incomingRoot` → check `existingConfidence in ("high","medium")` → if both true, return preserved identity with `status: preserved`.
+
+**Validation:**
+- `apps/pi-extension npx tsc --noEmit` — pass.
+- `node scripts/validate-focusa-tool-contracts.mjs` — pass, 58/58.
+- `git diff --check` — pass.

@@ -147,7 +147,7 @@ Use them **after** project/trajectory/workpoint orientation, or as local scratch
 
 | Family | Usually comes after | Usually leads to | Compounding value |
 |---|---|---|---|
-| Project identity | session start, tool doctor | trajectory, Workpoint | prevents cross-project contamination |
+| Project identity | session start, tool doctor, model switch recovery | trajectory, Workpoint | prevents cross-project contamination and model-switch in-session overwrite |
 | Trajectory | project identity, evidence | proposed Workpoint, assessment | aligns mission with destination/waypoints |
 | Workpoint | trajectory, active object | evidence, resume, checkpoint | preserves exact next slice across compaction |
 | Evidence | work/test/proof | trajectory assessment, recent result | turns claims into durable handles |

@@ -2607,6 +2607,23 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const identity = body.project_identity || {};
       if (identity && Object.keys(identity).length) {
+        // Guard: do not overwrite a verified in-session project identity with a different project's result.
+        // After model switch, the session may already hold a valid identity. Overwriting it
+        // causes cross-session contamination (SPEC96 emergency fix 2 isolation principle).
+        const incomingRoot = normalizeProjectRoot(identity.project_root);
+        const existingRoot = normalizeProjectRoot(S.lastProjectIdentity?.project_root);
+        const existingConfidence = S.lastProjectIdentity?.confidence;
+        const isExistingVerified = existingConfidence === "high" || existingConfidence === "medium";
+        const isDifferentProject = existingRoot && incomingRoot && existingRoot !== incomingRoot;
+        const isDifferentThanUnverified = isDifferentProject && isExistingVerified;
+        if (isDifferentThanUnverified) {
+          // Preserve existing verified identity; return it instead of the incoming one.
+          const preserved = S.lastProjectIdentity;
+          return {
+            content: [{ type: "text", text: `project identity → status=verified confidence=${preserved.confidence || "unknown"} root=${preserved.project_root || "unknown"} (preserved from session; incoming result rejected as different project: ${incomingRoot})` }],
+            details: { ok: true, status: "preserved", endpoint: "/v1/project/identity", canonical: false, degraded: false, project_identity: preserved, project_summary: null, summary_lines: [], verification: null, tool_result_v1: { ok: true, status: "preserved", canonical: false, degraded: false, failure_class: null, retry: { safe: true, posture: "safe_retry" }, side_effects: [], evidence_refs: [], next_tools: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"] }, failure_class: null, next_tools: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"], response: compactApiEcho(body) },
+          } as any;
+        }
         S.lastProjectIdentity = identity;
         const verifiedRoot = normalizeProjectRoot(identity.project_root);
         if (verifiedRoot && identity.status === "verified" && isProjectRootAuthoritySafe(verifiedRoot)) {
