@@ -355,6 +355,15 @@ fn supervisor_allows_pi_driver(enabled: bool, status: WorkLoopStatus) -> bool {
         )
 }
 
+fn supervisor_should_start_pi_driver(
+    enabled: bool,
+    status: WorkLoopStatus,
+    has_current_task: bool,
+) -> bool {
+    supervisor_allows_pi_driver(enabled, status)
+        && (has_current_task || status != WorkLoopStatus::Idle)
+}
+
 async fn reflection_scheduler_loop(base_url: String) {
     let client = reqwest::Client::new();
 
@@ -441,6 +450,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             status_heartbeat_ms,
             last_blocker_reason,
             last_continue_reason,
+            has_current_task,
         ) = {
             let s = state.focusa.read().await;
             (
@@ -452,6 +462,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 s.work_loop.policy.status_heartbeat_ms,
                 s.work_loop.last_blocker_reason.clone(),
                 s.work_loop.last_continue_reason.clone(),
+                s.work_loop.current_task.is_some(),
             )
         };
 
@@ -541,6 +552,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             };
 
             let allows_driver = supervisor_allows_pi_driver(enabled, status);
+            let should_start_driver =
+                supervisor_should_start_pi_driver(enabled, status, has_current_task);
 
             let mut has_session = {
                 let mut guard = state.pi_rpc_session.lock().await;
@@ -608,7 +621,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                 has_session = false;
             }
 
-            if allows_driver && !has_session {
+            if should_start_driver && !has_session {
                 state
                     .supervisor_perf
                     .driver_start_attempts
@@ -762,7 +775,8 @@ pub async fn run(
 mod tests {
     use super::{
         dispatch_error_suggests_transport_recovery, scheduler_base_url,
-        should_auto_reenable_continuous, supervisor_allows_pi_driver, was_explicit_operator_stop,
+        should_auto_reenable_continuous, supervisor_allows_pi_driver,
+        supervisor_should_start_pi_driver, was_explicit_operator_stop,
     };
     use focusa_core::types::WorkLoopStatus;
 
@@ -827,6 +841,25 @@ mod tests {
         assert!(!supervisor_allows_pi_driver(
             true,
             WorkLoopStatus::TransportDegraded
+        ));
+    }
+
+    #[test]
+    fn supervisor_does_not_start_pi_driver_for_empty_idle_loop() {
+        assert!(!supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::Idle,
+            false
+        ));
+        assert!(supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::Idle,
+            true
+        ));
+        assert!(supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::AwaitingHarnessTurn,
+            false
         ));
     }
 
