@@ -1322,6 +1322,50 @@ export function registerTools(pi: ExtensionAPI) {
     };
   }
 
+  async function fetchJsonDetailed(url: string, timeoutMs = 1500): Promise<{ ok: boolean; status: number; body: any | null; error?: string }> {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), timeoutMs);
+    try {
+      const r = await fetch(url, { signal: ac.signal });
+      let body: any = null;
+      try { body = await r.json(); } catch { body = null; }
+      return { ok: r.ok, status: r.status, body };
+    } catch (err: any) {
+      return { ok: false, status: err?.name === "AbortError" ? 408 : 0, body: null, error: String(err?.message || err || "request failed") };
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  async function uiaiBrowserHealthCard(): Promise<any> {
+    const base = String(process.env.UIAI_ENGINE_URL || process.env.WPUIAI_ENGINE_URL || "http://127.0.0.1:7456").replace(/\/$/, "");
+    const [health, metrics] = await Promise.all([
+      fetchJsonDetailed(`${base}/api/health/browser`, 1200),
+      fetchJsonDetailed(`${base}/api/metrics/browser`, 1200),
+    ]);
+    const body = metrics.body || health.body || {};
+    const queue = body.queue || {};
+    const p95 = Number(queue.p95_wait_ms || 0);
+    const p99 = Number(queue.p99_wait_ms || 0);
+    const rejected = Number(queue.rejected || 0);
+    const status = String(body.status || (health.ok || metrics.ok ? "ok" : "unavailable"));
+    const pressure = p99 >= 5000 || p95 >= 2500 || rejected > 0 ? "high" : p99 >= 1500 || p95 >= 750 ? "medium" : "low";
+    return {
+      ok: health.ok || metrics.ok,
+      status,
+      base_url: base,
+      health_status: health.status,
+      metrics_status: metrics.status,
+      browser_alive: body.browser_alive,
+      browser_state: body.browser_state,
+      queue,
+      pressure,
+      recommended_action: pressure === "high" ? "narrow browser workload, close stale sessions, or retry after queue drains" : pressure === "medium" ? "monitor browser queue before parallel UIAI work" : "continue normally",
+      response: compactApiEcho(body),
+      error: health.error || metrics.error || null,
+    };
+  }
+
   async function focusaFetchDetailed(path: string, opts: RequestInit = {}): Promise<{ ok: boolean; status: number; body: any | null }> {
     const timeout = timeoutBudgetForRoute(path, String(opts.method || "GET"));
     const base = S.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
@@ -2374,6 +2418,7 @@ export function registerTools(pi: ExtensionAPI) {
       const workpoint = await focusaFetchDetailed("/workpoint/current", { method: "GET" });
       const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
       const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", { method: "GET" });
+      const uiaiBrowser = await uiaiBrowserHealthCard();
       const ready = health.ok && workpoint.ok;
       const contractSummary = focusaToolContractSummary();
       const scopedContracts = String(p.scope || "all") === "all"
@@ -2431,19 +2476,21 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootNeedsConfirmation) recommendations.push("REQUIRED FIRST: project root confidence is below 90%; use interview/menu to ask the operator which candidate root is correct before Focusa writes.");
       if (sessionScopeSafe && !projectRootNeedsConfirmation) recommendations.push("REQUIRED NEXT: run focusa_trajectory_view to confirm current functional state, destination, and waypoints before Workpoint/evidence progress tracking.");
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
+      if (!uiaiBrowser.ok) recommendations.push("UIAI browser health/metrics unavailable; browser diagnostics may be stale or unreachable.");
+      if (uiaiBrowser.pressure === "high") recommendations.push("UIAI browser queue pressure is high; narrow browser workload, close stale sessions, or retry after queue drains.");
       if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
       if (missingDocs.length) recommendations.push("Some project-aware tool contracts lack docs; run docs maintenance before release proof.");
       if (contractDrift.drift_detected) recommendations.push("Tool contract drift detected between Pi static registry and live daemon; rebuild/restart focusa-daemon, then run live contract proof.");
       const nextTools = Array.from(new Set([
         ...(!health.ok ? ["focusa_tool_doctor"] : []),
         ...(!sessionScopeSafe || projectRootNeedsConfirmation ? ["focusa_project_identity", "interview", "focusa_trajectory_view"] : ["focusa_trajectory_view"]),
-        ...(String(resourceMode.mode || "") === "emergency" ? ["focusa_resource_mode"] : []),
+        ...(String(resourceMode.mode || "") === "emergency" || uiaiBrowser.pressure === "high" ? ["focusa_resource_mode"] : []),
         ...(!workpoint.ok || !workpointCanonical ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] : []),
         ...(contractDrift.drift_detected ? ["focusa_tool_doctor"] : []),
       ]));
       const recommendedAction = recommendations[0] || "Proceed with explicit project_root for project-aware tools and checkpoint before compaction.";
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"} drift=${contractDrift.drift_detected ? "yes" : "no"} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} recommended=${recommendedAction}`;
-      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: { drift_detected: contractDrift.drift_detected, missing_live: contractDrift.missing_live.slice(0, 6), stale_live_contracts: contractDrift.stale_live_contracts.slice(0, 6) }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: `readiness=${ready ? "ready" : "degraded"} drift=${contractDrift.drift_detected ? "yes" : "no"}`, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"} drift=${contractDrift.drift_detected ? "yes" : "no"} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
+      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), uiai_browser: compactApiEcho(uiaiBrowser), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: { drift_detected: contractDrift.drift_detected, missing_live: contractDrift.missing_live.slice(0, 6), stale_live_contracts: contractDrift.stale_live_contracts.slice(0, 6) }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: `readiness=${ready ? "ready" : "degraded"} drift=${contractDrift.drift_detected ? "yes" : "no"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
     },
   });
 
