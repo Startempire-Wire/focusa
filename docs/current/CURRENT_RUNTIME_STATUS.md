@@ -1,7 +1,7 @@
 # Current Runtime Status
 
 **Snapshot:** `v0.9.13-dev`
-**Repo head when written:** Operator Preview docs sync after `9ba6d04`
+**Repo head when written:** Release sync after `40b362f`
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
@@ -27,6 +27,7 @@
 - Spec96 Focus current-focus ↔ Trajectory short-term-goal sync is implemented, so verified trajectory context can hydrate sparse Focus slices across compaction/reload.
 - Official trajectory ladder language is HLT (High-Level Trajectory) → MLG (Mid-Level Goal) → STG (Short-Term Goal) → Waypoints → Workpoint; STGs and Waypoints derive from the HLT through MLGs.
 - Low-resource hardening is active: Tokio/reqwest features are narrowed, cold payloads require explicit opt-in, Pi result text/details are capped, and hot routes use compact fallback envelopes under pressure.
+- UIAI browser diagnostics/evidence integration is documented and verified: scoped UIAI reliability reports can emit `focusa_evidence` packets carrying Workpoint scope and artifact handles for Focusa evidence capture.
 
 ## Current proof files
 
@@ -43,6 +44,7 @@
 - `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`
 - `docs/evidence/PUBLIC_DOCS_SPEC97_REFRESH_2026-05-25.md`
 - `docs/current/FOCUSA_OPERATOR_PREVIEW_PROOF.md`
+- `docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md`
 
 ## Current verification commands
 

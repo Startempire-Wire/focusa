@@ -79,7 +79,24 @@ cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/menubar
 bun install
 bun run check
 bun run build
+bun run tauri -- build
 ```
+
+Native Tauri bundle builds are host-dependent. On Linux, the builder needs a GTK/GLib stack new enough for the resolved Tauri dependencies; the current AlmaLinux server exposes `glib-2.0` 2.56.4 and is suitable for web build proof, not native Tauri bundle proof.
+
+## UIAI browser evidence proof
+
+```bash
+cd /home/wpuiai/uiai-engine
+FOCUSA_WORKPOINT_ID=<workpoint-id> \
+FOCUSA_CONTINUITY_ID=<continuity-id> \
+FOCUSA_PROJECT_ROOT=${FOCUSA_PROJECT_ROOT:-<focusa-repo>} \
+FOCUSA_EVIDENCE_REF="uiai-browser-diagnostics-stress:/tmp/uiai-focusa-scope-verify.json" \
+SESSIONS=1 ROUNDS=1 OUT=/tmp/uiai-focusa-scope-verify.json make browser-stress
+jq '.ok, .focusa_evidence' /tmp/uiai-focusa-scope-verify.json
+```
+
+Expected result: `ok=true` and `.focusa_evidence.focusa_scope` includes `workpoint_id`, `continuity_id`, `project_root`, and `evidence_ref`.
 
 ## GitHub release proof
 
@@ -106,6 +123,7 @@ For current real proof see:
 - `docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md`
 - `docs/current/PRODUCTION_RELEASE_COMMANDS.md`
 - `docs/evidence/SPEC97_REFLEX_DIRECT_API_LIVE_PROOF_2026-05-25.md`
+- `docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md`
 
 
 ## Spec96 trajectory agent eval

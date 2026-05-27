@@ -119,7 +119,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/WORKPOINT_LIFECYCLE_GUIDE.md](current/WORKPOINT_LIFECYCLE_GUIDE.md) — Workpoint lifecycle guide.
 - [current/TOOL_RESULT_ENVELOPE_V1.md](current/TOOL_RESULT_ENVELOPE_V1.md) — structured tool result contract.
 - [current/TROUBLESHOOTING_CURRENT.md](current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
-- [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof.
+- [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof, including scoped UIAI browser evidence proof.
 - [current/FOCUSA_OPERATOR_PREVIEW_PROOF.md](current/FOCUSA_OPERATOR_PREVIEW_PROOF.md) — Operator Preview proof pack for onboarding, Workpoint continuation, evidence, drift, and non-Pi/manual flows.
 - [current/PRODUCTION_RELEASE_COMMANDS.md](current/PRODUCTION_RELEASE_COMMANDS.md) — release, restart, GitHub proof, and cleanup commands.
 - [92-agent-first-polish-hooks-efficiency-spec.md](92-agent-first-polish-hooks-efficiency-spec.md) — agent-first polish, hooks, token/cache UX, and predictive-power spec.
@@ -135,9 +135,10 @@ This is **institutional intelligence**, not novelty AI.
 - [current/END_OF_TASK_LEARNING_LOOP.md](current/END_OF_TASK_LEARNING_LOOP.md) — required prediction/metacog closure loop for compaction cards, trajectory reviews, and final work reports.
 - [current/PROJECT_INTELLIGENCE_FLYWHEEL.md](current/PROJECT_INTELLIGENCE_FLYWHEEL.md) — ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding.
 - [current/PREDICTION_ALGORITHMS_IMPLEMENTED.md](current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) — implemented lightweight prediction formulas behind project-card algorithmic intelligence.
-- [current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md](current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion and Focusa Workpoint/prediction flow.
+- [current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md](current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion, scoped `focusa_evidence` artifacts, and Focusa Workpoint/prediction flow.
 - [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) — dataset-agnostic prediction substrate, with stocks as the first domain adapter.
 - [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
+- [docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md](evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md) — current public docs sync, Guardian/secret audit, runtime proof, and UIAI evidence proof.
 - [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
 - [current/FOCUSA_AGENT_UTILITY_CARD.md](current/FOCUSA_AGENT_UTILITY_CARD.md) — startup/reload runtime awareness card contract.
 - [current/FOCUSA_FRIENDLY_ONBOARDING.md](current/FOCUSA_FRIENDLY_ONBOARDING.md) — friendly project onboarding Q for agents.
