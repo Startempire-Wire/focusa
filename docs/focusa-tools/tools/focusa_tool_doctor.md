@@ -25,7 +25,7 @@ focusa_tool_doctor scope="workpoint"
 
 The tool should return a visible summary plus structured details. For Pi tools, inspect `details.tool_result_v1` when available for `status`, `failure_class`, `canonical`, `degraded`, `retry`, `side_effects`, `evidence_refs`, and `next_tools`.
 
-The doctor also compares the Pi static tool-contract registry with the live daemon `/v1/ontology/tool-contracts` view. `details.contract_drift` reports `static_count`, `live_count`, `missing_live`, `extra_live`, `stale_live_contracts`, and copy-ready `repair_commands` for daemon rebuild/restart plus live proof. `details.evidence_capture_suggestion` contains a copy-ready `focusa_evidence_capture` payload for preserving the diagnostic proof without reconstructing fields.
+The doctor also compares the Pi static tool-contract registry with the live daemon `/v1/ontology/tool-contracts` view. `details.contract_drift` reports `static_count`, `live_count`, `missing_live`, `extra_live`, `stale_live_contracts`, and copy-ready `repair_commands` for daemon rebuild/restart plus live proof. `details.uiai_browser` reports UIAI `/api/health/browser` and `/api/metrics/browser` status/queue pressure when the local UIAI Engine is reachable. `details.evidence_capture_suggestion` contains a copy-ready `focusa_evidence_capture` payload for preserving the diagnostic proof without reconstructing fields.
 
 ## Recovery notes
 
@@ -33,6 +33,7 @@ The doctor also compares the Pi static tool-contract registry with the live daem
 - If the result is non-canonical/degraded, call `focusa_workpoint_resume` or a relevant read tool before continuing.
 - If writer ownership is involved, call `focusa_work_loop_writer_status` or use work-loop preflight first.
 - If `contract_drift.drift_detected=true`, rebuild/restart the daemon from the documented production release route, then run live contract proof before trusting daemon-visible contracts.
+- If `uiai_browser.pressure=high`, narrow browser workload, close stale UIAI sessions, or retry after queue drains before running parallel browser work.
 
 ## Related tools
 
@@ -45,7 +46,7 @@ The doctor also compares the Pi static tool-contract registry with the live daem
 - Family: Diagnostics / Hygiene.
 - Side effects: `diagnostic`.
 - Result envelope: `tool_result_v1` with `failure_class`, canonical/degraded status, retry posture, side effects, evidence refs, and next tools when applicable.
-- API routes: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`
+- API routes: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`; local UIAI adjunct reads `GET /api/health/browser` and `GET /api/metrics/browser` from `UIAI_ENGINE_URL`/`WPUIAI_ENGINE_URL` or `http://127.0.0.1:7456`.
 - CLI commands: none.
 - Parity: `domain`; exemptions: `domain_cli_only`.
 - Core surface: Local diagnostic/hygiene composition.

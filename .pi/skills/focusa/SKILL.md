@@ -75,7 +75,8 @@ When uncertain, resumed, compacted, or after context overflow:
 2. `focusa_tool_doctor` — diagnose daemon, active Workpoint, Focus State, and next repair.
 3. `focusa_active_object_resolve` — resolve active object candidates without inventing canonical refs.
 4. `focusa_evidence_capture` or `focusa_workpoint_link_evidence` — capture proof as handles and link to active Workpoint.
-5. Use the task-specific family below.
+5. For UIAI/browser failures, prefer `focusa_browser_diagnostics_intake` after `browser_diagnostics`; it consumes embedded `focusa_scope` when present.
+6. Use the task-specific family below.
 
 If `canonical=false` or `degraded=true`, treat output as recovery hint only until a canonical read confirms it.
 
@@ -110,6 +111,7 @@ Use for continuity across compaction/resume/model switch/fork/risky work.
 - `focusa_workpoint_link_evidence` — attach stable evidence refs/results to active canonical Workpoint.
 - `focusa_active_object_resolve` — resolve likely active objects; returns candidates, not invented truth.
 - `focusa_evidence_capture` — capture bounded evidence and optionally link to Workpoint.
+- `focusa_browser_diagnostics_intake` — convert UIAI/browser diagnostics into scoped evidence, active-object hints, prediction, and optional metacog capture.
 
 Identity and isolation rules:
 
@@ -183,8 +185,9 @@ No existing Focusa tools should be demoted; weak tools should be redesigned, cla
 
 ## Tool-doctor and evidence entrypoints
 
-- `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action.
+- `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action; includes UIAI browser health/queue pressure when reachable.
 - `focusa_evidence_capture` — convert proof into stable handles; avoid prompt bloat.
+- `focusa_browser_diagnostics_intake` — preferred UIAI browser failure intake; uses `diagnostics.focusa_scope` for Workpoint/project scope by default.
 - `focusa_active_object_resolve` — use before editing/claiming canonical refs when object identity is uncertain.
 
 ## Commands
