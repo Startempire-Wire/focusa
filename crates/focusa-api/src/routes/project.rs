@@ -25,6 +25,12 @@ pub struct ProjectIdentityQuery {
     pub cwd: Option<String>,
     pub project_root: Option<String>,
     pub current_ask: Option<String>,
+    pub remote_host: Option<String>,
+    pub remote_user: Option<String>,
+    pub remote_port: Option<u16>,
+    pub remote_repo_remote: Option<String>,
+    pub remote_workspace_kind: Option<String>,
+    pub remote_deploy_root: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -34,6 +40,12 @@ pub struct ProjectVerifyRequest {
     pub project_id: Option<String>,
     pub canonical_name: Option<String>,
     pub repo_remote: Option<String>,
+    pub remote_host: Option<String>,
+    pub remote_user: Option<String>,
+    pub remote_port: Option<u16>,
+    pub remote_repo_remote: Option<String>,
+    pub remote_workspace_kind: Option<String>,
+    pub remote_deploy_root: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -71,6 +83,64 @@ struct ProjectSignal {
     details: Value,
 }
 
+#[derive(Debug, Clone, Default)]
+struct RemoteProjectHint {
+    remote_host: Option<String>,
+    remote_user: Option<String>,
+    remote_port: Option<u16>,
+    remote_repo_remote: Option<String>,
+    remote_workspace_kind: Option<String>,
+    remote_deploy_root: Option<String>,
+}
+
+impl RemoteProjectHint {
+    fn is_present(&self) -> bool {
+        self.remote_host
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+    }
+
+    fn from_query(query: &ProjectIdentityQuery) -> Self {
+        Self {
+            remote_host: clean(query.remote_host.as_deref()),
+            remote_user: clean(query.remote_user.as_deref()),
+            remote_port: query.remote_port,
+            remote_repo_remote: clean(query.remote_repo_remote.as_deref()),
+            remote_workspace_kind: clean(query.remote_workspace_kind.as_deref()),
+            remote_deploy_root: clean(query.remote_deploy_root.as_deref()),
+        }
+    }
+
+    fn from_verify(request: &ProjectVerifyRequest) -> Self {
+        Self {
+            remote_host: clean(request.remote_host.as_deref()),
+            remote_user: clean(request.remote_user.as_deref()),
+            remote_port: request.remote_port,
+            remote_repo_remote: clean(request.remote_repo_remote.as_deref()),
+            remote_workspace_kind: clean(request.remote_workspace_kind.as_deref()),
+            remote_deploy_root: clean(request.remote_deploy_root.as_deref()),
+        }
+    }
+
+    fn context(&self) -> Value {
+        if !self.is_present() {
+            Value::Null
+        } else {
+            json!({
+                "workspace_kind": "remote_ssh",
+                "remote_host": self.remote_host,
+                "remote_user": self.remote_user,
+                "remote_port": self.remote_port,
+                "remote_repo_remote": self.remote_repo_remote,
+                "remote_workspace_kind": self.remote_workspace_kind,
+                "remote_deploy_root": self.remote_deploy_root,
+                "authority_boundary": "remote_host_plus_project_root_plus_fingerprint",
+                "verification_note": "remote evidence is caller-supplied after SSH/repo inspection; Focusa daemon does not open SSH sessions"
+            })
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct IdentityCandidate {
     project_id: String,
@@ -81,6 +151,7 @@ struct IdentityCandidate {
     workspace_kind: Option<String>,
     project_urls: Value,
     deployment: Value,
+    remote_context: Value,
     fingerprint: String,
     confidence: &'static str,
     status: &'static str,
@@ -913,7 +984,11 @@ fn signal_json(signal: &ProjectSignal) -> Value {
     })
 }
 
-fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityCandidate {
+fn discover_identity(
+    cwd: Option<&str>,
+    project_root: Option<&str>,
+    remote_hint: RemoteProjectHint,
+) -> IdentityCandidate {
     let start = resolve_start(cwd, project_root);
     let start_root = normalize_path(&start);
     let now = chrono::Utc::now().to_rfc3339();
@@ -936,9 +1011,46 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
             independent: true,
             details: json!({"project_root": root}),
         });
+
+        if remote_hint.is_present() {
+            signals.push(ProjectSignal {
+                source: "remote_project_scope",
+                root: Some(root.clone()),
+                confidence: "medium",
+                independent: true,
+                details: json!({
+                    "remote_host": remote_hint.remote_host.clone(),
+                    "remote_user": remote_hint.remote_user.clone(),
+                    "remote_port": remote_hint.remote_port,
+                    "remote_deploy_root": remote_hint.remote_deploy_root.clone(),
+                    "workspace_kind": "remote_ssh",
+                    "verification_boundary": "caller_supplied_remote_evidence"
+                }),
+            });
+            if remote_hint.remote_repo_remote.is_some()
+                || remote_hint.remote_workspace_kind.is_some()
+            {
+                signals.push(ProjectSignal {
+                    source: "remote_repo_evidence",
+                    root: Some(root.clone()),
+                    confidence: "high",
+                    independent: true,
+                    details: json!({
+                        "repo_remote": remote_hint.remote_repo_remote.clone(),
+                        "workspace_kind": remote_hint.remote_workspace_kind.clone(),
+                        "evidence_boundary": "reported_by_calling_adapter_after_remote_inspection"
+                    }),
+                });
+            }
+        }
     }
 
-    let marker_root = find_upwards(&start, ".focusa-project.json");
+    let remote_nonlocal = remote_hint.is_present() && !start.exists();
+    let marker_root = if remote_nonlocal {
+        None
+    } else {
+        find_upwards(&start, ".focusa-project.json")
+    };
     let marker = marker_root.as_ref().and_then(|root| read_marker(root));
     if let (Some(root), Some(marker_value)) = (&marker_root, &marker) {
         let root_value = marker_project_root(root, marker_value);
@@ -956,7 +1068,11 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         });
     }
 
-    let git_root = find_upwards(&start, ".git");
+    let git_root = if remote_nonlocal {
+        None
+    } else {
+        find_upwards(&start, ".git")
+    };
     let repo_remote = git_root.as_ref().and_then(|root| read_git_remote(root));
     if let Some(root) = &git_root {
         signals.push(ProjectSignal {
@@ -968,7 +1084,11 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         });
     }
 
-    let beads_root = find_upwards(&start, ".beads");
+    let beads_root = if remote_nonlocal {
+        None
+    } else {
+        find_upwards(&start, ".beads")
+    };
     if let Some(root) = &beads_root {
         signals.push(ProjectSignal {
             source: "beads_root",
@@ -979,9 +1099,13 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         });
     }
 
-    let workspace_root = ["Cargo.toml", "package.json", "go.mod", "pyproject.toml"]
-        .iter()
-        .find_map(|name| find_upwards(&start, name));
+    let workspace_root = if remote_nonlocal {
+        None
+    } else {
+        ["Cargo.toml", "package.json", "go.mod", "pyproject.toml"]
+            .iter()
+            .find_map(|name| find_upwards(&start, name))
+    };
     let workspace_kind = workspace_root
         .as_ref()
         .and_then(|root| workspace_kind(root));
@@ -1100,9 +1224,13 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
 
     let project_id = marker_project_id.unwrap_or_else(|| basename(&canonical_root));
     let canonical_name = marker_name.unwrap_or_else(|| project_id.clone());
-    let repo_remote = marker_remote.or(repo_remote);
+    let repo_remote = marker_remote
+        .or_else(|| remote_hint.remote_repo_remote.clone())
+        .or(repo_remote);
     let beads_prefix = marker_beads.or_else(|| Some(project_id.clone()));
-    let workspace_kind = marker_workspace.or_else(|| workspace_kind.map(str::to_string));
+    let workspace_kind = marker_workspace
+        .or_else(|| remote_hint.remote_workspace_kind.clone())
+        .or_else(|| workspace_kind.map(str::to_string));
     let identity_hints = [
         project_id.clone(),
         canonical_name.clone(),
@@ -1112,7 +1240,19 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         infer_project_environment(&PathBuf::from(&canonical_root), &identity_hints);
     let project_urls =
         merge_missing_object_fields(marker_project_urls(&marker), inferred_project_urls);
-    let deployment = merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
+    let mut deployment =
+        merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
+    if let Some(remote_deploy_root) = remote_hint.remote_deploy_root.clone() {
+        if let Some(object) = deployment.as_object_mut() {
+            object
+                .entry("deploy_location".to_string())
+                .or_insert(json!(remote_deploy_root));
+            object
+                .entry("environment".to_string())
+                .or_insert(json!("remote"));
+        }
+    }
+    let remote_context = remote_hint.context();
     let fingerprint = stable_fingerprint(&[
         project_id.clone(),
         canonical_name.clone(),
@@ -1130,6 +1270,7 @@ fn discover_identity(cwd: Option<&str>, project_root: Option<&str>) -> IdentityC
         workspace_kind,
         project_urls,
         deployment,
+        remote_context,
         fingerprint,
         confidence,
         status,
@@ -1178,6 +1319,11 @@ fn candidate_payload(
         "mismatch"
     };
     let project_summary = compact_project_summary(&candidate);
+    let authority_boundary = if candidate.remote_context.is_null() {
+        "project_root_plus_fingerprint"
+    } else {
+        "remote_host_plus_project_root_plus_fingerprint"
+    };
     json!({
         "status": status,
         "canonical": canonical,
@@ -1195,13 +1341,14 @@ fn candidate_payload(
             "workspace_kind": candidate.workspace_kind,
             "project_urls": candidate.project_urls,
             "deployment": candidate.deployment,
+            "remote_context": candidate.remote_context.clone(),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
             "confidence": candidate.confidence,
             "signals": candidate.signals.iter().map(signal_json).collect::<Vec<_>>(),
             "mismatches": mismatches,
             "verified_at": candidate.verified_at,
-            "authority_boundary": "project_root_plus_fingerprint",
+            "authority_boundary": authority_boundary,
         },
         "verification": {
             "verified": verified,
@@ -1228,19 +1375,37 @@ type ProjectIdentityPayloadCache = Mutex<HashMap<String, (Instant, Value)>>;
 static PROJECT_IDENTITY_PAYLOAD_CACHE: OnceLock<ProjectIdentityPayloadCache> = OnceLock::new();
 const PROJECT_IDENTITY_PAYLOAD_CACHE_TTL: Duration = Duration::from_secs(2);
 
-fn project_identity_cache_key(cwd: Option<&str>, project_root: Option<&str>) -> String {
+fn project_identity_cache_key(
+    cwd: Option<&str>,
+    project_root: Option<&str>,
+    remote_hint: &RemoteProjectHint,
+) -> String {
     format!(
-        "cwd={}\nproject_root={}",
+        "cwd={}\nproject_root={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}",
         cwd.unwrap_or_default(),
-        project_root.unwrap_or_default()
+        project_root.unwrap_or_default(),
+        remote_hint.remote_host.as_deref().unwrap_or_default(),
+        remote_hint
+            .remote_repo_remote
+            .as_deref()
+            .unwrap_or_default(),
+        remote_hint
+            .remote_workspace_kind
+            .as_deref()
+            .unwrap_or_default(),
+        remote_hint
+            .remote_deploy_root
+            .as_deref()
+            .unwrap_or_default()
     )
 }
 
-pub(crate) fn project_identity_payload_for_scope(
+fn project_identity_payload_for_scope_with_remote(
     cwd: Option<&str>,
     project_root: Option<&str>,
+    remote_hint: RemoteProjectHint,
 ) -> Value {
-    let key = project_identity_cache_key(cwd, project_root);
+    let key = project_identity_cache_key(cwd, project_root, &remote_hint);
     let cache = PROJECT_IDENTITY_PAYLOAD_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Ok(guard) = cache.lock()
         && let Some((cached_at, payload)) = guard.get(&key)
@@ -1249,7 +1414,7 @@ pub(crate) fn project_identity_payload_for_scope(
         return payload.clone();
     }
 
-    let payload = candidate_payload(discover_identity(cwd, project_root), None);
+    let payload = candidate_payload(discover_identity(cwd, project_root, remote_hint), None);
     if let Ok(mut guard) = cache.lock() {
         if guard.len() > 64 {
             guard.retain(|_, (cached_at, _)| {
@@ -1261,10 +1426,19 @@ pub(crate) fn project_identity_payload_for_scope(
     payload
 }
 
+pub(crate) fn project_identity_payload_for_scope(
+    cwd: Option<&str>,
+    project_root: Option<&str>,
+) -> Value {
+    project_identity_payload_for_scope_with_remote(cwd, project_root, RemoteProjectHint::default())
+}
+
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
-    Json(project_identity_payload_for_scope(
+    let remote_hint = RemoteProjectHint::from_query(&query);
+    Json(project_identity_payload_for_scope_with_remote(
         query.cwd.as_deref(),
         query.project_root.as_deref(),
+        remote_hint,
     ))
 }
 
@@ -1273,7 +1447,11 @@ async fn verify(
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
     Json(candidate_payload(
-        discover_identity(body.cwd.as_deref(), body.project_root.as_deref()),
+        discover_identity(
+            body.cwd.as_deref(),
+            body.project_root.as_deref(),
+            RemoteProjectHint::from_verify(&body),
+        ),
         Some(&body),
     ))
 }
@@ -2353,6 +2531,7 @@ async fn session_transfer(
                 _ => "Inspect Focusa session transfer readiness".to_string(),
             })
         }),
+        ..Default::default()
     };
     let card_payload = card(State(state), Query(query)).await.0;
     let project_root = card_payload

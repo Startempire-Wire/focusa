@@ -12,6 +12,18 @@ pub enum ProjectCmd {
         cwd: Option<String>,
         #[arg(long)]
         project_root: Option<String>,
+        #[arg(long)]
+        remote_host: Option<String>,
+        #[arg(long)]
+        remote_user: Option<String>,
+        #[arg(long)]
+        remote_port: Option<u16>,
+        #[arg(long)]
+        remote_repo_remote: Option<String>,
+        #[arg(long)]
+        remote_workspace_kind: Option<String>,
+        #[arg(long)]
+        remote_deploy_root: Option<String>,
     },
     /// Build advisory Project Card from identity, ontology, trajectory, prediction, evidence, and learning-loop signals.
     Card {
@@ -66,6 +78,18 @@ pub enum ProjectCmd {
         canonical_name: Option<String>,
         #[arg(long)]
         repo_remote: Option<String>,
+        #[arg(long)]
+        remote_host: Option<String>,
+        #[arg(long)]
+        remote_user: Option<String>,
+        #[arg(long)]
+        remote_port: Option<u16>,
+        #[arg(long)]
+        remote_repo_remote: Option<String>,
+        #[arg(long)]
+        remote_workspace_kind: Option<String>,
+        #[arg(long)]
+        remote_deploy_root: Option<String>,
     },
 }
 
@@ -127,10 +151,31 @@ fn print_summary(label: &str, resp: &Value) {
 pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let (label, resp) = match cmd {
-        ProjectCmd::Identity { cwd, project_root } => {
+        ProjectCmd::Identity {
+            cwd,
+            project_root,
+            remote_host,
+            remote_user,
+            remote_port,
+            remote_repo_remote,
+            remote_workspace_kind,
+            remote_deploy_root,
+        } => {
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
+            push_query(&mut qs, "remote_host", remote_host.as_deref());
+            push_query(&mut qs, "remote_user", remote_user.as_deref());
+            if let Some(port) = remote_port {
+                qs.push(format!("remote_port={port}"));
+            }
+            push_query(&mut qs, "remote_repo_remote", remote_repo_remote.as_deref());
+            push_query(
+                &mut qs,
+                "remote_workspace_kind",
+                remote_workspace_kind.as_deref(),
+            );
+            push_query(&mut qs, "remote_deploy_root", remote_deploy_root.as_deref());
             let path = if qs.is_empty() {
                 "/v1/project/identity".to_string()
             } else {
@@ -204,6 +249,12 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             project_id,
             canonical_name,
             repo_remote,
+            remote_host,
+            remote_user,
+            remote_port,
+            remote_repo_remote,
+            remote_workspace_kind,
+            remote_deploy_root,
         } => {
             let body = json!({
                 "cwd": cwd,
@@ -211,6 +262,12 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 "project_id": project_id,
                 "canonical_name": canonical_name,
                 "repo_remote": repo_remote,
+                "remote_host": remote_host,
+                "remote_user": remote_user,
+                "remote_port": remote_port,
+                "remote_repo_remote": remote_repo_remote,
+                "remote_workspace_kind": remote_workspace_kind,
+                "remote_deploy_root": remote_deploy_root,
             });
             ("verify", api.post("/v1/project/verify", &body).await?)
         }

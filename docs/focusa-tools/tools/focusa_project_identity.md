@@ -17,10 +17,12 @@ Resolve the active ProjectIdentity before trusting project-bound Workpoints, Tra
 
 - `cwd` — optional cwd/project path hint; defaults to Pi session cwd.
 - `project_root` — optional expected project folder/root.
+- `remote_host`, `remote_user`, `remote_port` — optional remote SSH context for a project that lives outside the local Focusa daemon filesystem.
+- `remote_repo_remote`, `remote_workspace_kind`, `remote_deploy_root` — optional caller-supplied evidence observed after remote inspection. These signals let Focusa form a bounded remote ProjectIdentity without treating the daemon cwd as the project authority.
 
 ## Expected result
 
-Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`, `project_root`, `fingerprint`, `confidence`, `signals`, `mismatches`, `verified_at`, and quorum details. It also returns `project_summary` and `summary_lines` as the canonical compact project card: project/root/repo, stack, workspace kind, key dirs, root/live/local/wp/app/auth/graphql/api URLs, deployment environment/target/location/command, source confidence, `local_only`, public repo, and authority boundary. Marker-backed plus repo/live-root scanned `project_urls` and `deployment` fields expose these facts when present; scans include repo docs, SvelteKit/app files, same-project `wp-config.php`, explicit likely `/home/<site>/public_html` files, deploy scripts, and workflows. Docs/reference/upstream URLs are filtered unless the source line explicitly declares a project URL; uncertain live/deploy facts stay unknown or low confidence rather than being invented. It marks unsafe broad roots such as `/root` as `status=unsafe_project_root`, `canonical=false`. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
+Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`, `project_root`, `fingerprint`, `confidence`, `signals`, `mismatches`, `verified_at`, and quorum details. It also returns `project_summary` and `summary_lines` as the canonical compact project card: project/root/repo, stack, workspace kind, key dirs, root/live/local/wp/app/auth/graphql/api URLs, deployment environment/target/location/command, source confidence, `local_only`, public repo, and authority boundary. Marker-backed plus repo/live-root scanned `project_urls` and `deployment` fields expose these facts when present; scans include repo docs, SvelteKit/app files, same-project `wp-config.php`, explicit likely `/home/<site>/public_html` files, deploy scripts, and workflows. Docs/reference/upstream URLs are filtered unless the source line explicitly declares a project URL; uncertain live/deploy facts stay unknown or low confidence rather than being invented. It marks unsafe broad roots such as `/root` as `status=unsafe_project_root`, `canonical=false`. For remote SSH projects, a verified envelope includes `remote_context`, `remote_project_scope` / `remote_repo_evidence` signals, and `authority_boundary=remote_host_plus_project_root_plus_fingerprint`; Focusa records caller-supplied remote facts but does not open SSH sessions from the daemon. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
 
 ## Failure and recovery
 
@@ -34,6 +36,7 @@ Returns a bounded ProjectIdentity with `status`, `project_id`, `canonical_name`,
 
 ```text
 focusa_project_identity cwd="/home/wirebot/focusa"
+focusa_project_identity project_root="/home/site/project" remote_host="site.example" remote_repo_remote="git@github.com:org/project.git" remote_workspace_kind="wordpress" remote_deploy_root="/home/site/public_html"
 ```
 
 ## Contract summary

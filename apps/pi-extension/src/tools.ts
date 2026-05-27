@@ -2580,12 +2580,24 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
       project_root: Type.Optional(Type.String({ description: "Optional expected project root folder." })),
+      remote_host: Type.Optional(Type.String({ description: "Remote SSH host that contains the project root; caller supplies inspected evidence." })),
+      remote_user: Type.Optional(Type.String({ description: "Remote SSH user, if known." })),
+      remote_port: Type.Optional(Type.Integer({ minimum: 1, maximum: 65535, description: "Remote SSH port, if known." })),
+      remote_repo_remote: Type.Optional(Type.String({ description: "Git origin/repo remote observed on the remote host." })),
+      remote_workspace_kind: Type.Optional(Type.String({ description: "Workspace kind observed on the remote host." })),
+      remote_deploy_root: Type.Optional(Type.String({ description: "Deployment/site root observed on the remote host." })),
     }),
     async execute(_id, params) {
-      const p = params as { cwd?: string; project_root?: string };
+      const p = params as { cwd?: string; project_root?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
       const query = new URLSearchParams();
       query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
+      if (p.remote_host) query.set("remote_host", p.remote_host);
+      if (p.remote_user) query.set("remote_user", p.remote_user);
+      if (p.remote_port) query.set("remote_port", String(p.remote_port));
+      if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
+      if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
+      if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
@@ -2798,9 +2810,15 @@ export function registerTools(pi: ExtensionAPI) {
       project_id: Type.Optional(Type.String({ description: "Expected project id from marker/operator." })),
       canonical_name: Type.Optional(Type.String({ description: "Expected canonical project name." })),
       repo_remote: Type.Optional(Type.String({ description: "Expected git origin remote." })),
+      remote_host: Type.Optional(Type.String({ description: "Remote SSH host that contains the project root; caller supplies inspected evidence." })),
+      remote_user: Type.Optional(Type.String({ description: "Remote SSH user, if known." })),
+      remote_port: Type.Optional(Type.Integer({ minimum: 1, maximum: 65535, description: "Remote SSH port, if known." })),
+      remote_repo_remote: Type.Optional(Type.String({ description: "Git origin/repo remote observed on the remote host." })),
+      remote_workspace_kind: Type.Optional(Type.String({ description: "Workspace kind observed on the remote host." })),
+      remote_deploy_root: Type.Optional(Type.String({ description: "Deployment/site root observed on the remote host." })),
     }),
     async execute(_id, params) {
-      const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string };
+      const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
       const payload = { ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
       const result = await focusaFetchDetailed("/project/verify", { method: "POST", body: JSON.stringify(payload) });
       const body = result.body || {};

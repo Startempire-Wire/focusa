@@ -107,6 +107,14 @@ else
   exit 1
 fi
 
+
+if rg -n 'RemoteProjectHint|remote_project_scope|remote_repo_evidence|remote_host_plus_project_root_plus_fingerprint|remote_nonlocal' "$PROJECT" >/dev/null   && rg -n 'remote_host|remote_repo_remote|remote_workspace_kind|remote_deploy_root' "$TOOLS" "$CLI" "$DOC1" "$DOC2" >/dev/null; then
+  echo "✓ PASS: ProjectIdentity supports caller-supplied remote SSH project evidence"
+else
+  echo "✗ FAIL: ProjectIdentity remote SSH evidence support missing" >&2
+  exit 1
+fi
+
 if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else

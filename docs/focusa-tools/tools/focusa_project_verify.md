@@ -20,10 +20,12 @@ Verify expected ProjectIdentity fields and surface project mismatches without mu
 - `project_id` — expected project id.
 - `canonical_name` — expected canonical project name.
 - `repo_remote` — expected git origin remote.
+- `remote_host`, `remote_user`, `remote_port` — optional remote SSH context for a project that lives outside the local daemon filesystem.
+- `remote_repo_remote`, `remote_workspace_kind`, `remote_deploy_root` — optional caller-supplied remote evidence to verify against the expected project root.
 
 ## Expected result
 
-Returns ProjectIdentity plus `verification.verified`, quorum rule, matching independent signal count, and mismatch diagnostics. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
+Returns ProjectIdentity plus `verification.verified`, quorum rule, matching independent signal count, and mismatch diagnostics. Remote SSH verification may return `remote_context` and `authority_boundary=remote_host_plus_project_root_plus_fingerprint` when caller-supplied remote evidence forms the quorum. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
 
 ## Failure and recovery
 
@@ -37,6 +39,7 @@ Returns ProjectIdentity plus `verification.verified`, quorum rule, matching inde
 
 ```text
 focusa_project_verify cwd="/home/wirebot/focusa" project_root="/home/wirebot/focusa" project_id="focusa"
+focusa_project_verify project_root="/home/site/project" remote_host="site.example" remote_repo_remote="git@github.com:org/project.git" remote_workspace_kind="wordpress"
 ```
 
 ## Contract summary
