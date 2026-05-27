@@ -17,6 +17,15 @@ if rg -n '/v1/work-loop/driver/start|/v1/work-loop/driver/prompt|/v1/work-loop/d
 else
   log_fail "Pi RPC driver routes missing"
 fi
+
+if rg -n 'process_group\(0\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n 'kill_on_drop\(true\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n 'terminate_pi_rpc_child' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n 'args\(\["-TERM", &pgid\]\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi RPC driver uses process-group cleanup to prevent orphaned children"
+else
+  log_fail "Pi RPC driver process-group cleanup guard missing"
+fi
 WRITER_ID=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-pi-driver"')
 START_PAYLOAD=$(jq -n --arg cwd "${ROOT_DIR}" '{cwd: $cwd}')
 START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d "${START_PAYLOAD}")

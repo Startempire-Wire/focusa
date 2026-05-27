@@ -20,8 +20,8 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::Command;
-use tokio::time::{Duration, sleep};
+use tokio::process::{Child, Command};
+use tokio::time::{Duration, sleep, timeout};
 use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
@@ -49,6 +49,33 @@ fn pi_rpc_node_bin_dir() -> Option<String> {
     std::env::var("FOCUSA_NODE_BIN_DIR")
         .ok()
         .filter(|value| !value.trim().is_empty())
+}
+
+#[cfg(unix)]
+fn configure_pi_rpc_process_group(cmd: &mut Command) {
+    cmd.process_group(0);
+}
+
+#[cfg(not(unix))]
+fn configure_pi_rpc_process_group(_cmd: &mut Command) {}
+
+#[cfg(unix)]
+async fn terminate_pi_rpc_child(child: &mut Child) {
+    let Some(pid) = child.id() else {
+        return;
+    };
+    let pgid = format!("-{pid}");
+    let _ = Command::new("kill").args(["-TERM", &pgid]).status().await;
+    if timeout(Duration::from_secs(2), child.wait()).await.is_ok() {
+        return;
+    }
+    let _ = Command::new("kill").args(["-KILL", &pgid]).status().await;
+    let _ = timeout(Duration::from_secs(2), child.wait()).await;
+}
+
+#[cfg(not(unix))]
+async fn terminate_pi_rpc_child(child: &mut Child) {
+    let _ = child.kill().await;
 }
 
 #[derive(Debug, Deserialize)]
@@ -2488,7 +2515,9 @@ async fn start_pi_driver(
         .args(["--mode", "rpc", "--no-session"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    configure_pi_rpc_process_group(&mut cmd);
     if let Some(models) = payload.models.as_deref() {
         cmd.args(["--models", models]);
     }
@@ -2752,7 +2781,7 @@ async fn stop_pi_driver(
     let Some(mut session) = guard.take() else {
         return Err(bad_request("pi rpc driver not active"));
     };
-    let _ = session.child.kill().await;
+    terminate_pi_rpc_child(&mut session.child).await;
     Ok(Json(
         json!({"status":"accepted","session_id":session.session_id}),
     ))
