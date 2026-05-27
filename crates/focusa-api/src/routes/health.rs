@@ -4,7 +4,8 @@ use crate::routes::bounded::resource_mode_status;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
-use serde_json::json;
+use serde_json::{Value, json};
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
@@ -16,8 +17,117 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     }))
 }
 
+fn path_has_command(command: &str) -> bool {
+    let Some(paths) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&paths).any(|dir| command_exists_in_dir(&dir, command))
+}
+
+fn command_exists_in_dir(dir: &Path, command: &str) -> bool {
+    let candidate = dir.join(command);
+    if candidate.is_file() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        ["exe", "cmd", "bat", "ps1"]
+            .iter()
+            .any(|ext| dir.join(format!("{command}.{ext}")).is_file())
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+fn portability_tool(name: &str, required_for: &str, note: &str) -> Value {
+    let available = path_has_command(name);
+    json!({
+        "name": name,
+        "available": available,
+        "status": if available { "ok" } else { "missing" },
+        "required_for": required_for,
+        "note": note,
+    })
+}
+
+fn portability_doctor_payload() -> Value {
+    let tools = vec![
+        portability_tool("focusa-daemon", "runtime", "daemon/API binary on PATH"),
+        portability_tool(
+            "cargo",
+            "source_build",
+            "Rust source builds and maintainer gates",
+        ),
+        portability_tool("rustc", "source_build", "Rust compiler for source builds"),
+        portability_tool(
+            "node",
+            "pi_extension_menubar",
+            "Pi extension and menubar checks require Node >=20",
+        ),
+        portability_tool("npm", "menubar", "menubar npm install/check/build path"),
+        portability_tool(
+            "bash",
+            "scripts",
+            "spec/release helper scripts assume POSIX shell",
+        ),
+        portability_tool("curl", "api_scripts", "API smoke and live proof scripts"),
+        portability_tool("jq", "api_scripts", "JSON assertions in scripts and docs"),
+        portability_tool(
+            "python3",
+            "spec_gates",
+            "API contract probe and helper scripts",
+        ),
+        portability_tool(
+            "rg",
+            "developer_gates",
+            "fast static checks and grep-style gates",
+        ),
+        portability_tool(
+            "gh",
+            "maintainer_release",
+            "GitHub CI/release inspection via CLI",
+        ),
+    ];
+    let missing_runtime: Vec<String> = tools
+        .iter()
+        .filter(|tool| {
+            tool.get("available").and_then(Value::as_bool) == Some(false)
+                && tool.get("required_for").and_then(Value::as_str) == Some("runtime")
+        })
+        .filter_map(|tool| tool.get("name").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    let missing_source_build: Vec<String> = tools
+        .iter()
+        .filter(|tool| {
+            tool.get("available").and_then(Value::as_bool) == Some(false)
+                && tool.get("required_for").and_then(Value::as_str) == Some("source_build")
+        })
+        .filter_map(|tool| tool.get("name").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    let missing_helpers: Vec<String> = tools
+        .iter()
+        .filter(|tool| tool.get("available").and_then(Value::as_bool) == Some(false))
+        .filter_map(|tool| tool.get("name").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    json!({
+        "status": if missing_runtime.is_empty() { "ok" } else { "warn" },
+        "host_os": std::env::consts::OS,
+        "host_arch": std::env::consts::ARCH,
+        "path_entries": std::env::var_os("PATH").map(|paths| std::env::split_paths(&paths).count()).unwrap_or(0),
+        "tools": tools,
+        "missing_runtime": missing_runtime,
+        "missing_source_build": missing_source_build,
+        "missing_helpers": missing_helpers,
+        "source": "docs/current/PORTABILITY_AUDIT.md",
+        "note": "Availability is PATH-based and non-spawning; source-build and maintainer helpers are informational for binary runtime installs.",
+    })
+}
+
 async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let resource_mode = resource_mode_status();
+    let portability = portability_doctor_payload();
     let s = state.focusa.read().await;
     let token_records = s
         .telemetry
@@ -86,6 +196,7 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
                 "recommended_action": if churn_risk { "inspect /v1/work-loop/status?summary_only=true, stop stale driver if present, and verify idle start gate" } else { "continue normally" },
             }
         },
+        "portability": portability,
         "api_cli_parity": {
             "cli_command": "focusa doctor --json",
             "api_route": "/v1/doctor",
@@ -97,7 +208,8 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
                 "Workpoint canonicality",
                 "Work-loop writer state",
                 "token telemetry status",
-                "cache metadata status"
+                "cache metadata status",
+                "portability PATH checklist"
             ],
             "recovery_commands": [
                 "focusa start",
@@ -124,8 +236,8 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             "tool_availability_policy": resource_mode.tool_availability_policy,
             "cold_surfaces_deferred": resource_mode.cold_surfaces_deferred,
         },
-        "next_action": if churn_risk { "inspect work-loop supervisor churn before broad work" } else if token_records == 0 || cache_records == 0 { "run a Pi/provider turn, then re-run focusa doctor" } else { "continue normally; use focusa telemetry token-budget and focusa cache doctor for detail" },
-        "commands": ["focusa resource status", "focusa telemetry token-budget", "focusa cache doctor", "focusa work-loop status", "focusa workpoint current"],
+        "next_action": if churn_risk { "inspect work-loop supervisor churn before broad work" } else if portability.get("status").and_then(Value::as_str) == Some("warn") { "install missing runtime tools from doctor portability checklist" } else if token_records == 0 || cache_records == 0 { "run a Pi/provider turn, then re-run focusa doctor" } else { "continue normally; use focusa telemetry token-budget and focusa cache doctor for detail" },
+        "commands": ["focusa resource status", "focusa telemetry token-budget", "focusa cache doctor", "focusa work-loop status", "focusa workpoint current", "focusa doctor --json | jq .portability"],
     }))
 }
 
