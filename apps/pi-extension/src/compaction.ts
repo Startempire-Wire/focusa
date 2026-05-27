@@ -313,6 +313,8 @@ function submitCompactionResumeTurn(ctx: any, steerMessage: string): boolean {
     content: steerMessage,
     display: false,
   }, { triggerTurn: true });
+  S.compactResumePending = false;
+  persistState();
   ctx.ui.notify(`✅ Compaction done — auto-resume turn submitted`, "info");
   return true;
 }
@@ -485,7 +487,6 @@ When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
 See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
           try {
             submitCompactionResumeTurn(ctx, steerMessage);
-            scheduleCompactionResumeWatchdog(ctx, steerMessage);
           } catch (e) {
             console.warn("[focusa] auto-resume failed:", e);
             S.compactResumePending = false;
