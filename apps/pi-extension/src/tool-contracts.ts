@@ -904,6 +904,32 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
+    "name": "focusa_browser_diagnostics_intake",
+    "label": "Browser Diagnostics Intake",
+    "purpose": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.evidence.browser_diagnostics_intake",
+    "ontology_objects": [
+      "WorkpointResumePacket",
+      "EvidenceRef",
+      "PredictionRecord",
+      "MetacognitionStore"
+    ],
+    "api_routes": [
+      "POST /v1/workpoint/evidence/link",
+      "POST /v1/predictions",
+      "POST /v1/metacognition/capture"
+    ],
+    "cli_commands": ["focusa workpoint evidence-link", "focusa predictions record", "focusa metacognition capture"],
+    "core_surface": "Pi composite Workpoint evidence intake",
+    "doc_path": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "composite_evidence_prediction_optional_metacog",
+    "parity_status": "pi_only",
+    "exemptions": ["pi_only"],
+    "live_check": "contract_static plus Pi typecheck; live use requires UIAI/browser diagnostics artifact"
+  },
+  {
     "name": "focusa_workpoint_checkpoint",
     "label": "Workpoint Checkpoint",
     "purpose": "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.",
@@ -1585,6 +1611,12 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_workpoint_link_evidence",
     "focusa_trajectory_assess",
     "focusa_recent_result"
+  ],
+  "focusa_browser_diagnostics_intake": [
+    "focusa_active_object_resolve",
+    "focusa_evidence_capture",
+    "focusa_predict_record",
+    "focusa_metacog_capture"
   ],
   "focusa_workpoint_checkpoint": [
     "focusa_workpoint_resume",

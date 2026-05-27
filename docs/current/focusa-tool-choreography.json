@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 62,
-  "edge_count": 188,
+  "tool_count": 63,
+  "edge_count": 192,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -266,6 +266,12 @@
       "focusa_workpoint_link_evidence",
       "focusa_trajectory_assess",
       "focusa_recent_result"
+    ],
+    "focusa_browser_diagnostics_intake": [
+      "focusa_active_object_resolve",
+      "focusa_evidence_capture",
+      "focusa_predict_record",
+      "focusa_metacog_capture"
     ],
     "focusa_workpoint_checkpoint": [
       "focusa_workpoint_resume",
@@ -1122,6 +1128,30 @@
       "from": "focusa_evidence_capture",
       "to": "focusa_recent_result",
       "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_browser_diagnostics_intake",
+      "to": "focusa_active_object_resolve",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_browser_diagnostics_intake",
+      "to": "focusa_evidence_capture",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_browser_diagnostics_intake",
+      "to": "focusa_predict_record",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_browser_diagnostics_intake",
+      "to": "focusa_metacog_capture",
+      "weight": 7,
       "reason": "static_next_tool_route"
     },
     {

@@ -3188,6 +3188,100 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_browser_diagnostics_intake",
+    label: "Browser Diagnostics Intake",
+    description: "Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate.",
+    promptSnippet: "Use after UIAI browser diagnostics/error envelopes to standardize evidence + learning intake before manual interpretation.",
+    parameters: Type.Object({
+      diagnostics: Type.Optional(Type.Any({ description: "Diagnostics JSON object or browser action failure envelope." })),
+      diagnostics_ref: Type.Optional(Type.String({ description: "Stable file/artifact/URL handle for diagnostics JSON; local files are read best-effort." })),
+      target_ref: Type.Optional(Type.String({ description: "Object/page/endpoint proven by these diagnostics; inferred from diagnostics when omitted." })),
+      result: Type.Optional(Type.String({ description: "Optional bounded result summary override." })),
+      workpoint_id: Type.Optional(Type.String({ description: "Specific Workpoint id; omit to use active Workpoint." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit project root for canonical evidence linkage." })),
+      session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
+      continuity_id: Type.Optional(Type.String({ description: "Stable logical session/workstream id; defaults to this Pi continuity id." })),
+      attach_to_workpoint: Type.Optional(Type.Boolean({ description: "Defaults true; false performs dry intake without canonical evidence linkage." })),
+      create_prediction: Type.Optional(Type.Boolean({ description: "Defaults true; records bounded follow-up prediction candidate." })),
+      create_metacog: Type.Optional(Type.Boolean({ description: "Defaults false; capture only when this diagnostics pattern should become reusable learning." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const readJsonArtifact = (ref?: string): any | null => {
+        if (!ref || !ref.startsWith("/")) return null;
+        try {
+          const fs = require("fs");
+          const raw = fs.readFileSync(ref, "utf8");
+          return JSON.parse(raw);
+        } catch { return null; }
+      };
+      const diagnostics = p.diagnostics && typeof p.diagnostics === "object" ? p.diagnostics : readJsonArtifact(p.diagnostics_ref) || {};
+      const asArray = (value: any): any[] => Array.isArray(value) ? value : [];
+      const dig = (obj: any, keys: string[]): any => keys.reduce((cur, key) => cur && typeof cur === "object" ? cur[key] : undefined, obj);
+      const consoleItems = [...asArray(diagnostics.console), ...asArray(diagnostics.diagnostics?.console), ...asArray(diagnostics.console_errors)];
+      const exceptionItems = [...asArray(diagnostics.exceptions), ...asArray(diagnostics.page_errors), ...asArray(diagnostics.errors)];
+      const failedItems = [...asArray(diagnostics.failed_requests), ...asArray(diagnostics.network_failures), ...asArray(diagnostics.diagnostics?.failed_requests)];
+      const errorClass = String(diagnostics.error_class || diagnostics.error?.class || "browser_diagnostics");
+      const url = String(diagnostics.url || diagnostics.page_url || diagnostics.session?.url || dig(diagnostics, ["diagnostics", "url"]) || "unknown-url");
+      const action = String(diagnostics.action || diagnostics.operation || diagnostics.selector ? `${diagnostics.action || "browser_action"}:${diagnostics.selector || "unknown-selector"}` : "browser_diagnostics");
+      const targetRef = String(p.target_ref || (url !== "unknown-url" ? url : action));
+      const evidenceRef = String(p.diagnostics_ref || diagnostics.evidence_ref || `browser-diagnostics:${new Date().toISOString()}`);
+      const diagSummary = String(diagnostics.diagnostics_summary || diagnostics.summary || "");
+      const resultSummary = String(p.result || `${errorClass}: console=${consoleItems.length} exceptions=${exceptionItems.length} failed_requests=${failedItems.length}${diagSummary ? `; ${diagSummary}` : ""}`).slice(0, 500);
+      const activeObjectHints = Array.from(new Set([targetRef, url, action, diagnostics.selector, diagnostics.request_url, diagnostics.endpoint].filter(Boolean).map(String))).slice(0, 8);
+      const sideEffects: string[] = [];
+      const evidenceRefs: string[] = [evidenceRef];
+      let evidenceResult: any = null;
+      let projectRoot: string | null = null;
+      if (p.attach_to_workpoint !== false) {
+        projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+        const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+        if (projectRootGate) return projectRootGate;
+        const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "browser diagnostics intake", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
+        if (!clarity.ok) {
+          return { content: [{ type: "text", text: `${clarity.text || "browser diagnostics intake blocked by trajectory clarity gate"}. next_tools=focusa_trajectory_view,focusa_workpoint_resume` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", target_ref: targetRef, evidence_ref: evidenceRef, active_object_hints: activeObjectHints, ...clarity.details } } as any;
+        }
+        const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
+        evidenceResult = await focusaFetchDetailed("/workpoint/evidence/link", {
+          method: "POST",
+          headers: { "x-focusa-writer-id": await preferredWriterId() },
+          body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: targetRef, result: resultSummary, evidence_ref: evidenceRef, session_identity: sessionIdentity, trajectory_clarity_precondition: clarity.details }),
+        });
+        if (evidenceResult.ok) sideEffects.push("workpoint_evidence_link");
+      }
+      let predictionResult: any = null;
+      if (p.create_prediction !== false) {
+        predictionResult = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify({
+          prediction_type: "browser_diagnostics_next_action",
+          predicted_outcome: failedItems.length || exceptionItems.length || consoleItems.length ? "Diagnostics intake will shorten the next browser-debug loop by preserving concrete console/network/error evidence." : "Diagnostics intake will act as a clean baseline for future browser-debug comparisons.",
+          confidence: failedItems.length || exceptionItems.length || consoleItems.length ? 0.78 : 0.62,
+          recommended_action: "Use active_object_hints plus evidence_ref before choosing the next browser fix or Workpoint update.",
+          why: resultSummary,
+          context_refs: evidenceRefs,
+          ontology_context: { object_refs: activeObjectHints, evidence_refs: evidenceRefs, action_refs: [action], tool_refs: ["focusa_browser_diagnostics_intake"] },
+        }) });
+        if (predictionResult.ok) sideEffects.push("prediction_store");
+      }
+      let metacogResult: any = null;
+      if (p.create_metacog === true) {
+        metacogResult = await callSpec80Tool("focusa_metacog_capture", "/metacognition/capture", {
+          kind: "browser_diagnostics_pattern",
+          content: `Browser diagnostics pattern for ${targetRef}: ${resultSummary}`.slice(0, SPEC81_LIMITS.longText),
+          rationale: "Captured from typed UIAI/browser diagnostics intake so future agents can reuse concrete failure evidence.",
+          evidence_refs: evidenceRefs,
+          confidence: 0.74,
+          strategy_class: "browser_debugging",
+        }, { method: "POST", writer: true });
+        if (metacogResult.ok) sideEffects.push("metacog_capture");
+      }
+      const ok = p.attach_to_workpoint === false || evidenceResult?.ok === true;
+      const status = ok ? "completed" : "blocked";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `browser diagnostics intake → ${status} evidence=${evidenceRef}`, tool: "focusa_browser_diagnostics_intake", family: "workpoint", side_effects: sideEffects, evidence_refs: evidenceRefs, next_tools: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_predict_record", "focusa_metacog_capture"], raw: { evidence: evidenceResult?.body, prediction: predictionResult?.body, metacog: metacogResult?.body } });
+      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_workpoint_checkpoint",
     label: "Workpoint Checkpoint",
     description: "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint.",

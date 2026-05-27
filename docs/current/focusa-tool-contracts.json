@@ -1,7 +1,7 @@
 {
   "schema": "spec90.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 62,
+  "tool_count": 63,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -1026,6 +1026,38 @@
       "parity_status": "full",
       "exemptions": [],
       "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    },
+    {
+      "name": "focusa_browser_diagnostics_intake",
+      "label": "Browser Diagnostics Intake",
+      "purpose": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
+      "family": "workpoint",
+      "ontology_action": "workpoint.evidence.browser_diagnostics_intake",
+      "ontology_objects": [
+        "WorkpointResumePacket",
+        "EvidenceRef",
+        "PredictionRecord",
+        "MetacognitionStore"
+      ],
+      "api_routes": [
+        "POST /v1/workpoint/evidence/link",
+        "POST /v1/predictions",
+        "POST /v1/metacognition/capture"
+      ],
+      "cli_commands": [
+        "focusa workpoint evidence-link",
+        "focusa predictions record",
+        "focusa metacognition capture"
+      ],
+      "core_surface": "Pi composite Workpoint evidence intake",
+      "doc_path": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "composite_evidence_prediction_optional_metacog",
+      "parity_status": "pi_only",
+      "exemptions": [
+        "pi_only"
+      ],
+      "live_check": "contract_static plus Pi typecheck; live use requires UIAI/browser diagnostics artifact"
     },
     {
       "name": "focusa_workpoint_checkpoint",

@@ -524,6 +524,7 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_tool_doctor` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_tool_doctor.md`](docs/focusa-tools/tools/focusa_tool_doctor.md) |
 | `focusa_active_object_resolve` | Workpoint | [`docs/focusa-tools/tools/focusa_active_object_resolve.md`](docs/focusa-tools/tools/focusa_active_object_resolve.md) |
 | `focusa_evidence_capture` | Workpoint | [`docs/focusa-tools/tools/focusa_evidence_capture.md`](docs/focusa-tools/tools/focusa_evidence_capture.md) |
+| `focusa_browser_diagnostics_intake` | Workpoint | [`docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`](docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md) |
 | `focusa_workpoint_checkpoint` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_checkpoint.md`](docs/focusa-tools/tools/focusa_workpoint_checkpoint.md) |
 | `focusa_workpoint_link_evidence` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_link_evidence.md`](docs/focusa-tools/tools/focusa_workpoint_link_evidence.md) |
 | `focusa_workpoint_resume` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_resume.md`](docs/focusa-tools/tools/focusa_workpoint_resume.md) |
