@@ -13,6 +13,42 @@
 use crate::types::*;
 use chrono::Utc;
 
+fn next_node_id(clt: &CltState) -> String {
+    let next = clt
+        .nodes
+        .iter()
+        .filter_map(|node| node.node_id.strip_prefix("clt_"))
+        .filter_map(|suffix| suffix.parse::<usize>().ok())
+        .max()
+        .map(|value| value + 1)
+        .unwrap_or(0);
+    format!("clt_{next:06}")
+}
+
+/// Retain a bounded hot lineage window in the runtime snapshot.
+///
+/// Durable event history remains in SQLite; this prevents the daemon from loading
+/// hundreds of thousands of CLT nodes into the hot FocusaState snapshot.
+pub fn retain_hot_window(clt: &mut CltState, max_nodes: usize) -> usize {
+    if max_nodes == 0 || clt.nodes.len() <= max_nodes {
+        return 0;
+    }
+    let removed = clt.nodes.len().saturating_sub(max_nodes);
+    clt.nodes.drain(0..removed);
+    let existing_ids: std::collections::HashSet<String> =
+        clt.nodes.iter().map(|node| node.node_id.clone()).collect();
+    if let Some(first) = clt.nodes.first_mut() {
+        if first
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent| !existing_ids.contains(parent))
+        {
+            first.parent_id = None;
+        }
+    }
+    removed
+}
+
 /// Append an interaction node to the CLT.
 pub fn append_interaction(
     clt: &mut CltState,
@@ -21,7 +57,7 @@ pub fn append_interaction(
     content_ref: Option<&str>,
     metadata: CltMetadata,
 ) -> String {
-    let node_id = format!("clt_{:06}", clt.nodes.len());
+    let node_id = next_node_id(clt);
     let parent_id = clt.head_id.clone();
 
     let node = CltNode {
@@ -50,7 +86,7 @@ pub fn insert_summary(
     covered_range: Vec<String>,
     compression_ratio: f64,
 ) -> String {
-    let node_id = format!("clt_{:06}", clt.nodes.len());
+    let node_id = next_node_id(clt);
     let parent_id = clt.head_id.clone();
 
     let node = CltNode {
@@ -74,7 +110,7 @@ pub fn insert_summary(
 
 /// Insert a branch marker.
 pub fn insert_branch_marker(clt: &mut CltState, reason: &str, branches: Vec<String>) -> String {
-    let node_id = format!("clt_{:06}", clt.nodes.len());
+    let node_id = next_node_id(clt);
     let parent_id = clt.head_id.clone();
 
     let node = CltNode {
@@ -179,6 +215,20 @@ mod tests {
         insert_branch_marker(&mut clt, "fork", vec!["a".into(), "b".into()]);
         let (i, s, b) = node_counts(&clt);
         assert_eq!((i, s, b), (1, 1, 1));
+    }
+
+    #[test]
+    fn retain_hot_window_preserves_head_and_monotonic_ids() {
+        let mut clt = CltState::default();
+        for _ in 0..5 {
+            append_interaction(&mut clt, None, "user", None, CltMetadata::default());
+        }
+        assert_eq!(retain_hot_window(&mut clt, 2), 3);
+        assert_eq!(clt.nodes.len(), 2);
+        assert_eq!(clt.head_id.as_deref(), Some("clt_000004"));
+        assert!(clt.nodes[0].parent_id.is_none());
+        let next = append_interaction(&mut clt, None, "assistant", None, CltMetadata::default());
+        assert_eq!(next, "clt_000005");
     }
 }
 

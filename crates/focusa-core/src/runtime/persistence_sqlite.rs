@@ -6,6 +6,7 @@
 //!
 //! ECS objects remain filesystem-backed (see reference::store).
 
+use crate::clt::retain_hot_window;
 use crate::types::{EventLogEntry, FocusaConfig, FocusaState, SessionId};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -16,6 +17,18 @@ use tracing::debug;
 use uuid::Uuid;
 
 const SCHEMA_VERSION: i64 = 1;
+
+fn hot_clt_snapshot_max_nodes() -> usize {
+    std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(10_000)
+}
+
+fn trim_hot_clt_snapshot(state: &mut FocusaState) -> usize {
+    retain_hot_window(&mut state.clt, hot_clt_snapshot_max_nodes())
+}
 
 /// SQLite-backed persistence.
 ///
@@ -506,7 +519,16 @@ impl SqlitePersistence {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let ts = Utc::now();
-        let state_json = serde_json::to_string(state)?;
+        let mut snapshot_state = state.clone();
+        let trimmed = trim_hot_clt_snapshot(&mut snapshot_state);
+        if trimmed > 0 {
+            debug!(
+                trimmed,
+                remaining = snapshot_state.clt.nodes.len(),
+                "trimmed hot CLT snapshot before SQLite save"
+            );
+        }
+        let state_json = serde_json::to_string(&snapshot_state)?;
         conn.execute(
             r#"
             INSERT INTO snapshots(name, version, ts, state_json)
@@ -537,7 +559,17 @@ impl SqlitePersistence {
         match row {
             None => Ok(None),
             Some(json) => match serde_json::from_str::<FocusaState>(&json) {
-                Ok(s) => Ok(Some(s)),
+                Ok(mut s) => {
+                    let trimmed = trim_hot_clt_snapshot(&mut s);
+                    if trimmed > 0 {
+                        debug!(
+                            trimmed,
+                            remaining = s.clt.nodes.len(),
+                            "trimmed hot CLT snapshot after SQLite load"
+                        );
+                    }
+                    Ok(Some(s))
+                }
                 Err(_) => {
                     // Backward compatibility: older snapshots won't have newer fields.
                     // Fall back to a fresh state rather than failing daemon startup.
