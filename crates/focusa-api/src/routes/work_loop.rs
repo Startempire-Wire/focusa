@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::time::{Duration, sleep, timeout};
@@ -76,6 +77,19 @@ async fn terminate_pi_rpc_child(child: &mut Child) {
 #[cfg(not(unix))]
 async fn terminate_pi_rpc_child(child: &mut Child) {
     let _ = child.kill().await;
+}
+
+fn supervisor_perf_payload(state: &AppState) -> Value {
+    let perf = &state.supervisor_perf;
+    json!({
+        "supervisor_ticks_total": perf.ticks_total.load(Ordering::Relaxed),
+        "driver_start_attempts": perf.driver_start_attempts.load(Ordering::Relaxed),
+        "driver_stop_attempts": perf.driver_stop_attempts.load(Ordering::Relaxed),
+        "dispatch_attempts": perf.dispatch_attempts.load(Ordering::Relaxed),
+        "dispatch_skipped_disallowed": perf.dispatch_skipped_disallowed.load(Ordering::Relaxed),
+        "dispatch_recovery_restarts": perf.dispatch_recovery_restarts.load(Ordering::Relaxed),
+        "background_throttled_ticks": perf.background_throttled_ticks.load(Ordering::Relaxed),
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -1981,6 +1995,7 @@ async fn status(
             "active_writer": active_writer,
             "transport_health": transport_health,
             "budget_remaining": budget_remaining,
+            "supervisor_perf": supervisor_perf_payload(&state),
             "resume_payload": resume_payload,
             "active_workpoint": active_workpoint_summary_for_status(&s),
             "bounds": {
@@ -2147,6 +2162,7 @@ async fn status(
         "transport_health": transport_health,
         "execution_environment": execution_environment,
         "budget_remaining": budget_remaining,
+        "supervisor_perf": supervisor_perf_payload(&state),
         "secondary_loop_quality_metrics": secondary_loop_quality_metrics,
         "secondary_loop_eval_artifacts": {
             "ledger_size": s.telemetry.secondary_loop_ledger.len(),
@@ -2215,6 +2231,7 @@ async fn status_deep(
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
             "active_workpoint": active_workpoint_summary_for_status(&s),
+            "supervisor_perf": supervisor_perf_payload(&state),
             "deep_status_route": "/v1/work-loop/status/deep",
             "resource_mode": resource_mode_status(),
             "bounds": {

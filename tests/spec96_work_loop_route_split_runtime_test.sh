@@ -11,7 +11,7 @@ curl -fsS --max-time 3 "${BASE_URL}/v1/work-loop/status?summary_only=true" >"$TM
 curl -fsS --max-time "$COLD_MAX_TIME" "${BASE_URL}/v1/work-loop/status/deep" >"$TMP_DIR/deep.json"
 
 jq -e '.status=="ok" and .route_tier=="hot" and .summary_only==true and .deep_status_route=="/v1/work-loop/status/deep"' "$TMP_DIR/health.json" >/dev/null
-jq -e '.route_tier=="hot" and .summary_only==true and .bounds.summary_only==true and .deep_status_route=="/v1/work-loop/status/deep" and (.cold_omitted|length > 0)' "$TMP_DIR/summary.json" >/dev/null
-jq -e '.route_tier=="cold" and .summary_only==false and (.cold_omitted|length == 0) and has("policy") and has("worktree")' "$TMP_DIR/deep.json" >/dev/null
+jq -e '.route_tier=="hot" and .summary_only==true and .bounds.summary_only==true and .deep_status_route=="/v1/work-loop/status/deep" and (.cold_omitted|length > 0) and (.supervisor_perf.driver_start_attempts|type=="number")' "$TMP_DIR/summary.json" >/dev/null
+jq -e '.route_tier=="cold" and .summary_only==false and (.cold_omitted|length == 0) and has("policy") and has("worktree") and (.supervisor_perf.dispatch_attempts|type=="number")' "$TMP_DIR/deep.json" >/dev/null
 
 echo "SPEC96 work-loop route split runtime test: PASS"
