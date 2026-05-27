@@ -77,6 +77,11 @@ impl SqlitePersistence {
 
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "synchronous", "NORMAL")?;
+        conn.pragma_update(None, "wal_autocheckpoint", 1000)?;
+        conn.pragma_update(None, "journal_size_limit", 67_108_864i64)?;
+        conn.pragma_update(None, "cache_size", -16_384i64)?;
+        conn.pragma_update(None, "busy_timeout", 5000)?;
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA optimize;");
 
         let this = Self {
             data_dir,
