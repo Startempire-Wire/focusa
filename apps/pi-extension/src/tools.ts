@@ -454,7 +454,7 @@ function terseToolText(summary: string, failureClass: string | null, nextTools: 
 }
 
 function timeoutPreservedText(surface: string, noun = "fallback"): string {
-  return `${surface} timeout_preserved; noncanonical ${noun}; next=doctor/resource_mode/retry`.slice(0, 160);
+  return `${surface} preserved cached advisory ${noun}; cause=timeout; next=resource_mode/doctor/retry`.slice(0, 160);
 }
 
 function resolveActiveWorkpointContext(): { workpoint_id: string | null; evidence_refs: string[]; summary?: string } {
@@ -1300,6 +1300,7 @@ export function registerTools(pi: ExtensionAPI) {
   function timeoutBudgetForRoute(path: string, method = "GET"): number {
     const configured = S.cfg?.focusaApiTimeoutMs || 5000;
     const tier = focusaRouteTier(path, method);
+    if (tier === "hot" && path.startsWith("/trajectory/view")) return Math.min(Math.max(configured, 4000), 5000);
     if (tier === "hot") return Math.min(configured, 2500);
     if (tier === "cold") return Math.max(configured, 8000);
     return configured;
@@ -2841,7 +2842,8 @@ export function registerTools(pi: ExtensionAPI) {
       query.set("project_root", projectRoot);
       if (p.session_id || S.sessionFrameKey) query.set("session_id", String(p.session_id || S.sessionFrameKey));
       if (p.continuity_id || S.continuityId) query.set("continuity_id", String(p.continuity_id || S.continuityId));
-      if (p.mode) query.set("mode", String(p.mode));
+      const viewMode = String(p.mode || "summary");
+      query.set("mode", viewMode);
       if (p.allow_prior_project_trajectory === true) query.set("allow_prior_project_trajectory", "true");
       const result = await focusaFetchDetailed(`/trajectory/view?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
