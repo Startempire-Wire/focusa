@@ -1,7 +1,7 @@
 # UIAI Browser Diagnostics → Focusa Integration Spec
 
-**Status:** current local integration guide; UIAI diagnostics baseline implemented in `uiai-engine` commit `1221d80`.  
-**UIAI companion spec:** `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`.  
+**Status:** current local integration guide; UIAI diagnostics, bounded async eval, reliability gates, and Focusa intake wrapper are implemented locally.
+**UIAI companion specs:** `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`, `/home/wpuiai/uiai-engine/docs/BROWSER_RELIABILITY_RUNBOOK.md`.
 **Scope:** turn local browser console/network/runtime failures into bounded Focusa evidence, predictions, and Workpoint continuity.
 
 ## 1. Purpose
@@ -13,8 +13,10 @@ UIAI Engine provides browser interaction, visual QA, and implemented browser dia
 Local implementation in `/home/wpuiai/uiai-engine` now includes:
 
 - UIAI service target: `localhost:7456`.
-- Browser tools include open, screenshot, scroll, click, hover, type, eval, snapshot, DOM, navigate, resize, CSS, wait, fill, select, press, back, forward, text, cookies, close, `browser_diagnostics`, and `browser_diagnostics_clear`.
+- Browser tools include open, screenshot, scroll, click, hover, type, eval, bounded `eval_async`, snapshot, DOM, navigate, resize, CSS, wait, fill, select, press, back, forward, text, cookies, close, `browser_diagnostics`, and `browser_diagnostics_clear`.
 - Diagnostics expose bounded console logs/errors, JS exceptions, network requests, failed requests, and summary counts.
+- `focusa_browser_diagnostics_intake` is implemented as a Pi wrapper that converts diagnostics JSON/failure envelopes into bounded evidence, active-object hints, prediction context, and optional metacog capture.
+- Browser reliability gates exist in UIAI: `make browser-reliability`, `make release-browser-reliability`, and `.github/workflows/browser-reliability.yml`.
 - Full HAR, trace export, source-map stack mapping, and raw body/header capture are not implemented in the baseline.
 - Session routes live in `/home/wpuiai/uiai-engine/internal/routes/session.go`.
 - Session diagnostics recorder lives in `/home/wpuiai/uiai-engine/internal/vision/diagnostics.go` and is attached from `/home/wpuiai/uiai-engine/internal/vision/session.go`.
@@ -44,11 +46,11 @@ Discovery rule for agents: if browser work involves a broken/blank page, console
 2. Open/reuse a UIAI browser session for the failing URL.
 3. Reproduce the issue with existing UIAI browser actions.
 4. Read UIAI diagnostics from `browser_diagnostics` / `GET /api/session/{id}/diagnostics`.
-5. Capture a bounded Focusa evidence ref.
+5. Run `focusa_browser_diagnostics_intake` with the diagnostics object or `diagnostics_ref`; this captures bounded evidence and active-object hints.
 6. Resolve active objects from URL, stack, component names, endpoint paths, and failed network URLs.
-7. Record a prediction for likely cause and next fix path.
+7. Record or keep the intake-created prediction for likely cause and next fix path.
 8. Patch/test outside Focusa as normal project work.
-9. Re-run UIAI diagnostics and capture verification evidence.
+9. Re-run UIAI diagnostics and capture verification evidence through intake or `focusa_evidence_capture`.
 10. Evaluate the prediction and close/update Workpoint.
 
 ## 6. Evidence shape
@@ -115,41 +117,28 @@ focusa_evidence_capture result="No console errors; failed requests 0 after fix"
 focusa_predict_evaluate actual_outcome="<verified outcome>"
 ```
 
-## 8. Proposed Focusa-facing wrapper
+## 8. Implemented Focusa-facing wrapper
 
-A future Pi tool or helper can wrap UIAI diagnostics and Focusa evidence capture:
-
-### `focusa_browser_diagnostics_intake` candidate
+`focusa_browser_diagnostics_intake` wraps UIAI diagnostics and Focusa evidence capture.
 
 Inputs:
 
 ```json
 {
-  "url": "https://example.test/app",
-  "session_id": "abc12345",
+  "diagnostics_ref": "/tmp/uiai-browser-diagnostics.json",
   "diagnostics": {},
-  "screenshot_ref": "/tmp/uiai/app.jpg",
+  "target_ref": "browser:https://example.test/app",
   "project_root": "/path/to/project",
-  "workpoint_id": "optional"
+  "workpoint_id": "optional",
+  "attach_to_workpoint": true,
+  "create_prediction": true,
+  "create_metacog": false
 }
 ```
 
-Outputs:
+Outputs include bounded evidence linkage, active-object hints, a prediction candidate when requested, optional metacog candidate, and next tools such as `focusa_active_object_resolve` and `focusa_evidence_capture`.
 
-```json
-{
-  "evidence_ref": "uiai-diagnostics:session=abc12345:seq=42",
-  "summary": "1 JS exception, 1 failed GET /api/items 500",
-  "active_object_hints": ["/api/items", "app.js:88", "browser:https://example.test/app"],
-  "recommended_next_tools": [
-    "focusa_active_object_resolve",
-    "focusa_predict_record",
-    "focusa_workpoint_link_evidence"
-  ]
-}
-```
-
-This wrapper is optional. The current integration can already be done with existing Focusa tools plus UIAI CLI/API calls.
+Manual `focusa_evidence_capture` remains valid when agents only have a summarized diagnostics artifact, but the wrapper is the preferred Pi path for UIAI/browser failure envelopes.
 
 ## 9. Workpoint contract
 
@@ -213,7 +202,9 @@ Focusa-facing skills should mention `browser_diagnostics` as the browser evidenc
 ## 13. Cross-reference
 
 - UIAI browser diagnostics spec: `/home/wpuiai/uiai-engine/docs/BROWSER_DIAGNOSTICS_SPEC.md`
+- UIAI browser reliability runbook: `/home/wpuiai/uiai-engine/docs/BROWSER_RELIABILITY_RUNBOOK.md`
 - UIAI session docs: `/home/wpuiai/uiai-engine/docs/SESSION_API.md`
+- Focusa browser diagnostics intake tool: `docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`
 - Focusa evidence tool: `docs/focusa-tools/tools/focusa_evidence_capture.md`
 - Focusa Workpoint tools: `docs/focusa-tools/workpoint.md`
 - Focusa prediction guide: `docs/current/PREDICTIVE_POWER_GUIDE.md`

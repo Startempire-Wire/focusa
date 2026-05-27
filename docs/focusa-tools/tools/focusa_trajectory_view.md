@@ -44,8 +44,10 @@ Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 
 ## Recovery notes
 
-- `failure_class=hot_path_timeout` or `status=timeout_preserved`: cached clarity can be returned as advisory only; retry after `focusa_tool_doctor`/`focusa_resource_mode` before treating it as current.
-
+- Pi tool calls default to `mode=summary` for bounded hot-path orientation.
+- The Pi wrapper gives `/trajectory/view` a route-specific 4–5s hot timeout budget before preserving cached advisory clarity.
+- `failure_class=hot_path_timeout` or `status=timeout_preserved`: cached clarity can be returned as advisory only; retry after `focusa_resource_mode`/`focusa_tool_doctor` before treating it as current.
+- User-facing timeout text may say `preserved cached advisory ...; cause=timeout`; this is a degraded orientation fallback, not a task failure.
 - `failure_class=scope_mismatch` or `status=degraded`: verify ProjectIdentity before trusting context.
 - Same high-level trajectory similarity is advisory only; distinct mid/low goals or continuity IDs remain separate sessions unless the caller explicitly opts into prior-project reload fallback.
 - `trajectory.bootstrap_default=true`: bootstrap projection is advisory only; use `focusa_trajectory_define_goal` or checkpoint the current explicit mission before durable work.
