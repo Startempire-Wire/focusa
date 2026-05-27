@@ -1,7 +1,7 @@
 # Current Runtime Status
 
 **Snapshot:** `v0.9.13-dev`
-**Repo head when written:** Release sync after `40b362f`
+**Repo head when written:** Release/CI sync after `326217e`
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
@@ -9,7 +9,7 @@
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
-- Pi extension under `apps/pi-extension` exposing 59 current `focusa_*` tools.
+- Pi extension under `apps/pi-extension` exposing 63 current `focusa_*` tools.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link; CLI `focusa workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor; evaluations persist as first-class records, successful evaluations promote learning back into retrieval memory, and API/CLI readback includes `evaluations/recent`.
@@ -28,6 +28,8 @@
 - Official trajectory ladder language is HLT (High-Level Trajectory) → MLG (Mid-Level Goal) → STG (Short-Term Goal) → Waypoints → Workpoint; STGs and Waypoints derive from the HLT through MLGs.
 - Low-resource hardening is active: Tokio/reqwest features are narrowed, cold payloads require explicit opt-in, Pi result text/details are capped, and hot routes use compact fallback envelopes under pressure.
 - UIAI browser diagnostics/evidence integration is documented and verified: scoped UIAI reliability reports can emit `focusa_evidence` packets carrying Workpoint scope and artifact handles for Focusa evidence capture.
+- Project-card intelligence, project-card outcome learning, and session-transfer APIs/tools are implemented for bootstrap/re-bootstrap, lightweight planning, and save/continue workflows.
+- Menubar web build and GitHub macOS Tauri package proof pass in CI; local Linux native Tauri builds require a newer GTK/GLib stack than the AlmaLinux server provides.
 
 ## Current proof files
 

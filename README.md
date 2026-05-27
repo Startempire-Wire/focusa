@@ -5,10 +5,20 @@
 > Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
 
 **Current public snapshot:** `v0.9.13-dev` / **Focusa Operator Preview**
-**Runtime state:** Rust daemon + HTTP API + CLI + Pi extension are implemented and live-tested.
+**Runtime state:** Rust daemon + HTTP API + CLI + TUI + Pi extension + menubar web/macOS package proof are implemented and live-tested.
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
 **Preview promise:** a developer can start a real AI coding session, create a Workpoint, attach evidence, recover after compaction/session drift, and continue without losing the thread.
+
+## Recent additions in this snapshot
+
+- **63 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer, browser diagnostics intake, predictions, reflex primitives, and resource-mode controls.
+- **Project intelligence flywheel**: `focusa_project_card` fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction stats, outcomes, elapsed/token efficiency, and metacog prompts; `focusa_project_card_outcome` feeds verified outcomes back into learned weights.
+- **Session transfer**: `focusa_session_transfer` provides save/continue semantics for long Pi/Focusa work without forking continuity.
+- **UIAI browser diagnostics integration**: scoped UIAI browser sessions and reliability reports emit Focusa-ready `focusa_evidence` handles; `focusa_browser_diagnostics_intake` turns diagnostics into evidence, active-object hints, predictions, and optional metacog signals.
+- **Doctor browser awareness**: `focusa_tool_doctor` surfaces UIAI browser health/pressure so browser failures are visible during Focusa troubleshooting.
+- **Menubar cockpit proof**: the Svelte/Tauri menubar app now has passing web build and GitHub macOS Tauri package proof.
+- **Strict CI proof**: GitHub CI run `26494511174` passed Rust tests/clippy, strict spec gates, and Menubar package proof at `326217e`.
 
 ---
 
@@ -92,7 +102,7 @@ When Focusa is working well, an agent should:
 | Work-loop | Implemented but advanced | Preview/advanced |
 | Metacognition | Implemented, bounded | Preview/advanced |
 | Ontology governance | Partial/design-forward | Experimental unless marked current in `docs/current/` |
-| GUI/menubar | In progress | Not primary Operator Preview surface |
+| GUI/menubar | Implemented preview cockpit | Web build and GitHub macOS Tauri package proof pass; still not primary Operator Preview surface |
 | Team/multi-user/cloud sync | Future | Not in preview |
 
 ---
@@ -170,19 +180,19 @@ Most commands support human-readable output, and the top-level CLI supports `--j
 
 ### Pi extension
 
-The Pi extension is the main agent-facing integration. It registers 59 `focusa_*` tools grouped into these families:
+The Pi extension is the main agent-facing integration. It registers 63 current `focusa_*` tools grouped into these families:
 
 - **Focus State:** scratch, decide, constraint, failure, intent, current focus, next step, open question, recent result, note.
-- **Project Identity:** resolve/verify the project folder before trusting carryover.
+- **Project Identity and project intelligence:** resolve/verify the project folder before trusting carryover; generate project cards, attach project-card outcomes, and save/continue long sessions with `focusa_session_transfer`.
 - **Trajectory:** view, define, assess, checkpoint/resume, and propose advisory Workpoint candidates.
-- **Workpoint:** checkpoint, resume, link evidence, active object resolve, evidence capture.
+- **Workpoint:** checkpoint, resume, link evidence, active object resolve, evidence capture, browser diagnostics intake, and scope-safe evidence handles.
 - **Traversal/reflexes:** bounded `focusa_traverse` slices across lineage, ontology, evidence, telemetry, Workpoints, registries, plus read-only Spec97 Reflex Primitive summaries via `focusa_reflex_primitives`.
 - **Work-loop:** writer status, status, control, context, checkpoint, select next.
 - **Tree/lineage:** head, path, snapshot, diff, restore, recent snapshots, compare latest, lineage tree, LI extraction.
 - **Metacognition:** capture, retrieve, reflect, plan adjustment, evaluate outcome, recent reflections, recent adjustments, loop run, doctor.
-- **Prediction loop:** record, recent, evaluate, and stats tools for bounded inspectable predictions.
+- **Prediction loop:** record, recent, evaluate, stats, and project-card outcome feedback for bounded inspectable predictions and lightweight algorithmic guidance.
 - **State hygiene:** doctor, plan, approval-safe apply.
-- **Tool doctor/resource mode:** diagnostic entrypoint plus LowMem/emergency posture control.
+- **Tool doctor/resource mode:** diagnostic entrypoint, UIAI browser health/pressure visibility, plus LowMem/emergency posture control.
 - **SilentSessions:** tmux-backed background Pi session list/start/reopen/tail/send/kill with explicit approval gates.
 - **Workpoint project-folder guard:** project/session-bound resume packets reject cross-project continuation.
 - **Compaction fallback guard:** Pi replacement compaction hydrates sparse fields from related canonical sources instead of emitting bare `none`.
@@ -377,7 +387,8 @@ focusa/
 │   ├── focusa-cli/                   # CLI binary focusa
 │   └── focusa-tui/                   # TUI crate
 ├── apps/
-│   └── pi-extension/                 # Pi integration and Focusa tools
+│   ├── pi-extension/                 # Pi integration and Focusa tools
+│   └── menubar/                      # Svelte/Tauri ambient runtime cockpit
 ├── docs/                             # Specs, evidence, audits, operator guides
 ├── tests/                            # Contract and live-stress scripts
 └── .pi/skills/focusa/                # Project-local Focusa skill
@@ -392,10 +403,11 @@ Some older docs describe planned GUI/proxy/autonomy surfaces in more detail than
 Current release proof is documented in:
 
 ```text
+docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md
 docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md
 ```
 
-That proof verified a rebuilt installed daemon and CLI through direct live API/CLI/Pi tool probes, including:
+Current proof verifies pushed GitHub CI plus rebuilt local daemon/CLI checks. Historical Spec89 proof verified direct live API/CLI/Pi tool probes, including:
 
 - daemon health,
 - Workpoint checkpoint/current/resume,
@@ -406,7 +418,7 @@ That proof verified a rebuilt installed daemon and CLI through direct live API/C
 - CLI Workpoint current and drift-check,
 - Pi `focusa_workpoint_resume`.
 
-Current hardening gates also cover bounded CLI smoke, tool stress, extended soak, parallel hot-route load, context-pressure warning copy, dynamic choreography weighting, and safe audit/profiling checks. These prove Focusa preserves scoped project/trajectory/Workpoint/evidence anchors under pressure instead of treating context pressure as lost continuity.
+Current hardening gates also cover bounded CLI smoke, tool stress, extended soak, parallel hot-route load, context-pressure warning copy, dynamic choreography weighting, project-card/session-transfer surfaces, UIAI browser diagnostics evidence flow, menubar web/macOS package proof, and safe audit/profiling checks. These prove Focusa preserves scoped project/trajectory/Workpoint/evidence anchors under pressure instead of treating context pressure as lost continuity.
 
 Focusa-native dogfood is documented in `docs/current/FOCUSA_DOGFOOD.md` and runnable with `bash tests/focusa_dogfood_test.sh`. It validates agent-facing UX loops across daemon health, tool contracts, trajectory, Workpoint continuity, evidence, metacognition, prediction, and resource pressure.
 
@@ -476,8 +488,9 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/PREDICTIVE_POWER_GUIDE.md`](docs/current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
 - [`docs/current/PROJECT_INTELLIGENCE_FLYWHEEL.md`](docs/current/PROJECT_INTELLIGENCE_FLYWHEEL.md) — ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding.
 - [`docs/current/PREDICTION_ALGORITHMS_IMPLEMENTED.md`](docs/current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) — implemented lightweight prediction formulas behind project-card algorithmic intelligence.
-- [`docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md`](docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion and Workpoint/prediction flow.
+- [`docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md`](docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion, scoped `focusa_evidence` artifacts, and Workpoint/prediction flow.
 - [`docs/current/AGENT_COMMAND_COOKBOOK.md`](docs/current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
+- [`docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md`](docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md) — current public docs sync, Guardian/public-tree secret audit, GitHub CI proof, UIAI evidence proof, and menubar proof.
 - [`docs/90-ontology-backed-tool-contracts-parity-spec.md`](docs/90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 current tool contract/parity hardening plan.
 - [`docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md`](docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current machine-readable tool contract registry table.
 - [`docs/91-live-tool-contract-proof-harness-spec.md`](docs/91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness for tool contracts.
@@ -485,7 +498,7 @@ These docs describe only the current present build/snapshot surfaces:
 
 ### Individual Focusa tool docs
 
-Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools.
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **63**.
 
 | Tool | Family | Doc |
 | --- | --- | --- |
@@ -502,6 +515,10 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_trajectory_resume` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_resume.md`](docs/focusa-tools/tools/focusa_trajectory_resume.md) |
 | `focusa_traverse` | Traversal | [`docs/focusa-tools/tools/focusa_traverse.md`](docs/focusa-tools/tools/focusa_traverse.md) |
 | `focusa_reflex_primitives` | Traversal | [`docs/focusa-tools/tools/focusa_reflex_primitives.md`](docs/focusa-tools/tools/focusa_reflex_primitives.md) |
+| `focusa_predict_record` | Metacognition | [`docs/focusa-tools/tools/focusa_predict_record.md`](docs/focusa-tools/tools/focusa_predict_record.md) |
+| `focusa_predict_recent` | Metacognition | [`docs/focusa-tools/tools/focusa_predict_recent.md`](docs/focusa-tools/tools/focusa_predict_recent.md) |
+| `focusa_predict_evaluate` | Metacognition | [`docs/focusa-tools/tools/focusa_predict_evaluate.md`](docs/focusa-tools/tools/focusa_predict_evaluate.md) |
+| `focusa_predict_stats` | Metacognition | [`docs/focusa-tools/tools/focusa_predict_stats.md`](docs/focusa-tools/tools/focusa_predict_stats.md) |
 | `focusa_scratch` | Focus State | [`docs/focusa-tools/tools/focusa_scratch.md`](docs/focusa-tools/tools/focusa_scratch.md) |
 | `focusa_decide` | Focus State | [`docs/focusa-tools/tools/focusa_decide.md`](docs/focusa-tools/tools/focusa_decide.md) |
 | `focusa_constraint` | Focus State | [`docs/focusa-tools/tools/focusa_constraint.md`](docs/focusa-tools/tools/focusa_constraint.md) |
@@ -521,7 +538,9 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_state_hygiene_doctor` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_doctor.md`](docs/focusa-tools/tools/focusa_state_hygiene_doctor.md) |
 | `focusa_state_hygiene_plan` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_plan.md`](docs/focusa-tools/tools/focusa_state_hygiene_plan.md) |
 | `focusa_state_hygiene_apply` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_apply.md`](docs/focusa-tools/tools/focusa_state_hygiene_apply.md) |
+| `focusa_silent_sessions` | Work-loop | [`docs/focusa-tools/tools/focusa_silent_sessions.md`](docs/focusa-tools/tools/focusa_silent_sessions.md) |
 | `focusa_tool_doctor` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_tool_doctor.md`](docs/focusa-tools/tools/focusa_tool_doctor.md) |
+| `focusa_resource_mode` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_resource_mode.md`](docs/focusa-tools/tools/focusa_resource_mode.md) |
 | `focusa_active_object_resolve` | Workpoint | [`docs/focusa-tools/tools/focusa_active_object_resolve.md`](docs/focusa-tools/tools/focusa_active_object_resolve.md) |
 | `focusa_evidence_capture` | Workpoint | [`docs/focusa-tools/tools/focusa_evidence_capture.md`](docs/focusa-tools/tools/focusa_evidence_capture.md) |
 | `focusa_browser_diagnostics_intake` | Workpoint | [`docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`](docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md) |
@@ -558,28 +577,9 @@ The main `focusa` skill is the router and mental model. Focused companion skills
 - `.pi/skills/focusa-cli-api/SKILL.md` — daemon, CLI, API, release-proof operations.
 - `.pi/skills/focusa-troubleshooting/SKILL.md` — degraded/offline/pending/blocked recovery.
 - `.pi/skills/focusa-docs-maintenance/SKILL.md` — public docs, skills, evidence, and snapshot wording.
+- `.pi/skills/predictive-power/SKILL.md` — prediction record/evaluation/stats workflows.
 
----
-
-## License
-
-Focusa is source-available under the Focusa Business Source License 1.1 in `LICENSE.md`.
-
-Free use is limited to personal, educational, evaluation, and non-commercial local use. Commercial, team/company, hosted-service, client-delivery, redistribution, or product-embedding use requires a paid commercial license from Startempire Wire; see `COMMERCIAL.md`.
-
-Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`. Commercial support expectations are in `SUPPORT_TERMS.md`. Common licensing questions are answered in `LICENSE-FAQ.md`.
-
-- [focusa_predict_record](docs/focusa-tools/tools/focusa_predict_record.md)
-
-- [focusa_predict_recent](docs/focusa-tools/tools/focusa_predict_recent.md)
-
-- [focusa_predict_evaluate](docs/focusa-tools/tools/focusa_predict_evaluate.md)
-
-- [focusa_predict_stats](docs/focusa-tools/tools/focusa_predict_stats.md)
-
-
-## Current polish and prediction docs
-
+## Current polish, security, and release docs
 
 - [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
 - [Focusa Agent Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
@@ -588,9 +588,10 @@ Trademark use is governed separately by `TRADEMARKS.md`. External contributions 
 - [Model-Visible Awareness Surfaces](docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md)
 - [Tool Implementation-to-Spec Audit](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
 - [Non-Pi Agent Focusa Usage](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
-- [Spec93 Non-Pi Agent Focusa Awareness](docs/93-non-pi-agent-focusa-awareness-spec.md)
-- [Spec93 Non-Pi Awareness Rollout Proof](docs/evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md)
 - [Predictive Power Guide](docs/current/PREDICTIVE_POWER_GUIDE.md)
+- [Project Intelligence Flywheel](docs/current/PROJECT_INTELLIGENCE_FLYWHEEL.md)
+- [Prediction Algorithms Implemented](docs/current/PREDICTION_ALGORITHMS_IMPLEMENTED.md)
+- [UIAI Browser Diagnostics → Focusa Integration](docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md)
 - [Agent Command Cookbook](docs/current/AGENT_COMMAND_COOKBOOK.md)
 - [Doctor / Continue / Release Prove](docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md)
 - [Workpoint Project Folder + Continuity Guard](docs/current/WORKPOINT_SESSION_SCOPE_GUARD.md)
@@ -598,19 +599,20 @@ Trademark use is governed separately by `TRADEMARKS.md`. External contributions 
 - [Daemon Resilience](docs/current/DAEMON_RESILIENCE.md)
 - [Efficiency Guide](docs/current/EFFICIENCY_GUIDE.md)
 - [Hook Coverage](docs/current/HOOK_COVERAGE.md)
-- [Spec92 Full Rollout Proof](docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md)
-
 - [Trajectory Tool Index](docs/focusa-tools/trajectory.md)
-
 - [Trajectory GTM and Companion Gap Assessment](docs/current/TRAJECTORY_GTM_AND_GAPS.md)
+- [Tauri Menubar Functionality Audit](docs/current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
+- [Tauri Menubar Up-to-Speed Spec](docs/current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)
+- [Focusa Security Review](docs/current/FOCUSA_SECURITY_REVIEW_2026-05-26.md)
+- [Focusa Security Standard Matrix Review](docs/current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md)
+- [Validation and Release Proof](docs/current/VALIDATION_AND_RELEASE_PROOF.md)
+- [Spec92 Full Rollout Proof](docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md)
+- [Public Docs Release Sync 2026-05-26](docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md)
 
-## Focusa Tools
-- [focusa_project_identity](docs/focusa-tools/tools/focusa_project_identity.md) — resolve ProjectIdentity quorum for the project folder.
-- [focusa_project_card](docs/focusa-tools/tools/focusa_project_card.md) — synthesize ontology-grounded project intelligence for bootstrap/re-bootstrap, including TrajectoryReporting elapsed/token cards.
-- [focusa_project_card_outcome](docs/focusa-tools/tools/focusa_project_card_outcome.md) — attach verified outcomes, elapsed time, and token usage to project-card algorithm runs.
-- [focusa_session_transfer](docs/focusa-tools/tools/focusa_session_transfer.md) — save/continue long Focusa/Pi work like a game-save without forking the Pi session.
-- [focusa_project_verify](docs/focusa-tools/tools/focusa_project_verify.md) — verify expected ProjectIdentity fields.
-- [focusa_resource_mode](docs/focusa-tools/tools/focusa_resource_mode.md) — read/control ResourceMode and LowMem activation.
-- [focusa_traverse](docs/focusa-tools/tools/focusa_traverse.md) — read-only bounded traversal across large Focusa surfaces.
-- [focusa_reflex_primitives](docs/focusa-tools/tools/focusa_reflex_primitives.md) — read-only bounded Spec97 Reflex Primitive summaries.
-- [focusa_silent_sessions](docs/focusa-tools/tools/focusa_silent_sessions.md) — manage tmux-backed background SilentSessions.
+## License
+
+Focusa is source-available under the Focusa Business Source License 1.1 in `LICENSE.md`.
+
+Free use is limited to personal, educational, evaluation, and non-commercial local use. Commercial, team/company, hosted-service, client-delivery, redistribution, or product-embedding use requires a paid commercial license from Startempire Wire; see `COMMERCIAL.md`.
+
+Trademark use is governed separately by `TRADEMARKS.md`. External contributions require prior approval; see `CONTRIBUTING.md`. Commercial support expectations are in `SUPPORT_TERMS.md`. Common licensing questions are answered in `LICENSE-FAQ.md`.

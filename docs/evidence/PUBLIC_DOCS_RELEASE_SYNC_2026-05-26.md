@@ -6,12 +6,15 @@ Public docs were checked against the current Focusa runtime snapshot after the U
 
 ## Current repo heads
 
-- Focusa: `40b362f feat: update project card and session transfer`
+- Focusa: `326217e fix: satisfy ci clippy and tauri versions`
+- Public docs release sync: `1bf9674 docs: sync public release proof`
+- Project card/session transfer: `40b362f feat: update project card and session transfer`
 - Public docs/UIAI integration guidance: `15d5ded docs: update uiai focusa integration guidance`
 - UIAI Engine companion docs: `63f06fb docs: document focusa browser evidence contract`
 
 ## Docs verified current
 
+- `README.md`
 - `docs/README.md`
 - `docs/current/CURRENT_RUNTIME_STATUS.md`
 - `docs/current/VALIDATION_AND_RELEASE_PROOF.md`
@@ -41,9 +44,9 @@ Result: no matches.
 - Installed `/usr/local/bin/focusa`, `/usr/local/bin/focusa-daemon`, and `/usr/local/bin/focusa-tui`.
 - `focusa-daemon` restarted and `/v1/health` returned `ok=true`.
 - Menubar web app proof passed: `npm run check` and `npm run build` under `apps/menubar`.
-- Native Tauri bundle proof is host-bound: AlmaLinux exposes `glib-2.0` 2.56.4, while `glib-sys` requires `glib-2.0 >= 2.70`; build should run on Mac or a newer GTK/GLib Linux builder.
+- GitHub macOS Menubar package proof passed in CI run `26494511174`; AlmaLinux local native Tauri bundle proof remains host-bound because it exposes `glib-2.0` 2.56.4 while Linux native Tauri dependencies require `glib-2.0 >= 2.70`.
 - Scoped UIAI browser stress produced `/tmp/uiai-focusa-scope-verify.json` with `focusa_evidence` including `workpoint_id`, `continuity_id`, `project_root`, and `evidence_ref`.
 
 ## Publication status
 
-Docs use current snapshot language, not final-product claims. Older design docs remain present as historical/design-direction docs and the current index points operators to `docs/current/*` for runtime behavior.
+Root `README.md` and docs use current snapshot language, not final-product claims. Older design docs remain present as historical/design-direction docs and the current index points operators to `docs/current/*` for runtime behavior.
