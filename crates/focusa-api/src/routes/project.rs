@@ -13,8 +13,8 @@ use axum::{
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::io::{Read, Seek, SeekFrom, Write};
 use std::fs;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -1292,7 +1292,12 @@ fn normalized_weighted_score(features: &[(f64, f64)]) -> f64 {
     if weight_sum <= f64::EPSILON {
         return 0.0;
     }
-    (features.iter().map(|(x, w)| x.clamp(0.0, 1.0) * w.max(0.0)).sum::<f64>() / weight_sum).clamp(0.0, 1.0)
+    (features
+        .iter()
+        .map(|(x, w)| x.clamp(0.0, 1.0) * w.max(0.0))
+        .sum::<f64>()
+        / weight_sum)
+        .clamp(0.0, 1.0)
 }
 
 fn softmax(scores: &[f64]) -> Vec<f64> {
@@ -1309,7 +1314,11 @@ fn softmax(scores: &[f64]) -> Vec<f64> {
 }
 
 fn expected_value(probabilities: &[f64], values: &[f64]) -> f64 {
-    probabilities.iter().zip(values.iter()).map(|(p, v)| p * v).sum()
+    probabilities
+        .iter()
+        .zip(values.iter())
+        .map(|(p, v)| p * v)
+        .sum()
 }
 
 fn exponential_decay(age_units: f64, lambda: f64) -> f64 {
@@ -1354,12 +1363,20 @@ fn prediction_stats_card(predictions: &[Value]) -> Value {
         .filter_map(|p| p.get("score").and_then(Value::as_f64))
         .collect();
     let score_sum: f64 = scores.iter().sum();
-    let accuracy = if scores.is_empty() { 0.0 } else { score_sum / scores.len() as f64 };
+    let accuracy = if scores.is_empty() {
+        0.0
+    } else {
+        score_sum / scores.len() as f64
+    };
     let ema_accuracy = ema(&scores, 0.35).unwrap_or(accuracy);
     let calibration_brier = if scores.is_empty() {
         0.0
     } else {
-        scores.iter().map(|score| brier_score(*score, 1.0)).sum::<f64>() / scores.len() as f64
+        scores
+            .iter()
+            .map(|score| brier_score(*score, 1.0))
+            .sum::<f64>()
+            / scores.len() as f64
     };
     json!({
         "total": predictions.len(),
@@ -1382,7 +1399,9 @@ fn focusa_data_dir() -> PathBuf {
     if let Some(home) = std::env::var_os("HOME") {
         return PathBuf::from(home).join(".local/share/focusa");
     }
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("data")
+    std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("data")
 }
 
 fn project_card_weights_path() -> PathBuf {
@@ -1417,35 +1436,63 @@ fn load_project_card_weights() -> BTreeMap<String, f64> {
     fs::read_to_string(project_card_weights_path())
         .ok()
         .and_then(|text| serde_json::from_str::<BTreeMap<String, f64>>(&text).ok())
-        .map(|weights| weights.into_iter().map(|(k, v)| (k, v.clamp(0.05, 0.50))).collect())
+        .map(|weights| {
+            weights
+                .into_iter()
+                .map(|(k, v)| (k, v.clamp(0.05, 0.50)))
+                .collect()
+        })
         .unwrap_or_else(default_project_card_weights)
 }
 
 fn persist_project_card_weights(weights: &BTreeMap<String, f64>) {
     let path = project_card_weights_path();
-    if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
-    if let Ok(bytes) = serde_json::to_vec_pretty(weights) { let _ = fs::write(path, bytes); }
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(bytes) = serde_json::to_vec_pretty(weights) {
+        let _ = fs::write(path, bytes);
+    }
 }
 
-fn update_project_card_weights(mut weights: BTreeMap<String, f64>, prediction_accuracy: f64, evaluated_predictions: usize) -> BTreeMap<String, f64> {
-    if evaluated_predictions == 0 { return weights; }
+fn update_project_card_weights(
+    mut weights: BTreeMap<String, f64>,
+    prediction_accuracy: f64,
+    evaluated_predictions: usize,
+) -> BTreeMap<String, f64> {
+    if evaluated_predictions == 0 {
+        return weights;
+    }
     let delta = ((prediction_accuracy - 0.5) * 0.02).clamp(-0.01, 0.01);
     for key in ["prediction", "evidence", "trajectory"] {
-        if let Some(value) = weights.get_mut(key) { *value = (*value + delta).clamp(0.05, 0.50); }
+        if let Some(value) = weights.get_mut(key) {
+            *value = (*value + delta).clamp(0.05, 0.50);
+        }
     }
     for key in ["open_prediction", "blocker"] {
-        if let Some(value) = weights.get_mut(key) { *value = (*value - delta / 2.0).clamp(0.05, 0.50); }
+        if let Some(value) = weights.get_mut(key) {
+            *value = (*value - delta / 2.0).clamp(0.05, 0.50);
+        }
     }
     weights
 }
 
-fn projected_project_card_weights(prediction_accuracy: f64, evaluated_predictions: usize) -> BTreeMap<String, f64> {
+fn projected_project_card_weights(
+    prediction_accuracy: f64,
+    evaluated_predictions: usize,
+) -> BTreeMap<String, f64> {
     // Read-only projection for hot GET /project/card; persisted learning happens on explicit outcomes.
-    update_project_card_weights(load_project_card_weights(), prediction_accuracy, evaluated_predictions)
+    update_project_card_weights(
+        load_project_card_weights(),
+        prediction_accuracy,
+        evaluated_predictions,
+    )
 }
 
 fn append_jsonl(path: PathBuf, record: &Value) {
-    if let Some(parent) = path.parent() { let _ = fs::create_dir_all(parent); }
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
     if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path)
         && let Ok(line) = serde_json::to_string(record)
     {
@@ -1466,7 +1513,10 @@ fn append_project_session_transfer(record: &Value) {
 }
 
 fn project_card_run_exists(algorithm_run_id: &str) -> bool {
-    let needle = format!("\"algorithm_run_id\":\"{}\"", algorithm_run_id.replace('"', ""));
+    let needle = format!(
+        "\"algorithm_run_id\":\"{}\"",
+        algorithm_run_id.replace('"', "")
+    );
     fs::read_to_string(project_card_runs_path())
         .map(|text| text.lines().any(|line| line.contains(&needle)))
         .unwrap_or(false)
@@ -1481,13 +1531,22 @@ fn update_weights_from_algorithm_outcome(score: f64) -> BTreeMap<String, f64> {
 
 fn recent_jsonl_values(path: PathBuf, limit: usize) -> Vec<Value> {
     const TAIL_BYTES: u64 = 128 * 1024;
-    let Ok(mut file) = fs::File::open(path) else { return vec![]; };
+    let Ok(mut file) = fs::File::open(path) else {
+        return vec![];
+    };
     let len = file.metadata().map(|m| m.len()).unwrap_or(0);
     let start = len.saturating_sub(TAIL_BYTES);
-    if file.seek(SeekFrom::Start(start)).is_err() { return vec![]; }
+    if file.seek(SeekFrom::Start(start)).is_err() {
+        return vec![];
+    }
     let mut text = String::new();
-    if file.read_to_string(&mut text).is_err() { return vec![]; }
-    let lines = text.lines().skip(if start > 0 { 1 } else { 0 }).collect::<Vec<_>>();
+    if file.read_to_string(&mut text).is_err() {
+        return vec![];
+    }
+    let lines = text
+        .lines()
+        .skip(if start > 0 { 1 } else { 0 })
+        .collect::<Vec<_>>();
     let mut values = lines
         .iter()
         .rev()
@@ -1505,9 +1564,33 @@ fn format_elapsed_hms(seconds: u64) -> String {
     format!("{hours:02}:{minutes:02}:{secs:02}")
 }
 
-fn trajectory_reporting_card(trajectory: &Option<focusa_core::types::TrajectoryLadderContext>, record: &Value, efficiency: &Value, outcomes: &[Value]) -> Value {
-    let waypoints = trajectory.as_ref().map(|t| t.waypoints.clone()).unwrap_or_default();
-    let recent_text = outcomes.iter().rev().take(8).map(|outcome| format!("{} {}", outcome.get("actual_outcome").and_then(Value::as_str).unwrap_or(""), outcome.get("notes").and_then(Value::as_str).unwrap_or(""))).collect::<Vec<_>>().join("\n").to_lowercase();
+fn trajectory_reporting_card(
+    trajectory: &Option<focusa_core::types::TrajectoryLadderContext>,
+    record: &Value,
+    efficiency: &Value,
+    outcomes: &[Value],
+) -> Value {
+    let waypoints = trajectory
+        .as_ref()
+        .map(|t| t.waypoints.clone())
+        .unwrap_or_default();
+    let recent_text = outcomes
+        .iter()
+        .rev()
+        .take(8)
+        .map(|outcome| {
+            format!(
+                "{} {}",
+                outcome
+                    .get("actual_outcome")
+                    .and_then(Value::as_str)
+                    .unwrap_or(""),
+                outcome.get("notes").and_then(Value::as_str).unwrap_or("")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .to_lowercase();
     let waypoint_cards = waypoints.iter().enumerate().map(|(idx, waypoint)| {
         let marker = waypoint.to_lowercase();
         let accomplished = !marker.is_empty() && recent_text.contains(&marker.chars().take(48).collect::<String>());
@@ -1541,14 +1624,30 @@ fn trajectory_reporting_card(trajectory: &Option<focusa_core::types::TrajectoryL
 fn project_card_efficiency_summary(outcomes: &[Value]) -> Value {
     let durations = outcomes
         .iter()
-        .filter_map(|outcome| outcome.pointer("/task_timing/elapsed_seconds").and_then(Value::as_u64))
+        .filter_map(|outcome| {
+            outcome
+                .pointer("/task_timing/elapsed_seconds")
+                .and_then(Value::as_u64)
+        })
         .collect::<Vec<_>>();
     let token_totals = outcomes
         .iter()
-        .filter_map(|outcome| outcome.pointer("/token_usage/total_tokens").and_then(Value::as_u64))
+        .filter_map(|outcome| {
+            outcome
+                .pointer("/token_usage/total_tokens")
+                .and_then(Value::as_u64)
+        })
         .collect::<Vec<_>>();
-    let avg_duration = if durations.is_empty() { 0 } else { durations.iter().sum::<u64>() / durations.len() as u64 };
-    let avg_tokens = if token_totals.is_empty() { 0 } else { token_totals.iter().sum::<u64>() / token_totals.len() as u64 };
+    let avg_duration = if durations.is_empty() {
+        0
+    } else {
+        durations.iter().sum::<u64>() / durations.len() as u64
+    };
+    let avg_tokens = if token_totals.is_empty() {
+        0
+    } else {
+        token_totals.iter().sum::<u64>() / token_totals.len() as u64
+    };
     json!({
         "schema": "focusa.project_efficiency_summary.v1",
         "outcome_count_with_timing": durations.len(),
@@ -1586,7 +1685,9 @@ fn sequence_probability(algorithmic: &Value, key: &str) -> f64 {
 }
 
 fn git_lines(project_root: &str, args: &[&str], limit: usize) -> Vec<String> {
-    if project_root.trim().is_empty() || !Path::new(project_root).exists() { return vec![]; }
+    if project_root.trim().is_empty() || !Path::new(project_root).exists() {
+        return vec![];
+    }
     Command::new("git")
         .arg("-C")
         .arg(project_root)
@@ -1594,18 +1695,37 @@ fn git_lines(project_root: &str, args: &[&str], limit: usize) -> Vec<String> {
         .output()
         .ok()
         .filter(|output| output.status.success())
-        .map(|output| String::from_utf8_lossy(&output.stdout).lines().map(str::trim).filter(|line| !line.is_empty()).take(limit).map(str::to_string).collect())
+        .map(|output| {
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty())
+                .take(limit)
+                .map(str::to_string)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
 fn infer_action_from_paths(paths: &[String], current_ask: &str) -> String {
-    let joined = format!("{} {}", current_ask.to_lowercase(), paths.join(" ").to_lowercase());
-    if joined.contains("test") || joined.contains("spec") { "verify_or_fix_tests".to_string() }
-    else if joined.contains("doc") || joined.contains("readme") { "update_docs".to_string() }
-    else if joined.contains("route") || joined.contains("api") { "patch_api_flow".to_string() }
-    else if joined.contains("component") || joined.contains("svelte") || joined.contains("ui") { "patch_ui_flow".to_string() }
-    else if joined.contains("config") || joined.contains("package") { "patch_configuration".to_string() }
-    else { "infer_and_continue_project_slice".to_string() }
+    let joined = format!(
+        "{} {}",
+        current_ask.to_lowercase(),
+        paths.join(" ").to_lowercase()
+    );
+    if joined.contains("test") || joined.contains("spec") {
+        "verify_or_fix_tests".to_string()
+    } else if joined.contains("doc") || joined.contains("readme") {
+        "update_docs".to_string()
+    } else if joined.contains("route") || joined.contains("api") {
+        "patch_api_flow".to_string()
+    } else if joined.contains("component") || joined.contains("svelte") || joined.contains("ui") {
+        "patch_ui_flow".to_string()
+    } else if joined.contains("config") || joined.contains("package") {
+        "patch_configuration".to_string()
+    } else {
+        "infer_and_continue_project_slice".to_string()
+    }
 }
 
 fn inferred_workpoint_candidate(
@@ -1619,17 +1739,68 @@ fn inferred_workpoint_candidate(
     recent_decisions: &[String],
     focus_goal_signals: &[Value],
 ) -> Value {
-    let Some(root) = project_root.filter(|root| !root.trim().is_empty()) else { return Value::Null; };
+    let Some(root) = project_root.filter(|root| !root.trim().is_empty()) else {
+        return Value::Null;
+    };
     let status = git_lines(root, &["status", "--short"], 12);
-    let changed = if status.is_empty() { git_lines(root, &["diff", "--name-only", "HEAD"], 12) } else { status.iter().map(|line| line.trim_start_matches(|c: char| c.is_whitespace() || c == 'M' || c == 'A' || c == 'D' || c == 'R' || c == '?' || c == '!').trim().to_string()).collect::<Vec<_>>() };
-    let recent = git_lines(root, &["log", "--name-only", "--pretty=format:", "-n", "3"], 16);
-    let target_objects = changed.iter().chain(recent.iter()).filter(|line| !line.trim().is_empty()).take(10).cloned().collect::<Vec<_>>();
+    let changed = if status.is_empty() {
+        git_lines(root, &["diff", "--name-only", "HEAD"], 12)
+    } else {
+        status
+            .iter()
+            .map(|line| {
+                line.trim_start_matches(|c: char| {
+                    c.is_whitespace()
+                        || c == 'M'
+                        || c == 'A'
+                        || c == 'D'
+                        || c == 'R'
+                        || c == '?'
+                        || c == '!'
+                })
+                .trim()
+                .to_string()
+            })
+            .collect::<Vec<_>>()
+    };
+    let recent = git_lines(
+        root,
+        &["log", "--name-only", "--pretty=format:", "-n", "3"],
+        16,
+    );
+    let target_objects = changed
+        .iter()
+        .chain(recent.iter())
+        .filter(|line| !line.trim().is_empty())
+        .take(10)
+        .cloned()
+        .collect::<Vec<_>>();
     let prediction_total = prediction.get("total").and_then(Value::as_u64).unwrap_or(0);
     let ontology_objects = ontology.get("objects").and_then(Value::as_u64).unwrap_or(0);
-    let source_count = status.len() + recent.len() + usize::from(active_workpoint.is_some()) + usize::from(!current_ask.trim().is_empty()) + usize::from(trajectory_stg.is_some()) + recent_frames.len() + recent_decisions.len() + focus_goal_signals.len() + usize::from(prediction_total > 0) + usize::from(ontology_objects > 0);
-    if source_count == 0 { return Value::Null; }
+    let source_count = status.len()
+        + recent.len()
+        + usize::from(active_workpoint.is_some())
+        + usize::from(!current_ask.trim().is_empty())
+        + usize::from(trajectory_stg.is_some())
+        + recent_frames.len()
+        + recent_decisions.len()
+        + focus_goal_signals.len()
+        + usize::from(prediction_total > 0)
+        + usize::from(ontology_objects > 0);
+    if source_count == 0 {
+        return Value::Null;
+    }
     let action_type = infer_action_from_paths(&target_objects, current_ask);
-    let next_action = trajectory_stg.filter(|s| !s.trim().is_empty()).or_else(|| if current_ask.trim().is_empty() { None } else { Some(current_ask) }).unwrap_or("infer next slice from recent project activity");
+    let next_action = trajectory_stg
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| {
+            if current_ask.trim().is_empty() {
+                None
+            } else {
+                Some(current_ask)
+            }
+        })
+        .unwrap_or("infer next slice from recent project activity");
     json!({
         "schema": "focusa.inferred_workpoint_candidate.v1",
         "advisory_only": true,
@@ -1657,9 +1828,25 @@ fn project_success_sequence(
     let execute_p = sequence_probability(algorithmic, "execute_next_step");
     let refresh_p = sequence_probability(algorithmic, "refresh_trajectory");
     let learn_p = sequence_probability(algorithmic, "evaluate_predictions_and_lessons");
-    let outcome_count = algorithmic.get("outcome_learning").and_then(|v| v.get("outcome_count")).and_then(Value::as_u64).unwrap_or(0);
-    let outcome_avg = algorithmic.get("outcome_learning").and_then(|v| v.get("average_score")).and_then(Value::as_f64).unwrap_or(0.5);
-    let outcome_bias = if outcome_count == 0 { "neutral_no_outcomes" } else if outcome_avg >= 0.75 { "execute_bias_from_successful_outcomes" } else if outcome_avg <= 0.45 { "learn_or_refresh_bias_from_weak_outcomes" } else { "balanced_outcome_bias" };
+    let outcome_count = algorithmic
+        .get("outcome_learning")
+        .and_then(|v| v.get("outcome_count"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let outcome_avg = algorithmic
+        .get("outcome_learning")
+        .and_then(|v| v.get("average_score"))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.5);
+    let outcome_bias = if outcome_count == 0 {
+        "neutral_no_outcomes"
+    } else if outcome_avg >= 0.75 {
+        "execute_bias_from_successful_outcomes"
+    } else if outcome_avg <= 0.45 {
+        "learn_or_refresh_bias_from_weak_outcomes"
+    } else {
+        "balanced_outcome_bias"
+    };
     let hlg = long_term_goal.unwrap_or("unknown high-level goal");
     let desired = desired_end_state.unwrap_or("verified successful end state");
     let current = current_state.unwrap_or("current state unclear");
@@ -1687,7 +1874,17 @@ fn project_success_sequence(
     ];
     let shortest_path = path_candidates
         .iter()
-        .min_by(|a, b| a.get("cost").and_then(Value::as_f64).unwrap_or(f64::INFINITY).partial_cmp(&b.get("cost").and_then(Value::as_f64).unwrap_or(f64::INFINITY)).unwrap_or(std::cmp::Ordering::Equal))
+        .min_by(|a, b| {
+            a.get("cost")
+                .and_then(Value::as_f64)
+                .unwrap_or(f64::INFINITY)
+                .partial_cmp(
+                    &b.get("cost")
+                        .and_then(Value::as_f64)
+                        .unwrap_or(f64::INFINITY),
+                )
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
         .cloned()
         .unwrap_or_else(|| json!({"path_id":"unknown", "sequence":[]}));
     let eliminated_candidates = path_candidates.iter().filter(|candidate| candidate.get("path_id") != shortest_path.get("path_id")).map(|candidate| json!({
@@ -1737,15 +1934,26 @@ fn project_card_algorithmic_scores(
     recent_outcome_score: f64,
 ) -> Value {
     let weights = projected_project_card_weights(prediction_accuracy, evaluated_predictions);
-    let w = |key: &str, fallback: f64| weights.get(key).copied().unwrap_or(fallback).clamp(0.05, 0.50);
+    let w = |key: &str, fallback: f64| {
+        weights
+            .get(key)
+            .copied()
+            .unwrap_or(fallback)
+            .clamp(0.05, 0.50)
+    };
     let ontology_signal = (ontology_objects as f64 / 20.0).clamp(0.0, 1.0);
     let evidence_signal = (evidence_refs as f64 / 10.0).clamp(0.0, 1.0);
-    let prediction_signal = if evaluated_predictions > 0 { prediction_accuracy.clamp(0.0, 1.0) } else { 0.35 };
+    let prediction_signal = if evaluated_predictions > 0 {
+        prediction_accuracy.clamp(0.0, 1.0)
+    } else {
+        0.35
+    };
     let trajectory_signal = if trajectory_present { 1.0 } else { 0.0 };
     let open_prediction_signal = (open_predictions as f64 / 10.0).clamp(0.0, 1.0);
     let blocker_penalty = (blocker_count as f64 / 5.0).clamp(0.0, 1.0);
     let outcome_confidence = (outcome_count as f64 / 8.0).clamp(0.0, 1.0);
-    let outcome_success_signal = (average_outcome_score * 0.7 + recent_outcome_score * 0.3).clamp(0.0, 1.0);
+    let outcome_success_signal =
+        (average_outcome_score * 0.7 + recent_outcome_score * 0.3).clamp(0.0, 1.0);
     let readiness = normalized_weighted_score(&[
         (trajectory_signal, w("trajectory", 0.24)),
         (ontology_signal, w("ontology", 0.16)),
@@ -1766,11 +1974,19 @@ fn project_card_algorithmic_scores(
         (open_prediction_signal, w("open_prediction", 0.14)),
         (1.0 - prediction_signal, w("prediction", 0.22)),
         (evidence_signal, w("evidence", 0.22)),
-        (1.0 - exponential_decay(evaluated_predictions as f64, 0.08), w("learn_decay", 0.20)),
+        (
+            1.0 - exponential_decay(evaluated_predictions as f64, 0.08),
+            w("learn_decay", 0.20),
+        ),
         (1.0 - outcome_success_signal, outcome_confidence * 0.20),
     ]);
     let action_scores = vec![readiness, bootstrap_need, learn_need];
-    let probabilities = softmax(&action_scores.iter().map(|s| logit((*s).clamp(0.01, 0.99))).collect::<Vec<_>>());
+    let probabilities = softmax(
+        &action_scores
+            .iter()
+            .map(|s| logit((*s).clamp(0.01, 0.99)))
+            .collect::<Vec<_>>(),
+    );
     let utilities = vec![
         (0.82 + outcome_success_signal * outcome_confidence * 0.10).clamp(0.60, 0.95),
         (0.76 + (1.0 - outcome_success_signal) * outcome_confidence * 0.08).clamp(0.60, 0.90),
@@ -1827,10 +2043,8 @@ async fn card(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ProjectIdentityQuery>,
 ) -> Json<Value> {
-    let identity_payload = project_identity_payload_for_scope(
-        query.cwd.as_deref(),
-        query.project_root.as_deref(),
-    );
+    let identity_payload =
+        project_identity_payload_for_scope(query.cwd.as_deref(), query.project_root.as_deref());
     let project = identity_payload
         .get("project_identity")
         .cloned()
@@ -1841,33 +2055,50 @@ async fn card(
         .trajectory
         .active_trajectory_id
         .as_ref()
-        .and_then(|id| focusa.trajectory.records.iter().find(|record| &record.trajectory_id == id))
+        .and_then(|id| {
+            focusa
+                .trajectory
+                .records
+                .iter()
+                .find(|record| &record.trajectory_id == id)
+        })
         .or_else(|| focusa.trajectory.records.last())
         .and_then(|record| serde_json::to_value(record).ok())
         .unwrap_or(Value::Null);
     let active_workpoint = focusa
         .workpoint
         .active_workpoint_id
-        .and_then(|id| focusa.workpoint.records.iter().find(|record| record.workpoint_id == id))
+        .and_then(|id| {
+            focusa
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == id)
+        })
         .or_else(|| focusa.workpoint.records.last())
-        .map(|record| json!({
-            "workpoint_id": record.workpoint_id,
-            "project_root": record.project_root,
-            "continuity_id": record.continuity_id,
-            "canonical": record.canonical,
-            "status": format!("{:?}", record.status),
-            "mission": record.mission,
-            "next_slice": record.next_slice,
-            "active_object_refs": record.active_object_refs,
-            "verification_count": record.verification_records.len(),
-            "blocker_count": record.blockers.len(),
-        }));
+        .map(|record| {
+            json!({
+                "workpoint_id": record.workpoint_id,
+                "project_root": record.project_root,
+                "continuity_id": record.continuity_id,
+                "canonical": record.canonical,
+                "status": format!("{:?}", record.status),
+                "mission": record.mission,
+                "next_slice": record.next_slice,
+                "active_object_refs": record.active_object_refs,
+                "verification_count": record.verification_records.len(),
+                "blocker_count": record.blockers.len(),
+            })
+        });
     let runtime_ontology_objects = focusa.ontology.objects.len();
     let derived_project_objects = 1usize
         + usize::from(trajectory.is_some())
         + usize::from(active_workpoint.is_some())
         + focusa.workpoint.records.len().min(8)
-        + trajectory.as_ref().map(|t| t.waypoints.len().min(8)).unwrap_or(0);
+        + trajectory
+            .as_ref()
+            .map(|t| t.waypoints.len().min(8))
+            .unwrap_or(0);
     let effective_ontology_objects = runtime_ontology_objects + derived_project_objects;
     let ontology = json!({
         "objects": effective_ontology_objects,
@@ -1880,21 +2111,44 @@ async fn card(
         "bridge_status": if runtime_ontology_objects > 0 { "runtime_ontology_plus_project_derivatives" } else { "project_derivatives_used_until_runtime_ontology_populates" }
     });
     let reference_handles = focusa.reference_index.handles.len();
-    let workpoint_verifications = focusa.workpoint.records.iter().map(|record| record.verification_records.len()).sum::<usize>();
-    let active_blockers = focusa.workpoint.records.iter().map(|record| record.blockers.len()).sum::<usize>();
+    let workpoint_verifications = focusa
+        .workpoint
+        .records
+        .iter()
+        .map(|record| record.verification_records.len())
+        .sum::<usize>();
+    let active_blockers = focusa
+        .workpoint
+        .records
+        .iter()
+        .map(|record| record.blockers.len())
+        .sum::<usize>();
     let evidence = json!({
         "reference_handles": reference_handles,
         "workpoint_verifications": workpoint_verifications,
     });
-    let recent_frames = focusa.focus_stack.frames.iter().rev().take(5).map(|frame| json!({
-        "frame_id": frame.id,
-        "title": frame.title,
-        "goal": frame.goal,
-        "project_root": frame.project_root,
-        "continuity_id": frame.continuity_id,
-        "status": format!("{:?}", frame.status),
-    })).collect::<Vec<_>>();
-    let recent_decisions = focusa.focus_stack.frames.iter().rev()
+    let recent_frames = focusa
+        .focus_stack
+        .frames
+        .iter()
+        .rev()
+        .take(5)
+        .map(|frame| {
+            json!({
+                "frame_id": frame.id,
+                "title": frame.title,
+                "goal": frame.goal,
+                "project_root": frame.project_root,
+                "continuity_id": frame.continuity_id,
+                "status": format!("{:?}", frame.status),
+            })
+        })
+        .collect::<Vec<_>>();
+    let recent_decisions = focusa
+        .focus_stack
+        .frames
+        .iter()
+        .rev()
         .flat_map(|frame| frame.focus_state.decisions.iter().rev().take(4).cloned())
         .take(10)
         .collect::<Vec<_>>();
@@ -1907,7 +2161,8 @@ async fn card(
     drop(focusa);
 
     let recent_algorithm_outcomes = recent_jsonl_values(project_card_outcomes_path(), 20);
-    let (outcome_count, average_outcome_score, recent_outcome_score) = project_card_outcome_stats(&recent_algorithm_outcomes);
+    let (outcome_count, average_outcome_score, recent_outcome_score) =
+        project_card_outcome_stats(&recent_algorithm_outcomes);
     let efficiency_summary = project_card_efficiency_summary(&recent_algorithm_outcomes);
     let predictions = read_predictions();
     let prediction = prediction_stats_card(&predictions);
@@ -1919,10 +2174,24 @@ async fn card(
         .unwrap_or("project");
     let trajectory_hlt = trajectory.as_ref().and_then(|t| t.hlt.clone());
     let trajectory_stg = trajectory.as_ref().and_then(|t| t.stg.clone());
-    let bootstrap_needed = trajectory_hlt.as_deref().unwrap_or_default().trim().is_empty();
-    let prediction_accuracy = prediction.get("accuracy").and_then(Value::as_f64).unwrap_or(0.0);
-    let evaluated_predictions = prediction.get("evaluated").and_then(Value::as_u64).unwrap_or(0) as usize;
-    let open_predictions = prediction.get("recent_open").and_then(Value::as_array).map(|items| items.len()).unwrap_or(0);
+    let bootstrap_needed = trajectory_hlt
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty();
+    let prediction_accuracy = prediction
+        .get("accuracy")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let evaluated_predictions = prediction
+        .get("evaluated")
+        .and_then(Value::as_u64)
+        .unwrap_or(0) as usize;
+    let open_predictions = prediction
+        .get("recent_open")
+        .and_then(Value::as_array)
+        .map(|items| items.len())
+        .unwrap_or(0);
     let algorithmic_intelligence = project_card_algorithmic_scores(
         !bootstrap_needed,
         ontology.get("objects").and_then(Value::as_u64).unwrap_or(0) as usize,
@@ -1954,7 +2223,13 @@ async fn card(
     let next_gap = trajectory_stg
         .clone()
         .filter(|value| !value.trim().is_empty())
-        .or_else(|| if current_ask.is_empty() { None } else { Some(current_ask.to_string()) })
+        .or_else(|| {
+            if current_ask.is_empty() {
+                None
+            } else {
+                Some(current_ask.to_string())
+            }
+        })
         .unwrap_or_else(|| "refresh trajectory from project card".to_string());
     let inferred_workpoint = inferred_workpoint_candidate(
         project.get("project_root").and_then(Value::as_str),
@@ -1970,13 +2245,24 @@ async fn card(
     let sequence_plan = project_success_sequence(
         project_name,
         trajectory_hlt.as_deref(),
-        trajectory.as_ref().and_then(|t| t.mlg.as_deref()).or(Some("verified successful end state")),
+        trajectory
+            .as_ref()
+            .and_then(|t| t.mlg.as_deref())
+            .or(Some("verified successful end state")),
         None,
         Some(&next_gap),
         &algorithmic_intelligence,
     );
-    let trajectory_waypoints = trajectory.as_ref().map(|t| t.waypoints.clone()).unwrap_or_default();
-    let trajectory_report_card = trajectory_reporting_card(&trajectory, &active_trajectory_record, &efficiency_summary, &recent_algorithm_outcomes);
+    let trajectory_waypoints = trajectory
+        .as_ref()
+        .map(|t| t.waypoints.clone())
+        .unwrap_or_default();
+    let trajectory_report_card = trajectory_reporting_card(
+        &trajectory,
+        &active_trajectory_record,
+        &efficiency_summary,
+        &recent_algorithm_outcomes,
+    );
     let crosswire_health = json!({
         "schema": "focusa.project_crosswire_health.v1",
         "ontology": {"wired": effective_ontology_objects > 0, "runtime_objects": runtime_ontology_objects, "effective_objects": effective_ontology_objects, "bridge_status": ontology.get("bridge_status").cloned().unwrap_or(Value::Null)},
@@ -2058,27 +2344,70 @@ async fn session_transfer(
     let query = ProjectIdentityQuery {
         cwd: body.cwd.clone(),
         project_root: body.project_root.clone(),
-        current_ask: body.current_ask.clone().or_else(|| Some(match action.as_str() {
-            "save" => "Save current Focusa work for transfer".to_string(),
-            "continue" => "Continue latest saved Focusa work like a game save".to_string(),
-            _ => "Inspect Focusa session transfer readiness".to_string(),
-        })),
+        current_ask: body.current_ask.clone().or_else(|| {
+            Some(match action.as_str() {
+                "save" => "Save current Focusa work for transfer".to_string(),
+                "continue" => "Continue latest saved Focusa work like a game save".to_string(),
+                _ => "Inspect Focusa session transfer readiness".to_string(),
+            })
+        }),
     };
     let card_payload = card(State(state), Query(query)).await.0;
-    let project_root = card_payload.pointer("/project_identity/project_root").and_then(Value::as_str).or(body.project_root.as_deref()).unwrap_or("unknown");
-    let continuity_id = body.continuity_id.clone().unwrap_or_else(|| stable_fingerprint(&[project_root.to_string()]).replace("project-fnv1a64", "focusa-cont-project"));
-    let inferred = card_payload.get("inferred_workpoint_candidate").cloned().unwrap_or(Value::Null);
-    let hint = inferred.get("checkpoint_payload_hint").cloned().unwrap_or(Value::Null);
-    let mission = body.mission.clone()
-        .or_else(|| hint.get("mission").and_then(Value::as_str).map(str::to_string))
-        .or_else(|| inferred.get("mission").and_then(Value::as_str).map(str::to_string))
-        .unwrap_or_else(|| body.current_ask.clone().unwrap_or_else(|| "Resume saved Focusa work".to_string()));
-    let next_action = body.next_action.clone()
-        .or_else(|| hint.get("next_action").and_then(Value::as_str).map(str::to_string))
-        .or_else(|| inferred.get("next_action").and_then(Value::as_str).map(str::to_string))
+    let project_root = card_payload
+        .pointer("/project_identity/project_root")
+        .and_then(Value::as_str)
+        .or(body.project_root.as_deref())
+        .unwrap_or("unknown");
+    let continuity_id = body.continuity_id.clone().unwrap_or_else(|| {
+        stable_fingerprint(&[project_root.to_string()])
+            .replace("project-fnv1a64", "focusa-cont-project")
+    });
+    let inferred = card_payload
+        .get("inferred_workpoint_candidate")
+        .cloned()
+        .unwrap_or(Value::Null);
+    let hint = inferred
+        .get("checkpoint_payload_hint")
+        .cloned()
+        .unwrap_or(Value::Null);
+    let mission = body
+        .mission
+        .clone()
+        .or_else(|| {
+            hint.get("mission")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .or_else(|| {
+            inferred
+                .get("mission")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| {
+            body.current_ask
+                .clone()
+                .unwrap_or_else(|| "Resume saved Focusa work".to_string())
+        });
+    let next_action = body
+        .next_action
+        .clone()
+        .or_else(|| {
+            hint.get("next_action")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .or_else(|| {
+            inferred
+                .get("next_action")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .unwrap_or_else(|| "Continue from session-transfer packet".to_string());
     let transfer_id = uuid::Uuid::now_v7().to_string();
-    let latest_prior = recent_jsonl_values(project_session_transfers_path(), 1).pop().unwrap_or(Value::Null);
+    let latest_prior = recent_jsonl_values(project_session_transfers_path(), 1)
+        .pop()
+        .unwrap_or(Value::Null);
     let record = json!({
         "schema": "focusa.project_session_transfer.v1",
         "transfer_id": transfer_id,
@@ -2096,7 +2425,9 @@ async fn session_transfer(
         "algorithm_run_id": card_payload.get("algorithm_run_id").cloned().unwrap_or(Value::Null),
         "operator_handoff": {"command": format!("cd {project_root} && pi"), "first_tool": format!("focusa_session_transfer action=\"continue\" project_root=\"{project_root}\" continuity_id=\"{continuity_id}\""), "authority_boundary": "project_root_plus_continuity_id"}
     });
-    if action == "save" { append_project_session_transfer(&record); }
+    if action == "save" {
+        append_project_session_transfer(&record);
+    }
     Json(json!({
         "status": "completed",
         "schema": "focusa.project_session_transfer_response.v1",

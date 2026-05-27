@@ -160,10 +160,7 @@ fn sync_validation_failed(
     )
 }
 
-fn sync_validation_rejected(
-    field: &str,
-    reason: &str,
-) -> (StatusCode, Json<serde_json::Value>) {
+fn sync_validation_rejected(field: &str, reason: &str) -> (StatusCode, Json<serde_json::Value>) {
     sync_failure(
         StatusCode::BAD_REQUEST,
         format!("rejected {field}: {reason}"),

@@ -61,20 +61,35 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
             "work_loop:control"
         };
     }
-    if path.starts_with("/v1/focus") || path.starts_with("/v1/ascc") || path.starts_with("/v1/state") {
-        return if method == Method::GET { "state:read" } else { "state:write" };
+    if path.starts_with("/v1/focus")
+        || path.starts_with("/v1/ascc")
+        || path.starts_with("/v1/state")
+    {
+        return if method == Method::GET {
+            "state:read"
+        } else {
+            "state:write"
+        };
     }
     if path.starts_with("/v1/project/") {
         return "project:read";
     }
     if path.starts_with("/v1/telemetry/") {
-        return if method == Method::GET { "telemetry:read" } else { "telemetry:write" };
+        return if method == Method::GET {
+            "telemetry:read"
+        } else {
+            "telemetry:write"
+        };
     }
     if path.starts_with("/v1/events") {
         return "events:read";
     }
     if path.starts_with("/v1/attachments/") {
-        return if method == Method::GET { "read:*" } else { "attachments:write" };
+        return if method == Method::GET {
+            "read:*"
+        } else {
+            "attachments:write"
+        };
     }
     if path.starts_with("/v1/sync") || path.starts_with("/v1/tokens") {
         return "sync:admin";
@@ -82,7 +97,10 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
     if path.starts_with("/proxy") || path.starts_with("/v1/proxy") {
         return "proxy:invoke";
     }
-    if path.starts_with("/v1/ontology") || path.starts_with("/v1/traverse") || path.starts_with("/v1/reflex") {
+    if path.starts_with("/v1/ontology")
+        || path.starts_with("/v1/traverse")
+        || path.starts_with("/v1/reflex")
+    {
         return "ontology:read";
     }
     if path.starts_with("/v1/release") || path.starts_with("/v1/commands") {
@@ -117,17 +135,38 @@ mod tests {
 
     #[test]
     fn mutation_routes_require_write_or_control_scopes() {
-        assert_eq!(route_scope(&Method::POST, "/v1/focus/update"), "state:write");
-        assert_eq!(route_scope(&Method::POST, "/v1/workpoint/checkpoint"), "workpoint:write");
-        assert_eq!(route_scope(&Method::POST, "/v1/work-loop/control"), "work_loop:control");
-        assert_eq!(route_scope(&Method::POST, "/v1/telemetry/trace"), "telemetry:write");
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/focus/update"),
+            "state:write"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/workpoint/checkpoint"),
+            "workpoint:write"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/work-loop/control"),
+            "work_loop:control"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/telemetry/trace"),
+            "telemetry:write"
+        );
     }
 
     #[test]
     fn read_routes_remain_read_scoped() {
         assert_eq!(route_scope(&Method::GET, "/v1/health"), "public:health");
-        assert_eq!(route_scope(&Method::GET, "/v1/workpoint/status"), "workpoint:read");
-        assert_eq!(route_scope(&Method::GET, "/v1/project/identity"), "project:read");
-        assert_eq!(route_scope(&Method::GET, "/v1/events/recent"), "events:read");
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/workpoint/status"),
+            "workpoint:read"
+        );
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/project/identity"),
+            "project:read"
+        );
+        assert_eq!(
+            route_scope(&Method::GET, "/v1/events/recent"),
+            "events:read"
+        );
     }
 }

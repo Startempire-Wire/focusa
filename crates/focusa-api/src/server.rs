@@ -10,8 +10,8 @@ use crate::middleware;
 use crate::routes;
 use crate::routes::bounded::{observe_resource_mode_transition, resource_mode_status};
 use crate::routes::sse::EventBroadcaster;
-use axum::{Router, extract::DefaultBodyLimit};
 use axum::middleware as axum_mw;
+use axum::{Router, extract::DefaultBodyLimit};
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
 use focusa_core::types::{
     Action, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,

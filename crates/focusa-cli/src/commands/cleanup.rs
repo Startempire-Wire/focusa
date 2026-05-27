@@ -127,11 +127,23 @@ mod tests {
 
     #[test]
     fn tmp_glob_match_is_prefix_suffix_only_under_tmp() {
-        assert!(simple_tmp_glob_match("focusa-audit.json", "/tmp/*focusa*.json"));
+        assert!(simple_tmp_glob_match(
+            "focusa-audit.json",
+            "/tmp/*focusa*.json"
+        ));
         assert!(simple_tmp_glob_match("specgates-123", "/tmp/specgates*"));
-        assert!(!simple_tmp_glob_match("../focusa-audit.json", "/tmp/*focusa*.json"));
-        assert!(!simple_tmp_glob_match("focusa-audit.log", "/tmp/*focusa*.json"));
-        assert!(!simple_tmp_glob_match("focusa-audit.json", "../tmp/*focusa*.json"));
+        assert!(!simple_tmp_glob_match(
+            "../focusa-audit.json",
+            "/tmp/*focusa*.json"
+        ));
+        assert!(!simple_tmp_glob_match(
+            "focusa-audit.log",
+            "/tmp/*focusa*.json"
+        ));
+        assert!(!simple_tmp_glob_match(
+            "focusa-audit.json",
+            "../tmp/*focusa*.json"
+        ));
     }
 
     #[test]

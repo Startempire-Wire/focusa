@@ -138,7 +138,11 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             };
             ("identity", api.get(&path).await?)
         }
-        ProjectCmd::Card { cwd, project_root, current_ask } => {
+        ProjectCmd::Card {
+            cwd,
+            project_root,
+            current_ask,
+        } => {
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
@@ -150,7 +154,14 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             };
             ("card", api.get(&path).await?)
         }
-        ProjectCmd::CardOutcome { algorithm_run_id, actual_outcome, score, project_root, evidence_refs, notes } => {
+        ProjectCmd::CardOutcome {
+            algorithm_run_id,
+            actual_outcome,
+            score,
+            project_root,
+            evidence_refs,
+            notes,
+        } => {
             let body = json!({
                 "algorithm_run_id": algorithm_run_id,
                 "actual_outcome": actual_outcome,
@@ -159,9 +170,20 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 "evidence_refs": evidence_refs,
                 "notes": notes,
             });
-            ("card-outcome", api.post("/v1/project/card/outcome", &body).await?)
+            (
+                "card-outcome",
+                api.post("/v1/project/card/outcome", &body).await?,
+            )
         }
-        ProjectCmd::SessionTransfer { action, cwd, project_root, current_ask, continuity_id, mission, next_action } => {
+        ProjectCmd::SessionTransfer {
+            action,
+            cwd,
+            project_root,
+            current_ask,
+            continuity_id,
+            mission,
+            next_action,
+        } => {
             let body = json!({
                 "action": action,
                 "cwd": cwd,
@@ -171,7 +193,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 "mission": mission,
                 "next_action": next_action,
             });
-            ("session-transfer", api.post("/v1/project/session-transfer", &body).await?)
+            (
+                "session-transfer",
+                api.post("/v1/project/session-transfer", &body).await?,
+            )
         }
         ProjectCmd::Verify {
             cwd,
