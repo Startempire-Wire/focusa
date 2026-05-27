@@ -3218,6 +3218,11 @@ export function registerTools(pi: ExtensionAPI) {
         } catch { return null; }
       };
       const diagnostics = p.diagnostics && typeof p.diagnostics === "object" ? p.diagnostics : readJsonArtifact(p.diagnostics_ref) || {};
+      const focusaScope = diagnostics.focusa_scope || diagnostics.session?.focusa_scope || diagnostics.diagnostics?.focusa_scope || {};
+      const scopedWorkpointId = p.workpoint_id || focusaScope.workpoint_id;
+      const scopedContinuityId = p.continuity_id || focusaScope.continuity_id;
+      const scopedProjectRoot = p.project_root || focusaScope.project_root;
+      const scopedSessionId = p.session_id || focusaScope.session_id;
       const asArray = (value: any): any[] => Array.isArray(value) ? value : [];
       const dig = (obj: any, keys: string[]): any => keys.reduce((cur, key) => cur && typeof cur === "object" ? cur[key] : undefined, obj);
       const consoleItems = [...asArray(diagnostics.console), ...asArray(diagnostics.diagnostics?.console), ...asArray(diagnostics.console_errors)];
@@ -3227,7 +3232,7 @@ export function registerTools(pi: ExtensionAPI) {
       const url = String(diagnostics.url || diagnostics.page_url || diagnostics.session?.url || dig(diagnostics, ["diagnostics", "url"]) || "unknown-url");
       const action = String(diagnostics.action || diagnostics.operation || diagnostics.selector ? `${diagnostics.action || "browser_action"}:${diagnostics.selector || "unknown-selector"}` : "browser_diagnostics");
       const targetRef = String(p.target_ref || (url !== "unknown-url" ? url : action));
-      const evidenceRef = String(p.diagnostics_ref || diagnostics.evidence_ref || `browser-diagnostics:${new Date().toISOString()}`);
+      const evidenceRef = String(p.diagnostics_ref || diagnostics.evidence_ref || focusaScope.evidence_ref || `browser-diagnostics:${new Date().toISOString()}`);
       const diagSummary = String(diagnostics.diagnostics_summary || diagnostics.summary || "");
       const resultSummary = String(p.result || `${errorClass}: console=${consoleItems.length} exceptions=${exceptionItems.length} failed_requests=${failedItems.length}${diagSummary ? `; ${diagSummary}` : ""}`).slice(0, 500);
       const activeObjectHints = Array.from(new Set([targetRef, url, action, diagnostics.selector, diagnostics.request_url, diagnostics.endpoint].filter(Boolean).map(String))).slice(0, 8);
@@ -3236,18 +3241,18 @@ export function registerTools(pi: ExtensionAPI) {
       let evidenceResult: any = null;
       let projectRoot: string | null = null;
       if (p.attach_to_workpoint !== false) {
-        projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
-        const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+        projectRoot = await resolveFocusaToolProjectRoot(scopedProjectRoot);
+        const projectRootGate = projectRootConfirmationGate(projectRoot, scopedProjectRoot);
         if (projectRootGate) return projectRootGate;
-        const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "browser diagnostics intake", { blockOperatorInput: false, continuityId: p.continuity_id, sessionId: p.session_id });
+        const clarity = await enforceTrajectoryClarityPrecondition(projectRoot, "browser diagnostics intake", { blockOperatorInput: false, continuityId: scopedContinuityId, sessionId: scopedSessionId });
         if (!clarity.ok) {
           return { content: [{ type: "text", text: `${clarity.text || "browser diagnostics intake blocked by trajectory clarity gate"}. next_tools=focusa_trajectory_view,focusa_workpoint_resume` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", target_ref: targetRef, evidence_ref: evidenceRef, active_object_hints: activeObjectHints, ...clarity.details } } as any;
         }
-        const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id });
+        const sessionIdentity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: scopedContinuityId, sessionId: scopedSessionId });
         evidenceResult = await focusaFetchDetailed("/workpoint/evidence/link", {
           method: "POST",
           headers: { "x-focusa-writer-id": await preferredWriterId() },
-          body: JSON.stringify({ workpoint_id: p.workpoint_id, target_ref: targetRef, result: resultSummary, evidence_ref: evidenceRef, session_identity: sessionIdentity, trajectory_clarity_precondition: clarity.details }),
+          body: JSON.stringify({ workpoint_id: scopedWorkpointId, target_ref: targetRef, result: resultSummary, evidence_ref: evidenceRef, session_identity: sessionIdentity, trajectory_clarity_precondition: clarity.details }),
         });
         if (evidenceResult.ok) sideEffects.push("workpoint_evidence_link");
       }
@@ -3283,7 +3288,7 @@ export function registerTools(pi: ExtensionAPI) {
       const ok = p.attach_to_workpoint === false || evidenceResult?.ok === true;
       const status = ok ? "completed" : "blocked";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `browser diagnostics intake → ${status} evidence=${evidenceRef}`, tool: "focusa_browser_diagnostics_intake", family: "workpoint", side_effects: sideEffects, evidence_refs: evidenceRefs, next_tools: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_predict_record", "focusa_metacog_capture"], raw: { evidence: evidenceResult?.body, prediction: predictionResult?.body, metacog: metacogResult?.body } });
-      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
+      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, focusa_scope: compactApiEcho(focusaScope), scoped_workpoint_id: scopedWorkpointId || null, scoped_continuity_id: scopedContinuityId || null, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
     },
   });
 
