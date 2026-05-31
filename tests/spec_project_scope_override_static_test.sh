@@ -18,6 +18,10 @@ rg -n 'current_ask:|current_ask_scope|currentAskProjectConflictReason|action_aut
   || fail "Current operator ask is not included in action-authority arbitration"
 pass "Current ask participates in action-authority arbitration"
 
+rg -n 'interface PiCurrentAskScopeVerdict|buildCurrentAskScopeVerdict|formatCurrentAskScopeVerdictLines|CURRENT_ASK_SCOPE_VERDICT|override_candidate' "$STATE_TS" "$TURNS_TS" "$COMPACTION_TS" >/dev/null \
+  || fail "Current-ask project override detector/verdict is missing"
+pass "Current-ask project override detector/verdict is wired"
+
 rg -n 'wrong place|not this repo|remote project|planmarr|plan-the-marriage|PTM' "$WORKPOINT_RS" "$STATE_TS" >/dev/null \
   || fail "Semantic project correction phrases are not detected before action authority is granted"
 pass "Semantic project corrections can suppress action authority"

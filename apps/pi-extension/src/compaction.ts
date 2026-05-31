@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines, buildCurrentAskScopeVerdict, formatCurrentAskScopeVerdictLines } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -126,6 +126,7 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
       continuityId: S.continuityId,
       visibleRecapReason,
     })),
+    ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: ask, workpointPacket: packet, projectRoot: S.sessionCwd, continuityId: S.continuityId })),
     ...formatToolOutputVisibleRecapLines(visibleRecapReason),
     "",
   ].join("\n");
@@ -489,6 +490,7 @@ export function registerCompaction(pi: ExtensionAPI) {
               continuityId: S.continuityId,
               visibleRecapReason,
             })),
+            ...formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: semanticCurrentAsk(), workpointPacket: scopedPacket, projectRoot: S.sessionCwd, continuityId: S.continuityId })),
             ...formatToolOutputVisibleRecapLines(visibleRecapReason),
           ].join("\n");
           const directive = v2Prompt

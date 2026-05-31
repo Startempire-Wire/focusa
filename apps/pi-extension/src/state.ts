@@ -102,6 +102,15 @@ export interface PiProjectThreadObservation {
   updatedAt: number;
 }
 
+export interface PiCurrentAskScopeVerdict {
+  status: "aligned" | "override_candidate" | "conflict" | "unknown";
+  saved_scope: { project_root: string; continuity_id: string };
+  current_ask_scope: { project_alias: string; project_root: string; confidence: number; evidence_ref: string };
+  action_authority_for_current_ask: boolean;
+  required_next: string[];
+  reason: string;
+}
+
 export const PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS = 12;
 export const PROJECT_SWITCH_LEDGER_MAX_ACTIONS = 5;
 export const PROJECT_SWITCH_LEDGER_MIN_CONFLICT_CONFIDENCE = 0.55;
@@ -838,6 +847,60 @@ export function formatProjectSwitchLedgerLines(currentAskText = S.currentAsk?.te
   const candidate = projectSwitchLedgerCandidateForAsk(currentAskText, getScopedWorkpointPacket()?.project_root || S.sessionCwd || "");
   const entries = (candidate ? [candidate, ...S.projectSwitchLedger.filter((entry) => entry !== candidate)] : S.projectSwitchLedger).slice(0, 4);
   return entries.map((entry) => `${entry.project_alias} root=${entry.project_root || "unknown"} confidence=${entry.confidence.toFixed(2)} evidence=${entry.evidence_ref} recent=${entry.recent_actions.slice(0, 2).join(" | ")}`);
+}
+
+export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; workpointPacket?: any; projectRoot?: string; continuityId?: string } = {}): PiCurrentAskScopeVerdict {
+  const ask = stripQuotedFocusaContext(options.currentAskText ?? S.currentAsk?.text ?? "");
+  const packet = options.workpointPacket || getScopedWorkpointPacket() || {};
+  const savedRoot = normalizeProjectRoot(workpointValue(packet, "project_root") || options.projectRoot || S.sessionCwd || "");
+  const continuityId = String(options.continuityId || S.continuityId || workpointValue(packet, "continuity_id") || "").trim();
+  const explicitRoot = projectRootFromAbsolutePath(ask);
+  const aliases = projectAliasesForText(ask, explicitRoot);
+  const ledgerCandidate = projectSwitchLedgerCandidateForAsk(ask, savedRoot);
+  const alias = aliases[0] || ledgerCandidate?.project_alias || "unknown";
+  const aliasKnownRoot = /ptm/i.test(alias) ? "/home/planmarr/plan-the-marriage" : /focusa/i.test(alias) ? "/home/wirebot/focusa" : "";
+  const candidateRoot = normalizeProjectRoot(explicitRoot || ledgerCandidate?.project_root || aliasKnownRoot || "");
+  const evidenceRef = explicitRoot ? "current_ask:explicit_project_path" : ledgerCandidate?.evidence_ref || (aliases.length ? `current_ask:project_alias:${alias}` : "none");
+  const confidence = explicitRoot ? 0.95 : ledgerCandidate?.confidence ?? (candidateRoot ? 0.7 : aliases.length ? 0.58 : 0);
+  const hasCorrectionPhrase = /\b(wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(ask);
+  let status: PiCurrentAskScopeVerdict["status"] = "unknown";
+  let reason = "no current-ask project signal";
+  if (candidateRoot && savedRoot && candidateRoot !== savedRoot) {
+    status = "conflict";
+    reason = `current ask indicates ${alias} at ${candidateRoot}, saved scope is ${savedRoot}`;
+  } else if (candidateRoot && (!savedRoot || candidateRoot === savedRoot)) {
+    status = "aligned";
+    reason = candidateRoot === savedRoot ? "current ask project matches saved scope" : "current ask names project but saved scope is unbound";
+  } else if (aliases.length || hasCorrectionPhrase) {
+    status = "override_candidate";
+    reason = aliases.length ? `current ask names project alias ${alias} without verified root` : "operator correction implies saved project/root may be wrong";
+  } else if (savedRoot) {
+    status = "aligned";
+    reason = "no competing project signal in current ask";
+  }
+  const actionAllowed = status === "aligned";
+  return {
+    status,
+    saved_scope: { project_root: savedRoot || "unknown", continuity_id: continuityId || "unknown" },
+    current_ask_scope: { project_alias: alias, project_root: candidateRoot || "unknown", confidence, evidence_ref: evidenceRef },
+    action_authority_for_current_ask: actionAllowed,
+    required_next: actionAllowed ? [] : ["recap_scope_conflict", "focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+    reason,
+  };
+}
+
+export function formatCurrentAskScopeVerdictLines(verdict = buildCurrentAskScopeVerdict()): string[] {
+  return [
+    "CURRENT_ASK_SCOPE_VERDICT:",
+    `  status=${verdict.status}`,
+    `  saved_project_root=${verdict.saved_scope.project_root}`,
+    `  current_ask_project=${verdict.current_ask_scope.project_alias}`,
+    `  current_ask_project_root=${verdict.current_ask_scope.project_root}`,
+    `  action_authority_for_current_ask=${verdict.action_authority_for_current_ask}`,
+    `  reason=${boundedAttentionText(verdict.reason, 180)}`,
+    `  required_next=${verdict.required_next.join(" -> ") || "none"}`,
+    "END_CURRENT_ASK_SCOPE_VERDICT",
+  ];
 }
 
 function currentAskProjectConflictReason(currentAskText: string, projectRoot: string, workpointProjectRoot: string): string {
