@@ -66,6 +66,13 @@ export interface PiAttentionRecallVerdict {
   memory_anchor: PiMemoryAnchor;
 }
 
+export interface PiReportSummaryHandle {
+  handle: string;
+  summary: string;
+  capturedAt: number;
+  turnId: string;
+}
+
 export type PiGoverningPriorKind =
   | "hard_safety_prior"
   | "identity_prior"
@@ -165,6 +172,7 @@ export const S = {
   lastTrajectoryClarity: null as any | null,
   lastProjectIdentity: null as any | null,
   lastProjectVerify: null as any | null,
+  latestReportSummary: null as PiReportSummaryHandle | null,
   vitalInfoPrompted: {} as Record<string, number>,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
@@ -250,6 +258,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.activeWorkpointSummary = "";
   S.lastTrajectoryClarity = null;
   S.lastProjectIdentity = null;
+  S.latestReportSummary = null;
   S.currentAsk = null;
   S.queryScope = null;
   S.excludedContext = null;
@@ -534,6 +543,7 @@ function workpointValue(packet: any, key: string): string {
 }
 
 function latestReportSummaryRefFromFocusState(focusState?: any): string {
+  if (S.latestReportSummary?.handle) return S.latestReportSummary.handle;
   const candidates = [
     ...arrayField(focusState?.recent_results),
     ...arrayField(focusState?.notes),
@@ -622,6 +632,38 @@ export function formatAttentionRecallFocusSliceLines(verdict: PiAttentionRecallV
     `ATTENTION_RECALL_VERDICT: schema=${verdict.schema} status=${verdict.status} visible_recap_required=${verdict.visible_recap_required} current_ask_scope=${verdict.current_ask_scope_status} scope_conflict_reason=${boundedAttentionText(verdict.scope_conflict_reason, 140)}`,
     "END_ATTENTION_RECALL",
   ];
+}
+
+function assistantOutputLooksLikeReport(text: string): boolean {
+  const normalized = String(text || "").trim();
+  if (normalized.length < 240) return false;
+  const headingHits = (normalized.match(/^#{1,3}\s+(status|summary|task summary|evidence|proof|result|results|next|blocker|implementation|audit|spec)/gim) || []).length;
+  const labelHits = (normalized.match(/\b(Status|Proof|Evidence|Result|Next action|Blocker|Commit|Tests?):/g) || []).length;
+  return headingHits >= 1 || labelHits >= 2 || /\b(task summary|end-of-task|implementation report|audit report|spec update|proof:)\b/i.test(normalized);
+}
+
+function reportSummaryFromAssistantOutput(text: string): string {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^```/.test(line))
+    .slice(0, 18);
+  const summary = lines.join("\n");
+  return summary.length > 1400 ? `${summary.slice(0, 1399)}…` : summary;
+}
+
+export function maybeCaptureReportSummaryFromAssistantOutput(text: string, turnId: string): PiReportSummaryHandle | null {
+  if (!assistantOutputLooksLikeReport(text)) return null;
+  const summary = reportSummaryFromAssistantOutput(text);
+  if (!summary) return null;
+  const id = storeEcsArtifact("report-summary", summary);
+  const handle = `[HANDLE:report-summary:${id}]`;
+  const captured: PiReportSummaryHandle = { handle, summary: boundedAttentionText(summary, 240), capturedAt: Date.now(), turnId };
+  S.latestReportSummary = captured;
+  try { S.pi?.appendEntry("focusa-report-summary", captured); } catch { /* best effort */ }
+  persistState();
+  return captured;
 }
 
 function tokenizeForRelevance(text: string): string[] {
@@ -1988,6 +2030,7 @@ export function persistState(): void {
     lastTrajectoryClarity: S.lastTrajectoryClarity,
     lastProjectIdentity: S.lastProjectIdentity,
     lastProjectVerify: S.lastProjectVerify,
+    latestReportSummary: S.latestReportSummary,
     vitalInfoPrompted: S.vitalInfoPrompted,
     lastCompactResumeKey: S.lastCompactResumeKey,
     lastCompactResumeAt: S.lastCompactResumeAt,
