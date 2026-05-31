@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -470,8 +470,15 @@ export function registerTurns(pi: ExtensionAPI) {
       ...formatWorkpointContextSections(),
     ].join("\n") : "";
     const utilityCard = "\n" + buildFocusaUtilityCard("system");
+    const visibleRecapReason = toolOutputVisibleRecapReason();
+    const visibleRecapLaw = visibleRecapReason ? [
+      "\n## Focusa Visible Recap Enforcement",
+      `Tool-output flood detected: ${visibleRecapReason}`,
+      "Before any tool/file/API action, first produce a one- or two-line `Recap:` from MEMORY_ANCHOR/latest_report_summary_ref.",
+      "Do not ask the operator to scroll; replay the report handle or memory anchor visibly, then continue.",
+    ].join("\n") : "";
 
-    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + utilityCard;
+    (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw + visibleRecapLaw + utilityCard;
 
     if (!S.seenFirstBeforeAgentStart) {
       S.seenFirstBeforeAgentStart = true;
@@ -508,10 +515,12 @@ export function registerTurns(pi: ExtensionAPI) {
       });
       const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
       const askText = S.currentAsk?.text || "";
-      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: askText, currentAskKind: S.currentAsk?.kind, queryScopeKind: scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket() }));
+      const visibleRecapReason = toolOutputVisibleRecapReason();
+      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: askText, currentAskKind: S.currentAsk?.kind, queryScopeKind: scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
         ...attentionLines,
+        ...formatToolOutputVisibleRecapLines(visibleRecapReason),
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         askText ? `CURRENT_ASK: ${askText}` : "CURRENT_ASK: (none)",
@@ -527,10 +536,12 @@ export function registerTurns(pi: ExtensionAPI) {
     if (!data?.fs) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(S.activeWorkpointPacket), hasOntologyAmbiguity: false });
-      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket() }));
+      const visibleRecapReason = toolOutputVisibleRecapReason();
+      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket(), visibleRecapReason }));
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
         ...attentionLines,
+        ...formatToolOutputVisibleRecapLines(visibleRecapReason),
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         "FOCUS_STATE: unavailable; using project/trajectory fallback card",
@@ -662,6 +673,7 @@ export function registerTurns(pi: ExtensionAPI) {
       hasOntologyAmbiguity: ontologyObjectLines.length > 1 || ontologyUncertaintyLines.length > 0,
     });
 
+    const visibleRecapReason = toolOutputVisibleRecapReason();
     const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
       focusState: fs,
       workpointPacket: getScopedWorkpointPacket(),
@@ -670,6 +682,7 @@ export function registerTurns(pi: ExtensionAPI) {
       queryScopeKind: scopeKind,
       projectRoot: S.sessionCwd,
       continuityId: S.continuityId,
+      visibleRecapReason,
     }));
 
     const sectionEntries = [
@@ -726,6 +739,7 @@ export function registerTurns(pi: ExtensionAPI) {
     const lines: string[] = [
       `[Focusa Focus Slice — minimal applicable context]`,
       ...attentionLines,
+      ...formatToolOutputVisibleRecapLines(visibleRecapReason),
       ...scopedEntries.map((entry) => entry.text),
     ];
 
@@ -1075,6 +1089,15 @@ export function registerTurns(pi: ExtensionAPI) {
           latest_report_summary_ref: reportSummary.handle,
         });
       }
+      if (markVisibleRecapEmittedIfPresent(assistantOutput)) {
+        queueTraceTelemetry({
+          event_type: "visible_recap_emitted",
+          turn_id: `pi-turn-${S.turnCount}`,
+          frame_id: S.activeFrameId,
+          surface: "pi",
+          reason: "tool_output_flood",
+        });
+      }
       const detectedLeakClasses = detectForbiddenVisibleOutputLeakClasses(assistantOutput);
       if (detectedLeakClasses.length) {
         focusaPost("/focus-gate/ingest-signal", {
@@ -1382,6 +1405,20 @@ export function registerTurns(pi: ExtensionAPI) {
     const byteThreshold = cfg?.externalizeThresholdBytes || 8192;
     const tokenThreshold = cfg?.externalizeThresholdTokens || 800;
     const tokens = estimateTokens(content);
+    const pressure = recordToolOutputPressure(toolName, content.length, tokens);
+    if (pressure.recapRequired) {
+      queueTraceTelemetry({
+        event_type: "visible_recap_required",
+        turn_id: `pi-turn-${S.turnCount}`,
+        frame_id: S.activeFrameId,
+        surface: "pi",
+        reason: pressure.recapReason,
+        tool_output_bytes: pressure.totalBytes,
+        tool_output_tokens: pressure.totalTokens,
+        tool_output_results: pressure.resultCount,
+        latest_report_summary_ref: S.latestReportSummary?.handle || "none",
+      });
+    }
     if ((content.length > byteThreshold || tokens > tokenThreshold) && S.focusaAvailable) {
       const handle = await focusaFetch("/ecs/store", {
         method: "POST",

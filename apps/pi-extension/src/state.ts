@@ -61,6 +61,9 @@ export interface PiAttentionRecallVerdict {
   schema: "focusa.attention_recall_verdict.v1";
   status: AttentionRecallVerdictStatus;
   visible_recap_required: boolean;
+  visible_recap_reason: string;
+  attention_risks: string[];
+  required_next: string[];
   current_ask_scope_status: "aligned" | "conflict" | "unknown";
   scope_conflict_reason: string;
   memory_anchor: PiMemoryAnchor;
@@ -72,6 +75,26 @@ export interface PiReportSummaryHandle {
   capturedAt: number;
   turnId: string;
 }
+
+export interface PiToolOutputPressure {
+  windowStartedAt: number;
+  resultCount: number;
+  totalBytes: number;
+  totalTokens: number;
+  largeResultCount: number;
+  recapRequired: boolean;
+  recapReason: string;
+  lastToolName: string;
+  lastEventAt: number;
+  lastRecapAt: number;
+}
+
+export const TOOL_OUTPUT_FLOOD_WINDOW_MS = 120_000;
+export const TOOL_OUTPUT_FLOOD_RESULT_THRESHOLD = 4;
+export const TOOL_OUTPUT_FLOOD_BYTES_THRESHOLD = 24_000;
+export const TOOL_OUTPUT_FLOOD_TOKENS_THRESHOLD = 4_000;
+export const TOOL_OUTPUT_FLOOD_LARGE_RESULT_BYTES = 8_192;
+export const TOOL_OUTPUT_FLOOD_LARGE_RESULT_THRESHOLD = 2;
 
 export type PiGoverningPriorKind =
   | "hard_safety_prior"
@@ -173,6 +196,18 @@ export const S = {
   lastProjectIdentity: null as any | null,
   lastProjectVerify: null as any | null,
   latestReportSummary: null as PiReportSummaryHandle | null,
+  toolOutputPressure: {
+    windowStartedAt: 0,
+    resultCount: 0,
+    totalBytes: 0,
+    totalTokens: 0,
+    largeResultCount: 0,
+    recapRequired: false,
+    recapReason: "",
+    lastToolName: "",
+    lastEventAt: 0,
+    lastRecapAt: 0,
+  } as PiToolOutputPressure,
   vitalInfoPrompted: {} as Record<string, number>,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
@@ -259,6 +294,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.lastTrajectoryClarity = null;
   S.lastProjectIdentity = null;
   S.latestReportSummary = null;
+  resetToolOutputPressureWindow(Date.now());
   S.currentAsk = null;
   S.queryScope = null;
   S.excludedContext = null;
@@ -553,6 +589,120 @@ function latestReportSummaryRefFromFocusState(focusState?: any): string {
   return report ? boundedAttentionText(report, 160) : "none";
 }
 
+function resetToolOutputPressureWindow(now = Date.now()): void {
+  S.toolOutputPressure = {
+    windowStartedAt: now,
+    resultCount: 0,
+    totalBytes: 0,
+    totalTokens: 0,
+    largeResultCount: 0,
+    recapRequired: false,
+    recapReason: "",
+    lastToolName: "",
+    lastEventAt: now,
+    lastRecapAt: S.toolOutputPressure?.lastRecapAt || 0,
+  };
+}
+
+export function recordToolOutputPressure(toolName: string, bytes: number, tokens: number): PiToolOutputPressure {
+  const now = Date.now();
+  if (!S.toolOutputPressure.windowStartedAt || now - S.toolOutputPressure.windowStartedAt > TOOL_OUTPUT_FLOOD_WINDOW_MS) {
+    resetToolOutputPressureWindow(now);
+  }
+  const pressure = S.toolOutputPressure;
+  pressure.resultCount += 1;
+  pressure.totalBytes += Math.max(0, bytes || 0);
+  pressure.totalTokens += Math.max(0, tokens || 0);
+  pressure.largeResultCount += bytes >= TOOL_OUTPUT_FLOOD_LARGE_RESULT_BYTES ? 1 : 0;
+  pressure.lastToolName = toolName || "unknown_tool";
+  pressure.lastEventAt = now;
+  const reasons = [
+    pressure.resultCount >= TOOL_OUTPUT_FLOOD_RESULT_THRESHOLD ? `tool_results=${pressure.resultCount}` : "",
+    pressure.totalBytes >= TOOL_OUTPUT_FLOOD_BYTES_THRESHOLD ? `bytes=${pressure.totalBytes}` : "",
+    pressure.totalTokens >= TOOL_OUTPUT_FLOOD_TOKENS_THRESHOLD ? `tokens=${pressure.totalTokens}` : "",
+    pressure.largeResultCount >= TOOL_OUTPUT_FLOOD_LARGE_RESULT_THRESHOLD ? `large_outputs=${pressure.largeResultCount}` : "",
+  ].filter(Boolean);
+  if (reasons.length) {
+    const newlyRequired = !pressure.recapRequired;
+    pressure.recapRequired = true;
+    pressure.recapReason = `tool_output_flood:${reasons.join(",")}; last_tool=${boundedAttentionText(pressure.lastToolName, 80)}`;
+    if (newlyRequired) {
+      focusaPost("/telemetry/trace", {
+        event_type: "tool_output_flood_detected",
+        payload: {
+          reason: pressure.recapReason,
+          window_ms: TOOL_OUTPUT_FLOOD_WINDOW_MS,
+          result_count: pressure.resultCount,
+          total_bytes: pressure.totalBytes,
+          total_tokens: pressure.totalTokens,
+          large_result_count: pressure.largeResultCount,
+          latest_report_summary_ref: S.latestReportSummary?.handle || "none",
+        },
+      });
+      focusaPost("/telemetry/trace", {
+        event_type: "visible_recap_required",
+        payload: {
+          reason: pressure.recapReason,
+          required_next: "recap_memory_anchor_before_project_scoped_action",
+        },
+      });
+      focusaPost("/focus-gate/ingest-signal", {
+        signal_type: "tool_output_flood",
+        surface: "pi",
+        payload: { reason: pressure.recapReason, result_count: pressure.resultCount, total_bytes: pressure.totalBytes },
+      });
+      persistState();
+    }
+  }
+  return { ...pressure };
+}
+
+export function toolOutputVisibleRecapReason(): string {
+  if (!S.toolOutputPressure?.recapRequired) return "";
+  if (S.toolOutputPressure.windowStartedAt && Date.now() - S.toolOutputPressure.windowStartedAt > TOOL_OUTPUT_FLOOD_WINDOW_MS) {
+    resetToolOutputPressureWindow(Date.now());
+    persistState();
+    return "";
+  }
+  return S.toolOutputPressure.recapReason;
+}
+
+export function formatToolOutputVisibleRecapLines(reason = toolOutputVisibleRecapReason()): string[] {
+  if (!reason) return [];
+  return [
+    "VISIBLE_RECAP_REQUIRED:",
+    `  reason=${boundedAttentionText(reason, 180)}`,
+    `  latest_report_summary_ref=${S.latestReportSummary?.handle || "none"}`,
+    "  required_before_next_action=Recap MEMORY_ANCHOR/latest report in 1-2 lines before any tool/file/API action.",
+    "END_VISIBLE_RECAP_REQUIRED",
+  ];
+}
+
+export function markVisibleRecapEmittedIfPresent(assistantOutput: string): boolean {
+  const reason = toolOutputVisibleRecapReason();
+  if (!reason) return false;
+  const preview = String(assistantOutput || "").slice(0, 700);
+  const recapped = /\b(recap|memory anchor|latest report|report-summary|current task|continuing)\b/i.test(preview);
+  focusaPost("/telemetry/trace", {
+    event_type: recapped ? "visible_recap_emitted" : "visible_recap_missing",
+    payload: {
+      reason,
+      assistant_preview: boundedAttentionText(preview, 220),
+      latest_report_summary_ref: S.latestReportSummary?.handle || "none",
+    },
+  });
+  if (!recapped) return false;
+  S.toolOutputPressure.lastRecapAt = Date.now();
+  resetToolOutputPressureWindow(Date.now());
+  persistState();
+  return true;
+}
+
+function cleanResumeVisibleRecapReason(reason?: string): string {
+  const value = String(reason || "").trim();
+  return value ? boundedAttentionText(value, 220) : "";
+}
+
 function currentAskProjectConflictReason(currentAskText: string, projectRoot: string, workpointProjectRoot: string): string {
   const ask = stripQuotedFocusaContext(currentAskText || "");
   if (!ask.trim()) return "";
@@ -589,13 +739,20 @@ export function buildAttentionRecallVerdict(options: {
   const nextAction = workpointValue(packet, "next_slice") || S.lastCompactDecision || askText || S.lastFocusSnapshot.currentFocus || "continue bounded current task";
   const conflictReason = currentAskProjectConflictReason(askText, projectRoot, packetProjectRoot);
   const scopeStatus = conflictReason ? "conflict" : (projectRoot || packetProjectRoot ? "aligned" : "unknown");
-  const visibleRecapRequired = Boolean(options.visibleRecapReason || conflictReason || options.queryScopeKind === "correction" || options.currentAskKind === "correction");
+  const visibleRecapReason = cleanResumeVisibleRecapReason(options.visibleRecapReason);
+  const visibleRecapRequired = Boolean(visibleRecapReason || conflictReason || options.queryScopeKind === "correction" || options.currentAskKind === "correction");
+  const attentionRisks = [
+    visibleRecapReason ? "tool_output_flood" : "",
+    conflictReason ? "scope_conflict" : "",
+    options.queryScopeKind === "correction" || options.currentAskKind === "correction" ? "operator_correction" : "",
+  ].filter(Boolean);
   const mustNotForget = [
     askText ? `current_ask=${boundedAttentionText(askText, 160)}` : "current_ask=(none)",
     `task=${boundedAttentionText(mission, 140)}`,
     projectRoot ? `project_root=${boundedAttentionText(projectRoot, 140)}` : "project_root=(unbound)",
     continuityId ? `continuity_id=${boundedAttentionText(continuityId, 100)}` : "continuity_id=(unbound)",
     conflictReason ? `scope_conflict=${boundedAttentionText(conflictReason, 140)}` : "scope_conflict=none_detected",
+    visibleRecapReason ? `visible_recap_reason=${boundedAttentionText(visibleRecapReason, 140)}` : "visible_recap_reason=none",
     "transcript_tail_is_not_authority",
   ];
   const evidenceRefs = [
@@ -607,6 +764,9 @@ export function buildAttentionRecallVerdict(options: {
     schema: "focusa.attention_recall_verdict.v1",
     status: conflictReason ? "conflict" : visibleRecapRequired ? "attention_risk" : "attentive",
     visible_recap_required: visibleRecapRequired,
+    visible_recap_reason: visibleRecapReason || "none",
+    attention_risks: attentionRisks,
+    required_next: visibleRecapRequired ? ["recap_memory_anchor"] : [],
     current_ask_scope_status: scopeStatus,
     scope_conflict_reason: conflictReason || "none",
     memory_anchor: {
@@ -629,7 +789,7 @@ export function formatAttentionRecallFocusSliceLines(verdict: PiAttentionRecallV
     `  latest_report_summary_ref=${anchor.latest_report_summary_ref}`,
     `  next_action=${anchor.next_action}`,
     `  action_authority_for_current_ask=${anchor.action_authority_for_current_ask}`,
-    `ATTENTION_RECALL_VERDICT: schema=${verdict.schema} status=${verdict.status} visible_recap_required=${verdict.visible_recap_required} current_ask_scope=${verdict.current_ask_scope_status} scope_conflict_reason=${boundedAttentionText(verdict.scope_conflict_reason, 140)}`,
+    `ATTENTION_RECALL_VERDICT: schema=${verdict.schema} status=${verdict.status} visible_recap_required=${verdict.visible_recap_required} visible_recap_reason=${boundedAttentionText(verdict.visible_recap_reason || "none", 140)} attention_risks=${(verdict.attention_risks || []).join(",") || "none"} required_next=${(verdict.required_next || []).join(",") || "none"} current_ask_scope=${verdict.current_ask_scope_status} scope_conflict_reason=${boundedAttentionText(verdict.scope_conflict_reason, 140)}`,
     "END_ATTENTION_RECALL",
   ];
 }
@@ -2031,6 +2191,7 @@ export function persistState(): void {
     lastProjectIdentity: S.lastProjectIdentity,
     lastProjectVerify: S.lastProjectVerify,
     latestReportSummary: S.latestReportSummary,
+    toolOutputPressure: S.toolOutputPressure?.recapRequired ? S.toolOutputPressure : null,
     vitalInfoPrompted: S.vitalInfoPrompted,
     lastCompactResumeKey: S.lastCompactResumeKey,
     lastCompactResumeAt: S.lastCompactResumeAt,

@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -113,6 +113,7 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
   const bullet = (items: string[]) => items.length ? items.slice(0, 12).map((x) => `- ${x}`).join("\n") : "- Not populated by Focusa; no safe related fallback available.";
   const learningCard = await buildLearningCompactionCard(ask, mission, nextSlice);
   const v2Prompt = formatResumePacketV2ForPrompt(packet);
+  const visibleRecapReason = toolOutputVisibleRecapReason();
   const attentionSection = [
     "# Attention Recall Anchor",
     ...formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
@@ -123,7 +124,9 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
       queryScopeKind: S.queryScope?.scopeKind,
       projectRoot: S.sessionCwd,
       continuityId: S.continuityId,
+      visibleRecapReason,
     })),
+    ...formatToolOutputVisibleRecapLines(visibleRecapReason),
     "",
   ].join("\n");
   const workpointSection = v2Prompt ? [
@@ -469,14 +472,19 @@ export function registerCompaction(pi: ExtensionAPI) {
           // lastDecision saved above, before localDecisions was cleared
           const scopedPacket = getScopedWorkpointPacket();
           const v2Prompt = formatResumePacketV2ForPrompt(scopedPacket);
-          const attentionPrompt = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
-            workpointPacket: scopedPacket,
-            currentAskText: semanticCurrentAsk(),
-            currentAskKind: S.currentAsk?.kind,
-            queryScopeKind: S.queryScope?.scopeKind,
-            projectRoot: S.sessionCwd,
-            continuityId: S.continuityId,
-          })).join("\n");
+          const visibleRecapReason = toolOutputVisibleRecapReason();
+          const attentionPrompt = [
+            ...formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
+              workpointPacket: scopedPacket,
+              currentAskText: semanticCurrentAsk(),
+              currentAskKind: S.currentAsk?.kind,
+              queryScopeKind: S.queryScope?.scopeKind,
+              projectRoot: S.sessionCwd,
+              continuityId: S.continuityId,
+              visibleRecapReason,
+            })),
+            ...formatToolOutputVisibleRecapLines(visibleRecapReason),
+          ].join("\n");
           const directive = v2Prompt
             ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Then use focusa_trajectory_view for orientation and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
             : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, focusa_metacog_doctor, focusa_predict_recent/stats, or focusa_tool_doctor before trusting any carryover.`;

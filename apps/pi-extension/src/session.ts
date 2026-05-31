@@ -576,6 +576,7 @@ export function registerSession(pi: ExtensionAPI) {
         }
         if (e.data.lastProjectVerify) S.lastProjectVerify = e.data.lastProjectVerify;
         if (e.data.latestReportSummary?.handle) S.latestReportSummary = e.data.latestReportSummary;
+        if (e.data.toolOutputPressure?.recapRequired) S.toolOutputPressure = e.data.toolOutputPressure;
         if (e.data.vitalInfoPrompted) S.vitalInfoPrompted = e.data.vitalInfoPrompted;
         adoptPersistedContinuityForSession(e.data, eventSessionId, adoptPiProjectRoot(ctx.cwd, e.data.activeWorkpointPacket));
         // Explicitly clear stale pollution — do NOT carry across sessions
@@ -808,6 +809,7 @@ export function registerSession(pi: ExtensionAPI) {
         }
         if (d.lastProjectVerify) S.lastProjectVerify = d.lastProjectVerify;
         if (d.latestReportSummary?.handle) S.latestReportSummary = d.latestReportSummary;
+        if (d.toolOutputPressure?.recapRequired) S.toolOutputPressure = d.toolOutputPressure;
         if (d.vitalInfoPrompted) S.vitalInfoPrompted = d.vitalInfoPrompted;
         adoptPersistedContinuityForSession(d, eventSessionId, adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket));
         break;
