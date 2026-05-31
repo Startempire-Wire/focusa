@@ -15,7 +15,7 @@ focusa --json doctor security
 
 `focusa doctor` checks daemon health, daemon executable path, API/capability inventory, Spec90 tool contracts, Spec91 proof harness presence, Pi skill paths, Workpoint canonicality, Work-loop state, token telemetry, cache metadata, Mac app package presence, release docs, and Guardian scanner presence. `/v1/doctor` now exposes an `api_cli_parity` block naming the shared CLI/API check set, recovery commands, and expected status fields so agents can compare API and CLI doctor behavior without guessing.
 
-`focusa doctor security` reports API resource/security posture: non-loopback `FOCUSA_AUTH_TOKEN` boundary, request body cap, mutation route rate limit, JSON shape guard, and reverse-proxy rate-limit guidance. It is a deployment/API security report, not a license-plan or entitlement command.
+`focusa doctor security` reports API resource/security posture: non-loopback `FOCUSA_AUTH_TOKEN` boundary, request body cap, mutation route rate limit, JSON shape/path guard, and reverse-proxy rate-limit guidance. It is a deployment/API security report, not a license-plan or entitlement command; it should not create Pi startup auth-token noise for loopback-only sessions.
 
 ## Agent status
 

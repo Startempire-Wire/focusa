@@ -42,23 +42,28 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
   registerTurns(pi);
   registerPolishHooks(pi);
 
-  // ── §33.6: Provider registration ───────────────────────────────────────
-  pi.registerProvider("focusa", {
-    baseUrl: config.focusaApiBaseUrl,
-    apiKey: config.focusaToken || "FOCUSA_TOKEN",
-    api: "openai-chat",
-    models: [
-      {
-        id: "focusa-proxy",
-        name: "Focusa Proxy",
-        reasoning: false,
-        input: ["text"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 128000,
-        maxTokens: 16384,
-      },
-    ],
-  });
+  // ── §33.6: Optional proxy provider registration ───────────────────────
+  // Default off: normal Focusa/Pi bridge sessions use direct providers plus
+  // Focusa tools/hooks. Registering an extra provider without a token creates
+  // noisy startup/auth warnings and is unnecessary for loopback local use.
+  if (config.registerProxyProvider && config.focusaToken) {
+    pi.registerProvider("focusa", {
+      baseUrl: config.focusaApiBaseUrl,
+      apiKey: config.focusaToken,
+      api: "openai-chat",
+      models: [
+        {
+          id: "focusa-proxy",
+          name: "Focusa Proxy",
+          reasoning: false,
+          input: ["text"],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128000,
+          maxTokens: 16384,
+        },
+      ],
+    });
+  }
 
   // ── §37.4: Keyboard shortcuts ──────────────────────────────────────────
   pi.registerShortcut("ctrl+shift+f", {

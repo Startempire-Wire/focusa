@@ -1060,12 +1060,12 @@ pi.on("before_provider_request", async (event, ctx) => {
 
 ### 33.6 Focusa as Registered Pi Provider via `pi.registerProvider`
 
-**Integration:** Register Focusa's proxy as a selectable Pi model provider:
+**Integration:** Register Focusa's proxy as a selectable Pi model provider only when explicitly enabled. Default bridge mode does not register this provider, because local loopback sessions do not need an auth token and provider registration without a token creates confusing startup noise.
 
 ```typescript
 pi.registerProvider("focusa", {
   baseUrl: "http://127.0.0.1:8787/proxy/v1",
-  apiKey: "FOCUSA_AUTH_TOKEN",
+  apiKey: process.env.FOCUSA_TOKEN,
   api: "openai-completions",
   models: [{
     id: "kimi-via-focusa",
@@ -1079,7 +1079,7 @@ pi.registerProvider("focusa", {
 });
 ```
 
-User can then `/model` to switch between direct and Focusa-proxied calls.
+User can then `/model` to switch between direct and Focusa-proxied calls. Use `FOCUSA_TOKEN` on the Pi/client side; reserve `FOCUSA_AUTH_TOKEN` for the daemon-side bearer token when the daemon is intentionally auth-enabled or exposed beyond loopback.
 
 ### 33.7 Session State Persistence via `pi.appendEntry`
 

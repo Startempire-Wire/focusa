@@ -61,6 +61,7 @@ export interface FocusaConfig {
   contextCoreUrl: string;
   wikiUrl: string;
   focusaToken: string;
+  registerProxyProvider: boolean;
   // Micro-compact (§21)
   microCompactEveryNTurns: number;
 }
@@ -119,6 +120,7 @@ const DEFAULTS: FocusaConfig = {
   contextCoreUrl: "http://127.0.0.1:7400",
   wikiUrl: "http://127.0.0.1:7325",
   focusaToken: "",
+  registerProxyProvider: false,
   microCompactEveryNTurns: 5,
 };
 
@@ -166,6 +168,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   CONTEXT_CORE_URL: "contextCoreUrl",
   WIKI_URL: "wikiUrl",
   FOCUSA_TOKEN: "focusaToken",
+  FOCUSA_PI_REGISTER_PROVIDER: "registerProxyProvider",
 };
 
 // §25.1: Validation

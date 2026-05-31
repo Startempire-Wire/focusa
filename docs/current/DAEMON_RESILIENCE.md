@@ -70,6 +70,8 @@ The daemon allows unauthenticated local-first use only on loopback binds such as
 
 `FOCUSA_AUTH_TOKEN` is a deployment/API bearer-token secret only. It is not a product license key, plan entitlement, billing token, seat control, commercial-license term, or pricing primitive. Licensing and commercial terms stay in the license/commercial docs, and any future license-plan design should use a separate name, storage model, and decision flow.
 
+Pi startup should stay quiet for local loopback sessions: the optional Focusa proxy provider is explicit opt-in and uses client-side `FOCUSA_TOKEN`; see [`FOCUSA_AUTH_TOKEN_BOUNDARY.md`](./FOCUSA_AUTH_TOKEN_BOUNDARY.md).
+
 ## Recovery commands
 
 ```bash
