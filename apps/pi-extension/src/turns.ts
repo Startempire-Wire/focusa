@@ -692,6 +692,8 @@ export function registerTurns(pi: ExtensionAPI) {
       { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
       { key: "current_ask", text: `CURRENT_ASK: ${S.currentAsk?.text || askText || "(none)"}`, include: Boolean(S.currentAsk?.text || askText), selectedCount: 1, excludedCount: 0, priority: 2, relevanceScore: 100 },
       { key: "query_scope", text: `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`, include: true, selectedCount: 1, excludedCount: 0, priority: 3, relevanceScore: 100 },
+      buildSliceSection("current_ask_scope_verdict", "CURRENT_ASK_SCOPE_VERDICT", formatCurrentAskScopeVerdictLines(buildCurrentAskScopeVerdict({ currentAskText: askText, workpointPacket: getScopedWorkpointPacket(), projectRoot: S.sessionCwd, continuityId: S.continuityId })), true, (values) => values.join("\n"), 0, 4, 100),
+      buildSliceSection("project_switch_ledger", "PROJECT_SWITCH_LEDGER", formatProjectSwitchLedgerLines(askText), S.projectSwitchLedger.length > 0, (values) => `PROJECT_SWITCH_LEDGER:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 96),
       buildSliceSection("resource_mode", "RESOURCE_MODE", resourceModeLines, resourceModeLines.length > 0, (values) => values.join("\n"), 0, 4, 100),
       buildSliceSection("trajectory", "PROJECT_TRAJECTORY", trajectoryLines, trajectoryLines.length > 0, (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 100),
       buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(S.activeWorkpointPacket), (values) => values.join("\n"), 0, 6, 100),
