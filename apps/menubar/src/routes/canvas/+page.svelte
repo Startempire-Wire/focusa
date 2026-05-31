@@ -8,12 +8,6 @@
   let selectedEventId: string | null = null;
   let showAscc = true;
   let showTimeline = true;
-
-  $: canvasGridColumns = [
-    'minmax(0, 1fr)',
-    showAscc ? '320px' : null,
-    showTimeline ? '280px' : null
-  ].filter(Boolean).join(' ');
   
   function handleFrameSelect(frameId: string) {
     focusCanvasStore.setActiveFrame(frameId);
@@ -60,7 +54,7 @@
     </div>
   </header>
   
-  <div class="canvas-layout" style:grid-template-columns={canvasGridColumns}>
+  <div class="canvas-layout">
     <main class="canvas-main">
       <FocusCanvas 
         frames={$focusCanvasStore.stack.frames}
@@ -155,6 +149,7 @@
   .canvas-layout {
     flex: 1;
     display: grid;
+    grid-template-columns: 1fr 320px 280px;
     gap: 0;
     overflow: hidden;
   }
