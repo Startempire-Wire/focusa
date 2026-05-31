@@ -235,6 +235,7 @@ export const S = {
     lastRecapAt: 0,
   } as PiToolOutputPressure,
   projectSwitchLedger: [] as PiProjectThreadObservation[],
+  lastCurrentAskScopeTelemetryKey: "",
   vitalInfoPrompted: {} as Record<string, number>,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
@@ -849,6 +850,27 @@ export function formatProjectSwitchLedgerLines(currentAskText = S.currentAsk?.te
   return entries.map((entry) => `${entry.project_alias} root=${entry.project_root || "unknown"} confidence=${entry.confidence.toFixed(2)} evidence=${entry.evidence_ref} recent=${entry.recent_actions.slice(0, 2).join(" | ")}`);
 }
 
+export function emitCurrentAskScopeVerdictTelemetry(verdict: PiCurrentAskScopeVerdict, sourceTurnId = S.currentAsk?.sourceTurnId || S.sessionFrameKey || "pi-current-ask-scope"): void {
+  if (!S.focusaAvailable || verdict.status !== "conflict") return;
+  const key = `${sourceTurnId}:${verdict.status}:${verdict.saved_scope.project_root}:${verdict.current_ask_scope.project_root}:${verdict.reason}`;
+  if (S.lastCurrentAskScopeTelemetryKey === key) return;
+  S.lastCurrentAskScopeTelemetryKey = key;
+  focusaPost("/telemetry/trace", {
+    event_type: "scope_conflict_detected",
+    turn_id: sourceTurnId,
+    payload: {
+      schema: "focusa.current_scope_verdict.v1",
+      failure_class: "scope_conflict",
+      status: verdict.status,
+      saved_scope: verdict.saved_scope,
+      current_ask_scope: verdict.current_ask_scope,
+      action_authority_for_current_ask: verdict.action_authority_for_current_ask,
+      required_next: verdict.required_next,
+      reason: verdict.reason,
+    },
+  });
+}
+
 export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; workpointPacket?: any; projectRoot?: string; continuityId?: string } = {}): PiCurrentAskScopeVerdict {
   const ask = stripQuotedFocusaContext(options.currentAskText ?? S.currentAsk?.text ?? "");
   const packet = options.workpointPacket || getScopedWorkpointPacket() || {};
@@ -879,7 +901,7 @@ export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; 
     reason = "no competing project signal in current ask";
   }
   const actionAllowed = status === "aligned";
-  return {
+  const verdict = {
     status,
     saved_scope: { project_root: savedRoot || "unknown", continuity_id: continuityId || "unknown" },
     current_ask_scope: { project_alias: alias, project_root: candidateRoot || "unknown", confidence, evidence_ref: evidenceRef },
@@ -887,6 +909,8 @@ export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; 
     required_next: actionAllowed ? [] : ["recap_scope_conflict", "focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint"],
     reason,
   };
+  emitCurrentAskScopeVerdictTelemetry(verdict);
+  return verdict;
 }
 
 export function formatCurrentAskScopeVerdictLines(verdict = buildCurrentAskScopeVerdict()): string[] {

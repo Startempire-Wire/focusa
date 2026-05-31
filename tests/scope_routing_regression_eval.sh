@@ -14,6 +14,8 @@ RUN_ID="scope-routing-$(date +%s%N)"
 CARRY_TURN="${RUN_ID}-carryover"
 FRESH_TURN="${RUN_ID}-fresh"
 CORRECTION_TURN="${RUN_ID}-correction"
+CONFLICT_TURN="${RUN_ID}-scope-conflict"
+MISMATCH_TURN="${RUN_ID}-scope-mismatch"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TURNS_TS="${REPO_ROOT}/apps/pi-extension/src/turns.ts"
 STATE_TS="${REPO_ROOT}/apps/pi-extension/src/state.ts"
@@ -74,6 +76,23 @@ confirm_trace_visible() {
   return 0
 }
 
+capture_trace_field() {
+  local turn_id="$1"
+  local event_type="$2"
+  local jq_expr="$3"
+  local value
+  for _ in $(seq 1 20); do
+    value=$(first_event_field "$turn_id" "$event_type" "$jq_expr")
+    if [ -n "$value" ] && [ "$value" != "null" ]; then
+      echo "$value"
+      return 0
+    fi
+    sleep 0.05
+  done
+  echo ""
+  return 1
+}
+
 echo "=== Scope-routing regression eval ==="
 echo "Base URL: ${BASE_URL}"
 echo "Run ID: ${RUN_ID}"
@@ -94,6 +113,11 @@ if rg -n 'isExplicitContinuationAsk|isOperatorSteeringInput|shouldIncludeMission
   log_pass "Mission carryover is gated by explicit continuation/relevance helpers"
 else
   log_fail "Mission carryover gating helpers missing"
+fi
+if rg -n 'scope_conflict_detected|emitCurrentAskScopeVerdictTelemetry|focusa.current_scope_verdict.v1|action_authority_for_current_ask' "$STATE_TS" >/dev/null 2>&1; then
+  log_pass "CurrentScopeVerdict conflict telemetry emitter exists"
+else
+  log_fail "CurrentScopeVerdict conflict telemetry emitter missing"
 fi
 
 log_info "Record replay fixtures"
@@ -123,12 +147,25 @@ correction_selected=2
 correction_reused=false
 record_trace "{\"event_type\":\"irrelevant_context_excluded\",\"turn_id\":\"${CORRECTION_TURN}\",\"payload\":{\"turn_id\":\"${CORRECTION_TURN}\",\"exclusion_reason\":\"correction_reset\",\"excluded_context_labels\":[\"MISSION\",\"STALE_DECISION\"]}}" >/dev/null
 
+record_trace "$(jq -nc --arg turn "$CONFLICT_TURN" '{event_type:"scope_conflict_detected",turn_id:$turn,payload:{schema:"focusa.current_scope_verdict.v1",failure_class:"scope_conflict",status:"conflict",action_authority_for_current_ask:false,reason:"operator named PTM remote project"}}')" >/dev/null
+conflict_class=$(capture_trace_field "$CONFLICT_TURN" "scope_conflict_detected" 'if (.events|length)>0 then (.events[0].payload.payload.failure_class // empty) else empty end')
+conflict_auth=$(capture_trace_field "$CONFLICT_TURN" "scope_conflict_detected" 'if (.events|length)>0 then (if .events[0].payload.payload.action_authority_for_current_ask == false then "false" else "not_false" end) else empty end')
+if [ -n "$conflict_class" ]; then log_info "Scope-conflict trace visible"; else log_info "Scope-conflict trace visible (delayed)"; fi
+record_trace "$(jq -nc --arg turn "$MISMATCH_TURN" '{event_type:"scope_mismatch",turn_id:$turn,payload:{failure_class:"scope_mismatch",status:"rejected_scope_mismatch",reason:"generic API-level project_root mismatch"}}')" >/dev/null
+mismatch_class=$(capture_trace_field "$MISMATCH_TURN" "scope_mismatch" 'if (.events|length)>0 then (.events[0].payload.payload.failure_class // empty) else empty end')
+if [ -n "$mismatch_class" ]; then log_info "Generic scope-mismatch trace visible"; else log_info "Generic scope-mismatch trace visible (delayed)"; fi
+
 log_info "Replay/eval queries"
 
 if [ "$fresh_selected" -lt "$carry_selected" ] && [ "$correction_selected" -lt "$carry_selected" ]; then
   log_pass "Eval fixtures support reduced-carryover comparison across turns"
 else
   log_fail "Reduced-carryover comparison not supported across turns"
+fi
+if [ "$conflict_class" = "scope_conflict" ] && [ "$mismatch_class" = "scope_mismatch" ] && [ "$conflict_auth" = "false" ]; then
+  log_pass "Telemetry distinguishes semantic scope_conflict_detected from generic scope_mismatch"
+else
+  log_fail "Scope conflict telemetry is not distinguishable from scope_mismatch"
 fi
 
 
