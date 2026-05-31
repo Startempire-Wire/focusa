@@ -83,8 +83,36 @@ if [[ "$oversized_code" != "413" ]]; then
   exit 1
 fi
 
+schema_reject_count=0
+expect_schema_reject() {
+  local name="$1"
+  local path="$2"
+  local body="$3"
+  local out_file="${DATA_DIR}/schema-${name}.out"
+  local code
+  code=$(printf '%s' "$body" | curl -sS -o "$out_file" -w '%{http_code}' \
+    -H 'content-type: application/json' --data-binary @- "$BASE${path}" || true)
+  if [[ "$code" =~ ^2 ]]; then
+    echo "schema-level malformed payload unexpectedly succeeded for ${path}" >&2
+    cat "$out_file" >&2 || true
+    exit 1
+  fi
+  if [[ "$code" != "400" && "$code" != "422" ]]; then
+    echo "schema-level malformed payload expected HTTP 400/422 for ${path}, got ${code}" >&2
+    cat "$out_file" >&2 || true
+    exit 1
+  fi
+  schema_reject_count=$((schema_reject_count + 1))
+}
+
+expect_schema_reject workpoint_checkpoint /v1/workpoint/checkpoint '{"checkpoint_reason":123}'
+expect_schema_reject trajectory_define_goal /v1/trajectory/define-goal '{"long_term_goal":123,"desired_end_state":{}}'
+expect_schema_reject prediction_record /v1/predictions '{"prediction_type":123,"confidence":"high"}'
+expect_schema_reject metacog_capture /v1/metacognition/capture '{"kind":123,"content":{}}'
+expect_schema_reject focus_update /v1/focus/update '{"updates":"not-array"}'
+
 for _ in $(seq 1 10); do
   curl -fsS "$BASE/v1/health" >/dev/null
 done
 
-echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code"
+echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count"

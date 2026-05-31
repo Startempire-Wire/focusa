@@ -16,7 +16,11 @@ for marker in \
   "malformed JSON" \
   "HTTP 413" \
   "DAEMON_BIN" \
-  "HEALTH_FILE"; do
+  "HEALTH_FILE" \
+  "schema_reject_count" \
+  "/v1/workpoint/checkpoint" \
+  "/v1/trajectory/define-goal" \
+  "/v1/metacognition/capture"; do
   if ! grep -Fq "$marker" "$SCRIPT" "$DOC"; then
     echo "dynamic API smoke marker missing: $marker" >&2
     exit 1
