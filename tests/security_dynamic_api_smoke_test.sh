@@ -36,7 +36,7 @@ if [[ -n "$DAEMON_BIN" && -x "$DAEMON_BIN" ]]; then
   FOCUSA_BIND="127.0.0.1:${PORT}" \
   FOCUSA_DATA_DIR="$DATA_DIR" \
   FOCUSA_API_MAX_BODY_BYTES=4096 \
-  FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=6 \
+  FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=32 \
   FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS=60000 \
   FOCUSA_API_JSON_MAX_DEPTH=8 \
   FOCUSA_API_JSON_MAX_ARRAY_ITEMS=4 \
@@ -45,7 +45,7 @@ else
   FOCUSA_BIND="127.0.0.1:${PORT}" \
   FOCUSA_DATA_DIR="$DATA_DIR" \
   FOCUSA_API_MAX_BODY_BYTES=4096 \
-  FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=6 \
+  FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=32 \
   FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS=60000 \
   FOCUSA_API_JSON_MAX_DEPTH=8 \
   FOCUSA_API_JSON_MAX_ARRAY_ITEMS=4 \
@@ -150,8 +150,43 @@ PY
 expect_shape_reject excessive_depth "$deep_payload"
 expect_shape_reject excessive_array "$wide_array_payload"
 
+route_fuzz_count=0
+expect_route_fuzz_reject() {
+  local name="$1"
+  local path="$2"
+  local body="$3"
+  local out_file="${DATA_DIR}/route-fuzz-${name}.out"
+  local code
+  code=$(printf '%s' "$body" | curl -sS -o "$out_file" -w '%{http_code}' \
+    -H 'content-type: application/json' --data-binary @- "$BASE${path}" || true)
+  if [[ "$code" =~ ^2 ]]; then
+    echo "route fuzz payload unexpectedly succeeded for ${path}" >&2
+    cat "$out_file" >&2 || true
+    exit 1
+  fi
+  if [[ "$code" =~ ^5 || "$code" == "000" ]]; then
+    echo "route fuzz payload expected bounded rejection for ${path}, got ${code}" >&2
+    cat "$out_file" >&2 || true
+    exit 1
+  fi
+  route_fuzz_count=$((route_fuzz_count + 1))
+}
+
+for route in \
+  /v1/workpoint/checkpoint \
+  /v1/trajectory/define-goal \
+  /v1/predictions \
+  /v1/metacognition/capture \
+  /v1/focus/update; do
+  route_name="${route//\//_}"
+  expect_route_fuzz_reject "${route_name}_empty_object" "$route" '{}'
+  expect_route_fuzz_reject "${route_name}_array_root" "$route" '[]'
+  expect_route_fuzz_reject "${route_name}_unexpected_nested" "$route" '{"unexpected":["x",{"y":true}],"number":123}'
+  expect_route_fuzz_reject "${route_name}_unicode_control" "$route" '{"unicode":"☃️","control":"line\nbreak","nested":{"a":{"b":["c"]}}}'
+done
+
 burst_429_count=0
-for i in $(seq 1 10); do
+for i in $(seq 1 40); do
   burst_file="${DATA_DIR}/burst-${i}.out"
   burst_code=$(printf '{"kind":"rate_limit_burst"}' | curl -sS -o "$burst_file" -w '%{http_code}' \
     -H 'content-type: application/json' --data-binary @- "$BASE/v1/telemetry/trace" || true)
@@ -172,4 +207,4 @@ for _ in $(seq 1 10); do
   curl -fsS "$BASE/v1/health" >/dev/null
 done
 
-echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count shape_rejects=$shape_reject_count burst_429s=$burst_429_count"
+echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count shape_rejects=$shape_reject_count route_fuzzes=$route_fuzz_count burst_429s=$burst_429_count"

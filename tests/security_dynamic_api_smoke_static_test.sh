@@ -26,6 +26,9 @@ for marker in \
   "shape_reject_count" \
   "excessive_depth" \
   "excessive_array" \
+  "route_fuzz_count" \
+  "expect_route_fuzz_reject" \
+  "route_fuzzes" \
   "burst_429_count" \
   "HTTP 429"; do
   if ! grep -Fq "$marker" "$SCRIPT" "$DOC"; then

@@ -15,15 +15,16 @@ Status: local dynamic smoke suite for OWASP API4/CWE-400 and malformed-input pos
 5. Sends an oversized JSON body and requires HTTP `413`.
 6. Sends schema-level malformed payloads to representative mutation route families and requires HTTP `400` or `422`.
 7. Sends excessive-depth and excessive-array JSON mutation payloads to verify the JSON shape guard returns HTTP `400`.
-8. Sends repeated mutation requests to verify route-scoped rate limiting returns HTTP `429`.
-9. Sends a small burst of health requests to verify the daemon remains responsive after rejected inputs.
+8. Sends a bounded route-fuzz corpus across representative mutation endpoints and requires bounded rejection instead of HTTP `2xx`, `5xx`, or transport failure.
+9. Sends repeated mutation requests to verify route-scoped rate limiting returns HTTP `429`.
+10. Sends a small burst of health requests to verify the daemon remains responsive after rejected inputs.
 
 ## Boundaries
 
 - The suite uses loopback only and does not touch the production daemon port.
 - The suite writes build output to `CARGO_TARGET_DIR` and state to a temp `FOCUSA_DATA_DIR`.
 - It requires `cargo`, `curl`, and `python3`.
-- It is intentionally bounded; deeper route fuzzing remains future work.
+- It is intentionally bounded; broader randomized fuzzing remains future work, but the committed route-fuzz matrix now covers representative mutation endpoints.
 
 ## CI coverage
 
@@ -31,4 +32,4 @@ Status: local dynamic smoke suite for OWASP API4/CWE-400 and malformed-input pos
 
 ## Follow-up
 
-No current dynamic smoke follow-up is tracked here; deeper fuzzing remains future work in the broader resource-limit backlog.
+No current dynamic smoke follow-up is tracked here. The prior deeper-route-fuzzing note is covered by the bounded route-fuzz matrix; broader randomized fuzzing remains future hardening work.
