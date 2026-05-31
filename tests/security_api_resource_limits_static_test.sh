@@ -53,8 +53,13 @@ for marker in \
   "Rate-limit posture" \
   "Mutation route rate limit" \
   "Mutation JSON shape guard" \
+  "Reverse-proxy rate-limit guidance" \
   "FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW" \
-  "FOCUSA_API_JSON_MAX_DEPTH"; do
+  "FOCUSA_API_JSON_MAX_DEPTH" \
+  "FOCUSA_AUTH_TOKEN" \
+  "120 rpm per IP" \
+  "30 rpm per token/IP" \
+  "10 rpm per token/IP"; do
   if ! grep -Fq "$marker" "$DOC"; then
     echo "resource limits doc missing marker: $marker" >&2
     exit 1
