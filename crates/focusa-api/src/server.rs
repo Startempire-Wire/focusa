@@ -300,6 +300,9 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "FOCUSA_API_MAX_BODY_BYTES",
             1_048_576,
         )))
+        .layer(axum_mw::from_fn(
+            middleware::rate_limit::mutation_rate_limit_layer,
+        ))
         .layer(axum_mw::from_fn(middleware::route_scope::route_scope_layer))
         .layer(axum_mw::from_fn(middleware::auth::auth_layer))
         .layer(axum_mw::from_fn(

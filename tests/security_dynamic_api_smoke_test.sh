@@ -36,11 +36,15 @@ if [[ -n "$DAEMON_BIN" && -x "$DAEMON_BIN" ]]; then
   FOCUSA_BIND="127.0.0.1:${PORT}" \
   FOCUSA_DATA_DIR="$DATA_DIR" \
   FOCUSA_API_MAX_BODY_BYTES=4096 \
+  FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=6 \
+  FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS=60000 \
   "$DAEMON_BIN" >"$LOG_FILE" 2>&1 &
 else
   FOCUSA_BIND="127.0.0.1:${PORT}" \
   FOCUSA_DATA_DIR="$DATA_DIR" \
   FOCUSA_API_MAX_BODY_BYTES=4096 \
+  FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=6 \
+  FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS=60000 \
   CARGO_TARGET_DIR="$TARGET_DIR" \
   "$CARGO_BIN" run -p focusa-api --bin focusa-daemon >"$LOG_FILE" 2>&1 &
 fi
@@ -111,8 +115,26 @@ expect_schema_reject prediction_record /v1/predictions '{"prediction_type":123,"
 expect_schema_reject metacog_capture /v1/metacognition/capture '{"kind":123,"content":{}}'
 expect_schema_reject focus_update /v1/focus/update '{"updates":"not-array"}'
 
+burst_429_count=0
+for i in $(seq 1 10); do
+  burst_file="${DATA_DIR}/burst-${i}.out"
+  burst_code=$(printf '{"kind":"rate_limit_burst"}' | curl -sS -o "$burst_file" -w '%{http_code}' \
+    -H 'content-type: application/json' --data-binary @- "$BASE/v1/telemetry/trace" || true)
+  if [[ "$burst_code" == "429" ]]; then
+    burst_429_count=$((burst_429_count + 1))
+  elif [[ ! "$burst_code" =~ ^2 ]]; then
+    echo "mutation burst expected HTTP 2xx before rate limit or 429 after limit, got ${burst_code}" >&2
+    cat "$burst_file" >&2 || true
+    exit 1
+  fi
+done
+if [[ "$burst_429_count" -lt 1 ]]; then
+  echo "mutation burst did not trigger route-scoped HTTP 429" >&2
+  exit 1
+fi
+
 for _ in $(seq 1 10); do
   curl -fsS "$BASE/v1/health" >/dev/null
 done
 
-echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count"
+echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count burst_429s=$burst_429_count"

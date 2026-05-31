@@ -20,7 +20,10 @@ for marker in \
   "schema_reject_count" \
   "/v1/workpoint/checkpoint" \
   "/v1/trajectory/define-goal" \
-  "/v1/metacognition/capture"; do
+  "/v1/metacognition/capture" \
+  "FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW" \
+  "burst_429_count" \
+  "HTTP 429"; do
   if ! grep -Fq "$marker" "$SCRIPT" "$DOC"; then
     echo "dynamic API smoke marker missing: $marker" >&2
     exit 1
