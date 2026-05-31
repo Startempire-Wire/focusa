@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -508,8 +508,10 @@ export function registerTurns(pi: ExtensionAPI) {
       });
       const scopeKind = S.queryScope?.scopeKind || "mission_carryover";
       const askText = S.currentAsk?.text || "";
+      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: askText, currentAskKind: S.currentAsk?.kind, queryScopeKind: scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket() }));
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
+        ...attentionLines,
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         askText ? `CURRENT_ASK: ${askText}` : "CURRENT_ASK: (none)",
@@ -525,8 +527,10 @@ export function registerTurns(pi: ExtensionAPI) {
     if (!data?.fs) {
       const trajectoryLines = await getTrajectoryFocusSliceLines();
       const toolAffordanceLines = getToolAffordanceFocusSliceLines({ resourceModeActive: false, hasTrajectory: trajectoryLines.length > 0, hasWorkpoint: Boolean(S.activeWorkpointPacket), hasOntologyAmbiguity: false });
+      const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ currentAskText: S.currentAsk?.text, currentAskKind: S.currentAsk?.kind, queryScopeKind: S.queryScope?.scopeKind, projectRoot: S.sessionCwd, workpointPacket: getScopedWorkpointPacket() }));
       const lines = [
         "[Focusa Focus Slice — minimal applicable context]",
+        ...attentionLines,
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         "FOCUS_STATE: unavailable; using project/trajectory fallback card",
@@ -658,6 +662,16 @@ export function registerTurns(pi: ExtensionAPI) {
       hasOntologyAmbiguity: ontologyObjectLines.length > 1 || ontologyUncertaintyLines.length > 0,
     });
 
+    const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
+      focusState: fs,
+      workpointPacket: getScopedWorkpointPacket(),
+      currentAskText: S.currentAsk?.text || askText,
+      currentAskKind: S.currentAsk?.kind,
+      queryScopeKind: scopeKind,
+      projectRoot: S.sessionCwd,
+      continuityId: S.continuityId,
+    }));
+
     const sectionEntries = [
       { key: "projection_kind", text: `PROJECTION_KIND: ${projectionKind}`, include: true, selectedCount: 1, excludedCount: 0, priority: 0, relevanceScore: 100 },
       { key: "view_profile", text: `VIEW_PROFILE: ${viewProfile}`, include: true, selectedCount: 1, excludedCount: 0, priority: 1, relevanceScore: 100 },
@@ -711,6 +725,7 @@ export function registerTurns(pi: ExtensionAPI) {
     // §Prompt Serialization: uppercase section headers, bullets for list items
     const lines: string[] = [
       `[Focusa Focus Slice — minimal applicable context]`,
+      ...attentionLines,
       ...scopedEntries.map((entry) => entry.text),
     ];
 
@@ -719,8 +734,10 @@ export function registerTurns(pi: ExtensionAPI) {
     const fullTokens = estimateTokens(text);
     const truncated = fullTokens > maxTokens;
     if (truncated) {
-      // Truncate from bottom (NOTES → FAILURES → RECENT_RESULTS, etc.)
-      text = lines.slice(0, 4).join("\n") +
+      // Truncate from bottom while preserving the non-droppable attention/recall prefix.
+      const attentionEnd = lines.findIndex((line) => line === "END_ATTENTION_RECALL");
+      const protectedPrefixCount = Math.max(4, attentionEnd >= 0 ? attentionEnd + 1 : 0);
+      text = lines.slice(0, protectedPrefixCount).join("\n") +
         `\n[... Focus State truncated — ${fullTokens - maxTokens} tokens over budget]`;
     }
     const injectedTokens = estimateTokens(text);

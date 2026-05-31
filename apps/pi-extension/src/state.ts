@@ -46,6 +46,26 @@ export interface ScopeFailureSignal {
   reason: string;
 }
 
+export type AttentionRecallVerdictStatus = "attentive" | "attention_risk" | "conflict" | "unknown";
+
+export interface PiMemoryAnchor {
+  task: string;
+  must_not_forget: string[];
+  latest_report_summary_ref: string;
+  evidence_refs: string[];
+  next_action: string;
+  action_authority_for_current_ask: boolean;
+}
+
+export interface PiAttentionRecallVerdict {
+  schema: "focusa.attention_recall_verdict.v1";
+  status: AttentionRecallVerdictStatus;
+  visible_recap_required: boolean;
+  current_ask_scope_status: "aligned" | "conflict" | "unknown";
+  scope_conflict_reason: string;
+  memory_anchor: PiMemoryAnchor;
+}
+
 export type PiGoverningPriorKind =
   | "hard_safety_prior"
   | "identity_prior"
@@ -497,6 +517,111 @@ export function detectScopeFailureSignals(params: {
   }
 
   return failures;
+}
+
+function boundedAttentionText(value: unknown, max = 180): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "none";
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
+}
+
+function arrayField(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function workpointValue(packet: any, key: string): string {
+  return String(packet?.[key] || packet?.workpoint?.[key] || "").trim();
+}
+
+function latestReportSummaryRefFromFocusState(focusState?: any): string {
+  const candidates = [
+    ...arrayField(focusState?.recent_results),
+    ...arrayField(focusState?.notes),
+    ...arrayField(focusState?.artifacts).map((artifact: any) => `${artifact?.kind || "artifact"}:${artifact?.label || artifact?.path_or_id || "unknown"}${artifact?.path_or_id ? `@${artifact.path_or_id}` : ""}`),
+  ].map((item) => String(item || "").trim()).filter(Boolean);
+  const report = [...candidates].reverse().find((item) => /\b(report|summary|spec|audit|proof)\b/i.test(item));
+  return report ? boundedAttentionText(report, 160) : "none";
+}
+
+function currentAskProjectConflictReason(currentAskText: string, projectRoot: string, workpointProjectRoot: string): string {
+  const ask = stripQuotedFocusaContext(currentAskText || "");
+  if (!ask.trim()) return "";
+  const lower = ask.toLowerCase();
+  const explicitPath = ask.match(/\/(?:home|Users)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+/);
+  if (explicitPath && normalizeProjectRoot(explicitPath[0]) !== normalizeProjectRoot(projectRoot || workpointProjectRoot)) {
+    return `operator named different project path ${boundedAttentionText(explicitPath[0], 120)}`;
+  }
+  if (/\b(wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(ask)) {
+    return "operator text indicates current project/root may be wrong";
+  }
+  if (/\b(ptm|planmarr|plan-the-marriage)\b/i.test(lower) && !/planmarr|plan-the-marriage/i.test(projectRoot || workpointProjectRoot)) {
+    return "operator text names PTM/planmarr while saved scope is different";
+  }
+  return "";
+}
+
+export function buildAttentionRecallVerdict(options: {
+  focusState?: any;
+  workpointPacket?: any;
+  currentAskText?: string;
+  currentAskKind?: PiCurrentAskKind | string;
+  queryScopeKind?: PiQueryScope["scopeKind"] | string;
+  projectRoot?: string;
+  continuityId?: string;
+  visibleRecapReason?: string;
+} = {}): PiAttentionRecallVerdict {
+  const packet = options.workpointPacket || getScopedWorkpointPacket() || {};
+  const askText = stripQuotedFocusaContext(options.currentAskText ?? S.currentAsk?.text ?? "");
+  const projectRoot = normalizeProjectRoot(options.projectRoot || S.sessionCwd || workpointValue(packet, "project_root"));
+  const packetProjectRoot = normalizeProjectRoot(workpointValue(packet, "project_root"));
+  const continuityId = String(options.continuityId || S.continuityId || workpointValue(packet, "continuity_id") || "").trim();
+  const mission = workpointValue(packet, "mission") || S.activeFrameGoal || S.activeFrameTitle || "current Focusa task";
+  const nextAction = workpointValue(packet, "next_slice") || S.lastCompactDecision || askText || S.lastFocusSnapshot.currentFocus || "continue bounded current task";
+  const conflictReason = currentAskProjectConflictReason(askText, projectRoot, packetProjectRoot);
+  const scopeStatus = conflictReason ? "conflict" : (projectRoot || packetProjectRoot ? "aligned" : "unknown");
+  const visibleRecapRequired = Boolean(options.visibleRecapReason || conflictReason || options.queryScopeKind === "correction" || options.currentAskKind === "correction");
+  const mustNotForget = [
+    askText ? `current_ask=${boundedAttentionText(askText, 160)}` : "current_ask=(none)",
+    `task=${boundedAttentionText(mission, 140)}`,
+    projectRoot ? `project_root=${boundedAttentionText(projectRoot, 140)}` : "project_root=(unbound)",
+    continuityId ? `continuity_id=${boundedAttentionText(continuityId, 100)}` : "continuity_id=(unbound)",
+    conflictReason ? `scope_conflict=${boundedAttentionText(conflictReason, 140)}` : "scope_conflict=none_detected",
+    "transcript_tail_is_not_authority",
+  ];
+  const evidenceRefs = [
+    packet?.workpoint_id ? `workpoint:${packet.workpoint_id}` : "",
+    packetProjectRoot ? `saved_scope:${packetProjectRoot}` : "",
+    ...arrayField(packet?.verification_records).slice(0, 3).map((record: any) => String(record?.evidence_ref || record?.result || "").trim()),
+  ].filter(Boolean).map((item) => boundedAttentionText(item, 140));
+  return {
+    schema: "focusa.attention_recall_verdict.v1",
+    status: conflictReason ? "conflict" : visibleRecapRequired ? "attention_risk" : "attentive",
+    visible_recap_required: visibleRecapRequired,
+    current_ask_scope_status: scopeStatus,
+    scope_conflict_reason: conflictReason || "none",
+    memory_anchor: {
+      task: boundedAttentionText(mission, 160),
+      must_not_forget: mustNotForget.slice(0, 8),
+      latest_report_summary_ref: latestReportSummaryRefFromFocusState(options.focusState),
+      evidence_refs: evidenceRefs.slice(0, 5),
+      next_action: boundedAttentionText(nextAction, 180),
+      action_authority_for_current_ask: !conflictReason,
+    },
+  };
+}
+
+export function formatAttentionRecallFocusSliceLines(verdict: PiAttentionRecallVerdict): string[] {
+  const anchor = verdict.memory_anchor;
+  return [
+    "MEMORY_ANCHOR:",
+    `  task=${anchor.task}`,
+    `  must_not_forget=${anchor.must_not_forget.join(" | ") || "none"}`,
+    `  latest_report_summary_ref=${anchor.latest_report_summary_ref}`,
+    `  next_action=${anchor.next_action}`,
+    `  action_authority_for_current_ask=${anchor.action_authority_for_current_ask}`,
+    `ATTENTION_RECALL_VERDICT: schema=${verdict.schema} status=${verdict.status} visible_recap_required=${verdict.visible_recap_required} current_ask_scope=${verdict.current_ask_scope_status} scope_conflict_reason=${boundedAttentionText(verdict.scope_conflict_reason, 140)}`,
+    "END_ATTENTION_RECALL",
+  ];
 }
 
 function tokenizeForRelevance(text: string): string[] {
@@ -1593,8 +1718,10 @@ export function buildCompactInstructions(prefix: string): string {
   const mission = String(workpoint?.mission || S.currentAsk?.text || S.activeFrameGoal || S.activeFrameTitle || "").trim();
   const nextSlice = String(workpoint?.next_slice || S.lastCompactDecision || "").trim();
   const projectRoot = String(workpoint?.project_root || (isProjectRootAuthoritySafe(S.sessionCwd) ? S.sessionCwd : "") || "").trim();
+  const attentionLines = formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({ workpointPacket: workpoint, currentAskText: S.currentAsk?.text, projectRoot }));
   const parts = [
     prefix,
+    "\n" + attentionLines.join("\n"),
     "\n" + base,
     "\nFallback policy: never emit bare 'none' for Focusa Cognitive Summary fields. If a slot is empty, fill it with the nearest related canonical source: Workpoint mission/next_slice/project_root/session_id, current operator ask, active frame goal/title, local shadow decisions/constraints/failures, git/beads/evidence mentioned in the conversation. If no related source exists, say 'No recorded <field>; no safe related fallback available.'",
   ];

@@ -136,6 +136,10 @@ const result = await pi.emit("context", { messages: [{ role: "user", content: [{
 });
 
 const injected = result?.messages?.[0]?.content?.[0]?.text || "";
+assert(injected.includes("MEMORY_ANCHOR:"), `missing MEMORY_ANCHOR prefix:\n${injected}`);
+assert(injected.includes("latest_report_summary_ref="), `missing latest_report_summary_ref field:\n${injected}`);
+assert(injected.includes("ATTENTION_RECALL_VERDICT: schema=focusa.attention_recall_verdict.v1"), `missing AttentionRecallVerdict line:\n${injected}`);
+assert(injected.indexOf("MEMORY_ANCHOR:") < injected.indexOf("PROJECT_TRAJECTORY:"), `MEMORY_ANCHOR must precede PROJECT_TRAJECTORY:\n${injected}`);
 assert(injected.includes("PROJECT_IDENTITY: status=verified"), `missing PROJECT_IDENTITY line:
 ${injected}`);
 assert(injected.includes("PROJECT_ENVIRONMENT: root_url=https://app.asapdigest.com"), `missing PROJECT_ENVIRONMENT root URL line:\n${injected}`);
