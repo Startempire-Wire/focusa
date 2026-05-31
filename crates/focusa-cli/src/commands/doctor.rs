@@ -107,11 +107,12 @@ fn security_posture_payload() -> Value {
                 "window_ms": env_u64("FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS", 1_000),
                 "env": ["FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW", "FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS"],
             },
-            "json_shape_guard": {
+            "json_shape_path_guard": {
                 "status": "ok",
                 "max_depth": env_usize("FOCUSA_API_JSON_MAX_DEPTH", 64),
                 "max_array_items": env_usize("FOCUSA_API_JSON_MAX_ARRAY_ITEMS", 2_048),
                 "max_object_fields": env_usize("FOCUSA_API_JSON_MAX_OBJECT_FIELDS", 2_048),
+                "path_traversal": "rejects ../ and encoded traversal in path-like JSON fields",
                 "env": ["FOCUSA_API_JSON_MAX_DEPTH", "FOCUSA_API_JSON_MAX_ARRAY_ITEMS", "FOCUSA_API_JSON_MAX_OBJECT_FIELDS"],
             },
             "reverse_proxy_guidance": {

@@ -46,6 +46,64 @@ fn validate_json_shape(value: &Value) -> Result<(), &'static str> {
     validate_json_shape_inner(value, 0)
 }
 
+fn is_path_like_key(key: &str) -> bool {
+    let key = key.to_ascii_lowercase();
+    matches!(
+        key.as_str(),
+        "project_root"
+            | "cwd"
+            | "root_dir"
+            | "target_ref"
+            | "evidence_ref"
+            | "diagnostics_ref"
+            | "artifact_ref"
+            | "storage_path"
+    ) || key.ends_with("_path")
+        || key.ends_with("_paths")
+        || key.ends_with("_ref")
+        || key.ends_with("_refs")
+        || key.ends_with("_root")
+        || key.ends_with("_dir")
+}
+
+fn looks_like_path_traversal(value: &str) -> bool {
+    let normalized = value.replace('\\', "/");
+    if normalized.split('/').any(|segment| segment == "..") {
+        return true;
+    }
+    let lower = normalized.to_ascii_lowercase();
+    lower.contains("%2e%2e") || lower.contains("..%2f") || lower.contains("..%5c")
+}
+
+fn validate_json_path_safety(value: &Value) -> Result<(), &'static str> {
+    validate_json_path_safety_inner(value, None)
+}
+
+fn validate_json_path_safety_inner(
+    value: &Value,
+    active_key: Option<&str>,
+) -> Result<(), &'static str> {
+    match value {
+        Value::String(text) => {
+            if active_key.is_some_and(is_path_like_key) && looks_like_path_traversal(text) {
+                return Err("json_path_traversal");
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                validate_json_path_safety_inner(item, active_key)?;
+            }
+        }
+        Value::Object(map) => {
+            for (key, item) in map {
+                validate_json_path_safety_inner(item, Some(key.as_str()))?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 fn validate_json_shape_inner(value: &Value, depth: usize) -> Result<(), &'static str> {
     if depth > max_json_depth() {
         return Err("json_depth_exceeded");
@@ -92,6 +150,7 @@ pub async fn mutation_json_guard_layer(req: Request, next: Next) -> Result<Respo
 
     let value: Value = serde_json::from_slice(&bytes).map_err(|_| StatusCode::BAD_REQUEST)?;
     validate_json_shape(&value).map_err(|_| StatusCode::BAD_REQUEST)?;
+    validate_json_path_safety(&value).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     Ok(next.run(rebuild_request(parts, bytes)).await)
 }
@@ -115,5 +174,38 @@ mod tests {
     fn shape_validation_accepts_small_payloads() {
         let value = json!({"mission":"test","refs":["a","b"]});
         assert!(validate_json_shape(&value).is_ok());
+    }
+
+    #[test]
+    fn path_safety_rejects_traversal_in_path_like_fields() {
+        let value = json!({"project_root":"/tmp/focusa/../../etc", "mission":"test"});
+        assert_eq!(
+            validate_json_path_safety(&value),
+            Err("json_path_traversal")
+        );
+    }
+
+    #[test]
+    fn path_safety_rejects_nested_ref_arrays() {
+        let value = json!({"ontology_context":{"artifact_refs":["commit:abc", "../etc/passwd"]}});
+        assert_eq!(
+            validate_json_path_safety(&value),
+            Err("json_path_traversal")
+        );
+    }
+
+    #[test]
+    fn path_safety_rejects_encoded_slash_traversal() {
+        let value = json!({"evidence_refs":["..%2fetc/passwd"]});
+        assert_eq!(
+            validate_json_path_safety(&value),
+            Err("json_path_traversal")
+        );
+    }
+
+    #[test]
+    fn path_safety_allows_text_fields_with_dots() {
+        let value = json!({"content":"explain ../ only as prose", "mission":"test..ok"});
+        assert!(validate_json_path_safety(&value).is_ok());
     }
 }

@@ -8,7 +8,7 @@ Status: current resource-exhaustion boundary for Focusa API (OWASP API4 / CWE-40
 | --- | --- | --- | --- |
 | HTTP request body size | 1 MiB | `FOCUSA_API_MAX_BODY_BYTES` | Axum `DefaultBodyLimit` applied in `build_router()` before global auth/error middleware. |
 | Mutation route rate limit | 120 requests / 1s / route+caller | `FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW`, `FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS`; set count to `0` to disable | `middleware::rate_limit::mutation_rate_limit_layer` returns HTTP `429` before handlers allocate mutation work. |
-| Mutation JSON shape guard | max depth 64, array items 2048, object fields 2048 | `FOCUSA_API_JSON_MAX_DEPTH`, `FOCUSA_API_JSON_MAX_ARRAY_ITEMS`, `FOCUSA_API_JSON_MAX_OBJECT_FIELDS` | `middleware::json_guard::mutation_json_guard_layer` parses JSON mutation bodies and returns HTTP `400` for excessive shape before route handlers run. |
+| Mutation JSON shape/path guard | max depth 64, array items 2048, object fields 2048; no `../` traversal in path-like JSON fields | `FOCUSA_API_JSON_MAX_DEPTH`, `FOCUSA_API_JSON_MAX_ARRAY_ITEMS`, `FOCUSA_API_JSON_MAX_OBJECT_FIELDS` | `middleware::json_guard::mutation_json_guard_layer` parses JSON mutation bodies and returns HTTP `400` for excessive shape or `json_path_traversal` before route handlers run. |
 
 The body-size limit covers JSON/body extractors and rejects oversized requests before route handlers allocate unbounded payloads. The default is intentionally small for local-first cognitive state APIs; large artifacts should be stored by reference/handle, not posted as raw payloads.
 
@@ -24,7 +24,7 @@ Several read-heavy routes already use route-level hard caps via `routes::bounded
 
 ## JSON depth posture
 
-Serde JSON parsing has built-in recursion protection and Focusa also applies an outer byte cap. Focusa now adds a mutation JSON shape guard for JSON requests: excessive object nesting, array length, or object field count returns HTTP `400` before route handlers persist or further process the payload.
+Serde JSON parsing has built-in recursion protection and Focusa also applies an outer byte cap. Focusa now adds a mutation JSON shape/path guard for JSON requests: excessive object nesting, array length, object field count, or `../` traversal in path-like JSON fields returns HTTP `400` before route handlers persist or further process the payload (`json_path_traversal`).
 
 ## Rate-limit posture
 
@@ -54,7 +54,7 @@ Proxy implementation requirements:
 
 ## Doctor security posture
 
-`focusa doctor security` and `focusa --json doctor security` report the current body-size, mutation rate-limit, JSON-shape, non-loopback auth, and reverse-proxy guidance posture. This command reports deployment/API safety only; it is not a license-plan or entitlement command.
+`focusa doctor security` and `focusa --json doctor security` report the current body-size, mutation rate-limit, JSON shape/path, non-loopback auth, and reverse-proxy guidance posture. This command reports deployment/API safety only; it is not a license-plan or entitlement command.
 
 ## Follow-up acceptance criteria
 

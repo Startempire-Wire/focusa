@@ -16,8 +16,9 @@ Status: local dynamic smoke suite for OWASP API4/CWE-400 and malformed-input pos
 6. Sends schema-level malformed payloads to representative mutation route families and requires HTTP `400` or `422`.
 7. Sends excessive-depth and excessive-array JSON mutation payloads to verify the JSON shape guard returns HTTP `400`.
 8. Sends a bounded route-fuzz corpus across representative mutation endpoints and requires bounded rejection instead of HTTP `2xx`, `5xx`, or transport failure.
-9. Sends repeated mutation requests to verify route-scoped rate limiting returns HTTP `429`.
-10. Sends a small burst of health requests to verify the daemon remains responsive after rejected inputs.
+9. Sends malicious `../`/encoded traversal payloads in path-like JSON fields and requires HTTP `400`.
+10. Sends repeated mutation requests to verify route-scoped rate limiting returns HTTP `429`.
+11. Sends a small burst of health requests to verify the daemon remains responsive after rejected inputs.
 
 ## Boundaries
 

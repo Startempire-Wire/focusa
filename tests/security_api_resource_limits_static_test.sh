@@ -38,6 +38,8 @@ for marker in \
   "FOCUSA_API_JSON_MAX_ARRAY_ITEMS" \
   "FOCUSA_API_JSON_MAX_OBJECT_FIELDS" \
   "validate_json_shape" \
+  "validate_json_path_safety" \
+  "json_path_traversal" \
   "mutation_json_guard_layer"; do
   if ! grep -Fq "$marker" "$JSON_GUARD"; then
     echo "JSON guard middleware missing marker: $marker" >&2
@@ -52,7 +54,8 @@ for marker in \
   "JSON depth posture" \
   "Rate-limit posture" \
   "Mutation route rate limit" \
-  "Mutation JSON shape guard" \
+  "Mutation JSON shape/path guard" \
+  "json_path_traversal" \
   "Reverse-proxy rate-limit guidance" \
   "FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW" \
   "FOCUSA_API_JSON_MAX_DEPTH" \

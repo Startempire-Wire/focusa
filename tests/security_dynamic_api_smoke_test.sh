@@ -185,6 +185,29 @@ for route in \
   expect_route_fuzz_reject "${route_name}_unicode_control" "$route" '{"unicode":"☃️","control":"line\nbreak","nested":{"a":{"b":["c"]}}}'
 done
 
+traversal_fuzz_count=0
+expect_path_traversal_reject() {
+  local name="$1"
+  local path="$2"
+  local body="$3"
+  local out_file="${DATA_DIR}/path-traversal-${name}.out"
+  local code
+  code=$(printf '%s' "$body" | curl -sS -o "$out_file" -w '%{http_code}' \
+    -H 'content-type: application/json' --data-binary @- "$BASE${path}" || true)
+  if [[ "$code" != "400" ]]; then
+    echo "path traversal payload expected HTTP 400 for ${path}, got ${code}" >&2
+    cat "$out_file" >&2 || true
+    exit 1
+  fi
+  traversal_fuzz_count=$((traversal_fuzz_count + 1))
+}
+
+expect_path_traversal_reject workpoint_project_root /v1/workpoint/checkpoint '{"mission":"path traversal smoke","next_slice":"reject traversal","project_root":"/tmp/focusa/../../etc","continuity_id":"security-smoke"}'
+expect_path_traversal_reject trajectory_project_root /v1/trajectory/define-goal '{"long_term_goal":"path traversal smoke","desired_end_state":"reject traversal","project_root":"/tmp/focusa/../../etc","continuity_id":"security-smoke"}'
+expect_path_traversal_reject evidence_target_ref /v1/workpoint/evidence/link '{"target_ref":"../../etc/passwd","result":"reject traversal","evidence_ref":"security-smoke"}'
+expect_path_traversal_reject prediction_artifact_ref /v1/predictions '{"prediction_type":"security_smoke","predicted_outcome":"reject traversal","confidence":0.5,"recommended_action":"reject","why":"path traversal smoke","ontology_context":{"artifact_refs":["../etc/passwd"]}}'
+expect_path_traversal_reject metacog_evidence_ref /v1/metacognition/capture '{"kind":"security_smoke","content":"reject traversal","rationale":"bounded path traversal smoke","evidence_refs":["..%2fetc/passwd"]}'
+
 burst_429_count=0
 for i in $(seq 1 40); do
   burst_file="${DATA_DIR}/burst-${i}.out"
@@ -207,4 +230,4 @@ for _ in $(seq 1 10); do
   curl -fsS "$BASE/v1/health" >/dev/null
 done
 
-echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count shape_rejects=$shape_reject_count route_fuzzes=$route_fuzz_count burst_429s=$burst_429_count"
+echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count shape_rejects=$shape_reject_count route_fuzzes=$route_fuzz_count traversal_fuzzes=$traversal_fuzz_count burst_429s=$burst_429_count"

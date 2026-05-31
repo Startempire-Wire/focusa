@@ -29,6 +29,10 @@ for marker in \
   "route_fuzz_count" \
   "expect_route_fuzz_reject" \
   "route_fuzzes" \
+  "traversal_fuzz_count" \
+  "expect_path_traversal_reject" \
+  "path traversal" \
+  "traversal_fuzzes" \
   "burst_429_count" \
   "HTTP 429"; do
   if ! grep -Fq "$marker" "$SCRIPT" "$DOC"; then
