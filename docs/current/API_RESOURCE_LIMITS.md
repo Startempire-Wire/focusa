@@ -52,6 +52,10 @@ Proxy implementation requirements:
 - Keep request-body caps at or below `FOCUSA_API_MAX_BODY_BYTES` unless an endpoint explicitly stores artifacts by handle.
 - Treat `FOCUSA_AUTH_TOKEN` as deployment/API auth only, not a license or product entitlement token.
 
+## Doctor security posture
+
+`focusa doctor security` and `focusa --json doctor security` report the current body-size, mutation rate-limit, JSON-shape, non-loopback auth, and reverse-proxy guidance posture. This command reports deployment/API safety only; it is not a license-plan or entitlement command.
+
 ## Follow-up acceptance criteria
 
-1. Include body-size/rate-limit/JSON-shape posture in a future `focusa doctor security` report.
+No current API resource-limit follow-up remains in this document; keep this section for future audit items.

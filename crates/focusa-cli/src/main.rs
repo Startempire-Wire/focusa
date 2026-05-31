@@ -56,7 +56,7 @@ enum Commands {
     Onboard(commands::onboard::OnboardArgs),
 
     /// Run full agent-first doctor checks.
-    Doctor,
+    Doctor(commands::doctor::DoctorArgs),
 
     /// Recoverable cleanup of generated residue.
     Cleanup(commands::cleanup::CleanupArgs),
@@ -525,7 +525,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Onboard(args) => commands::onboard::run(args, cli.json).await,
-        Commands::Doctor => commands::doctor::run(cli.json).await,
+        Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Stack => {

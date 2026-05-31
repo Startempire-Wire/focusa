@@ -1,8 +1,145 @@
 //! Agent-first doctor command — Spec92 §9.
 
 use crate::api_client::ApiClient;
+use clap::Subcommand;
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
+
+#[derive(clap::Args, Debug, Default)]
+pub struct DoctorArgs {
+    #[command(subcommand)]
+    pub command: Option<DoctorCommand>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum DoctorCommand {
+    /// Show API/resource security posture: auth, body limits, mutation rate limits, and JSON shape guard.
+    Security,
+}
+
+fn env_usize(name: &str, default: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .unwrap_or(default)
+}
+
+fn env_u64(name: &str, default: u64) -> u64 {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .unwrap_or(default)
+}
+
+fn env_u32(name: &str, default: u32) -> u32 {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .unwrap_or(default)
+}
+
+fn configured_bind() -> String {
+    std::env::var("FOCUSA_BIND").unwrap_or_else(|_| "127.0.0.1:8787".to_string())
+}
+
+fn bind_looks_loopback(bind: &str) -> bool {
+    bind.starts_with("127.")
+        || bind.starts_with("localhost:")
+        || bind.starts_with("[::1]")
+        || bind.starts_with("::1")
+}
+
+fn auth_token_configured() -> bool {
+    std::env::var("FOCUSA_AUTH_TOKEN")
+        .map(|token| !token.trim().is_empty())
+        .unwrap_or(false)
+}
+
+fn doc_contains(path: &str, needle: &str) -> bool {
+    std::fs::read_to_string(path)
+        .map(|content| content.contains(needle))
+        .unwrap_or(false)
+}
+
+fn security_posture_payload() -> Value {
+    let bind = configured_bind();
+    let bind_loopback = bind_looks_loopback(&bind);
+    let auth_configured = auth_token_configured();
+    let mutation_rate_limit = env_u32("FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW", 120);
+    let rate_limit_enabled = mutation_rate_limit > 0;
+    let reverse_proxy_doc_present = doc_contains(
+        "docs/current/API_RESOURCE_LIMITS.md",
+        "Reverse-proxy rate-limit guidance",
+    );
+    let status = if !bind_loopback && !auth_configured {
+        "blocked"
+    } else if !rate_limit_enabled || !reverse_proxy_doc_present {
+        "degraded"
+    } else {
+        "ok"
+    };
+    json!({
+        "status": status,
+        "summary": if status == "ok" { "Security posture checks passed" } else { "Security posture needs attention" },
+        "checks": {
+            "bind_auth_boundary": {
+                "status": if bind_loopback || auth_configured { "ok" } else { "blocked" },
+                "bind": bind,
+                "loopback": bind_loopback,
+                "auth_token_configured": auth_configured,
+                "requirement": "non-loopback bind requires FOCUSA_AUTH_TOKEN",
+            },
+            "request_body_limit": {
+                "status": "ok",
+                "env": "FOCUSA_API_MAX_BODY_BYTES",
+                "bytes": env_usize("FOCUSA_API_MAX_BODY_BYTES", 1_048_576),
+            },
+            "mutation_rate_limit": {
+                "status": if rate_limit_enabled { "ok" } else { "degraded" },
+                "per_window": mutation_rate_limit,
+                "window_ms": env_u64("FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS", 1_000),
+                "env": ["FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW", "FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS"],
+            },
+            "json_shape_guard": {
+                "status": "ok",
+                "max_depth": env_usize("FOCUSA_API_JSON_MAX_DEPTH", 64),
+                "max_array_items": env_usize("FOCUSA_API_JSON_MAX_ARRAY_ITEMS", 2_048),
+                "max_object_fields": env_usize("FOCUSA_API_JSON_MAX_OBJECT_FIELDS", 2_048),
+                "env": ["FOCUSA_API_JSON_MAX_DEPTH", "FOCUSA_API_JSON_MAX_ARRAY_ITEMS", "FOCUSA_API_JSON_MAX_OBJECT_FIELDS"],
+            },
+            "reverse_proxy_guidance": {
+                "status": if reverse_proxy_doc_present { "ok" } else { "degraded" },
+                "doc": "docs/current/API_RESOURCE_LIMITS.md#reverse-proxy-rate-limit-guidance",
+            }
+        },
+        "next_action": if status == "blocked" { "bind to loopback or set FOCUSA_AUTH_TOKEN before non-loopback exposure" } else if status == "degraded" { "enable mutation rate limits and keep reverse-proxy guidance current" } else { "continue normally; keep Focusa loopback/Tailscale-first unless intentionally exposing it" },
+        "docs": ["docs/current/API_RESOURCE_LIMITS.md", "docs/current/DAEMON_RESILIENCE.md", "docs/current/DYNAMIC_API_SECURITY_SMOKE.md"],
+        "commands": ["focusa doctor security", "focusa --json doctor security", "focusa doctor"],
+    })
+}
+
+fn print_security_posture(response: &Value) {
+    println!(
+        "Status: {}",
+        response["status"].as_str().unwrap_or("blocked")
+    );
+    println!(
+        "Summary: {}",
+        response["summary"]
+            .as_str()
+            .unwrap_or("Security posture unavailable")
+    );
+    println!(
+        "Next action: {}",
+        response["next_action"]
+            .as_str()
+            .unwrap_or("Re-run focusa doctor security")
+    );
+    println!(
+        "Checks: body-size, mutation rate limit, JSON shape guard, non-loopback auth, reverse-proxy guidance"
+    );
+    println!("Docs: docs/current/API_RESOURCE_LIMITS.md, docs/current/DAEMON_RESILIENCE.md");
+}
 
 fn repo_root() -> PathBuf {
     std::env::var_os("FOCUSA_PROJECT_ROOT")
@@ -84,7 +221,17 @@ fn status_rank(status: &str) -> u8 {
     }
 }
 
-pub async fn run(json_mode: bool) -> anyhow::Result<()> {
+pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
+    if matches!(args.command, Some(DoctorCommand::Security)) {
+        let response = security_posture_payload();
+        if json_mode {
+            println!("{}", serde_json::to_string_pretty(&response)?);
+        } else {
+            print_security_posture(&response);
+        }
+        return Ok(());
+    }
+
     let api = ApiClient::new();
     let mut checks = Vec::new();
 
