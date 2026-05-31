@@ -29,8 +29,9 @@ Instead, it should inject a **minimal applicable slice** chosen after operator-i
 2. determine current subject/task intent
 3. determine whether prior mission/frame is still applicable
 4. compute applicable constraints/decisions/working-set members
-5. inject only the minimal supporting slice
-6. generate response/action
+5. compute an attention/recall verdict for critical facts that can change action authority
+6. inject only the minimal supporting slice plus any required non-droppable memory anchor
+7. generate response/action only when the verdict permits action or requires a recap/rebind first
 
 ## Minimal Applicable Slice
 
@@ -49,6 +50,20 @@ A minimal applicable slice must exclude:
 - irrelevant daemon summaries
 - broad metacognitive prose
 
+## Critical anchor rule
+
+Some facts are too important to leave inside verbose retrieved context. If a fact can change the next action, it must be promoted into a tiny non-droppable `MEMORY_ANCHOR` or equivalent verdict before Workpoint/Trajectory/tool-output detail.
+
+Critical anchors include:
+- latest operator correction or project override
+- active task invariant / "do not implement yet" boundary
+- current-action authority decision
+- latest report/spec summary handle
+- destructive-risk or scope-conflict warning
+- exact next action when tool-output flood or compaction could hide the thread
+
+This is not permission to inject a large always-on block. The anchor must be bounded, current-ask scoped, suppressible when stale, and verified by the same relevance rules as the rest of the slice.
+
 ## Relevance Gate
 
 Before injecting context, Focusa must ask:
@@ -56,6 +71,7 @@ Before injecting context, Focusa must ask:
 - will this change action quality?
 - is this needed now?
 - is this more likely to help than distract?
+- if this can change action authority, has it been pinned, recapped, or explicitly rejected?
 
 If the answer is no, it should not be injected.
 
@@ -65,6 +81,7 @@ When operator input clearly changes the task, Focusa must:
 - re-rank the current working set
 - suppress stale mission context
 - suppress unrelated prior focus state
+- compute a current-ask scope/action-authority verdict before Workpoint carryover
 - rebuild a new task-relevant slice
 
 ## Success Condition

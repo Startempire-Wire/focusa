@@ -10,6 +10,8 @@ It mediates between:
 
 The Focus Gate is **advisory only**. It never switches focus automatically.
 
+The anti-forgetting attention/recall verdict described in current incident specs is a separate control plane unless this document is explicitly revised. Focus Gate may raise salience candidates such as "scope conflict" or "tool-output flood", but it does not itself inject prompt anchors, suppress tool action, or make Workpoint action-authority decisions.
+
 ---
 
 ## Core Invariants
@@ -120,6 +122,7 @@ Surfacing produces:
 - Modifying Focus State
 - Injecting content into prompts
 - Silent escalation
+- Treating surfaced salience as current-action authority without a separate attention/recall verdict
 
 ---
 

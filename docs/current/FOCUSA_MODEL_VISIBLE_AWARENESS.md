@@ -23,6 +23,14 @@ Purpose: describe what the LLM actually sees from Focusa and the precedence of t
 
 Docs are **not** automatically visible unless injected by a card/slice/skill or read by the model.
 
+## Attention / recall gap (current design boundary)
+
+A model seeing a Focusa surface is not the same as the model attending to it, applying it, or treating it as current-action authority. Workpoint, Trajectory, Focus Slice, and tool results are preserved/retrieved inputs; they still need a small action gate that proves critical facts were pinned or recapped before project-scoped tools run.
+
+Current audit finding: the Pi Focus Slice hot path can truncate from the bottom under pressure, and the existing truncation keeps only the first four lines. Therefore any anti-forgetting guard must be non-droppable and must appear before verbose Workpoint/Trajectory JSON. The planned surface is a tiny `MEMORY_ANCHOR` plus `AttentionRecallVerdict` / current-ask scope verdict that states task, must-not-forget facts, latest report summary ref, action authority, visible recap requirement, and required next step.
+
+Until that verdict is implemented, this document describes model-visible inputs and intended precedence, not a hard proof that the model attended to every critical input.
+
 ## Continuous trajectory/project display
 
 The continuous model-facing display is the **Focusa Focus Slice**, not a separate always-on UI widget. When the context handler runs, the model sees a `PROJECT_TRAJECTORY` section containing:
@@ -54,7 +62,7 @@ Focus Slice sections are ordered by priority in `turns.ts`. The practical model 
 9. Constraints and decisions.
 10. Evidence/results/failures/next steps/artifact handles.
 
-Operator steering always wins, but stale transcript tail does not outrank canonical scoped Workpoint/Trajectory context.
+Operator steering always wins, but stale transcript tail does not outrank canonical scoped Workpoint/Trajectory context. A future attention/recall verdict should sit above ordinary Focus Slice sections because it decides whether retrieved context is safe to use for the current action.
 
 ## Degraded / fallback posture
 

@@ -141,7 +141,7 @@ ${injected}`);
 assert(injected.includes("PROJECT_ENVIRONMENT: root_url=https://app.asapdigest.com"), `missing PROJECT_ENVIRONMENT root URL line:\n${injected}`);
 assert(injected.includes("environment=live"), `missing PROJECT_ENVIRONMENT live marker:\n${injected}`);
 assert(injected.includes("deploy_location=/home/asapdigest/public_html"), `missing PROJECT_ENVIRONMENT deploy location:\n${injected}`);
-assert(injected.includes("TRAJECTORY_GOALS: high=Spec96 compliant Focus Slice"), `missing TRAJECTORY_GOALS line:
+assert(injected.includes("TRAJECTORY_LADDER: HLT=Spec96 compliant Focus Slice"), `missing TRAJECTORY_LADDER line:
 ${injected}`);
 assert(injected.includes("ACTIVE_GAP: Assert injected sections"), `missing ACTIVE_GAP line:
 ${injected}`);

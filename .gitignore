@@ -34,3 +34,6 @@ Thumbs.db
 # Focusa local state (runtime)
 .focusa/
 .tmp/
+/focusa.sqlite
+/focusa-daemon.lock
+/.beads/daemon-*.log.gz

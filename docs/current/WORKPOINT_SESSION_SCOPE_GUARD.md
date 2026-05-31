@@ -25,6 +25,19 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 - **Model-switch project preservation (emergency fix 4, 2026-05-27):** After `model_select` fires `checkpointDiscontinuity`, if the session already has a verified `lastProjectIdentity` (confidence: high|medium), the subsequent `focusa_project_identity` tool must NOT overwrite it with a different project's identity. The Pi extension preserves the existing verified identity and returns it instead. This prevents cross-project overwrite during model-switch bootstrap when the daemon or project_root_cache returns a different project's root.
 - `identity_confidence_percent` explains corroborating alignment; it never overrides hard gate failures.
 
+## Canonical saved scope vs current-action authority
+
+A Workpoint packet can be canonical for its saved `project_root + continuity_id` and still be the wrong action anchor for the latest operator ask. Canonicality answers "is this a valid stored packet for this logical workstream?" It does not answer "should the next tool/file action use this project now?"
+
+Required anti-forgetting fields for Workpoint resume/rendering:
+
+- `canonical_for_saved_scope` — saved Workpoint identity gates passed.
+- `matches_current_ask_scope` — latest operator ask does not name, negate, or imply a different project/root/remote.
+- `action_authority_for_current_ask` — file/API/tool action may proceed under this Workpoint.
+- `scope_conflict_reason` — bounded evidence when action authority is suppressed.
+
+Current scope guards reject unsafe or mismatched packets at resume/checkpoint boundaries. A separate current-ask scope verdict is still needed to handle cases where an operator correction supersedes a previously canonical packet without invalidating the old saved state.
+
 ## Scenario matrix
 
 | Scenario | Expected isolation result |
@@ -33,6 +46,7 @@ Focusa separates identity axes instead of collapsing everything into a single ac
 | Same project, same long-term goal, different short-term goals | Distinct sessions unless continuity_id matches. |
 | Same project, different long/short goals | Distinct sessions by continuity_id. |
 | Different projects | Distinct by project_root before continuity is considered. |
+| Operator declares a different project after a canonical packet | Saved packet remains canonical for its old scope, but current-action authority is suppressed until project verify/rebind. |
 | Broad/root home scopes like `/root` | Not canonical; packet is quarantined and latest operator instruction wins. |
 | Same project + same continuity + changed session_id after compaction | Same logical session; temporal session drift only. |
 | Model switch / new model after session has verified project identity | Same logical session; preserve existing `lastProjectIdentity` even if `focusa_project_identity` returns a different project. Do not overwrite with project_root_cache or re-bootstrap identity. |

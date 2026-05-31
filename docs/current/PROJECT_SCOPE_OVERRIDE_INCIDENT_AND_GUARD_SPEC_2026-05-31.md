@@ -1,26 +1,40 @@
-# Project Scope Override Incident and Guard Spec — 2026-05-31
+# Model Forgetting / Scope Override Incident and Attention Guard Spec — 2026-05-31
 
-Status: draft for iteration; updated after code/session evidence review
+Status: draft for iteration; updated after anti-forgetting architecture review
 Owner: Focusa project
-Incident class: cross-project scope confusion / operator-declared project override missed
-Related docs: [`WORKPOINT_SESSION_SCOPE_GUARD.md`](./WORKPOINT_SESSION_SCOPE_GUARD.md), [`../69-scope-failure-and-relevance-tracing.md`](../69-scope-failure-and-relevance-tracing.md), [`PROJECT_INTELLIGENCE_FLYWHEEL.md`](./PROJECT_INTELLIGENCE_FLYWHEEL.md), [`FOCUSA_MODEL_VISIBLE_AWARENESS.md`](./FOCUSA_MODEL_VISIBLE_AWARENESS.md)
+Incident class: retrieved-memory attention failure; project-scope override is one subtype
+Related docs: [`WORKPOINT_SESSION_SCOPE_GUARD.md`](./WORKPOINT_SESSION_SCOPE_GUARD.md), [`DETOUR_SCOPE_ASSURANCE_AND_IMPLEMENTATION_STATUS_2026-05-29.md`](./DETOUR_SCOPE_ASSURANCE_AND_IMPLEMENTATION_STATUS_2026-05-29.md), [`../69-scope-failure-and-relevance-tracing.md`](../69-scope-failure-and-relevance-tracing.md), [`PROJECT_INTELLIGENCE_FLYWHEEL.md`](./PROJECT_INTELLIGENCE_FLYWHEEL.md), [`FOCUSA_MODEL_VISIBLE_AWARENESS.md`](./FOCUSA_MODEL_VISIBLE_AWARENESS.md)
+
+Note: the file name is retained for continuity, but the parent failure class is broader than project scope.
 
 ## Executive summary
 
-During a compacted Pi session, Focusa preserved a canonical Workpoint under the Focusa repo scope (`project_root=/home/wirebot/focusa`, continuity `focusa-cont-root-8a64612b-d338-4eca-9e27-bb0e9d11c7f8`). The operator then explicitly corrected the scope: the active work was the PTM remote project, not the Focusa repo. The assistant still inspected Focusa-local state first, then only later verified the PTM remote project at `/home/planmarr/plan-the-marriage` on the remote host.
+During a compacted Pi session, Focusa preserved a canonical Workpoint under the Focusa repo scope (`project_root=/home/wirebot/focusa`, continuity `focusa-cont-root-8a64612b-d338-4eca-9e27-bb0e9d11c7f8`). The visible symptom was cross-project action: the operator corrected that active work was the PTM remote project, yet the assistant inspected Focusa-local state before rebinding.
 
-The failure was not that Focusa lacked memory. Focusa had a Workpoint, daemon state, Focus Slice context, telemetry paths, and the raw Pi session JSONL. The failure was that those substrates remained advisory/passive: no mandatory pre-action attention gate converted conflicting scope evidence into `action_authority=false`. Focusa protected the stored Workpoint boundary, but it did not decide whether that saved boundary was still the correct action target for the current ask.
+The parent failure was model forgetting / attention loss, not absence of memory. Focusa had a Workpoint, daemon state, Focus Slice context, telemetry paths, raw Pi session JSONL, and a Workpoint mission containing the warning. Those substrates were retrieved or retrievable, but they were not forced into model attention, checked for use, or preserved as a short visible anchor after compaction and tool-output flood.
+
+The required guard is an anti-forgetting attention layer: retrieve preserved state + latest operator correction + pinned task/report summary + bounded session evidence, compute an attention/recall verdict, then allow or suppress action and force a concise recap when the model is likely to lose the thread. Project-scope arbitration remains a critical subtype of that broader layer.
+
+## Historical accuracy / prior work boundary
+
+This incident spec is an additive follow-up, not the first Focusa scope-protection design. Before this incident, the detour scope-assurance work had already implemented and verified broad-root quarantine, ProjectIdentity quorum, verified in-session identity preservation, `project_root + continuity_id` Workpoint authority, canonical/advisory transparency, and deterministic scope recovery. Those prior assurances are documented in [`DETOUR_SCOPE_ASSURANCE_AND_IMPLEMENTATION_STATUS_2026-05-29.md`](./DETOUR_SCOPE_ASSURANCE_AND_IMPLEMENTATION_STATUS_2026-05-29.md) and the closed `focusa-khm6` bead family.
+
+The new failure was not that these substrate features were absent. The failure was that existing saved-scope and post-output safeguards did not force the model to attend to the latest operator correction/report summary before action. Therefore implementation must extend the existing Focus Slice, compaction, WorkpointResumePacketV2, current-ask/query-scope, Reflex, telemetry, and evidence-handle surfaces rather than building parallel scope or memory systems.
+
+The follow-up decomposition for this incident is tracked by `focusa-yv8d`; its anti-duplication notes require reuse of existing substrates and explicitly classify prior scope-assurance features as historical prerequisites.
 
 ## Incident facts
 
 - Preserved Workpoint scope: `/home/wirebot/focusa`.
 - Operator-indicated active scope: PTM remote project, `/home/planmarr/plan-the-marriage`.
+- Parent failure: a remembered correction existed but was not forced into model attention before action.
 - Compaction packet correctly stated: Workpoint is canonical only when `project_root + continuity_id` match.
 - The Workpoint mission itself contained the warning: “you are looking in the wrong place. This is the PTM remote project...”.
 - The assistant still used the Focusa repo as the active action scope before rebinding to PTM.
-- Existing guard docs already distinguish project root, continuity id, session id, and trajectory similarity, but they do not yet define current-ask scope arbitration when operator steering conflicts with a canonical packet.
+- After a later compaction, a pre-compaction summary/report was effectively pushed out of the operator-visible window by tool output; Focusa preserved state, but the user could not easily recover the visible summary.
+- Existing guard docs distinguish project root, continuity id, session id, and trajectory similarity, but they do not define a general attention/recall verdict that pins critical facts and verifies they are used.
 - Same Pi session history contained prior PTM work and the explicit correction; the failure happened inside one long-running session, not because state lived in a different chat.
-- Daemon/primitives recorded context and scope telemetry, but the active pre-action path did not require a contradiction verdict before file/tool action.
+- Daemon/primitives recorded context and scope telemetry, but the active pre-action path did not require a contradiction or recall verdict before file/tool action.
 
 ## Evidence from current software and session review
 
@@ -33,24 +47,58 @@ Review date: 2026-05-31. Line numbers are local source positions from the review
 - `apps/pi-extension/src/turns.ts:901-999` records current ask, query scope, and `steering_detected` telemetry; it does not set `action_authority=false` for conflicting project evidence.
 - `apps/pi-extension/src/turns.ts:1091-1100` detects scope failure after assistant output; that is useful for measurement but too late to prevent wrong-project action.
 - `apps/pi-extension/src/compaction.ts:141-166` refreshes a scoped Workpoint packet after compaction and accepts it when it matches the saved `project_root + continuity_id`; it does not compare packet scope to current-ask project hints.
-- `apps/pi-extension/src/compaction.ts:276-309` formats WorkpointResumePacketV2 for prompt with `CANONICAL: true`, best-next tools, and authority boundary; it does not include current-ask action-authority status.
+- `apps/pi-extension/src/compaction.ts:276-309` formats WorkpointResumePacketV2 for prompt with `CANONICAL: true`, best-next tools, and authority boundary; it does not include current-ask action-authority status or a short anti-forgetting memory anchor.
+- `apps/pi-extension/src/compaction.ts:465-476` emits a large Workpoint/learning-loop packet, but it does not guarantee a compact replayable summary remains visible after subsequent tool-output bursts.
 - Pi session JSONL around the incident shows the contradiction in one file: current ask stored “wrong place / PTM remote project” while `projectRoot` stayed `/home/wirebot/focusa`, then compaction re-injected the canonical Focusa Workpoint.
 - Earlier same-session JSONL contains PTM remote evidence (`/home/planmarr/plan-the-marriage`, PTM docs/specs/audits, HLT ledger, auth work), but no hot-path primitive scanned it on the conflict phrase.
+- The observed “I cannot access because tool calls streamed it out of view” failure shows a second path: the model/operator can lose a just-produced report even when Focusa state remains healthy.
+
+## Deep audit confirmation — 2026-05-31
+
+A follow-up architecture pass confirmed the gap is cross-surface attention/action authority rather than a single missing memory store.
+
+- Source search found no implemented `MEMORY_ANCHOR`, `AttentionRecallVerdict`, `visible_recap_required`, `latest_report_summary_ref`, `project_thread_observation`, `detect_semantic_project_scope_conflict`, `canonical_for_saved_scope`, or `action_authority_for_current_ask` markers outside this draft spec.
+- `apps/pi-extension/src/turns.ts:723-724` truncates the Focus Slice to the first four lines under pressure, which can preserve only header/projection/view/current ask and drop `QUERY_SCOPE`, `PROJECT_TRAJECTORY`, `WORKPOINT`, and tool affordances.
+- `crates/focusa-core/src/expression/engine.rs` has reduced/pinned ASCC degradation, but Pi’s custom Focus Slice assembly bypasses that protection.
+- `crates/focusa-api/src/routes/workpoint.rs` renders WorkpointResumePacketV2 with saved-scope canonicality and identity axes, but does not compute current-ask action authority.
+- `crates/focusa-api/src/routes/project.rs` supports caller-supplied remote evidence, but the identity route does not yet extract project overrides from `current_ask`.
+- Tool-output externalization exists, but no runtime policy forces a visible recap or report-summary replay after tool-output flood.
+
+Implementation priority from this audit: first make a protected prefix/verdict survive degradation, then split Workpoint action authority, then add report replay, project-switch ledger, and semantic conflict primitive.
 
 ## Expected behavior
 
-When current operator text indicates the assistant is in the wrong project, Focusa should stop treating the current Workpoint as action-authoritative for the next step until scope is re-arbitrated.
+When Focusa retrieves or receives a critical fact that can change the next action, that fact must become a model-visible memory anchor and must be checked before tool/file action. Project correction is one case; a just-written report summary, operator correction, destructive-risk note, or current task invariant are the same class.
 
 Expected route:
 
-1. Detect operator-declared project override in the current ask.
-2. Compare it against the current Workpoint/project identity scope.
-3. If conflict exists, mark the active packet as `canonical_for_saved_scope=true` but `action_authority_for_current_ask=false`.
-4. Route to `focusa_project_verify` / `focusa_project_identity` with explicit local or remote project hints.
-5. Checkpoint or transfer into the correct project scope before doing file, API, or evidence work.
-6. Surface a concise operator-visible line: “Scope conflict detected: saved Workpoint is X; current ask indicates Y; rebinding before action.”
+1. Extract critical facts from Workpoint, latest operator correction, compaction packet, and bounded session evidence.
+2. Build a short `MEMORY_ANCHOR` before verbose packets: task, must-not-forget facts, latest report/spec summary handle, evidence handles, and next action.
+3. Compute an `AttentionRecallVerdict` before Focus Slice finalization and before project-scoped tool calls.
+4. If the verdict detects project conflict, mark the active packet as `canonical_for_saved_scope=true` but `action_authority_for_current_ask=false`.
+5. If the verdict detects tool-output flood, compaction loss, or forgotten report risk, force a visible recap before continuing.
+6. Route to `focusa_project_verify` / `focusa_project_identity` only for the project-conflict subtype.
+7. Checkpoint or transfer into the correct project scope before doing file, API, or evidence work.
+8. Surface concise operator-visible status, e.g. “Memory anchor: active report is X; no implementation yet; rebinding before action.”
 
 ## Root cause analysis
+
+### 0. Retrieved memory was not converted into forced attention
+
+Focusa stored and retrieved useful context, but the model still had to notice, prioritize, and use it. That is not a reliable memory architecture. Critical facts need an explicit attention checksum before action.
+
+Examples:
+
+- latest operator correction;
+- active task invariant;
+- just-produced report/spec summary;
+- Workpoint mission warning;
+- scope conflict;
+- “do not implement yet” constraint.
+
+### 0b. Tool-output flood hid the working summary
+
+Large tool outputs and JSON packets can push the actual task/report summary out of the visible working window. Focusa needs recap checkpoints after tool bursts and a replay handle for the latest report summary.
 
 ### 1. Missing scope arbitration layer
 
@@ -114,36 +162,81 @@ The prevention point must move before Focus Slice finalization and before any to
 
 ## Planned solution
 
-### A0. Add an Attention Control Plane before memory injection
+### A0. Add an Attention/Recall Control Plane before memory injection and action
 
-Focusa needs a small mandatory layer between state retrieval and model-visible action guidance.
+Focusa needs a small mandatory layer between state retrieval and model-visible action guidance. Its job is broader than project scope: determine whether critical retrieved facts have been pinned, whether action can proceed, and whether a visible recap is required.
 
 Inputs:
 
 - current operator ask after quoted Focusa context is stripped;
+- latest operator correction and latest assistant report/spec summary;
 - active Workpoint and WorkpointResumePacketV2;
 - current `S.sessionCwd`, `S.currentAsk.projectRoot`, continuity id, and session id;
 - Focusa daemon Workpoint/trajectory/project identity state;
 - bounded Pi session JSONL/project-switch index;
-- known project aliases, paths, domains, remotes, and HLT ledgers.
+- known project aliases, paths, domains, remotes, and HLT ledgers;
+- tool-output pressure counters since the last visible recap.
 
 Output:
 
 ```json
 {
-  "schema": "focusa.current_scope_verdict.v1",
-  "status": "aligned | conflict | override_candidate | unknown",
-  "saved_scope": {"project_root": "/home/wirebot/focusa", "continuity_id": "..."},
-  "current_ask_scope": {"project_alias": "PTM", "project_root": "/home/planmarr/plan-the-marriage", "confidence": "high"},
-  "contradiction": true,
-  "workpoint_canonical_for_saved_scope": true,
-  "workpoint_action_authority": false,
-  "required_next": ["verify_current_project", "rebind_or_session_transfer", "checkpoint_correct_scope"],
+  "schema": "focusa.attention_recall_verdict.v1",
+  "status": "attentive | attention_risk | conflict | unknown",
+  "memory_anchor": {
+    "task": "iterate anti-forgetting architecture spec",
+    "must_not_forget": [
+      "root failure is model forgetting / attention loss",
+      "project-scope override is a subtype",
+      "no implementation until architecture confidence is grounded"
+    ],
+    "latest_report_summary_ref": "docs/current/PROJECT_SCOPE_OVERRIDE_INCIDENT_AND_GUARD_SPEC_2026-05-31.md#executive-summary",
+    "evidence_refs": ["workpoint:019e7e25-d784-72f1-af4d-fb882568adac"],
+    "next_action": "iterate doc, not source implementation"
+  },
+  "scope_verdict": {
+    "status": "aligned | conflict | override_candidate | unknown",
+    "saved_scope": {"project_root": "/home/wirebot/focusa", "continuity_id": "..."},
+    "current_ask_scope": {"project_alias": "PTM", "project_root": "/home/planmarr/plan-the-marriage", "confidence": "high"},
+    "workpoint_canonical_for_saved_scope": true,
+    "workpoint_action_authority": false
+  },
+  "attention_risks": ["tool_output_flood", "compaction_loss", "forgotten_report"],
+  "action_allowed": false,
+  "visible_recap_required": true,
+  "required_next": ["recap_memory_anchor", "verify_current_project", "rebind_or_session_transfer"],
   "evidence_spans": ["current_ask:PTM remote", "session_jsonl:/home/planmarr/plan-the-marriage", "remote_hlt:docs/HLT_LEDGER.md"]
 }
 ```
 
-This layer must run before Focus Slice Workpoint rendering, compaction resume instructions, and project-scoped tool execution.
+This layer must run before Focus Slice Workpoint rendering, compaction resume instructions, and project-scoped tool execution. It should also run after large tool-output bursts before the assistant finalizes or starts a new action.
+
+### A0a. Add `MEMORY_ANCHOR` to Focus Slice and compaction summaries
+
+The model-visible packet needs a tiny, high-salience block above verbose Workpoint JSON:
+
+```text
+MEMORY_ANCHOR:
+  task: iterate anti-forgetting architecture spec
+  must_not_forget:
+    - root failure is model forgetting / attention loss
+    - project scope is one subtype
+    - no implementation yet
+  latest_report: docs/current/PROJECT_SCOPE_OVERRIDE_INCIDENT_AND_GUARD_SPEC_2026-05-31.md
+  next_action: edit docs only
+```
+
+This block should be short enough to remain visible even when tool definitions, Workpoint packets, or traversal output are large.
+
+### A0b. Add tool-output flood recap and report replay
+
+After a bounded number of tool calls or large output bytes, Pi should force a one- or two-line recap before continuing:
+
+```text
+Recap: auditing/iterating the anti-forgetting spec; no source implementation; latest finding is missing AttentionRecallVerdict + MemoryAnchor.
+```
+
+When an assistant produces a report/spec summary, Focusa should store a replayable summary handle and allow the model to restate it without relying on transcript visibility.
 
 ### A1. Build a project-switch ledger from Pi session JSONL
 
@@ -274,42 +367,60 @@ Avoid asking for permission unless the next operation is destructive or high-ris
 
 ### Static tests
 
-1. `tests/spec_project_scope_override_static_test.sh`
-   - Assert Focus Slice / compaction text includes `CURRENT_ASK_SCOPE_VERDICT`.
-   - Assert Workpoint packet uses `canonical_for_saved_scope` separately from `action_authority_for_current_ask`.
-   - Assert Focus Slice ordering puts scope verdict before Workpoint continuation.
+1. `tests/spec_attention_recall_anchor_static_test.sh`
+   - Assert Focus Slice / compaction text includes `MEMORY_ANCHOR` before verbose Workpoint JSON.
+   - Assert source exposes `AttentionRecallVerdict` or equivalent schema with `visible_recap_required`, `must_not_forget`, and `latest_report_summary_ref`.
+   - Assert tool-output recap thresholds exist and are not only comments.
 
-2. Extend `tests/scope_routing_regression_eval.sh`
+2. `tests/spec_report_replay_static_test.sh`
+   - Assert report/spec summaries can be saved as bounded handles.
+   - Assert a post-compaction prompt can recover the latest report summary without transcript-tail authority.
+
+3. `tests/spec_project_scope_override_static_test.sh`
+   - Assert Focus Slice / compaction text includes `CURRENT_ASK_SCOPE_VERDICT` or a scope sub-block inside `AttentionRecallVerdict`.
+   - Assert Workpoint packet uses `canonical_for_saved_scope` separately from `action_authority_for_current_ask`.
+   - Assert Focus Slice ordering puts attention/scope verdict before Workpoint continuation.
+
+4. Extend `tests/scope_routing_regression_eval.sh`
    - Assert new telemetry events are accepted and queryable.
    - Assert `scope_conflict_detected` is distinguishable from generic `scope_mismatch`.
 
-3. Add `tests/pi_session_project_switch_ledger_static_test.sh`
+5. Add `tests/pi_session_project_switch_ledger_static_test.sh`
    - Assert Pi extension source contains a bounded project-switch/session-evidence substrate, not only `S.sessionCwd`.
    - Assert conflict phrases route through the ledger before Workpoint action authority is granted.
 
-4. Add `tests/spec97_semantic_scope_conflict_primitive_static_test.sh`
+6. Add `tests/spec97_semantic_scope_conflict_primitive_static_test.sh`
    - Assert Reflex Primitive registry includes `detect_semantic_project_scope_conflict`.
    - Assert it outputs `CurrentScopeVerdict` and can suppress action authority without an API `scope_mismatch` first.
 
 ### Unit tests
 
-1. Current ask: “you are looking in the wrong place; this is the PTM remote project” + saved Workpoint `/home/wirebot/focusa`.
+1. After compaction, the model receives a Workpoint packet plus a `MEMORY_ANCHOR` saying “root failure is model forgetting / attention loss; project scope is a subtype.”
+   - Expected: first assistant action/report preserves that framing and does not reduce the problem to project scope alone.
+
+2. A just-produced report summary is followed by multiple large tool outputs.
+   - Expected: `visible_recap_required=true`; assistant can restate the report summary from the summary handle without asking the operator to scroll.
+
+3. Operator asks “what are you doing?” after tool-output flood.
+   - Expected: assistant answers from `MEMORY_ANCHOR` and active Workpoint in one or two lines before any further tool calls.
+
+4. Current ask: “you are looking in the wrong place; this is the PTM remote project” + saved Workpoint `/home/wirebot/focusa`.
    - Expected: `status=override_candidate` or `conflict`; `action_authority_for_current_ask=false`.
 
-2. Current ask: “write an incident spec in the Focusa directory” + saved Workpoint `/home/wirebot/focusa`.
+5. Current ask: “write an incident spec in the Focusa directory” + saved Workpoint `/home/wirebot/focusa`.
    - Expected: `status=aligned`; normal docs route allowed.
 
-3. Current ask names a remote path `/home/planmarr/plan-the-marriage` while current cwd is `/root` or `/home/wirebot/focusa`.
+6. Current ask names a remote path `/home/planmarr/plan-the-marriage` while current cwd is `/root` or `/home/wirebot/focusa`.
    - Expected: project verify/rebind route first; no local Focusa file inspection as target action.
 
-4. Same project, different continuity id.
+7. Same project, different continuity id.
    - Expected: existing continuity mismatch behavior still wins; no cross-session merge.
 
-5. Long same-Pi-session replay containing Focusa and PTM events.
+8. Long same-Pi-session replay containing Focusa and PTM events.
    - Input: saved Workpoint `/home/wirebot/focusa`, current ask “wrong place / PTM remote project,” session ledger has `/home/planmarr/plan-the-marriage` and `docs/HLT_LEDGER.md`.
    - Expected: PTM candidate outranks Focusa for current action; Focusa Workpoint remains canonical saved state but suppressed for action.
 
-6. Operator asks to write a Focusa detour spec after the PTM incident.
+9. Operator asks to write a Focusa detour spec after the PTM incident.
    - Input: current ask explicitly says “in the Focusa directory”.
    - Expected: Focusa candidate regains current-action authority for doc work; PTM session remains preserved but not active.
 
@@ -326,15 +437,19 @@ A live proof should demonstrate:
 
 ## Acceptance criteria
 
+- Focus Slice exposes a `MEMORY_ANCHOR` before verbose Workpoint/trajectory/tool-affordance payloads.
+- Retrieved critical facts are considered usable only after `AttentionRecallVerdict` confirms they are pinned or forces a recap.
+- A just-written report/spec summary remains replayable after compaction and tool-output flood without relying on transcript tail.
+- Tool-output bursts trigger a concise visible recap before additional action when attention risk is high.
 - A canonical packet is never treated as action-authoritative when current operator text declares a conflicting project.
-- Focus Slice exposes a current-ask scope verdict before Workpoint instructions.
+- Focus Slice exposes a current-ask scope verdict before Workpoint instructions, either standalone or inside `AttentionRecallVerdict`.
 - Workpoint resume rendering distinguishes saved-scope canonicality from current-ask action authority.
 - Operator project corrections trigger bounded project verification/rebind before file/API work.
 - Same-session project history is indexed as project-thread evidence, so “single Pi session” does not collapse multiple project scopes into one active target.
 - Semantic project conflicts can suppress action before any API-level `scope_mismatch` occurs.
-- Regression tests cover Focusa-local saved scope vs PTM remote current ask.
+- Regression tests cover Focusa-local saved scope vs PTM remote current ask, plus generic post-compaction/tool-flood forgetting.
 - Telemetry makes the event reviewable without raw transcript dependence.
-- Docs explain the difference between “canonical Workpoint” and “right project for this ask.”
+- Docs explain the difference between “stored memory,” “retrieved memory,” “attended memory,” and “action authority.”
 - Failure reports must cite evidence surfaces and rejected hypotheses; agreement with operator wording is not considered proof.
 
 ## Non-goals
@@ -348,13 +463,16 @@ A live proof should demonstrate:
 
 Suggested child beads:
 
-1. Add current-ask project override detector in Pi extension.
-2. Add Workpoint action-authority fields to resume packet rendering.
-3. Add scope arbitration block to Focus Slice and compaction output.
-4. Build bounded Pi session project-switch ledger from JSONL/session entries.
-5. Add semantic project-scope-conflict Reflex Primitive.
-6. Add telemetry events and regression tests for operator-declared project override.
-7. Update Workpoint/project-identity docs with the canonicality vs action-authority distinction.
+1. Add `AttentionRecallVerdict` and `MEMORY_ANCHOR` generation in Pi Focus Slice and compaction output.
+2. Add report-summary capture/replay handles for assistant-produced specs, audits, and final reports.
+3. Add tool-output flood recap thresholds and visible recap enforcement.
+4. Add current-ask project override detector in Pi extension as a scope subtype.
+5. Add Workpoint action-authority fields to resume packet rendering.
+6. Add scope arbitration block to Focus Slice and compaction output.
+7. Build bounded Pi session project-switch ledger from JSONL/session entries.
+8. Add semantic project-scope-conflict Reflex Primitive.
+9. Add telemetry events and regression tests for attention loss, forgotten reports, and operator-declared project override.
+10. Update Workpoint/project-identity/model-visible-awareness docs with stored vs retrieved vs attended memory and canonicality vs action-authority distinctions.
 
 ## Review discipline
 
@@ -368,4 +486,4 @@ This spec must remain falsifiable. Future updates should include:
 
 ## Design decision
 
-Focusa should treat canonical Workpoints as valid saved state, not unconditional action authority; current operator-declared project scope must be arbitrated before acting.
+Focusa should treat retrieved memory as action-usable only after it is pinned, checked, and either applied or recapped; canonical Workpoints are saved-state inputs, not sufficient action authority.
