@@ -23,13 +23,24 @@ Purpose: describe what the LLM actually sees from Focusa and the precedence of t
 
 Docs are **not** automatically visible unless injected by a card/slice/skill or read by the model.
 
-## Attention / recall gap (current design boundary)
+## Stored, retrieved, attended memory, and action authority
 
-A model seeing a Focusa surface is not the same as the model attending to it, applying it, or treating it as current-action authority. Workpoint, Trajectory, Focus Slice, and tool results are preserved/retrieved inputs; they still need a small action gate that proves critical facts were pinned or recapped before project-scoped tools run.
+Focusa now separates four states that were previously easy to conflate:
 
-Current audit finding: the Pi Focus Slice hot path can truncate from the bottom under pressure, and the existing truncation keeps only the first four lines. Therefore any anti-forgetting guard must be non-droppable and must appear before verbose Workpoint/Trajectory JSON. The planned surface is a tiny `MEMORY_ANCHOR` plus `AttentionRecallVerdict` / current-ask scope verdict that states task, must-not-forget facts, latest report summary ref, action authority, visible recap requirement, and required next step.
+- **Stored memory** — durable Focus State, Workpoints, Trajectory, evidence handles, telemetry traces, report-summary handles, and project-switch ledger observations.
+- **Retrieved memory** — a WorkpointResumePacket, Trajectory view, bounded traverse slice, or Focus Slice section selected for the next model turn.
+- **Attended memory** — the non-droppable prefix in the Focus Slice/compaction prompt: `MEMORY_ANCHOR`, `ATTENTION_RECALL_VERDICT`, `CURRENT_ASK_SCOPE_VERDICT`, and visible recap lines when tool output flood risk is active.
+- **Action authority** — the final gate for file/API/tool action. A packet can be `canonical_for_saved_scope=true` while `action_authority_for_current_ask=false` when the latest operator ask names a different project/root/remote.
 
-Until that verdict is implemented, this document describes model-visible inputs and intended precedence, not a hard proof that the model attended to every critical input.
+Implemented model-visible attention surfaces:
+
+- `MEMORY_ANCHOR` pins task, must-not-forget facts, latest report summary ref, evidence refs, next action, and action authority before verbose Workpoint/Trajectory JSON.
+- `ATTENTION_RECALL_VERDICT` reports attentive/attention-risk/conflict status, recap requirement, attention risks, and required next steps.
+- `CURRENT_ASK_SCOPE_VERDICT` compares current ask/project-switch ledger evidence against saved Workpoint scope and suppresses action on conflict.
+- Tool-output flood detection forces a visible recap and replays `latest_report_summary_ref` instead of relying on transcript scrollback.
+- `scope_conflict_detected` telemetry and the Spec97 `detect_semantic_project_scope_conflict` primitive distinguish semantic current-ask conflicts from API-level `scope_mismatch`.
+
+Regression evidence: `tests/spec_attention_recall_anchor_static_test.sh`, `tests/spec_report_replay_static_test.sh`, `tests/spec_project_scope_override_static_test.sh`, `tests/pi_session_project_switch_ledger_static_test.sh`, `tests/spec97_semantic_scope_conflict_primitive_static_test.sh`, and `tests/scope_routing_regression_eval.sh`.
 
 ## Continuous trajectory/project display
 
@@ -52,17 +63,17 @@ The startup/reload Utility Card also gives a compact orientation route, but it i
 Focus Slice sections are ordered by priority in `turns.ts`. The practical model precedence is:
 
 1. Operator steering/current ask.
-2. Hard safety + identity prior (`project_root + continuity_id`).
-3. ResourceMode when non-normal.
-4. Project Trajectory (`PROJECT_TRAJECTORY`).
-5. Workpoint continuation packet.
-6. Tool Affordances / next-tool routing / Reflex Primitive suggestions.
-7. Focus frame/current focus/intent.
-8. Ontology active objects/link paths/valid next actions.
-9. Constraints and decisions.
-10. Evidence/results/failures/next steps/artifact handles.
+2. Protected attention prefix: `MEMORY_ANCHOR`, `ATTENTION_RECALL_VERDICT`, `CURRENT_ASK_SCOPE_VERDICT`, and required recap lines.
+3. Hard safety + identity prior (`project_root + continuity_id`) and `action_authority_for_current_ask`.
+4. ResourceMode when non-normal.
+5. Project Trajectory (`PROJECT_TRAJECTORY`).
+6. Workpoint continuation packet (`canonical_for_saved_scope`, not automatically action authority).
+7. Tool Affordances / next-tool routing / Reflex Primitive suggestions.
+8. Focus frame/current focus/intent.
+9. Ontology active objects/link paths/valid next actions.
+10. Constraints, decisions, evidence/results/failures/next steps/artifact handles.
 
-Operator steering always wins, but stale transcript tail does not outrank canonical scoped Workpoint/Trajectory context. A future attention/recall verdict should sit above ordinary Focus Slice sections because it decides whether retrieved context is safe to use for the current action.
+Operator steering always wins, but stale transcript tail does not outrank canonical scoped Workpoint/Trajectory context. The attention/recall and current-ask scope verdicts sit above ordinary Focus Slice sections because they decide whether retrieved context is safe to use for the current action.
 
 ## Degraded / fallback posture
 
@@ -73,3 +84,7 @@ Operator steering always wins, but stale transcript tail does not outrank canoni
 The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes both `PROJECT_INFRA` and `PROJECT_ARCHITECTURE` so the model does not infer architecture from folder names alone. Machine-readable choreography edges are available at `docs/current/focusa-tool-choreography.json` and `GET /v1/ontology/tool-choreography`; live choreography can weight edges using evaluated prediction evidence.
 
 Spec97 Reflex Primitives are now model-visible through bounded `reflex_suggestions` in Pi/API result envelopes, `focusa_reflex_primitives`, direct `GET /v1/reflex/primitives`, and `surface=reflex_primitives` traversal. These are advisory recovery affordances only; they do not replace operator steering or canonical Workpoint/Trajectory scope gates.
+
+## Failure analysis/reporting discipline
+
+A model-forgetting or scope-override report is not proven by agreeing with operator wording. Reports must cite at least one evidence surface (Focus Slice/compaction block, WorkpointResumePacketV2 fields, telemetry trace, project-switch ledger observation, test, or evidence handle) and should list rejected hypotheses such as missing stored memory, daemon unavailability, API `scope_mismatch`, or operator ambiguity when the evidence rules them out.

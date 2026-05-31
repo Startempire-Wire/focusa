@@ -1,6 +1,6 @@
 # Model Forgetting / Scope Override Incident and Attention Guard Spec — 2026-05-31
 
-Status: draft for iteration; updated after anti-forgetting architecture review
+Status: implementation-backed guard spec; live integration proof pending
 Owner: Focusa project
 Incident class: retrieved-memory attention failure; project-scope override is one subtype
 Related docs: [`WORKPOINT_SESSION_SCOPE_GUARD.md`](./WORKPOINT_SESSION_SCOPE_GUARD.md), [`DETOUR_SCOPE_ASSURANCE_AND_IMPLEMENTATION_STATUS_2026-05-29.md`](./DETOUR_SCOPE_ASSURANCE_AND_IMPLEMENTATION_STATUS_2026-05-29.md), [`../69-scope-failure-and-relevance-tracing.md`](../69-scope-failure-and-relevance-tracing.md), [`PROJECT_INTELLIGENCE_FLYWHEEL.md`](./PROJECT_INTELLIGENCE_FLYWHEEL.md), [`FOCUSA_MODEL_VISIBLE_AWARENESS.md`](./FOCUSA_MODEL_VISIBLE_AWARENESS.md)
@@ -57,7 +57,7 @@ Review date: 2026-05-31. Line numbers are local source positions from the review
 
 A follow-up architecture pass confirmed the gap is cross-surface attention/action authority rather than a single missing memory store.
 
-- Source search found no implemented `MEMORY_ANCHOR`, `AttentionRecallVerdict`, `visible_recap_required`, `latest_report_summary_ref`, `project_thread_observation`, `detect_semantic_project_scope_conflict`, `canonical_for_saved_scope`, or `action_authority_for_current_ask` markers outside this draft spec.
+- Initial source search found no implemented `MEMORY_ANCHOR`, `AttentionRecallVerdict`, `visible_recap_required`, `latest_report_summary_ref`, `project_thread_observation`, `detect_semantic_project_scope_conflict`, `canonical_for_saved_scope`, or `action_authority_for_current_ask` markers outside this draft spec; the `focusa-yv8d` implementation now adds these markers across Pi Focus Slice/compaction, WorkpointResumePacketV2, report replay, project-switch ledger, Spec97 Reflex metadata, and telemetry regression gates.
 - `apps/pi-extension/src/turns.ts:723-724` truncates the Focus Slice to the first four lines under pressure, which can preserve only header/projection/view/current ask and drop `QUERY_SCOPE`, `PROJECT_TRAJECTORY`, `WORKPOINT`, and tool affordances.
 - `crates/focusa-core/src/expression/engine.rs` has reduced/pinned ASCC degradation, but Pi’s custom Focus Slice assembly bypasses that protection.
 - `crates/focusa-api/src/routes/workpoint.rs` renders WorkpointResumePacketV2 with saved-scope canonicality and identity axes, but does not compute current-ask action authority.
@@ -65,6 +65,23 @@ A follow-up architecture pass confirmed the gap is cross-surface attention/actio
 - Tool-output externalization exists, but no runtime policy forces a visible recap or report-summary replay after tool-output flood.
 
 Implementation priority from this audit: first make a protected prefix/verdict survive degradation, then split Workpoint action authority, then add report replay, project-switch ledger, and semantic conflict primitive.
+
+
+## Implementation status snapshot — 2026-05-31
+
+The anti-forgetting guard is implemented in source and regression-tested; live integration proof is tracked separately by `focusa-yv8d.12`.
+
+Implemented surfaces and proof handles:
+
+- Protected attention prefix: `MEMORY_ANCHOR` and `ATTENTION_RECALL_VERDICT` in Focus Slice/compaction output; proof `tests/spec_attention_recall_anchor_static_test.sh`.
+- Report replay: `latest_report_summary_ref` capture/persistence and visible recap after tool-output flood; proof `tests/spec_report_replay_static_test.sh` and `tests/spec_tool_output_flood_recap_static_test.sh`.
+- Saved scope vs action authority: `canonical_for_saved_scope`, `matches_current_ask_scope`, `action_authority_for_current_ask`, and `scope_conflict_reason`; proof `tests/spec_project_scope_override_static_test.sh`.
+- Scope arbitration: `CURRENT_ASK_SCOPE_VERDICT` before Workpoint continuation in Focus Slice/compaction; proof `tests/spec_scope_arbitration_block_static_test.sh`.
+- Project-switch ledger: bounded same-session project observations surfaced without raw transcript scans; proof `tests/pi_session_project_switch_ledger_static_test.sh`.
+- Semantic Reflex primitive: `detect_semantic_project_scope_conflict` outputs `CurrentScopeVerdict`; proof `tests/spec97_semantic_scope_conflict_primitive_static_test.sh`.
+- Telemetry regression: `scope_conflict_detected` is query-distinguishable from generic `scope_mismatch`; proof `tests/scope_routing_regression_eval.sh`.
+
+Failure reports for this class must cite evidence surfaces and rejected hypotheses. Agreement with an operator correction is not proof; the report must show which stored/retrieved/attended/action-authority layer failed or passed.
 
 ## Expected behavior
 

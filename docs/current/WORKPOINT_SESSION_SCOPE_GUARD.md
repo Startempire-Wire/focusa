@@ -36,7 +36,9 @@ Required anti-forgetting fields for Workpoint resume/rendering:
 - `action_authority_for_current_ask` — file/API/tool action may proceed under this Workpoint.
 - `scope_conflict_reason` — bounded evidence when action authority is suppressed.
 
-Current scope guards reject unsafe or mismatched packets at resume/checkpoint boundaries. A separate current-ask scope verdict is still needed to handle cases where an operator correction supersedes a previously canonical packet without invalidating the old saved state.
+Current scope guards reject unsafe or mismatched packets at resume/checkpoint boundaries. Pi now also emits `CURRENT_ASK_SCOPE_VERDICT` before Workpoint instructions in Focus Slice/compaction output; when it detects a semantic project conflict, it preserves the old packet as canonical for saved scope, sets `action_authority_for_current_ask=false`, emits `scope_conflict_detected` telemetry, and routes to `focusa_project_verify` / `focusa_project_identity` / `focusa_workpoint_checkpoint` before file or API action.
+
+The semantic conflict guard is supported by the Spec97 `detect_semantic_project_scope_conflict` primitive. That primitive outputs `CurrentScopeVerdict` metadata and remains read-only/advisory; Workpoint/project identity gates and operator steering retain authority.
 
 ## Scenario matrix
 
@@ -61,4 +63,8 @@ For `project_root` mismatch or unsafe broad-root project folder, follow the curr
 cargo test -p focusa-core reducer::tests::same_project_distinct_continuity_frames_remain_active_without_cross_pause
 cargo test -p focusa-api workpoint
 tests/spec96_workpoint_post_compaction_resume_static_test.sh
+tests/spec_project_scope_override_static_test.sh
+tests/spec_scope_arbitration_block_static_test.sh
+tests/spec97_semantic_scope_conflict_primitive_static_test.sh
+tests/scope_routing_regression_eval.sh
 ```
