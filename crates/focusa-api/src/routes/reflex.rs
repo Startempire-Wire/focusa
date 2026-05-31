@@ -13,7 +13,16 @@ const MAX_LIMIT: usize = 50;
 
 pub fn reflex_suggestions_for_failure(failure_class: &str) -> Vec<&'static str> {
     match failure_class {
-        "scope_mismatch" => vec!["diagnose_scope_mismatch", "confirm_continuity_scope"],
+        "scope_conflict" => vec![
+            "detect_semantic_project_scope_conflict",
+            "bind_project_root",
+            "confirm_continuity_scope",
+        ],
+        "scope_mismatch" => vec![
+            "diagnose_scope_mismatch",
+            "detect_cross_project_packet",
+            "confirm_continuity_scope",
+        ],
         "hot_path_timeout" | "cold_path_timeout" | "resource_exhausted" | "daemon_unavailable" => {
             vec!["resource_mode_fallback", "degrade_with_recovery"]
         }
@@ -173,5 +182,35 @@ mod tests {
             payload["items"][0]["source"].as_str(),
             Some("spec97_reflex_primitive_registry")
         );
+    }
+
+    #[test]
+    fn semantic_project_scope_conflict_primitive_outputs_current_scope_verdict() {
+        let payload = reflex_primitives_payload(&ReflexPrimitiveQuery {
+            query: Some("detect_semantic_project_scope_conflict".to_string()),
+            include_payload: Some(true),
+            ..ReflexPrimitiveQuery::default()
+        });
+        let items = payload["items"].as_array().unwrap();
+        assert_eq!(items.len(), 1);
+        let primitive = &items[0];
+        assert_eq!(
+            primitive["primitive_id"].as_str(),
+            Some("detect_semantic_project_scope_conflict")
+        );
+        assert_eq!(
+            primitive["evidence_output"]["object"].as_str(),
+            Some("CurrentScopeVerdict")
+        );
+        assert_eq!(
+            primitive["evidence_output"]["authority_field"].as_str(),
+            Some("action_authority_for_current_ask")
+        );
+        assert_eq!(
+            primitive["reflex_action"]["recommended_tool"].as_str(),
+            Some("focusa_project_verify")
+        );
+        let suggestions = reflex_suggestions_for_failure("scope_conflict");
+        assert!(suggestions.contains(&"detect_semantic_project_scope_conflict"));
     }
 }

@@ -203,6 +203,7 @@ type FocusaFailureClass =
   | "cold_path_timeout"
   | "writer_conflict"
   | "scope_mismatch"
+  | "scope_conflict"
   | "approval_required"
   | "permission_denied"
   | "process_control_failed"
@@ -236,8 +237,14 @@ interface FocusaToolResultV1 {
 function reflexSuggestionsForFailure(failureClass: FocusaFailureClass | null, status: FocusaToolStatus, nextTools: string[]): string[] {
   const suggestions = new Set<string>();
   switch (failureClass) {
+    case "scope_conflict":
+      suggestions.add("detect_semantic_project_scope_conflict");
+      suggestions.add("bind_project_root");
+      suggestions.add("confirm_continuity_scope");
+      break;
     case "scope_mismatch":
       suggestions.add("diagnose_scope_mismatch");
+      suggestions.add("detect_cross_project_packet");
       suggestions.add("confirm_continuity_scope");
       break;
     case "hot_path_timeout":
@@ -289,6 +296,7 @@ function inferFailureClass(status: FocusaToolStatus, summary: string, message?: 
     return /(cold|deep|replay|worktree|diagnostic)/.test(text) ? "cold_path_timeout" : "hot_path_timeout";
   }
   if (text.includes("claimed by another writer") || text.includes("writer_conflict") || text.includes("controlled by another session")) return "writer_conflict";
+  if (text.includes("scope_conflict") || text.includes("action_authority_for_current_ask=false") || text.includes("action authority for current ask") || text.includes("current ask project conflict")) return "scope_conflict";
   if (text.includes("project_root mismatch") || text.includes("scope mismatch") || text.includes("cross-project")) return "scope_mismatch";
   if (text.includes("approval required") || text.includes("requires approved")) return "approval_required";
   if (text.includes("permission denied") || text.includes("unauthorized") || text.includes("forbidden")) return "permission_denied";
@@ -300,6 +308,8 @@ function inferFailureClass(status: FocusaToolStatus, summary: string, message?: 
 
 function recoveryHintForFailure(failureClass: FocusaFailureClass | null, status: FocusaToolStatus, tool?: string): { recovery_hint?: string; misuse_hint?: string; next_tools?: string[] } {
   switch (failureClass) {
+    case "scope_conflict":
+      return { recovery_hint: "Treat the saved packet as canonical only for its saved scope; verify the current-ask project, then checkpoint/resume in the correct project before file/API action.", misuse_hint: "Usually caused by operator project correction, alias/path mismatch, or project-switch ledger evidence that predates API-level scope_mismatch.", next_tools: ["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] };
     case "scope_mismatch":
       return { recovery_hint: "Use focusa_project_identity/verify with explicit project_root, then checkpoint/resume in the same continuity; do not retry stale packets unchanged.", misuse_hint: "Usually caused by broad cwd, cross-project packet reuse, or tool call before project binding.", next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"] };
     case "frame_unavailable":

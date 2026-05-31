@@ -153,6 +153,7 @@
         "cold_path_timeout",
         "writer_conflict",
         "scope_mismatch",
+        "scope_conflict",
         "approval_required",
         "permission_denied",
         "noncanonical_fallback",

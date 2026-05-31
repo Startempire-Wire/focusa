@@ -1774,9 +1774,9 @@ export function buildFocusaToolAffordanceCatalog(contracts: FocusaToolContract[]
       "Inspect details.tool_result_v1.status, canonical/degraded, retry posture, side_effects, evidence_refs, and next_tools.",
       ...mutabilityFor(contract.side_effect_profile),
     ],
-    failure_classes: ["scope_mismatch", "resource_exhausted", "cold_path_timeout", "hot_path_timeout", "daemon_unavailable", "read_model_lag", "validation_rejected"],
+    failure_classes: ["scope_conflict", "scope_mismatch", "resource_exhausted", "cold_path_timeout", "hot_path_timeout", "daemon_unavailable", "read_model_lag", "validation_rejected"],
     recovery: [
-      "scope_mismatch -> focusa_project_verify or checkpoint in the correct project_root+continuity_id context",
+      "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
       "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
       "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture",
     ],
@@ -1809,7 +1809,7 @@ export function selectFocusSliceToolAffordances(options: FocusSliceToolAffordanc
   return {
     best_next: bestNext.slice(0, 6),
     recovery: [
-      "scope_mismatch -> focusa_project_verify; focusa_workpoint_checkpoint",
+      "scope_conflict|scope_mismatch -> focusa_project_verify; focusa_workpoint_checkpoint",
       "resource_exhausted|cold_path_timeout -> focusa_resource_mode; focusa_traverse narrow slice",
       "canonical=false|degraded=true -> focusa_tool_doctor; focusa_workpoint_resume",
     ],

@@ -2,7 +2,7 @@
   "schema": "focusa.reflex_primitives.v1",
   "version": "spec97.reflex_primitives.v1",
   "status": "read_only_registry",
-  "primitive_count": 40,
+  "primitive_count": 41,
   "families": [
     "continuity",
     "evidence",
@@ -108,6 +108,45 @@
       "hot_path_budget": "summary_first; cold_payload_requires_explicit_opt_in",
       "failure_envelope": "tool_result_v1_or_typed_empty_state_with_failure_class_retry_posture_next_tools",
       "implementation_status": "registry_only_existing_substrate"
+    },
+    {
+      "primitive_id": "detect_semantic_project_scope_conflict",
+      "family": "scope",
+      "trigger": "current_ask_operator_project_correction_or_project_alias_differs_from_saved_workpoint_scope_before_tool_api_scope_mismatch",
+      "context_inputs": [
+        "CurrentAsk",
+        "ProjectSwitchLedger",
+        "Workpoint",
+        "ProjectIdentity",
+        "WorkpointResumePacket"
+      ],
+      "reflex_action": {
+        "kind": "derive_current_scope_verdict_and_route_to_existing_surface",
+        "recommended_tool": "focusa_project_verify",
+        "secondary_tools": [
+          "focusa_project_identity",
+          "focusa_workpoint_checkpoint",
+          "focusa_workpoint_resume"
+        ]
+      },
+      "evidence_output": {
+        "kind": "CurrentScopeVerdict",
+        "object": "CurrentScopeVerdict",
+        "schema": "focusa.current_scope_verdict.v1",
+        "authority_field": "action_authority_for_current_ask"
+      },
+      "output_fields": [
+        "canonical_for_saved_scope",
+        "matches_current_ask_scope",
+        "action_authority_for_current_ask",
+        "scope_conflict_reason",
+        "required_next"
+      ],
+      "escalation_boundary": "operator_input_or_model_reasoning_required_when_current_ask_project_conflict_lacks_verified_root_or_requires_migration_supersession",
+      "authority_boundary": "advisory CurrentScopeVerdict can suppress action_authority_for_current_ask; project_root_plus_continuity_id and operator steering remain authority",
+      "hot_path_budget": "hot_pre_action; summary_first; use bounded ProjectSwitchLedger; no full session transcript scan by default",
+      "failure_envelope": "tool_result_v1_or_current_scope_verdict_with_failure_class_scope_conflict_retry_posture_do_not_retry_unchanged_next_tools",
+      "implementation_status": "registry_backed_existing_current_ask_scope_verdict"
     },
     {
       "primitive_id": "resolve_active_object",

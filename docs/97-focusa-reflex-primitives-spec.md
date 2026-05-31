@@ -179,6 +179,7 @@ Initial primitives:
 
 | Primitive | Trigger | Reflex action | Escalation |
 |---|---|---|---|
+| `detect_semantic_project_scope_conflict` | operator project correction or project alias/path conflicts with saved Workpoint before API `scope_mismatch` | derive `CurrentScopeVerdict`, set `action_authority_for_current_ask=false`, and route verify/rebind | unknown root or migration/supersession choice |
 | `resolve_active_object` | evidence/action target ambiguous | run active object resolution with current Workpoint + hint | multiple incompatible targets |
 | `enforce_do_not_drift` | next action crosses Workpoint boundary | surface blocker/drift warning | operator intentionally changes mission |
 | `steering_reset_slice` | operator changes subject | suppress stale Focus Slice and rebuild relevant slice | conflicting operator instructions |
