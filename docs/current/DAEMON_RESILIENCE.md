@@ -68,6 +68,8 @@ Relevant config keys:
 
 The daemon allows unauthenticated local-first use only on loopback binds such as `127.0.0.1:8787` or `[::1]:8787`. Startup fails with `INSECURE_BIND_WITHOUT_AUTH` when `FOCUSA_BIND` is non-loopback and no enforced `FOCUSA_AUTH_TOKEN` is configured. Config-file `auth_token` is not accepted for non-loopback exposure until middleware enforcement supports it.
 
+`FOCUSA_AUTH_TOKEN` is a deployment/API bearer-token secret only. It is not a product license key, plan entitlement, billing token, seat control, commercial-license term, or pricing primitive. Licensing and commercial terms stay in the license/commercial docs, and any future license-plan design should use a separate name, storage model, and decision flow.
+
 ## Recovery commands
 
 ```bash
