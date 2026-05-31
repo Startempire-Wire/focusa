@@ -69,6 +69,7 @@ pub struct WorkpointResumeRequest {
     pub project_root: Option<String>,
     pub work_item_id: Option<String>,
     pub trajectory_id: Option<String>,
+    pub current_ask: Option<String>,
     #[serde(default)]
     pub frame_tags: Vec<String>,
 }
@@ -1774,6 +1775,79 @@ fn resume_summary_v2(
     })
 }
 
+fn explicit_project_path_from_ask(ask: &str) -> Option<String> {
+    ask.split_whitespace()
+        .map(|token| {
+            token.trim_matches(|c: char| {
+                matches!(c, ',' | '.' | ';' | ':' | ')' | '(' | '`' | '"' | '\'')
+            })
+        })
+        .find(|token| {
+            (token.starts_with("/home/") || token.starts_with("/Users/"))
+                && token.trim_matches('/').split('/').count() >= 3
+        })
+        .map(|token| token.trim_end_matches('/').to_string())
+}
+
+fn current_ask_scope_conflict_reason(
+    record: &WorkpointRecord,
+    req: &WorkpointResumeRequest,
+) -> Option<String> {
+    let ask = clean_resume_scope_value(req.current_ask.as_deref())?;
+    let lower = ask.to_lowercase();
+    let saved_root = record
+        .project_root
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .trim_end_matches('/');
+    if let Some(path) = explicit_project_path_from_ask(&ask) {
+        let normalized = path.trim_end_matches('/');
+        if !saved_root.is_empty() && normalized != saved_root {
+            return Some(format!(
+                "operator named different project path {normalized}"
+            ));
+        }
+    }
+    if [
+        "wrong place",
+        "not this repo",
+        "not this project",
+        "different project",
+        "remote project",
+        "switch project",
+    ]
+    .iter()
+    .any(|phrase| lower.contains(phrase))
+    {
+        return Some("operator text indicates current project/root may be wrong".to_string());
+    }
+    if (lower.contains("ptm") || lower.contains("planmarr") || lower.contains("plan-the-marriage"))
+        && !saved_root.contains("planmarr")
+        && !saved_root.contains("plan-the-marriage")
+    {
+        return Some("operator text names PTM/planmarr while saved scope is different".to_string());
+    }
+    None
+}
+
+fn current_ask_action_authority_payload(
+    record: &WorkpointRecord,
+    canonical_for_saved_scope: bool,
+    req: &WorkpointResumeRequest,
+) -> Value {
+    let conflict = current_ask_scope_conflict_reason(record, req);
+    let matches_current_ask_scope = conflict.is_none();
+    json!({
+        "canonical_for_saved_scope": canonical_for_saved_scope,
+        "matches_current_ask_scope": matches_current_ask_scope,
+        "action_authority_for_current_ask": canonical_for_saved_scope && matches_current_ask_scope,
+        "scope_conflict_reason": conflict.unwrap_or_else(|| "none".to_string()),
+        "current_ask_present": clean_resume_scope_value(req.current_ask.as_deref()).is_some(),
+        "authority_boundary": "saved_scope_plus_current_ask_scope",
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn workpoint_resume_packet_v2(
     record: &WorkpointRecord,
@@ -1791,19 +1865,42 @@ fn workpoint_resume_packet_v2(
     } else {
         json!("scope_unbound_or_non_canonical")
     };
-    let next_tools = json!([
-        "focusa_workpoint_resume",
-        "focusa_trajectory_view",
-        "focusa_traverse",
-        "focusa_active_object_resolve"
-    ]);
+    let current_ask_scope = current_ask_action_authority_payload(record, canonical, req);
+    let action_authority = current_ask_scope
+        .get("action_authority_for_current_ask")
+        .and_then(Value::as_bool)
+        .unwrap_or(canonical);
+    let current_action_failure_class = if canonical && !action_authority {
+        json!("scope_conflict")
+    } else {
+        failure_class.clone()
+    };
+    let next_tools = if action_authority {
+        json!([
+            "focusa_workpoint_resume",
+            "focusa_trajectory_view",
+            "focusa_traverse",
+            "focusa_active_object_resolve"
+        ])
+    } else {
+        json!([
+            "focusa_project_verify",
+            "focusa_project_identity",
+            "focusa_workpoint_checkpoint",
+            "focusa_workpoint_resume"
+        ])
+    };
     let tool_result = json!({
-        "ok": canonical,
+        "ok": canonical && action_authority,
         "status": "completed",
         "canonical": canonical,
-        "degraded": !canonical,
-        "failure_class": failure_class.clone(),
-        "retry": {"safe": true, "posture": if canonical { "safe_retry" } else { "do_not_retry_unchanged" }},
+        "canonical_for_saved_scope": canonical,
+        "matches_current_ask_scope": current_ask_scope.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)),
+        "action_authority_for_current_ask": action_authority,
+        "scope_conflict_reason": current_ask_scope.get("scope_conflict_reason").cloned().unwrap_or(json!("none")),
+        "degraded": !canonical || !action_authority,
+        "failure_class": current_action_failure_class.clone(),
+        "retry": {"safe": action_authority, "posture": if action_authority { "safe_retry" } else { "do_not_retry_unchanged" }},
         "side_effects": ["workpoint_resume_rendered"],
         "evidence_refs": record.verification_records.iter().take(8).filter_map(|v| v.evidence_ref.clone()).collect::<Vec<_>>(),
         "next_tools": next_tools.clone(),
@@ -1814,9 +1911,14 @@ fn workpoint_resume_packet_v2(
         "generated_at": generated_at,
         "resume_source": packet_resume_source(record, req),
         "canonical": canonical,
-        "degraded": !canonical,
+        "degraded": !canonical || !action_authority,
+        "canonical_for_saved_scope": current_ask_scope.get("canonical_for_saved_scope").cloned().unwrap_or(json!(canonical)),
+        "matches_current_ask_scope": current_ask_scope.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)),
+        "action_authority_for_current_ask": current_ask_scope.get("action_authority_for_current_ask").cloned().unwrap_or(json!(canonical)),
+        "scope_conflict_reason": current_ask_scope.get("scope_conflict_reason").cloned().unwrap_or(json!("none")),
+        "current_ask_scope": current_ask_scope,
         "confidence": resume_confidence_level(canonical, &identity_confidence),
-        "failure_class": failure_class.clone(),
+        "failure_class": current_action_failure_class.clone(),
         "project_identity": project_identity_payload(record, req, canonical),
         "session_identity": session_identity_payload(record, req, &generated_at, canonical),
         "project_root": record.project_root,
@@ -1838,7 +1940,7 @@ fn workpoint_resume_packet_v2(
             "stale": false,
         },
         "api_provenance": [
-            {"tool_or_route": "focusa_workpoint_resume", "route": "/v1/workpoint/resume", "purpose": "render active Workpoint continuation", "status": "completed", "canonical": canonical, "failure_class": failure_class.clone(), "freshness": "live", "tool_result_v1": tool_result.clone()},
+            {"tool_or_route": "focusa_workpoint_resume", "route": "/v1/workpoint/resume", "purpose": "render active Workpoint continuation", "status": "completed", "canonical": canonical, "failure_class": current_action_failure_class.clone(), "freshness": "live", "tool_result_v1": tool_result.clone()},
             {"tool_or_route": "focusa_trajectory_view", "route": "/v1/trajectory/view", "purpose": "advisory goal/state/gap projection", "status": "projected", "canonical": false, "advisory_only": true, "failure_class": Value::Null, "freshness": "cached", "tool_result_v1": {"ok": true, "status": "projected", "canonical": false, "degraded": false, "failure_class": Value::Null, "retry": {"safe": true, "posture": "safe_retry"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_trajectory_view"]}},
             {"tool_or_route": "focusa_traverse", "route": "/v1/traverse", "purpose": "bounded supporting slice descriptors", "status": "candidate_slices", "canonical": false, "advisory_only": true, "failure_class": Value::Null, "freshness": "unknown", "tool_result_v1": {"ok": true, "status": "candidate_slices", "canonical": false, "degraded": false, "failure_class": Value::Null, "retry": {"safe": true, "posture": "safe_retry"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_traverse"]}}
         ],
@@ -1948,6 +2050,18 @@ async fn resume(
         .get("failure_class")
         .cloned()
         .unwrap_or(Value::Null);
+    let action_authority = packet_v2
+        .get("action_authority_for_current_ask")
+        .and_then(Value::as_bool)
+        .unwrap_or(canonical);
+    let response_next_tools = packet_v2.get("next_tools").cloned().unwrap_or_else(|| {
+        json!([
+            "focusa_workpoint_resume",
+            "focusa_trajectory_view",
+            "focusa_traverse",
+            "focusa_active_object_resolve"
+        ])
+    });
     let mut warnings = mismatch_warnings;
     if !canonical {
         warnings.push("resume packet is non-canonical fallback because project folder/continuity context is unbound or packet is non-canonical".to_string());
@@ -1960,7 +2074,12 @@ async fn resume(
         "schema_version": "focusa.workpoint_resume_packet.v2",
         "workpoint_id": workpoint_id,
         "canonical": canonical,
-        "degraded": !canonical,
+        "degraded": !canonical || !action_authority,
+        "canonical_for_saved_scope": packet_v2.get("canonical_for_saved_scope").cloned().unwrap_or(json!(canonical)),
+        "matches_current_ask_scope": packet_v2.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)),
+        "action_authority_for_current_ask": packet_v2.get("action_authority_for_current_ask").cloned().unwrap_or(json!(canonical)),
+        "scope_conflict_reason": packet_v2.get("scope_conflict_reason").cloned().unwrap_or(json!("none")),
+        "current_ask_scope": packet_v2.get("current_ask_scope").cloned().unwrap_or_else(|| json!({})),
         "failure_class": failure_class,
         "resume_packet": packet,
         "resume_packet_v2": packet_v2,
@@ -1970,7 +2089,7 @@ async fn resume(
         "session_continuity": session_continuity,
         "identity_confidence": identity_confidence,
         "identity_confidence_percent": identity_confidence.get("percent").and_then(Value::as_u64).unwrap_or(0),
-        "next_tools": ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse", "focusa_active_object_resolve"],
+        "next_tools": response_next_tools,
         "details": {"tool_result_v1": tool_result},
         "next_step_hint": "inject rendered_summary plus resume_packet before the next Pi turn"
     })))
@@ -2464,6 +2583,71 @@ mod tests {
             v2.pointer("/trajectory/hierarchy/must_not_merge_on_similarity")
                 .and_then(Value::as_bool),
             Some(true)
+        );
+    }
+
+    #[test]
+    fn resume_packet_v2_splits_saved_scope_from_current_action_authority() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            mission: Some("Continue Focusa implementation".to_string()),
+            next_slice: Some("Patch Workpoint authority labels".to_string()),
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let scope = evaluate_resume_scope(
+            &record,
+            Some("/home/wirebot/focusa"),
+            Some("focusa-cont"),
+            Some("session-a"),
+        );
+        let req = WorkpointResumeRequest {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            session_id: Some("session-a".to_string()),
+            current_ask: Some(
+                "wrong place; this is the PTM remote project at /home/planmarr/plan-the-marriage"
+                    .to_string(),
+            ),
+            ..WorkpointResumeRequest::default()
+        };
+        let packet = workpoint_resume_packet_v2(
+            &record,
+            workpoint_packet(&record),
+            &resume_summary(&record),
+            true,
+            json!({"session_changed": false}),
+            json!({"percent": 100}),
+            &scope,
+            &req,
+        );
+        assert_eq!(packet.get("canonical").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            packet
+                .get("canonical_for_saved_scope")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            packet
+                .get("matches_current_ask_scope")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            packet
+                .get("action_authority_for_current_ask")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert!(
+            packet
+                .get("scope_conflict_reason")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("/home/planmarr/plan-the-marriage")
         );
     }
 

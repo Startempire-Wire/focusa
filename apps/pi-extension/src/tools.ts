@@ -3561,6 +3561,7 @@ export function registerTools(pi: ExtensionAPI) {
       session_id: Type.Optional(Type.String({ description: "Optional temporal Pi session id; defaults to this Pi session key." })),
       mode: Type.Optional(Type.String({ description: "compact_prompt|full_json|operator_summary" })),
       project_root: Type.Optional(Type.String({ description: "Explicit safe project folder/root; defaults to Pi session cwd when that cwd is safe." })),
+      current_ask: Type.Optional(Type.String({ description: "Optional latest operator ask used to compute current-action authority; defaults to Pi current ask." })),
     }),
     promptGuidelines: [
       "Use immediately after compaction or session resume before choosing next work.",
@@ -3568,7 +3569,7 @@ export function registerTools(pi: ExtensionAPI) {
       "If canonical=false, state degraded status and avoid treating it as canonical truth.",
     ],
     async execute(_id, params) {
-      const p = params as { workpoint_id?: string; continuity_id?: string; session_id?: string; mode?: string; project_root?: string };
+      const p = params as { workpoint_id?: string; continuity_id?: string; session_id?: string; mode?: string; project_root?: string; current_ask?: string };
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
@@ -3576,7 +3577,7 @@ export function registerTools(pi: ExtensionAPI) {
         const reason = projectRootAuthorityFailure(projectRoot) || "unsafe_project_root";
         return { content: [{ type: "text", text: `workpoint resume blocked → unsafe project_root (${reason}); ignore stale packets and follow latest operator instruction.` }], details: { ok: false, status: "blocked", failure_class: "scope_mismatch", project_root: projectRoot, reason, next_tools: ["focusa_project_identity", "focusa_tool_doctor"] } } as any;
       }
-      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", continuity_id: p.continuity_id || ensureContinuityId(projectRoot), session_id: p.session_id || S.sessionFrameKey, project_root: projectRoot, session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const payload = { workpoint_id: p.workpoint_id, mode: p.mode || "compact_prompt", continuity_id: p.continuity_id || ensureContinuityId(projectRoot), session_id: p.session_id || S.sessionFrameKey, project_root: projectRoot, current_ask: p.current_ask || S.currentAsk?.text || "", session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const res = await focusaFetchDetailed("/workpoint/resume", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -3614,7 +3615,25 @@ export function registerTools(pi: ExtensionAPI) {
           : [`workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`, recovery?.text].filter(Boolean).join("\n");
       const v2 = res.body?.resume_packet_v2 || null;
       const canonical = res.body?.canonical === true;
-      const recoveryPacket = canonical ? null : {
+      const actionAuthority = res.body?.action_authority_for_current_ask !== false && v2?.action_authority_for_current_ask !== false;
+      const matchesCurrentAskScope = res.body?.matches_current_ask_scope !== false && v2?.matches_current_ask_scope !== false;
+      const scopeConflictReason = String(res.body?.scope_conflict_reason || v2?.scope_conflict_reason || "none");
+      const authoritySuppressed = canonical && !actionAuthority;
+      const recoveryPacket = authoritySuppressed ? {
+        status: "action_authority_suppressed",
+        authority: "operator_and_current_project_context",
+        canonical: true,
+        canonical_for_saved_scope: true,
+        action_authority_for_current_ask: false,
+        matches_current_ask_scope: false,
+        degraded: true,
+        reason: scopeConflictReason,
+        project_root: projectRoot,
+        continuity_id: payload.continuity_id,
+        safe_next_action: "verify/rebind the current operator-indicated project, then checkpoint/resume a Workpoint in that corrected scope before file/API action",
+        next_tools: ["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"],
+        do_not_use: ["saved_scope_as_current_action_authority", "transcript_tail_as_authority", "cross_project_packets"],
+      } : canonical ? null : {
         status: "recovery_required",
         authority: "operator_and_current_project_context",
         canonical: false,
@@ -3626,11 +3645,13 @@ export function registerTools(pi: ExtensionAPI) {
         next_tools: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"],
         do_not_use: ["transcript_tail_as_authority", "cross_project_packets", "noncanonical_resume_as_truth"],
       };
-      const toolResult = res.body?.details?.tool_result_v1 || v2?.details?.tool_result_v1 || { ok: res.ok && !rejected && canonical, status: res.ok ? String(res.body?.status || "completed") : String(res.status), canonical, degraded: res.body?.degraded === true || !canonical || rejected, failure_class: res.body?.failure_class || (rejected ? "scope_mismatch" : canonical ? null : "frame_unavailable"), retry: { safe: res.ok && !rejected, posture: canonical ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"] };
+      const baseToolResult = res.body?.details?.tool_result_v1 || v2?.details?.tool_result_v1 || { ok: res.ok && !rejected && canonical, status: res.ok ? String(res.body?.status || "completed") : String(res.status), canonical, degraded: res.body?.degraded === true || !canonical || rejected, failure_class: res.body?.failure_class || (rejected ? "scope_mismatch" : canonical ? null : "frame_unavailable"), retry: { safe: res.ok && !rejected, posture: canonical ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"] };
+      const toolResult = authoritySuppressed ? { ...baseToolResult, ok: false, degraded: true, failure_class: baseToolResult.failure_class || "scope_conflict", canonical_for_saved_scope: true, matches_current_ask_scope: matchesCurrentAskScope, action_authority_for_current_ask: false, scope_conflict_reason: scopeConflictReason, retry: { safe: false, posture: "do_not_retry_unchanged" }, next_tools: recoveryPacket?.next_tools || baseToolResult.next_tools } : baseToolResult;
+      const authorityText = authoritySuppressed ? `\naction authority suppressed → ${scopeConflictReason}; saved Workpoint remains canonical_for_saved_scope=true.` : "";
       const recoveryText = recoveryPacket ? `\nrecovery → ${recoveryPacket.safe_next_action}` : "";
       return {
-        content: [{ type: "text", text: `${text}${recoveryText}` }],
-        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical, degraded: res.body?.degraded === true || !canonical, failure_class: toolResult.failure_class || null, recovery_packet: compactApiEcho(recoveryPacket), scope_recovery_context: compactApiEcho(recovery?.details || null), resume_packet_v2: compactApiEcho(v2), rendered_summary: String(res.body?.rendered_summary || "").slice(0, 240), tool_result_v1: toolResult, next_tools: (toolResult.next_tools || recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"]).slice(0, 4), request: compactApiEcho(payload), response: compactApiEcho(res.body) },
+        content: [{ type: "text", text: `${text}${authorityText}${recoveryText}` }],
+        details: { ok: toolResult.ok, status: res.status, endpoint: "/workpoint/resume", canonical, canonical_for_saved_scope: canonical, matches_current_ask_scope: matchesCurrentAskScope, action_authority_for_current_ask: actionAuthority, scope_conflict_reason: scopeConflictReason, degraded: res.body?.degraded === true || !canonical || authoritySuppressed, failure_class: toolResult.failure_class || null, recovery_packet: compactApiEcho(recoveryPacket), scope_recovery_context: compactApiEcho(recovery?.details || null), resume_packet_v2: compactApiEcho(v2), rendered_summary: String(res.body?.rendered_summary || "").slice(0, 240), tool_result_v1: toolResult, next_tools: (toolResult.next_tools || recoveryPacket?.next_tools || res.body?.next_tools || ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"]).slice(0, 4), request: compactApiEcho(payload), response: compactApiEcho(res.body) },
       };
     },
   });
