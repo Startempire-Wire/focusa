@@ -56,9 +56,16 @@ fn auth_token_configured() -> bool {
 }
 
 fn doc_contains(path: &str, needle: &str) -> bool {
-    std::fs::read_to_string(path)
-        .map(|content| content.contains(needle))
-        .unwrap_or(false)
+    let candidates = [
+        PathBuf::from(path),
+        repo_root().join(path),
+        PathBuf::from("/home/wirebot/focusa").join(path),
+    ];
+    candidates.iter().any(|candidate| {
+        std::fs::read_to_string(candidate)
+            .map(|content| content.contains(needle))
+            .unwrap_or(false)
+    })
 }
 
 fn security_posture_payload() -> Value {
