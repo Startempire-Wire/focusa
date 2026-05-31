@@ -24,10 +24,9 @@ Status: local dynamic smoke suite for OWASP API4/CWE-400 and malformed-input pos
 
 ## CI coverage
 
-`./scripts/ci/run-spec-gates.sh` runs both `tests/security_dynamic_api_smoke_static_test.sh` and `tests/security_dynamic_api_smoke_test.sh`. In CI, the dynamic smoke reuses the already built `focusa-daemon` through `DAEMON_BIN` when available.
+`./scripts/ci/run-spec-gates.sh` runs both `tests/security_dynamic_api_smoke_static_test.sh` and `tests/security_dynamic_api_smoke_test.sh`. In CI, the dynamic smoke reuses the already built `focusa-daemon` through `DAEMON_BIN` when available. The gate also runs `tests/security_non_loopback_auth_guard_static_test.sh` and `tests/security_non_loopback_auth_guard_dynamic_test.sh` to prove non-loopback startup fails without `FOCUSA_AUTH_TOKEN` and succeeds with auth enforced.
 
 ## Follow-up
 
-- Add authenticated non-loopback failure/startup smoke.
 - Add schema-level malformed payload tests for mutation route families.
 - Add repeated mutation burst tests once route-scoped rate limits exist.
