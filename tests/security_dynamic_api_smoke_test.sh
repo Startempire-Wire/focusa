@@ -2,9 +2,13 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CARGO_BIN="${CARGO_BIN:-cargo}"
+DAEMON_BIN="${DAEMON_BIN:-}"
 TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/focusa-security-smoke-target}"
 DATA_DIR="${FOCUSA_SECURITY_SMOKE_DATA_DIR:-$(mktemp -d /tmp/focusa-security-smoke-data.XXXXXX)}"
-LOG_FILE="${FOCUSA_SECURITY_SMOKE_LOG:-/tmp/focusa-security-smoke-daemon.log}"
+LOG_FILE="${FOCUSA_SECURITY_SMOKE_LOG:-${DATA_DIR}/daemon.log}"
+HEALTH_FILE="${DATA_DIR}/health.json"
+MALFORMED_FILE="${DATA_DIR}/malformed.out"
+OVERSIZED_FILE="${DATA_DIR}/oversized.out"
 PORT="${FOCUSA_SECURITY_SMOKE_PORT:-$(python3 - <<'PY'
 import socket
 s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()
@@ -22,18 +26,28 @@ trap cleanup EXIT
 
 command -v curl >/dev/null || { echo "curl required" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "python3 required" >&2; exit 1; }
-[[ -x "$CARGO_BIN" || -n "$(command -v "$CARGO_BIN" 2>/dev/null || true)" ]] || { echo "cargo required; set CARGO_BIN" >&2; exit 1; }
+mkdir -p "$DATA_DIR"
+if [[ -z "$DAEMON_BIN" || ! -x "$DAEMON_BIN" ]]; then
+  [[ -x "$CARGO_BIN" || -n "$(command -v "$CARGO_BIN" 2>/dev/null || true)" ]] || { echo "cargo required; set CARGO_BIN or executable DAEMON_BIN" >&2; exit 1; }
+fi
 
 cd "$ROOT_DIR"
-FOCUSA_BIND="127.0.0.1:${PORT}" \
-FOCUSA_DATA_DIR="$DATA_DIR" \
-FOCUSA_API_MAX_BODY_BYTES=4096 \
-CARGO_TARGET_DIR="$TARGET_DIR" \
-"$CARGO_BIN" run -p focusa-api --bin focusa-daemon >"$LOG_FILE" 2>&1 &
+if [[ -n "$DAEMON_BIN" && -x "$DAEMON_BIN" ]]; then
+  FOCUSA_BIND="127.0.0.1:${PORT}" \
+  FOCUSA_DATA_DIR="$DATA_DIR" \
+  FOCUSA_API_MAX_BODY_BYTES=4096 \
+  "$DAEMON_BIN" >"$LOG_FILE" 2>&1 &
+else
+  FOCUSA_BIND="127.0.0.1:${PORT}" \
+  FOCUSA_DATA_DIR="$DATA_DIR" \
+  FOCUSA_API_MAX_BODY_BYTES=4096 \
+  CARGO_TARGET_DIR="$TARGET_DIR" \
+  "$CARGO_BIN" run -p focusa-api --bin focusa-daemon >"$LOG_FILE" 2>&1 &
+fi
 PID=$!
 
 for _ in $(seq 1 480); do
-  if curl -fsS "$BASE/v1/health" >/tmp/focusa-security-smoke-health.json 2>/dev/null; then
+  if curl -fsS "$BASE/v1/health" >"$HEALTH_FILE" 2>/dev/null; then
     break
   fi
   if ! kill -0 "$PID" 2>/dev/null; then
@@ -49,15 +63,15 @@ if ! curl -fsS "$BASE/v1/health" >/dev/null; then
   exit 1
 fi
 
-malformed_code=$(printf '{' | curl -sS -o /tmp/focusa-security-smoke-malformed.out -w '%{http_code}' \
+malformed_code=$(printf '{' | curl -sS -o "$MALFORMED_FILE" -w '%{http_code}' \
   -H 'content-type: application/json' --data-binary @- "$BASE/v1/telemetry/trace" || true)
 if [[ "$malformed_code" =~ ^2 ]]; then
   echo "malformed JSON unexpectedly succeeded" >&2
-  cat /tmp/focusa-security-smoke-malformed.out >&2 || true
+  cat "$MALFORMED_FILE" >&2 || true
   exit 1
 fi
 
-oversized_code=$(python3 - <<'PY' | curl -sS -o /tmp/focusa-security-smoke-oversized.out -w '%{http_code}' \
+oversized_code=$(python3 - <<'PY' | curl -sS -o "$OVERSIZED_FILE" -w '%{http_code}' \
   -H 'content-type: application/json' --data-binary @- "$BASE/v1/telemetry/trace" || true
 import json
 print(json.dumps({"kind":"security_smoke", "payload":"x" * 8192}))
@@ -65,7 +79,7 @@ PY
 )
 if [[ "$oversized_code" != "413" ]]; then
   echo "oversized body expected HTTP 413, got ${oversized_code}" >&2
-  cat /tmp/focusa-security-smoke-oversized.out >&2 || true
+  cat "$OVERSIZED_FILE" >&2 || true
   exit 1
 fi
 

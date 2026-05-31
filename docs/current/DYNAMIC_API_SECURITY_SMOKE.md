@@ -22,9 +22,12 @@ Status: local dynamic smoke suite for OWASP API4/CWE-400 and malformed-input pos
 - It requires `cargo`, `curl`, and `python3`.
 - It is intentionally bounded; deeper route fuzzing remains future work.
 
+## CI coverage
+
+`./scripts/ci/run-spec-gates.sh` runs both `tests/security_dynamic_api_smoke_static_test.sh` and `tests/security_dynamic_api_smoke_test.sh`. In CI, the dynamic smoke reuses the already built `focusa-daemon` through `DAEMON_BIN` when available.
+
 ## Follow-up
 
 - Add authenticated non-loopback failure/startup smoke.
 - Add schema-level malformed payload tests for mutation route families.
 - Add repeated mutation burst tests once route-scoped rate limits exist.
-- Include this script in the consolidated security CI gate.
