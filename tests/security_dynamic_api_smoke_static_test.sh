@@ -22,6 +22,10 @@ for marker in \
   "/v1/trajectory/define-goal" \
   "/v1/metacognition/capture" \
   "FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW" \
+  "FOCUSA_API_JSON_MAX_DEPTH" \
+  "shape_reject_count" \
+  "excessive_depth" \
+  "excessive_array" \
   "burst_429_count" \
   "HTTP 429"; do
   if ! grep -Fq "$marker" "$SCRIPT" "$DOC"; then

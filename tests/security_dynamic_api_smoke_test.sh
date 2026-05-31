@@ -38,6 +38,8 @@ if [[ -n "$DAEMON_BIN" && -x "$DAEMON_BIN" ]]; then
   FOCUSA_API_MAX_BODY_BYTES=4096 \
   FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=6 \
   FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS=60000 \
+  FOCUSA_API_JSON_MAX_DEPTH=8 \
+  FOCUSA_API_JSON_MAX_ARRAY_ITEMS=4 \
   "$DAEMON_BIN" >"$LOG_FILE" 2>&1 &
 else
   FOCUSA_BIND="127.0.0.1:${PORT}" \
@@ -45,6 +47,8 @@ else
   FOCUSA_API_MAX_BODY_BYTES=4096 \
   FOCUSA_API_MUTATION_RATE_LIMIT_PER_WINDOW=6 \
   FOCUSA_API_MUTATION_RATE_LIMIT_WINDOW_MS=60000 \
+  FOCUSA_API_JSON_MAX_DEPTH=8 \
+  FOCUSA_API_JSON_MAX_ARRAY_ITEMS=4 \
   CARGO_TARGET_DIR="$TARGET_DIR" \
   "$CARGO_BIN" run -p focusa-api --bin focusa-daemon >"$LOG_FILE" 2>&1 &
 fi
@@ -115,6 +119,37 @@ expect_schema_reject prediction_record /v1/predictions '{"prediction_type":123,"
 expect_schema_reject metacog_capture /v1/metacognition/capture '{"kind":123,"content":{}}'
 expect_schema_reject focus_update /v1/focus/update '{"updates":"not-array"}'
 
+shape_reject_count=0
+expect_shape_reject() {
+  local name="$1"
+  local body="$2"
+  local out_file="${DATA_DIR}/shape-${name}.out"
+  local code
+  code=$(printf '%s' "$body" | curl -sS -o "$out_file" -w '%{http_code}' \
+    -H 'content-type: application/json' --data-binary @- "$BASE/v1/workpoint/checkpoint" || true)
+  if [[ "$code" != "400" ]]; then
+    echo "JSON shape guard expected HTTP 400 for ${name}, got ${code}" >&2
+    cat "$out_file" >&2 || true
+    exit 1
+  fi
+  shape_reject_count=$((shape_reject_count + 1))
+}
+
+deep_payload=$(python3 - <<'PY'
+value = '"leaf"'
+for _ in range(12):
+    value = '{"nested":' + value + '}'
+print(value)
+PY
+)
+wide_array_payload=$(python3 - <<'PY'
+import json
+print(json.dumps({"refs": ["a", "b", "c", "d", "e", "f"]}))
+PY
+)
+expect_shape_reject excessive_depth "$deep_payload"
+expect_shape_reject excessive_array "$wide_array_payload"
+
 burst_429_count=0
 for i in $(seq 1 10); do
   burst_file="${DATA_DIR}/burst-${i}.out"
@@ -137,4 +172,4 @@ for _ in $(seq 1 10); do
   curl -fsS "$BASE/v1/health" >/dev/null
 done
 
-echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count burst_429s=$burst_429_count"
+echo "✓ dynamic local API security smoke passed base=$BASE malformed_http=$malformed_code oversized_http=$oversized_code schema_rejects=$schema_reject_count shape_rejects=$shape_reject_count burst_429s=$burst_429_count"
