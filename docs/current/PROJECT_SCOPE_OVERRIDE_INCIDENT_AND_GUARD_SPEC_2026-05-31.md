@@ -1,15 +1,15 @@
 # Project Scope Override Incident and Guard Spec — 2026-05-31
 
-Status: draft for iteration  
-Owner: Focusa project  
-Incident class: cross-project scope confusion / operator-declared project override missed  
-Related docs: [`WORKPOINT_SESSION_SCOPE_GUARD.md`](./WORKPOINT_SESSION_SCOPE_GUARD.md), [`../69-scope-failure-and-relevance-tracing.md`](../69-scope-failure-and-relevance-tracing.md), [`PROJECT_INTELLIGENCE_FLYWHEEL.md`](./PROJECT_INTELLIGENCE_FLYWHEEL.md)
+Status: draft for iteration; updated after code/session evidence review
+Owner: Focusa project
+Incident class: cross-project scope confusion / operator-declared project override missed
+Related docs: [`WORKPOINT_SESSION_SCOPE_GUARD.md`](./WORKPOINT_SESSION_SCOPE_GUARD.md), [`../69-scope-failure-and-relevance-tracing.md`](../69-scope-failure-and-relevance-tracing.md), [`PROJECT_INTELLIGENCE_FLYWHEEL.md`](./PROJECT_INTELLIGENCE_FLYWHEEL.md), [`FOCUSA_MODEL_VISIBLE_AWARENESS.md`](./FOCUSA_MODEL_VISIBLE_AWARENESS.md)
 
 ## Executive summary
 
 During a compacted Pi session, Focusa preserved a canonical Workpoint under the Focusa repo scope (`project_root=/home/wirebot/focusa`, continuity `focusa-cont-root-8a64612b-d338-4eca-9e27-bb0e9d11c7f8`). The operator then explicitly corrected the scope: the active work was the PTM remote project, not the Focusa repo. The assistant still inspected Focusa-local state first, then only later verified the PTM remote project at `/home/planmarr/plan-the-marriage` on the remote host.
 
-The failure was not that Focusa lacked a Workpoint. The failure was that the execution path treated `canonical=true` as sufficient for action even after the current ask contained a strong operator-declared project override. Focusa protected the stored Workpoint boundary, but it did not force a current-ask scope arbitration step before acting.
+The failure was not that Focusa lacked memory. Focusa had a Workpoint, daemon state, Focus Slice context, telemetry paths, and the raw Pi session JSONL. The failure was that those substrates remained advisory/passive: no mandatory pre-action attention gate converted conflicting scope evidence into `action_authority=false`. Focusa protected the stored Workpoint boundary, but it did not decide whether that saved boundary was still the correct action target for the current ask.
 
 ## Incident facts
 
@@ -19,6 +19,23 @@ The failure was not that Focusa lacked a Workpoint. The failure was that the exe
 - The Workpoint mission itself contained the warning: “you are looking in the wrong place. This is the PTM remote project...”.
 - The assistant still used the Focusa repo as the active action scope before rebinding to PTM.
 - Existing guard docs already distinguish project root, continuity id, session id, and trajectory similarity, but they do not yet define current-ask scope arbitration when operator steering conflicts with a canonical packet.
+- Same Pi session history contained prior PTM work and the explicit correction; the failure happened inside one long-running session, not because state lived in a different chat.
+- Daemon/primitives recorded context and scope telemetry, but the active pre-action path did not require a contradiction verdict before file/tool action.
+
+## Evidence from current software and session review
+
+Review date: 2026-05-31. Line numbers are local source positions from the review snapshot.
+
+- `docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md` states practical precedence is operator steering/current ask first, then identity prior, trajectory, and Workpoint. This is the intended policy.
+- `apps/pi-extension/src/turns.ts:468` still injects Workpoint guidance as “authoritative continuation anchor unless the operator explicitly steers elsewhere,” but no structured scope-verdict block is emitted before the Workpoint section.
+- `apps/pi-extension/src/turns.ts:664-668` orders Focus Slice sections as `CURRENT_ASK`, `QUERY_SCOPE`, trajectory, then Workpoint; this surfaces both signals but does not adjudicate contradictions between them.
+- `apps/pi-extension/src/state.ts:396-420` classifies current ask as question/correction/instruction/meta and detects operator steering, but it does not extract project targets (`PTM`, `planmarr`, `/home/planmarr/plan-the-marriage`, remote host/domain hints).
+- `apps/pi-extension/src/turns.ts:901-999` records current ask, query scope, and `steering_detected` telemetry; it does not set `action_authority=false` for conflicting project evidence.
+- `apps/pi-extension/src/turns.ts:1091-1100` detects scope failure after assistant output; that is useful for measurement but too late to prevent wrong-project action.
+- `apps/pi-extension/src/compaction.ts:141-166` refreshes a scoped Workpoint packet after compaction and accepts it when it matches the saved `project_root + continuity_id`; it does not compare packet scope to current-ask project hints.
+- `apps/pi-extension/src/compaction.ts:276-309` formats WorkpointResumePacketV2 for prompt with `CANONICAL: true`, best-next tools, and authority boundary; it does not include current-ask action-authority status.
+- Pi session JSONL around the incident shows the contradiction in one file: current ask stored “wrong place / PTM remote project” while `projectRoot` stayed `/home/wirebot/focusa`, then compaction re-injected the canonical Focusa Workpoint.
+- Earlier same-session JSONL contains PTM remote evidence (`/home/planmarr/plan-the-marriage`, PTM docs/specs/audits, HLT ledger, auth work), but no hot-path primitive scanned it on the conflict phrase.
 
 ## Expected behavior
 
@@ -67,7 +84,106 @@ Needed distinction:
 
 The PTM target was not only a semantic project name; it had durable remote evidence (`/home/planmarr/plan-the-marriage`, PTM docs, HLT ledger, auth files). Focusa should prefer explicit operator scope correction plus verifiable remote project evidence over a stale same-session local Focusa scope.
 
+### 5. Same-session history was treated as a blob, not a project-switch ledger
+
+The long Pi session held many project threads. Focusa can preserve that session, but preservation is not interpretation. A single Pi JSONL needs a bounded, queryable project-switch ledger that records when the active target moved between Focusa, PTM, ASAP, or other scopes.
+
+Without that ledger, “same session” becomes misleading: the runtime can correctly preserve the session while still selecting the wrong project thread inside it.
+
+### 6. Daemon state was observable but not authoritative at the perception/action boundary
+
+The daemon and primitives can expose Workpoints, telemetry, predictions, metacog, and scope events. In this incident they did not fail by being absent; they failed by not being in the mandatory pre-action path.
+
+Current behavior is closer to:
+
+```text
+retrieve preserved state -> inject context -> model notices or misses conflict
+```
+
+Needed behavior is:
+
+```text
+retrieve preserved state + current ask + session evidence -> compute contradiction verdict -> suppress or allow action
+```
+
+### 7. Scope failure detection is mostly post-turn measurement
+
+Current scope-failure detection can emit `scope_verified`, `scope_contamination_detected`, and related telemetry after assistant output. That helps learn from mistakes, but it cannot reliably prevent the first wrong action in a turn.
+
+The prevention point must move before Focus Slice finalization and before any tool call that reads/edits project files.
+
 ## Planned solution
+
+### A0. Add an Attention Control Plane before memory injection
+
+Focusa needs a small mandatory layer between state retrieval and model-visible action guidance.
+
+Inputs:
+
+- current operator ask after quoted Focusa context is stripped;
+- active Workpoint and WorkpointResumePacketV2;
+- current `S.sessionCwd`, `S.currentAsk.projectRoot`, continuity id, and session id;
+- Focusa daemon Workpoint/trajectory/project identity state;
+- bounded Pi session JSONL/project-switch index;
+- known project aliases, paths, domains, remotes, and HLT ledgers.
+
+Output:
+
+```json
+{
+  "schema": "focusa.current_scope_verdict.v1",
+  "status": "aligned | conflict | override_candidate | unknown",
+  "saved_scope": {"project_root": "/home/wirebot/focusa", "continuity_id": "..."},
+  "current_ask_scope": {"project_alias": "PTM", "project_root": "/home/planmarr/plan-the-marriage", "confidence": "high"},
+  "contradiction": true,
+  "workpoint_canonical_for_saved_scope": true,
+  "workpoint_action_authority": false,
+  "required_next": ["verify_current_project", "rebind_or_session_transfer", "checkpoint_correct_scope"],
+  "evidence_spans": ["current_ask:PTM remote", "session_jsonl:/home/planmarr/plan-the-marriage", "remote_hlt:docs/HLT_LEDGER.md"]
+}
+```
+
+This layer must run before Focus Slice Workpoint rendering, compaction resume instructions, and project-scoped tool execution.
+
+### A1. Build a project-switch ledger from Pi session JSONL
+
+Focusa should not cold-scan the full JSONL every turn. It should maintain a compact index:
+
+```text
+project_thread_observation:
+  project_alias
+  project_root
+  remote_host/user/port when known
+  evidence_ref
+  first_seen_turn
+  last_seen_turn
+  recent_actions
+  active_hlt_or_goal
+  confidence
+```
+
+Triggers to update it:
+
+- shell commands containing project paths/domains/remotes;
+- Focusa project identity/session-transfer calls;
+- HLT ledger reads/writes;
+- Workpoint checkpoint/resume packets;
+- operator text naming a project, client, domain, or remote target.
+
+On conflict phrases, this ledger becomes hot-path evidence instead of raw transcript memory.
+
+### A2. Promote semantic project conflicts into first-class Reflex Primitives
+
+Existing `scope_mismatch` primitives are too API-result-oriented. Add a primitive for semantic conflict before tools fail:
+
+```text
+primitive_id: detect_semantic_project_scope_conflict
+trigger: current ask names/negates a project that differs from active Workpoint scope
+input: current ask, active Workpoint, project-switch ledger, ProjectIdentity candidates
+output: CurrentScopeVerdict with action authority allowed/suppressed
+```
+
+This primitive should be usable by Pi, CLI, daemon, and any non-Pi adapter. It should not depend on the model noticing prose.
 
 ### A. Add `CurrentAskScopeArbitration` to Pi Focus Slice generation
 
@@ -161,10 +277,19 @@ Avoid asking for permission unless the next operation is destructive or high-ris
 1. `tests/spec_project_scope_override_static_test.sh`
    - Assert Focus Slice / compaction text includes `CURRENT_ASK_SCOPE_VERDICT`.
    - Assert Workpoint packet uses `canonical_for_saved_scope` separately from `action_authority_for_current_ask`.
+   - Assert Focus Slice ordering puts scope verdict before Workpoint continuation.
 
 2. Extend `tests/scope_routing_regression_eval.sh`
    - Assert new telemetry events are accepted and queryable.
    - Assert `scope_conflict_detected` is distinguishable from generic `scope_mismatch`.
+
+3. Add `tests/pi_session_project_switch_ledger_static_test.sh`
+   - Assert Pi extension source contains a bounded project-switch/session-evidence substrate, not only `S.sessionCwd`.
+   - Assert conflict phrases route through the ledger before Workpoint action authority is granted.
+
+4. Add `tests/spec97_semantic_scope_conflict_primitive_static_test.sh`
+   - Assert Reflex Primitive registry includes `detect_semantic_project_scope_conflict`.
+   - Assert it outputs `CurrentScopeVerdict` and can suppress action authority without an API `scope_mismatch` first.
 
 ### Unit tests
 
@@ -180,12 +305,21 @@ Avoid asking for permission unless the next operation is destructive or high-ris
 4. Same project, different continuity id.
    - Expected: existing continuity mismatch behavior still wins; no cross-session merge.
 
+5. Long same-Pi-session replay containing Focusa and PTM events.
+   - Input: saved Workpoint `/home/wirebot/focusa`, current ask “wrong place / PTM remote project,” session ledger has `/home/planmarr/plan-the-marriage` and `docs/HLT_LEDGER.md`.
+   - Expected: PTM candidate outranks Focusa for current action; Focusa Workpoint remains canonical saved state but suppressed for action.
+
+6. Operator asks to write a Focusa detour spec after the PTM incident.
+   - Input: current ask explicitly says “in the Focusa directory”.
+   - Expected: Focusa candidate regains current-action authority for doc work; PTM session remains preserved but not active.
+
 ### Integration proof
 
 A live proof should demonstrate:
 
 - canonical Focusa Workpoint can remain valid for Focusa scope;
-- PTM correction suppresses Focusa action authority;
+- PTM correction suppresses Focusa action authority before any file/API action;
+- project-switch ledger surfaces PTM evidence from the same Pi session without a full raw transcript scan;
 - PTM project identity is verified from remote evidence;
 - a new PTM-scoped Workpoint or session transfer becomes the action anchor;
 - the operator-visible response explains the rebind in one or two lines.
@@ -196,9 +330,12 @@ A live proof should demonstrate:
 - Focus Slice exposes a current-ask scope verdict before Workpoint instructions.
 - Workpoint resume rendering distinguishes saved-scope canonicality from current-ask action authority.
 - Operator project corrections trigger bounded project verification/rebind before file/API work.
+- Same-session project history is indexed as project-thread evidence, so “single Pi session” does not collapse multiple project scopes into one active target.
+- Semantic project conflicts can suppress action before any API-level `scope_mismatch` occurs.
 - Regression tests cover Focusa-local saved scope vs PTM remote current ask.
 - Telemetry makes the event reviewable without raw transcript dependence.
 - Docs explain the difference between “canonical Workpoint” and “right project for this ask.”
+- Failure reports must cite evidence surfaces and rejected hypotheses; agreement with operator wording is not considered proof.
 
 ## Non-goals
 
@@ -214,8 +351,20 @@ Suggested child beads:
 1. Add current-ask project override detector in Pi extension.
 2. Add Workpoint action-authority fields to resume packet rendering.
 3. Add scope arbitration block to Focus Slice and compaction output.
-4. Add telemetry events and regression tests for operator-declared project override.
-5. Update Workpoint/project-identity docs with the canonicality vs action-authority distinction.
+4. Build bounded Pi session project-switch ledger from JSONL/session entries.
+5. Add semantic project-scope-conflict Reflex Primitive.
+6. Add telemetry events and regression tests for operator-declared project override.
+7. Update Workpoint/project-identity docs with the canonicality vs action-authority distinction.
+
+## Review discipline
+
+This spec must remain falsifiable. Future updates should include:
+
+- exact code/doc/session evidence reviewed;
+- which hypothesis was rejected;
+- what invariant would have prevented the incident;
+- which test proves prevention before tool/file action;
+- no claims that “Focusa would prevent this” without a passing pre-action regression.
 
 ## Design decision
 
