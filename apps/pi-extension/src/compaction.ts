@@ -3,7 +3,7 @@
 //        §33.10 (customInstructions), §35.6 (files), §38.1 (trim)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines } from "./state.js";
+import { S, focusaFetch, getFocusState, buildCompactInstructions, persistState, persistAuthoritativeState, sanitizeFocusFailures, ensureContinuityId, getScopedWorkpointPacket, isWorkpointPacketScopedToCurrentSession, isProjectRootAuthoritySafe, projectRootAuthorityFailure, normalizeWorkpointResumePacketEnvelope, normalizeProjectRoot, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, isExplicitContinuationAsk, isNonTaskStatusLikeText, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, formatProjectSwitchLedgerLines } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 function basename(value: string): string {
@@ -134,9 +134,15 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
     v2Prompt,
     "",
   ].join("\n") : "";
+  const projectLedgerSection = formatProjectSwitchLedgerLines(ask).length ? [
+    "# Project Switch Ledger",
+    ...formatProjectSwitchLedgerLines(ask).map((value) => `- ${value}`),
+    "",
+  ].join("\n") : "";
   return [
     attentionSection,
     workpointSection,
+    projectLedgerSection,
     "# Focusa Cognitive Summary",
     `## Intent\n${fs?.intent || mission || "Continue current operator-directed work."}`,
     `## Current Focus\n${currentFocus || "Continue current operator-directed work."}`,

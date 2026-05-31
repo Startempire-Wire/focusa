@@ -89,6 +89,23 @@ export interface PiToolOutputPressure {
   lastRecapAt: number;
 }
 
+export interface PiProjectThreadObservation {
+  project_alias: string;
+  project_root: string;
+  remote_host?: string;
+  evidence_ref: string;
+  first_seen_turn: string;
+  last_seen_turn: string;
+  recent_actions: string[];
+  confidence: number;
+  source: "current_ask" | "tool_evidence" | "project_identity" | "session_entry";
+  updatedAt: number;
+}
+
+export const PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS = 12;
+export const PROJECT_SWITCH_LEDGER_MAX_ACTIONS = 5;
+export const PROJECT_SWITCH_LEDGER_MIN_CONFLICT_CONFIDENCE = 0.55;
+
 export const TOOL_OUTPUT_FLOOD_WINDOW_MS = 120_000;
 export const TOOL_OUTPUT_FLOOD_RESULT_THRESHOLD = 4;
 export const TOOL_OUTPUT_FLOOD_BYTES_THRESHOLD = 24_000;
@@ -208,6 +225,7 @@ export const S = {
     lastEventAt: 0,
     lastRecapAt: 0,
   } as PiToolOutputPressure,
+  projectSwitchLedger: [] as PiProjectThreadObservation[],
   vitalInfoPrompted: {} as Record<string, number>,
   // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
   seenFirstBeforeAgentStart: false,
@@ -295,6 +313,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   S.lastProjectIdentity = null;
   S.latestReportSummary = null;
   resetToolOutputPressureWindow(Date.now());
+  S.projectSwitchLedger = [];
   S.currentAsk = null;
   S.queryScope = null;
   S.excludedContext = null;
@@ -703,6 +722,124 @@ function cleanResumeVisibleRecapReason(reason?: string): string {
   return value ? boundedAttentionText(value, 220) : "";
 }
 
+function projectRootFromAbsolutePath(value: string): string {
+  const match = String(value || "").match(/\/(?:home|Users)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)?/);
+  if (!match) return "";
+  const parts = match[0].split("/").filter(Boolean);
+  if (parts[0] === "home") return normalizeProjectRoot(`/${parts.slice(0, Math.min(parts.length, 3)).join("/")}`);
+  if (parts[0] === "Users") {
+    const depth = parts[2] === "Projects" || parts[2] === "projects" ? 4 : 3;
+    return normalizeProjectRoot(`/${parts.slice(0, Math.min(parts.length, depth)).join("/")}`);
+  }
+  return normalizeProjectRoot(match[0]);
+}
+
+function projectAliasesForText(text: string, root = ""): string[] {
+  const lower = String(text || "").toLowerCase();
+  const aliases = new Set<string>();
+  if (/\b(ptm|planmarr|plan-the-marriage|plan the marriage)\b/i.test(lower) || /planmarr|plan-the-marriage/i.test(root)) aliases.add("PTM");
+  if (/\bfocusa\b/i.test(lower) || /\/focusa$/i.test(root)) aliases.add("Focusa");
+  const base = root.split("/").filter(Boolean).at(-1);
+  if (base) aliases.add(base);
+  return [...aliases].filter(Boolean).slice(0, 4);
+}
+
+function boundedProjectAction(source: string, action?: string): string {
+  return boundedAttentionText(`${source}:${action || "observed project evidence"}`, 180);
+}
+
+export function observeProjectThreadEvidence(input: {
+  project_root?: string;
+  project_alias?: string;
+  remote_host?: string;
+  evidence_ref: string;
+  turn_id: string;
+  action?: string;
+  confidence?: number;
+  source: PiProjectThreadObservation["source"];
+}): PiProjectThreadObservation | null {
+  const projectRoot = normalizeProjectRoot(input.project_root || "");
+  const alias = boundedAttentionText(input.project_alias || projectAliasesForText(input.action || "", projectRoot)[0] || projectRoot.split("/").filter(Boolean).at(-1) || "unknown", 80);
+  if (!projectRoot && !alias) return null;
+  const now = Date.now();
+  const keyRoot = projectRoot || `alias:${alias.toLowerCase()}`;
+  const existing = S.projectSwitchLedger.find((entry) => (entry.project_root && entry.project_root === projectRoot) || entry.project_alias.toLowerCase() === alias.toLowerCase());
+  const action = boundedProjectAction(input.source, input.action);
+  const observation: PiProjectThreadObservation = existing ? {
+    ...existing,
+    project_alias: existing.project_alias || alias,
+    project_root: existing.project_root || projectRoot || keyRoot,
+    remote_host: input.remote_host || existing.remote_host,
+    evidence_ref: boundedAttentionText(input.evidence_ref || existing.evidence_ref, 160),
+    last_seen_turn: input.turn_id,
+    recent_actions: [action, ...existing.recent_actions.filter((item) => item !== action)].slice(0, PROJECT_SWITCH_LEDGER_MAX_ACTIONS),
+    confidence: Math.max(existing.confidence || 0, input.confidence ?? 0.6),
+    source: input.source,
+    updatedAt: now,
+  } : {
+    project_alias: alias,
+    project_root: projectRoot || keyRoot,
+    remote_host: input.remote_host,
+    evidence_ref: boundedAttentionText(input.evidence_ref, 160),
+    first_seen_turn: input.turn_id,
+    last_seen_turn: input.turn_id,
+    recent_actions: [action].slice(0, PROJECT_SWITCH_LEDGER_MAX_ACTIONS),
+    confidence: input.confidence ?? (projectRoot ? 0.8 : 0.55),
+    source: input.source,
+    updatedAt: now,
+  };
+  S.projectSwitchLedger = [observation, ...S.projectSwitchLedger.filter((entry) => entry !== existing)]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS);
+  try { S.pi?.appendEntry("focusa-project-switch-ledger", { observations: S.projectSwitchLedger.slice(0, 6) }); } catch { /* best effort */ }
+  persistState();
+  return observation;
+}
+
+export function observeProjectThreadHintsFromText(text: string, turnId: string, source: PiProjectThreadObservation["source"], action?: string): PiProjectThreadObservation[] {
+  const raw = String(text || "").slice(0, 2000);
+  const root = projectRootFromAbsolutePath(raw);
+  const aliases = projectAliasesForText(raw, root);
+  const observations: PiProjectThreadObservation[] = [];
+  if (root) {
+    observations.push(observeProjectThreadEvidence({ project_root: root, project_alias: aliases[0], evidence_ref: `${source}:${turnId}:project_path`, turn_id: turnId, action: action || `path=${root}`, confidence: 0.9, source })!);
+  }
+  for (const alias of aliases) {
+    if (root && alias === aliases[0]) continue;
+    const knownRoot = /ptm/i.test(alias) ? "/home/planmarr/plan-the-marriage" : /focusa/i.test(alias) ? "/home/wirebot/focusa" : root;
+    observations.push(observeProjectThreadEvidence({ project_root: knownRoot, project_alias: alias, evidence_ref: `${source}:${turnId}:project_alias:${alias}`, turn_id: turnId, action: action || `alias=${alias}`, confidence: knownRoot ? 0.75 : 0.58, source })!);
+  }
+  return observations.filter(Boolean);
+}
+
+function projectSwitchLedgerCandidateForAsk(currentAskText: string, savedProjectRoot: string): PiProjectThreadObservation | null {
+  const ask = stripQuotedFocusaContext(currentAskText || "");
+  if (!ask.trim() || !S.projectSwitchLedger.length) return null;
+  const lower = ask.toLowerCase();
+  const savedRoot = normalizeProjectRoot(savedProjectRoot);
+  const scored = S.projectSwitchLedger.map((entry) => {
+    let score = entry.confidence || 0;
+    const alias = entry.project_alias.toLowerCase();
+    if (alias && lower.includes(alias.toLowerCase())) score += 0.5;
+    if (/\b(ptm|planmarr|plan-the-marriage|plan the marriage)\b/i.test(lower) && /ptm|planmarr|plan-the-marriage/i.test(`${entry.project_alias} ${entry.project_root}`)) score += 0.7;
+    if (entry.project_root && lower.includes(entry.project_root.toLowerCase())) score += 0.8;
+    if (/\b(wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(lower)) score += 0.15;
+    if (savedRoot && normalizeProjectRoot(entry.project_root) === savedRoot) score -= 0.6;
+    score += Math.max(0, 0.2 - (Date.now() - entry.updatedAt) / 86_400_000 * 0.05);
+    return { entry, score };
+  }).sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  if (!best || best.score < PROJECT_SWITCH_LEDGER_MIN_CONFLICT_CONFIDENCE) return null;
+  if (savedRoot && normalizeProjectRoot(best.entry.project_root) === savedRoot) return null;
+  return best.entry;
+}
+
+export function formatProjectSwitchLedgerLines(currentAskText = S.currentAsk?.text || ""): string[] {
+  const candidate = projectSwitchLedgerCandidateForAsk(currentAskText, getScopedWorkpointPacket()?.project_root || S.sessionCwd || "");
+  const entries = (candidate ? [candidate, ...S.projectSwitchLedger.filter((entry) => entry !== candidate)] : S.projectSwitchLedger).slice(0, 4);
+  return entries.map((entry) => `${entry.project_alias} root=${entry.project_root || "unknown"} confidence=${entry.confidence.toFixed(2)} evidence=${entry.evidence_ref} recent=${entry.recent_actions.slice(0, 2).join(" | ")}`);
+}
+
 function currentAskProjectConflictReason(currentAskText: string, projectRoot: string, workpointProjectRoot: string): string {
   const ask = stripQuotedFocusaContext(currentAskText || "");
   if (!ask.trim()) return "";
@@ -710,6 +847,10 @@ function currentAskProjectConflictReason(currentAskText: string, projectRoot: st
   const explicitPath = ask.match(/\/(?:home|Users)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+/);
   if (explicitPath && normalizeProjectRoot(explicitPath[0]) !== normalizeProjectRoot(projectRoot || workpointProjectRoot)) {
     return `operator named different project path ${boundedAttentionText(explicitPath[0], 120)}`;
+  }
+  const ledgerCandidate = projectSwitchLedgerCandidateForAsk(ask, projectRoot || workpointProjectRoot);
+  if (ledgerCandidate) {
+    return `project_switch_ledger indicates ${boundedAttentionText(ledgerCandidate.project_alias, 80)} at ${boundedAttentionText(ledgerCandidate.project_root, 120)} (${boundedAttentionText(ledgerCandidate.evidence_ref, 120)})`;
   }
   if (/\b(wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(ask)) {
     return "operator text indicates current project/root may be wrong";
@@ -737,6 +878,7 @@ export function buildAttentionRecallVerdict(options: {
   const continuityId = String(options.continuityId || S.continuityId || workpointValue(packet, "continuity_id") || "").trim();
   const mission = workpointValue(packet, "mission") || S.activeFrameGoal || S.activeFrameTitle || "current Focusa task";
   const nextAction = workpointValue(packet, "next_slice") || S.lastCompactDecision || askText || S.lastFocusSnapshot.currentFocus || "continue bounded current task";
+  const ledgerCandidate = projectSwitchLedgerCandidateForAsk(askText, projectRoot || packetProjectRoot);
   const conflictReason = currentAskProjectConflictReason(askText, projectRoot, packetProjectRoot);
   const scopeStatus = conflictReason ? "conflict" : (projectRoot || packetProjectRoot ? "aligned" : "unknown");
   const visibleRecapReason = cleanResumeVisibleRecapReason(options.visibleRecapReason);
@@ -758,6 +900,7 @@ export function buildAttentionRecallVerdict(options: {
   const evidenceRefs = [
     packet?.workpoint_id ? `workpoint:${packet.workpoint_id}` : "",
     packetProjectRoot ? `saved_scope:${packetProjectRoot}` : "",
+    ledgerCandidate ? `project_thread:${ledgerCandidate.project_alias}@${ledgerCandidate.project_root}` : "",
     ...arrayField(packet?.verification_records).slice(0, 3).map((record: any) => String(record?.evidence_ref || record?.result || "").trim()),
   ].filter(Boolean).map((item) => boundedAttentionText(item, 140));
   return {
@@ -2192,6 +2335,7 @@ export function persistState(): void {
     lastProjectVerify: S.lastProjectVerify,
     latestReportSummary: S.latestReportSummary,
     toolOutputPressure: S.toolOutputPressure?.recapRequired ? S.toolOutputPressure : null,
+    projectSwitchLedger: S.projectSwitchLedger.slice(0, PROJECT_SWITCH_LEDGER_MAX_OBSERVATIONS),
     vitalInfoPrompted: S.vitalInfoPrompted,
     lastCompactResumeKey: S.lastCompactResumeKey,
     lastCompactResumeAt: S.lastCompactResumeAt,

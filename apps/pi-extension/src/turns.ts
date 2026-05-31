@@ -9,7 +9,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
-import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent } from "./state.js";
+import { S, focusaFetch, focusaPost, extractText, getFocusState, getEffectiveFocusSnapshot, estimateTokens, wbExec, storeEcsArtifact, classifyCurrentAsk, deriveQueryScope, isOperatorSteeringInput, selectRelevantItems, selectRelevantRankedItems, shouldIncludeMissionContext, buildSliceSection, selectionRelevanceScore, retentionBucketsFromSelection, formatWorkingSetItems, formatVerifiedDeltaItems, buildCanonicalReferenceAliases, orderSliceSections, rescopePiFrameFromCurrentAsk, stripQuotedFocusaContext, detectForbiddenVisibleOutputLeakClasses, detectScopeFailureSignals, getSemanticMemorySummary, getEcsHandlesSummary, getScopedWorkpointPacket, ensureContinuityId, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, adoptPiProjectRoot, persistState, projectRootConfirmationRequired, projectRootConfirmationSummary, buildAttentionRecallVerdict, formatAttentionRecallFocusSliceLines, maybeCaptureReportSummaryFromAssistantOutput, recordToolOutputPressure, toolOutputVisibleRecapReason, formatToolOutputVisibleRecapLines, markVisibleRecapEmittedIfPresent, observeProjectThreadHintsFromText, formatProjectSwitchLedgerLines } from "./state.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -954,6 +954,7 @@ export function registerTurns(pi: ExtensionAPI) {
       projectRoot: S.sessionCwd,
       continuityId: S.continuityId,
     };
+    observeProjectThreadHintsFromText(newTaskText, sourceTurnId, "current_ask", "current_ask_project_hints");
     const queryScope = deriveQueryScope(askKind);
     const steeringDetected = isOperatorSteeringInput(String(text), askKind);
     S.queryScope = {
@@ -1382,11 +1383,17 @@ export function registerTurns(pi: ExtensionAPI) {
       S.compilationErrors.push(Date.now());
     }
 
+    const targetRefs = [ev.params?.path, ev.input?.path, ev.params?.url, ev.input?.url]
+      .map((value: any) => String(value || "").trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    const projectHintText = [toolName, ev.params?.path, ev.input?.path, ev.params?.cwd, ev.input?.cwd, ev.params?.command, ev.input?.command, ...targetRefs]
+      .map((value: any) => String(value || "").trim())
+      .filter(Boolean)
+      .join(" ");
+    observeProjectThreadHintsFromText(projectHintText, `pi-turn-${S.turnCount}`, "tool_evidence", `tool=${toolName || "unknown_tool"}`);
+
     if (S.focusaAvailable) {
-      const targetRefs = [ev.params?.path, ev.input?.path, ev.params?.url, ev.input?.url]
-        .map((value: any) => String(value || "").trim())
-        .filter(Boolean)
-        .slice(0, 8);
       focusaPost("/ontology/tool-result-proposals", {
         tool_name: toolName || "unknown_tool",
         status: isError ? "failed" : "completed",
