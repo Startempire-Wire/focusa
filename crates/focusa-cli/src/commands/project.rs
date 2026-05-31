@@ -33,6 +33,18 @@ pub enum ProjectCmd {
         project_root: Option<String>,
         #[arg(long)]
         current_ask: Option<String>,
+        #[arg(long)]
+        remote_host: Option<String>,
+        #[arg(long)]
+        remote_user: Option<String>,
+        #[arg(long)]
+        remote_port: Option<u16>,
+        #[arg(long)]
+        remote_repo_remote: Option<String>,
+        #[arg(long)]
+        remote_workspace_kind: Option<String>,
+        #[arg(long)]
+        remote_deploy_root: Option<String>,
     },
     /// Attach final outcome/evaluation to a project-card algorithm_run_id.
     CardOutcome {
@@ -187,11 +199,29 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             cwd,
             project_root,
             current_ask,
+            remote_host,
+            remote_user,
+            remote_port,
+            remote_repo_remote,
+            remote_workspace_kind,
+            remote_deploy_root,
         } => {
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
             push_query(&mut qs, "current_ask", current_ask.as_deref());
+            push_query(&mut qs, "remote_host", remote_host.as_deref());
+            push_query(&mut qs, "remote_user", remote_user.as_deref());
+            if let Some(port) = remote_port {
+                qs.push(format!("remote_port={port}"));
+            }
+            push_query(&mut qs, "remote_repo_remote", remote_repo_remote.as_deref());
+            push_query(
+                &mut qs,
+                "remote_workspace_kind",
+                remote_workspace_kind.as_deref(),
+            );
+            push_query(&mut qs, "remote_deploy_root", remote_deploy_root.as_deref());
             let path = if qs.is_empty() {
                 "/v1/project/card".to_string()
             } else {

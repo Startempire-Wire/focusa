@@ -2223,8 +2223,12 @@ async fn card(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ProjectIdentityQuery>,
 ) -> Json<Value> {
-    let identity_payload =
-        project_identity_payload_for_scope(query.cwd.as_deref(), query.project_root.as_deref());
+    let remote_hint = RemoteProjectHint::from_query(&query);
+    let identity_payload = project_identity_payload_for_scope_with_remote(
+        query.cwd.as_deref(),
+        query.project_root.as_deref(),
+        remote_hint,
+    );
     let project = identity_payload
         .get("project_identity")
         .cloned()
@@ -2700,10 +2704,54 @@ mod tests {
         .unwrap();
         fs::create_dir_all(root.join(".beads")).unwrap();
         fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
-        let candidate = discover_identity(root.to_str(), None);
+        let candidate = discover_identity(root.to_str(), None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn remote_hint_is_bound_into_identity_payload() {
+        let root = temp_project("remote-hint");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+
+        let payload = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            RemoteProjectHint {
+                remote_host: Some("host.7svnstrms.com".to_string()),
+                remote_user: Some("planmarr".to_string()),
+                remote_port: Some(2200),
+                remote_repo_remote: Some(
+                    "https://github.com/example/plan-the-marriage.git".to_string(),
+                ),
+                remote_workspace_kind: Some("react-vite".to_string()),
+                remote_deploy_root: Some("/home/planmarr/public_html".to_string()),
+            },
+        );
+
+        assert_eq!(
+            payload
+                .pointer("/project_identity/remote_context/remote_host")
+                .and_then(Value::as_str),
+            Some("host.7svnstrms.com")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/remote_context/remote_port")
+                .and_then(Value::as_u64),
+            Some(2200)
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/authority_boundary")
+                .and_then(Value::as_str),
+            Some("remote_host_plus_project_root_plus_fingerprint")
+        );
+
         let _ = fs::remove_dir_all(root);
     }
 
@@ -2875,7 +2923,7 @@ mod tests {
         fs::create_dir_all(root.join(".git")).unwrap();
         fs::write(root.join(".git/config"), "").unwrap();
         fs::write(root.join(".focusa-project.json"), r#"{"schema":"focusa.project.v1","project_id":"other","project_root":"/definitely/not/this/project"}"#).unwrap();
-        let candidate = discover_identity(root.to_str(), None);
+        let candidate = discover_identity(root.to_str(), None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "mismatch");
         assert!(!candidate.mismatches.is_empty());
         let _ = fs::remove_dir_all(root);
@@ -2883,7 +2931,8 @@ mod tests {
 
     #[test]
     fn broad_root_never_verifies_as_project_identity() {
-        let candidate = discover_identity(Some("/root"), Some("/root"));
+        let candidate =
+            discover_identity(Some("/root"), Some("/root"), RemoteProjectHint::default());
         assert_eq!(candidate.status, "unsafe_project_root");
         assert_eq!(candidate.confidence, "low");
         assert!(candidate.mismatches.iter().any(

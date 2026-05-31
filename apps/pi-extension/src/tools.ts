@@ -2671,13 +2671,25 @@ export function registerTools(pi: ExtensionAPI) {
       cwd: Type.Optional(Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })),
       project_root: Type.Optional(Type.String({ description: "Optional expected project root folder." })),
       current_ask: Type.Optional(Type.String({ description: "Optional current ask used to seed bootstrap/re-bootstrap candidate." })),
+      remote_host: Type.Optional(Type.String({ description: "Remote SSH host that contains the project root; caller supplies inspected evidence." })),
+      remote_user: Type.Optional(Type.String({ description: "Remote SSH user, if known." })),
+      remote_port: Type.Optional(Type.Number({ minimum: 1, maximum: 65535, description: "Remote SSH port, if known." })),
+      remote_repo_remote: Type.Optional(Type.String({ description: "Git origin/repo remote observed on the remote host." })),
+      remote_workspace_kind: Type.Optional(Type.String({ description: "Workspace kind observed on the remote host." })),
+      remote_deploy_root: Type.Optional(Type.String({ description: "Deployment/site root observed on the remote host." })),
     }),
     async execute(_id, params) {
-      const p = params as { cwd?: string; project_root?: string; current_ask?: string };
+      const p = params as { cwd?: string; project_root?: string; current_ask?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
       const query = new URLSearchParams();
       query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
       if (p.current_ask) query.set("current_ask", p.current_ask);
+      if (p.remote_host) query.set("remote_host", p.remote_host);
+      if (p.remote_user) query.set("remote_user", p.remote_user);
+      if (Number.isFinite(p.remote_port)) query.set("remote_port", String(Math.trunc(Number(p.remote_port))));
+      if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
+      if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
+      if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
       const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const project = body.project_identity || {};
