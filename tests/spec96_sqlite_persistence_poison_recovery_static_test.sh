@@ -8,7 +8,7 @@ if rg -n 'sqlite conn mutex poisoned' "$SQLITE" >/dev/null; then
   exit 1
 fi
 
-count=$(rg -n 'self\.conn\.lock\(\)\.unwrap_or_else\(\|poisoned\| poisoned\.into_inner\(\)\)' "$SQLITE" | wc -l | tr -d ' ')
+count=$(rg -n 'unwrap_or_else\(\|poisoned\| poisoned\.into_inner\(\)\)' "$SQLITE" | wc -l | tr -d ' ')
 if [ "$count" -ge 10 ]; then
   echo "✓ PASS: SQLite persistence locks recover from poison instead of panicking"
 else

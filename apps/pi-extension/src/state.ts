@@ -806,6 +806,26 @@ export function observeProjectThreadEvidence(input: {
   return observation;
 }
 
+function rememberedProjectRootForAlias(alias: string): string {
+  const lower = String(alias || "").toLowerCase().trim();
+  if (!lower) return "";
+  const scored: Array<{ root: string; score: number }> = [];
+  const last = S.lastProjectIdentity || {};
+  const lastAliases = Array.isArray(last.aliases) ? last.aliases : [];
+  const lastText = [last.project_id, last.canonical_name, ...lastAliases].filter(Boolean).join(" ").toLowerCase();
+  if (last.project_root && lastText.includes(lower)) {
+    scored.push({ root: normalizeProjectRoot(last.project_root), score: last.confidence === "high" ? 1 : 0.8 });
+  }
+  for (const entry of S.projectSwitchLedger || []) {
+    const entryText = `${entry.project_alias || ""} ${entry.project_root || ""}`.toLowerCase();
+    if (entry.project_root && entryText.includes(lower)) {
+      scored.push({ root: normalizeProjectRoot(entry.project_root), score: entry.confidence || 0.5 });
+    }
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.root || "";
+}
+
 export function observeProjectThreadHintsFromText(text: string, turnId: string, source: PiProjectThreadObservation["source"], action?: string): PiProjectThreadObservation[] {
   const raw = String(text || "").slice(0, 2000);
   const root = projectRootFromAbsolutePath(raw);
@@ -816,7 +836,7 @@ export function observeProjectThreadHintsFromText(text: string, turnId: string, 
   }
   for (const alias of aliases) {
     if (root && alias === aliases[0]) continue;
-    const knownRoot = /ptm/i.test(alias) ? "/home/planmarr/plan-the-marriage" : /focusa/i.test(alias) ? "/home/wirebot/focusa" : root;
+    const knownRoot = root || rememberedProjectRootForAlias(alias);
     observations.push(observeProjectThreadEvidence({ project_root: knownRoot, project_alias: alias, evidence_ref: `${source}:${turnId}:project_alias:${alias}`, turn_id: turnId, action: action || `alias=${alias}`, confidence: knownRoot ? 0.75 : 0.58, source })!);
   }
   return observations.filter(Boolean);
@@ -880,7 +900,7 @@ export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; 
   const aliases = projectAliasesForText(ask, explicitRoot);
   const ledgerCandidate = projectSwitchLedgerCandidateForAsk(ask, savedRoot);
   const alias = aliases[0] || ledgerCandidate?.project_alias || "unknown";
-  const aliasKnownRoot = /ptm/i.test(alias) ? "/home/planmarr/plan-the-marriage" : /focusa/i.test(alias) ? "/home/wirebot/focusa" : "";
+  const aliasKnownRoot = rememberedProjectRootForAlias(alias);
   const candidateRoot = normalizeProjectRoot(explicitRoot || ledgerCandidate?.project_root || aliasKnownRoot || "");
   const evidenceRef = explicitRoot ? "current_ask:explicit_project_path" : ledgerCandidate?.evidence_ref || (aliases.length ? `current_ask:project_alias:${alias}` : "none");
   const confidence = explicitRoot ? 0.95 : ledgerCandidate?.confidence ?? (candidateRoot ? 0.7 : aliases.length ? 0.58 : 0);

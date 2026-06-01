@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
-use focusa_core::types::TrajectoryLadderContext;
+use focusa_core::types::{FocusaSessionIdentity, FocusaState, TrajectoryLadderContext};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -23,6 +23,12 @@ struct PredictionBody {
     context_refs: Vec<String>,
     #[serde(default)]
     ontology_context: Value,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
+    #[serde(default)]
+    session_identity: Option<FocusaSessionIdentity>,
     predicted_outcome: String,
     confidence: f64,
     recommended_action: String,
@@ -227,6 +233,94 @@ fn trajectory_summary(trajectory: Option<TrajectoryLadderContext>) -> Value {
     }
 }
 
+fn clean_scope(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.trim_end_matches('/').to_string())
+}
+
+fn prediction_scope(body: &PredictionBody) -> (Option<String>, Option<String>) {
+    let project_root = clean_scope(body.project_root.as_deref())
+        .or_else(|| {
+            clean_scope(
+                body.session_identity
+                    .as_ref()
+                    .map(|identity| identity.project_root.as_str()),
+            )
+        })
+        .or_else(|| {
+            body.session_identity
+                .as_ref()
+                .and_then(|identity| identity.project_identity.as_ref())
+                .and_then(|project| clean_scope(Some(project.project_root.as_str())))
+        });
+    let continuity_id = clean_scope(body.continuity_id.as_deref()).or_else(|| {
+        body.session_identity
+            .as_ref()
+            .and_then(|identity| clean_scope(identity.continuity_id.as_deref()))
+    });
+    (project_root, continuity_id)
+}
+
+fn scoped_trajectory_summary(focusa: &FocusaState, body: &PredictionBody) -> Value {
+    let (project_root, continuity_id) = prediction_scope(body);
+    if project_root.is_some() || continuity_id.is_some() {
+        let matched = focusa.trajectory.records.iter().rev().find(|record| {
+            let project_matches = project_root.as_ref().is_none_or(|expected| {
+                record
+                    .project_root
+                    .as_deref()
+                    .map(|actual| actual.trim_end_matches('/') == expected)
+                    .unwrap_or_else(|| {
+                        record
+                            .session_identity
+                            .as_ref()
+                            .map(|identity| identity.project_root.trim_end_matches('/') == expected)
+                            .unwrap_or(false)
+                    })
+            });
+            let continuity_matches = continuity_id.as_ref().is_none_or(|expected| {
+                record
+                    .continuity_id
+                    .as_deref()
+                    .map(|actual| actual == expected)
+                    .unwrap_or_else(|| {
+                        record
+                            .session_identity
+                            .as_ref()
+                            .and_then(|identity| identity.continuity_id.as_deref())
+                            .map(|actual| actual == expected)
+                            .unwrap_or(false)
+                    })
+            });
+            project_matches && continuity_matches
+        });
+        return matched
+            .map(|record| {
+                json!({
+                    "trajectory_id": record.trajectory_id,
+                    "hlt": record.long_term_goal,
+                    "mlg": record.mid_level_goal,
+                    "stg": record.short_term_goal,
+                    "waypoints": record.waypoints,
+                    "project_root": record.project_root,
+                    "continuity_id": record.continuity_id,
+                    "scope_binding": "request_scope",
+                })
+            })
+            .unwrap_or_else(|| {
+                json!({
+                    "scope_binding": "unmatched_request_scope",
+                    "project_root": project_root,
+                    "continuity_id": continuity_id,
+                    "do_not_use": ["unscoped_global_trajectory"],
+                })
+            });
+    }
+    trajectory_summary(focusa.trajectory_ladder_context())
+}
+
 fn write_predictions_to(
     path: &std::path::Path,
     predictions: Vec<Value>,
@@ -268,13 +362,19 @@ async fn record(
 ) -> Json<Value> {
     let prediction_id = Uuid::now_v7().to_string();
     let confidence = body.confidence.clamp(0.0, 1.0);
-    let trajectory = trajectory_summary(state.focusa.read().await.trajectory_ladder_context());
+    let (project_root, continuity_id) = prediction_scope(&body);
+    let trajectory = {
+        let focusa = state.focusa.read().await;
+        scoped_trajectory_summary(&focusa, &body)
+    };
     let payload = json!({
         "prediction_id": prediction_id,
         "ts": Utc::now().to_rfc3339(),
         "prediction_type": body.prediction_type,
         "context_refs": body.context_refs,
         "ontology_context": bound_ontology_context(body.ontology_context),
+        "project_root": project_root,
+        "continuity_id": continuity_id,
         "predicted_outcome": body.predicted_outcome,
         "confidence": confidence,
         "recommended_action": body.recommended_action,
@@ -578,6 +678,73 @@ mod tests {
                 .and_then(|v| v.get("prediction_id"))
                 .and_then(|v| v.as_i64()),
             Some(1004)
+        );
+    }
+
+    #[test]
+    fn scoped_prediction_trajectory_uses_request_project_scope() {
+        let mut focusa = FocusaState::default();
+        focusa
+            .trajectory
+            .records
+            .push(focusa_core::types::TrajectoryProjectionRecord {
+                trajectory_id: "trajectory:focusa".to_string(),
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
+                long_term_goal: "Maintain Focusa".to_string(),
+                short_term_goal: Some("Verify prediction scope".to_string()),
+                ..focusa_core::types::TrajectoryProjectionRecord::default()
+            });
+        let body = PredictionBody {
+            prediction_type: "next_action_success".to_string(),
+            context_refs: vec![],
+            ontology_context: Value::Null,
+            project_root: Some("/repo/focusa/".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            session_identity: None,
+            predicted_outcome: "scoped".to_string(),
+            confidence: 0.8,
+            recommended_action: "verify".to_string(),
+            why: "scope-bound prediction".to_string(),
+        };
+        let trajectory = scoped_trajectory_summary(&focusa, &body);
+        assert_eq!(
+            trajectory.get("trajectory_id").and_then(Value::as_str),
+            Some("trajectory:focusa")
+        );
+        assert_eq!(
+            trajectory.get("scope_binding").and_then(Value::as_str),
+            Some("request_scope")
+        );
+    }
+
+    #[test]
+    fn scoped_prediction_trajectory_suppresses_unmatched_global_context() {
+        let focusa = FocusaState::default();
+        let body = PredictionBody {
+            prediction_type: "next_action_success".to_string(),
+            context_refs: vec![],
+            ontology_context: Value::Null,
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            session_identity: None,
+            predicted_outcome: "scoped".to_string(),
+            confidence: 0.8,
+            recommended_action: "verify".to_string(),
+            why: "scope-bound prediction".to_string(),
+        };
+        let trajectory = scoped_trajectory_summary(&focusa, &body);
+        assert_eq!(
+            trajectory.get("scope_binding").and_then(Value::as_str),
+            Some("unmatched_request_scope")
+        );
+        assert!(
+            trajectory
+                .get("do_not_use")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items
+                    .iter()
+                    .any(|item| item.as_str() == Some("unscoped_global_trajectory")))
         );
     }
 

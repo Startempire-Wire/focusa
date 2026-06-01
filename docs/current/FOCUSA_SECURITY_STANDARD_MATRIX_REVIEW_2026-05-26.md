@@ -12,7 +12,7 @@ Evidence baseline:
 
 - Prior review: `docs/current/FOCUSA_SECURITY_REVIEW_2026-05-26.md`.
 - Dependency remediation: npm Pi extension 0 vulns; menubar 3 low residual; RustSec vulnerabilities 0.
-- Runtime hardening: non-loopback bind requires auth; daemon systemd uses loopback bind, `ProtectSystem=strict`, `NoNewPrivileges=true`, `ReadWritePaths=/home/wirebot/focusa/data`.
+- Runtime hardening: non-loopback bind requires auth; daemon systemd uses loopback bind, `ProtectSystem=strict`, `NoNewPrivileges=true`, `ReadWritePaths=<focusa-project-root>/data`.
 - Static gates: `tests/security_cargo_audit_gate.sh`, `tests/security_non_loopback_auth_guard_static_test.sh`, `tests/security_shell_unwrap_static_test.sh`, `tests/security_persisted_state_privacy_static_test.sh`.
 
 ## 1. OWASP ASVS-style matrix

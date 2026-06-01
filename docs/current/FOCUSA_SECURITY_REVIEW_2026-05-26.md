@@ -114,7 +114,7 @@ Findings:
    - External command execution should remain argument-vector only, no shell interpolation, and local-only/auth-gated.
 
 4. **Low/positive — production systemd unit has hardening.**
-   - `ProtectSystem=strict`, `ReadWritePaths=/home/wirebot/focusa/data`, `NoNewPrivileges=true`, loopback bind, memory caps.
+   - `ProtectSystem=strict`, `ReadWritePaths=<focusa-project-root>/data`, `NoNewPrivileges=true`, loopback bind, memory caps.
 
 Recommendations:
 
@@ -127,7 +127,7 @@ Recommendations:
 Commands/evidence:
 
 - Static grep for SQLite/persistence/data-dir/token/sanitize/raw payload surfaces.
-- Runtime service data dir: `FOCUSA_DATA_DIR=/home/wirebot/focusa/data/.focusa`.
+- Runtime service data dir: `FOCUSA_DATA_DIR=<focusa-project-root>/data/.focusa`.
 
 Findings:
 

@@ -9,7 +9,7 @@ Note: the file name is retained for continuity, but the parent failure class is 
 
 ## Executive summary
 
-During a compacted Pi session, Focusa preserved a canonical Workpoint under the Focusa repo scope (`project_root=/home/wirebot/focusa`, continuity `focusa-cont-root-8a64612b-d338-4eca-9e27-bb0e9d11c7f8`). The visible symptom was cross-project action: the operator corrected that active work was the PTM remote project, yet the assistant inspected Focusa-local state before rebinding.
+During a compacted Pi session, Focusa preserved a canonical Workpoint under the Focusa repo scope (`project_root=<focusa-project-root>`, continuity `focusa-cont-root-8a64612b-d338-4eca-9e27-bb0e9d11c7f8`). The visible symptom was cross-project action: the operator corrected that active work was the PTM remote project, yet the assistant inspected Focusa-local state before rebinding.
 
 The parent failure was model forgetting / attention loss, not absence of memory. Focusa had a Workpoint, daemon state, Focus Slice context, telemetry paths, raw Pi session JSONL, and a Workpoint mission containing the warning. Those substrates were retrieved or retrievable, but they were not forced into model attention, checked for use, or preserved as a short visible anchor after compaction and tool-output flood.
 
@@ -25,8 +25,8 @@ The follow-up decomposition for this incident is tracked by `focusa-yv8d`; its a
 
 ## Incident facts
 
-- Preserved Workpoint scope: `/home/wirebot/focusa`.
-- Operator-indicated active scope: PTM remote project, `/home/planmarr/plan-the-marriage`.
+- Preserved Workpoint scope: `<focusa-project-root>`.
+- Operator-indicated active scope: PTM remote project, `<ptm-project-root>`.
 - Parent failure: a remembered correction existed but was not forced into model attention before action.
 - Compaction packet correctly stated: Workpoint is canonical only when `project_root + continuity_id` match.
 - The Workpoint mission itself contained the warning: “you are looking in the wrong place. This is the PTM remote project...”.
@@ -43,14 +43,14 @@ Review date: 2026-05-31. Line numbers are local source positions from the review
 - `docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md` states practical precedence is operator steering/current ask first, then identity prior, trajectory, and Workpoint. This is the intended policy.
 - `apps/pi-extension/src/turns.ts:468` still injects Workpoint guidance as “authoritative continuation anchor unless the operator explicitly steers elsewhere,” but no structured scope-verdict block is emitted before the Workpoint section.
 - `apps/pi-extension/src/turns.ts:664-668` orders Focus Slice sections as `CURRENT_ASK`, `QUERY_SCOPE`, trajectory, then Workpoint; this surfaces both signals but does not adjudicate contradictions between them.
-- `apps/pi-extension/src/state.ts:396-420` classifies current ask as question/correction/instruction/meta and detects operator steering, but it does not extract project targets (`PTM`, `planmarr`, `/home/planmarr/plan-the-marriage`, remote host/domain hints).
+- `apps/pi-extension/src/state.ts:396-420` classifies current ask as question/correction/instruction/meta and detects operator steering, but it does not extract project targets (`PTM`, `planmarr`, `<ptm-project-root>`, remote host/domain hints).
 - `apps/pi-extension/src/turns.ts:901-999` records current ask, query scope, and `steering_detected` telemetry; it does not set `action_authority=false` for conflicting project evidence.
 - `apps/pi-extension/src/turns.ts:1091-1100` detects scope failure after assistant output; that is useful for measurement but too late to prevent wrong-project action.
 - `apps/pi-extension/src/compaction.ts:141-166` refreshes a scoped Workpoint packet after compaction and accepts it when it matches the saved `project_root + continuity_id`; it does not compare packet scope to current-ask project hints.
 - `apps/pi-extension/src/compaction.ts:276-309` formats WorkpointResumePacketV2 for prompt with `CANONICAL: true`, best-next tools, and authority boundary; it does not include current-ask action-authority status or a short anti-forgetting memory anchor.
 - `apps/pi-extension/src/compaction.ts:465-476` emits a large Workpoint/learning-loop packet, but it does not guarantee a compact replayable summary remains visible after subsequent tool-output bursts.
-- Pi session JSONL around the incident shows the contradiction in one file: current ask stored “wrong place / PTM remote project” while `projectRoot` stayed `/home/wirebot/focusa`, then compaction re-injected the canonical Focusa Workpoint.
-- Earlier same-session JSONL contains PTM remote evidence (`/home/planmarr/plan-the-marriage`, PTM docs/specs/audits, HLT ledger, auth work), but no hot-path primitive scanned it on the conflict phrase.
+- Pi session JSONL around the incident shows the contradiction in one file: current ask stored “wrong place / PTM remote project” while `projectRoot` stayed `<focusa-project-root>`, then compaction re-injected the canonical Focusa Workpoint.
+- Earlier same-session JSONL contains PTM remote evidence (`<ptm-project-root>`, PTM docs/specs/audits, HLT ledger, auth work), but no hot-path primitive scanned it on the conflict phrase.
 - The observed “I cannot access because tool calls streamed it out of view” failure shows a second path: the model/operator can lose a just-produced report even when Focusa state remains healthy.
 
 ## Deep audit confirmation — 2026-05-31
@@ -147,7 +147,7 @@ Needed distinction:
 
 ### 4. Remote project evidence was not elevated early enough
 
-The PTM target was not only a semantic project name; it had durable remote evidence (`/home/planmarr/plan-the-marriage`, PTM docs, HLT ledger, auth files). Focusa should prefer explicit operator scope correction plus verifiable remote project evidence over a stale same-session local Focusa scope.
+The PTM target was not only a semantic project name; it had durable remote evidence (`<ptm-project-root>`, PTM docs, HLT ledger, auth files). Focusa should prefer explicit operator scope correction plus verifiable remote project evidence over a stale same-session local Focusa scope.
 
 ### 5. Same-session history was treated as a blob, not a project-switch ledger
 
@@ -213,8 +213,8 @@ Output:
   },
   "scope_verdict": {
     "status": "aligned | conflict | override_candidate | unknown",
-    "saved_scope": {"project_root": "/home/wirebot/focusa", "continuity_id": "..."},
-    "current_ask_scope": {"project_alias": "PTM", "project_root": "/home/planmarr/plan-the-marriage", "confidence": "high"},
+    "saved_scope": {"project_root": "<focusa-project-root>", "continuity_id": "..."},
+    "current_ask_scope": {"project_alias": "PTM", "project_root": "<ptm-project-root>", "confidence": "high"},
     "workpoint_canonical_for_saved_scope": true,
     "workpoint_action_authority": false
   },
@@ -222,7 +222,7 @@ Output:
   "action_allowed": false,
   "visible_recap_required": true,
   "required_next": ["recap_memory_anchor", "verify_current_project", "rebind_or_session_transfer"],
-  "evidence_spans": ["current_ask:PTM remote", "session_jsonl:/home/planmarr/plan-the-marriage", "remote_hlt:docs/HLT_LEDGER.md"]
+  "evidence_spans": ["current_ask:PTM remote", "session_jsonl:<ptm-project-root>", "remote_hlt:docs/HLT_LEDGER.md"]
 }
 ```
 
@@ -304,9 +304,9 @@ Proposed output block:
 ```text
 CURRENT_ASK_SCOPE_VERDICT:
   status: aligned | override_candidate | conflict | unknown
-  current_workpoint_project_root: /home/wirebot/focusa
+  current_workpoint_project_root: <focusa-project-root>
   operator_indicated_project: PTM remote project
-  operator_indicated_project_root: /home/planmarr/plan-the-marriage
+  operator_indicated_project_root: <ptm-project-root>
   action_authority_for_current_ask: false
   required_next: focusa_project_verify -> focusa_project_identity -> focusa_workpoint_checkpoint/session_transfer
 ```
@@ -337,7 +337,7 @@ Do not change the stored Workpoint’s canonicality. The old packet remains vali
 
 Implement a bounded detector that extracts project hints from the current ask and recent operator correction text:
 
-- explicit absolute paths (`/home/planmarr/plan-the-marriage`)
+- explicit absolute paths (`<ptm-project-root>`)
 - domains / known project aliases (`PTM`, `Plan the Marriage`, `planmarr`)
 - remote-host phrases (`remote project`, `remote server`, `client server`)
 - correction phrases (`wrong place`, `not this`, `this is ...`)
@@ -375,7 +375,7 @@ These should feed the existing scope/relevance review path described in `docs/69
 When conflict is detected, the assistant should not continue silently. It should answer directly and act:
 
 ```text
-Scope conflict: saved Workpoint is /home/wirebot/focusa; your current ask indicates PTM remote /home/planmarr/plan-the-marriage. Rebinding before action.
+Scope conflict: saved Workpoint is <focusa-project-root>; your current ask indicates PTM remote <ptm-project-root>. Rebinding before action.
 ```
 
 Avoid asking for permission unless the next operation is destructive or high-risk.
@@ -421,20 +421,20 @@ Avoid asking for permission unless the next operation is destructive or high-ris
 3. Operator asks “what are you doing?” after tool-output flood.
    - Expected: assistant answers from `MEMORY_ANCHOR` and active Workpoint in one or two lines before any further tool calls.
 
-4. Current ask: “you are looking in the wrong place; this is the PTM remote project” + saved Workpoint `/home/wirebot/focusa`.
+4. Current ask: “you are looking in the wrong place; this is the PTM remote project” + saved Workpoint `<focusa-project-root>`.
    - Expected: `status=override_candidate` or `conflict`; `action_authority_for_current_ask=false`.
 
-5. Current ask: “write an incident spec in the Focusa directory” + saved Workpoint `/home/wirebot/focusa`.
+5. Current ask: “write an incident spec in the Focusa directory” + saved Workpoint `<focusa-project-root>`.
    - Expected: `status=aligned`; normal docs route allowed.
 
-6. Current ask names a remote path `/home/planmarr/plan-the-marriage` while current cwd is `/root` or `/home/wirebot/focusa`.
+6. Current ask names a remote path `<ptm-project-root>` while current cwd is `/root` or `<focusa-project-root>`.
    - Expected: project verify/rebind route first; no local Focusa file inspection as target action.
 
 7. Same project, different continuity id.
    - Expected: existing continuity mismatch behavior still wins; no cross-session merge.
 
 8. Long same-Pi-session replay containing Focusa and PTM events.
-   - Input: saved Workpoint `/home/wirebot/focusa`, current ask “wrong place / PTM remote project,” session ledger has `/home/planmarr/plan-the-marriage` and `docs/HLT_LEDGER.md`.
+   - Input: saved Workpoint `<focusa-project-root>`, current ask “wrong place / PTM remote project,” session ledger has `<ptm-project-root>` and `docs/HLT_LEDGER.md`.
    - Expected: PTM candidate outranks Focusa for current action; Focusa Workpoint remains canonical saved state but suppressed for action.
 
 9. Operator asks to write a Focusa detour spec after the PTM incident.

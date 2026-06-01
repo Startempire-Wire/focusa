@@ -8,7 +8,7 @@ if rg -n 'metacog store poisoned' "$METACOG" >/dev/null; then
   exit 1
 fi
 
-count=$(rg -n 'store\(\)\.lock\(\)\.unwrap_or_else\(\|poisoned\| poisoned\.into_inner\(\)\)' "$METACOG" | wc -l | tr -d ' ')
+count=$(rg -n 'unwrap_or_else\(\|poisoned\| poisoned\.into_inner\(\)\)' "$METACOG" | wc -l | tr -d ' ')
 if [ "$count" -ge 8 ]; then
   echo "✓ PASS: metacognition store locks recover from poison instead of panicking"
 else

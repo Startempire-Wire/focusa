@@ -66,7 +66,7 @@ All PASS:
 - `tests/spec96_trajectory_clarity_gate_static_test.sh`
 
 ### Evidence: runtime tool checks
-- `focusa_project_identity(project_root=/home/wirebot/focusa)` -> `status=verified`, `confidence=high`
+- `focusa_project_identity(project_root=<focusa-project-root>)` -> `status=verified`, `confidence=high`
 - `focusa_project_verify(...)` -> `verified=true`, `confidence=high`
 - continuity mismatch path observed as non-canonical with scope-recovery guidance
 

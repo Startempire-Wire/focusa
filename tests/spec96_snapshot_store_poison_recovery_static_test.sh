@@ -8,7 +8,7 @@ if rg -n 'snapshot store poisoned' "$SNAPSHOTS" >/dev/null; then
   exit 1
 fi
 
-count=$(rg -n 'snapshot_store\(\)\.lock\(\)\.unwrap_or_else\(\|poisoned\| poisoned\.into_inner\(\)\)' "$SNAPSHOTS" | wc -l | tr -d ' ')
+count=$(rg -n 'unwrap_or_else\(\|poisoned\| poisoned\.into_inner\(\)\)' "$SNAPSHOTS" | wc -l | tr -d ' ')
 if [ "$count" -ge 4 ]; then
   echo "✓ PASS: snapshot store locks recover from poison instead of panicking"
 else

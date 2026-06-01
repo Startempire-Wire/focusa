@@ -4866,9 +4866,20 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       why: Type.String({ description: "Evidence-calibrated explanation." }),
       context_refs: Type.Optional(Type.Array(Type.String({ description: "Evidence refs or handles." }))),
       ontology_context: Type.Optional(Type.Any({ description: "Bounded ontology refs: object_refs, action_refs, tool_refs, evidence_refs, relation_refs." })),
+      project_root: Type.Optional(Type.String({ description: "Optional project root to bind prediction trajectory scope; auto-filled when omitted." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional continuity id to bind prediction trajectory scope; auto-filled when omitted." })),
     }),
     async execute(_id, params) {
       const payload = params && typeof params === "object" ? { ...(params as any) } : params;
+      if (payload && typeof payload === "object") {
+        const projectRoot = normalizeProjectRoot(payload.project_root || S.lastProjectIdentity?.project_root || S.sessionCwd || process.cwd());
+        const continuityId = String(payload.continuity_id || S.continuityId || ensureContinuityId(projectRoot) || "").trim();
+        if (projectRoot) payload.project_root = projectRoot;
+        if (continuityId) payload.continuity_id = continuityId;
+        if (!payload.session_identity && projectRoot) {
+          payload.session_identity = await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId, sessionId: S.sessionFrameKey });
+        }
+      }
       const res = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify(payload) });
       const body = res.body || {};
       if (!res.ok) return blockedToolResponse("focusa_predict_record", "prediction", `prediction record blocked → ${explainWorkLoopResult(res, "prediction write unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_predict_recent"]);

@@ -25,7 +25,7 @@ Object.assign(S, {
   },
 });
 
-observeProjectThreadHintsFromText("PTM remote project active; planmarr scope", "pi-turn-override-1", "current_ask", "operator PTM correction");
+observeProjectThreadHintsFromText("PTM remote project active; planmarr scope at /home/planmarr/plan-the-marriage", "pi-turn-override-1", "current_ask", "operator PTM correction");
 const verdict = buildCurrentAskScopeVerdict({
   currentAskText: "wrong place — this is PTM remote project",
   workpointPacket: S.activeWorkpointPacket,

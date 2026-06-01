@@ -2592,23 +2592,23 @@ mod tests {
             workpoint_id: Uuid::now_v7(),
             mission: Some("Continue Focusa implementation".to_string()),
             next_slice: Some("Patch Workpoint authority labels".to_string()),
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/tmp/focusa-project".to_string()),
             continuity_id: Some("focusa-cont".to_string()),
             canonical: true,
             ..WorkpointRecord::default()
         };
         let scope = evaluate_resume_scope(
             &record,
-            Some("/home/wirebot/focusa"),
+            Some("/tmp/focusa-project"),
             Some("focusa-cont"),
             Some("session-a"),
         );
         let req = WorkpointResumeRequest {
-            project_root: Some("/home/wirebot/focusa".to_string()),
+            project_root: Some("/tmp/focusa-project".to_string()),
             continuity_id: Some("focusa-cont".to_string()),
             session_id: Some("session-a".to_string()),
             current_ask: Some(
-                "wrong place; this is the PTM remote project at /home/planmarr/plan-the-marriage"
+                "wrong place; this is the PTM remote project at /home/example/plan-the-marriage"
                     .to_string(),
             ),
             ..WorkpointResumeRequest::default()
@@ -2647,7 +2647,7 @@ mod tests {
                 .get("scope_conflict_reason")
                 .and_then(Value::as_str)
                 .unwrap_or_default()
-                .contains("/home/planmarr/plan-the-marriage")
+                .contains("/home/example/plan-the-marriage")
         );
     }
 

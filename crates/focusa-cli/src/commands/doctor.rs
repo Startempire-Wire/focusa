@@ -56,11 +56,7 @@ fn auth_token_configured() -> bool {
 }
 
 fn doc_contains(path: &str, needle: &str) -> bool {
-    let candidates = [
-        PathBuf::from(path),
-        repo_root().join(path),
-        PathBuf::from("/home/wirebot/focusa").join(path),
-    ];
+    let candidates = [PathBuf::from(path), repo_root().join(path)];
     candidates.iter().any(|candidate| {
         std::fs::read_to_string(candidate)
             .map(|content| content.contains(needle))
