@@ -7,7 +7,7 @@ CLI="${ROOT_DIR}/crates/focusa-cli/src/commands/project.rs"
 DOC1="${ROOT_DIR}/docs/focusa-tools/tools/focusa_project_identity.md"
 DOC2="${ROOT_DIR}/docs/focusa-tools/tools/focusa_project_verify.md"
 
-if rg -n 'root_marker|git_root|beads_root|workspace_file|daemon_working_directory|operator_supplied_scope|quorum_rule' "$PROJECT" >/dev/null; then
+if rg -n 'root_marker|git_root|beads_root|workspace_file|daemon_working_directory|operator_supplied_scope|persisted_session_identity|quorum_rule' "$PROJECT" >/dev/null; then
   echo "✓ PASS: ProjectIdentity discovery uses multi-signal quorum"
 else
   echo "✗ FAIL: ProjectIdentity quorum signals missing" >&2
@@ -42,7 +42,7 @@ else
   exit 1
 fi
 
-if rg -n 'compact_project_summary|project_summary|summary_lines|stack|key_dirs|wp_url|app_url|auth_url|graphql_url|environment_confidence' "$PROJECT" "$TOOLS" >/dev/null; then
+if rg -n 'compact_project_summary|project_summary|summary_lines|stack|key_dirs|aliases|wp_url|app_url|auth_url|graphql_url|environment_confidence' "$PROJECT" "$TOOLS" >/dev/null; then
   echo "✓ PASS: ProjectIdentity exposes compact project card facts directly"
 else
   echo "✗ FAIL: ProjectIdentity compact project card facts missing" >&2
@@ -56,7 +56,7 @@ else
   exit 1
 fi
 
-if rg -n 'PROJECT_IDENTITY_PAYLOAD_CACHE|PROJECT_IDENTITY_PAYLOAD_CACHE_TTL|project_identity_cache_key|cached_at\.elapsed\(\).*PROJECT_IDENTITY_PAYLOAD_CACHE_TTL' "$PROJECT" >/dev/null; then
+if rg -n 'PROJECT_IDENTITY_PAYLOAD_CACHE|PROJECT_IDENTITY_PAYLOAD_CACHE_TTL|project_identity_cache_key|persisted_project_fingerprint|cached_at\.elapsed\(\).*PROJECT_IDENTITY_PAYLOAD_CACHE_TTL' "$PROJECT" >/dev/null; then
   echo "✓ PASS: ProjectIdentity hot-path payload uses bounded short TTL cache"
 else
   echo "✗ FAIL: ProjectIdentity hot-path payload cache missing" >&2
@@ -115,7 +115,7 @@ else
   exit 1
 fi
 
-if rg -n 'ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
+if rg -n 'persisted_project_root|persisted_project_fingerprint|ProjectIdentity|quorum|canonical=false|Backed by `GET /v1/project/identity`|Backed by `POST /v1/project/verify`' "$DOC1" "$DOC2" >/dev/null; then
   echo "✓ PASS: ProjectIdentity docs describe quorum/degraded recovery"
 else
   echo "✗ FAIL: ProjectIdentity docs missing quorum/degraded recovery" >&2

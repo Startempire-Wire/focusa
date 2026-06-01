@@ -22,10 +22,11 @@ Verify expected ProjectIdentity fields and surface project mismatches without mu
 - `repo_remote` — expected git origin remote.
 - `remote_host`, `remote_user`, `remote_port` — optional remote SSH context for a project that lives outside the local daemon filesystem.
 - `remote_repo_remote`, `remote_workspace_kind`, `remote_deploy_root` — optional caller-supplied remote evidence to verify against the expected project root.
+- `persisted_project_root`, `persisted_project_fingerprint`, `persisted_project_id`, `persisted_canonical_name` — optional prior-session ProjectIdentity signal used to detect stale/cross-session scope before canonical trust.
 
 ## Expected result
 
-Returns ProjectIdentity plus `verification.verified`, quorum rule, matching independent signal count, and mismatch diagnostics. Remote SSH verification may return `remote_context` and `authority_boundary=remote_host_plus_project_root_plus_fingerprint` when caller-supplied remote evidence forms the quorum. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
+Returns ProjectIdentity plus `verification.verified`, quorum rule, matching independent signal count, aliases, Beads issue-prefix evidence, persisted-session signal diagnostics, and mismatch diagnostics. Remote SSH verification may return `remote_context` and `authority_boundary=remote_host_plus_project_root_plus_fingerprint` when caller-supplied remote evidence forms the quorum. Pi results include `details.tool_result_v1` with `status`, `failure_class`, `canonical`, `degraded`, recovery posture, and `next_tools`.
 
 ## Failure and recovery
 

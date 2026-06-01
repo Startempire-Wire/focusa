@@ -24,6 +24,14 @@ pub enum ProjectCmd {
         remote_workspace_kind: Option<String>,
         #[arg(long)]
         remote_deploy_root: Option<String>,
+        #[arg(long)]
+        persisted_project_root: Option<String>,
+        #[arg(long)]
+        persisted_project_fingerprint: Option<String>,
+        #[arg(long)]
+        persisted_project_id: Option<String>,
+        #[arg(long)]
+        persisted_canonical_name: Option<String>,
     },
     /// Build advisory Project Card from identity, ontology, trajectory, prediction, evidence, and learning-loop signals.
     Card {
@@ -102,6 +110,14 @@ pub enum ProjectCmd {
         remote_workspace_kind: Option<String>,
         #[arg(long)]
         remote_deploy_root: Option<String>,
+        #[arg(long)]
+        persisted_project_root: Option<String>,
+        #[arg(long)]
+        persisted_project_fingerprint: Option<String>,
+        #[arg(long)]
+        persisted_project_id: Option<String>,
+        #[arg(long)]
+        persisted_canonical_name: Option<String>,
     },
 }
 
@@ -172,6 +188,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             remote_repo_remote,
             remote_workspace_kind,
             remote_deploy_root,
+            persisted_project_root,
+            persisted_project_fingerprint,
+            persisted_project_id,
+            persisted_canonical_name,
         } => {
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
@@ -188,6 +208,26 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 remote_workspace_kind.as_deref(),
             );
             push_query(&mut qs, "remote_deploy_root", remote_deploy_root.as_deref());
+            push_query(
+                &mut qs,
+                "persisted_project_root",
+                persisted_project_root.as_deref(),
+            );
+            push_query(
+                &mut qs,
+                "persisted_project_fingerprint",
+                persisted_project_fingerprint.as_deref(),
+            );
+            push_query(
+                &mut qs,
+                "persisted_project_id",
+                persisted_project_id.as_deref(),
+            );
+            push_query(
+                &mut qs,
+                "persisted_canonical_name",
+                persisted_canonical_name.as_deref(),
+            );
             let path = if qs.is_empty() {
                 "/v1/project/identity".to_string()
             } else {
@@ -285,6 +325,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             remote_repo_remote,
             remote_workspace_kind,
             remote_deploy_root,
+            persisted_project_root,
+            persisted_project_fingerprint,
+            persisted_project_id,
+            persisted_canonical_name,
         } => {
             let body = json!({
                 "cwd": cwd,
@@ -298,6 +342,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 "remote_repo_remote": remote_repo_remote,
                 "remote_workspace_kind": remote_workspace_kind,
                 "remote_deploy_root": remote_deploy_root,
+                "persisted_project_root": persisted_project_root,
+                "persisted_project_fingerprint": persisted_project_fingerprint,
+                "persisted_project_id": persisted_project_id,
+                "persisted_canonical_name": persisted_canonical_name,
             });
             ("verify", api.post("/v1/project/verify", &body).await?)
         }

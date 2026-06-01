@@ -7,7 +7,7 @@ TRAJECTORY="${ROOT_DIR}/crates/focusa-api/src/routes/trajectory.rs"
 TOOLS="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 STATE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
 
-if rg -n 'struct ProjectIdentityRecord|struct FocusaSessionIdentity|ProjectIdentitySignalRecord' "$CORE" >/dev/null; then
+if rg -n 'struct ProjectIdentityRecord|struct FocusaSessionIdentity|ProjectIdentitySignalRecord|project_urls: Option<serde_json::Value>|aliases: Vec<String>' "$CORE" >/dev/null; then
   echo "✓ PASS: ProjectIdentity and FocusaSessionIdentity are shared core types"
 else
   echo "✗ FAIL: shared identity envelope types missing from focusa-core" >&2
@@ -36,7 +36,7 @@ else
   exit 1
 fi
 
-if rg -n 'buildFocusaSessionIdentity' "$STATE" "$TOOLS" >/dev/null && rg -n 'session_identity: await buildFocusaSessionIdentity' "$TOOLS" >/dev/null; then
+if rg -n 'buildFocusaSessionIdentity|persisted_project_fingerprint|persisted_project_root' "$STATE" "$TOOLS" >/dev/null && rg -n 'session_identity: await buildFocusaSessionIdentity' "$TOOLS" >/dev/null; then
   echo "✓ PASS: Pi tools attach FocusaSessionIdentity to Workpoint/Trajectory payloads"
 else
   echo "✗ FAIL: Pi tools do not attach FocusaSessionIdentity payloads" >&2

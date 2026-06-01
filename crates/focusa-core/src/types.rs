@@ -64,6 +64,12 @@ pub struct ProjectIdentityRecord {
     pub repo_remote: Option<String>,
     pub beads_prefix: Option<String>,
     pub workspace_kind: Option<String>,
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    pub project_urls: Option<serde_json::Value>,
+    pub deployment: Option<serde_json::Value>,
+    pub remote_context: Option<serde_json::Value>,
+    pub project_summary: Option<serde_json::Value>,
     pub fingerprint: Option<String>,
     pub confidence: Option<String>,
     #[serde(default)]

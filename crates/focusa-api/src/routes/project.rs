@@ -31,6 +31,10 @@ pub struct ProjectIdentityQuery {
     pub remote_repo_remote: Option<String>,
     pub remote_workspace_kind: Option<String>,
     pub remote_deploy_root: Option<String>,
+    pub persisted_project_root: Option<String>,
+    pub persisted_project_fingerprint: Option<String>,
+    pub persisted_project_id: Option<String>,
+    pub persisted_canonical_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -46,6 +50,10 @@ pub struct ProjectVerifyRequest {
     pub remote_repo_remote: Option<String>,
     pub remote_workspace_kind: Option<String>,
     pub remote_deploy_root: Option<String>,
+    pub persisted_project_root: Option<String>,
+    pub persisted_project_fingerprint: Option<String>,
+    pub persisted_project_id: Option<String>,
+    pub persisted_canonical_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -91,6 +99,10 @@ struct RemoteProjectHint {
     remote_repo_remote: Option<String>,
     remote_workspace_kind: Option<String>,
     remote_deploy_root: Option<String>,
+    persisted_project_root: Option<String>,
+    persisted_project_fingerprint: Option<String>,
+    persisted_project_id: Option<String>,
+    persisted_canonical_name: Option<String>,
 }
 
 impl RemoteProjectHint {
@@ -108,6 +120,10 @@ impl RemoteProjectHint {
             remote_repo_remote: clean(query.remote_repo_remote.as_deref()),
             remote_workspace_kind: clean(query.remote_workspace_kind.as_deref()),
             remote_deploy_root: clean(query.remote_deploy_root.as_deref()),
+            persisted_project_root: clean(query.persisted_project_root.as_deref()),
+            persisted_project_fingerprint: clean(query.persisted_project_fingerprint.as_deref()),
+            persisted_project_id: clean(query.persisted_project_id.as_deref()),
+            persisted_canonical_name: clean(query.persisted_canonical_name.as_deref()),
         }
     }
 
@@ -119,6 +135,10 @@ impl RemoteProjectHint {
             remote_repo_remote: clean(request.remote_repo_remote.as_deref()),
             remote_workspace_kind: clean(request.remote_workspace_kind.as_deref()),
             remote_deploy_root: clean(request.remote_deploy_root.as_deref()),
+            persisted_project_root: clean(request.persisted_project_root.as_deref()),
+            persisted_project_fingerprint: clean(request.persisted_project_fingerprint.as_deref()),
+            persisted_project_id: clean(request.persisted_project_id.as_deref()),
+            persisted_canonical_name: clean(request.persisted_canonical_name.as_deref()),
         }
     }
 
@@ -149,6 +169,7 @@ struct IdentityCandidate {
     repo_remote: Option<String>,
     beads_prefix: Option<String>,
     workspace_kind: Option<String>,
+    aliases: Vec<String>,
     project_urls: Value,
     deployment: Value,
     remote_context: Value,
@@ -278,6 +299,30 @@ fn read_git_remote(git_root: &Path) -> Option<String> {
     None
 }
 
+fn read_beads_issue_prefix(beads_root: &Path) -> Option<String> {
+    let path = beads_root.join(".beads").join("issues.jsonl");
+    let mut file = fs::File::open(path).ok()?;
+    let mut text = String::new();
+    std::io::Read::by_ref(&mut file)
+        .take(64 * 1024)
+        .read_to_string(&mut text)
+        .ok()?;
+    for line in text.lines() {
+        let Ok(value) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let Some(id) = value.get("id").and_then(Value::as_str) else {
+            continue;
+        };
+        if let Some((prefix, _)) = id.split_once('-')
+            && !prefix.trim().is_empty()
+        {
+            return Some(prefix.trim().to_string());
+        }
+    }
+    None
+}
+
 fn marker_string(marker: &Option<Value>, key: &str) -> Option<String> {
     marker
         .as_ref()
@@ -286,6 +331,23 @@ fn marker_string(marker: &Option<Value>, key: &str) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string)
+}
+
+fn marker_string_array(marker: &Option<Value>, key: &str) -> Vec<String> {
+    marker
+        .as_ref()
+        .and_then(|value| value.get(key))
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
 }
 
 fn marker_object_or_empty(marker: &Option<Value>, key: &str) -> Value {
@@ -871,6 +933,14 @@ fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
             .unwrap_or_else(|| "unknown".to_string())
     ));
     lines.push(format!(
+        "aliases={}",
+        if candidate.aliases.is_empty() {
+            "none".to_string()
+        } else {
+            candidate.aliases.join(",")
+        }
+    ));
+    lines.push(format!(
         "stack={} workspace={} dirs={}",
         if stack.is_empty() {
             "unknown".to_string()
@@ -916,6 +986,7 @@ fn compact_project_summary(candidate: &IdentityCandidate) -> Value {
             "repo_remote": candidate.repo_remote.clone(),
             "beads_prefix": candidate.beads_prefix.clone(),
             "workspace_kind": candidate.workspace_kind.clone(),
+            "aliases": candidate.aliases.clone(),
             "stack": stack,
             "key_dirs": key_dirs,
             "confidence": candidate.confidence,
@@ -1045,6 +1116,23 @@ fn discover_identity(
         }
     }
 
+    if let Some(persisted_root) = clean(remote_hint.persisted_project_root.as_deref()) {
+        let root = normalize_path(&expand_home(&persisted_root));
+        signals.push(ProjectSignal {
+            source: "persisted_session_identity",
+            root: Some(root.clone()),
+            confidence: "medium",
+            independent: false,
+            details: json!({
+                "project_root": root,
+                "fingerprint": remote_hint.persisted_project_fingerprint.clone(),
+                "project_id": remote_hint.persisted_project_id.clone(),
+                "canonical_name": remote_hint.persisted_canonical_name.clone(),
+                "authority_note": "prior same-session ProjectIdentity fingerprint is corroborating; mismatches degrade canonical scope"
+            }),
+        });
+    }
+
     let remote_nonlocal = remote_hint.is_present() && !start.exists();
     let marker_root = if remote_nonlocal {
         None
@@ -1089,13 +1177,19 @@ fn discover_identity(
     } else {
         find_upwards(&start, ".beads")
     };
+    let discovered_beads_prefix = beads_root
+        .as_ref()
+        .and_then(|root| read_beads_issue_prefix(root));
     if let Some(root) = &beads_root {
         signals.push(ProjectSignal {
             source: "beads_root",
             root: Some(normalize_path(root)),
             confidence: "high",
             independent: true,
-            details: json!({"beads_dir": root.join(".beads").to_string_lossy()}),
+            details: json!({
+                "beads_dir": root.join(".beads").to_string_lossy(),
+                "issue_prefix": discovered_beads_prefix.clone()
+            }),
         });
     }
 
@@ -1157,6 +1251,17 @@ fn discover_identity(
             }));
         }
     }
+    if let Some(persisted_root) = clean(remote_hint.persisted_project_root.as_deref())
+        .map(|root| normalize_path(&expand_home(&root)))
+        && persisted_root != canonical_root
+    {
+        mismatches.push(json!({
+            "source": "persisted_session_identity_root",
+            "expected": canonical_root.clone(),
+            "actual": persisted_root,
+            "severity": "high",
+        }));
+    }
 
     let unsafe_reason = unsafe_project_root_reason(&canonical_root);
     if let Some(reason) = unsafe_reason {
@@ -1166,6 +1271,106 @@ fn discover_identity(
             "actual": canonical_root,
             "severity": "high",
             "reason": reason,
+        }));
+    }
+
+    let marker_project_id = marker
+        .as_ref()
+        .and_then(|value| value.get("project_id"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let marker_name = marker
+        .as_ref()
+        .and_then(|value| value.get("canonical_name"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let marker_remote = marker
+        .as_ref()
+        .and_then(|value| value.get("repo_remote"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let marker_beads = marker
+        .as_ref()
+        .and_then(|value| value.get("beads_prefix"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let marker_workspace = marker
+        .as_ref()
+        .and_then(|value| value.get("workspace_kind"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let aliases = marker_string_array(&marker, "aliases");
+
+    let project_id = marker_project_id.unwrap_or_else(|| basename(&canonical_root));
+    let canonical_name = marker_name.unwrap_or_else(|| project_id.clone());
+    let repo_remote = marker_remote
+        .or_else(|| remote_hint.remote_repo_remote.clone())
+        .or(repo_remote);
+    let beads_prefix = marker_beads
+        .or(discovered_beads_prefix)
+        .or_else(|| Some(project_id.clone()));
+    let workspace_kind = marker_workspace
+        .or_else(|| remote_hint.remote_workspace_kind.clone())
+        .or_else(|| workspace_kind.map(str::to_string));
+    let mut identity_hints = vec![
+        project_id.clone(),
+        canonical_name.clone(),
+        basename(&canonical_root),
+    ];
+    identity_hints.extend(aliases.iter().cloned());
+    let (inferred_project_urls, inferred_deployment) =
+        infer_project_environment(&PathBuf::from(&canonical_root), &identity_hints);
+    let project_urls =
+        merge_missing_object_fields(marker_project_urls(&marker), inferred_project_urls);
+    let mut deployment =
+        merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
+    if let Some(remote_deploy_root) = remote_hint.remote_deploy_root.clone() {
+        if let Some(object) = deployment.as_object_mut() {
+            object
+                .entry("deploy_location".to_string())
+                .or_insert(json!(remote_deploy_root));
+            object
+                .entry("environment".to_string())
+                .or_insert(json!("remote"));
+        }
+    }
+    let remote_context = remote_hint.context();
+    let fingerprint = stable_fingerprint(&[
+        project_id.clone(),
+        canonical_name.clone(),
+        canonical_root.clone(),
+        repo_remote.clone().unwrap_or_default(),
+        beads_prefix.clone().unwrap_or_default(),
+    ]);
+
+    if let Some(persisted_fingerprint) = clean(remote_hint.persisted_project_fingerprint.as_deref())
+        && persisted_fingerprint != fingerprint
+    {
+        mismatches.push(json!({
+            "source": "persisted_session_identity_fingerprint",
+            "expected": fingerprint.clone(),
+            "actual": persisted_fingerprint,
+            "severity": "high",
+        }));
+    }
+    if let Some(persisted_project_id) = clean(remote_hint.persisted_project_id.as_deref())
+        && persisted_project_id != project_id
+    {
+        mismatches.push(json!({
+            "source": "persisted_session_identity_project_id",
+            "expected": project_id.clone(),
+            "actual": persisted_project_id,
+            "severity": "high",
+        }));
+    }
+    if let Some(persisted_name) = clean(remote_hint.persisted_canonical_name.as_deref())
+        && persisted_name != canonical_name
+    {
+        mismatches.push(json!({
+            "source": "persisted_session_identity_canonical_name",
+            "expected": canonical_name.clone(),
+            "actual": persisted_name,
+            "severity": "medium",
         }));
     }
 
@@ -1196,71 +1401,6 @@ fn discover_identity(
         "cwd_only"
     };
 
-    let marker_project_id = marker
-        .as_ref()
-        .and_then(|value| value.get("project_id"))
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    let marker_name = marker
-        .as_ref()
-        .and_then(|value| value.get("canonical_name"))
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    let marker_remote = marker
-        .as_ref()
-        .and_then(|value| value.get("repo_remote"))
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    let marker_beads = marker
-        .as_ref()
-        .and_then(|value| value.get("beads_prefix"))
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    let marker_workspace = marker
-        .as_ref()
-        .and_then(|value| value.get("workspace_kind"))
-        .and_then(Value::as_str)
-        .map(str::to_string);
-
-    let project_id = marker_project_id.unwrap_or_else(|| basename(&canonical_root));
-    let canonical_name = marker_name.unwrap_or_else(|| project_id.clone());
-    let repo_remote = marker_remote
-        .or_else(|| remote_hint.remote_repo_remote.clone())
-        .or(repo_remote);
-    let beads_prefix = marker_beads.or_else(|| Some(project_id.clone()));
-    let workspace_kind = marker_workspace
-        .or_else(|| remote_hint.remote_workspace_kind.clone())
-        .or_else(|| workspace_kind.map(str::to_string));
-    let identity_hints = [
-        project_id.clone(),
-        canonical_name.clone(),
-        basename(&canonical_root),
-    ];
-    let (inferred_project_urls, inferred_deployment) =
-        infer_project_environment(&PathBuf::from(&canonical_root), &identity_hints);
-    let project_urls =
-        merge_missing_object_fields(marker_project_urls(&marker), inferred_project_urls);
-    let mut deployment =
-        merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
-    if let Some(remote_deploy_root) = remote_hint.remote_deploy_root.clone() {
-        if let Some(object) = deployment.as_object_mut() {
-            object
-                .entry("deploy_location".to_string())
-                .or_insert(json!(remote_deploy_root));
-            object
-                .entry("environment".to_string())
-                .or_insert(json!("remote"));
-        }
-    }
-    let remote_context = remote_hint.context();
-    let fingerprint = stable_fingerprint(&[
-        project_id.clone(),
-        canonical_name.clone(),
-        canonical_root.clone(),
-        repo_remote.clone().unwrap_or_default(),
-        beads_prefix.clone().unwrap_or_default(),
-    ]);
-
     IdentityCandidate {
         project_id,
         canonical_name,
@@ -1268,6 +1408,7 @@ fn discover_identity(
         repo_remote,
         beads_prefix,
         workspace_kind,
+        aliases,
         project_urls,
         deployment,
         remote_context,
@@ -1339,6 +1480,7 @@ fn candidate_payload(
             "repo_remote": candidate.repo_remote,
             "beads_prefix": candidate.beads_prefix,
             "workspace_kind": candidate.workspace_kind,
+            "aliases": candidate.aliases,
             "project_urls": candidate.project_urls,
             "deployment": candidate.deployment,
             "remote_context": candidate.remote_context.clone(),
@@ -1381,7 +1523,7 @@ fn project_identity_cache_key(
     remote_hint: &RemoteProjectHint,
 ) -> String {
     format!(
-        "cwd={}\nproject_root={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}",
+        "cwd={}\nproject_root={}\nremote_host={}\nremote_repo_remote={}\nremote_workspace_kind={}\nremote_deploy_root={}\npersisted_project_root={}\npersisted_project_fingerprint={}\npersisted_project_id={}\npersisted_canonical_name={}",
         cwd.unwrap_or_default(),
         project_root.unwrap_or_default(),
         remote_hint.remote_host.as_deref().unwrap_or_default(),
@@ -1395,6 +1537,22 @@ fn project_identity_cache_key(
             .unwrap_or_default(),
         remote_hint
             .remote_deploy_root
+            .as_deref()
+            .unwrap_or_default(),
+        remote_hint
+            .persisted_project_root
+            .as_deref()
+            .unwrap_or_default(),
+        remote_hint
+            .persisted_project_fingerprint
+            .as_deref()
+            .unwrap_or_default(),
+        remote_hint
+            .persisted_project_id
+            .as_deref()
+            .unwrap_or_default(),
+        remote_hint
+            .persisted_canonical_name
             .as_deref()
             .unwrap_or_default()
     )
@@ -2730,6 +2888,7 @@ mod tests {
                 ),
                 remote_workspace_kind: Some("react-vite".to_string()),
                 remote_deploy_root: Some("/home/planmarr/public_html".to_string()),
+                ..RemoteProjectHint::default()
             },
         );
 
@@ -2926,6 +3085,101 @@ mod tests {
         let candidate = discover_identity(root.to_str(), None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "mismatch");
         assert!(!candidate.mismatches.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn persisted_session_identity_mismatch_degrades_identity() {
+        let root = temp_project("persisted-mismatch");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
+        let payload = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            RemoteProjectHint {
+                persisted_project_root: Some("/other/project".to_string()),
+                persisted_project_fingerprint: Some("project-fnv1a64:deadbeefdeadbeef".to_string()),
+                persisted_project_id: Some("other".to_string()),
+                persisted_canonical_name: Some("Other".to_string()),
+                ..RemoteProjectHint::default()
+            },
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/status")
+                .and_then(Value::as_str),
+            Some("mismatch")
+        );
+        assert_eq!(
+            payload.get("canonical").and_then(Value::as_bool),
+            Some(false)
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/signals")
+                .and_then(Value::as_array)
+                .is_some_and(|signals| signals.iter().any(|signal| {
+                    signal.get("source").and_then(Value::as_str)
+                        == Some("persisted_session_identity")
+                        && signal.get("independent").and_then(Value::as_bool) == Some(false)
+                }))
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/mismatches")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items
+                    .iter()
+                    .any(|item| item.get("source").and_then(Value::as_str)
+                        == Some("persisted_session_identity_fingerprint")))
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn marker_aliases_and_beads_issue_prefix_are_exposed() {
+        let root = temp_project("aliases-prefix");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(
+            root.join(".beads/issues.jsonl"),
+            r#"{"id":"focusa-abcd","title":"x"}"#,
+        )
+        .unwrap();
+        fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
+        fs::write(
+            root.join(".focusa-project.json"),
+            format!(
+                r#"{{"schema":"focusa.project.v1","project_id":"focusa","canonical_name":"Focusa","project_root":"{}","aliases":["focusa-daemon","focusa-cli"]}}"#,
+                root.to_string_lossy()
+            ),
+        )
+        .unwrap();
+        let payload = project_identity_payload_for_scope(root.to_str(), None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/aliases/0")
+                .and_then(Value::as_str),
+            Some("focusa-daemon")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/beads_prefix")
+                .and_then(Value::as_str),
+            Some("focusa")
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/signals")
+                .and_then(Value::as_array)
+                .is_some_and(|signals| signals.iter().any(|signal| signal
+                    .pointer("/details/issue_prefix")
+                    .and_then(Value::as_str)
+                    == Some("focusa")))
+        );
         let _ = fs::remove_dir_all(root);
     }
 

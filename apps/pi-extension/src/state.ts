@@ -1976,6 +1976,11 @@ export async function buildFocusaSessionIdentity(
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
     query.set("project_root", projectRoot);
+    const persisted = S.lastProjectIdentity || {};
+    if (persisted.project_root) query.set("persisted_project_root", normalizeProjectRoot(persisted.project_root));
+    if (persisted.fingerprint) query.set("persisted_project_fingerprint", String(persisted.fingerprint));
+    if (persisted.project_id) query.set("persisted_project_id", String(persisted.project_id));
+    if (persisted.canonical_name) query.set("persisted_canonical_name", String(persisted.canonical_name));
     const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
     projectIdentity = response?.project_identity || null;
     if (projectIdentity) S.lastProjectIdentity = projectIdentity;

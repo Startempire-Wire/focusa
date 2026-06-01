@@ -945,6 +945,23 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
   }
 }
 
+function persistedProjectIdentityFields(): Record<string, string> {
+  const identity = S.lastProjectIdentity || {};
+  const fields: Record<string, string> = {};
+  const root = normalizeProjectRoot(identity.project_root);
+  if (root) fields.persisted_project_root = root;
+  if (identity.fingerprint) fields.persisted_project_fingerprint = String(identity.fingerprint);
+  if (identity.project_id) fields.persisted_project_id = String(identity.project_id);
+  if (identity.canonical_name) fields.persisted_canonical_name = String(identity.canonical_name);
+  return fields;
+}
+
+function appendPersistedProjectIdentityQuery(query: URLSearchParams): void {
+  for (const [key, value] of Object.entries(persistedProjectIdentityFields())) {
+    if (value) query.set(key, value);
+  }
+}
+
 export function registerTools(pi: ExtensionAPI) {
   const registerTool = pi.registerTool.bind(pi);
   pi.registerTool = ((tool: any) => registerTool(withToolResultEnvelope(tool))) as typeof pi.registerTool;
@@ -2596,9 +2613,13 @@ export function registerTools(pi: ExtensionAPI) {
       remote_repo_remote: Type.Optional(Type.String({ description: "Git origin/repo remote observed on the remote host." })),
       remote_workspace_kind: Type.Optional(Type.String({ description: "Workspace kind observed on the remote host." })),
       remote_deploy_root: Type.Optional(Type.String({ description: "Deployment/site root observed on the remote host." })),
+      persisted_project_root: Type.Optional(Type.String({ description: "Prior ProjectIdentity root from this Pi session; auto-filled when omitted." })),
+      persisted_project_fingerprint: Type.Optional(Type.String({ description: "Prior ProjectIdentity fingerprint from this Pi session; auto-filled when omitted." })),
+      persisted_project_id: Type.Optional(Type.String({ description: "Prior ProjectIdentity project id from this Pi session; auto-filled when omitted." })),
+      persisted_canonical_name: Type.Optional(Type.String({ description: "Prior ProjectIdentity canonical name from this Pi session; auto-filled when omitted." })),
     }),
     async execute(_id, params) {
-      const p = params as { cwd?: string; project_root?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
+      const p = params as { cwd?: string; project_root?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string; persisted_project_root?: string; persisted_project_fingerprint?: string; persisted_project_id?: string; persisted_canonical_name?: string };
       const query = new URLSearchParams();
       query.set("cwd", p.cwd || S.sessionCwd || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
@@ -2608,6 +2629,11 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
+      appendPersistedProjectIdentityQuery(query);
+      if (p.persisted_project_root) query.set("persisted_project_root", p.persisted_project_root);
+      if (p.persisted_project_fingerprint) query.set("persisted_project_fingerprint", p.persisted_project_fingerprint);
+      if (p.persisted_project_id) query.set("persisted_project_id", p.persisted_project_id);
+      if (p.persisted_canonical_name) query.set("persisted_canonical_name", p.persisted_canonical_name);
       const result = await focusaFetchDetailed(`/project/identity?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
@@ -2700,6 +2726,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
+      appendPersistedProjectIdentityQuery(query);
       const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const project = body.project_identity || {};
@@ -2855,10 +2882,14 @@ export function registerTools(pi: ExtensionAPI) {
       remote_repo_remote: Type.Optional(Type.String({ description: "Git origin/repo remote observed on the remote host." })),
       remote_workspace_kind: Type.Optional(Type.String({ description: "Workspace kind observed on the remote host." })),
       remote_deploy_root: Type.Optional(Type.String({ description: "Deployment/site root observed on the remote host." })),
+      persisted_project_root: Type.Optional(Type.String({ description: "Prior ProjectIdentity root from this Pi session; auto-filled when omitted." })),
+      persisted_project_fingerprint: Type.Optional(Type.String({ description: "Prior ProjectIdentity fingerprint from this Pi session; auto-filled when omitted." })),
+      persisted_project_id: Type.Optional(Type.String({ description: "Prior ProjectIdentity project id from this Pi session; auto-filled when omitted." })),
+      persisted_canonical_name: Type.Optional(Type.String({ description: "Prior ProjectIdentity canonical name from this Pi session; auto-filled when omitted." })),
     }),
     async execute(_id, params) {
-      const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string };
-      const payload = { ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
+      const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string; persisted_project_root?: string; persisted_project_fingerprint?: string; persisted_project_id?: string; persisted_canonical_name?: string };
+      const payload = { ...persistedProjectIdentityFields(), ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
       const result = await focusaFetchDetailed("/project/verify", { method: "POST", body: JSON.stringify(payload) });
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
