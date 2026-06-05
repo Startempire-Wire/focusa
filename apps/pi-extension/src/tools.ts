@@ -956,8 +956,12 @@ function persistedProjectIdentityFields(): Record<string, string> {
   return fields;
 }
 
-function appendPersistedProjectIdentityQuery(query: URLSearchParams): void {
-  for (const [key, value] of Object.entries(persistedProjectIdentityFields())) {
+function appendPersistedProjectIdentityQuery(query: URLSearchParams, explicitProjectRoot?: string): void {
+  const persisted = persistedProjectIdentityFields();
+  const persistedRoot = normalizeProjectRoot(persisted.persisted_project_root);
+  const requestedRoot = normalizeProjectRoot(explicitProjectRoot);
+  if (requestedRoot && persistedRoot && requestedRoot !== persistedRoot) return;
+  for (const [key, value] of Object.entries(persisted)) {
     if (value) query.set(key, value);
   }
 }
@@ -2629,7 +2633,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
-      appendPersistedProjectIdentityQuery(query);
+      appendPersistedProjectIdentityQuery(query, p.project_root);
       if (p.persisted_project_root) query.set("persisted_project_root", p.persisted_project_root);
       if (p.persisted_project_fingerprint) query.set("persisted_project_fingerprint", p.persisted_project_fingerprint);
       if (p.persisted_project_id) query.set("persisted_project_id", p.persisted_project_id);
@@ -2648,10 +2652,12 @@ export function registerTools(pi: ExtensionAPI) {
         // causes cross-session contamination (SPEC96 emergency fix 2 isolation principle).
         const incomingRoot = normalizeProjectRoot(identity.project_root);
         const existingRoot = normalizeProjectRoot(S.lastProjectIdentity?.project_root);
+        const requestedRoot = normalizeProjectRoot(p.project_root);
+        const explicitProjectSwitch = requestedRoot && incomingRoot === requestedRoot && existingRoot !== requestedRoot;
         const existingConfidence = S.lastProjectIdentity?.confidence;
         const isExistingVerified = existingConfidence === "high" || existingConfidence === "medium";
         const isDifferentProject = existingRoot && incomingRoot && existingRoot !== incomingRoot;
-        const isDifferentThanUnverified = isDifferentProject && isExistingVerified;
+        const isDifferentThanUnverified = isDifferentProject && isExistingVerified && !explicitProjectSwitch;
         if (isDifferentThanUnverified) {
           // Preserve existing verified identity; return it instead of the incoming one.
           const preserved = S.lastProjectIdentity;
@@ -2726,7 +2732,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
-      appendPersistedProjectIdentityQuery(query);
+      appendPersistedProjectIdentityQuery(query, p.project_root);
       const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const project = body.project_identity || {};
@@ -2889,7 +2895,10 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const p = params as { cwd?: string; project_root?: string; project_id?: string; canonical_name?: string; repo_remote?: string; remote_host?: string; remote_user?: string; remote_port?: number; remote_repo_remote?: string; remote_workspace_kind?: string; remote_deploy_root?: string; persisted_project_root?: string; persisted_project_fingerprint?: string; persisted_project_id?: string; persisted_canonical_name?: string };
-      const payload = { ...persistedProjectIdentityFields(), ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
+      const persisted = persistedProjectIdentityFields();
+      const requestedRoot = normalizeProjectRoot(p.project_root);
+      const persistedRoot = normalizeProjectRoot(persisted.persisted_project_root);
+      const payload = { ...((requestedRoot && persistedRoot && requestedRoot !== persistedRoot) ? {} : persisted), ...p, cwd: p.cwd || S.sessionCwd || process.cwd() };
       const result = await focusaFetchDetailed("/project/verify", { method: "POST", body: JSON.stringify(payload) });
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {

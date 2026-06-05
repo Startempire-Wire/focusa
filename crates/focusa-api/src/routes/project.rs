@@ -263,6 +263,27 @@ fn find_upwards(start: &Path, name: &str) -> Option<PathBuf> {
     }
 }
 
+fn find_nearest_upwards(start: &Path, names: &[&str]) -> Option<PathBuf> {
+    let mut cur = if start.is_file() {
+        start.parent()?.to_path_buf()
+    } else {
+        start.to_path_buf()
+    };
+    loop {
+        if names.iter().any(|name| cur.join(name).exists()) {
+            return Some(cur);
+        }
+        if !cur.pop() {
+            return None;
+        }
+    }
+}
+
+fn parent_scope_shadowed_by_trusted_root(candidate_root: &Path, trusted_root: &str) -> bool {
+    let candidate = normalize_path(candidate_root);
+    candidate != trusted_root && Path::new(trusted_root).starts_with(Path::new(&candidate))
+}
+
 fn read_marker(marker_root: &Path) -> Option<Value> {
     let path = marker_root.join(".focusa-project.json");
     fs::read_to_string(path)
@@ -1062,6 +1083,7 @@ fn discover_identity(
 ) -> IdentityCandidate {
     let start = resolve_start(cwd, project_root);
     let start_root = normalize_path(&start);
+    let explicit_project_root = clean(project_root).map(|root| normalize_path(&expand_home(&root)));
     let now = chrono::Utc::now().to_rfc3339();
     let mut signals = Vec::<ProjectSignal>::new();
 
@@ -1073,8 +1095,7 @@ fn discover_identity(
         details: json!({"path": start_root}),
     });
 
-    if let Some(operator_root) = clean(project_root) {
-        let root = normalize_path(&expand_home(&operator_root));
+    if let Some(root) = explicit_project_root.clone() {
         signals.push(ProjectSignal {
             source: "operator_supplied_scope",
             root: Some(root.clone()),
@@ -1162,6 +1183,11 @@ fn discover_identity(
         find_upwards(&start, ".git")
     };
     let repo_remote = git_root.as_ref().and_then(|root| read_git_remote(root));
+    let explicit_git_scope_verified = explicit_project_root.as_deref().is_some_and(|root| {
+        git_root
+            .as_ref()
+            .is_some_and(|git_root| normalize_path(git_root) == root)
+    });
     if let Some(root) = &git_root {
         signals.push(ProjectSignal {
             source: "git_root",
@@ -1181,14 +1207,21 @@ fn discover_identity(
         .as_ref()
         .and_then(|root| read_beads_issue_prefix(root));
     if let Some(root) = &beads_root {
+        let root_shadowed = explicit_project_root
+            .as_deref()
+            .is_some_and(|trusted_root| {
+                explicit_git_scope_verified
+                    && parent_scope_shadowed_by_trusted_root(root, trusted_root)
+            });
         signals.push(ProjectSignal {
             source: "beads_root",
             root: Some(normalize_path(root)),
-            confidence: "high",
-            independent: true,
+            confidence: if root_shadowed { "medium" } else { "high" },
+            independent: !root_shadowed,
             details: json!({
                 "beads_dir": root.join(".beads").to_string_lossy(),
-                "issue_prefix": discovered_beads_prefix.clone()
+                "issue_prefix": discovered_beads_prefix.clone(),
+                "authority_note": if root_shadowed { Value::String("parent beads root is advisory when explicit project_root matches git_root".to_string()) } else { Value::Null }
             }),
         });
     }
@@ -1196,20 +1229,30 @@ fn discover_identity(
     let workspace_root = if remote_nonlocal {
         None
     } else {
-        ["Cargo.toml", "package.json", "go.mod", "pyproject.toml"]
-            .iter()
-            .find_map(|name| find_upwards(&start, name))
+        find_nearest_upwards(
+            &start,
+            &["Cargo.toml", "package.json", "go.mod", "pyproject.toml"],
+        )
     };
     let workspace_kind = workspace_root
         .as_ref()
         .and_then(|root| workspace_kind(root));
     if let Some(root) = &workspace_root {
+        let root_shadowed = explicit_project_root
+            .as_deref()
+            .is_some_and(|trusted_root| {
+                explicit_git_scope_verified
+                    && parent_scope_shadowed_by_trusted_root(root, trusted_root)
+            });
         signals.push(ProjectSignal {
             source: "workspace_file",
             root: Some(normalize_path(root)),
             confidence: "medium",
-            independent: true,
-            details: json!({"workspace_kind": workspace_kind}),
+            independent: !root_shadowed,
+            details: json!({
+                "workspace_kind": workspace_kind,
+                "authority_note": if root_shadowed { Value::String("parent workspace file is advisory when explicit project_root matches git_root".to_string()) } else { Value::Null }
+            }),
         });
     }
 
@@ -3073,6 +3116,38 @@ mod tests {
                 .and_then(Value::as_str),
             Some("local")
         );
+        let _ = fs::remove_dir_all(parent);
+    }
+
+    #[test]
+    fn explicit_git_scope_ignores_parent_account_beads_and_workspace() {
+        let parent = temp_project("parent-account-scope");
+        fs::create_dir_all(parent.join(".beads")).unwrap();
+        fs::write(parent.join("package.json"), r#"{"name":"hosting-account"}"#).unwrap();
+        let root = parent.join("uiai-engine");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(
+            root.join(".git/config"),
+            "[remote \"origin\"]\n\turl = https://example.test/uiai-engine.git\n",
+        )
+        .unwrap();
+        fs::write(root.join("go.mod"), "module example.test/uiai-engine\n").unwrap();
+
+        let candidate =
+            discover_identity(root.to_str(), root.to_str(), RemoteProjectHint::default());
+        assert_eq!(candidate.status, "verified");
+        assert_eq!(candidate.confidence, "high");
+        assert!(candidate.mismatches.is_empty());
+        assert!(candidate.signals.iter().any(|signal| {
+            signal.source == "beads_root"
+                && signal.root.as_deref() == Some(parent.to_string_lossy().as_ref())
+                && !signal.independent
+        }));
+        assert!(candidate.signals.iter().any(|signal| {
+            signal.source == "workspace_file"
+                && signal.root.as_deref() == Some(root.to_string_lossy().as_ref())
+                && signal.independent
+        }));
         let _ = fs::remove_dir_all(parent);
     }
 
