@@ -1367,15 +1367,15 @@ fn discover_identity(
         merge_missing_object_fields(marker_project_urls(&marker), inferred_project_urls);
     let mut deployment =
         merge_missing_object_fields(marker_deployment(&marker), inferred_deployment);
-    if let Some(remote_deploy_root) = remote_hint.remote_deploy_root.clone() {
-        if let Some(object) = deployment.as_object_mut() {
-            object
-                .entry("deploy_location".to_string())
-                .or_insert(json!(remote_deploy_root));
-            object
-                .entry("environment".to_string())
-                .or_insert(json!("remote"));
-        }
+    if let Some(remote_deploy_root) = remote_hint.remote_deploy_root.clone()
+        && let Some(object) = deployment.as_object_mut()
+    {
+        object
+            .entry("deploy_location".to_string())
+            .or_insert(json!(remote_deploy_root));
+        object
+            .entry("environment".to_string())
+            .or_insert(json!("remote"));
     }
     let remote_context = remote_hint.context();
     let fingerprint = stable_fingerprint(&[
