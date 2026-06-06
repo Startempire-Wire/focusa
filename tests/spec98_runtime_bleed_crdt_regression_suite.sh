@@ -26,6 +26,7 @@ log "Spec98 CRDT/event-store foundation proofs"
 tests/spec98_crdt_event_store_wiring_static_test.py
 tests/spec98_pi_uiai_authority_impact_static_test.py
 tests/spec98_uiai_packet_capture_headless_static_test.py
+tests/spec98_visual_workflow_exact_scope_static_test.py
 ${CARGO:-cargo} test -p focusa-core sync::crdt
 tests/spec98_runtime_multi_daemon_crdt_sync_test.sh
 

@@ -184,6 +184,10 @@ struct VisualEvidencePayload {
     /// Plain text content (alternative to base64).
     #[serde(default)]
     content: Option<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
 }
 
 impl VisualEvidencePayload {
@@ -654,8 +658,8 @@ fn map_command_to_action(
                 label: p.to_artifact_label(),
                 content,
                 handle_id: None,
-                project_root: None,
-                continuity_id: None,
+                project_root: p.project_root,
+                continuity_id: p.continuity_id,
             })
         }
         "instances.connect" => {

@@ -73,6 +73,12 @@ struct StoreVisualEvidenceBody {
     /// Plain text content (alternative to base64).
     #[serde(default)]
     content: Option<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
+    #[serde(default)]
+    workpoint_id: Option<String>,
 }
 
 impl StoreVisualEvidenceBody {
@@ -124,13 +130,14 @@ async fn store_visual_evidence(
             label: label.clone(),
             content,
             handle_id: Some(handle_id),
-            project_root: None,
-            continuity_id: None,
+            project_root: body.project_root.clone(),
+            continuity_id: body.continuity_id.clone(),
         })
         .await
         .map_err(visual_dispatch_failed)?;
 
-    let handle_id = loop {
+    // Poll for the exact pre-generated handle id so duplicate labels are never ambiguous.
+    let handle = loop {
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         let focusa = state.focusa.read().await;
         if let Some(h) = focusa
@@ -138,18 +145,36 @@ async fn store_visual_evidence(
             .handles
             .iter()
             .find(|h| h.id == handle_id)
+            .cloned()
         {
-            break h.id;
+            break h;
         }
     };
 
     Ok(Json(json!({
-        "id": handle_id,
+        "id": handle.id,
+        "handle": handle,
         "status": "accepted",
         "run_id": body.run_id,
         "phase": body.phase,
         "evidence_kind": body.evidence_kind,
         "label": body.label,
+        "scope": {
+            "project_root": body.project_root,
+            "continuity_id": body.continuity_id,
+            "workpoint_id": body.workpoint_id,
+        },
+        "tool_result_v1": {
+            "ok": true,
+            "status": "accepted",
+            "canonical": true,
+            "degraded": false,
+            "failure_class": null,
+            "summary": "visual workflow evidence stored with exact handle",
+            "evidence_refs": [format!("focusa-handle:{}", handle.id)],
+            "next_tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence"],
+            "side_effects": ["reference_store_write"]
+        }
     })))
 }
 
