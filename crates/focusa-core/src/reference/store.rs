@@ -31,6 +31,7 @@ impl ReferenceStore {
     ///   3. Write blob file
     ///   4. Write metadata file
     ///   5. Return HandleRef
+    #[allow(clippy::too_many_arguments)]
     pub fn store(
         &self,
         kind: HandleKind,

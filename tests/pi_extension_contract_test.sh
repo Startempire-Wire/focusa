@@ -92,7 +92,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d "{\"title\":\"pi-contract-test\",\"goal\":\"testing input contract\",\"beads_issue_id\":\"pi-ct-001\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
+  -d "{\"title\":\"pi-contract-test\",\"goal\":\"testing input contract\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed focus frame accepted"
 else

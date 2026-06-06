@@ -115,7 +115,7 @@ else
   log_fail "Seed session start failed"
 fi
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d "{\"title\":\"channel-contract\",\"goal\":\"visible active frame\",\"beads_issue_id\":\"channel-contract\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
+  -d "{\"title\":\"channel-contract\",\"goal\":\"visible active frame\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed active frame accepted"
 else

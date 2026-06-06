@@ -34,9 +34,9 @@ frame_id_for() {
 
 # Create frame A then frame B, making B active.
 TITLE_A="frame-contract-a-$$"
-BEADS_A="frame-contract-a-$$"
+BEADS_A="focusa-877z"
 TITLE_B="frame-contract-b-$$"
-BEADS_B="frame-contract-b-$$"
+BEADS_B="focusa-877z"
 http_json POST "/v1/session/start" "{\"adapter_id\":\"frame-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_A}\",\"goal\":\"A\",\"beads_issue_id\":\"${BEADS_A}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_B}\",\"goal\":\"B\",\"beads_issue_id\":\"${BEADS_B}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
@@ -59,7 +59,7 @@ else
 fi
 
 if [ -n "$FRAME_A" ]; then
-  UPDATE_A="$(http_json POST "/v1/focus/update" "{\"frame_id\":\"${FRAME_A}\",\"turn_id\":\"contract-turn-a\",\"delta\":{\"decisions\":[\"Frame contract decision A\"]}}")"
+  UPDATE_A="$(http_json POST "/v1/focus/update" "{\"frame_id\":\"${FRAME_A}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\",\"turn_id\":\"contract-turn-a\",\"delta\":{\"decisions\":[\"Frame contract decision A\"]}}")"
   STATUS_A="$(echo "$UPDATE_A" | jq -r '.status // empty')"
   RETURNED_A="$(echo "$UPDATE_A" | jq -r '.frame_id // empty')"
   if [ "$STATUS_A" = "accepted" ] && [ "$RETURNED_A" = "$FRAME_A" ]; then
@@ -69,7 +69,7 @@ if [ -n "$FRAME_A" ]; then
   fi
 fi
 
-INVALID_UPDATE="$(http_json POST "/v1/focus/update" '{"frame_id":"00000000-0000-0000-0000-000000000000","turn_id":"contract-turn-invalid","delta":{"notes":["invalid frame check"]}}')"
+INVALID_UPDATE="$(http_json POST "/v1/focus/update" "{\"frame_id\":\"00000000-0000-0000-0000-000000000000\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\",\"turn_id\":\"contract-turn-invalid\",\"delta\":{\"notes\":[\"invalid frame check\"]}}")"
 if echo "$INVALID_UPDATE" | jq -e '(.status == "no_active_frame") or (.status == "frame_unavailable")' >/dev/null; then
   log_pass "invalid explicit frame_id returns no_active_frame/frame_unavailable"
 else

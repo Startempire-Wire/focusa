@@ -15,6 +15,7 @@ bun tests/current_ask_project_override_runtime_test.mts
 log "Spec98 scoped active/write guard proofs"
 tests/spec98_workpoint_trajectory_active_scope_static_test.py
 tests/spec98_focus_stack_state_scope_static_test.py
+tests/focus_state_scope_surfaces_static_test.py
 
 log "Spec98 partition contract proofs"
 tests/spec98_project_workstream_partition_contract_test.py

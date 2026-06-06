@@ -558,7 +558,7 @@ mod tests {
     // SMOKE TEST: Basic replay with single event
     #[test]
     fn test_replay_single_event() {
-        let mut state = FocusaState::default();
+        let state = FocusaState::default();
         let event = FocusaEvent::SessionStarted {
             session_id: Uuid::now_v7(),
             adapter_id: None,

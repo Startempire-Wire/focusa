@@ -65,9 +65,9 @@ fn safe_beads_project_root(project_root: &str) -> bool {
             root,
             "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt"
         )
-        && !root
+        && root
             .strip_prefix("/home/")
-            .is_some_and(|rest| !rest.contains('/'))
+            .is_none_or(|rest| rest.contains('/'))
 }
 
 fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {

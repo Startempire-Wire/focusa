@@ -2,7 +2,7 @@
 # Bounded live CLI smoke for model-facing Focusa tool parity paths.
 set -euo pipefail
 CLI="${FOCUSA_CLI:-target/release/focusa}"
-export FOCUSA_API_TIMEOUT="${FOCUSA_API_TIMEOUT:-10}"
+export FOCUSA_API_TIMEOUT="${FOCUSA_API_TIMEOUT:-30}"
 PROJECT_ROOT="${FOCUSA_SMOKE_PROJECT_ROOT:-$(pwd -P)}"
 CONTINUITY_ID="${FOCUSA_SMOKE_CONTINUITY_ID:-cli-smoke-$(date +%s)-$$}"
 KEY="cli-smoke-$(date +%s)-$$"

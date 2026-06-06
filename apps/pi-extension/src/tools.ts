@@ -897,10 +897,18 @@ export async function pushDelta(delta: { decisions?: string[]; constraints?: str
     // Refresh frame identity before writes; stale paused Pi frames are a common
     // source of reducer rejections and scratchpad fallbacks after rescope/compact.
     await getFocusState().catch(() => null);
+    const projectRoot = normalizeProjectRoot(S.sessionCwd || resolvePiProjectRoot(process.cwd()));
+    const continuityId = S.continuityId || ensureContinuityId(projectRoot);
+    if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
+      emitWriteTelemetry("focusa_write_failed", { targets, reason: "scope_mismatch", project_root: projectRoot || null, continuity_id: continuityId || null });
+      return { ok: false, reason: "scope_mismatch", api_reason: "focus_update_requires_safe_project_root_and_continuity_id" };
+    }
     const postUpdate = () => focusaFetch("/focus/update", {
       method: "POST",
       body: JSON.stringify({
         frame_id: S.activeFrameId,
+        project_root: projectRoot,
+        continuity_id: continuityId,
         turn_id: `pi-turn-${S.turnCount}`,
         delta,
       }),

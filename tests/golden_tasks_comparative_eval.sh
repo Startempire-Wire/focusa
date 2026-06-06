@@ -6,6 +6,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -43,10 +44,10 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed noisy project state + active mission"
-http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d '{"workspace_id":"comparative-eval"}' >/dev/null
+http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"comparative-eval\"}" >/dev/null
 for i in $(seq 1 6); do
   http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-    -d "{\"title\":\"noise-frame-${i}\",\"goal\":\"irrelevant legacy frame ${i} $(printf 'noise%.0s' $(seq 1 20))\",\"beads_issue_id\":\"noise-${i}\"}" >/dev/null
+    -d "{\"title\":\"noise-frame-${i}\",\"goal\":\"irrelevant legacy frame ${i} $(printf 'noise%.0s' $(seq 1 20))\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"comparative-eval\"}" >/dev/null
   frame_id=$(http_json "${BASE_URL}/v1/focus/stack" | jq -r --arg title "noise-frame-${i}" '.stack.frames | map(select(.title == $title)) | last | .id // empty')
   if [ -n "$frame_id" ] && [ "$frame_id" != "null" ]; then
     http_json -X POST "${BASE_URL}/v1/ascc/update-delta" -H "Content-Type: application/json" \
@@ -62,7 +63,7 @@ RELEVANT_CONSTRAINT="Do not edit payment schema"
 RELEVANT_FAILURE="Login regression in auth tests"
 RELEVANT_VERIFY="auth smoke test restored"
 http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d "{\"title\":\"${ACTIVE_TITLE}\",\"goal\":\"${ACTIVE_GOAL}\",\"beads_issue_id\":\"golden-57\"}" >/dev/null
+  -d "{\"title\":\"${ACTIVE_TITLE}\",\"goal\":\"${ACTIVE_GOAL}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"comparative-eval\"}" >/dev/null
 active_frame=""
 for _ in $(seq 1 30); do
   active_frame=$(http_json "${BASE_URL}/v1/focus/stack" | jq -r --arg title "$ACTIVE_TITLE" '.stack.frames | map(select(.title == $title)) | last | .id // empty')

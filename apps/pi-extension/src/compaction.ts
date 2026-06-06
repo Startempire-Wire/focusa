@@ -544,6 +544,8 @@ export function registerCompaction(pi: ExtensionAPI) {
         method: "POST",
         body: JSON.stringify({
           frame_id: S.activeFrameId,
+          project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
+          continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
           turn_id: `pi-turn-${S.turnCount}`,
           delta: {
             ...(artifacts.length ? { artifacts } : {}),

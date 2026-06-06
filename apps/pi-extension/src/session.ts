@@ -877,7 +877,10 @@ export function registerSession(pi: ExtensionAPI) {
     await persistAuthoritativeState();
     if (S.focusaAvailable && S.activeFrameId) {
       focusaPost("/focus/update", {
-        frame_id: S.activeFrameId, turn_id: `pi-turn-${S.turnCount}`,
+        frame_id: S.activeFrameId,
+        project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
+        continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
+        turn_id: `pi-turn-${S.turnCount}`,
         delta: { meta: { event: "fork", timestamp: Date.now() } },
       });
     }
@@ -889,6 +892,8 @@ export function registerSession(pi: ExtensionAPI) {
     if (S.focusaAvailable && S.activeFrameId) {
       focusaPost("/focus/update", {
         frame_id: S.activeFrameId,
+        project_root: normalizeProjectRoot(S.sessionCwd || process.cwd()),
+        continuity_id: ensureContinuityId(S.sessionCwd || process.cwd()),
         turn_id: `pi-turn-${S.turnCount}`,
         delta: { meta: { event: "fork", turn_count: S.turnCount, decisions_count: S.localDecisions.length } },
       });

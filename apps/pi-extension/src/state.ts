@@ -1714,6 +1714,32 @@ export function ensureContinuityId(cwd?: string): string {
   return S.continuityId;
 }
 
+function projectBeadsIssueJsonlPaths(projectRoot: string): string[] {
+  return [
+    join(projectRoot, ".beads", "issues.jsonl"),
+    join(projectRoot, ".git", "beads-worktrees", "beads-sync", ".beads", "issues.jsonl"),
+  ];
+}
+
+export function selectExistingBeadsIssueIdForFocusFrame(projectRoot: string): string | null {
+  if (!isProjectRootAuthoritySafe(projectRoot)) return null;
+  for (const file of projectBeadsIssueJsonlPaths(projectRoot)) {
+    if (!existsSync(file)) continue;
+    try {
+      const lines = readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean);
+      const parsed = lines.map((line) => {
+        try { return JSON.parse(line); } catch { return null; }
+      }).filter(Boolean) as Array<{ id?: string; status?: string; priority?: number; updated_at?: string; created_at?: string }>;
+      const preferred = parsed
+        .filter((issue) => typeof issue.id === "string" && issue.id.trim() && issue.status !== "closed")
+        .sort((a, b) => Number(a.priority ?? 4) - Number(b.priority ?? 4) || String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")))[0]
+        || parsed.find((issue) => typeof issue.id === "string" && issue.id.trim());
+      if (preferred?.id) return preferred.id.trim();
+    } catch { /* try next path */ }
+  }
+  return null;
+}
+
 export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<string | null> {
   S.sessionCwd = cwd;
   const { projectName, title, goal } = derivePiFrameIntent(cwd);
@@ -1722,7 +1748,11 @@ export async function createPiFrame(cwd: string, source = "pi-auto"): Promise<st
   const sessionKey = S.sessionFrameKey || `pi-${process.pid}-${Date.now()}`;
   S.sessionFrameKey = sessionKey;
   const continuityId = ensureContinuityId(cwd);
-  const beadsIssueId = `pi-session-${projectName}-${continuityId}`;
+  const beadsIssueId = selectExistingBeadsIssueIdForFocusFrame(cwd);
+  if (!beadsIssueId) {
+    focusaPost("/telemetry/trace", { event_type: "pi_frame_creation_blocked_missing_beads_issue", payload: { project_root: cwd, source } });
+    return null;
+  }
   const tags = ["pi", projectName, source, sessionKey, continuityId, `continuity_id:${continuityId}`, "task-first-frame"];
 
   try {

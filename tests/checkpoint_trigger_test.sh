@@ -4,6 +4,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -69,7 +70,7 @@ fi
 
 log_info "Trigger 3: high-impact action completion"
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d '{"title":"checkpoint-test","goal":"testing triggers","beads_issue_id":"cp-test-001"}')
+  -d "{\"title\":\"checkpoint-test\",\"goal\":\"testing triggers\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"checkpoint-test\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Focus push accepted"
 else

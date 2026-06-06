@@ -6,6 +6,7 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FAILED=0
 PASSED=0
 
@@ -38,9 +39,9 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed checkpointable frame"
-http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d '{"workspace_id":"fork-compact-test"}' >/dev/null
+http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"fork-compact-test\"}" >/dev/null
 frame_title="fork-compact-$(date +%s%N)"
-http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"fork-compact\"}" >/dev/null
+http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"fork-compact-test\"}" >/dev/null
 frame_id=""
 for _ in $(seq 1 20); do
   frame_id=$(http_json "${BASE_URL}/v1/focus/stack" | jq -r --arg title "$frame_title" '.stack.frames | map(select(.title == $title)) | last | .id // empty')

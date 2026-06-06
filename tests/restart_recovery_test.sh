@@ -63,7 +63,7 @@ fi
 log_info "Seed session + frame + checkpoint data"
 curl -sS -X POST "${BASE_URL}/v1/session/start" \
   -H "Content-Type: application/json" \
-  -d '{"workspace_id":"recovery-test"}' >/dev/null
+  -d "{\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}" >/dev/null
 session_ready=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   if curl -sS "${BASE_URL}/v1/status" | jq -e '.session != null' >/dev/null 2>&1; then
@@ -79,7 +79,7 @@ else
 fi
 push_resp=$(curl -sS -X POST "${BASE_URL}/v1/focus/push" \
   -H "Content-Type: application/json" \
-  -d '{"title":"restart-recovery","goal":"verify restart continuity","beads_issue_id":"recovery-001"}')
+  -d "{\"title\":\"restart-recovery\",\"goal\":\"verify restart continuity\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
 frame_id=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   frame_id=$(curl -sS "${BASE_URL}/v1/focus/stack" | jq -r '.active_frame_id // empty')

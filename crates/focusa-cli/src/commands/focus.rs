@@ -23,6 +23,12 @@ pub enum FocusCmd {
         /// Tags (comma-separated).
         #[arg(long)]
         tags: Option<String>,
+        /// Project root authority for canonical Focus frame writes.
+        #[arg(long)]
+        project_root: Option<String>,
+        /// Logical workstream/continuity id for canonical Focus frame writes.
+        #[arg(long)]
+        continuity_id: Option<String>,
     },
     /// Update bounded Focus State slots via /v1/focus/update.
     Update {
@@ -56,6 +62,15 @@ pub enum FocusCmd {
         /// Short note. Repeatable.
         #[arg(long = "note")]
         notes: Vec<String>,
+        /// Explicit target frame id.
+        #[arg(long)]
+        frame_id: Option<String>,
+        /// Project root authority for scoped Focus State writes.
+        #[arg(long)]
+        project_root: Option<String>,
+        /// Logical workstream/continuity id for scoped Focus State writes.
+        #[arg(long)]
+        continuity_id: Option<String>,
     },
     /// Pop (complete) the active frame.
     Pop {
@@ -102,6 +117,8 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
             beads_issue_id,
             constraints,
             tags,
+            project_root,
+            continuity_id,
         } => {
             let constraints: Vec<String> = constraints
                 .map(|s| s.split(',').map(|c| c.trim().to_string()).collect())
@@ -119,6 +136,8 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
                         "beads_issue_id": beads_issue_id,
                         "constraints": constraints,
                         "tags": tags,
+                        "project_root": project_root,
+                        "continuity_id": continuity_id,
                     }),
                 )
                 .await?;
@@ -140,6 +159,9 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
             open_questions,
             recent_results,
             notes,
+            frame_id,
+            project_root,
+            continuity_id,
         } => {
             let mut delta = Map::new();
             put_array(&mut delta, "decisions", decisions);
@@ -158,6 +180,9 @@ pub async fn run(cmd: FocusCmd, json_mode: bool) -> anyhow::Result<()> {
                 .post(
                     "/v1/focus/update",
                     &json!({
+                        "frame_id": frame_id,
+                        "project_root": project_root,
+                        "continuity_id": continuity_id,
                         "turn_id": turn_id.unwrap_or_else(generated_turn_id),
                         "delta": Value::Object(delta),
                     }),

@@ -2,6 +2,7 @@ export interface RuntimeSnapshot {
   health: any | null;
   doctor: any | null;
   projectIdentity: any | null;
+  focusFrame: any | null;
   trajectory: any | null;
   workpoint: any | null;
   workpointResume: any | null;
@@ -28,6 +29,7 @@ function createRuntimeStore() {
     health: null,
     doctor: null,
     projectIdentity: null,
+    focusFrame: null,
     trajectory: null,
     workpoint: null,
     workpointResume: null,

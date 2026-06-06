@@ -31,14 +31,23 @@
   async function poll() {
     try {
       const state = await fetchJson('/v1/state/dump', 5000);
-      const [health, doctor, contracts, projectIdentity, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof] = await Promise.all([
+      const projectIdentity = await safe(() => fetchJson('/v1/project/identity'));
+      const projectRoot = projectIdentity?.project_root || projectIdentity?.project_identity?.project_root || null;
+      const continuityId = projectIdentity?.continuity_id || state?.session?.continuity_id || state?.workpoint?.active?.continuity_id || null;
+      const scopedParams = new URLSearchParams();
+      if (projectRoot) scopedParams.set('project_root', projectRoot);
+      if (continuityId) scopedParams.set('continuity_id', continuityId);
+      const scopedQuery = scopedParams.toString();
+      const scopedSuffix = scopedQuery ? `&${scopedQuery}` : '';
+      const scopedPathSuffix = scopedQuery ? `?${scopedQuery}` : '';
+      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
-        safe(() => fetchJson('/v1/project/identity')),
-        safe(() => fetchJson('/v1/trajectory/view?mode=summary')),
-        safe(() => fetchJson('/v1/workpoint/current')),
-        safe(() => postJson('/v1/workpoint/resume', {}, 5000)),
+        safe(() => scopedQuery ? fetchJson(`/v1/focus/frame/current?${scopedQuery}`) : Promise.resolve(null)),
+        safe(() => fetchJson(`/v1/trajectory/view?mode=summary${scopedSuffix}`)),
+        safe(() => fetchJson(`/v1/workpoint/current${scopedPathSuffix}`)),
+        safe(() => postJson('/v1/workpoint/resume', scopedQuery ? { project_root: projectRoot, continuity_id: continuityId } : {}, 5000)),
         safe(() => fetchJson('/v1/work-loop/status?summary_only=true')),
         safe(() => fetchJson('/v1/work-loop/health')),
         safe(() => fetchJson('/v1/work-loop/checkpoints')),
@@ -60,6 +69,7 @@
         health,
         doctor,
         projectIdentity,
+        focusFrame,
         trajectory,
         workpoint,
         workpointResume,

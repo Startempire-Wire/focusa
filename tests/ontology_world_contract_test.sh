@@ -40,7 +40,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE_PARENT="${REPO_ROOT}/.tmp"
 mkdir -p "${FIXTURE_PARENT}"
 WORKSPACE_ROOT="${FIXTURE_PARENT}/focusa-ontology-workspace-$(date +%s%N)"
-mkdir -p "${WORKSPACE_ROOT}/.git" "${WORKSPACE_ROOT}/src/routes" "${WORKSPACE_ROOT}/tests" "${WORKSPACE_ROOT}/migrations"
+mkdir -p "${WORKSPACE_ROOT}/.git" "${WORKSPACE_ROOT}/.beads" "${WORKSPACE_ROOT}/src/routes" "${WORKSPACE_ROOT}/tests" "${WORKSPACE_ROOT}/migrations"
+printf '%s\n' '{"id":"ontology-001","title":"Ontology fixture","status":"open","priority":1,"issue_type":"task"}' > "${WORKSPACE_ROOT}/.beads/issues.jsonl"
 cat > "${WORKSPACE_ROOT}/Cargo.toml" <<'EOF'
 [package]
 name = "ontology-fixture"
@@ -71,7 +72,7 @@ FRAME_TITLE="ontology-world-$(date +%s%N)"
 FRAME_GOAL="verify broader ontology projection"
 ASK_TEXT="verify ontology world scope boundaries"
 curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" -d '{"reason":"ontology-world-reset"}' >/dev/null || true
-curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\"}" >/dev/null
+curl -sS -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${WORKSPACE_ROOT}\",\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\"}" >/dev/null
 workspace_ready=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
   if curl -sS "${BASE_URL}/v1/status" | jq -e --arg root "$WORKSPACE_ROOT" '.session.workspace_id == $root' >/dev/null 2>&1; then
@@ -85,7 +86,7 @@ if [ "$workspace_ready" = "1" ]; then
 else
   log_info "Workspace session metadata not yet visible; waiting on world projection instead"
 fi
-curl -sS -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${FRAME_TITLE}\",\"goal\":\"${FRAME_GOAL}\",\"beads_issue_id\":\"ontology-001\"}" >/dev/null
+curl -sS -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${FRAME_TITLE}\",\"goal\":\"${FRAME_GOAL}\",\"beads_issue_id\":\"ontology-001\",\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\"}" >/dev/null
 frame_id=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   frame_id=$(curl -sS "${BASE_URL}/v1/focus/stack" | jq -r --arg title "$FRAME_TITLE" '.stack.frames | map(select(.title == $title)) | last | .id // empty')

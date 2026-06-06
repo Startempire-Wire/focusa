@@ -492,7 +492,6 @@ mod tests {
                 RfmLevel::R1 => assert!(scored.final_score > 0.7),
                 RfmLevel::R2 => assert!(scored.final_score > 0.5),
                 RfmLevel::R3 => assert!(scored.final_score > 0.3),
-                _ => {}
             }
         }
     }

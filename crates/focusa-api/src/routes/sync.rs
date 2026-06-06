@@ -8,11 +8,12 @@
 //! GET  /v1/sync/status/:peer_id — get sync cursor + backlog estimate
 
 use crate::server::AppState;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use focusa_core::runtime::persistence_sqlite::SyncCursor;
+use focusa_core::sync::CrdtEvent;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -173,6 +174,21 @@ fn sync_validation_rejected(field: &str, reason: &str) -> (StatusCode, Json<serd
 }
 
 #[derive(Deserialize)]
+struct CrdtExportQuery {
+    project_root_key: String,
+    workstream_key: String,
+    limit: Option<usize>,
+}
+
+#[derive(Deserialize)]
+struct CrdtImportBody {
+    peer_id: String,
+    project_root_key: String,
+    workstream_key: String,
+    events: Vec<CrdtEvent>,
+}
+
+#[derive(Deserialize)]
 struct RegisterPeerBody {
     peer_id: String,
     name: String,
@@ -313,6 +329,66 @@ async fn pull_from_peer(
     })))
 }
 
+async fn crdt_export(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<CrdtExportQuery>,
+) -> SyncResult {
+    if query.project_root_key.trim().is_empty() || query.workstream_key.trim().is_empty() {
+        return Err(sync_validation_rejected(
+            "project_root_key/workstream_key",
+            "CRDT export requires explicit non-empty project_root_key and workstream_key",
+        ));
+    }
+    let limit = query.limit.unwrap_or(100).clamp(1, 1000);
+    let events = state
+        .persistence
+        .crdt_events_for_scope(&query.project_root_key, &query.workstream_key, limit)
+        .map_err(|e| sync_persistence_failed("crdt_export", e))?;
+    Ok(Json(json!({
+        "status": "ok",
+        "schema": "focusa.sync.crdt_export.v1",
+        "project_root_key": query.project_root_key,
+        "workstream_key": query.workstream_key,
+        "count": events.len(),
+        "events": events,
+    })))
+}
+
+async fn crdt_import(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CrdtImportBody>,
+) -> SyncResult {
+    if body.peer_id.trim().is_empty()
+        || body.project_root_key.trim().is_empty()
+        || body.workstream_key.trim().is_empty()
+    {
+        return Err(sync_validation_rejected(
+            "peer_id/project_root_key/workstream_key",
+            "CRDT import requires explicit peer_id, project_root_key, and workstream_key",
+        ));
+    }
+    let considered = body.events.len();
+    let imported = state
+        .persistence
+        .import_crdt_events_same_root(
+            &body.peer_id,
+            &body.project_root_key,
+            &body.workstream_key,
+            &body.events,
+        )
+        .map_err(|e| sync_persistence_failed("crdt_import", e))?;
+    Ok(Json(json!({
+        "status": "ok",
+        "schema": "focusa.sync.crdt_import.v1",
+        "peer_id": body.peer_id,
+        "project_root_key": body.project_root_key,
+        "workstream_key": body.workstream_key,
+        "considered": considered,
+        "imported": imported,
+        "skipped": considered.saturating_sub(imported),
+    })))
+}
+
 async fn push_to_peer(
     State(state): State<Arc<AppState>>,
     Path(peer_id): Path<String>,
@@ -405,6 +481,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/sync/status/{peer_id}", get(peer_status))
         .route("/v1/sync/pull/{peer_id}", post(pull_from_peer))
         .route("/v1/sync/push/{peer_id}", post(push_to_peer))
+        .route("/v1/sync/crdt/export", get(crdt_export))
+        .route("/v1/sync/crdt/import", post(crdt_import))
         .route("/v1/sync/receive", post(receive))
         .route("/v1/sync/transfer", post(transfer))
 }

@@ -71,7 +71,7 @@ fi
 
 log_info "Input schema validation"
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d '{"adapter_id":"pi","workspace_id":"tool-contract-test"}')
+  -d "{\"adapter_id\":\"pi\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"tool-contract-test\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Session start accepted before focus push"
 else
@@ -79,7 +79,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d '{"title":"tool-contract-test","goal":"verify contract","beads_issue_id":"tc-001"}')
+  -d "{\"title\":\"tool-contract-test\",\"goal\":\"verify contract\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"tool-contract-test\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Valid focus push accepted"
 else

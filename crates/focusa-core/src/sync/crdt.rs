@@ -429,7 +429,7 @@ mod tests {
     // STRESS TEST: Deterministic conflict resolution
     #[test]
     fn test_deterministic_resolution() {
-        let mut e1 = CrdtEvent {
+        let e1 = CrdtEvent {
             entry: EventLogEntry {
                 id: Uuid::now_v7(),
                 timestamp: Utc::now(),
