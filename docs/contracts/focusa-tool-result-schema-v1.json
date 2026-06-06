@@ -8,7 +8,9 @@
     "status",
     "failure_class",
     "canonical",
+    "advisory",
     "degraded",
+    "stale",
     "summary",
     "retry",
     "side_effects",
@@ -24,6 +26,7 @@
       "enum": [
         "accepted",
         "completed",
+        "pending",
         "no_op",
         "blocked",
         "validation_rejected",
@@ -35,8 +38,31 @@
     "canonical": {
       "type": "boolean"
     },
+    "advisory": {
+      "type": "boolean",
+      "description": "True when result is guidance/proposal only and cannot mutate canonical authority by itself."
+    },
     "degraded": {
       "type": "boolean"
+    },
+    "stale": {
+      "type": "boolean",
+      "description": "True when result is readable but freshness or scope is not current enough for authority."
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "project_root": {"type": ["string", "null"]},
+        "continuity_id": {"type": ["string", "null"]},
+        "workpoint_id": {"type": ["string", "null"]},
+        "session_id": {"type": ["string", "null"]},
+        "scope_status": {
+          "type": "string",
+          "enum": ["verified", "present", "missing", "partial", "mismatch_candidate", "unsafe", "unknown"]
+        },
+        "scope_source": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
     },
     "summary": {
       "type": "string",
