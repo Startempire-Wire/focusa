@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Guard UIAI packet scope against Focusa-verified project/workstream authority."""
+from __future__ import annotations
+import argparse, json, sys
+from pathlib import Path
+from typing import Any
+
+UNSAFE_ROOTS = {"/", "/root", "/home", "/tmp", "/var", "/usr", "/opt"}
+
+
+def load(path: str | None) -> dict[str, Any]:
+    if path and path != "-":
+        return json.loads(Path(path).read_text())
+    return json.load(sys.stdin)
+
+
+def norm(v: Any) -> str:
+    return str(v or "").strip().rstrip("/")
+
+
+def scope(packet: dict[str, Any]) -> dict[str, str]:
+    s = packet.get("scope") or packet.get("focusa_scope") or packet.get("focusa") or {}
+    return {
+        "project_root": norm(packet.get("project_root") or s.get("project_root")),
+        "continuity_id": norm(packet.get("continuity_id") or s.get("continuity_id")),
+        "scope_source": norm(packet.get("scope_source") or s.get("scope_source") or "missing"),
+    }
+
+
+def guard(packet: dict[str, Any], expected_root: str, expected_cont: str) -> dict[str, Any]:
+    got = scope(packet)
+    expected_root = norm(expected_root)
+    expected_cont = norm(expected_cont)
+    reasons = []
+    if not expected_root or expected_root in UNSAFE_ROOTS:
+        reasons.append("expected_project_root_unverified_or_unsafe")
+    if not expected_cont:
+        reasons.append("expected_continuity_id_missing")
+    if not got["project_root"] or got["project_root"] in UNSAFE_ROOTS:
+        reasons.append("packet_project_root_missing_or_unsafe")
+    if not got["continuity_id"]:
+        reasons.append("packet_continuity_id_missing")
+    if expected_root and got["project_root"] and expected_root != got["project_root"]:
+        reasons.append("cross_project_uiai_scope_guard")
+    if expected_cont and got["continuity_id"] and expected_cont != got["continuity_id"]:
+        reasons.append("cross_workstream_uiai_scope_guard")
+    ok = not reasons and got["scope_source"] == "focusa_verified"
+    if got["scope_source"] != "focusa_verified":
+        reasons.append("scope_source_not_focusa_verified")
+    status = "verified" if ok else "blocked"
+    return {
+        "schema_version": "focusa.uiai_cross_project_scope_guard.v1",
+        "status": status,
+        "canonical": False,
+        "advisory": True,
+        "degraded": not ok,
+        "failure_class": None if ok else "scope_mismatch",
+        "expected_scope": {"project_root": expected_root, "continuity_id": expected_cont},
+        "packet_scope": got,
+        "guard_reasons": reasons,
+        "capture_status": "capture_pending" if ok else "scope_mismatch",
+        "scope_source": got["scope_source"],
+        "headless_next_action": "focusa_browser_diagnostics_intake" if ok else "focusa_project_verify",
+        "tool_result_v1": {
+            "ok": ok,
+            "status": "completed" if ok else "blocked",
+            "canonical": False,
+            "advisory": True,
+            "degraded": not ok,
+            "stale": False,
+            "scope": {"project_root": got["project_root"], "continuity_id": got["continuity_id"], "scope_status": "verified" if ok else "mismatch_candidate", "scope_source": got["scope_source"]},
+            "failure_class": None if ok else "scope_mismatch",
+            "summary": "UIAI packet scope verified" if ok else "UIAI packet scope is not Focusa-verified for this project/workstream",
+            "retry": {"safe": ok, "posture": "safe_retry" if ok else "do_not_retry_unchanged"},
+            "side_effects": [],
+            "evidence_refs": [],
+            "next_tools": ["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_resume", "focusa_browser_diagnostics_intake"],
+        },
+    }
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description="Guard UIAI packet scope")
+    p.add_argument("packet", nargs="?", help="Packet JSON path or stdin")
+    p.add_argument("--expected-project-root", required=True)
+    p.add_argument("--expected-continuity-id", required=True)
+    p.add_argument("--json", action="store_true")
+    args = p.parse_args()
+    payload = guard(load(args.packet), args.expected_project_root, args.expected_continuity_id)
+    print(json.dumps(payload, indent=2) if args.json else f"uiai scope guard → {payload['status']} reasons={','.join(payload['guard_reasons']) or 'none'} next={payload['headless_next_action']}")
+    return 0 if payload["status"] == "verified" else 2
+
+if __name__ == "__main__":
+    raise SystemExit(main())
