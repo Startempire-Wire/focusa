@@ -1,0 +1,134 @@
+{
+  "schema_version": "focusa.policy_profile_registry.v1",
+  "source_worksheet": "docs/worksheets/focusa-877z.17-policy-profiles-defaults.yaml",
+  "default_profile": "safe_default",
+  "profiles": {
+    "safe_default": {
+      "intended_use": "normal agent/operator work",
+      "default_classification": "strict_scope_validation_compact_envelopes_workpoint_authority_tl_north_star",
+      "override_allowed": false,
+      "enforcement": [
+        "require project_root+continuity_id for canonical linkage",
+        "render canonical/advisory/degraded labels",
+        "prefer bounded evidence handles over raw payloads",
+        "WorkpointResumePacket wins immediate action when scope-matched"
+      ]
+    },
+    "builder": {
+      "intended_use": "active implementation",
+      "default_classification": "fast_local_with_visible_authority_labels_and_proof",
+      "override_allowed": true,
+      "override_requirement": "audit fields plus rollback/default restore path",
+      "enforcement": [
+        "local speed allowed only with proof_commands retained",
+        "degraded/advisory labels remain visible",
+        "changed surfaces must list affected docs/tests/tools"
+      ]
+    },
+    "audit_strict": {
+      "intended_use": "architecture/security/release review",
+      "default_classification": "all_surface_impact_migration_proof_required",
+      "override_allowed": false,
+      "enforcement": [
+        "require authority_class, mutation_class, migration, risk, proof_commands",
+        "reject missing backcompat for existing packets/snapshots/handles",
+        "require API/CLI/Pi/MCP/menubar parity note where relevant"
+      ]
+    },
+    "lowmem": {
+      "intended_use": "context/resource pressure",
+      "default_classification": "narrow_diagnostics_handles_first_degrade_advisory_payloads",
+      "override_allowed": true,
+      "override_requirement": "explicit operator/resource reason and bounded recovery path",
+      "enforcement": [
+        "keep official tools callable",
+        "use summary/traverse/rehydrate refs before cold/full payloads",
+        "surface resource mode and UIAI pressure as noncanonical telemetry"
+      ]
+    },
+    "browser_debug": {
+      "intended_use": "UIAI/browser failure triage",
+      "default_classification": "diagnostics_first_scope_required_for_canonical_linking",
+      "override_allowed": true,
+      "override_requirement": "explain why diagnostics unavailable and capture fallback evidence handle",
+      "enforcement": [
+        "call browser_diagnostics before guessing on browser failure",
+        "require focusa_scope validation before Workpoint evidence linkage",
+        "packet render includes capture_status and scope_source"
+      ]
+    },
+    "headless_ci": {
+      "intended_use": "CI/RPC/MCP/CLI workflows",
+      "default_classification": "schema_first_json_envelopes_no_tui_assumptions",
+      "override_allowed": false,
+      "enforcement": [
+        "same packet schema for TUI/RPC/MCP/HTTP/CLI",
+        "no modal/TUI-only acceptance gates",
+        "explicit cleanup/session/capture status in JSON"
+      ]
+    },
+    "demo_noncanonical": {
+      "intended_use": "examples/proposals/training/demo",
+      "default_classification": "synthetic_allowed_only_when_noncanonical",
+      "override_allowed": false,
+      "enforcement": [
+        "synthetic ids allowed only with canonical=false",
+        "no authority promotion without verified project/workstream scope",
+        "examples label proposal/demo status in first line"
+      ]
+    }
+  },
+  "default_posture_rules": {
+    "missing_project_or_continuity": "degraded_advisory; block canonical linkage; recommend focusa_project_identity and focusa_workpoint_resume",
+    "uiai_research_packet": "proposal_only_evidence_bundle; capture status proposal/pending until Focusa capture/intake/link succeeds",
+    "workpoint_resume_scope_match": "continuation_authority when canonical=true and project_root+continuity_id match",
+    "telemetry_resource_uiai_pressure": "noncanonical_operational; may narrow/block workflows but not mutate cognition truth",
+    "synthetic_ids": "noncanonical_demo_or_proposal; cannot satisfy canonical Focus Frame/Workpoint invariants"
+  },
+  "override_audit_schema": {
+    "required_fields": [
+      "profile_id",
+      "override_source",
+      "changed_field_or_route",
+      "reason",
+      "affected_surfaces",
+      "agent_benefit",
+      "handicap_risk",
+      "rollback_or_default_restore_path",
+      "proof_command_or_manual_acceptance_gate"
+    ],
+    "forbidden_override_effects": [
+      "erase_scope_validation",
+      "hide_canonical_advisory_degraded_labels",
+      "remove_evidence_handle_requirements",
+      "omit_mutation_class",
+      "weaken_privacy_or_redaction_boundaries",
+      "drop_proof_requirements"
+    ],
+    "audit_record_template": {
+      "profile_id": "builder",
+      "override_source": "operator|bead|env|config|ci",
+      "changed_field_or_route": "/v1/example",
+      "reason": "why default profile is insufficient",
+      "affected_surfaces": ["api", "cli", "pi_plugin", "docs", "tests"],
+      "agent_benefit": "what agent can do better",
+      "handicap_risk": "what safety/quality boundary can weaken",
+      "rollback_or_default_restore_path": "restore safe_default or remove override",
+      "proof_command_or_manual_acceptance_gate": "tests/spec98_policy_profile_registry_impl_static_test.py"
+    }
+  },
+  "inheritance_rules": [
+    "New canonical route defaults to audit_strict until authority_class, scope_fields, mutation_class, migration, and proof_commands are declared.",
+    "New read-only/advisory route defaults to safe_default but must still expose bounded envelope semantics.",
+    "New UIAI/browser workflow defaults to browser_debug and headless_ci parity requirements.",
+    "New CI/MCP/CLI surface defaults to headless_ci; TUI-only render is insufficient.",
+    "New demo/example defaults to demo_noncanonical and cannot mint canonical identifiers.",
+    "LowMem/resource pressure changes inherit lowmem and may narrow payloads but cannot hide official tools."
+  ],
+  "proof_commands": [
+    "tests/spec98_policy_profiles_defaults_static_test.py",
+    "tests/spec98_policy_profile_registry_impl_static_test.py",
+    "tests/spec98_authority_taxonomy_worksheet_static_test.py",
+    "npm --prefix apps/pi-extension run check"
+  ]
+}
