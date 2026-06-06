@@ -197,6 +197,23 @@ fn load_snapshot_record(state: &AppState, snapshot_id: &str) -> Option<SnapshotR
     })
 }
 
+fn snapshot_authority_posture(rec: &SnapshotRecord) -> Value {
+    json!({
+        "migration_class": "old_snapshots_and_clt_nodes",
+        "read_behavior": "readable_history_only",
+        "authority_status": "lineage_not_current_action_authority",
+        "migration_warnings": ["clt_snapshot_authority_unscoped"],
+        "scope": {
+            "project_root": null,
+            "continuity_id": null,
+            "scope_status": "unknown",
+            "scope_source": "legacy_snapshot_or_lineage_record",
+        },
+        "promotion_path": ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"],
+        "snapshot_id": rec.snapshot_id,
+    })
+}
+
 // Snapshot records are loaded from the persistent index file.
 // Directory scan removed per Spec94 E1: index must be pre-populated.
 
@@ -258,7 +275,7 @@ async fn create_snapshot(
     let mut store = snapshot_store()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    store.insert(snapshot_id.clone(), rec);
+    store.insert(snapshot_id.clone(), rec.clone());
     prune_snapshot_store(&mut store, Utc::now(), snapshot_store_config());
     persist_snapshot_index(&state, store.values().cloned());
 
@@ -270,6 +287,8 @@ async fn create_snapshot(
         "checksum": checksum,
         "snapshot_reason": body.snapshot_reason,
         "storage_path": storage_path,
+        "authority_posture": snapshot_authority_posture(&rec),
+        "migration_warnings": ["clt_snapshot_authority_unscoped"],
     })))
 }
 
@@ -352,6 +371,8 @@ async fn restore_snapshot(
         "restore_mode": body.restore_mode,
         "checksum": record.checksum,
         "conflicts": conflicts,
+        "authority_posture": snapshot_authority_posture(&record),
+        "migration_warnings": ["clt_snapshot_authority_unscoped"],
     })))
 }
 
@@ -421,6 +442,8 @@ async fn recent_snapshots(
             "checksum": rec.checksum,
             "state_version": rec.state_version,
             "lineage_head": rec.lineage_head,
+            "authority_posture": snapshot_authority_posture(&rec),
+            "migration_warnings": ["clt_snapshot_authority_unscoped"],
         })).collect::<Vec<_>>()
     })))
 }
@@ -505,7 +528,12 @@ async fn diff_snapshots(
         "decisions_delta": { "changed": checksum_changed },
         "constraints_delta": { "changed": checksum_changed || clt_changed },
         "failures_delta": { "changed": false },
-        "open_questions_delta": { "changed": false }
+        "open_questions_delta": { "changed": false },
+        "authority_posture": {
+            "from": snapshot_authority_posture(&from),
+            "to": snapshot_authority_posture(&to),
+        },
+        "migration_warnings": ["clt_snapshot_authority_unscoped"]
     })))
 }
 

@@ -218,6 +218,43 @@ fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
     })
 }
 
+fn focus_frame_legacy_migration_warnings(frame: &FrameRecord) -> Vec<&'static str> {
+    let mut warnings = Vec::new();
+    if frame.project_root.as_deref().is_none_or(|value| value.trim().is_empty())
+        || frame
+            .continuity_id
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+    {
+        warnings.push("focus_state_legacy_scope_inferred");
+    }
+    if frame.beads_issue_id.trim().is_empty()
+        || frame.beads_issue_id.starts_with("synthetic")
+        || frame.beads_issue_id.starts_with("pi-turn-")
+    {
+        warnings.push("focus_frame_missing_beads_source");
+    }
+    warnings
+}
+
+fn focus_frame_authority_posture(frame: &FrameRecord) -> serde_json::Value {
+    let warnings = focus_frame_legacy_migration_warnings(frame);
+    json!({
+        "migration_class": "old_focus_state_records_and_focus_stack_frames",
+        "read_behavior": if warnings.is_empty() { "reducer_backed_frame_scope" } else { "readable_history_noncanonical_when source Beads proof missing" },
+        "authority_status": if warnings.is_empty() { "canonical_when_reducer_backed_frame_scope_matches" } else { "canonical_false_for_synthetic_or_missing_beads" },
+        "migration_warnings": warnings,
+        "scope": {
+            "project_root": frame.project_root,
+            "continuity_id": frame.continuity_id,
+            "frame_id": frame.id,
+            "scope_status": if warnings.is_empty() { "verified" } else { "partial" },
+            "scope_source": if warnings.is_empty() { "frame_record" } else { "legacy_focus_frame" },
+        },
+        "promotion_path": ["focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_current_focus"],
+    })
+}
+
 fn resolve_scoped_frame<'a>(
     stack: &'a FocusStackState,
     frame_id: Option<Uuid>,
@@ -290,6 +327,12 @@ async fn get_stack(
         "stack": focusa.focus_stack,
         "active_frame_id": focusa.focus_stack.active_id,
         "frames_window": frames_window,
+        "frames_authority_posture": focusa.focus_stack.frames.iter().skip(cursor).take(limit).map(focus_frame_authority_posture).collect::<Vec<_>>(),
+        "legacy_migration_policy": {
+            "old_focus_state_records": "readable_with_safe_default_profile_and_frame_scope_when_available",
+            "old_focus_stack_frames": "readable_history_noncanonical_when source Beads proof missing",
+            "migration_warnings": ["focus_state_legacy_scope_inferred", "focus_frame_missing_beads_source"]
+        },
         "traversal_metadata": {
             "surface": "focus_stack",
             "selector": "window",
@@ -323,6 +366,8 @@ async fn get_scoped_frame(
     Json(json!({
         "frame": resolved.map(|(frame, _)| frame),
         "matched_by": resolved.map(|(_, matched_by)| matched_by).unwrap_or("none"),
+        "authority_posture": resolved.map(|(frame, _)| focus_frame_authority_posture(frame)),
+        "migration_warnings": resolved.map(|(frame, _)| focus_frame_legacy_migration_warnings(frame)).unwrap_or_else(|| vec!["focus_state_legacy_scope_inferred"]),
         "active_frame_id": focusa.focus_stack.active_id,
         "requested_project_root": query.project_root,
     }))

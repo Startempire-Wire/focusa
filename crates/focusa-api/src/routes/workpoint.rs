@@ -1839,6 +1839,43 @@ fn current_ask_action_authority_payload(
     })
 }
 
+fn workpoint_legacy_migration_warnings(record: &WorkpointRecord) -> Vec<&'static str> {
+    let mut warnings = Vec::new();
+    if record.project_root.as_deref().is_none_or(|value| value.trim().is_empty())
+        || record
+            .continuity_id
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+    {
+        warnings.push("old_workpoint_packet_missing_scope");
+    }
+    if record.session_identity.is_none() {
+        warnings.push("old_workpoint_packet_missing_session_identity");
+    }
+    warnings
+}
+
+fn workpoint_scope_status(record: &WorkpointRecord, canonical: bool) -> &'static str {
+    if canonical {
+        "verified"
+    } else if !workpoint_legacy_migration_warnings(record).is_empty() {
+        "missing"
+    } else {
+        "mismatch_candidate"
+    }
+}
+
+fn workpoint_migration_posture(record: &WorkpointRecord, canonical: bool) -> Value {
+    let warnings = workpoint_legacy_migration_warnings(record);
+    json!({
+        "migration_class": "old_workpoint_packets",
+        "read_behavior": if warnings.is_empty() { "current_packet" } else { "readable_as_degraded_advisory_recovery_packet" },
+        "authority_status": if canonical { "canonical_for_verified_project_root_plus_continuity_id" } else { "canonical_false_until_project_root_plus_continuity_id_rebound" },
+        "migration_warnings": warnings,
+        "promotion_path": ["focusa_project_identity", "focusa_project_verify", "focusa_workpoint_checkpoint"],
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn workpoint_resume_packet_v2(
     record: &WorkpointRecord,
@@ -1881,17 +1918,30 @@ fn workpoint_resume_packet_v2(
             "focusa_workpoint_resume"
         ])
     };
+    let migration_posture = workpoint_migration_posture(record, canonical);
     let tool_result = json!({
         "ok": canonical && action_authority,
         "status": "completed",
         "canonical": canonical,
+        "advisory": !canonical || !action_authority,
         "canonical_for_saved_scope": canonical,
         "matches_current_ask_scope": current_ask_scope.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)),
         "action_authority_for_current_ask": action_authority,
         "scope_conflict_reason": current_ask_scope.get("scope_conflict_reason").cloned().unwrap_or(json!("none")),
         "degraded": !canonical || !action_authority,
+        "stale": !canonical,
+        "scope": {
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "workpoint_id": record.workpoint_id,
+            "session_id": record.session_id,
+            "scope_status": workpoint_scope_status(record, canonical),
+            "scope_source": if canonical { "focusa_verified" } else { "legacy_or_request_scope" },
+        },
         "failure_class": current_action_failure_class.clone(),
         "retry": {"safe": action_authority, "posture": if action_authority { "safe_retry" } else { "do_not_retry_unchanged" }},
+        "migration_posture": migration_posture.clone(),
+        "migration_warnings": migration_posture.get("migration_warnings").cloned().unwrap_or_else(|| json!([])),
         "side_effects": ["workpoint_resume_rendered"],
         "evidence_refs": record.verification_records.iter().take(8).filter_map(|v| v.evidence_ref.clone()).collect::<Vec<_>>(),
         "next_tools": next_tools.clone(),
@@ -1910,6 +1960,8 @@ fn workpoint_resume_packet_v2(
         "current_ask_scope": current_ask_scope,
         "confidence": resume_confidence_level(canonical, &identity_confidence),
         "failure_class": current_action_failure_class.clone(),
+        "migration_posture": migration_posture,
+        "migration_warnings": tool_result.get("migration_warnings").cloned().unwrap_or_else(|| json!([])),
         "project_identity": project_identity_payload(record, req, canonical),
         "session_identity": session_identity_payload(record, req, &generated_at, canonical),
         "project_root": record.project_root,
@@ -1932,8 +1984,8 @@ fn workpoint_resume_packet_v2(
         },
         "api_provenance": [
             {"tool_or_route": "focusa_workpoint_resume", "route": "/v1/workpoint/resume", "purpose": "render active Workpoint continuation", "status": "completed", "canonical": canonical, "failure_class": current_action_failure_class.clone(), "freshness": "live", "tool_result_v1": tool_result.clone()},
-            {"tool_or_route": "focusa_trajectory_view", "route": "/v1/trajectory/view", "purpose": "advisory goal/state/gap projection", "status": "projected", "canonical": false, "advisory_only": true, "failure_class": Value::Null, "freshness": "cached", "tool_result_v1": {"ok": true, "status": "projected", "canonical": false, "degraded": false, "failure_class": Value::Null, "retry": {"safe": true, "posture": "safe_retry"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_trajectory_view"]}},
-            {"tool_or_route": "focusa_traverse", "route": "/v1/traverse", "purpose": "bounded supporting slice descriptors", "status": "candidate_slices", "canonical": false, "advisory_only": true, "failure_class": Value::Null, "freshness": "unknown", "tool_result_v1": {"ok": true, "status": "candidate_slices", "canonical": false, "degraded": false, "failure_class": Value::Null, "retry": {"safe": true, "posture": "safe_retry"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_traverse"]}}
+            {"tool_or_route": "focusa_trajectory_view", "route": "/v1/trajectory/view", "purpose": "advisory goal/state/gap projection", "status": "projected", "canonical": false, "advisory_only": true, "failure_class": Value::Null, "freshness": "cached", "tool_result_v1": {"ok": true, "status": "projected", "canonical": false, "advisory": true, "degraded": false, "stale": false, "scope": {"project_root": record.project_root, "continuity_id": record.continuity_id, "scope_status": if canonical { "verified" } else { "partial" }, "scope_source": "workpoint_projection"}, "failure_class": Value::Null, "retry": {"safe": true, "posture": "safe_retry"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_trajectory_view"]}},
+            {"tool_or_route": "focusa_traverse", "route": "/v1/traverse", "purpose": "bounded supporting slice descriptors", "status": "candidate_slices", "canonical": false, "advisory_only": true, "failure_class": Value::Null, "freshness": "unknown", "tool_result_v1": {"ok": true, "status": "candidate_slices", "canonical": false, "advisory": true, "degraded": false, "stale": true, "scope": {"project_root": record.project_root, "continuity_id": record.continuity_id, "scope_status": if canonical { "verified" } else { "partial" }, "scope_source": "bounded_supporting_slice"}, "failure_class": Value::Null, "retry": {"safe": true, "posture": "safe_retry"}, "side_effects": [], "evidence_refs": [], "next_tools": ["focusa_traverse"]}}
         ],
         "details": {"tool_result_v1": tool_result},
         "session_continuity": session_continuity,

@@ -160,6 +160,37 @@ fn resolve_handle_with_disk_fallback(
         .or_else(|| load_handle_metadata_from_disk(data_dir, handle_id))
 }
 
+fn handle_legacy_migration_warnings(handle: &HandleRef) -> Vec<&'static str> {
+    let mut warnings = Vec::new();
+    if handle.project_root.as_deref().is_none_or(|value| value.trim().is_empty())
+        || handle
+            .continuity_id
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+    {
+        warnings.push("evidence_handle_scope_missing");
+        warnings.push("legacy_scope_missing");
+    }
+    warnings
+}
+
+fn handle_authority_posture(handle: &HandleRef) -> serde_json::Value {
+    let warnings = handle_legacy_migration_warnings(handle);
+    json!({
+        "migration_class": "old_evidence_handles",
+        "read_behavior": if warnings.is_empty() { "scoped_exact_handle" } else { "readable_via_handle_id_with legacy_scope_missing warning" },
+        "authority_status": "evidence_handle_only_not_object_truth",
+        "migration_warnings": warnings,
+        "scope": {
+            "project_root": handle.project_root,
+            "continuity_id": handle.continuity_id,
+            "scope_status": if warnings.is_empty() { "verified" } else { "missing" },
+            "scope_source": if warnings.is_empty() { "handle_metadata" } else { "legacy_handle_metadata" },
+        },
+        "promotion_path": ["focusa_evidence_capture", "focusa_workpoint_link_evidence"],
+    })
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct StoreBody {
     kind: HandleKind,
@@ -287,6 +318,8 @@ fn handle_summaries(handles: &[HandleRef]) -> Vec<serde_json::Value> {
                 "created_at": handle.created_at,
                 "pinned": handle.pinned,
                 "trajectory": handle.trajectory,
+                "authority_posture": handle_authority_posture(handle),
+                "migration_warnings": handle_legacy_migration_warnings(handle),
             })
         })
         .collect()
@@ -346,7 +379,26 @@ async fn resolve_handle(
         &focusa.reference_index.handles,
         handle_id,
     ) {
-        Some(handle) => Json(json!({"handle": handle})),
+        Some(handle) => Json(json!({
+            "handle": handle,
+            "authority_posture": handle_authority_posture(&handle),
+            "migration_warnings": handle_legacy_migration_warnings(&handle),
+            "tool_result_v1": {
+                "ok": true,
+                "status": "completed",
+                "canonical": false,
+                "advisory": true,
+                "degraded": !handle_legacy_migration_warnings(&handle).is_empty(),
+                "stale": false,
+                "scope": handle_authority_posture(&handle).get("scope").cloned().unwrap_or_else(|| json!({"scope_status":"unknown"})),
+                "failure_class": null,
+                "summary": "handle metadata resolved; evidence handle is not object truth until linked/verified",
+                "retry": {"safe": true, "posture": "safe_retry"},
+                "side_effects": [],
+                "evidence_refs": [format!("focusa-handle:{}", handle.id)],
+                "next_tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence"]
+            }
+        })),
         None => Json(ecs_handle_not_found(handle_id).1.0),
     }
 }
@@ -376,6 +428,8 @@ async fn get_content(
         "content_b64": base64::engine::general_purpose::STANDARD.encode(&content),
         "size": content.len(),
         "trajectory": handle.trajectory,
+        "authority_posture": handle_authority_posture(&handle),
+        "migration_warnings": handle_legacy_migration_warnings(&handle),
     })))
 }
 
@@ -443,6 +497,8 @@ async fn rehydrate(
         "truncated": text.len() > max_chars,
         "original_size": content.len(),
         "trajectory": handle.trajectory,
+        "authority_posture": handle_authority_posture(&handle),
+        "migration_warnings": handle_legacy_migration_warnings(&handle),
     })))
 }
 

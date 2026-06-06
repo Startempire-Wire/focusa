@@ -29,6 +29,7 @@ tests/spec98_uiai_packet_capture_headless_static_test.py
 tests/spec98_visual_workflow_exact_scope_static_test.py
 tests/spec98_policy_profiles_defaults_static_test.py
 tests/spec98_migration_side_effect_plan_static_test.py
+tests/spec98_authority_migration_backcompat_static_test.py
 tests/spec98_shared_tool_result_envelope_static_test.py
 ${CARGO:-cargo} test -p focusa-core sync::crdt
 tests/spec98_runtime_multi_daemon_crdt_sync_test.sh
