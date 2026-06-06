@@ -89,8 +89,114 @@ impl ReferenceStore {
         Ok((handle, blob_path))
     }
 
+    /// Resolve a handle only when its stored scope matches the expected project/workstream.
+    ///
+    /// Legacy unscoped handles remain readable through `resolve`; scoped callers use this
+    /// method so an id from another project or continuity cannot hydrate as current proof.
+    pub fn resolve_scoped(
+        &self,
+        handle_id: HandleId,
+        expected_project_root: Option<&str>,
+        expected_continuity_id: Option<&str>,
+    ) -> anyhow::Result<(HandleRef, PathBuf)> {
+        let (handle, blob_path) = self.resolve(handle_id)?;
+        if let Some(expected) = clean_scope(expected_project_root) {
+            let actual = clean_scope(handle.project_root.as_deref());
+            anyhow::ensure!(
+                actual.as_deref() == Some(expected.as_str()),
+                "reference handle project_root scope mismatch"
+            );
+        }
+        if let Some(expected) = clean_scope(expected_continuity_id) {
+            let actual = clean_scope(handle.continuity_id.as_deref());
+            anyhow::ensure!(
+                actual.as_deref() == Some(expected.as_str()),
+                "reference handle continuity_id scope mismatch"
+            );
+        }
+        Ok((handle, blob_path))
+    }
+
     /// Check if content exceeds externalization threshold.
     pub fn should_externalize(content: &[u8], config: &FocusaConfig) -> bool {
         content.len() as u64 >= config.ecs_externalize_bytes_threshold
+    }
+}
+
+fn clean_scope(value: Option<&str>) -> Option<String> {
+    let trimmed = value?.trim().trim_end_matches('/').to_string();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_store() -> ReferenceStore {
+        let root = std::env::temp_dir().join(format!("focusa-reference-store-test-{}", Uuid::now_v7()));
+        ReferenceStore::new(root).unwrap()
+    }
+
+    #[test]
+    fn resolve_scoped_accepts_matching_project_and_continuity() {
+        let store = test_store();
+        let handle = store
+            .store(
+                HandleKind::Text,
+                "match".to_string(),
+                b"content",
+                None,
+                None,
+                Some("/tmp/project/".to_string()),
+                Some("cont-a".to_string()),
+            )
+            .unwrap();
+        let (resolved, path) = store
+            .resolve_scoped(handle.id, Some("/tmp/project"), Some("cont-a"))
+            .unwrap();
+        assert_eq!(resolved.id, handle.id);
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn resolve_scoped_rejects_cross_project_or_workstream() {
+        let store = test_store();
+        let handle = store
+            .store(
+                HandleKind::Text,
+                "mismatch".to_string(),
+                b"content",
+                None,
+                None,
+                Some("/tmp/project-a".to_string()),
+                Some("cont-a".to_string()),
+            )
+            .unwrap();
+        let project_err = store
+            .resolve_scoped(handle.id, Some("/tmp/project-b"), Some("cont-a"))
+            .unwrap_err()
+            .to_string();
+        assert!(project_err.contains("project_root scope mismatch"));
+        let cont_err = store
+            .resolve_scoped(handle.id, Some("/tmp/project-a"), Some("cont-b"))
+            .unwrap_err()
+            .to_string();
+        assert!(cont_err.contains("continuity_id scope mismatch"));
+    }
+
+    #[test]
+    fn legacy_unscoped_handle_remains_readable_but_not_scoped() {
+        let store = test_store();
+        let handle = store
+            .store(HandleKind::Text, "legacy".to_string(), b"content", None, None, None, None)
+            .unwrap();
+        assert!(store.resolve(handle.id).is_ok());
+        assert!(store
+            .resolve_scoped(handle.id, Some("/tmp/project"), Some("cont-a"))
+            .is_err());
     }
 }

@@ -49,6 +49,9 @@ def main() -> None:
     for field in ["project_root,", "continuity_id,"]:
         if field not in store:
             fail(f"ReferenceStore::store must persist {field.strip(',')}")
+    for term in ["pub fn resolve_scoped", "expected_project_root", "expected_continuity_id", "project_root scope mismatch", "continuity_id scope mismatch", "legacy_unscoped_handle_remains_readable_but_not_scoped"]:
+        if term not in store:
+            fail(f"ReferenceStore read path missing scoped resolve guard: {term}")
 
     if "project_root.or_else(|| session.and_then(|s| s.project_root.clone()))" not in daemon:
         fail("daemon must fill handle project_root from action or active session")
@@ -67,7 +70,7 @@ def main() -> None:
     if '"handle": handle' not in ecs:
         fail("ECS store response must return exact handle object")
 
-    print("✓ PASS: Reference Store writes are scope-bound and store routes return exact created handles")
+    print("✓ PASS: Reference Store writes/read resolution are scope-bound and store routes return exact created handles")
 
 
 if __name__ == "__main__":
