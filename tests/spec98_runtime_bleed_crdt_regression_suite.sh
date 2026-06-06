@@ -25,6 +25,7 @@ tests/spec98_unscoped_canonical_inventory_static_test.py
 log "Spec98 CRDT/event-store foundation proofs"
 tests/spec98_crdt_event_store_wiring_static_test.py
 ${CARGO:-cargo} test -p focusa-core sync::crdt
+tests/spec98_runtime_multi_daemon_crdt_sync_test.sh
 
 log "Build gates"
 npm --prefix apps/pi-extension run check
