@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""Render UIAI ResearchDiagnosticsPacket capture/scope status in one compact first line."""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+CAPTURE_RENDER = {
+    "proposal_only": "capture=proposal_only",
+    "capture_pending": "capture=pending_focusa_tool",
+    "captured": "capture=focusa_captured",
+    "workpoint_linked": "capture=workpoint_linked",
+    "scope_mismatch": "capture=rejected",
+    "degraded_unknown": "capture=degraded_unknown",
+}
+
+SCOPE_SOURCE_RENDER = {
+    "focusa_verified": "scope_source=focusa_verified",
+    "caller_supplied": "scope_source=caller_supplied",
+    "uiai_local_default_scope": "scope_source=uiai_default_demo",
+    "missing": "scope_source=missing",
+    "mismatch_candidate": "scope_source=mismatch_candidate",
+}
+
+
+def load_packet(path: str | None) -> dict[str, Any]:
+    if path and path != "-":
+        return json.loads(Path(path).read_text())
+    return json.load(sys.stdin)
+
+
+def first(*values: Any) -> Any:
+    for value in values:
+        if value not in (None, "", []):
+            return value
+    return None
+
+
+def render(packet: dict[str, Any]) -> dict[str, Any]:
+    scope = packet.get("scope") or packet.get("focusa_scope") or {}
+    capture_status = first(packet.get("capture_status"), packet.get("packet_status"), "proposal_only")
+    scope_status = first(packet.get("scope_status"), scope.get("scope_status"), "present" if scope else "missing")
+    scope_source = first(packet.get("scope_source"), scope.get("scope_source"), "caller_supplied" if scope else "missing")
+    preferred_tool = first(packet.get("preferred_tool"), "focusa_browser_diagnostics_intake")
+    next_action = first(packet.get("headless_next_action"), packet.get("next_action"), "focusa_evidence_capture")
+    evidence_count = len(packet.get("evidence_refs") or packet.get("evidence") or ([] if not packet.get("evidence_ref") else [packet.get("evidence_ref")]))
+    capture_text = CAPTURE_RENDER.get(str(capture_status), "capture=degraded_unknown")
+    source_text = SCOPE_SOURCE_RENDER.get(str(scope_source), f"scope_source={scope_source}")
+    summary_line = f"UIAI packet mode={first(packet.get('mode'), 'diagnostics')} evidence={evidence_count} scope={scope_status} {source_text} {capture_text} tool={preferred_tool} next={next_action}"
+    canonical = capture_status in ("captured", "workpoint_linked") and scope_source == "focusa_verified"
+    return {
+        "schema_version": "focusa.uiai_packet_capture_status_render.v1",
+        "summary_line": summary_line,
+        "capture_status": capture_status,
+        "scope_status": scope_status,
+        "scope_source": scope_source,
+        "preferred_tool": preferred_tool,
+        "headless_next_action": next_action,
+        "canonical": canonical,
+        "advisory": not canonical,
+        "degraded": capture_status in ("scope_mismatch", "degraded_unknown") or scope_status in ("missing", "mismatch_candidate"),
+        "render_terms": {
+            "capture": capture_text,
+            "scope_source": source_text,
+            "scope": f"scope={scope_status}",
+            "tool": f"tool={preferred_tool}",
+            "next": f"next={next_action}",
+        },
+        "tool_result_v1": {
+            "ok": canonical,
+            "status": "completed" if canonical else "pending",
+            "canonical": canonical,
+            "advisory": not canonical,
+            "degraded": capture_status in ("scope_mismatch", "degraded_unknown"),
+            "stale": False,
+            "scope": {"scope_status": scope_status, "scope_source": scope_source},
+            "failure_class": "scope_mismatch" if capture_status == "scope_mismatch" else None,
+            "summary": summary_line,
+            "retry": {"safe": True, "posture": "safe_retry" if canonical else "retry_with_idempotency_key"},
+            "side_effects": [],
+            "evidence_refs": packet.get("evidence_refs") or ([] if not packet.get("evidence_ref") else [packet.get("evidence_ref")]),
+            "next_tools": ["focusa_browser_diagnostics_intake", "focusa_evidence_capture", "focusa_workpoint_link_evidence"],
+        },
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Render UIAI packet capture status")
+    parser.add_argument("packet", nargs="?", help="Packet JSON path, or stdin")
+    parser.add_argument("--json", action="store_true", help="Emit full JSON")
+    args = parser.parse_args()
+    payload = render(load_packet(args.packet))
+    print(json.dumps(payload, indent=2) if args.json else payload["summary_line"])
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

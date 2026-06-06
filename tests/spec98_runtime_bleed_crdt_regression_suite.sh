@@ -26,6 +26,7 @@ log "Spec98 CRDT/event-store foundation proofs"
 tests/spec98_crdt_event_store_wiring_static_test.py
 tests/spec98_pi_uiai_authority_impact_static_test.py
 tests/spec98_uiai_packet_capture_headless_static_test.py
+tests/spec98_uiai_packet_capture_status_rendering_static_test.py
 tests/spec98_headless_diagnostics_intake_fallback_static_test.py
 tests/spec98_exact_handle_evidence_write_semantics_static_test.py
 tests/spec98_visual_workflow_exact_scope_static_test.py
