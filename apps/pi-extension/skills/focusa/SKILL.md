@@ -191,12 +191,12 @@ No existing Focusa tools should be demoted; weak tools should be redesigned, cla
 
 ## Tool-doctor and evidence entrypoints
 
-- `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action.
+- `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action; reads UIAI browser health/metrics only, never opens target URLs.
 - `focusa_evidence_capture` — convert proof into stable handles; avoid prompt bloat.
 - `focusa_active_object_resolve` — use before editing/claiming canonical refs when object identity is uncertain.
-- `focusa_browser_diagnostics_intake` — after UIAI/browser diagnostics or action failure envelopes, convert browser console/network/runtime evidence into Workpoint evidence, active-object hints, prediction context, and optional metacog learning.
+- `focusa_browser_diagnostics_intake` — after UIAI/browser diagnostics or action failure envelopes, convert browser console/network/runtime evidence into Workpoint evidence, active-object hints, prediction context, and optional metacog learning; it consumes UIAI output and does not call UIAI itself.
 
-Browser evidence route: UIAI `browser_diagnostics` → `focusa_browser_diagnostics_intake` → `focusa_active_object_resolve`/prediction/evidence verification. Under Focusa emergency resource mode, prefer summary trajectory/traverse views and avoid cold/full payload routes unless explicitly needed.
+Browser evidence route: UIAI `browser_diagnostics` → `focusa_browser_diagnostics_intake` → `focusa_active_object_resolve`/prediction/evidence verification. UIAI `url_not_allowed` means the browser target was private/internal under hardened policy; capture it as policy evidence or use an explicit local/dev UIAI profile, not a Focusa failure. Under Focusa emergency resource mode, prefer summary trajectory/traverse views and avoid cold/full payload routes unless explicitly needed.
 
 ## Commands
 

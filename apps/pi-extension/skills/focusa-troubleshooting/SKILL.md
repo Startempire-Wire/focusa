@@ -38,7 +38,7 @@ Recovery:
 
 ### UIAI/browser diagnostics intake blocked
 
-If `focusa_browser_diagnostics_intake` is blocked by scope or trajectory clarity, preserve the diagnostics file path in the response, run `focusa_workpoint_resume`, then retry with explicit `project_root`/`workpoint_id` or use `attach_to_workpoint=false` for dry intake.
+If `focusa_browser_diagnostics_intake` is blocked by scope or trajectory clarity, preserve the diagnostics file path in the response, run `focusa_workpoint_resume`, then retry with explicit `project_root`/`workpoint_id` or use `attach_to_workpoint=false` for dry intake. If UIAI returned `url_not_allowed`, treat it as hardened private-target policy evidence; Focusa intake can record it but cannot bypass UIAI URL safety.
 
 ## Safety rules
 

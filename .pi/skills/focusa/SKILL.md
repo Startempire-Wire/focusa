@@ -26,21 +26,12 @@ If Pi reports:
   description is required
 ```
 
-then the installed `SKILL.md` is missing/has invalid frontmatter. Repair both copies:
+then the installed `SKILL.md` is missing/has invalid frontmatter. Repair the project source copy and the user runtime copy resolved from `PI_SKILLS_DIR` or `$HOME/.pi/skills`.
 
-- project source: `/home/wirebot/focusa/apps/pi-extension/skills/focusa/SKILL.md`
-- installed global: `/root/.pi/skills/focusa/SKILL.md`
-
-Validate with:
+Validate with the portable harness:
 
 ```bash
-node --input-type=module - <<'NODE'
-import { loadSkillsFromDir } from '/opt/cpanel/ea-nodejs20/lib/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js';
-for (const dir of ['/root/.pi/skills','/home/wirebot/focusa/apps/pi-extension/skills']) {
-  const r = loadSkillsFromDir({ dir, source: 'user' });
-  console.log(JSON.stringify({ dir, skills: r.skills.map(s => s.name), diagnostics: r.diagnostics }, null, 2));
-}
-NODE
+node scripts/validate-skill-hygiene.mjs
 ```
 
 ## Companion skills
@@ -75,8 +66,7 @@ When uncertain, resumed, compacted, or after context overflow:
 2. `focusa_tool_doctor` — diagnose daemon, active Workpoint, Focus State, and next repair.
 3. `focusa_active_object_resolve` — resolve active object candidates without inventing canonical refs.
 4. `focusa_evidence_capture` or `focusa_workpoint_link_evidence` — capture proof as handles and link to active Workpoint.
-5. For UIAI/browser failures, prefer `focusa_browser_diagnostics_intake` after `browser_diagnostics`; it consumes embedded `focusa_scope` when present.
-6. Use the task-specific family below.
+5. Use the task-specific family below.
 
 If `canonical=false` or `degraded=true`, treat output as recovery hint only until a canonical read confirms it.
 
@@ -97,9 +87,10 @@ Use for compact cognitive state. Do not store raw transcripts here.
 
 Validation discipline:
 
-- Working notes never go into `focusa_decide`.
+- Working notes never go into `focusa_decide`; put reasoning, task lists, failed wording, and retries in `focusa_scratch`.
 - Decisions are architectural choices, not task lists or debug narratives.
-- Constraints are discovered requirements, not agent commitments.
+- Constraints are discovered requirements, not agent commitments. Phrase constraints as declarative architecture boundaries: `Workpoint continuity identity uses project_root plus continuity_id`, not `Need to fix...` or `Do not...`.
+- If a Focus State write tool rejects validation, treat that as a phrasing error: save the detailed note to scratchpad, retry once with compliant noun-phrase wording, then continue without looping.
 - Failures name the failing component and why.
 
 ## Workpoint family
@@ -111,7 +102,6 @@ Use for continuity across compaction/resume/model switch/fork/risky work.
 - `focusa_workpoint_link_evidence` — attach stable evidence refs/results to active canonical Workpoint.
 - `focusa_active_object_resolve` — resolve likely active objects; returns candidates, not invented truth.
 - `focusa_evidence_capture` — capture bounded evidence and optionally link to Workpoint.
-- `focusa_browser_diagnostics_intake` — convert UIAI/browser diagnostics into scoped evidence, active-object hints, prediction, and optional metacog capture.
 
 Identity and isolation rules:
 
@@ -121,6 +111,14 @@ Identity and isolation rules:
 - `session_id` is temporal metadata across compaction/model switch/fork; it must not merge or split logical sessions.
 - Trajectory is the route model: current functional state, desired destination/outcome, and waypoint goals.
 - Trajectory, work-item, frame tags, and goals are corroborating alignment signals only; they never override `project_root + continuity_id` hard gates.
+- Post-compaction agents should call `focusa_workpoint_resume`; a same-project packet resumes cleanly only when continuity_id also matches.
+
+Context pressure UX:
+
+- Context pressure means the transcript window is tight; it does not mean Focusa lost project memory.
+- Focusa preserves continuity through scoped project identity, trajectory, Workpoint packets, evidence handles, and post-compact resume guidance.
+- Generic `/fork`, `/new`, or session-handoff warnings are redundant when Focusa has healthy scoped anchors.
+- Surface operator-visible warnings only when scoped Focusa anchors are unconfirmed; phrase them as checkpoint/resume guidance with `/fork` optional for UI isolation.
 
 Real release behavior as of Spec89:
 
@@ -179,16 +177,26 @@ Use for safe cleanup planning, never silent deletion.
 
 - `focusa_state_hygiene_doctor` — diagnose stale/duplicate Focus State signals without mutation.
 - `focusa_state_hygiene_plan` — produce proposal-style hygiene plan.
-- `focusa_state_hygiene_apply` — approval-gated, non-destructive placeholder until reducer-backed hygiene events exist.
+- `focusa_state_hygiene_apply` — approval-gated, non-destructive apply that records an auditable Focus State note via `/v1/focus/update`.
 
 No existing Focusa tools should be demoted; weak tools should be redesigned, clarified, merged upward, or hardened.
 
+## Trajectory, resource, and background-session utilities
+
+- `focusa_trajectory_view` / `focusa_trajectory_resume` — advisory project goal/state/gap orientation; corroborates Workpoint, never overrides identity gates.
+- `focusa_trajectory_define_goal` / `focusa_trajectory_assess` / `focusa_trajectory_propose_workpoint` / `focusa_trajectory_checkpoint` — manage project trajectory and propose next Workpoint candidates.
+- `focusa_resource_mode` — inspect or activate LowMem when resources are constrained; LowMem changes fidelity/budgets, not tool availability.
+- `focusa_traverse` — read-only bounded traversal across large Focusa surfaces; use instead of full tree/store/log payloads by default.
+- `focusa_silent_sessions` — list/reopen/start/tail/send/kill tmux-backed background Pi sessions; mutating process actions require approval and kill requires force.
+
 ## Tool-doctor and evidence entrypoints
 
-- `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action; includes UIAI browser health/queue pressure when reachable.
+- `focusa_tool_doctor` — first diagnostic for Focusa readiness, active Workpoint continuity, daemon health, and likely repair action; reads UIAI browser health/metrics only, never opens target URLs.
 - `focusa_evidence_capture` — convert proof into stable handles; avoid prompt bloat.
-- `focusa_browser_diagnostics_intake` — preferred UIAI browser failure intake; uses `diagnostics.focusa_scope` for Workpoint/project scope by default.
 - `focusa_active_object_resolve` — use before editing/claiming canonical refs when object identity is uncertain.
+- `focusa_browser_diagnostics_intake` — after UIAI/browser diagnostics or action failure envelopes, convert browser console/network/runtime evidence into Workpoint evidence, active-object hints, prediction context, and optional metacog learning; it consumes UIAI output and does not call UIAI itself.
+
+Browser evidence route: UIAI `browser_diagnostics` → `focusa_browser_diagnostics_intake` → `focusa_active_object_resolve`/prediction/evidence verification. UIAI `url_not_allowed` means the browser target was private/internal under hardened policy; capture it as policy evidence or use an explicit local/dev UIAI profile, not a Focusa failure. Under Focusa emergency resource mode, prefer summary trajectory/traverse views and avoid cold/full payload routes unless explicitly needed.
 
 ## Commands
 
@@ -204,11 +212,11 @@ No existing Focusa tools should be demoted; weak tools should be redesigned, cla
 
 Every `focusa_*` Pi tool should preserve a visible text summary and add `details.tool_result_v1` with common fields:
 
-- `ok`, `status`, `canonical`, `degraded`
+- `ok`, `status`, `failure_class`, `canonical`, `degraded`
 - `summary`, `retry`, `side_effects`, `evidence_refs`, `next_tools`
 - `error`, `raw`
 
-Use `status`, `retry.posture`, `canonical/degraded`, and `next_tools` for recovery decisions instead of parsing prose.
+Use `status`, `failure_class`, `retry.posture`, `canonical/degraded`, and `next_tools` for recovery decisions instead of parsing prose.
 
 ## Real release evidence
 

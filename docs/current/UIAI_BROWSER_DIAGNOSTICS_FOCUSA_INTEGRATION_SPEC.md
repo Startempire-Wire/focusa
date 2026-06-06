@@ -39,7 +39,7 @@ Local implementation in `/home/wpuiai/uiai-engine` now includes:
 - Focusa does not become a browser automation runtime.
 - Focusa does not store raw HAR dumps, screenshots, or unbounded logs.
 - Focusa does not treat diagnostics as canonical project truth without source/test verification.
-- Focusa does not bypass UIAI redaction or local security boundaries.
+- Focusa does not bypass UIAI redaction, auth, or URL safety boundaries. UIAI `url_not_allowed` for private/internal targets is expected policy evidence unless a separate local/dev UIAI profile explicitly enables private URLs.
 
 ## 5. Browser evidence flow
 
@@ -198,7 +198,7 @@ Focusa integration is acceptable when:
 - Prediction record/evaluate closes the loop after fix verification.
 - Metacog capture stores only evidence-backed reusable lessons.
 - UIAI companion docs link back to this Focusa integration spec.
-- `focusa_tool_doctor` shows `uiai_browser=<status>/<pressure>` and recommends resource narrowing when UIAI queue p95/p99/rejections indicate high pressure.
+- `focusa_tool_doctor` shows `uiai_browser=<status>/<pressure>` from UIAI health/metrics only and recommends resource narrowing when UIAI queue p95/p99/rejections indicate high pressure; it does not open browser target URLs.
 - UIAI stress/soak reports include a `focusa_evidence` packet that can be passed directly to `focusa_evidence_capture`.
 - UIAI screenshot/share responses provide stable artifact evidence refs instead of requiring raw screenshot blobs in transcript.
 
