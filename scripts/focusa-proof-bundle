@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Focusa proof bundle map runner.
+
+Lists proof commands for authority taxonomy item ids or proof bundle surfaces and fails closed when a mapping is missing.
+Default is dry-run command listing; pass --run to execute local commands that do not require external UIAI accounts.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+TAXONOMY = ROOT / "docs/worksheets/focusa-877z.8-authority-taxonomy.yaml"
+MIGRATION = ROOT / "docs/worksheets/focusa-877z.18-migration-side-effect-proof-plan.yaml"
+POLICY_REGISTRY = ROOT / "docs/current/FOCUSA_POLICY_PROFILE_REGISTRY.json"
+
+LOCAL_SAFE_PREFIXES = (
+    "tests/",
+    "npm --prefix apps/pi-extension run check",
+    "npm --prefix apps/menubar run typecheck",
+    "cargo check",
+    "cargo test",
+    "scripts/",
+)
+
+SURFACE_ALIASES = {
+    "daemon": "daemon_core",
+    "api": "api_routes",
+    "pi": "pi_extension",
+    "pi_plugin": "pi_extension",
+    "uiai": "uiai_external",
+    "browser": "uiai_external",
+    "proof": "proof_suite",
+}
+
+
+def load_yaml(path: Path) -> dict[str, Any]:
+    return yaml.safe_load(path.read_text()) or {}
+
+
+def load_registry() -> dict[str, Any]:
+    if not POLICY_REGISTRY.exists():
+        return {}
+    return json.loads(POLICY_REGISTRY.read_text())
+
+
+def taxonomy_items() -> dict[str, dict[str, Any]]:
+    data = load_yaml(TAXONOMY)
+    return {item.get("id"): item for item in data.get("items") or [] if item.get("id")}
+
+
+def proof_bundle_map() -> dict[str, dict[str, Any]]:
+    data = load_yaml(MIGRATION)
+    return data.get("proof_bundle_map") or {}
+
+
+def commands_for_target(target: str) -> dict[str, Any]:
+    target = SURFACE_ALIASES.get(target, target)
+    bundles = proof_bundle_map()
+    items = taxonomy_items()
+    registry = load_registry()
+
+    if target in bundles:
+        block = bundles[target]
+        return {
+            "target": target,
+            "source": str(MIGRATION.relative_to(ROOT)),
+            "surfaces": block.get("surfaces") or [],
+            "proof_commands": block.get("proof_commands") or [],
+        }
+
+    if target in items:
+        item = items[target]
+        commands = item.get("proof_commands") or []
+        if target == "policy_profiles.registry":
+            commands = list(dict.fromkeys(commands + (registry.get("proof_commands") or [])))
+        return {
+            "target": target,
+            "source": str(TAXONOMY.relative_to(ROOT)),
+            "surfaces": item.get("affected_surfaces") or [],
+            "authority_class": item.get("authority_class"),
+            "default_profile": item.get("default_profile"),
+            "mutation_class": item.get("mutation_class"),
+            "proof_commands": commands,
+        }
+
+    raise KeyError(target)
+
+
+def resolve_changed_targets(changed_paths: list[str]) -> list[str]:
+    targets: set[str] = set()
+    for path in changed_paths:
+        p = path.strip()
+        if not p:
+            continue
+        if p.startswith("crates/focusa-core"):
+            targets.add("daemon_core")
+        if p.startswith("crates/focusa-api"):
+            targets.add("api_routes")
+        if p.startswith("crates/focusa-cli"):
+            targets.add("cli")
+        if p.startswith("apps/pi-extension"):
+            targets.add("pi_extension")
+        if p.startswith("apps/menubar"):
+            targets.add("menubar")
+        if "uiai" in p or p.startswith(".pi/extensions/uiai"):
+            targets.add("uiai_external")
+        if p.startswith("docs/worksheets/") or p.startswith("docs/current/FOCUSA_POLICY_PROFILE_REGISTRY"):
+            targets.add("proof_suite")
+    return sorted(targets)
+
+
+def is_local_safe(command: str) -> bool:
+    return command.startswith(LOCAL_SAFE_PREFIXES) and "as-user wpuiai" not in command
+
+
+def run_commands(commands: list[str]) -> int:
+    rc = 0
+    for command in commands:
+        if not is_local_safe(command):
+            print(f"SKIP external/manual proof command: {command}")
+            continue
+        print(f"RUN {command}")
+        result = subprocess.run(command, cwd=ROOT, shell=True)
+        if result.returncode != 0:
+            rc = result.returncode
+            print(f"FAIL {command} rc={result.returncode}", file=sys.stderr)
+            break
+    return rc
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Focusa proof bundle map runner")
+    parser.add_argument("targets", nargs="*", help="Proof bundle surface or taxonomy item id")
+    parser.add_argument("--changed-path", action="append", default=[], help="Changed path to map to proof surfaces")
+    parser.add_argument("--json", action="store_true", help="Emit JSON")
+    parser.add_argument("--run", action="store_true", help="Run local-safe proof commands")
+    args = parser.parse_args()
+
+    targets = list(args.targets)
+    if args.changed_path:
+        targets.extend(resolve_changed_targets(args.changed_path))
+    if not targets:
+        targets = ["proof_suite"]
+
+    packets = []
+    missing = []
+    for target in dict.fromkeys(targets):
+        try:
+            packet = commands_for_target(target)
+        except KeyError:
+            missing.append(target)
+            continue
+        if not packet.get("proof_commands"):
+            missing.append(target)
+        else:
+            packets.append(packet)
+
+    if missing:
+        payload = {"status": "missing_proof_mapping", "missing_targets": missing, "known_surfaces": sorted(proof_bundle_map()), "known_items": sorted(taxonomy_items())}
+        print(json.dumps(payload, indent=2) if args.json else f"missing proof mapping: {', '.join(missing)}", file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps({"status": "ok", "proof_bundles": packets}, indent=2))
+    else:
+        for packet in packets:
+            print(f"# {packet['target']} [{packet['source']}]")
+            for command in packet["proof_commands"]:
+                print(command)
+
+    if args.run:
+        commands = []
+        for packet in packets:
+            commands.extend(packet["proof_commands"])
+        return run_commands(list(dict.fromkeys(commands)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -43,6 +43,7 @@ def main() -> None:
         "tests/spec98_visual_workflow_exact_scope_static_test.py",
         "tests/spec98_policy_profiles_defaults_static_test.py",
         "tests/spec98_policy_profile_registry_impl_static_test.py",
+        "tests/spec98_proof_bundle_map_runner_static_test.py",
         "tests/spec98_migration_side_effect_plan_static_test.py",
         "tests/spec98_authority_migration_backcompat_static_test.py",
         "tests/spec98_shared_tool_result_envelope_static_test.py",
