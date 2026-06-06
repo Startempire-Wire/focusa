@@ -1,0 +1,538 @@
+{
+  "schema_version": "focusa.authority_surface_registry.generated.v1",
+  "source": "docs/worksheets/focusa-877z.8-authority-taxonomy.yaml",
+  "entries": [
+    {
+      "worksheet_id": "trajectory_ladder.hlt",
+      "authority_class": "north_star",
+      "mutation_class": "reducer_event",
+      "scope_fields": [
+        "project_root",
+        "continuity_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "focusa_tools",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [
+        "focusa_trajectory_view",
+        "focusa_trajectory_define_goal",
+        "focusa_trajectory_resume",
+        "focusa_workpoint_resume"
+      ],
+      "uiai_tools": [],
+      "side_effects": "TL north star; HLT durable; review after 7 resumed sessions",
+      "proof_commands": [
+        "cargo test -p focusa-core trajectory",
+        "cargo test -p focusa-api trajectory",
+        "Pi trajectory resume smoke with project_root+continuity_id",
+        "Verify hlt-ledger.md absent path still resumes HLT from reducer record"
+      ]
+    },
+    {
+      "worksheet_id": "trajectory_ladder.mlg_stg_waypoints",
+      "authority_class": "advisory_projection",
+      "mutation_class": "projection_then_optional_reducer_event",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id"
+      ],
+      "affected_surfaces": [
+        "api",
+        "pi_plugin",
+        "focusa_tools",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [
+        "focusa_trajectory_view",
+        "focusa_trajectory_assess",
+        "focusa_trajectory_propose_workpoint",
+        "focusa_workpoint_checkpoint"
+      ],
+      "uiai_tools": [],
+      "side_effects": "MLG/STG/waypoints inferred from evidence; advisory until accepted",
+      "proof_commands": [
+        "cargo test -p focusa-api trajectory_view_syncs_focus_current_focus_and_short_term_goal_projection",
+        "cargo test -p focusa-api trajectory_view_does_not_promote_workpoint_to_long_term_goal",
+        "Pi trajectory view smoke after file/git/bead signal changes"
+      ]
+    },
+    {
+      "worksheet_id": "trajectory_ladder.hlt_ledger_md",
+      "authority_class": "evidence_handle",
+      "mutation_class": "import_or_reference_only",
+      "scope_fields": [
+        "project_root"
+      ],
+      "affected_surfaces": [
+        "pi_plugin",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "hlt-ledger.md optional legacy source; not required for normal continuation",
+      "proof_commands": [
+        "Pi restart/session continuation smoke without hlt-ledger.md",
+        "Pi explicit import smoke when hlt-ledger.md exists"
+      ]
+    },
+    {
+      "worksheet_id": "workpoint.resume_packet",
+      "authority_class": "continuation_authority",
+      "mutation_class": "reducer_event",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "workpoint_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "focusa_tools",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "Workpoint action authority; TL north-star support",
+      "proof_commands": [
+        "cargo test -p focusa-api workpoint",
+        "Pi workpoint resume smoke includes TL support refs"
+      ]
+    },
+    {
+      "worksheet_id": "pi_bootstrap.trajectory_ladder_fallback",
+      "authority_class": "advisory_projection",
+      "mutation_class": "read_then_prompt_or_checkpoint",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id"
+      ],
+      "affected_surfaces": [
+        "pi_plugin",
+        "focusa_tools",
+        "api",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "Bootstrap TL fallback loaded via focusa_trajectory_view; HLT durable; prior-continuity fallback advisory",
+      "proof_commands": [
+        "Pi session_start smoke with existing same project trajectory and new session id",
+        "Pi session_start smoke with changed continuity_id and allow_prior_project_trajectory=true",
+        "Pi context injection smoke verifies PROJECT_TRAJECTORY includes fallback TL before operator prompt"
+      ]
+    },
+    {
+      "worksheet_id": "pi_compaction.trajectory_ladder_fallback",
+      "authority_class": "advisory_projection",
+      "mutation_class": "checkpoint_then_resume_projection",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id"
+      ],
+      "affected_surfaces": [
+        "pi_plugin",
+        "focusa_tools",
+        "api",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "Compaction includes WorkpointResumePacket plus TrajectoryResume/TL fallback packet",
+      "proof_commands": [
+        "Pi session_before_compact smoke persists trajectory checkpoint packet",
+        "Pi session_compact auto-resume smoke includes TL HLT/MLG/STG/waypoints in steer message",
+        "Pi post-compaction smoke with daemon timeout labels lastTrajectoryClarity degraded advisory"
+      ]
+    },
+    {
+      "worksheet_id": "shared.tool_result_envelope",
+      "authority_class": "advisory_projection",
+      "mutation_class": "schema_contract",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "workpoint_id",
+        "trajectory_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "focusa_tools",
+        "uiai_packets",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "status/canonical/advisory/degraded/scope/failure/next_tools visible in first-line summary",
+      "proof_commands": [
+        "tests/spec96_trajectory_tool_output_schema_static_test.sh",
+        "tests/spec96_pi_retry_posture_contract_static_test.sh",
+        "focusa CLI/API/Pi tool contract smoke"
+      ]
+    },
+    {
+      "worksheet_id": "focusa_state.active_turn",
+      "authority_class": "runtime_correlation",
+      "mutation_class": "runtime_cache",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "turn_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "runtime correlation only; not cognition authority",
+      "proof_commands": [
+        "cargo test -p focusa-core turn",
+        "static check no direct active_turn canonical meaning writes"
+      ]
+    },
+    {
+      "worksheet_id": "focus_stack.active_frame",
+      "authority_class": "canonical_state",
+      "mutation_class": "reducer_event",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "thread_id",
+        "frame_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "Focus Frame scoped; no global active fallback",
+      "proof_commands": [
+        "tests/focus_frame_write_contract_test.sh",
+        "tests/spec96_stale_focus_frame_validation_static_test.sh"
+      ]
+    },
+    {
+      "worksheet_id": "focus_state.slots",
+      "authority_class": "canonical_state",
+      "mutation_class": "reducer_event_or_validated_focus_update",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "frame_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "focusa_tools",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "Focus State meaning slots; bounded and validated",
+      "proof_commands": [
+        "tests/focus_work_command_surface_test.sh",
+        "Pi focusa_decide/constraint/failure validation smoke"
+      ]
+    },
+    {
+      "worksheet_id": "project_identity.scope_envelope",
+      "authority_class": "canonical_state",
+      "mutation_class": "validation_envelope_then_reducer_scope",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "workspace_id",
+        "repo_remote",
+        "fingerprint"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "workpoint",
+        "trajectory",
+        "evidence",
+        "uiai_packets",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "authority boundary = project_root + continuity_id",
+      "proof_commands": [
+        "tests/pi_project_root_inference_test.sh",
+        "tests/security_api_route_scope_enforcement_static_test.sh"
+      ]
+    },
+    {
+      "worksheet_id": "reference_store.evidence_handles",
+      "authority_class": "evidence_handle",
+      "mutation_class": "append_handle_or_link_event",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "workpoint_id",
+        "target_ref",
+        "evidence_ref"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "uiai_packets",
+        "ontology",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "evidence handle scoped; raw content not injected",
+      "proof_commands": [
+        "tests/ontology_visual_reverse_extraction_pipeline_contract_test.sh",
+        "Pi evidence capture/link smoke with exact evidence_ref"
+      ]
+    },
+    {
+      "worksheet_id": "ontology.read_model",
+      "authority_class": "advisory_projection",
+      "mutation_class": "read_model_or_promoted_reducer_event",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "object_ref"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "pi_plugin",
+        "focusa_tools",
+        "uiai_packets",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "ontology advisory; promote via evidence/Workpoint",
+      "proof_commands": [
+        "tests/ontology_world_contract_test.sh",
+        "focusa_traverse ontology bounded-slice smoke"
+      ]
+    },
+    {
+      "worksheet_id": "uiai.research_diagnostics_packet",
+      "authority_class": "advisory_projection",
+      "mutation_class": "proposal_then_focusa_intake",
+      "scope_fields": [
+        "focusa_scope.project_root",
+        "focusa_scope.continuity_id",
+        "focusa_scope.workpoint_id",
+        "evidence_ref"
+      ],
+      "affected_surfaces": [
+        "uiai_packets",
+        "pi_plugin",
+        "focusa_tools",
+        "evidence",
+        "workpoint",
+        "ontology",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "UIAI packet proposal-only until Focusa capture/link",
+      "proof_commands": [
+        "UIAI scripts/check-tool-parity.sh",
+        "UIAI scripts/smoke-pi-rendering.sh",
+        "UIAI browser diagnostics smoke",
+        "Pi focusa_browser_diagnostics_intake smoke"
+      ]
+    },
+    {
+      "worksheet_id": "telemetry.resource_pressure",
+      "authority_class": "telemetry",
+      "mutation_class": "telemetry_event",
+      "scope_fields": [
+        "project_root",
+        "session_id",
+        "surface"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "uiai_tools",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "resource/UIAI pressure is operational telemetry, not cognition",
+      "proof_commands": [
+        "focusa_tool_doctor smoke",
+        "uiai_health smoke",
+        "focusa_resource_mode smoke"
+      ]
+    },
+    {
+      "worksheet_id": "menubar.state_contract",
+      "authority_class": "advisory_projection",
+      "mutation_class": "display_or_route_action",
+      "scope_fields": [
+        "project_root",
+        "continuity_id",
+        "frame_id",
+        "workpoint_id",
+        "trajectory_id"
+      ],
+      "affected_surfaces": [
+        "menubar",
+        "api",
+        "cli",
+        "pi_plugin",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "menubar mirrors tool envelope; no UI-created authority",
+      "proof_commands": [
+        "menubar state contract smoke",
+        "API/CLI/Pi/menubar envelope parity static test"
+      ]
+    },
+    {
+      "worksheet_id": "policy_profiles.registry",
+      "authority_class": "canonical_state",
+      "mutation_class": "config_or_reducer_event",
+      "scope_fields": [
+        "project_root",
+        "profile_id",
+        "override_source"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "profile safe_default unless explicit audited override",
+      "proof_commands": [
+        "profile registry lint",
+        "override audit static test"
+      ]
+    },
+    {
+      "worksheet_id": "side_effects.classification",
+      "authority_class": "canonical_state",
+      "mutation_class": "schema_lint",
+      "scope_fields": [
+        "route",
+        "tool",
+        "project_root",
+        "continuity_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "focusa_tools",
+        "uiai_tools",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "side_effects declared; mutation class explicit",
+      "proof_commands": [
+        "route/tool side-effect classification static test",
+        "proof bundle map check"
+      ]
+    },
+    {
+      "worksheet_id": "work_loop.status_and_writer",
+      "authority_class": "canonical_state",
+      "mutation_class": "writer_owned_reducer_event",
+      "scope_fields": [
+        "project_root",
+        "work_item_id",
+        "writer_id"
+      ],
+      "affected_surfaces": [
+        "daemon",
+        "api",
+        "cli",
+        "pi_plugin",
+        "menubar",
+        "docs",
+        "tests"
+      ],
+      "pi_tools": [],
+      "uiai_tools": [],
+      "side_effects": "work-loop governed; hot read only unless explicit writer mutation",
+      "proof_commands": [
+        "tests/work_loop_route_contract_test.sh",
+        "tests/spec79_live_http_smoke_test.sh"
+      ]
+    }
+  ]
+}

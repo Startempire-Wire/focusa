@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Generate and lint Focusa authority taxonomy artifacts from the worksheet."""
+from __future__ import annotations
+import argparse, json, sys
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKSHEET = ROOT / "docs/worksheets/focusa-877z.8-authority-taxonomy.yaml"
+GENERATED_MD = ROOT / "docs/current/FOCUSA_AUTHORITY_TAXONOMY_GENERATED.md"
+GENERATED_JSON = ROOT / "docs/current/FOCUSA_AUTHORITY_SURFACE_REGISTRY.generated.json"
+REQUIRED_ITEM_FIELDS = ["id", "authority_class", "mutation_class", "scope_fields", "affected_surfaces", "proof_commands"]
+ROUTE_TOOL_PREFIXES = ("crates/focusa-api/src/routes/", "apps/pi-extension/src/tools.ts", "apps/pi-extension/src/tool-contracts.ts")
+
+
+def load() -> dict[str, Any]:
+    return yaml.safe_load(WORKSHEET.read_text())
+
+
+def items(data: dict[str, Any]) -> list[dict[str, Any]]:
+    return list(data.get("items") or [])
+
+
+def validate_item(item: dict[str, Any]) -> list[str]:
+    missing: list[str] = []
+    for field in REQUIRED_ITEM_FIELDS:
+        value = item.get(field)
+        if value in (None, "", []):
+            missing.append(field)
+    if "side_effects" not in item and "side_effect_profile" not in item and not item.get("compact_render_required_text"):
+        missing.append("side_effects_or_render_semantics")
+    return missing
+
+
+def lint(data: dict[str, Any]) -> int:
+    errors: list[str] = []
+    for section in ["schema_version", "authority_classes", "items"]:
+        if section not in data:
+            errors.append(f"worksheet missing {section}")
+    for item in items(data):
+        missing = validate_item(item)
+        if missing:
+            errors.append(f"{item.get('id', '<missing-id>')} missing {','.join(missing)}")
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
+        return 2
+    print(f"✓ authority taxonomy lint ok: items={len(items(data))}")
+    return 0
+
+
+def registry(data: dict[str, Any]) -> dict[str, Any]:
+    entries = []
+    for item in items(data):
+        entries.append({
+            "worksheet_id": item.get("id"),
+            "authority_class": item.get("authority_class"),
+            "mutation_class": item.get("mutation_class"),
+            "scope_fields": item.get("scope_fields") or [],
+            "affected_surfaces": item.get("affected_surfaces") or [],
+            "pi_tools": item.get("pi_tools") or [],
+            "uiai_tools": item.get("uiai_tools") or [],
+            "side_effects": item.get("side_effects", item.get("side_effect_profile", item.get("compact_render_required_text"))),
+            "proof_commands": item.get("proof_commands") or [],
+        })
+    return {"schema_version": "focusa.authority_surface_registry.generated.v1", "source": str(WORKSHEET.relative_to(ROOT)), "entries": entries}
+
+
+def generate(data: dict[str, Any]) -> None:
+    reg = registry(data)
+    GENERATED_JSON.write_text(json.dumps(reg, indent=2) + "\n")
+    lines = [
+        "# Focusa Authority Taxonomy — Generated",
+        "",
+        "Source: `docs/worksheets/focusa-877z.8-authority-taxonomy.yaml`",
+        "",
+        "Route/tool additions must cite a worksheet item with authority class, mutation class, scope fields, side effects/render semantics, and proof commands.",
+        "",
+        "| Worksheet ID | Authority | Mutation | Scope fields | Surfaces | Proof commands |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for e in reg["entries"]:
+        lines.append("| {worksheet_id} | {authority_class} | {mutation_class} | {scope_fields} | {affected_surfaces} | {proof_commands} |".format(
+            worksheet_id=e["worksheet_id"],
+            authority_class=e["authority_class"],
+            mutation_class=e["mutation_class"],
+            scope_fields=", ".join(e["scope_fields"]),
+            affected_surfaces=", ".join(e["affected_surfaces"]),
+            proof_commands="; ".join(e["proof_commands"]),
+        ))
+    GENERATED_MD.write_text("\n".join(lines) + "\n")
+    print(f"✓ generated {GENERATED_MD.relative_to(ROOT)} and {GENERATED_JSON.relative_to(ROOT)}")
+
+
+def lint_changed(data: dict[str, Any], changed: list[str], worksheet_id: str | None) -> int:
+    route_tool_changes = [p for p in changed if p.startswith(ROUTE_TOOL_PREFIXES)]
+    if not route_tool_changes:
+        print("✓ no route/tool authority lint required")
+        return 0
+    if not worksheet_id:
+        print("route/tool change missing --worksheet-id", file=sys.stderr)
+        return 2
+    by_id = {str(i.get("id")): i for i in items(data)}
+    item = by_id.get(worksheet_id)
+    if not item:
+        print(f"worksheet id not found: {worksheet_id}", file=sys.stderr)
+        return 2
+    missing = validate_item(item)
+    if missing:
+        print(f"worksheet id {worksheet_id} incomplete for route/tool change: {','.join(missing)}", file=sys.stderr)
+        return 2
+    print(f"✓ route/tool authority lint ok: worksheet_id={worksheet_id} changed={len(route_tool_changes)}")
+    return 0
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description="Focusa authority taxonomy generator/lint")
+    p.add_argument("--generate", action="store_true")
+    p.add_argument("--lint", action="store_true")
+    p.add_argument("--lint-changed", nargs="*", default=None)
+    p.add_argument("--worksheet-id")
+    args = p.parse_args()
+    data = load()
+    code = 0
+    if args.generate:
+        generate(data)
+    if args.lint:
+        code = max(code, lint(data))
+    if args.lint_changed is not None:
+        code = max(code, lint_changed(data, args.lint_changed, args.worksheet_id))
+    if not (args.generate or args.lint or args.lint_changed is not None):
+        p.print_help()
+    return code
+
+if __name__ == "__main__":
+    raise SystemExit(main())
