@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Spec98/99 Phase C: Focus Stack/Focus State writes are scoped by ProjectRootKey + WorkstreamKey."""
 from pathlib import Path
+import re
 import sys
 import yaml
 
@@ -80,9 +81,9 @@ def main() -> None:
         fail("update_delta must reject unscoped writes")
     if "clean_scope_value(frame.continuity_id.as_deref()).is_none()" not in update_body:
         fail("update_delta must reject frame_id targets without continuity_id")
-    if "frame.project_root.as_deref().map(normalize_project_root_authority)" not in update_body:
+    if not re.search(r"frame\s*\.project_root\s*\.as_deref\(\)\s*\.map\(normalize_project_root_authority\)", update_body):
         fail("update_delta must compare provided project_root to target frame")
-    if "frame.continuity_id.as_deref().map(str::trim)" not in update_body:
+    if not re.search(r"frame\s*\.continuity_id\s*\.as_deref\(\)\s*\.map\(str::trim\)", update_body):
         fail("update_delta must compare provided continuity_id to target frame")
     if "(active_id, !session_active)" in update_body:
         fail("update_delta must not write to daemon-global active_id fallback")

@@ -471,6 +471,8 @@ mod tests {
             sha256: "deadbeef".to_string(),
             created_at: Utc::now(),
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             pinned,
             trajectory: None,
         }

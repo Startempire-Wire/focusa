@@ -1149,6 +1149,8 @@ mod tests {
                 sha256: "deadbeef".to_string(),
                 created_at: chrono::Utc::now(),
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 pinned: false,
                 trajectory,
             });

@@ -10029,6 +10029,8 @@ mod tests {
             sha256: "deadbeef".to_string(),
             created_at: Utc::now(),
             session_id: focusa.session.as_ref().map(|session| session.session_id),
+            project_root: None,
+            continuity_id: None,
             pinned: true,
             trajectory: None,
         });

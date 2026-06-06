@@ -27,9 +27,8 @@ def main() -> None:
         if not groups[group].get("commands"):
             fail(f"proof group {group} has no commands")
     gaps = "\n".join(data.get("known_gaps") or [])
-    for phrase in ["writer-claim", "CRDT schema migration", "multi-daemon"]:
-        if phrase not in gaps:
-            fail(f"known gaps missing {phrase}")
+    if "writer-claim" in gaps or "active_writer is legacy-global" in gaps:
+        fail("writer-claim migration must not remain a known gap")
     runner = RUNNER.read_text()
     for command in [
         "bun tests/spec98_pi_scope_cache_switch_handling_runtime_test.mts",
@@ -43,9 +42,9 @@ def main() -> None:
     ]:
         if command not in runner:
             fail(f"runner missing command: {command}")
-    for gap in ["active_writer is legacy-global", "same-root sync import reconciliation remain pending", "multi-daemon same-root sync proof remains pending"]:
-        if gap not in runner:
-            fail(f"runner does not print known gap: {gap}")
+    for forbidden_gap in ["active_writer is legacy-global", "remain pending", "Known gaps retained"]:
+        if forbidden_gap in runner:
+            fail(f"runner still prints deferred gap: {forbidden_gap}")
     print("✓ PASS: Spec98 runtime bleed/CRDT proof suite contract and runner are honest")
 
 

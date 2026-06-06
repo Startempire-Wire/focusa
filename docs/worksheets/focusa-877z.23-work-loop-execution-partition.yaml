@@ -24,8 +24,8 @@ state_requirements:
     partition_role: active execution commitment
   writer_claim:
     must_include: writer_id
-    future_required_scope: ProjectRootKey + WorkstreamKey + WorkItemKey
-    legacy_state: active_writer is daemon-global and accepted only as migration fallback
+    required_scope: ProjectRootKey + WorkstreamKey + WorkItemKey
+    storage: writer_claims map keyed by project/workstream/work_item partition
   counters:
     partition_by: WorkItemKey
     examples:
@@ -65,6 +65,5 @@ proof_requirements:
 implementation_notes:
   current_slice:
     - define contract and status partition payload
-    - preserve legacy active_writer storage until full per-work-item writer map migration
-  followup_slice:
     - replace active_writer Option<String> with scoped writer claims keyed by ProjectRootKey + WorkstreamKey + WorkItemKey
+    - retain active_writer response field only as compatibility summary of the scoped claim for the active partition

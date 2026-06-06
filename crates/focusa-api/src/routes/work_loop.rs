@@ -308,6 +308,67 @@ fn work_loop_pi_spawn_failed(err: impl std::fmt::Display) -> (StatusCode, Json<V
     )
 }
 
+fn normalize_partition_segment(value: impl AsRef<str>, fallback: &str) -> String {
+    let cleaned = value.as_ref().trim();
+    if cleaned.is_empty() {
+        fallback.to_string()
+    } else {
+        cleaned.replace('|', "_")
+    }
+}
+
+fn writer_claim_key_from_state(focusa: &focusa_core::types::FocusaState) -> String {
+    let wl = &focusa.work_loop;
+    let work_item = wl
+        .current_task
+        .as_ref()
+        .map(|task| task.work_item_id.clone())
+        .unwrap_or_else(|| "no_active_work_item".to_string());
+    let scope_project = wl
+        .current_task
+        .as_ref()
+        .and_then(|task| {
+            task.allowed_scope.iter().find_map(|scope| {
+                scope
+                    .strip_prefix("project_root:")
+                    .or_else(|| scope.strip_prefix("project:"))
+                    .map(str::to_string)
+            })
+        })
+        .unwrap_or_else(|| project_root().to_string_lossy().to_string());
+    let workstream = wl
+        .decision_context
+        .source_turn_id
+        .clone()
+        .or_else(|| wl.run.task_run_id.as_ref().map(|id| id.to_string()))
+        .unwrap_or_else(|| "default_workstream".to_string());
+    format!(
+        "project:{}|workstream:{}|work_item:{}",
+        normalize_partition_segment(scope_project, "unknown_project_root"),
+        normalize_partition_segment(workstream, "default_workstream"),
+        normalize_partition_segment(work_item, "no_active_work_item"),
+    )
+}
+
+async fn writer_claim_key(state: &Arc<AppState>) -> String {
+    let focusa = state.focusa.read().await;
+    writer_claim_key_from_state(&focusa)
+}
+
+fn active_writer_for_key(
+    claims: &std::collections::HashMap<String, String>,
+    key: &str,
+) -> Option<String> {
+    claims.get(key).cloned()
+}
+
+fn active_writer_compat(
+    claims: &std::collections::HashMap<String, String>,
+    key: &str,
+) -> Option<String> {
+    active_writer_for_key(claims, key).or_else(|| claims.values().next().cloned())
+}
+
 fn writer_id_from_headers(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Value>)> {
     headers
         .get(WRITER_HEADER)
@@ -344,15 +405,16 @@ async fn ensure_writer_claim(
     headers: &HeaderMap,
 ) -> Result<String, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
-    let mut guard = state.active_writer.write().await;
-    match guard.as_deref() {
-        Some(existing) if existing != writer_id => Err(conflict(
-            "continuous work loop already claimed by another writer",
-            guard.clone(),
+    let key = writer_claim_key(state).await;
+    let mut claims = state.writer_claims.write().await;
+    match claims.get(&key) {
+        Some(existing) if existing != &writer_id => Err(conflict(
+            "continuous work loop partition already claimed by another writer",
+            Some(existing.clone()),
         )),
         Some(_) => Ok(writer_id),
         None => {
-            *guard = Some(writer_id.clone());
+            claims.insert(key, writer_id.clone());
             Ok(writer_id)
         }
     }
@@ -363,13 +425,14 @@ async fn release_writer_claim(
     headers: &HeaderMap,
 ) -> Result<Option<String>, (StatusCode, Json<Value>)> {
     let writer_id = writer_id_from_headers(headers)?;
-    let mut guard = state.active_writer.write().await;
-    match guard.as_deref() {
-        Some(existing) if existing != writer_id => Err(conflict(
-            "continuous work loop claimed by another writer",
-            guard.clone(),
+    let key = writer_claim_key(state).await;
+    let mut claims = state.writer_claims.write().await;
+    match claims.get(&key) {
+        Some(existing) if existing != &writer_id => Err(conflict(
+            "continuous work loop partition claimed by another writer",
+            Some(existing.clone()),
         )),
-        Some(_) => Ok(guard.take()),
+        Some(_) => Ok(claims.remove(&key)),
         None => Ok(None),
     }
 }
@@ -378,7 +441,11 @@ async fn ensure_claimed_writer_matches_for_context(
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<Option<String>, (StatusCode, Json<Value>)> {
-    let active_writer = state.active_writer.read().await.clone();
+    let key = writer_claim_key(state).await;
+    let active_writer = {
+        let claims = state.writer_claims.read().await;
+        active_writer_for_key(&claims, &key)
+    };
     let Some(active_writer) = active_writer else {
         return Ok(None);
     };
@@ -386,7 +453,7 @@ async fn ensure_claimed_writer_matches_for_context(
     let writer_id = writer_id_from_headers(headers)?;
     if writer_id != active_writer {
         return Err(conflict(
-            "continuous work context write rejected: active writer claim belongs to another writer",
+            "continuous work context write rejected: scoped writer claim belongs to another writer",
             Some(active_writer),
         ));
     }
@@ -1303,17 +1370,26 @@ fn active_workpoint_summary_for_status(s: &focusa_core::types::FocusaState) -> V
 fn work_loop_execution_partition_payload(
     wl: &focusa_core::types::WorkLoopState,
     active_writer: Option<&str>,
+    writer_claim_key: &str,
 ) -> Value {
-    let work_item_id = wl.current_task.as_ref().map(|task| task.work_item_id.clone());
+    let work_item_id = wl
+        .current_task
+        .as_ref()
+        .map(|task| task.work_item_id.clone());
+    let parts: std::collections::HashMap<_, _> = writer_claim_key
+        .split('|')
+        .filter_map(|part| part.split_once(':'))
+        .collect();
     json!({
-        "schema": "focusa.work_loop_execution_partition.v1",
-        "project_root_key": "pending_route_scope",
-        "workstream_key": "pending_route_scope",
+        "schema": "focusa.work_loop_execution_partition.v2",
+        "project_root_key": parts.get("project").copied().unwrap_or("unknown_project_root"),
+        "workstream_key": parts.get("workstream").copied().unwrap_or("default_workstream"),
         "work_item_key": work_item_id,
         "writer_key": active_writer,
-        "legacy_active_writer_global": true,
+        "writer_claim_key": writer_claim_key,
+        "legacy_active_writer_global": false,
         "partition_status": if wl.current_task.is_some() { "work_item_pinned" } else { "no_active_work_item" },
-        "migration_note": "active_writer is still daemon-global; .23 contract requires future ProjectRootKey+WorkstreamKey+WorkItemKey writer claims"
+        "migration_note": "writer claims are scoped by ProjectRootKey + WorkstreamKey + WorkItemKey"
     })
 }
 
@@ -1953,7 +2029,11 @@ async fn health(
 
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
-    let active_writer = state.active_writer.read().await.clone();
+    let claim_key = writer_claim_key_from_state(&s);
+    let active_writer = {
+        let claims = state.writer_claims.read().await;
+        active_writer_compat(&claims, &claim_key)
+    };
     let boundary_reason = continuation_boundary_reason(wl);
     let dispatch_ready = wl.enabled
         && boundary_reason.is_none()
@@ -1972,7 +2052,7 @@ async fn health(
         "current_task_id": wl.current_task.as_ref().map(|task| task.work_item_id.clone()),
         "last_completed_task_id": wl.last_completed_task_id,
         "active_writer": active_writer,
-        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
+        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
         "dispatch_readiness": {
             "ready": dispatch_ready,
             "boundary_reason": boundary_reason,
@@ -2003,7 +2083,11 @@ async fn status(
 
     let s = state.focusa.read().await;
     let wl = &s.work_loop;
-    let active_writer = state.active_writer.read().await.clone();
+    let claim_key = writer_claim_key_from_state(&s);
+    let active_writer = {
+        let claims = state.writer_claims.read().await;
+        active_writer_compat(&claims, &claim_key)
+    };
     if query.summary_only {
         let transport_health = transport_health_for_status(wl);
         let budget_remaining = budget_remaining_for_status(wl);
@@ -2024,7 +2108,7 @@ async fn status(
             "last_completed_task_id": wl.last_completed_task_id,
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
-            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
+            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
             "transport_health": transport_health,
             "budget_remaining": budget_remaining,
             "supervisor_perf": supervisor_perf_payload(&state),
@@ -2141,7 +2225,7 @@ async fn status(
         },
         "current_task": wl.current_task,
         "last_completed_task_id": wl.last_completed_task_id,
-        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
+        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
         "last_recorded_bd_transition_id": wl.last_recorded_bd_transition_id,
         "last_blocker_class": wl.last_blocker_class,
         "last_blocker_reason": wl.last_blocker_reason,
@@ -2243,10 +2327,14 @@ async fn status_deep(
         return Err(forbid("work-loop:read"));
     }
 
-    let active_writer = state.active_writer.read().await.clone();
     let mut payload = {
         let s = state.focusa.read().await;
         let wl = &s.work_loop;
+        let claim_key = writer_claim_key_from_state(&s);
+        let active_writer = {
+            let claims = state.writer_claims.read().await;
+            active_writer_compat(&claims, &claim_key)
+        };
         json!({
             "route_tier": "cold",
             "summary_only": false,
@@ -2264,7 +2352,7 @@ async fn status_deep(
             "last_continue_reason": wl.last_continue_reason,
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
-            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
+            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref(), &claim_key),
             "active_workpoint": active_workpoint_summary_for_status(&s),
             "supervisor_perf": supervisor_perf_payload(&state),
             "deep_status_route": "/v1/work-loop/status/deep",
@@ -2426,10 +2514,14 @@ async fn pause(
     }
 
     let writer_id = writer_id_from_headers(&headers)?;
-    let active_writer = state.active_writer.read().await.clone();
+    let claim_key = writer_claim_key(&state).await;
+    let active_writer = {
+        let claims = state.writer_claims.read().await;
+        active_writer_for_key(&claims, &claim_key)
+    };
     if active_writer.as_deref().is_some() && active_writer.as_deref() != Some(writer_id.as_str()) {
         return Err(conflict(
-            "continuous work loop claimed by another writer",
+            "continuous work loop partition claimed by another writer",
             active_writer,
         ));
     }
@@ -2511,6 +2603,9 @@ async fn set_decision_context(
 
     let writer_id = ensure_claimed_writer_matches_for_context(&state, &headers).await?;
 
+    let expected_current_ask = payload.current_ask.clone();
+    let expected_operator_steering = payload.operator_steering_detected;
+
     send_work_loop_action(
         &state,
         "work_loop_context",
@@ -2527,9 +2622,38 @@ async fn set_decision_context(
     )
     .await?;
 
-    Ok(Json(
-        json!({ "status": "accepted", "writer_id": writer_id }),
-    ))
+    for _ in 0..20 {
+        {
+            let focusa = state.focusa.read().await;
+            let wl = &focusa.work_loop;
+            if expected_current_ask
+                .as_deref()
+                .is_none_or(|ask| wl.decision_context.current_ask.as_deref() == Some(ask))
+                && expected_operator_steering.is_none_or(|steering| {
+                    wl.decision_context.operator_steering_detected == steering
+                })
+                && (expected_operator_steering != Some(true)
+                    || wl.last_continue_reason.as_deref() == Some("operator steering detected"))
+            {
+                return Ok(Json(json!({
+                    "status": "accepted",
+                    "writer_id": writer_id,
+                    "canonical": true,
+                    "materialized": true
+                })));
+            }
+        }
+        sleep(Duration::from_millis(50)).await;
+    }
+
+    Ok(Json(json!({
+        "status": "pending",
+        "writer_id": writer_id,
+        "canonical": false,
+        "materialized": false,
+        "retry_posture": "safe_retry",
+        "reason": "work_loop_context_not_yet_materialized"
+    })))
 }
 
 async fn start_pi_driver(

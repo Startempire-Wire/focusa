@@ -7,6 +7,7 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{EventLogEntry, FocusaConfig, FocusaState, SessionId};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -16,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -149,6 +150,22 @@ impl SqlitePersistence {
 
             CREATE INDEX IF NOT EXISTS idx_event_hash_chain_index ON event_hash_chain(chain_index);
 
+            CREATE TABLE IF NOT EXISTS crdt_events (
+              event_id TEXT PRIMARY KEY,
+              project_root_key TEXT NOT NULL,
+              workstream_key TEXT NOT NULL,
+              machine_id TEXT NOT NULL,
+              lamport_ts INTEGER NOT NULL,
+              vector_clock_json TEXT NOT NULL,
+              payload_json TEXT NOT NULL,
+              imported_from_peer_id TEXT,
+              imported_at TEXT NOT NULL,
+              FOREIGN KEY(event_id) REFERENCES events(event_id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_crdt_events_scope ON crdt_events(project_root_key, workstream_key, lamport_ts, event_id);
+            CREATE INDEX IF NOT EXISTS idx_crdt_events_machine ON crdt_events(machine_id);
+
             CREATE TABLE IF NOT EXISTS peers (
                 peer_id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -193,12 +210,18 @@ impl SqlitePersistence {
             }
             Some(v) => {
                 let parsed: i64 = v.parse().unwrap_or(0);
-                if parsed != SCHEMA_VERSION {
+                if parsed > SCHEMA_VERSION || parsed <= 0 {
                     anyhow::bail!(
-                        "unsupported schema_version {} (expected {})",
+                        "unsupported schema_version {} (expected <= {})",
                         parsed,
                         SCHEMA_VERSION
                     );
+                }
+                if parsed < SCHEMA_VERSION {
+                    conn.execute(
+                        "UPDATE meta SET value = ?1 WHERE key = 'schema_version'",
+                        [SCHEMA_VERSION.to_string()],
+                    )?;
                 }
             }
         }
@@ -513,6 +536,159 @@ impl SqlitePersistence {
         Ok(out)
     }
 
+    fn scope_keys_for_event(entry: &EventLogEntry) -> (String, String) {
+        let project_root_key = entry
+            .correlation_id
+            .as_deref()
+            .and_then(|value| {
+                value
+                    .split('|')
+                    .find_map(|part| part.strip_prefix("project_root="))
+            })
+            .unwrap_or("unscoped_project_root")
+            .to_string();
+        let workstream_key = entry
+            .correlation_id
+            .as_deref()
+            .and_then(|value| {
+                value
+                    .split('|')
+                    .find_map(|part| part.strip_prefix("continuity_id="))
+            })
+            .unwrap_or("default_workstream")
+            .to_string();
+        (project_root_key, workstream_key)
+    }
+
+    pub fn append_crdt_event(
+        &self,
+        event: &CrdtEvent,
+        imported_from_peer_id: Option<&str>,
+    ) -> anyhow::Result<bool> {
+        let entry = &event.entry;
+        let event_id = entry.id.to_string();
+        let payload_json = serde_json::to_string(entry)?;
+        let vector_clock_json = serde_json::to_string(&event.vector_clock)?;
+        let machine_id = entry.machine_id.clone().unwrap_or_else(|| {
+            event
+                .vector_clock
+                .clocks
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_else(|| "unknown".to_string())
+        });
+        let (project_root_key, workstream_key) = Self::scope_keys_for_event(entry);
+        self.append_event(entry)?;
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let changed = conn.execute(
+            r#"
+            INSERT OR IGNORE INTO crdt_events(
+              event_id, project_root_key, workstream_key, machine_id, lamport_ts,
+              vector_clock_json, payload_json, imported_from_peer_id, imported_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            "#,
+            params![
+                event_id.as_str(),
+                project_root_key,
+                workstream_key,
+                machine_id,
+                event.lamport_ts as i64,
+                vector_clock_json,
+                payload_json,
+                imported_from_peer_id,
+                Utc::now().to_rfc3339(),
+            ],
+        )?;
+        Ok(changed > 0)
+    }
+
+    pub fn crdt_events_for_scope(
+        &self,
+        project_root_key: &str,
+        workstream_key: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<CrdtEvent>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT payload_json, vector_clock_json, lamport_ts
+            FROM crdt_events
+            WHERE project_root_key = ?1 AND workstream_key = ?2
+            ORDER BY lamport_ts, event_id
+            LIMIT ?3
+            "#,
+        )?;
+        let rows = stmt.query_map(
+            params![project_root_key, workstream_key, limit as i64],
+            |row| {
+                let payload: String = row.get(0)?;
+                let clock_json: String = row.get(1)?;
+                let entry: EventLogEntry = serde_json::from_str(&payload).map_err(|err| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(err),
+                    )
+                })?;
+                let vector_clock: VectorClock =
+                    serde_json::from_str(&clock_json).map_err(|err| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            1,
+                            rusqlite::types::Type::Text,
+                            Box::new(err),
+                        )
+                    })?;
+                let lamport_ts: i64 = row.get(2)?;
+                Ok(CrdtEvent {
+                    entry,
+                    vector_clock,
+                    lamport_ts: lamport_ts.max(0) as u64,
+                })
+            },
+        )?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        Ok(out)
+    }
+
+    pub fn import_crdt_events_same_root(
+        &self,
+        peer_id: &str,
+        project_root_key: &str,
+        workstream_key: &str,
+        events: &[CrdtEvent],
+    ) -> anyhow::Result<usize> {
+        self.add_peer(peer_id, peer_id, "same-root://local", None)?;
+        self.update_peer_status(peer_id, "active")?;
+        let mut imported = 0usize;
+        for event in events {
+            let (event_project, event_workstream) = Self::scope_keys_for_event(&event.entry);
+            if event_project != project_root_key || event_workstream != workstream_key {
+                continue;
+            }
+            if self.append_crdt_event(event, Some(peer_id))? {
+                imported += 1;
+            }
+        }
+        if let Some(last) = events.last() {
+            self.set_cursor(
+                peer_id,
+                Some(&last.entry.id.to_string()),
+                Some(&last.entry.timestamp.to_rfc3339()),
+            )?;
+        }
+        Ok(imported)
+    }
+
     pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
         let conn = self
             .conn
@@ -667,7 +843,7 @@ impl SqlitePersistence {
 
         conn.execute(
             r#"
-            INSERT INTO events(
+            INSERT OR IGNORE INTO events(
               event_id, ts, origin, correlation_id, payload_json,
               machine_id, instance_id, session_id, thread_id, is_observation
             )
@@ -693,7 +869,7 @@ impl SqlitePersistence {
         let event_hash = event_chain_hash(&previous_hash, &event_id, &timestamp, &payload_sha256);
         conn.execute(
             r#"
-            INSERT INTO event_hash_chain(
+            INSERT OR IGNORE INTO event_hash_chain(
               event_id, chain_index, previous_hash, payload_sha256, event_hash, created_at
             )
             VALUES (?1, ?2, ?3, ?4, ?5, ?6)

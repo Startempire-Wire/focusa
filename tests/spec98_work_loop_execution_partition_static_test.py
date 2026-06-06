@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Spec98/99 Phase C: Work-loop execution state exposes work-item/writer partition contract."""
 from pathlib import Path
+import re
 import sys
 import yaml
 
@@ -53,16 +54,19 @@ def main() -> None:
         fail("execution partition payload helper missing")
     helper = function_body(text, "work_loop_execution_partition_payload")
     for required in [
-        "focusa.work_loop_execution_partition.v1",
+        "focusa.work_loop_execution_partition.v2",
         "work_item_key",
         "writer_key",
+        "writer_claim_key",
         "legacy_active_writer_global",
         "partition_status",
     ]:
         if required not in helper:
             fail(f"execution partition payload missing {required}")
-    if "wl.current_task.as_ref().map(|task| task.work_item_id.clone())" not in helper:
+    if not re.search(r"wl\s*\.current_task\s*\.as_ref\(\)\s*\.map\(\|task\|\s*task\.work_item_id\.clone\(\)\)", helper):
         fail("execution partition must derive WorkItemKey from current_task.work_item_id")
+    if "legacy_active_writer_global\": true" in helper or "pending_route_scope" in helper:
+        fail("execution partition must not retain legacy global writer or pending route scope")
 
     for route in ["health", "status", "status_deep"]:
         body = function_body(text, route)
@@ -78,8 +82,10 @@ def main() -> None:
         fail("context writes must require matching claimed writer")
 
     server = SERVER.read_text()
-    if "pub active_writer: Arc<TokioRwLock<Option<String>>>" not in server:
-        fail("legacy active_writer storage shape changed; update .23 migration contract/test")
+    if "pub writer_claims: Arc<TokioRwLock<HashMap<String, String>>>" not in server:
+        fail("server must store scoped writer_claims map")
+    if "pub active_writer: Arc<TokioRwLock<Option<String>>>" in server:
+        fail("legacy daemon-global active_writer storage must be removed")
     proofs = set(data.get("proof_requirements") or [])
     for proof in ["static Work-loop contract validation", "static status renders execution_partition", "static writer claim functions remain mutation gates"]:
         if proof not in proofs:

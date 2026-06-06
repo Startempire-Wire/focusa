@@ -61,7 +61,10 @@ use uuid::Uuid;
 fn safe_beads_project_root(project_root: &str) -> bool {
     let root = project_root.trim().trim_end_matches('/');
     !root.is_empty()
-        && !matches!(root, "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt")
+        && !matches!(
+            root,
+            "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt"
+        )
         && !root
             .strip_prefix("/home/")
             .is_some_and(|rest| !rest.contains('/'))
@@ -83,7 +86,12 @@ fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
         contents.lines().any(|line| {
             serde_json::from_str::<Value>(line)
                 .ok()
-                .and_then(|value| value.get("id").and_then(|id| id.as_str()).map(str::to_string))
+                .and_then(|value| {
+                    value
+                        .get("id")
+                        .and_then(|id| id.as_str())
+                        .map(str::to_string)
+                })
                 .as_deref()
                 == Some(issue_id)
         })
@@ -4401,7 +4409,9 @@ Return:
                 mut tags,
             } => {
                 let Some(ref root) = project_root else {
-                    anyhow::bail!("canonical FocusFramePushed requires project_root for Beads validation");
+                    anyhow::bail!(
+                        "canonical FocusFramePushed requires project_root for Beads validation"
+                    );
                 };
                 if !beads_issue_exists(root, &beads_issue_id) {
                     anyhow::bail!(
@@ -4582,8 +4592,10 @@ Return:
             } => {
                 let session = self.state.session.as_ref();
                 let session_id = session.map(|s| s.session_id);
-                let project_root = project_root.or_else(|| session.and_then(|s| s.project_root.clone()));
-                let continuity_id = continuity_id.or_else(|| session.and_then(|s| s.continuity_id.clone()));
+                let project_root =
+                    project_root.or_else(|| session.and_then(|s| s.project_root.clone()));
+                let continuity_id =
+                    continuity_id.or_else(|| session.and_then(|s| s.continuity_id.clone()));
                 let mut handle = self.ecs.store(
                     kind,
                     label,
@@ -4630,7 +4642,9 @@ Return:
             }
 
             Action::ResolveSemanticContradictions { reason } => {
-                Ok(vec![FocusaEvent::SemanticMemoryContradictionsResolved { reason }])
+                Ok(vec![FocusaEvent::SemanticMemoryContradictionsResolved {
+                    reason,
+                }])
             }
 
             Action::ReinforceRule { rule_id } => {

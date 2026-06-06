@@ -4,7 +4,7 @@ status: proof_suite_defined
 source_specs:
   - docs/98-project-root-crdt-reconciliation-foundation-spec.md#9
   - docs/99-original-intent-vs-implementation-audit.md#phase-h-regression-proof
-normative_rule: Proof suite must verify implemented bleed guards and CRDT foundation honestly; unfinished CRDT production migration remains a declared gap.
+normative_rule: Proof suite must verify implemented bleed guards and CRDT foundation honestly; no known gap may be printed as complete.
 proof_groups:
   project_scope_and_bleed:
     covers:
@@ -33,7 +33,7 @@ proof_groups:
     covers:
       - CRDT vector clock / Lamport / deterministic resolver foundation
       - SQLite event hash-chain foundation
-      - explicit production wiring gap declaration
+      - CRDT production migration and sync reconciliation
     commands:
       - tests/spec98_crdt_event_store_wiring_static_test.py
       - /root/.cargo/bin/cargo test -p focusa-core sync::crdt
@@ -45,7 +45,6 @@ proof_groups:
       - npm --prefix apps/pi-extension run check
       - /root/.cargo/bin/cargo check
 known_gaps:
-  - Full scoped writer-claim map migration remains pending; active_writer is legacy-global migration fallback.
   - Full SQLite CRDT schema migration and same-root sync import reconciliation remain pending.
   - Runtime multi-daemon same-root sync proof remains pending until CRDT migration lands.
 acceptance:

@@ -156,7 +156,10 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
 }
 
 fn clean_scope_value(value: Option<&str>) -> Option<String> {
-    value.map(str::trim).filter(|value| !value.is_empty()).map(str::to_string)
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
 }
 
 fn frame_matches_project_root(frame: &FrameRecord, project_root: Option<&str>) -> bool {
@@ -203,7 +206,12 @@ fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
         contents.lines().any(|line| {
             serde_json::from_str::<serde_json::Value>(line)
                 .ok()
-                .and_then(|value| value.get("id").and_then(|id| id.as_str()).map(str::to_string))
+                .and_then(|value| {
+                    value
+                        .get("id")
+                        .and_then(|id| id.as_str())
+                        .map(str::to_string)
+                })
                 .as_deref()
                 == Some(issue_id)
         })
@@ -882,7 +890,10 @@ async fn update_delta(
                 return Ok(Json(json!({"status": "no_active_frame"})));
             };
             if let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref()) {
-                return Ok(Json(unsafe_project_root_response(reason, frame.project_root.as_deref())));
+                return Ok(Json(unsafe_project_root_response(
+                    reason,
+                    frame.project_root.as_deref(),
+                )));
             }
             if clean_scope_value(frame.continuity_id.as_deref()).is_none() {
                 return Ok(Json(json!({
@@ -895,14 +906,24 @@ async fn update_delta(
                 })));
             }
             if let Some(expected_project_root) = clean_scope_value(body.project_root.as_deref())
-                && frame.project_root.as_deref().map(normalize_project_root_authority).as_deref() != Some(expected_project_root.as_str())
+                && frame
+                    .project_root
+                    .as_deref()
+                    .map(normalize_project_root_authority)
+                    .as_deref()
+                    != Some(expected_project_root.as_str())
             {
-                return Ok(Json(json!({"status":"scope_mismatch", "canonical": false, "failure_class":"scope_mismatch", "field":"project_root"})));
+                return Ok(Json(
+                    json!({"status":"scope_mismatch", "canonical": false, "failure_class":"scope_mismatch", "field":"project_root"}),
+                ));
             }
             if let Some(expected_continuity_id) = clean_scope_value(body.continuity_id.as_deref())
-                && frame.continuity_id.as_deref().map(str::trim) != Some(expected_continuity_id.as_str())
+                && frame.continuity_id.as_deref().map(str::trim)
+                    != Some(expected_continuity_id.as_str())
             {
-                return Ok(Json(json!({"status":"scope_mismatch", "canonical": false, "failure_class":"scope_mismatch", "field":"continuity_id"})));
+                return Ok(Json(
+                    json!({"status":"scope_mismatch", "canonical": false, "failure_class":"scope_mismatch", "field":"continuity_id"}),
+                ));
             }
             (frame_id, !session_active)
         } else {

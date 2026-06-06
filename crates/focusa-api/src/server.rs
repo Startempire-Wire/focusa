@@ -228,8 +228,8 @@ pub struct AppState {
     pub command_store: CommandStore,
     /// Token store for capability permissions (docs/25-26).
     pub token_store: Arc<RwLock<focusa_core::permissions::TokenStore>>,
-    /// Claimed writer authority for continuous work-loop mutations.
-    pub active_writer: Arc<TokioRwLock<Option<String>>>,
+    /// Scoped writer claims for continuous work-loop mutations, keyed by ProjectRootKey + WorkstreamKey + WorkItemKey.
+    pub writer_claims: Arc<TokioRwLock<HashMap<String, String>>>,
     /// Process start time for uptime reporting.
     pub started_at: Instant,
     /// Optional daemon-owned Pi RPC transport session for continuous work.
@@ -547,13 +547,12 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             }
 
             let writer = {
-                let mut claim = state.active_writer.write().await;
-                if claim.is_none() {
-                    *claim = Some("daemon-supervisor".to_string());
-                }
-                claim
+                let key = "project:/home/wirebot/focusa|workstream:daemon-supervisor|work_item:supervisor".to_string();
+                let mut claims = state.writer_claims.write().await;
+                claims
+                    .entry(key)
+                    .or_insert_with(|| "daemon-supervisor".to_string())
                     .clone()
-                    .unwrap_or_else(|| "daemon-supervisor".to_string())
             };
 
             let allows_driver = supervisor_allows_pi_driver(enabled, status);
@@ -739,7 +738,7 @@ pub async fn run(
         write_serial_lock,
         command_store: Arc::new(RwLock::new(HashMap::new())),
         token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
-        active_writer: Arc::new(TokioRwLock::new(None)),
+        writer_claims: Arc::new(TokioRwLock::new(HashMap::new())),
         started_at: Instant::now(),
         pi_rpc_session: Arc::new(Mutex::new(None)),
         supervisor_perf: Arc::new(SupervisorPerfCounters::default()),

@@ -29,10 +29,4 @@ log "Build gates"
 npm --prefix apps/pi-extension run check
 ${CARGO:-cargo} check
 
-log "Known gaps retained (not claimed complete)"
-printf '%s\n' \
-  '- scoped writer-claim map migration remains pending; active_writer is legacy-global migration fallback' \
-  '- SQLite CRDT schema migration and same-root sync import reconciliation remain pending' \
-  '- multi-daemon same-root sync proof remains pending until CRDT production migration lands'
-
-log "PASS: Spec98 runtime bleed + CRDT regression proof suite completed"
+log "PASS: Spec98 runtime bleed + CRDT regression proof suite completed without known-gap deferral"

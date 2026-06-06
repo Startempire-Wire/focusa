@@ -984,15 +984,87 @@ pub struct ProxyPipelineStageContract {
 
 /// Spec98 §13.10: proxy stages are explicit; only `DeterministicExpressionRender` is deterministic rendering.
 pub const PROXY_PIPELINE_STAGE_CONTRACT: &[ProxyPipelineStageContract] = &[
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::RequestIntake, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::UserInputExtraction, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::RetrievalEnrichmentPlanning, deterministic_render: false, retrieval_or_enrichment: true, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::DeterministicExpressionRender, deterministic_render: true, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::ProviderRequestInjection, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: true, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::ProviderCompatibilityShim, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: true, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::UpstreamProviderForward, deterministic_render: false, retrieval_or_enrichment: false, provider_io: true, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::RuntimeTelemetryCapture, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: true, eval_or_regeneration: false },
-    ProxyPipelineStageContract { stage: ProxyPipelineStage::EvalRegeneration, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: true },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::RequestIntake,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: false,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::UserInputExtraction,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: false,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::RetrievalEnrichmentPlanning,
+        deterministic_render: false,
+        retrieval_or_enrichment: true,
+        provider_io: false,
+        provider_request_mutation: false,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::DeterministicExpressionRender,
+        deterministic_render: true,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: false,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::ProviderRequestInjection,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: true,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::ProviderCompatibilityShim,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: true,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::UpstreamProviderForward,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: true,
+        provider_request_mutation: false,
+        telemetry_only: false,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::RuntimeTelemetryCapture,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: false,
+        telemetry_only: true,
+        eval_or_regeneration: false,
+    },
+    ProxyPipelineStageContract {
+        stage: ProxyPipelineStage::EvalRegeneration,
+        deterministic_render: false,
+        retrieval_or_enrichment: false,
+        provider_io: false,
+        provider_request_mutation: false,
+        telemetry_only: false,
+        eval_or_regeneration: true,
+    },
 ];
 
 /// Separate systems participating in post-compaction/resume handoff.
@@ -1012,9 +1084,15 @@ pub enum HandoffSystemRole {
 /// ASCC/Workpoint/CLT/Trajectory remain separate systems; handoff references connect them without merging authority.
 pub const HANDOFF_SYSTEM_ROLE_CONTRACT: &[(&str, HandoffSystemRole)] = &[
     ("ascc", HandoffSystemRole::AsccFocusStateSlots),
-    ("workpoint", HandoffSystemRole::WorkpointContinuationAuthority),
+    (
+        "workpoint",
+        HandoffSystemRole::WorkpointContinuationAuthority,
+    ),
     ("clt", HandoffSystemRole::CltLineageHistory),
-    ("trajectory_ladder", HandoffSystemRole::TrajectoryRouteGuidance),
+    (
+        "trajectory_ladder",
+        HandoffSystemRole::TrajectoryRouteGuidance,
+    ),
 ];
 
 pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[

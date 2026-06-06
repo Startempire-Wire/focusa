@@ -149,3 +149,132 @@ fn sqlite_persistence_rolls_back_to_fresh_state_on_incompatible_snapshot() {
         "incompatible snapshot should trigger fresh-state fallback"
     );
 }
+
+#[test]
+fn sqlite_crdt_import_is_scoped_and_idempotent() {
+    use crate::sync::CrdtLog;
+
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let p = SqlitePersistence::new(&cfg).unwrap();
+
+    let mut log = CrdtLog::new();
+    let mut in_scope = test_event("crdt-in-scope");
+    in_scope.correlation_id = Some("project_root=/home/wirebot/focusa|continuity_id=main".into());
+    in_scope.machine_id = Some("machine-a".into());
+    let event = log.add_local_event(in_scope, "machine-a");
+
+    let imported = p
+        .import_crdt_events_same_root("peer-a", "/home/wirebot/focusa", "main", &[event.clone()])
+        .unwrap();
+    assert_eq!(imported, 1);
+    let imported_again = p
+        .import_crdt_events_same_root("peer-a", "/home/wirebot/focusa", "main", &[event.clone()])
+        .unwrap();
+    assert_eq!(imported_again, 0);
+    let scoped = p
+        .crdt_events_for_scope("/home/wirebot/focusa", "main", 10)
+        .unwrap();
+    assert_eq!(scoped.len(), 1);
+    assert_eq!(scoped[0].entry.id, event.entry.id);
+
+    let wrong_scope = p
+        .import_crdt_events_same_root("peer-a", "/other/project", "main", &[event])
+        .unwrap();
+    assert_eq!(wrong_scope, 0);
+}
+
+#[test]
+fn sqlite_schema_migrates_v1_to_crdt_schema_v2() {
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let p = SqlitePersistence::new(&cfg).unwrap();
+    drop(p);
+
+    let db_path = dir.join("focusa.sqlite");
+    let conn = Connection::open(&db_path).unwrap();
+    conn.execute(
+        "UPDATE meta SET value = '1' WHERE key = 'schema_version'",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+
+    let p2 = SqlitePersistence::new(&cfg).unwrap();
+    let conn = Connection::open(db_path).unwrap();
+    let version: String = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key='schema_version'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(version, "2");
+    let table_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='crdt_events'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(table_count, 1);
+    drop(p2);
+}
+
+#[test]
+fn sqlite_crdt_same_root_two_daemon_reconciliation_converges() {
+    use crate::sync::CrdtLog;
+
+    let dir_a = temp_dir();
+    let dir_b = temp_dir();
+    let mut cfg_a = FocusaConfig::default();
+    cfg_a.data_dir = dir_a.to_string_lossy().to_string();
+    let mut cfg_b = FocusaConfig::default();
+    cfg_b.data_dir = dir_b.to_string_lossy().to_string();
+    let a = SqlitePersistence::new(&cfg_a).unwrap();
+    let b = SqlitePersistence::new(&cfg_b).unwrap();
+
+    let mut log_a = CrdtLog::new();
+    let mut log_b = CrdtLog::new();
+    let mut event_a = test_event("daemon-a-turn");
+    event_a.correlation_id = Some("project_root=/home/wirebot/focusa|continuity_id=main".into());
+    event_a.machine_id = Some("daemon-a".into());
+    let mut event_b = test_event("daemon-b-turn");
+    event_b.correlation_id = Some("project_root=/home/wirebot/focusa|continuity_id=main".into());
+    event_b.machine_id = Some("daemon-b".into());
+
+    let crdt_a = log_a.add_local_event(event_a, "daemon-a");
+    let crdt_b = log_b.add_local_event(event_b, "daemon-b");
+    a.append_crdt_event(&crdt_a, None).unwrap();
+    b.append_crdt_event(&crdt_b, None).unwrap();
+
+    let a_events = a
+        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .unwrap();
+    let b_events = b
+        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .unwrap();
+    assert_eq!(
+        a.import_crdt_events_same_root("daemon-b", "/home/wirebot/focusa", "main", &b_events)
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        b.import_crdt_events_same_root("daemon-a", "/home/wirebot/focusa", "main", &a_events)
+            .unwrap(),
+        1
+    );
+
+    let final_a = a
+        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .unwrap();
+    let final_b = b
+        .crdt_events_for_scope("/home/wirebot/focusa", "main", 100)
+        .unwrap();
+    let ids_a: std::collections::BTreeSet<_> = final_a.iter().map(|e| e.entry.id).collect();
+    let ids_b: std::collections::BTreeSet<_> = final_b.iter().map(|e| e.entry.id).collect();
+    assert_eq!(ids_a, ids_b);
+    assert_eq!(ids_a.len(), 2);
+}
