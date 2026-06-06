@@ -34,8 +34,10 @@ proof_groups:
       - CRDT vector clock / Lamport / deterministic resolver foundation
       - SQLite event hash-chain foundation
       - CRDT production migration and sync reconciliation
+      - Pi/UIAI authority-plane impact worksheet coverage
     commands:
       - tests/spec98_crdt_event_store_wiring_static_test.py
+      - tests/spec98_pi_uiai_authority_impact_static_test.py
       - /root/.cargo/bin/cargo test -p focusa-core sync::crdt
   build_gates:
     covers:
@@ -44,11 +46,9 @@ proof_groups:
     commands:
       - npm --prefix apps/pi-extension run check
       - /root/.cargo/bin/cargo check
-known_gaps:
-  - Full SQLite CRDT schema migration and same-root sync import reconciliation remain pending.
-  - Runtime multi-daemon same-root sync proof remains pending until CRDT migration lands.
+known_gaps: []
 acceptance:
   complete_when:
     - runner executes all commands successfully
     - root cargo commands are followed by fix-user-perms wirebot
-    - proof output states known gaps explicitly
+    - proof output states no known-gap deferral

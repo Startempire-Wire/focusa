@@ -1,0 +1,166 @@
+schema_version: focusa.pi_uiai_authority_impact_worksheet.v1
+work_item_id: focusa-877z.14
+status: implementation_ready
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#16
+  - docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md
+  - docs/worksheets/focusa-877z.8-authority-taxonomy.yaml
+summary: >-
+  Authority-plane changes must keep Pi Focusa tools, UIAI browser diagnostics, packet schemas,
+  evidence handles, compaction render, and headless parity scoped by Focusa project/workstream authority.
+non_negotiables:
+  - UIAI is browser/search/diagnostics/proof execution, not Focusa cognition authority.
+  - focusa_scope is metadata until validated against Focusa ProjectIdentity or Workpoint scope.
+  - UIAI outputs remain evidence proposals until captured or linked through Focusa evidence surfaces.
+  - TUI rendering is presentation only; RPC/JSON/MCP/CLI must use the same packet semantics.
+  - Browser pressure is operational telemetry; it may narrow workflows but must not mutate cognition truth.
+
+impacted_focusa_tools:
+  project_identity:
+    tools: [focusa_project_identity, focusa_project_verify, focusa_project_card]
+    required_behavior: establish project_root authority before accepting UIAI packet scope or Workpoint evidence linkage
+    proof: [tests/spec96_project_identity_quorum_static_test.sh, tests/focusa_cli_parity_smoke_test.sh]
+  workpoint_and_evidence:
+    tools: [focusa_workpoint_checkpoint, focusa_workpoint_resume, focusa_workpoint_link_evidence, focusa_evidence_capture, focusa_browser_diagnostics_intake]
+    required_behavior: preserve Workpoint scope, attach bounded UIAI evidence refs, and reject or degrade conflicting packet scope
+    proof: [tests/pi_extension_contract_test.sh, tests/spec98_pi_uiai_authority_impact_static_test.py]
+  trajectory_and_active_objects:
+    tools: [focusa_trajectory_view, focusa_trajectory_assess, focusa_active_object_resolve]
+    required_behavior: treat UIAI diagnostics as advisory evidence/hints until source/test verification promotes confidence
+    proof: [tests/spec98_tl_bootstrap_compaction_static_test.sh, tests/spec98_pi_uiai_authority_impact_static_test.py]
+  diagnostics_and_resource:
+    tools: [focusa_tool_doctor, focusa_resource_mode]
+    required_behavior: show UIAI browser health/pressure as noncanonical operational telemetry and recommend narrowing under pressure
+    proof: [tests/spec96_healthcheck_hot_fallback_static_test.sh, tests/spec98_pi_uiai_authority_impact_static_test.py]
+  prediction_and_metacog:
+    tools: [focusa_predict_record, focusa_predict_evaluate, focusa_metacog_capture]
+    required_behavior: close browser-debug learning loops with bounded evidence refs, not raw logs or screenshots
+    proof: [tests/spec98_end_of_task_learning_loop_static_test.sh]
+
+impacted_uiai_tools:
+  discovery_and_health:
+    tools: [pi_uiai_agent_card, pi_uiai_tool_search, pi_uiai_tool_graph, uiai_health]
+    required_behavior: advertise focusa_scope echo, evidence refs, diagnostics-first browser debugging, and packet recommendations
+    proof: [UIAI scripts/check-tool-parity.sh, UIAI /api/health/browser smoke]
+  browser_actions:
+    tools:
+      - uiai_browser_open
+      - uiai_browser_screenshot
+      - uiai_browser_snapshot
+      - uiai_browser_dom
+      - uiai_browser_navigate
+      - uiai_browser_click
+      - uiai_browser_fill
+      - uiai_browser_eval_async
+      - uiai_browser_diagnostics
+      - uiai_browser_diagnostics_clear
+    required_behavior: carry or echo focusa_scope when supplied and preserve diagnostics/session/error evidence handles
+    proof: [UIAI browser diagnostics smoke, UIAI browser reliability]
+  artifact_tools:
+    tools: [uiai_screenshot, uiai_frame_render]
+    required_behavior: return stable screenshot/share artifact handles suitable for Focusa evidence capture without inline blobs
+    proof: [UIAI release-browser-reliability]
+
+packet_schemas:
+  focusa_tool_result_v1:
+    role: canonical Focusa tool/result envelope
+    required_fields: [ok, status, canonical, degraded, failure_class, retry, evidence_refs, next_tools]
+    authority_status: authoritative only when project_root plus continuity_id scope matches and route says canonical=true
+  focusa_session_identity:
+    role: Pi-supplied identity envelope for scoped Focusa calls
+    required_fields: [project_root, continuity_id, session_id]
+    authority_status: project_root plus continuity_id gate; session_id is temporal metadata only
+  uiai_focusa_research_diagnostics_packet_v1:
+    role: UIAI proposal envelope for research/browser diagnostics
+    required_fields: [schema, mode, scope_status, evidence_refs, recommended_focusa, render]
+    authority_status: proposal_only_until_focusa_capture_or_link_succeeds
+  focusa_scope:
+    role: UIAI-to-Focusa scope metadata
+    required_fields: [project_root, continuity_id, workpoint_id, evidence_ref]
+    authority_status: metadata_only; validate against active Focusa project/workstream before canonical linkage
+  visual_evidence_handle:
+    role: stable artifact/evidence handle for screenshots, shares, diagnostics, and visual workflows
+    required_fields: [target_ref, evidence_ref, project_root, continuity_id]
+    authority_status: evidence_handle_only; not active object truth until resolved and verified
+
+diagnostics_and_evidence_flows:
+  browser_failure:
+    sequence:
+      - focusa_workpoint_checkpoint or existing focusa_workpoint_resume establishes scope
+      - uiai_browser_open receives focusa_scope when canonical scope is known
+      - uiai_browser_diagnostics returns bounded redacted evidence and echoes focusa_scope
+      - focusa_browser_diagnostics_intake captures/link evidence and emits active-object hints
+      - focusa_predict_record and focusa_predict_evaluate close the debug loop
+    failure_policy: conflicting project_root or continuity_id yields blocked/degraded Focusa envelope, not silent attachment
+  visual_workflow:
+    sequence:
+      - UIAI screenshot/share/visual output returns exact artifact handle
+      - focusa_evidence_capture stores bounded summary and stable evidence_ref
+      - focusa_active_object_resolve maps URL/stack/selector/file hints as advisory candidates
+    failure_policy: label-only visual handles are insufficient; exact handle plus scope required for durable linkage
+  headless_packet:
+    sequence:
+      - ResearchDiagnosticsPacket emitted through RPC/JSON/MCP/CLI with same schema as TUI path
+      - headless caller uses focusa_evidence_capture or documented lower-level choreography when Pi-only intake unavailable
+    failure_policy: headless fallback must be explicit; no TUI-only assumptions
+
+tool_contract_registry_entries:
+  required_entries:
+    - apps/pi-extension/src/tool-contracts.ts:focusa_browser_diagnostics_intake
+    - docs/current/focusa-tool-contracts.json:focusa_browser_diagnostics_intake
+    - docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md:focusa_browser_diagnostics_intake
+    - docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md
+    - docs/focusa-tools/tools/focusa_tool_doctor.md
+  required_registry_semantics:
+    - focusa_browser_diagnostics_intake may remain pi_only only when headless fallback choreography is documented.
+    - focusa_tool_doctor must include uiai_browser status/pressure in details and compact render text.
+    - registry side-effect profiles must distinguish evidence_link from read_only diagnostics.
+
+render_and_compaction_behavior:
+  compact_render_requirements:
+    - First packet line says whether UIAI packet is captured, linked, proposal-only, blocked, or degraded.
+    - WorkpointResumePacket remains immediate action authority when canonical=true and scope matches.
+    - TrajectoryResumePacket remains north-star context, not browser evidence authority.
+    - Post-compaction instructions cite stable UIAI evidence refs and exact next browser/source action.
+  flood_control:
+    - Render summaries and artifact handles instead of raw diagnostics logs, screenshots, HAR, cookies, headers, or blobs.
+    - Use bounded read/snapshot/diagnostics payloads and explicit rehydrate refs for cold artifacts.
+
+reliability_proof_matrix:
+  focusa_static:
+    - tests/spec98_pi_uiai_authority_impact_static_test.py
+    - tests/spec98_authority_taxonomy_worksheet_static_test.py
+    - tests/spec98_runtime_bleed_crdt_proof_suite_static_test.py
+  focusa_runtime:
+    - tests/spec98_runtime_bleed_crdt_regression_suite.sh
+    - tests/spec98_runtime_multi_daemon_crdt_sync_test.sh
+    - tests/focusa_cli_parity_smoke_test.sh
+  pi_extension:
+    - npm --prefix apps/pi-extension run check
+    - tests/pi_extension_contract_test.sh
+  uiai_external:
+    - UIAI scripts/check-tool-parity.sh
+    - UIAI scripts/smoke-pi-rendering.sh
+    - UIAI packet drift/smoke
+    - UIAI browser diagnostics smoke
+    - UIAI make release-browser-reliability
+  release_acceptance: >-
+    A foundational authority-plane PR touching Pi/UIAI contracts must cite the relevant Focusa proof and UIAI proof commands,
+    or explicitly mark UIAI proofs as external/not-run with preserved fallback choreography.
+
+risk_register:
+  - risk: hardcoded UIAI project scope bleeds into other Focusa projects
+    mitigation: require caller-supplied Focusa scope or mark packet scope_status missing/partial/mismatch_candidate
+    proof: [tests/spec98_pi_uiai_authority_impact_static_test.py]
+  - risk: UIAI packet scope_status=present is mistaken for Focusa authority
+    mitigation: render proposal-only until Focusa capture/link succeeds
+    proof: [tests/spec98_pi_uiai_authority_impact_static_test.py]
+  - risk: Pi-only diagnostics intake leaves MCP/CLI/headless users second-class
+    mitigation: document lower-level fallback choreography or add daemon/API composite route in parity work
+    proof: [docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md]
+  - risk: visual workflow evidence leaks through ambiguous labels
+    mitigation: exact artifact handle plus project/workstream scope required before durable evidence linkage
+    proof: [tests/visual_workflow_evidence_routes_contract_test.sh]
+  - risk: UIAI pressure disconnected from Focusa resource decisions
+    mitigation: focusa_tool_doctor and renderers surface UIAI pressure as operational telemetry
+    proof: [docs/focusa-tools/tools/focusa_tool_doctor.md]
