@@ -1,0 +1,174 @@
+schema_version: focusa.policy_profiles_defaults.v1
+work_item_id: focusa-877z.17
+status: implementation_ready
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#17
+  - docs/99-original-intent-vs-implementation-audit.md#20
+  - docs/worksheets/focusa-877z.8-authority-taxonomy.yaml#policy_profiles.registry
+normative_rule: >-
+  Safe authority behavior is the default path; configurability uses named, audited profiles and never silent knobs.
+  Generated worksheet/scaffold/lint/proof paths make the correct authority posture automatic for future route/tool changes.
+
+default_authority_posture:
+  missing_project_or_continuity:
+    classification: degraded_advisory
+    default_behavior: block canonical linkage; recommend focusa_project_identity and focusa_workpoint_resume
+  uiai_research_packet:
+    classification: proposal_only_evidence_bundle
+    default_behavior: render capture status as proposal/pending until Focusa capture/intake/link succeeds
+  uiai_focusa_scope:
+    classification: metadata
+    default_behavior: validate against ProjectIdentity/Workpoint; never authority by itself
+  workpoint_resume_scope_match:
+    classification: continuation_authority
+    default_behavior: immediate next action authority when canonical=true and project_root+continuity_id match
+  trajectory_ladder:
+    classification: north_star
+    default_behavior: durable HLT per project/workstream; MLG/STG/waypoints advisory until accepted
+  ontology_read_indexes:
+    classification: advisory_intelligence
+    default_behavior: promote only through verified Workpoint/evidence/PRE/reducer path
+  telemetry_resource_uiai_pressure:
+    classification: noncanonical_operational
+    default_behavior: may narrow/block workflows; must not mutate cognition truth
+  raw_blobs_logs_screenshots:
+    classification: external_artifact_only
+    default_behavior: store handles/summaries; never inline by default
+  synthetic_ids:
+    classification: noncanonical_demo_or_proposal
+    default_behavior: explicit noncanonical status; cannot satisfy canonical Focus Frame/Workpoint invariants
+  direct_api_state_write:
+    classification: forbidden_for_canonical_meaning
+    default_behavior: use reducer/PRE/Workpoint or runtime/telemetry class instead
+
+profile_registry:
+  safe_default:
+    intended_use: normal agent/operator work
+    default_classification: strict_scope_validation_compact_envelopes_workpoint_authority_tl_north_star
+    automatic_enforcement:
+      - require project_root+continuity_id for canonical linkage
+      - render canonical/advisory/degraded labels
+      - prefer bounded evidence handles over raw payloads
+      - WorkpointResumePacket wins immediate action when scope-matched
+    override_allowed: false
+  builder:
+    intended_use: active implementation
+    default_classification: fast_local_with_visible_authority_labels_and_proof
+    automatic_enforcement:
+      - local speed allowed only with proof_commands retained
+      - degraded/advisory labels remain visible
+      - changed surfaces must list affected docs/tests/tools
+    override_allowed: true
+    override_requirement: audit fields plus rollback/default restore path
+  audit_strict:
+    intended_use: architecture/security/release review
+    default_classification: all_surface_impact_migration_proof_required
+    automatic_enforcement:
+      - require authority_class, mutation_class, migration, risk, proof_commands
+      - reject missing backcompat for existing packets/snapshots/handles
+      - require API/CLI/Pi/MCP/menubar parity note where relevant
+    override_allowed: false
+  lowmem:
+    intended_use: context/resource pressure
+    default_classification: narrow_diagnostics_handles_first_degrade_advisory_payloads
+    automatic_enforcement:
+      - keep official tools callable
+      - use summary/traverse/rehydrate refs before cold/full payloads
+      - surface resource mode and UIAI pressure as noncanonical telemetry
+    override_allowed: true
+    override_requirement: explicit operator/resource reason and bounded recovery path
+  browser_debug:
+    intended_use: UIAI/browser failure triage
+    default_classification: diagnostics_first_scope_required_for_canonical_linking
+    automatic_enforcement:
+      - call browser_diagnostics before guessing on browser failure
+      - require focusa_scope validation before Workpoint evidence linkage
+      - packet render includes capture_status and scope_source
+    override_allowed: true
+    override_requirement: explain why diagnostics unavailable and capture fallback evidence handle
+  headless_ci:
+    intended_use: CI/RPC/MCP/CLI workflows
+    default_classification: schema_first_json_envelopes_no_tui_assumptions
+    automatic_enforcement:
+      - same packet schema for TUI/RPC/MCP/HTTP/CLI
+      - no modal/TUI-only acceptance gates
+      - explicit cleanup/session/capture status in JSON
+    override_allowed: false
+  demo_noncanonical:
+    intended_use: examples/proposals/training/demo
+    default_classification: synthetic_allowed_only_when_noncanonical
+    automatic_enforcement:
+      - synthetic ids allowed only with canonical=false
+      - no authority promotion without verified project/workstream scope
+      - examples label proposal/demo status in first line
+    override_allowed: false
+
+advanced_override_schema:
+  required_fields:
+    - profile_id
+    - override_source
+    - changed_field_or_route
+    - reason
+    - affected_surfaces
+    - agent_benefit
+    - handicap_risk
+    - rollback_or_default_restore_path
+    - proof_command_or_manual_acceptance_gate
+  forbidden_override_effects:
+    - erase_scope_validation
+    - hide_canonical_advisory_degraded_labels
+    - remove_evidence_handle_requirements
+    - omit_mutation_class
+    - weaken_privacy_or_redaction_boundaries
+    - drop_proof_requirements
+
+zero_friction_enforcement_model:
+  worksheet_lint:
+    command_target: focusa taxonomy lint
+    current_manual_guard: tests/spec98_policy_profiles_defaults_static_test.py
+    enforces:
+      - every item has authority_class/default_profile/mutation_class/scope_fields/affected_surfaces/proof_commands
+      - every profile override has required audit fields
+      - changed surfaces list migration/backcompat where required
+  docs_render:
+    command_target: focusa taxonomy render-docs
+    current_manual_source: docs/worksheets/focusa-877z.17-policy-profiles-defaults.yaml
+    output_targets:
+      - docs/current/FOCUSA_TOOL_CONTRACT_REGISTRY.md
+      - docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md
+      - docs/current/CLI_REFERENCE_CURRENT.md
+  route_scaffold:
+    command_target: focusa new-route --authority-class --default-profile --mutation-class
+    generated_fields: [authority_class, default_profile, mutation_class, side_effect_profile, scope_fields, proof_commands]
+  tool_scaffold:
+    command_target: focusa new-tool --family --authority-class --default-profile
+    generated_fields: [tool_result_v1, retry, next_tools, side_effects, evidence_refs, recovery_hint]
+  proof_bundle:
+    command_target: focusa proof surface <surface-or-item>
+    generated_fields: [focusa_tests, pi_typecheck, cli_smoke, uiai_external, menubar_check]
+  compact_output:
+    format: traffic_light_summary_plus_expandable_detail
+    required_first_line_fields: [profile_id, authority_class, canonicality, scope_status, proof_status, next_tool]
+
+inheritance_rules_for_future_changes:
+  - New canonical route defaults to audit_strict until authority_class, scope_fields, mutation_class, migration, and proof_commands are declared.
+  - New read-only/advisory route defaults to safe_default but must still expose bounded envelope semantics.
+  - New UIAI/browser workflow defaults to browser_debug and headless_ci parity requirements.
+  - New CI/MCP/CLI surface defaults to headless_ci; TUI-only render is insufficient.
+  - New demo/example defaults to demo_noncanonical and cannot mint canonical identifiers.
+  - LowMem/resource pressure changes inherit lowmem and may narrow payloads but cannot hide official tools.
+
+proof_matrix:
+  local_static:
+    - tests/spec98_policy_profiles_defaults_static_test.py
+    - tests/spec98_authority_taxonomy_worksheet_static_test.py
+    - tests/spec98_runtime_bleed_crdt_proof_suite_static_test.py
+  local_build:
+    - npm --prefix apps/pi-extension run check
+  future_generated_targets:
+    - focusa taxonomy lint
+    - focusa taxonomy render-docs
+    - focusa proof surface policy_profiles.registry
+acceptance_summary: >-
+  Profile defaults are documented, override audit fields are mandatory, scaffold/lint/proof targets are specified,
+  and future route/tool changes inherit safe authority behavior without requiring agents to remember the matrix manually.
