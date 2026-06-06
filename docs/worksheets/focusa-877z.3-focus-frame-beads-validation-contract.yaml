@@ -29,12 +29,21 @@ implemented_slice:
     canonical_event: FocusaEvent::FocusFramePushed
     canonical_only_if: created by validated API route or validated daemon action
     noncanonical_policy: proposal/demo frames remain outside FocusFramePushed canonical event path
+  pre_focus_frame_proposal:
+    file: crates/focusa-api/src/routes/proposals.rs
+    route: POST /v1/proposals/focus-frame
+    schema: focusa.pre_focus_frame_proposal.v1
+    response_schema: focusa.pre_focus_frame_proposal_response.v1
+    canonical: false
+    proposal_only: true
+    side_effects: [pre_proposal_append]
+    event_path: PRE ProposalSubmitted only; route does not emit FocusFramePushed
 proof_requirements:
   - static API route checks beads_issue_exists before materialize_focus_event(FocusFramePushed)
   - static daemon Action::PushFrame checks beads_issue_exists before emitting FocusFramePushed
   - static rejection payload marks missing Beads as canonical=false
+  - static PRE focus-frame proposal route exposes noncanonical schema/response and never emits FocusFramePushed
   - Spec98 runtime-bleed proof suite passes
   - Rust cargo check and Pi TypeScript check pass
 known_gaps:
   - historical/replay fixtures may still construct FocusFramePushed directly for reducer tests; direct event injection is test/historical replay, not canonical creation authority
-  - future PRE proposal routes should expose explicit noncanonical proposal/demo frame schemas instead of overloading FocusFramePushed

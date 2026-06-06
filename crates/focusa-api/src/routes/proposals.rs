@@ -11,6 +11,7 @@ use focusa_core::reducer;
 use focusa_core::types::{
     Action, EventLogEntry, FocusaEvent, ProposalKind, ProposalStatus, SignalOrigin,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -22,6 +23,104 @@ async fn list_proposals(State(state): State<Arc<AppState>>) -> Json<Value> {
         "proposals": s.pre.proposals,
         "pending": focusa_core::pre::pending_count(&s.pre),
     }))
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct FocusFrameProposalRequest {
+    title: String,
+    goal: Option<String>,
+    beads_issue_id: Option<String>,
+    project_root: Option<String>,
+    continuity_id: Option<String>,
+    session_id: Option<String>,
+    constraints: Option<Vec<String>>,
+    tags: Option<Vec<String>>,
+    source: Option<String>,
+    deadline_ms: Option<u64>,
+    score: Option<f64>,
+}
+
+/// POST /v1/proposals/focus-frame — create a noncanonical PRE focus-frame proposal.
+///
+/// This route intentionally never emits `FocusFramePushed`; accepted PRE proposals may
+/// later be resolved/promoted through the guarded proposal path.
+async fn submit_focus_frame_proposal(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<FocusFrameProposalRequest>,
+) -> (StatusCode, Json<Value>) {
+    let source = body.source.clone().unwrap_or_else(|| "api:pre_focus_frame_proposal".to_string());
+    let payload = json!({
+        "schema_version": "focusa.pre_focus_frame_proposal.v1",
+        "noncanonical": true,
+        "proposal_only": true,
+        "title": body.title,
+        "goal": body.goal,
+        "beads_issue_id": body.beads_issue_id,
+        "project_root": body.project_root,
+        "continuity_id": body.continuity_id,
+        "session_id": body.session_id,
+        "constraints": body.constraints.unwrap_or_default(),
+        "tags": body.tags.unwrap_or_default(),
+        "event_path": "pre_proposal_only_no_focus_frame_pushed"
+    });
+    let kind = ProposalKind::FocusChange;
+    let deadline_ms = body.deadline_ms.unwrap_or(5000);
+    let score = body.score;
+    let _ = state
+        .command_tx
+        .send(Action::SubmitProposal {
+            kind,
+            source: source.clone(),
+            payload: payload.clone(),
+            deadline_ms,
+            score,
+        })
+        .await;
+
+    let mut proposal_id: Option<Uuid> = None;
+    for _ in 0..240 {
+        {
+            let s = state.focusa.read().await;
+            proposal_id = s
+                .pre
+                .proposals
+                .iter()
+                .rev()
+                .find(|p| p.kind == kind && p.source == source)
+                .map(|p| p.id);
+        }
+        if proposal_id.is_some() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+
+    (StatusCode::ACCEPTED, Json(json!({
+        "status": "accepted",
+        "schema_version": "focusa.pre_focus_frame_proposal_response.v1",
+        "proposal_id": proposal_id.map(|id| id.to_string()),
+        "kind": "focus_change",
+        "target_class": "focus",
+        "canonical": false,
+        "advisory": true,
+        "noncanonical": true,
+        "proposal_only": true,
+        "event_path": "PRE ProposalSubmitted; no FocusFramePushed emitted by this route",
+        "promotion_path": "resolve PRE proposal, then canonical FocusFramePushed still requires Beads validation",
+        "tool_result_v1": {
+            "ok": true,
+            "status": "accepted",
+            "canonical": false,
+            "advisory": true,
+            "degraded": false,
+            "stale": false,
+            "failure_class": null,
+            "retry": {"safe": true, "posture": "retry_with_idempotency_key"},
+            "side_effects": ["pre_proposal_append"],
+            "evidence_refs": [],
+            "next_tools": ["focusa_project_verify", "focusa_workpoint_checkpoint"]
+        }
+    })))
 }
 
 /// POST /v1/proposals — submit a proposal via daemon command channel.
@@ -1036,5 +1135,6 @@ async fn resolve_proposals(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/proposals", get(list_proposals).post(submit_proposal))
+        .route("/v1/proposals/focus-frame", post(submit_focus_frame_proposal))
         .route("/v1/proposals/resolve", post(resolve_proposals))
 }

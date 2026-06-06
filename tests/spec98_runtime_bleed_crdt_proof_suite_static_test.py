@@ -37,6 +37,7 @@ def main() -> None:
         "bun tests/pi_project_root_inference_test.mts",
         "tests/spec98_workpoint_trajectory_active_scope_static_test.py",
         "tests/spec98_focus_stack_state_scope_static_test.py",
+        "tests/spec98_pre_focus_frame_proposal_static_test.py",
         "tests/spec98_crdt_event_store_wiring_static_test.py",
         "tests/spec98_pi_uiai_authority_impact_static_test.py",
         "tests/spec98_uiai_packet_capture_headless_static_test.py",
