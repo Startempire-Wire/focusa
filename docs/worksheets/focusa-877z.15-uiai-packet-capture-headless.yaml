@@ -1,0 +1,147 @@
+schema_version: focusa.uiai_packet_capture_headless_semantics.v1
+work_item_id: focusa-877z.15
+status: implementation_ready
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#16.7
+  - docs/99-original-intent-vs-implementation-audit.md#19.5
+  - docs/worksheets/focusa-877z.14-pi-uiai-impact.yaml
+external_ui_baseline:
+  repo: /home/wpuiai/uiai-engine
+  known_surfaces:
+    - /api/agent/research-packet
+    - .pi/extensions/uiai-engine.ts buildResearchDiagnosticsPacket
+    - docs/RESEARCH_DIAGNOSTICS_PACKET_SCHEMA_DECISION_MATRIX.md
+    - docs/examples/focusa-packets/*.example.json
+  inspected_status: >-
+    UIAI packet schema and docs already describe proposal-only evidence bundles, focusa_scope metadata,
+    args_preview handoff, and Pi/MCP/CLI parity. Focusa-side contract below makes the capture/headless
+    semantics mandatory for authority-plane changes without editing the UIAI repo from this bead.
+
+packet_status_semantics:
+  proposal_only:
+    meaning: UIAI composed a bounded packet; no durable Focusa write is proven.
+    render_text: "capture=proposal_only"
+    focusa_authority: false
+    allowed_next: [focusa_evidence_capture, focusa_browser_diagnostics_intake, focusa_workpoint_link_evidence]
+  capture_pending:
+    meaning: packet has args_preview for a Focusa tool, but no accepted response/evidence handle from Focusa yet.
+    render_text: "capture=pending_focusa_tool"
+    focusa_authority: false
+    allowed_next: [run_preferred_focusa_tool]
+  captured:
+    meaning: Focusa evidence capture/intake accepted and returned evidence_refs or accepted status.
+    render_text: "capture=focusa_captured"
+    focusa_authority: evidence_handle_only
+    allowed_next: [focusa_active_object_resolve, focusa_predict_record, focusa_workpoint_resume]
+  linked:
+    meaning: captured evidence is linked to a scoped Workpoint.
+    render_text: "capture=workpoint_linked"
+    focusa_authority: scoped_workpoint_evidence
+    allowed_next: [focusa_workpoint_resume, focusa_trajectory_assess]
+  rejected:
+    meaning: Focusa rejected capture/link due to scope, validation, or policy mismatch.
+    render_text: "capture=rejected"
+    focusa_authority: false
+    allowed_next: [focusa_project_verify, focusa_project_identity, focusa_workpoint_checkpoint]
+  degraded:
+    meaning: packet or tool response is bounded fallback; capture status cannot be verified.
+    render_text: "capture=degraded_unknown"
+    focusa_authority: false
+    allowed_next: [focusa_tool_doctor, focusa_workpoint_resume]
+
+scope_source_semantics:
+  focusa_verified_scope:
+    source: focusa_project_identity or focusa_workpoint_resume
+    status: preferred
+    render_text: "scope_source=focusa_verified"
+    capture_policy: canonical linkage allowed when project_root plus continuity_id match
+  caller_supplied_scope:
+    source: tool parameter or operator-provided packet field
+    status: needs_verification
+    render_text: "scope_source=caller_supplied"
+    capture_policy: verify against ProjectIdentity/Workpoint before canonical linkage
+  uiai_local_default_scope:
+    source: UIAI repo-local demo/default values such as /home/wpuiai/uiai-engine
+    status: demo_only
+    render_text: "scope_source=uiai_default_demo"
+    capture_policy: never cross-project canonical authority
+  missing_scope:
+    source: none
+    status: missing
+    render_text: "scope_source=missing"
+    capture_policy: attach_to_workpoint=false or block canonical capture until scope is supplied
+  mismatch_candidate:
+    source: focusa_scope conflicts with active Focusa project/workstream
+    status: conflict
+    render_text: "scope_source=mismatch_candidate"
+    capture_policy: block/degrade and route to project_verify/project_identity
+
+required_packet_columns:
+  - schema
+  - mode
+  - scope_status
+  - scope_source
+  - focusa_scope.project_root
+  - focusa_scope.continuity_id
+  - focusa_scope.workpoint_id
+  - evidence_refs
+  - recommended_focusa.preferred_tool
+  - recommended_focusa.args_preview
+  - capture_status
+  - headless_next_action
+  - render.summary_line
+  - cleanup.session_closed
+  - proof_commands
+
+compact_render_contract:
+  first_line_template: >-
+    UIAI packet mode=<mode> evidence=<n> scope=<scope_status> scope_source=<scope_source>
+    capture=<capture_status> tool=<preferred_tool> next=<headless_next_action>
+  required_terms: ["scope=", "scope_source=", "capture=", "tool=", "next="]
+  forbidden_implications:
+    - Do not render packet as proof of durable Focusa state before capture_status is captured or linked.
+    - Do not treat scope_status=present as Focusa scope verification; scope_status=present is not Focusa scope verification.
+    - Do not hide capture pending status behind a compact evidence count.
+
+headless_parity_contract:
+  surfaces:
+    pi_tui: uiai_focusa_packet_build / uiai_focusa_packet_compose render compact line plus JSON
+    pi_rpc_json: same packet fields, no TUI-only widgets required
+    mcp: uiai_focusa_packet_compose returns same schema and args_preview
+    http: POST /api/agent/research-packet returns same schema
+    cli: scripts/uiai packet compose and scripts/uiai research packet return same schema
+  required_behavior:
+    - Headless callers can read capture_status and headless_next_action without Pi TUI.
+    - args_preview is copyable into the preferred Focusa tool but remains preview-only.
+    - cleanup/session status is explicit and never confused with Focusa evidence capture.
+    - failure/degraded paths include preferred fallback Focusa tool and recovery hint.
+
+cross_project_scope_guard:
+  rule: >-
+    Hardcoded or repo-local UIAI focusa_scope values are valid only as UIAI local demo defaults.
+    Cross-project use must pass Focusa-verified project_root and continuity_id or mark scope_source as caller_supplied/missing/mismatch_candidate.
+  focusa_capture_rule: >-
+    Focusa tools accepting packet args must compare packet focusa_scope against active ProjectIdentity/Workpoint scope and reject/degrade mismatches.
+  render_required_text: "UIAI focusa_scope metadata; Focusa verification required before canonical capture"
+
+proof_matrix:
+  focusa_contract:
+    - docs/worksheets/focusa-877z.15-uiai-packet-capture-headless.yaml
+    - tests/spec98_uiai_packet_capture_headless_static_test.py
+  focusa_regression:
+    - tests/spec98_runtime_bleed_crdt_regression_suite.sh
+    - tests/spec98_pi_uiai_authority_impact_static_test.py
+  pi_extension:
+    - npm --prefix apps/pi-extension run check
+  uiai_external_not_run_here:
+    - as-user wpuiai 'cd /home/wpuiai/uiai-engine && scripts/check-focusa-packet-drift.sh'
+    - as-user wpuiai 'cd /home/wpuiai/uiai-engine && scripts/check-tool-parity.sh'
+    - as-user wpuiai 'cd /home/wpuiai/uiai-engine && bun test ./.pi/extensions/uiai-engine.packet-builder.test.ts'
+    - as-user wpuiai 'cd /home/wpuiai/uiai-engine && scripts/smoke-focusa-packet-ci.sh'
+
+handoff_requirements_for_uiai_repo:
+  - Add or preserve capture_status in ResearchDiagnosticsPacket or render metadata.
+  - Add scope_source to packet/render metadata.
+  - Update summary_line to include capture=<status> and scope_source=<source>.
+  - Add tests covering proposal_only, capture_pending/headless args_preview, present scope not being authority, and UIAI default scope as demo-only.
+  - Preserve HTTP/MCP/CLI/Pi parity for the same packet schema.
