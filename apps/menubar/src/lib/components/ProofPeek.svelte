@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { normalizeToolResult } from '$lib/api';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
 
   let s = $derived(runtimeStore.snapshot);
   let workpoint = $derived(s.workpointResume ?? s.workpoint ?? {});
   let packet = $derived(workpoint.resume_packet ?? workpoint.packet ?? workpoint);
+  let result = $derived(normalizeToolResult(workpoint));
 
   function text(v: any, fallback = 'unknown') {
     if (v === null || v === undefined || v === '') return fallback;
@@ -27,7 +29,9 @@
     return [];
   }
 
-  let evidence = $derived(list(packet.verified_evidence ?? packet.evidence_refs ?? workpoint.evidence_refs));
+  let evidence = $derived(list(packet.verified_evidence ?? packet.evidence_refs ?? result.evidence_refs ?? workpoint.evidence_refs));
+  let sideEffects = $derived(list(result.side_effects ?? packet.side_effects ?? workpoint.side_effects));
+  let scopeStatus = $derived(result.scope_status ?? packet.scope?.scope_status ?? workpoint.scope?.scope_status);
   let predictions = $derived(records(s.predictionsRecent, ['predictions', 'items', 'records']));
   let evaluations = $derived(records(s.metacogEvaluations, ['evaluations', 'items', 'records']));
   let snapshots = $derived(records(s.snapshotsRecent, ['snapshots', 'items', 'records']));
@@ -42,7 +46,7 @@
       <div class="eyebrow">PROOF</div>
       <h2>Evidence, learning, prediction, recovery</h2>
     </div>
-    <span class="status-chip">read-only</span>
+    <span class="status-chip" class:ok={scopeStatus === 'verified'}>read-only · scope:{text(scopeStatus, 'unknown')}</span>
   </header>
 
   <div class="proof-grid">
@@ -53,6 +57,9 @@
         <ul>{#each evidence.slice(0, 5) as item}<li>{item}</li>{/each}</ul>
       {:else}
         <p class="muted">No evidence refs linked to current Workpoint packet.</p>
+      {/if}
+      {#if sideEffects.length > 0}
+        <div class="chips">{#each sideEffects.slice(0, 4) as item}<span class="chip">side:{item}</span>{/each}</div>
       {/if}
     </article>
 
@@ -80,7 +87,7 @@
       <div class="label">Snapshots</div>
       <div class="metric">{snapshots.length}</div>
       {#if snapshots.length > 0}
-        <ul>{#each snapshots.slice(0, 4) as item}<li>{text(item.snapshot_id ?? item.id ?? item.reason)}</li>{/each}</ul>
+        <ul>{#each snapshots.slice(0, 4) as item}<li>{text(item.snapshot_id ?? item.id ?? item.reason)} · {text(item.authority_posture?.authority_status, 'history_only')}</li>{/each}</ul>
       {:else}
         <p class="muted">No recent snapshots surfaced.</p>
       {/if}

@@ -10,7 +10,12 @@ export interface ApiRequestOptions {
 export interface NormalizedToolResult {
   status?: string;
   canonical?: boolean;
+  advisory?: boolean;
   degraded?: boolean;
+  stale?: boolean;
+  scope?: unknown;
+  scope_status?: string;
+  scope_source?: string;
   failure_class?: string;
   retry?: unknown;
   side_effects?: unknown;
@@ -41,7 +46,12 @@ export function normalizeToolResult(payload: any): NormalizedToolResult {
   return {
     status: result?.status,
     canonical: result?.canonical,
+    advisory: result?.advisory ?? result?.advisory_only,
     degraded: result?.degraded,
+    stale: result?.stale,
+    scope: result?.scope,
+    scope_status: result?.scope?.scope_status ?? result?.scope_status,
+    scope_source: result?.scope?.scope_source ?? result?.scope_source,
     failure_class: result?.failure_class,
     retry: result?.retry,
     side_effects: result?.side_effects,
@@ -52,7 +62,7 @@ export function normalizeToolResult(payload: any): NormalizedToolResult {
 
 export function isDegraded(payload: any): boolean {
   const result = normalizeToolResult(payload);
-  return result.degraded === true || result.canonical === false || result.status === 'pending' || result.status === 'blocked';
+  return result.degraded === true || result.stale === true || result.canonical === false || result.status === 'pending' || result.status === 'blocked';
 }
 
 export async function requestJson<T = any>(path: string, options: ApiRequestOptions = {}): Promise<T> {

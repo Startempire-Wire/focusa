@@ -21,7 +21,11 @@
   }
 
   let canonical = $derived(workpoint.canonical ?? packet.canonical ?? result.canonical);
+  let advisory = $derived(workpoint.advisory ?? workpoint.advisory_only ?? packet.advisory ?? packet.advisory_only ?? result.advisory);
   let degraded = $derived(workpoint.degraded ?? packet.degraded ?? result.degraded);
+  let stale = $derived(workpoint.stale ?? packet.stale ?? packet.freshness?.stale ?? result.stale);
+  let scopeStatus = $derived(packet.scope?.scope_status ?? workpoint.scope?.scope_status ?? result.scope_status ?? packet.current_ask_scope?.scope_status);
+  let scopeSource = $derived(packet.scope?.scope_source ?? workpoint.scope?.scope_source ?? result.scope_source);
   let status = $derived(workpoint.status ?? packet.status ?? result.status ?? (canonical === true ? 'canonical' : 'unknown'));
   let mission = $derived(packet.mission ?? workpoint.mission ?? packet.objective);
   let currentAction = $derived(packet.current_action ?? workpoint.current_action);
@@ -56,7 +60,11 @@
     <p>{text(mission, 'No mission recorded')}</p>
     <div class="chips">
       <span class="chip" class:ok={canonical === true} class:bad={canonical === false}>{canonical === true ? 'canonical' : canonical === false ? 'non-canonical' : 'unknown'}</span>
+      {#if advisory === true}<span class="chip watch">advisory</span>{/if}
       {#if degraded === true}<span class="chip bad">degraded</span>{/if}
+      {#if stale === true}<span class="chip bad">stale</span>{/if}
+      {#if scopeStatus}<span class="chip" class:ok={scopeStatus === 'verified'} class:bad={scopeStatus !== 'verified'}>scope:{scopeStatus}</span>{/if}
+      {#if scopeSource}<span class="chip">source:{scopeSource}</span>{/if}
       {#if continuityId}<span class="chip">{continuityId}</span>{/if}
     </div>
   </div>
