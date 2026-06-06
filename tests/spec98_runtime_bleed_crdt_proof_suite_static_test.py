@@ -40,6 +40,7 @@ def main() -> None:
         "tests/spec98_crdt_event_store_wiring_static_test.py",
         "tests/spec98_pi_uiai_authority_impact_static_test.py",
         "tests/spec98_uiai_packet_capture_headless_static_test.py",
+        "tests/spec98_headless_diagnostics_intake_fallback_static_test.py",
         "tests/spec98_visual_workflow_exact_scope_static_test.py",
         "tests/spec98_policy_profiles_defaults_static_test.py",
         "tests/spec98_policy_profile_registry_impl_static_test.py",

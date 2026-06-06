@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Headless fallback for UIAI/browser diagnostics intake.
+
+Validates a ResearchDiagnosticsPacket/diagnostics JSON and emits the lower-level Focusa capture choreography for CLI/MCP/CI users when Pi-only focusa_browser_diagnostics_intake is unavailable.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+def load_packet(path: str | None) -> dict[str, Any]:
+    if path and path != "-":
+        return json.loads(Path(path).read_text())
+    return json.load(sys.stdin)
+
+
+def first(*values: Any) -> Any:
+    for value in values:
+        if value not in (None, "", []):
+            return value
+    return None
+
+
+def packet_scope(packet: dict[str, Any]) -> dict[str, Any]:
+    focusa_scope = packet.get("focusa_scope") or packet.get("scope") or packet.get("focusa") or {}
+    return {
+        "project_root": first(packet.get("project_root"), focusa_scope.get("project_root")),
+        "continuity_id": first(packet.get("continuity_id"), focusa_scope.get("continuity_id")),
+        "workpoint_id": first(packet.get("workpoint_id"), focusa_scope.get("workpoint_id")),
+        "scope_source": first(packet.get("scope_source"), focusa_scope.get("scope_source"), "caller_supplied"),
+    }
+
+
+def evidence_ref(packet: dict[str, Any], diagnostics_ref: str | None) -> str:
+    return first(
+        packet.get("evidence_ref"),
+        packet.get("diagnostics_ref"),
+        diagnostics_ref,
+        f"uiai-diagnostics:headless:{packet.get('session_id') or packet.get('id') or 'unknown'}",
+    )
+
+
+def build(packet: dict[str, Any], diagnostics_ref: str | None) -> dict[str, Any]:
+    scope = packet_scope(packet)
+    missing_scope = [key for key in ["project_root", "continuity_id"] if not scope.get(key)]
+    capture_status = packet.get("capture_status") or "proposal_only"
+    scope_status = "verified" if not missing_scope and scope.get("scope_source") == "focusa_verified" else ("missing" if missing_scope else "present")
+    ref = evidence_ref(packet, diagnostics_ref)
+    target_ref = first(packet.get("target_ref"), packet.get("url"), packet.get("page_url"), packet.get("mode"), "uiai-browser-diagnostics")
+    result = first(packet.get("summary"), packet.get("summary_line"), packet.get("result"), "UIAI/browser diagnostics packet captured by headless fallback")
+    commands = []
+    if missing_scope:
+        commands.append("focusa_project_identity --project-root <verified-project-root>")
+        commands.append("focusa_workpoint_resume --project-root <verified-project-root> --continuity-id <verified-continuity-id>")
+    commands.append(
+        "focusa_evidence_capture "
+        f"--target-ref {json.dumps(str(target_ref))} "
+        f"--result {json.dumps(str(result))} "
+        f"--evidence-ref {json.dumps(str(ref))}"
+        + (f" --project-root {json.dumps(str(scope['project_root']))}" if scope.get("project_root") else "")
+    )
+    commands.append("focusa_active_object_resolve --hint " + json.dumps(str(target_ref)))
+    commands.append("focusa_predict_record --prediction-type diagnostics_capture_followup --predicted-outcome evidence_link_needed")
+    return {
+        "schema_version": "focusa.headless_diagnostics_intake_fallback.v1",
+        "status": "ready" if not missing_scope else "scope_verification_required",
+        "canonical": False,
+        "advisory": True,
+        "degraded": bool(missing_scope),
+        "capture_status": capture_status,
+        "scope": {**scope, "scope_status": scope_status},
+        "missing_scope": missing_scope,
+        "evidence_ref": ref,
+        "target_ref": target_ref,
+        "result": result,
+        "preferred_tool": "focusa_browser_diagnostics_intake",
+        "headless_next_action": commands[0],
+        "fallback_commands": commands,
+        "tool_result_v1": {
+            "ok": not missing_scope,
+            "status": "completed" if not missing_scope else "blocked",
+            "canonical": False,
+            "advisory": True,
+            "degraded": bool(missing_scope),
+            "stale": False,
+            "scope": {**scope, "scope_status": scope_status},
+            "failure_class": "scope_mismatch" if missing_scope else None,
+            "summary": "headless fallback prepared lower-level Focusa evidence capture choreography",
+            "retry": {"safe": True, "posture": "safe_retry" if not missing_scope else "do_not_retry_unchanged"},
+            "side_effects": [],
+            "evidence_refs": [str(ref)],
+            "next_tools": ["focusa_project_identity", "focusa_workpoint_resume", "focusa_evidence_capture", "focusa_active_object_resolve"],
+        },
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Headless UIAI/browser diagnostics intake fallback")
+    parser.add_argument("packet", nargs="?", help="Diagnostics packet JSON path, or stdin when omitted/-")
+    parser.add_argument("--diagnostics-ref", help="Stable diagnostics artifact ref/path")
+    parser.add_argument("--json", action="store_true", help="Emit JSON only")
+    args = parser.parse_args()
+    payload = build(load_packet(args.packet), args.diagnostics_ref)
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    else:
+        print(f"headless diagnostics fallback → status={payload['status']} capture={payload['capture_status']} scope={payload['scope']['scope_status']} next={payload['headless_next_action']}")
+        for command in payload["fallback_commands"]:
+            print(command)
+    return 0 if payload["status"] == "ready" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
