@@ -34,9 +34,9 @@ frame_id_for() {
 
 # Create frame A then frame B, making B active.
 TITLE_A="frame-contract-a-$$"
-BEADS_A="focusa-877z"
+BEADS_A="focusa-032h"
 TITLE_B="frame-contract-b-$$"
-BEADS_B="focusa-877z"
+BEADS_B="focusa-032h"
 http_json POST "/v1/session/start" "{\"adapter_id\":\"frame-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_A}\",\"goal\":\"A\",\"beads_issue_id\":\"${BEADS_A}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
 http_json POST "/v1/focus/push" "{\"title\":\"${TITLE_B}\",\"goal\":\"B\",\"beads_issue_id\":\"${BEADS_B}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"frame-contract-session\"}" >/dev/null
