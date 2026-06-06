@@ -1,0 +1,194 @@
+schema_version: focusa.migration_side_effect_proof_plan.v1
+work_item_id: focusa-877z.18
+status: implementation_ready
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#18
+  - docs/99-original-intent-vs-implementation-audit.md#20
+  - docs/worksheets/focusa-877z.8-authority-taxonomy.yaml
+normative_rule: >-
+  Authority-plane foundation changes must keep historical packets/snapshots/handles readable with explicit authority status,
+  classify expected side effects before mutation, and map changed surfaces to proof bundles across daemon, API, CLI, Pi, UIAI, and menubar.
+
+migration_backcompat_matrix:
+  old_workpoint_packets:
+    legacy_shape: packets without project_root, continuity_id, action_authority_for_current_ask, or canonical_for_saved_scope
+    read_behavior: readable_as_degraded_advisory_recovery_packet
+    authority_status: canonical_false_until_project_root_plus_continuity_id_rebound
+    migration_warning: old_workpoint_packet_missing_scope
+    promotion_path: focusa_project_identity -> focusa_project_verify -> focusa_workpoint_checkpoint
+    proof_requirements:
+      - Workpoint resume rejects unsafe broad roots and mismatched continuity
+      - copy-prompt/render includes canonical_for_saved_scope and action_authority_for_current_ask
+  old_trajectory_packets:
+    legacy_shape: HLT/MLG/STG projection without durable project/workstream lifecycle metadata
+    read_behavior: readable_as_advisory_projection
+    authority_status: north_star_only_after project_root_plus_continuity_id match and supersession policy
+    migration_warning: old_trajectory_packet_advisory_only
+    promotion_path: focusa_trajectory_define_goal or durable supersession evidence
+    proof_requirements:
+      - trajectory view labels fallback/prior-continuity as advisory
+      - hlt-ledger.md remains optional legacy source
+  old_focus_state_records:
+    legacy_shape: Focus State slots without authority-plane or runtime/telemetry separation
+    read_behavior: readable_with_safe_default_profile_and_frame_scope_when_available
+    authority_status: canonical_only_when reducer-backed frame/session scope matches
+    migration_warning: focus_state_legacy_scope_inferred
+    promotion_path: project/frame verification or fresh focus update
+    proof_requirements:
+      - active turn raw buffers are runtime-only
+      - stale/contaminated frames are rejected or degraded
+  old_focus_stack_frames:
+    legacy_shape: frames with synthetic/missing Beads issue IDs or cwd-derived labels
+    read_behavior: readable_history_noncanonical_when source Beads proof missing
+    authority_status: canonical_false_for_synthetic_or_missing_beads
+    migration_warning: focus_frame_missing_beads_source
+    promotion_path: exact project Beads JSONL source validation
+    proof_requirements:
+      - FocusFramePushed requires project Beads source before canonical materialization
+  old_uiai_packets:
+    legacy_shape: ResearchDiagnosticsPacket without capture_status or scope_source
+    read_behavior: readable_as_proposal_only_capture_unknown
+    authority_status: no Focusa authority until capture/intake/link accepted
+    migration_warning: uiai_packet_capture_status_missing
+    promotion_path: focusa_evidence_capture or focusa_browser_diagnostics_intake
+    proof_requirements:
+      - packet renderer shows proposal_only/capture_pending/captured semantics
+      - headless fallback choreography is documented
+  old_evidence_handles:
+    legacy_shape: HandleRef without project_root, continuity_id, or exact created handle correlation
+    read_behavior: readable_via_handle_id_with legacy_scope_missing warning
+    authority_status: evidence_handle_only_not_object_truth
+    migration_warning: evidence_handle_scope_missing
+    promotion_path: recapture/link evidence with project_root+continuity_id when durable linkage is needed
+    proof_requirements:
+      - ECS and visual workflow store exact handle ids and return handle object
+      - duplicate labels cannot select wrong artifact
+  old_reference_store_records:
+    legacy_shape: artifacts keyed by label or session-only metadata
+    read_behavior: readable but label lookup is not used for newly-created exact returns
+    authority_status: external_artifact_only until linked as scoped evidence
+    migration_warning: reference_store_label_legacy
+    promotion_path: exact handle id plus scoped evidence capture/link
+    proof_requirements:
+      - store routes poll by h.id == handle_id, never h.label == label
+  old_snapshots_and_clt_nodes:
+    legacy_shape: lineage snapshots without project/workstream authority annotations
+    read_behavior: readable_history_only
+    authority_status: lineage_not_current_action_authority
+    migration_warning: clt_snapshot_authority_unscoped
+    promotion_path: workpoint resume/checkpoint under verified project/workstream
+    proof_requirements:
+      - CLT remains lineage/history and cannot decide current action
+
+side_effect_classification:
+  read_only:
+    meaning: no state mutation; safe bounded read
+    examples: [project_identity_read, trajectory_view, traverse_summary, tool_doctor_read]
+    proof: route/tool envelope side_effects empty or read_state only
+  advisory_projection:
+    meaning: projection or candidate; cannot mutate authority alone
+    examples: [trajectory_assess, ontology_read_model, active_object_resolve]
+    proof: canonical=false or advisory labels visible
+  runtime_cache:
+    meaning: temporal correlation; excluded from canonical cognition replay
+    examples: [active_turn_buffers, prompt_assembly_cache]
+    proof: snapshots/replay exclude raw prompt/user buffers
+  telemetry_event:
+    meaning: operational signal; can narrow/block workflow but not cognition truth
+    examples: [resource_mode, uiai_pressure, memory_telemetry]
+    proof: no FocusaState cognition version bump for telemetry-only writes
+  evidence_write:
+    meaning: stores or links proof handle; not object truth without verification
+    examples: [focusa_evidence_capture, workpoint_link_evidence, ecs_store, visual_workflow_store]
+    proof: exact evidence_ref/handle returned and scope fields preserved
+  reducer_event:
+    meaning: durable canonical-capable mutation under verified scope
+    examples: [workpoint_checkpoint, trajectory_define_goal, focus_update]
+    proof: project_root+continuity/frame scope validated before canonical=true
+  external_io:
+    meaning: browser/search/network/file execution outside Focusa cognition
+    examples: [uiai_browser_diagnostics, screenshot, search, source_markdown]
+    proof: output is proposal/evidence handle until Focusa capture/link succeeds
+  destructive_or_service_control:
+    meaning: deletion, service stop/restart, permission change, background process kill
+    examples: [silent_session_kill, state_hygiene_apply, service_restart]
+    proof: approved=true/operator approval and rollback/recovery path required
+
+expected_side_effects:
+  stricter_envelopes:
+    positive: agents see canonical/advisory/degraded/stale status and next tools
+    risk: more fields in payloads
+    mitigation: compact first line plus expandable detail
+  degraded_legacy_packets:
+    positive: old data stays readable without false authority
+    risk: agents may hesitate on old work
+    mitigation: explicit promotion_path and Workpoint checkpoint route
+  scoped_evidence_handles:
+    positive: fewer cross-project/browser evidence leaks
+    risk: old handles may lack scope
+    mitigation: legacy_scope_missing warning plus recapture/link path
+  ui_packet_capture_rendering:
+    positive: packet composed versus Focusa-captured state is visible
+    risk: compact render can hide nuance
+    mitigation: first line includes capture_status and scope_source
+  headless_schema_first:
+    positive: MCP/CLI/RPC are not second-class
+    risk: requires more schema discipline
+    mitigation: proof bundle includes headless parity checks
+  side_effect_lint:
+    positive: route/tool mutations declare consequences before merge
+    risk: implementation overhead
+    mitigation: safe defaults and generated scaffold fields
+
+proof_bundle_map:
+  daemon_core:
+    surfaces: [reducer, runtime_daemon, replay, persistence_sqlite]
+    proof_commands:
+      - cargo test -p focusa-core sync::crdt
+      - tests/spec98_runtime_multi_daemon_crdt_sync_test.sh
+      - tests/spec98_active_turn_runtime_separation_static_test.py
+  api_routes:
+    surfaces: [workpoint, trajectory, focus_state, ecs, visual_workflow, sync, telemetry]
+    proof_commands:
+      - cargo check -p focusa-api
+      - tests/spec98_workpoint_trajectory_active_scope_static_test.py
+      - tests/spec98_reference_store_scope_static_test.py
+      - tests/spec98_visual_workflow_exact_scope_static_test.py
+  cli:
+    surfaces: [focusa_cli_json, workpoint_copy_prompt, project_identity, trajectory, resource]
+    proof_commands:
+      - tests/focusa_cli_parity_smoke_test.sh
+      - tests/spec96_cli_parity_static_test.sh
+  pi_extension:
+    surfaces: [tools, compaction, session, turns, tool_contracts]
+    proof_commands:
+      - npm --prefix apps/pi-extension run check
+      - tests/pi_extension_contract_test.sh
+      - tests/spec98_tl_bootstrap_compaction_static_test.sh
+  uiai_external:
+    surfaces: [research_packet, browser_diagnostics, screenshots, share_artifacts, packet_render]
+    proof_commands:
+      - as-user wpuiai 'cd /home/wpuiai/uiai-engine && scripts/check-focusa-packet-drift.sh'
+      - as-user wpuiai 'cd /home/wpuiai/uiai-engine && scripts/check-tool-parity.sh'
+      - as-user wpuiai 'cd /home/wpuiai/uiai-engine && bun test ./.pi/extensions/uiai-engine.packet-builder.test.ts'
+      - as-user wpuiai 'cd /home/wpuiai/uiai-engine && scripts/smoke-focusa-packet-ci.sh'
+  menubar:
+    surfaces: [workpoint_peek, proof_peek, api_envelope_render]
+    proof_commands:
+      - npm --prefix apps/menubar run typecheck
+      - tests/spec96_menubar_cockpit_foundation_static_test.sh
+  proof_suite:
+    surfaces: [Spec98 authority and CRDT regression suite]
+    proof_commands:
+      - tests/spec98_runtime_bleed_crdt_regression_suite.sh
+      - tests/spec98_migration_side_effect_plan_static_test.py
+
+implementation_handoff:
+  required_future_artifacts:
+    - migration/backcompat implementation for old Workpoint packets, UIAI packets, snapshots, focus state records, and evidence handles
+    - route/tool side-effect classification static test generated from registry
+    - proof bundle map runner that runs commands by changed surface
+    - legacy warning fields in render/envelope outputs where old data lacks scope
+  minimum_acceptance_now: >-
+    This worksheet plus static guard define the migration/backcompat matrix, expected side effects, and cross-surface proof bundles;
+    implementation child beads can now wire generated lint/runner behavior from this source of truth.
