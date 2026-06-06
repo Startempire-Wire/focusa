@@ -1,0 +1,70 @@
+schema_version: focusa.work_loop_execution_partition_contract.v1
+work_item_id: focusa-877z.23
+status: writer_and_work_item_partition_contract_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#7.5
+  - docs/99-original-intent-vs-implementation-audit.md#9
+normative_rule: Work-loop execution state is identified by ProjectRootKey plus WorkstreamKey plus WorkItemKey plus WriterKey; writer ownership alone is not project authority.
+partition_keys:
+  ProjectRootKey:
+    source: verified project_root
+    role: project boundary for Work-loop state and ready-work selection
+  WorkstreamKey:
+    source: continuity_id
+    role: logical Work-loop boundary across Pi/session compaction
+  WorkItemKey:
+    source: current_task.work_item_id or requested root/parent work item id
+    role: active execution commitment and retry/budget partition
+  WriterKey:
+    source: x-focusa-writer-id
+    role: mutation ownership within the selected WorkItemKey
+state_requirements:
+  current_task:
+    must_pin: work_item_id
+    partition_role: active execution commitment
+  writer_claim:
+    must_include: writer_id
+    future_required_scope: ProjectRootKey + WorkstreamKey + WorkItemKey
+    legacy_state: active_writer is daemon-global and accepted only as migration fallback
+  counters:
+    partition_by: WorkItemKey
+    examples:
+      - consecutive_same_work_item_retries
+      - consecutive_failures_for_task_class
+      - turn_count
+  transport:
+    partition_by: WriterKey + WorkItemKey
+    examples:
+      - worker_session_id
+      - transport_session_state
+      - last_transport_event_sequence
+route_requirements:
+  /v1/work-loop/status:
+    must_render:
+      - active_writer
+      - current_task.work_item_id
+      - execution_partition
+      - active_workpoint
+  /v1/work-loop/enable:
+    writer_gate: require approval plus writer claim
+    work_item_gate: root_work_item_id or active frame beads_issue_id
+  /v1/work-loop/select-next:
+    writer_gate: require writer claim
+    work_item_gate: explicit parent_work_item_id
+  /v1/work-loop/context:
+    writer_gate: claimed writer must match
+  /v1/work-loop/checkpoint:
+    writer_gate: require writer claim
+    checkpoint_partition: current_task.work_item_id + writer_id
+proof_requirements:
+  - static Work-loop contract validation
+  - static status renders execution_partition
+  - static writer claim functions remain mutation gates
+  - runtime same-project different-work-item writer isolation test
+  - runtime writer conflict same-work-item test
+implementation_notes:
+  current_slice:
+    - define contract and status partition payload
+    - preserve legacy active_writer storage until full per-work-item writer map migration
+  followup_slice:
+    - replace active_writer Option<String> with scoped writer claims keyed by ProjectRootKey + WorkstreamKey + WorkItemKey

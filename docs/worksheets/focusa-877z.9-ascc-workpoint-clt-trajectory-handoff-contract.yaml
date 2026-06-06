@@ -1,0 +1,60 @@
+schema_version: focusa.ascc_workpoint_clt_trajectory_handoff_contract.v1
+work_item_id: focusa-877z.9
+status: separate_system_handoff_route_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.6
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.7
+  - operator_correction: preserve ASCC, Workpoint, CLT, and Trajectory Ladder as separate systems
+normative_rule: ASCC, Workpoint, CLT, and Trajectory Ladder remain separate systems; handoff references connect them for resumed-agent clarity without merging authority or letting advisory route context become false authority.
+system_roles:
+  ascc:
+    role: scoped_focus_state_slots
+    owns: current semantic slots inside the active Focus Frame
+    authority: canonical Focus State only through scoped frame writes
+    not: Workpoint packet, CLT lineage, or Trajectory route
+  workpoint:
+    role: immediate_next_action_continuation_authority
+    owns: mission/action/next/blockers/evidence continuation packet
+    authority: canonical only when project_root+continuity_id+canonical flag match
+    not: ASCC slot store, CLT transcript history, or route-goal planner
+  clt:
+    role: append_only_lineage_history
+    owns: interaction/branch/replay history
+    authority: corroborating history, never immediate next-action authority by itself
+    not: Workpoint or Trajectory Ladder
+  trajectory_ladder:
+    role: goal_gap_route_guidance
+    owns: HLT/MLG/STG/waypoints/gap/candidate workpoint guidance
+    authority: advisory route context until explicit trajectory/workpoint promotion
+    not: Workpoint authority or ASCC slot mutation
+handoff_route:
+  post_compaction_resume_order:
+    - WorkpointResumePacket: canonical immediate next action if scope matched
+    - TrajectoryView: advisory goal/gap orientation paired with Workpoint
+    - ASCC Focus State: semantic slots for active frame, read/write via scoped frame routes
+    - CLT replay/window: historical corroboration only when needed
+  forbidden_merges:
+    - trajectory_similarity_as_resume_authority
+    - clt_history_as_next_action_authority
+    - ascc_notes_as_workpoint_packet
+    - workpoint_checkpoint_as_trajectory_goal_rewrite
+implemented_slice:
+  type_roles:
+    file: crates/focusa-core/src/types.rs
+    enum: HandoffSystemRole
+    const: HANDOFF_SYSTEM_ROLE_CONTRACT
+  trajectory_route_guards:
+    file: crates/focusa-api/src/routes/trajectory.rs
+    required_phrases:
+      - Trajectory proposal is advisory; call focusa_workpoint_checkpoint before acting
+      - Trajectory does not auto-promote Workpoints
+      - Do not merge same-high-level sessions without project_root+continuity_id match
+proof_requirements:
+  - static HandoffSystemRole enum exists with ASCC/Workpoint/CLT/Trajectory roles
+  - static HANDOFF_SYSTEM_ROLE_CONTRACT maps all four systems
+  - static Trajectory propose/checkpoint/resume payloads require Workpoint checkpoint/resume for canonical continuation
+  - static trajectory route warns against session merge by similarity
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - richer rendered handoff card can be added later to compact/resume UI; this contract defines the authority route first

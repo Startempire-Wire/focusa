@@ -178,6 +178,8 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 95 | [95-focusa-ontology-low-latency-intelligence-enhancer-sow.md](95-focusa-ontology-low-latency-intelligence-enhancer-sow.md) | Ontology low-latency intelligence |
 | 96 | [96-trajectory-projection-and-daemon-stability-spec.md](96-trajectory-projection-and-daemon-stability-spec.md) | Trajectory projection and daemon stability |
 | 97 | [97-focusa-reflex-primitives-spec.md](97-focusa-reflex-primitives-spec.md) | Universal reflex primitives |
+| 98 | [98-project-root-crdt-reconciliation-foundation-spec.md](98-project-root-crdt-reconciliation-foundation-spec.md) | Project-root CRDT reconciliation foundation |
+| 99 | [99-original-intent-vs-implementation-audit.md](99-original-intent-vs-implementation-audit.md) | Original intent vs implementation audit |
 
 ---
 
@@ -202,6 +204,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 40  | [40-instance-session-attachment-spec.md](40-instance-session-attachment-spec.md) | Instance/Session/Attachment concurrency                             |
 | 41  | [41-proposal-resolution-engine.md](41-proposal-resolution-engine.md)             | Proposal Resolution Engine (PRE)                                    |
 | 43  | [43-multi-device-sync.md](43-multi-device-sync.md)                               | Multi-device local-first sync (observations + per-thread ownership) |
+| 98  | [98-project-root-crdt-reconciliation-foundation-spec.md](98-project-root-crdt-reconciliation-foundation-spec.md) | Project-root source of truth and CRDT reconciliation foundation |
 
 ---
 

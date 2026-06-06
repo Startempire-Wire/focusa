@@ -5688,6 +5688,17 @@ fn ontology_reducer_event_id(focusa: &FocusaState) -> Option<String> {
         .map(|delta| format!("{}:{:?}", delta.delta_kind, delta.timestamp))
 }
 
+fn ontology_projection_authority_metadata() -> Value {
+    json!({
+        "advisory_only": true,
+        "canonical": false,
+        "canonical_truth_mutation": false,
+        "promotion_path": "ontology projection -> PRE proposal or Workpoint candidate -> reducer/governance promotion",
+        "canonicalization_tools": ["focusa_workpoint_checkpoint", "focusa_active_object_resolve", "focusa_evidence_capture"],
+        "do_not_use_as": ["canonical_task_meaning", "resume_authority", "focus_state_mutation"],
+    })
+}
+
 fn build_ontology_read_index(
     focusa: &FocusaState,
     frame_id: Option<&str>,
@@ -5808,12 +5819,18 @@ pub fn ontology_read_index_cache_metadata(focusa: &FocusaState) -> Value {
     json!({
         "cache_tier": "reducer-fed-hot",
         "cache_name": "ontology_read_index",
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "projection_canonical": false,
+        "canonical_truth_mutation": false,
+        "promotion_path": "read-index cache hit -> bounded projection selection -> Workpoint/PRE/reducer promotion path",
         "source_reducer_version": index.source_state_version,
         "generated_at": index.generated_at.to_rfc3339(),
         "ttl_seconds": index.ttl_seconds,
         "age_seconds": age_seconds,
         "invalidation_rule": "ontology_reducer_event_or_frame_change_or_ttl",
         "canonical": !stale,
+        "canonical_meaning": "cache_entry_freshness_only_not_task_authority",
         "degraded": false,
         "stale": stale,
         "object_count": index.objects.len(),
@@ -5910,6 +5927,10 @@ fn adjacency_index_payload(
     json!({
         "status": "ok",
         "source": "ontology_adjacency_read_index",
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "canonical": false,
+        "promotion_path": "adjacency projection -> active-object resolution/evidence -> Workpoint or reducer proposal",
         "source_state_version": focusa.version,
         "index": {
             "projection_kind": "combined_projection_full_world_semantics",
@@ -6138,6 +6159,10 @@ fn working_set_payload(focusa: &FocusaState, params: WorkingSetPayloadParams<'_>
     json!({
         "status": "ok",
         "source": "ontology_working_set_projection",
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "canonical": false,
+        "promotion_path": "working-set projection -> selected target refs -> Workpoint checkpoint or reducer proposal",
         "index": {
             "projection_kind": "combined_projection_full_world_semantics",
             "source_reducer_version": focusa.version,
@@ -6401,6 +6426,10 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
     json!({
         "status": "ok",
         "source": "ontology_prompt_safe_context",
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "canonical": false,
+        "promotion_path": "prompt-safe active object/next-action projection -> active-object resolve -> Workpoint checkpoint/evidence capture",
         "source_state_version": focusa.version,
         "view_profile": body.view_profile.as_deref().unwrap_or("pi_operator_view"),
         "budget_tokens": budget_tokens,
@@ -6602,6 +6631,10 @@ fn affordances_payload(
     json!({
         "status": "ok",
         "source": "ontology_affordance_execution_projection",
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "canonical": false,
+        "promotion_path": "affordance projection -> verified action/evidence -> Workpoint or reducer-governed ontology event",
         "source_state_version": focusa.version,
         "target_ref": target_ref,
         "action_intent": action_intent,
@@ -6881,6 +6914,10 @@ fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequ
     json!({
         "status": "ok",
         "source": "ontology_retrieval_governor",
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "canonical": false,
+        "promotion_path": "retrieval plan -> operator/tool selection -> Workpoint checkpoint/PRE proposal/reducer promotion",
         "source_state_version": focusa.version,
         "current_ask_present": !ask.trim().is_empty(),
         "operator_steering_detected": body.operator_steering_detected,
@@ -8392,6 +8429,10 @@ async fn world(
     let payload = json!({
         "object_count": object_total,
         "link_count": link_total,
+        "authority": ontology_projection_authority_metadata(),
+        "advisory_only": true,
+        "canonical": false,
+        "promotion_path": "world projection -> bounded selection -> reducer-governed ontology proposal/promotion",
         "objects": objects,
         "links": links,
         "canonical_ontology": {
@@ -9453,6 +9494,8 @@ mod tests {
             sha256: "deadbeef".to_string(),
             created_at: Utc::now(),
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             pinned: false,
             trajectory: Some(TrajectoryLadderContext {
                 trajectory_id: Some("traj-ontology".to_string()),
@@ -9594,6 +9637,8 @@ mod tests {
             sha256: "deadbeef".to_string(),
             created_at: Utc::now(),
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             pinned: false,
             trajectory: Some(TrajectoryLadderContext {
                 trajectory_id: Some("traj-context".to_string()),

@@ -1,0 +1,40 @@
+schema_version: focusa.focus_frame_beads_validation_contract.v1
+work_item_id: focusa-877z.3
+status: canonical_focus_frame_push_requires_real_project_beads_issue
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.3
+  - docs/99-original-intent-vs-implementation-audit.md#E3
+normative_rule: Canonical FocusFramePushed creation requires a real Beads issue in the exact project root; synthetic/proposal/demo IDs cannot satisfy canonical Focus Stack invariants.
+implemented_slice:
+  api_focus_push:
+    file: crates/focusa-api/src/routes/focus.rs
+    route: POST /v1/focus/push
+    validation:
+      - project_root must be exact and safe
+      - continuity_id must be present
+      - beads_issue_id must be non-empty
+      - project Beads JSONL source (.beads/issues.jsonl or beads-sync mirror) must contain matching id
+    rejected_payload:
+      canonical: false
+      failure_class: validation_rejected
+      reason: beads_issue_not_found
+  daemon_push_action:
+    file: crates/focusa-core/src/runtime/daemon.rs
+    action: Action::PushFrame
+    validation:
+      - project_root must be present
+      - project Beads JSONL source (.beads/issues.jsonl or beads-sync mirror) must contain matching id
+    failure_policy: bail before emitting FocusaEvent::FocusFramePushed
+  event_semantics:
+    canonical_event: FocusaEvent::FocusFramePushed
+    canonical_only_if: created by validated API route or validated daemon action
+    noncanonical_policy: proposal/demo frames remain outside FocusFramePushed canonical event path
+proof_requirements:
+  - static API route checks beads_issue_exists before materialize_focus_event(FocusFramePushed)
+  - static daemon Action::PushFrame checks beads_issue_exists before emitting FocusFramePushed
+  - static rejection payload marks missing Beads as canonical=false
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - historical/replay fixtures may still construct FocusFramePushed directly for reducer tests; direct event injection is test/historical replay, not canonical creation authority
+  - future PRE proposal routes should expose explicit noncanonical proposal/demo frame schemas instead of overloading FocusFramePushed

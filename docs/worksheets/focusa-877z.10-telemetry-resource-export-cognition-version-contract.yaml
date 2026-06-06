@@ -1,0 +1,59 @@
+schema_version: focusa.telemetry_resource_export_cognition_version_contract.v1
+work_item_id: focusa-877z.10
+status: non_cognition_freshness_boundary_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.11
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.12
+normative_rule: Telemetry buffers, resource pressure pruning, prediction/evaluation metrics, and contribution/export queues are non-cognition freshness surfaces; they may mark external runtime mutation but must not advance canonical FocusaState.version unless paired with an explicit reducer/governance event.
+plane_roles:
+  telemetry:
+    authority_plane: telemetry_history
+    owns: trace events, token/task counters, tool calls, lowmem retention artifacts
+    freshness: telemetry_generated_at/counts, not canonical state version
+    allowed_side_effects:
+      - mutate telemetry buffers
+      - prune telemetry buffers under pressure
+      - mark_external_mutation for daemon/UI wakeup
+    forbidden_side_effects:
+      - increment FocusaState.version by pruning alone
+      - imply Focus State/Workpoint authority freshness
+  resource_pruning:
+    authority_plane: runtime_correlation_plus_telemetry_history
+    owns: allocator trim and pressure-sensitive bounded buffer pruning
+    freshness: resource transition records and telemetry retention metadata
+    allowed_side_effects:
+      - trim allocator
+      - prune trace/tool/token/advisory runtime buffers
+      - mark_external_mutation when pruning happened
+    forbidden_side_effects:
+      - advance canonical cognition version for telemetry/advisory pruning alone
+  predictions:
+    authority_plane: advisory_projection_plus_telemetry_history
+    owns: predictions, evaluations, calibration stats
+    freshness: prediction record/evaluation timestamps, not Focus State authority
+    forbidden_side_effects:
+      - promote forecast into canonical route without explicit operator/reducer promotion
+  contribution_export:
+    authority_plane: telemetry_history
+    owns: contribution queue and export manifests/history
+    freshness: queue/export metadata only
+    forbidden_side_effects:
+      - share canonical cognition freshness semantics
+      - mutate Focus State authority by read/export queue inspection
+implementation:
+  patched:
+    file: crates/focusa-api/src/server.rs
+    function: prune_pressure_sensitive_state
+    change: pressure-sensitive pruning no longer increments FocusaState.version; it only marks external mutation when pruning occurred
+  existing_contracts:
+    - crates/focusa-core/src/types.rs maps telemetry/contribution to TelemetryHistory and anticipated_context to AdvisoryProjection
+    - telemetry routes mutate telemetry buffers directly and call mark_external_mutation without version increments
+    - export/contribution queue routes in capabilities_extra are read-only inspection surfaces
+proof_requirements:
+  - static guard proves prune_pressure_sensitive_state does not modify focusa.version
+  - static guard proves telemetry route writers mark external mutation but do not modify focusa.version
+  - static guard proves contribution/export queue routes are read-only over state.focusa.read
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - future prediction write routes should receive the same no-version-increment static guard when .12/.14 cover advisory promotion surfaces

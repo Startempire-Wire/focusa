@@ -1,0 +1,80 @@
+schema_version: focusa.proxy_pipeline_stage_contract.v1
+work_item_id: focusa-877z.11
+status: transparent_proxy_pipeline_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.10
+  - docs/09-proxy-adapter.md
+  - docs/G1-detail-04-proxy-adapter.md
+normative_rule: Proxy processing is an explicit staged pipeline; deterministic expression rendering consumes prepared inputs only and remains separate from retrieval/enrichment planning, provider request mutation, provider compatibility shims, upstream I/O, eval/regeneration, and runtime telemetry.
+stages:
+  request_intake:
+    side_effects: []
+    deterministic_render: false
+  user_input_extraction:
+    side_effects: []
+    deterministic_render: false
+  retrieval_enrichment_planning:
+    side_effects:
+      - inspect FocusaState/read models to choose a minimal applicable slice
+    deterministic_render: false
+    not_expression_engine: true
+  deterministic_expression_render:
+    side_effects:
+      - produce prompt text from prepared inputs
+      - estimate tokens and warnings
+    deterministic_render: true
+    forbidden:
+      - upstream provider IO
+      - provider compatibility mutation
+      - eval/regeneration
+      - telemetry freshness mutation
+      - implicit retrieval
+  provider_request_injection:
+    side_effects:
+      - mutate outgoing provider request shape/system field/messages
+    deterministic_render: false
+  provider_compatibility_shim:
+    side_effects:
+      - strip/normalize provider-specific unsupported fields when explicitly invoked
+    deterministic_render: false
+    observable: function boundary and contract label
+  upstream_provider_forward:
+    side_effects:
+      - outbound network provider IO
+    deterministic_render: false
+  runtime_telemetry_capture:
+    side_effects:
+      - usage/trace extraction only
+    freshness: non_cognition
+    deterministic_render: false
+  eval_regeneration:
+    side_effects:
+      - evaluate outputs or request regeneration under explicit future gate
+    deterministic_render: false
+implementation:
+  core_contract:
+    file: crates/focusa-core/src/types.rs
+    enum: ProxyPipelineStage
+    const: PROXY_PIPELINE_STAGE_CONTRACT
+  adapters:
+    openai:
+      file: crates/focusa-core/src/adapters/openai.rs
+      stages_labeled:
+        - RetrievalEnrichmentPlanning
+        - ProviderRequestInjection
+        - UpstreamProviderForward
+        - RuntimeTelemetryCapture
+    anthropic:
+      file: crates/focusa-core/src/adapters/anthropic.rs
+      stages_labeled:
+        - ProviderRequestInjection
+        - ProviderCompatibilityShim
+        - UpstreamProviderForward
+        - RuntimeTelemetryCapture
+proof_requirements:
+  - static guard proves all proxy stages exist in ProxyPipelineStage and PROXY_PIPELINE_STAGE_CONTRACT
+  - static guard proves only DeterministicExpressionRender has deterministic_render=true
+  - static guard proves expression engine docs keep no-retrieval/no-provider/no-eval/no-telemetry-authority boundary
+  - static guard proves provider compatibility shim is separately labeled from injection/render
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass

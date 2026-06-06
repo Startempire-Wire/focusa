@@ -1,0 +1,69 @@
+schema_version: focusa.bounded_orchestration_contract.v1
+work_item_id: focusa-877z.13
+status: bounded_orchestration_plane_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.15
+  - docs/79-focusa-governed-continuous-work-loop.md
+  - docs/focusa-tools/tools/focusa_silent_sessions.md
+normative_rule: >-
+  Work-loop, autonomy calibration, and SilentSessions are bounded orchestration surfaces: they may coordinate or control execution with writer ownership and operator controls, but they do not become Focus State authority without explicit Workpoint/evidence/reducer governance promotion.
+surfaces:
+  work_loop:
+    authority_plane: bounded_orchestration
+    owns: continuous run status, writer claim, pause/resume/stop/preflight, bounded next-work dispatch
+    guardrails:
+      - x-focusa-writer-id claim for mutations
+      - approval header for sensitive controls
+      - pause flags for operator override, governance, destructive confirmation
+    forbidden:
+      - direct Focus State mutation as continuation authority
+      - bypassing writer ownership
+  autonomy_calibration:
+    authority_plane: bounded_orchestration
+    owns: ARI score, autonomy level, recommendation, ledger/explain surfaces
+    guardrails:
+      - read-scope required
+      - recommendations are non-canonical until operator/governance promotion
+    forbidden:
+      - autonomous promotion into Focus State authority
+  silent_session:
+    authority_plane: pi_local_bounded_orchestration
+    owns: tmux-backed background process list/start/reopen/tail/health/send/interrupt/restart/kill
+    guardrails:
+      - start/send/interrupt/restart require approved=true
+      - kill requires approved=true and force=true
+      - project owner/as-user posture for /home roots
+      - LowMem posture on default start
+    forbidden:
+      - treating tmux process state as Workpoint/Focus State authority
+implementation:
+  core_contract:
+    file: crates/focusa-core/src/types.rs
+    enum: OrchestrationSurface
+    const: BOUNDED_ORCHESTRATION_CONTRACT
+    state_plane:
+      work_loop: BoundedOrchestration
+      autonomy: BoundedOrchestration
+  work_loop_route:
+    file: crates/focusa-api/src/routes/work_loop.rs
+    authority_helper: bounded_orchestration_authority_payload
+  autonomy_route:
+    file: crates/focusa-api/src/routes/capabilities_extra.rs
+    authority_fields:
+      - authority_plane=bounded_orchestration
+      - focus_state_authority=false
+      - canonical=false
+  silent_session_tool:
+    file: apps/pi-extension/src/tools.ts
+    guardrails:
+      - mutating process actions require approved=true
+      - kill requires force=true
+      - evidence_capture_suggestion is proof-only, attach_to_workpoint=false
+proof_requirements:
+  - static guard proves WorkLoop/autonomy state fields map to BoundedOrchestration
+  - static guard proves BOUNDED_ORCHESTRATION_CONTRACT includes work_loop/autonomy/silent_session
+  - static guard proves work-loop status payloads carry bounded orchestration authority metadata and writer ownership guard exists
+  - static guard proves autonomy routes expose non-canonical bounded orchestration metadata
+  - static guard proves SilentSession mutating actions require approval/force and use tmux as process control only
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass

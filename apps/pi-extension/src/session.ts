@@ -336,6 +336,14 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   const mode = S.cfg?.vitalInfoPromptMode || "prompt";
   if (!vitalPromptSurfaceEnabled("trajectory") || mode !== "prompt" || !isProjectRootAuthoritySafe(projectRoot)) return;
   const clarity: any = trajectoryClarityForProject(projectRoot) || {};
+  const priorProjectFallbackLoaded = clarity.fallback_prior_project_trajectory === true && Boolean(clarity.long_term_goal || clarity.desired_end_state || clarity.trajectory_id);
+  if (priorProjectFallbackLoaded) {
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_trajectory_prompt_suppressed_prior_project_fallback",
+      payload: { reason, project_root: projectRoot, continuity_id: S.continuityId || null, session_id: S.sessionFrameKey || null, trajectory_id: clarity.trajectory_id || null, fallback_source_continuity_id: clarity.fallback_source_continuity_id || null },
+    });
+    return;
+  }
   const status = String(clarity.status || "unknown");
   const action = String(clarity.recommended_action || "unknown");
   const unclear = ["unknown", "unclear", "not_found", "not_set", "missing"].includes(status) || /define_goal|operator_required/.test(action);

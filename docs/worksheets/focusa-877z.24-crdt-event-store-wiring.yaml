@@ -1,0 +1,66 @@
+schema_version: focusa.crdt_event_store_wiring_contract.v1
+work_item_id: focusa-877z.24
+status: crdt_event_store_gap_mapped
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#4
+  - docs/43-multi-device-sync.md
+normative_rule: Production event store must persist scoped CRDT causal metadata; CRDT logs cannot remain test-only or observation-only for same-root compatible updates.
+existing_foundation:
+  crdt_module:
+    file: crates/focusa-core/src/sync/crdt.rs
+    has:
+      - VectorClock
+      - CrdtEvent
+      - CrdtLog.merge_remote
+      - ConflictResolver.resolve
+      - causal sorting by vector clock then lamport timestamp
+  sqlite_event_store:
+    file: crates/focusa-core/src/runtime/persistence_sqlite.rs
+    has:
+      - append-only events table
+      - event_hash_chain
+      - machine_id/session_id/thread_id indexes
+      - append_event(EventLogEntry)
+  event_entry:
+    file: crates/focusa-core/src/types.rs
+    has:
+      - event id
+      - timestamp
+      - machine_id
+      - instance_id
+      - session_id
+      - thread_id
+      - is_observation
+required_production_wiring:
+  event_store_schema:
+    required_future_columns:
+      - project_root_key
+      - workstream_key
+      - vector_clock_json
+      - lamport_ts
+      - mutation_class
+      - causal_parent_ids_json
+      - conflict_resolution_status
+  append_path:
+    required_future_behavior:
+      - canonical events include project_root_key and workstream_key when mutation_class is canonical_state
+      - CRDT metadata persisted with each canonical event
+      - event_hash_chain includes payload plus causal metadata
+  sync_import:
+    required_future_behavior:
+      - same verified ProjectRootKey compatible updates enter CRDT reconciliation
+      - conflicting concurrent updates create explicit conflict records
+      - remote observations remain noncanonical only when scope is missing, unsafe, or incompatible
+proof_requirements:
+  - static CRDT primitives present
+  - static SQLite event hash chain present
+  - static production gap is explicit
+  - future migration test for required columns
+  - future same-root CRDT merge persistence test
+implementation_notes:
+  current_slice:
+    - document exact production wiring gap without pretending full CRDT migration is complete
+    - keep event store compatible until migration can add columns and replay conversion safely
+  followup_slice:
+    - add SQLite migrations for CRDT scope/causal columns
+    - expose append_crdt_event and import/reconcile same-root updates

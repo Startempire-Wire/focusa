@@ -1,0 +1,139 @@
+schema_version: focusa.project_workstream_partition_contract.v1
+work_item_id: focusa-877z.20
+status: partition_contract_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#6
+  - docs/99-original-intent-vs-implementation-audit.md#9
+normative_rule: Canonical project/workstream state is keyed by ProjectRootKey plus WorkstreamKey; session_id is temporal metadata only.
+keys:
+  ProjectRootKey:
+    kind: canonical_scope_key
+    source: verified ProjectIdentity project_root
+    normalization:
+      - trim
+      - resolve_safe_absolute_project_path
+      - reject_broad_roots
+      - prefer marker/git/beads verified root over raw cwd
+    rejects:
+      - missing_project_root
+      - unsafe_broad_project_root
+      - user_home_without_project_marker
+      - scope_mismatch_with_persisted_identity
+    uses:
+      - project registry partition
+      - event store partition
+      - Workpoint scope
+      - Trajectory scope
+      - Focus Stack scope
+      - Reference Store scope
+      - Evidence scope
+  WorkstreamKey:
+    kind: canonical_logical_session_key
+    source: continuity_id
+    normalization:
+      - trim
+      - stable_nonempty_string
+      - never_replace_with_session_id
+    rejects:
+      - missing_continuity_id_for_canonical_write
+      - session_id_as_authority_gate
+      - trajectory_similarity_as_authority_gate
+    uses:
+      - workstream state partition
+      - active Workpoint selection
+      - active Trajectory selection
+      - Focus Frame continuity
+      - Work-loop workstream grouping
+      - CRDT conflict partition
+  SessionKey:
+    kind: temporal_metadata
+    source: Pi/session adapter session_id
+    authority_role: correlation_only
+    rejects:
+      - session_id_as_project_or_workstream_authority
+state_partitions:
+  project_registry:
+    key: ProjectRootKey
+    canonical: true
+    contents:
+      - project identity fingerprint
+      - verified repo/workspace metadata
+      - project-level timeline refs
+  workstream_state:
+    key: ProjectRootKey + WorkstreamKey
+    canonical: true
+    contents:
+      - active Focus Frame ref
+      - active Workpoint ref
+      - active Trajectory ref
+      - workstream event head
+      - resumed-session lifecycle counters
+  project_timeline:
+    key: ProjectRootKey
+    canonical: true
+    contents:
+      - scoped event ids
+      - CRDT causal metadata
+      - import/export cursors
+  runtime_session_cache:
+    key: ProjectRootKey + WorkstreamKey + SessionKey
+    canonical: false
+    contents:
+      - prompt assembly correlation
+      - UI cache
+      - last rendered packet
+      - telemetry correlation
+required_event_fields:
+  canonical_state_events:
+    - project_root
+    - continuity_id
+    - event_id
+    - event_type
+    - causal_parent_ids
+    - mutation_class
+  runtime_or_telemetry_events:
+    - session_id
+    - event_type
+    - mutation_class
+    - noncanonical_label
+route_requirements:
+  canonical_write:
+    required_fields: [project_root, continuity_id, mutation_class]
+    missing_scope_behavior: validation_rejected_or_degraded_advisory
+  continuation_read:
+    required_fields: [project_root, continuity_id]
+    missing_scope_behavior: degraded_with_recovery_tools
+  advisory_projection:
+    required_fields: [project_root]
+    missing_scope_behavior: advisory_unscoped_or_rejected_for_broad_root
+  runtime_cache_write:
+    required_fields: [session_id, mutation_class]
+    missing_scope_behavior: allowed_only_when_noncanonical_label_present
+surface_requirements:
+  daemon:
+    - state maps must be indexed by ProjectRootKey and WorkstreamKey before canonical selection
+    - daemon-global active pointers are legacy fallback only and must degrade
+  api:
+    - canonical write routes must reject missing scope
+    - read routes must render scope_status
+  cli:
+    - human and JSON output must show project_root, continuity_id, and scope_status
+  pi_extension:
+    - Workpoint/Trajectory/Focus Slice packets must match ProjectRootKey and WorkstreamKey
+    - project switch ledger cannot override verified Workpoint scope
+  menubar:
+    - selected project/workstream is display/control context, not authority creation
+  uiai:
+    - focusa_scope is metadata until Focusa ProjectIdentity/Workpoint validates it
+proof_requirements:
+  - static partition contract validation
+  - two-project bleed test
+  - same-root multi-session timeline test
+  - ambiguous cwd degradation test
+  - session_id_not_authority test
+implementation_order:
+  - focusa-877z.19
+  - focusa-877z.20
+  - focusa-877z.21
+  - focusa-877z.22
+  - focusa-877z.24

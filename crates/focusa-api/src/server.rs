@@ -95,9 +95,8 @@ async fn prune_pressure_sensitive_state(state: &Arc<AppState>, trace_limit: usiz
         + drain_oldest(&mut focusa.telemetry.secondary_loop_ledger, ledger_limit)
         + drain_oldest(&mut focusa.telemetry.tokens_per_task, token_limit)
         + drain_oldest(&mut focusa.anticipated_context, 8);
-    if pruned > 0 {
-        focusa.version = focusa.version.saturating_add(1);
-    }
+    // Spec98 §13.11/13.12: pressure pruning only trims telemetry/advisory/runtime buffers.
+    // It must not advance canonical cognition freshness (`FocusaState.version`).
     drop(focusa);
     if pruned > 0 {
         state.mark_external_mutation();

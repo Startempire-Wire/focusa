@@ -51,11 +51,44 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 use tokio::sync::{Mutex, RwLock, mpsc};
 use uuid::Uuid;
+
+fn safe_beads_project_root(project_root: &str) -> bool {
+    let root = project_root.trim().trim_end_matches('/');
+    !root.is_empty()
+        && !matches!(root, "/" | "/root" | "/home" | "/tmp" | "/var" | "/usr" | "/opt")
+        && !root
+            .strip_prefix("/home/")
+            .is_some_and(|rest| !rest.contains('/'))
+}
+
+fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
+    let issue_id = beads_issue_id.trim();
+    if issue_id.is_empty() || !safe_beads_project_root(project_root) {
+        return false;
+    }
+    let issue_paths = [
+        Path::new(project_root).join(".beads/issues.jsonl"),
+        Path::new(project_root).join(".git/beads-worktrees/beads-sync/.beads/issues.jsonl"),
+    ];
+    issue_paths.iter().any(|path| {
+        let Ok(contents) = std::fs::read_to_string(path) else {
+            return false;
+        };
+        contents.lines().any(|line| {
+            serde_json::from_str::<Value>(line)
+                .ok()
+                .and_then(|value| value.get("id").and_then(|id| id.as_str()).map(str::to_string))
+                .as_deref()
+                == Some(issue_id)
+        })
+    })
+}
 
 /// The main daemon handle.
 pub struct Daemon {
@@ -1037,11 +1070,15 @@ Return ONLY valid JSON:
                             || est_tokens > self.config.ecs_externalize_token_threshold
                         {
                             let label = format!("turn-output-{}", turn_id);
+                            let session = self.state.session.as_ref();
                             match self.ecs.store(
                                 HandleKind::Text,
                                 label.clone(),
                                 output.as_bytes(),
-                                self.state.session.as_ref().map(|s| s.session_id),
+                                session.map(|s| s.session_id),
+                                None,
+                                session.and_then(|s| s.project_root.clone()),
+                                session.and_then(|s| s.continuity_id.clone()),
                             ) {
                                 Ok(handle) => {
                                     tracing::info!(
@@ -3572,6 +3609,30 @@ Return:
                 FocusaEvent::ContinuousWorkModeDisabled { reason },
             ]),
 
+            Action::UpdateActiveTurnRuntime {
+                turn_id,
+                raw_user_input,
+                assembled_prompt,
+                append_prompt,
+            } => {
+                if let Some(turn) = self.state.active_turn.as_mut()
+                    && turn.turn_id == turn_id
+                {
+                    if raw_user_input.is_some() {
+                        turn.raw_user_input = raw_user_input;
+                    }
+                    if assembled_prompt.is_some() {
+                        turn.assembled_prompt = assembled_prompt;
+                    }
+                    if let Some(chunk) = append_prompt {
+                        let existing = turn.assembled_prompt.take().unwrap_or_default();
+                        turn.assembled_prompt = Some(format!("{}{}", existing, chunk));
+                    }
+                    self.sync_shared_state().await;
+                }
+                Ok(vec![])
+            }
+
             Action::RequestNextContinuousTurn {
                 task_run_id,
                 work_item_id,
@@ -4339,6 +4400,17 @@ Return:
                 constraints,
                 mut tags,
             } => {
+                let Some(ref root) = project_root else {
+                    anyhow::bail!("canonical FocusFramePushed requires project_root for Beads validation");
+                };
+                if !beads_issue_exists(root, &beads_issue_id) {
+                    anyhow::bail!(
+                        "canonical FocusFramePushed rejected: Beads issue {} not found under {}",
+                        beads_issue_id,
+                        root
+                    );
+                }
+
                 // Flow Mesh bridge (§9.6): check if a matching task exists.
                 // Shell out to mesh CLI (best-effort, 3s timeout).
                 if let Ok(output) = tokio::time::timeout(
@@ -4504,9 +4576,23 @@ Return:
                 kind,
                 label,
                 content,
+                handle_id,
+                project_root,
+                continuity_id,
             } => {
-                let session_id = self.state.session.as_ref().map(|s| s.session_id);
-                let mut handle = self.ecs.store(kind, label, &content, session_id)?;
+                let session = self.state.session.as_ref();
+                let session_id = session.map(|s| s.session_id);
+                let project_root = project_root.or_else(|| session.and_then(|s| s.project_root.clone()));
+                let continuity_id = continuity_id.or_else(|| session.and_then(|s| s.continuity_id.clone()));
+                let mut handle = self.ecs.store(
+                    kind,
+                    label,
+                    &content,
+                    session_id,
+                    handle_id,
+                    project_root,
+                    continuity_id,
+                )?;
                 handle.trajectory = self.state.trajectory_ladder_context();
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     handle: handle.clone(),
@@ -4541,6 +4627,10 @@ Return:
                         crate::types::MemorySource::Mem0 => "mem0".to_string(),
                     },
                 }])
+            }
+
+            Action::ResolveSemanticContradictions { reason } => {
+                Ok(vec![FocusaEvent::SemanticMemoryContradictionsResolved { reason }])
             }
 
             Action::ReinforceRule { rule_id } => {

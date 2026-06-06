@@ -1,0 +1,57 @@
+schema_version: focusa.expression_engine_boundary_contract.v1
+work_item_id: focusa-877z.5
+status: expression_engine_deterministic_renderer_only
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.5
+  - docs/99-original-intent-vs-implementation-audit.md#E5
+normative_rule: Expression Engine renders caller-prepared inputs with explicit degradation; retrieval, memory maintenance, provider shims, and adaptive planning live outside it.
+authority_boundary:
+  expression_engine:
+    path: crates/focusa-core/src/expression
+    role: deterministic_renderer
+    allowed:
+      - budget calculation
+      - slot rendering
+      - ASCC/FocusState serialization from prepared inputs
+      - explicit degradation/warnings
+      - PromptAssembled telemetry event construction from render result
+    forbidden:
+      - memory mutation or maintenance
+      - retrieval/search/Mem0/Wiki queries
+      - network/process I/O
+      - provider request forwarding
+      - adaptive operator-intent planning
+      - Workpoint/Trajectory/Work-loop authority changes
+  proxy_routes:
+    path: crates/focusa-api/src/routes/proxy.rs
+    role: orchestration pipeline
+    allowed_with_explicit_stage_labels:
+      - pre_turn_enrichment
+      - semantic cleanup via reducer Action/Event
+      - provider shim/injection
+      - eval/regeneration
+      - telemetry
+  adapters:
+    path: crates/focusa-core/src/adapters
+    role: provider shims plus adapter-side slice planning
+    boundary_note: build_operator_first_slice is adapter-side adaptive planning, not Expression Engine rendering
+implemented_slice:
+  expression_module_invariants:
+    file: crates/focusa-core/src/expression/mod.rs
+    required_invariants:
+      - No retrieval, memory maintenance, network/process I/O, or adaptive planning
+      - Callers gather prepared inputs; Expression Engine only renders and degrades explicitly
+  prepared_input_api:
+    file: crates/focusa-core/src/expression/engine.rs
+    api: AssemblyInput + assemble_from
+  adapter_boundary_comment:
+    file: crates/focusa-core/src/adapters/openai.rs
+    symbol: build_operator_first_slice
+proof_requirements:
+  - static expression modules do not import or call retrieval/memory mutation/network/process/provider forwarding surfaces
+  - static proxy retrieval/memory cleanup/adaptive stages remain outside crates/focusa-core/src/expression
+  - static adapter adaptive planner is labeled outside Expression Engine
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - focusa-877z.11 later splits the proxy pipeline into richer explicit render/enrichment/eval/telemetry stage objects

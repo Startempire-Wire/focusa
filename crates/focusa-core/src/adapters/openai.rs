@@ -4,14 +4,14 @@
 //!
 //! Mode B — HTTP proxy between harness and model provider.
 //!
-//! Flow:
-//!   1. Accept OpenAI chat completion request
-//!   2. Extract user messages
-//!   3. Assemble Focusa-enhanced prompt via Expression Engine
-//!   4. Inject as system message (prepend or replace)
-//!   5. Forward to upstream provider
-//!   6. Return response unchanged
-//!   7. Emit turn events to daemon
+//! Transparent pipeline (see `PROXY_PIPELINE_STAGE_CONTRACT`):
+//!   1. RequestIntake — accept OpenAI chat completion request; no cognition mutation
+//!   2. UserInputExtraction — extract user messages; no rendering
+//!   3. RetrievalEnrichmentPlanning — adapter-side minimal-slice planning over state
+//!   4. DeterministicExpressionRender — render prepared prompt content only
+//!   5. ProviderRequestInjection — inject as system message (provider request mutation)
+//!   6. UpstreamProviderForward — forward to upstream provider
+//!   7. RuntimeTelemetryCapture — extract usage/turn telemetry; non-cognition freshness
 //!
 //! Failure: passthrough raw request (fail-safe).
 //! Performance: <20ms overhead target.
@@ -161,6 +161,10 @@ fn unique_items(items: &[String]) -> Vec<String> {
     out
 }
 
+/// Adapter-side adaptive slice planner.
+/// RetrievalEnrichmentPlanning stage.
+/// Boundary: this may inspect state to choose a minimal applicable slice, but it is not the
+/// Expression Engine; deterministic rendering remains in `expression::engine::assemble_from`/prepared prompt rendering.
 pub(crate) fn build_operator_first_slice(
     state: &FocusaState,
     config: &FocusaConfig,
@@ -400,7 +404,7 @@ fn extract_user_input(messages: &[ChatMessage]) -> String {
         .join("\n")
 }
 
-/// Inject the assembled Focusa prompt as the system message.
+/// ProviderRequestInjection stage: inject the assembled Focusa prompt as the system message.
 ///
 /// Strategy: prepend a system message with the assembled prompt.
 /// If a system message already exists, replace its content.

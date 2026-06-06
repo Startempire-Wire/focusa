@@ -138,6 +138,10 @@ async fn autonomy_status(
     require_scope(&headers, &state, "autonomy:read")?;
     let s = state.focusa.read().await;
     Ok(Json(json!({
+        "authority_plane": "bounded_orchestration",
+        "canonical": false,
+        "focus_state_authority": false,
+        "operator_controls": ["work_loop_writer_status", "work_loop_control_preflight", "explicit_operator_governance"],
         "agent_id": q.agent_id,
         "level": s.autonomy.level,
         "ari_score": s.autonomy.ari_score,
@@ -159,6 +163,9 @@ async fn autonomy_ledger(
         history.truncate(limit);
     }
     Ok(Json(json!({
+        "authority_plane": "bounded_orchestration",
+        "canonical": false,
+        "focus_state_authority": false,
         "agent_id": q.agent_id,
         "history": history,
     })))
@@ -199,6 +206,10 @@ async fn autonomy_explain(
     //  showing penalties applied, showing normalization factors.
     //  No opaque aggregation is allowed."
     Ok(Json(json!({
+        "authority_plane": "bounded_orchestration",
+        "canonical": false,
+        "focus_state_authority": false,
+        "promotion_required": "operator/governance approval before autonomy changes affect canonical cognition authority",
         "ari_score": a.ari_score,
         "sample_count": a.sample_count,
         "confidence_band": confidence_band,
@@ -242,6 +253,9 @@ async fn gate_policy(
         "surface_threshold": state.config.gate_surface_threshold,
         "decay_factor": state.config.gate_decay_factor,
         "max_candidates": state.config.gate_max_candidates,
+        "authority_plane": "advisory_candidate_front_door",
+        "canonical": false,
+        "promotion_required": "explicit FocusFrame/Workpoint/Trajectory/operator action",
     })))
 }
 
@@ -258,7 +272,12 @@ async fn gate_scores(
         .map(|c| json!({"candidate_id": c.id, "pressure": c.pressure, "state": c.state}))
         .collect();
 
-    Ok(Json(json!({"scores": scores})))
+    Ok(Json(json!({
+        "scores": scores,
+        "authority_plane": "advisory_candidate_front_door",
+        "canonical": false,
+        "promotion_required": "explicit FocusFrame/Workpoint/Trajectory/operator action",
+    })))
 }
 
 async fn gate_explain(
@@ -270,7 +289,11 @@ async fn gate_explain(
     Ok(Json(json!({
         "candidate_count": s.focus_gate.candidates.len(),
         "signal_count": s.focus_gate.signals.len(),
-        "note": "gate explain summarizes current candidate/signal counts",
+        "authority_plane": "advisory_candidate_front_door",
+        "canonical": false,
+        "promotion_required": "explicit FocusFrame/Workpoint/Trajectory/operator action",
+        "forbidden_authority": ["workpoint_resume", "trajectory_goal", "attention_recall", "work_loop_execution"],
+        "note": "gate explain summarizes candidate/signal counts; Focus Gate surfaces candidates only and does not choose canonical work authority",
     })))
 }
 

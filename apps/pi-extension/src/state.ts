@@ -842,6 +842,18 @@ export function observeProjectThreadHintsFromText(text: string, turnId: string, 
   return observations.filter(Boolean);
 }
 
+function aliasMatchesSavedProject(alias: string, savedProjectRoot: string): boolean {
+  const savedRoot = normalizeProjectRoot(savedProjectRoot);
+  if (!savedRoot) return false;
+  const lowerAlias = String(alias || "").toLowerCase().trim();
+  if (!lowerAlias) return false;
+  return projectAliasesForText("", savedRoot).some((candidate) => candidate.toLowerCase() === lowerAlias);
+}
+
+function isAliasOnlyProjectRoot(root: string): boolean {
+  return normalizeProjectRoot(root).startsWith("alias:");
+}
+
 function projectSwitchLedgerCandidateForAsk(currentAskText: string, savedProjectRoot: string): PiProjectThreadObservation | null {
   const ask = stripQuotedFocusaContext(currentAskText || "");
   if (!ask.trim() || !S.projectSwitchLedger.length) return null;
@@ -850,17 +862,21 @@ function projectSwitchLedgerCandidateForAsk(currentAskText: string, savedProject
   const scored = S.projectSwitchLedger.map((entry) => {
     let score = entry.confidence || 0;
     const alias = entry.project_alias.toLowerCase();
+    const entryRoot = normalizeProjectRoot(entry.project_root);
+    if (savedRoot && isAliasOnlyProjectRoot(entryRoot) && aliasMatchesSavedProject(alias, savedRoot)) score -= 2.0;
     if (alias && lower.includes(alias.toLowerCase())) score += 0.5;
     if (/\b(ptm|planmarr|plan-the-marriage|plan the marriage)\b/i.test(lower) && /ptm|planmarr|plan-the-marriage/i.test(`${entry.project_alias} ${entry.project_root}`)) score += 0.7;
-    if (entry.project_root && lower.includes(entry.project_root.toLowerCase())) score += 0.8;
+    if (entryRoot && !isAliasOnlyProjectRoot(entryRoot) && lower.includes(entryRoot.toLowerCase())) score += 0.8;
     if (/\b(wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(lower)) score += 0.15;
-    if (savedRoot && normalizeProjectRoot(entry.project_root) === savedRoot) score -= 0.6;
+    if (savedRoot && entryRoot === savedRoot) score -= 0.6;
     score += Math.max(0, 0.2 - (Date.now() - entry.updatedAt) / 86_400_000 * 0.05);
     return { entry, score };
   }).sort((a, b) => b.score - a.score);
   const best = scored[0];
   if (!best || best.score < PROJECT_SWITCH_LEDGER_MIN_CONFLICT_CONFIDENCE) return null;
-  if (savedRoot && normalizeProjectRoot(best.entry.project_root) === savedRoot) return null;
+  const bestRoot = normalizeProjectRoot(best.entry.project_root);
+  if (savedRoot && bestRoot === savedRoot) return null;
+  if (savedRoot && isAliasOnlyProjectRoot(bestRoot) && aliasMatchesSavedProject(best.entry.project_alias, savedRoot)) return null;
   return best.entry;
 }
 
@@ -901,10 +917,12 @@ export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; 
   const ledgerCandidate = projectSwitchLedgerCandidateForAsk(ask, savedRoot);
   const alias = aliases[0] || ledgerCandidate?.project_alias || "unknown";
   const aliasKnownRoot = rememberedProjectRootForAlias(alias);
-  const candidateRoot = normalizeProjectRoot(explicitRoot || ledgerCandidate?.project_root || aliasKnownRoot || "");
+  const rawCandidateRoot = normalizeProjectRoot(explicitRoot || ledgerCandidate?.project_root || aliasKnownRoot || "");
+  const candidateRoot = savedRoot && isAliasOnlyProjectRoot(rawCandidateRoot) && aliasMatchesSavedProject(alias, savedRoot) ? "" : rawCandidateRoot;
   const evidenceRef = explicitRoot ? "current_ask:explicit_project_path" : ledgerCandidate?.evidence_ref || (aliases.length ? `current_ask:project_alias:${alias}` : "none");
   const confidence = explicitRoot ? 0.95 : ledgerCandidate?.confidence ?? (candidateRoot ? 0.7 : aliases.length ? 0.58 : 0);
   const hasCorrectionPhrase = /\b(wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(ask);
+  const sameProjectAliasMention = savedRoot && aliases.some((candidate) => aliasMatchesSavedProject(candidate, savedRoot));
   let status: PiCurrentAskScopeVerdict["status"] = "unknown";
   let reason = "no current-ask project signal";
   if (candidateRoot && savedRoot && candidateRoot !== savedRoot) {
@@ -913,6 +931,9 @@ export function buildCurrentAskScopeVerdict(options: { currentAskText?: string; 
   } else if (candidateRoot && (!savedRoot || candidateRoot === savedRoot)) {
     status = "aligned";
     reason = candidateRoot === savedRoot ? "current ask project matches saved scope" : "current ask names project but saved scope is unbound";
+  } else if (sameProjectAliasMention && savedRoot && !hasCorrectionPhrase) {
+    status = "aligned";
+    reason = "current ask names saved project alias without competing root";
   } else if (aliases.length || hasCorrectionPhrase) {
     status = "override_candidate";
     reason = aliases.length ? `current ask names project alias ${alias} without verified root` : "operator correction implies saved project/root may be wrong";

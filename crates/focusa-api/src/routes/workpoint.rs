@@ -749,27 +749,18 @@ fn active_workpoint_for_scope<'a>(
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a WorkpointRecord> {
-    let clean_project = clean_resume_scope_value(project_root);
-    if clean_project
-        .as_deref()
-        .is_some_and(|root| unsafe_project_root_reason(Some(root)).is_some())
-    {
+    let clean_project = clean_resume_scope_value(project_root)?;
+    if unsafe_project_root_reason(Some(clean_project.as_str())).is_some() {
         return None;
     }
-    let clean_continuity = clean_resume_scope_value(continuity_id);
-    if let Some(expected_continuity) = clean_continuity.as_deref() {
-        return state.workpoint.records.iter().rev().find(|record| {
-            record.status == WorkpointStatus::Active
-                && record.canonical
-                && unsafe_project_root_reason(record.project_root.as_deref()).is_none()
-                && record.continuity_id.as_deref().map(str::trim) == Some(expected_continuity)
-                && clean_project
-                    .as_deref()
-                    .map(|expected| record.project_root.as_deref().map(str::trim) == Some(expected))
-                    .unwrap_or(true)
-        });
-    }
-    active_workpoint(state)
+    let clean_continuity = clean_resume_scope_value(continuity_id)?;
+    state.workpoint.records.iter().rev().find(|record| {
+        record.status == WorkpointStatus::Active
+            && record.canonical
+            && unsafe_project_root_reason(record.project_root.as_deref()).is_none()
+            && record.project_root.as_deref().map(str::trim) == Some(clean_project.as_str())
+            && record.continuity_id.as_deref().map(str::trim) == Some(clean_continuity.as_str())
+    })
 }
 
 fn parse_checkpoint_reason(
@@ -2179,7 +2170,6 @@ async fn link_evidence(
                 expected_project_root.as_deref(),
                 expected_continuity_id.as_deref(),
             )
-            .or_else(|| active_workpoint(&focusa))
             .cloned()
         } else {
             active_workpoint(&focusa).cloned()

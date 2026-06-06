@@ -1,0 +1,35 @@
+schema_version: focusa.pi_scope_cache_switch_contract.v1
+work_item_id: focusa-877z.25
+status: alias_only_same_project_switch_conflict_guarded
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#7.5
+  - docs/99-original-intent-vs-implementation-audit.md#9
+normative_rule: Pi project-root cache and project-switch ledger are advisory until resolved to a safe project_root; alias-only entries matching saved project basename must not suppress current Workpoint authority.
+cache_requirements:
+  durable_project_root_cache:
+    file: apps/pi-extension/src/state.ts
+    function: rememberedProjectRootResolution
+    rule: same-tree hint only; never pulls unsafe or different cwd into another project
+  workpoint_packet_scope:
+    function: isWorkpointPacketScopedToCurrentSession
+    rule: packet must match project_root + continuity_id and safe authority roots
+switch_ledger_requirements:
+  alias_only_entries:
+    representation: alias:<alias>
+    authority: advisory_only
+    same_project_alias_policy: no_scope_conflict
+    different_project_alias_policy: may_raise_conflict_when_current_ask_mentions_alias_or_correction
+  explicit_project_path_entries:
+    authority: candidate_project_signal
+    conflict_policy: compare exact normalized project_root with saved scope
+  candidate_selection:
+    function: projectSwitchLedgerCandidateForAsk
+    required_guards:
+      - aliasMatchesSavedProject
+      - isAliasOnlyProjectRoot
+      - skip same-project alias-only placeholders
+proof_requirements:
+  - static Pi scope cache/switch contract validation
+  - runtime same-project alias-only ledger does not create scope conflict
+  - runtime different-project alias/path still creates scope conflict
+  - existing Pi project root inference test remains green

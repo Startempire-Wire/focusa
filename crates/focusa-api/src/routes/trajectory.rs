@@ -323,6 +323,8 @@ fn active_persisted_trajectory<'a>(
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
+    let expected_project_root = clean(project_root)?;
+    let expected_continuity_id = clean(continuity_id)?;
     state
         .trajectory
         .active_trajectory_id
@@ -335,22 +337,14 @@ fn active_persisted_trajectory<'a>(
                 .find(|record| &record.trajectory_id == id)
         })
         .filter(|record| {
-            project_root
-                .map(|root| record.project_root.as_deref() == Some(root))
-                .unwrap_or(true)
-                && continuity_id
-                    .map(|id| record.continuity_id.as_deref() == Some(id))
-                    .unwrap_or(true)
+            record.project_root.as_deref() == Some(expected_project_root.as_str())
+                && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
         })
         .or_else(|| {
             state.trajectory.records.iter().rev().find(|record| {
                 record.canonical
-                    && project_root
-                        .map(|root| record.project_root.as_deref() == Some(root))
-                        .unwrap_or(true)
-                    && continuity_id
-                        .map(|id| record.continuity_id.as_deref() == Some(id))
-                        .unwrap_or(true)
+                    && record.project_root.as_deref() == Some(expected_project_root.as_str())
+                    && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
             })
         })
 }

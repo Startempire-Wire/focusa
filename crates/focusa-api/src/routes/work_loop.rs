@@ -79,6 +79,17 @@ async fn terminate_pi_rpc_child(child: &mut Child) {
     let _ = child.kill().await;
 }
 
+fn bounded_orchestration_authority_payload() -> Value {
+    json!({
+        "authority_plane": "bounded_orchestration",
+        "canonical": false,
+        "focus_state_authority": false,
+        "writer_ownership_required": true,
+        "operator_controls": ["pause", "resume", "stop", "preflight", "approval_header_for_sensitive_actions"],
+        "promotion_boundary": "orchestration may select/execute bounded work but must checkpoint/evidence/promote before cognition authority changes",
+    })
+}
+
 fn supervisor_perf_payload(state: &AppState) -> Value {
     let perf = &state.supervisor_perf;
     json!({
@@ -1289,6 +1300,23 @@ fn active_workpoint_summary_for_status(s: &focusa_core::types::FocusaState) -> V
     })
 }
 
+fn work_loop_execution_partition_payload(
+    wl: &focusa_core::types::WorkLoopState,
+    active_writer: Option<&str>,
+) -> Value {
+    let work_item_id = wl.current_task.as_ref().map(|task| task.work_item_id.clone());
+    json!({
+        "schema": "focusa.work_loop_execution_partition.v1",
+        "project_root_key": "pending_route_scope",
+        "workstream_key": "pending_route_scope",
+        "work_item_key": work_item_id,
+        "writer_key": active_writer,
+        "legacy_active_writer_global": true,
+        "partition_status": if wl.current_task.is_some() { "work_item_pinned" } else { "no_active_work_item" },
+        "migration_note": "active_writer is still daemon-global; .23 contract requires future ProjectRootKey+WorkstreamKey+WorkItemKey writer claims"
+    })
+}
+
 fn resume_payload_for_status(
     s: &focusa_core::types::FocusaState,
     wl: &focusa_core::types::WorkLoopState,
@@ -1936,6 +1964,7 @@ async fn health(
     let payload = json!({
         "status": "ok",
         "route_tier": "hot",
+        "authority": bounded_orchestration_authority_payload(),
         "summary_only": true,
         "enabled": wl.enabled,
         "work_loop_status": wl.status,
@@ -1943,6 +1972,7 @@ async fn health(
         "current_task_id": wl.current_task.as_ref().map(|task| task.work_item_id.clone()),
         "last_completed_task_id": wl.last_completed_task_id,
         "active_writer": active_writer,
+        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
         "dispatch_readiness": {
             "ready": dispatch_ready,
             "boundary_reason": boundary_reason,
@@ -1981,6 +2011,7 @@ async fn status(
         let payload = json!({
             "route_tier": "hot",
             "summary_only": true,
+            "authority": bounded_orchestration_authority_payload(),
             "deep_status_route": "/v1/work-loop/status/deep",
             "cold_omitted": [
                 "policy", "run", "blocker_package", "secondary_loop_eval_artifacts",
@@ -1993,6 +2024,7 @@ async fn status(
             "last_completed_task_id": wl.last_completed_task_id,
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
+            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
             "transport_health": transport_health,
             "budget_remaining": budget_remaining,
             "supervisor_perf": supervisor_perf_payload(&state),
@@ -2078,6 +2110,7 @@ async fn status(
     let payload = json!({
         "route_tier": "cold",
         "summary_only": false,
+        "authority": bounded_orchestration_authority_payload(),
         "cold_omitted": [],
         "enabled": wl.enabled,
         "status": wl.status,
@@ -2108,6 +2141,7 @@ async fn status(
         },
         "current_task": wl.current_task,
         "last_completed_task_id": wl.last_completed_task_id,
+        "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
         "last_recorded_bd_transition_id": wl.last_recorded_bd_transition_id,
         "last_blocker_class": wl.last_blocker_class,
         "last_blocker_reason": wl.last_blocker_reason,
@@ -2230,6 +2264,7 @@ async fn status_deep(
             "last_continue_reason": wl.last_continue_reason,
             "decision_context": wl.decision_context,
             "active_writer": active_writer,
+            "execution_partition": work_loop_execution_partition_payload(wl, active_writer.as_deref()),
             "active_workpoint": active_workpoint_summary_for_status(&s),
             "supervisor_perf": supervisor_perf_payload(&state),
             "deep_status_route": "/v1/work-loop/status/deep",

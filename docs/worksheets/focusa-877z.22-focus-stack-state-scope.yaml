@@ -1,0 +1,38 @@
+schema_version: focusa.focus_stack_state_scope_contract.v1
+work_item_id: focusa-877z.22
+status: focus_frame_writes_require_project_workstream_scope
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#7.5
+  - docs/99-original-intent-vs-implementation-audit.md#9
+normative_rule: Focus Stack and Focus State writes are canonical only when the target frame is bound to ProjectRootKey plus WorkstreamKey; daemon-global active_frame_id is not write authority.
+write_requirements:
+  /v1/focus/push:
+    required_scope: [project_root, continuity_id]
+    project_root_policy: reject_missing_or_unsafe_broad_root
+    continuity_policy: reject_missing_empty
+    event_fields: [FocusFramePushed.project_root, FocusFramePushed.continuity_id]
+  /v1/focus/update:
+    required_scope: [frame_id_with_scoped_frame, or_project_root_plus_continuity_id]
+    frame_id_policy:
+      - target frame must carry safe project_root
+      - target frame must carry nonempty continuity_id
+      - provided project_root/continuity_id must match target frame when present
+    fallback_policy:
+      forbidden: daemon_global_active_frame_id_as_write_authority
+      allowed: resolve_scoped_frame(project_root, continuity_id)
+  /v1/focus/pop:
+    target_state: pending_followup
+    required_future_policy: scoped target frame rather than daemon-global active_id
+  /v1/focus/set-active:
+    target_state: pending_followup
+    required_future_policy: scoped target frame rather than daemon-global active_id
+read_requirements:
+  /v1/focus/frame/current:
+    exact_project_workstream_query: preferred
+    missing_scope: degraded_or_advisory_only
+proof_requirements:
+  - static Focus push requires project_root and continuity_id
+  - static Focus update forbids daemon-global active frame adoption
+  - static Focus update requires scoped frame_id checks
+  - runtime two-project frame write isolation test
+  - runtime same-root multi-continuity frame write isolation test

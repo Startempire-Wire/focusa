@@ -1,0 +1,48 @@
+schema_version: focusa.focus_gate_authority_plane_contract.v1
+work_item_id: focusa-877z.4
+status: focus_gate_is_advisory_candidate_front_door
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.4
+  - docs/99-original-intent-vs-implementation-audit.md#E4
+  - docs/G1-detail-06-focus-gate.md
+normative_rule: Focus Gate surfaces advisory candidates/signals only; Workpoint, Trajectory, Attention Recall, Focus Stack/State, and Work-loop remain separate authority planes.
+authority_planes:
+  focus_gate:
+    authority: advisory_candidate_front_door
+    state: FocusGateState.signals + FocusGateState.candidates
+    allowed_events: [IntuitionSignalObserved, CandidateSurfaced, CandidatePinned, CandidateSuppressed]
+    forbidden_authority: [workpoint_resume, trajectory_goal, attention_recall, work_loop_execution, focus_stack_mutation]
+    promotion_required: explicit FocusFrame/Workpoint/Trajectory/operator action
+  workpoint:
+    authority: canonical continuation packet when project_root+continuity_id match
+  trajectory:
+    authority: goal/state/gap projection; advisory until define/checkpoint routes persist scoped trajectory events
+  attention_recall:
+    authority: compaction/resume attention verdict; never candidate ranking
+  work_loop:
+    authority: bounded orchestration/execution with writer ownership and operator controls
+implemented_slice:
+  type_invariants:
+    file: crates/focusa-core/src/types.rs
+    requirements:
+      - Focus Gate never mutates Focus State or Focus Stack
+      - Focus Gate never triggers actions
+      - Focus Gate only surfaces candidates
+  read_surfaces:
+    file: crates/focusa-api/src/routes/capabilities_extra.rs
+    routes:
+      - gate_policy
+      - gate_scores
+      - gate_explain
+    required_payload:
+      authority_plane: advisory_candidate_front_door
+      canonical: false
+      promotion_required: explicit FocusFrame/Workpoint/Trajectory/operator action
+proof_requirements:
+  - static FocusGateState invariants exist in core types
+  - static gate read surfaces expose authority_plane and canonical=false
+  - static gate explain declares forbidden_authority list
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - later route-specific work may add richer promotion workflows, but Focus Gate cannot silently promote authority

@@ -169,6 +169,10 @@ struct StoreBody {
     /// Plain text content (alternative to base64).
     #[serde(default)]
     content: Option<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
 }
 
 impl StoreBody {
@@ -192,33 +196,38 @@ async fn store_artifact(
 ) -> EcsResult {
     let content = body.resolve_content()?;
 
+    let handle_id = uuid::Uuid::now_v7();
     state
         .command_tx
         .send(Action::StoreArtifact {
             kind: body.kind,
             label: body.label.clone(),
             content,
+            handle_id: Some(handle_id),
+            project_root: body.project_root.clone(),
+            continuity_id: body.continuity_id.clone(),
         })
         .await
         .map_err(ecs_dispatch_failed)?;
 
-    // Poll for the new handle by label (last-written wins for duplicate labels).
-    // §33.3: Return handle.id so the extension can show [ECS: HANDLE:uuid] reference.
-    let handle_id = loop {
+    // Poll for the exact pre-generated handle id so duplicate labels are never ambiguous.
+    let handle = loop {
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         let focusa = state.focusa.read().await;
         if let Some(h) = focusa
             .reference_index
             .handles
             .iter()
-            .find(|h| h.label == body.label)
+            .find(|h| h.id == handle_id)
+            .cloned()
         {
-            break h.id;
+            break h;
         }
     };
 
     Ok(Json(json!({
-        "id": handle_id,
+        "id": handle.id,
+        "handle": handle,
         "status": "accepted",
         "trajectory": state.focusa.read().await.trajectory_ladder_context(),
     })))

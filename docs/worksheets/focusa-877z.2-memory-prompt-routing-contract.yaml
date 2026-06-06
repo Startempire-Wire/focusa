@@ -1,0 +1,35 @@
+schema_version: focusa.memory_prompt_routing_contract.v1
+work_item_id: focusa-877z.2
+status: semantic_cleanup_event_routed_and_prompt_buffers_runtime_action_routed
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.2
+  - docs/99-original-intent-vs-implementation-audit.md#E2
+normative_rule: Memory maintenance changes must be reducer/event-backed; prompt buffers must be runtime-only/action-routed, not direct API write-lock mutations.
+implemented_slice:
+  semantic_contradiction_cleanup:
+    action: Action::ResolveSemanticContradictions
+    event: FocusaEvent::SemanticMemoryContradictionsResolved
+    reducer_effect: crate::memory::semantic::resolve_contradictions(&mut state.memory)
+    routed_from:
+      - crates/focusa-api/src/routes/proxy.rs
+    forbidden_in_api_routes:
+      - direct resolve_contradictions(&mut focusa.memory)
+      - mark_external_mutation paired with semantic contradiction cleanup
+  prompt_state_buffers:
+    action: Action::UpdateActiveTurnRuntime
+    routed_from:
+      - crates/focusa-api/src/routes/turn.rs
+      - crates/focusa-api/src/routes/proxy.rs
+    authority_class: runtime_correlation
+    forbidden_in_api_routes:
+      - direct ActiveTurn raw_user_input assignment
+      - direct ActiveTurn assembled_prompt assignment
+proof_requirements:
+  - static API routes do not call semantic::resolve_contradictions directly
+  - static Action/Event/Reducer route exists for semantic contradiction cleanup
+  - static prompt-state buffer updates remain Action::UpdateActiveTurnRuntime routed
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - broader proxy pipeline still mixes render/enrichment/eval/telemetry stages and remains covered by later child beads
+  - session/status diagnostics handle migration remains covered by focusa-877z.1 follow-up gap

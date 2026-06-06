@@ -37,12 +37,15 @@ impl ReferenceStore {
         label: String,
         content: &[u8],
         session_id: Option<SessionId>,
+        handle_id: Option<HandleId>,
+        project_root: Option<String>,
+        continuity_id: Option<String>,
     ) -> anyhow::Result<HandleRef> {
         let mut hasher = Sha256::new();
         hasher.update(content);
         let sha256 = hex::encode(hasher.finalize());
 
-        let id = Uuid::now_v7();
+        let id = handle_id.unwrap_or_else(Uuid::now_v7);
         let now = Utc::now();
 
         // Write blob
@@ -59,6 +62,8 @@ impl ReferenceStore {
             sha256,
             created_at: now,
             session_id,
+            project_root,
+            continuity_id,
             pinned: false,
             trajectory: None,
         };

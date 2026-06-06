@@ -1,0 +1,54 @@
+schema_version: focusa.reference_store_scope_contract.v1
+work_item_id: focusa-877z.6
+status: reference_handles_scope_bound_and_exact_handle_returned
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.6
+  - docs/99-original-intent-vs-implementation-audit.md#E6
+normative_rule: Reference Store writes create unambiguous HandleRef records scoped by session/project/workstream when available, and store routes return the exact created handle rather than looking up by duplicate-prone label.
+implemented_slice:
+  handle_scope_fields:
+    file: crates/focusa-core/src/types.rs
+    struct: HandleRef
+    fields:
+      - session_id
+      - project_root
+      - continuity_id
+      - trajectory
+  reference_store_write:
+    file: crates/focusa-core/src/reference/store.rs
+    api: ReferenceStore::store
+    inputs:
+      - handle_id
+      - session_id
+      - project_root
+      - continuity_id
+    effect: persisted handle metadata includes exact scope fields and caller-supplied handle id when provided
+  action_envelope:
+    file: crates/focusa-core/src/types.rs
+    action: Action::StoreArtifact
+    fields:
+      - handle_id
+      - project_root
+      - continuity_id
+  daemon_scope_fill:
+    file: crates/focusa-core/src/runtime/daemon.rs
+    rule: explicit action scope wins; otherwise active session project_root/continuity_id/session_id fill handle scope
+  api_exact_return:
+    files:
+      - crates/focusa-api/src/routes/ecs.rs
+      - crates/focusa-api/src/routes/visual_workflow.rs
+    rule: API pre-generates handle_id, dispatches it, polls reference_index by id, and returns exact handle/id
+forbidden:
+  - polling newly-created handles by label
+  - duplicate-label last-written-wins semantics
+  - unscoped store action when project/session scope is available
+proof_requirements:
+  - static HandleRef includes project_root and continuity_id
+  - static Action::StoreArtifact includes handle_id/project_root/continuity_id
+  - static API store routes poll by h.id == handle_id, not h.label == label/body.label
+  - static store route response returns handle object
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - historical handles without project_root/continuity_id remain readable through serde defaults
+  - explicit Reference Store resolve filtering by project/workstream can be hardened in a later read-path bead

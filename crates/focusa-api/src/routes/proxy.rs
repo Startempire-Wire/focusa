@@ -739,30 +739,34 @@ async fn chat_completions(
         }
     }
 
-    // 1d. Resolve contradictions in memory before assembly (§7).
-    // Remaining direct memory maintenance; candidate for reducer-backed decay/cleanup tranche.
-    {
-        let mut focusa = state.focusa.write().await;
-        focusa_core::memory::semantic::resolve_contradictions(&mut focusa.memory);
-        drop(focusa);
-        state.mark_external_mutation();
-    }
+    // 1d. Resolve contradictions in memory before assembly (§7) via reducer-backed event.
+    dispatch_proxy_telemetry(
+        &state,
+        Action::ResolveSemanticContradictions {
+            reason: "openai_proxy_pre_prompt_cleanup".to_string(),
+        },
+        "openai_proxy_semantic_contradiction_cleanup",
+    )
+    .await;
 
     // 2. PROMPT ASSEMBLY — Enhance with Focusa context.
     let focusa_state = state.focusa.read().await;
     let result = openai::process_request(request.clone(), &focusa_state, &state.config);
     drop(focusa_state);
 
-    // Update active turn with assembled prompt if enhancement occurred.
+    // Update runtime-only active turn correlation if enhancement occurred.
     if let Some(ref proxy_result) = result {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == turn_id
-        {
-            turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
-            state.mark_external_mutation();
-        }
-        drop(focusa);
+        dispatch_proxy_telemetry(
+            &state,
+            Action::UpdateActiveTurnRuntime {
+                turn_id: turn_id.clone(),
+                raw_user_input: None,
+                assembled_prompt: Some(proxy_result.assembly.content.clone()),
+                append_prompt: None,
+            },
+            "openai_runtime_active_turn_prompt",
+        )
+        .await;
 
         // Emit PromptAssembled event per G1-detail-11 §Events.
         let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone()));
@@ -1127,16 +1131,19 @@ async fn messages_proxy(
     let result = anthropic::process_request(request.clone(), &focusa_state, &state.config);
     drop(focusa_state);
 
-    // Update active turn with assembled prompt if enhancement occurred.
+    // Update runtime-only active turn correlation if enhancement occurred.
     if let Some(ref proxy_result) = result {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == turn_id
-        {
-            turn.assembled_prompt = Some(proxy_result.assembly.content.clone());
-            state.mark_external_mutation();
-        }
-        drop(focusa);
+        dispatch_proxy_telemetry(
+            &state,
+            Action::UpdateActiveTurnRuntime {
+                turn_id: turn_id.clone(),
+                raw_user_input: None,
+                assembled_prompt: Some(proxy_result.assembly.content.clone()),
+                append_prompt: None,
+            },
+            "anthropic_runtime_active_turn_prompt",
+        )
+        .await;
 
         // Emit PromptAssembled event per G1-detail-11 §Events.
         let prompt_event = proxy_result.assembly.to_event(Some(turn_id.clone()));

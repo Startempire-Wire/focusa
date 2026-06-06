@@ -909,9 +909,146 @@ pub struct TrajectoryState {
     pub state_deltas: Vec<TrajectoryStateDeltaRecord>,
 }
 
+/// Authority/meaning plane for core state fields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorityPlane {
+    /// Durable reducer-backed cognition that can affect Focus State/resume authority.
+    CanonicalCognition,
+    /// In-memory/runtime correlation for turns, sessions, transports, or diagnostics.
+    RuntimeCorrelation,
+    /// Metrics, history, traces, token/resource accounting, or export queues.
+    TelemetryHistory,
+    /// Candidate/read-model guidance that requires explicit promotion before authority.
+    AdvisoryProjection,
+    /// Bounded execution/orchestration with writer ownership and operator controls.
+    BoundedOrchestration,
+}
+
+/// Orchestration surfaces can schedule or control work, but do not write Focus State authority directly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OrchestrationSurface {
+    /// Continuous work-loop: bounded run state with writer ownership and operator controls.
+    WorkLoop,
+    /// Autonomy scoring/calibration: recommendations and levels for bounded execution posture.
+    AutonomyCalibration,
+    /// Pi-local tmux SilentSession control: background process management requiring explicit approvals.
+    SilentSession,
+}
+
+/// Spec98 §13.15: bounded orchestration is separate from cognition authority.
+pub const BOUNDED_ORCHESTRATION_CONTRACT: &[(&str, OrchestrationSurface)] = &[
+    ("work_loop", OrchestrationSurface::WorkLoop),
+    ("autonomy", OrchestrationSurface::AutonomyCalibration),
+    ("silent_session", OrchestrationSurface::SilentSession),
+];
+
+/// Static FocusaState field-to-plane contract.
+/// Only `CanonicalCognition` fields participate in Focus State authority; all other planes need explicit promotion/gates.
+/// Transparent proxy pipeline stage identifiers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProxyPipelineStage {
+    /// Transport/request intake; no cognition mutation.
+    RequestIntake,
+    /// Adapter-side user message extraction; no rendering.
+    UserInputExtraction,
+    /// Retrieval/enrichment/planning over state; not deterministic expression rendering.
+    RetrievalEnrichmentPlanning,
+    /// Deterministic prompt/string rendering from prepared inputs only.
+    DeterministicExpressionRender,
+    /// Provider request injection/shape mutation.
+    ProviderRequestInjection,
+    /// Opt-in compatibility sanitizers/shims for upstream provider quirks.
+    ProviderCompatibilityShim,
+    /// Upstream provider I/O.
+    UpstreamProviderForward,
+    /// Usage/trace telemetry extraction; non-cognition freshness.
+    RuntimeTelemetryCapture,
+    /// Evaluation/regeneration loop; separate from deterministic rendering.
+    EvalRegeneration,
+}
+
+/// Side-effect declaration for transparent proxy stages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProxyPipelineStageContract {
+    pub stage: ProxyPipelineStage,
+    pub deterministic_render: bool,
+    pub retrieval_or_enrichment: bool,
+    pub provider_io: bool,
+    pub provider_request_mutation: bool,
+    pub telemetry_only: bool,
+    pub eval_or_regeneration: bool,
+}
+
+/// Spec98 §13.10: proxy stages are explicit; only `DeterministicExpressionRender` is deterministic rendering.
+pub const PROXY_PIPELINE_STAGE_CONTRACT: &[ProxyPipelineStageContract] = &[
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::RequestIntake, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::UserInputExtraction, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::RetrievalEnrichmentPlanning, deterministic_render: false, retrieval_or_enrichment: true, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::DeterministicExpressionRender, deterministic_render: true, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::ProviderRequestInjection, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: true, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::ProviderCompatibilityShim, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: true, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::UpstreamProviderForward, deterministic_render: false, retrieval_or_enrichment: false, provider_io: true, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::RuntimeTelemetryCapture, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: true, eval_or_regeneration: false },
+    ProxyPipelineStageContract { stage: ProxyPipelineStage::EvalRegeneration, deterministic_render: false, retrieval_or_enrichment: false, provider_io: false, provider_request_mutation: false, telemetry_only: false, eval_or_regeneration: true },
+];
+
+/// Separate systems participating in post-compaction/resume handoff.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HandoffSystemRole {
+    /// ASCC is the scoped Focus State semantic slots; it is not a Workpoint packet.
+    AsccFocusStateSlots,
+    /// Workpoint is the canonical immediate next-action continuation packet when scope-matched.
+    WorkpointContinuationAuthority,
+    /// CLT is append-only interaction lineage/history, not next-action authority.
+    CltLineageHistory,
+    /// Trajectory Ladder is goal/gap route guidance; advisory until explicitly persisted/promoted.
+    TrajectoryRouteGuidance,
+}
+
+/// ASCC/Workpoint/CLT/Trajectory remain separate systems; handoff references connect them without merging authority.
+pub const HANDOFF_SYSTEM_ROLE_CONTRACT: &[(&str, HandoffSystemRole)] = &[
+    ("ascc", HandoffSystemRole::AsccFocusStateSlots),
+    ("workpoint", HandoffSystemRole::WorkpointContinuationAuthority),
+    ("clt", HandoffSystemRole::CltLineageHistory),
+    ("trajectory_ladder", HandoffSystemRole::TrajectoryRouteGuidance),
+];
+
+pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[
+    ("session", AuthorityPlane::RuntimeCorrelation),
+    ("focus_stack", AuthorityPlane::CanonicalCognition),
+    ("focus_gate", AuthorityPlane::AdvisoryProjection),
+    ("reference_index", AuthorityPlane::CanonicalCognition),
+    ("memory", AuthorityPlane::CanonicalCognition),
+    ("clt", AuthorityPlane::TelemetryHistory),
+    ("uxp", AuthorityPlane::TelemetryHistory),
+    ("ufi", AuthorityPlane::TelemetryHistory),
+    ("autonomy", AuthorityPlane::BoundedOrchestration),
+    ("constitution", AuthorityPlane::CanonicalCognition),
+    ("telemetry", AuthorityPlane::TelemetryHistory),
+    ("rfm", AuthorityPlane::TelemetryHistory),
+    ("pre", AuthorityPlane::AdvisoryProjection),
+    ("ontology", AuthorityPlane::AdvisoryProjection),
+    ("workpoint", AuthorityPlane::CanonicalCognition),
+    ("trajectory", AuthorityPlane::AdvisoryProjection),
+    ("contribution", AuthorityPlane::TelemetryHistory),
+    ("work_loop", AuthorityPlane::BoundedOrchestration),
+    ("instances", AuthorityPlane::RuntimeCorrelation),
+    ("attachments", AuthorityPlane::RuntimeCorrelation),
+    ("threads", AuthorityPlane::RuntimeCorrelation),
+    ("active_turn", AuthorityPlane::RuntimeCorrelation),
+    ("anticipated_context", AuthorityPlane::AdvisoryProjection),
+    ("version", AuthorityPlane::CanonicalCognition),
+];
+
 /// The complete cognitive state of a Focusa instance.
 ///
 /// INVARIANT: Conversation history is NEVER part of FocusaState.
+/// INVARIANT: Core state fields are classified by `FOCUSA_STATE_PLANE_CONTRACT`.
+/// INVARIANT: Only AuthorityPlane::CanonicalCognition participates in Focus State authority.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FocusaState {
     pub session: Option<SessionState>,
@@ -946,7 +1083,9 @@ pub struct FocusaState {
     /// Threads are the unit of ownership; each has an owner_machine_id.
     pub threads: Vec<Thread>,
 
-    /// Active turn from Mode A adapter (if any).
+    /// Runtime-only active turn from Mode A adapter (if any).
+    /// Not serialized into canonical snapshots; turn content belongs in event log/runtime telemetry.
+    #[serde(default, skip_serializing, skip_deserializing)]
     pub active_turn: Option<ActiveTurn>,
     /// Anticipated context from DEEP PATH pre-turn enrichment (§11.7).
     /// Populated after each turn by LLM predicting next user query.
@@ -1353,6 +1492,10 @@ pub struct HandleRef {
     pub sha256: String,
     pub created_at: DateTime<Utc>,
     pub session_id: Option<SessionId>,
+    #[serde(default)]
+    pub project_root: Option<String>,
+    #[serde(default)]
+    pub continuity_id: Option<String>,
     pub pinned: bool,
     #[serde(default)]
     pub trajectory: Option<TrajectoryLadderContext>,
@@ -1815,6 +1958,10 @@ pub enum FocusaEvent {
         value: String,
         source: String,
     },
+    /// Semantic memory contradiction cleanup routed through the event log/reducer.
+    SemanticMemoryContradictionsResolved {
+        reason: String,
+    },
 
     // PRE / governance
     ProposalSubmitted {
@@ -2162,6 +2309,9 @@ pub enum Action {
         kind: HandleKind,
         label: String,
         content: Vec<u8>,
+        handle_id: Option<HandleId>,
+        project_root: Option<String>,
+        continuity_id: Option<String>,
     },
     ResolveHandle {
         handle_id: HandleId,
@@ -2175,6 +2325,9 @@ pub enum Action {
         key: String,
         value: String,
         source: MemorySource,
+    },
+    ResolveSemanticContradictions {
+        reason: String,
     },
     ReinforceRule {
         rule_id: String,
@@ -2313,6 +2466,12 @@ pub enum Action {
         session_id: Option<String>,
         turn_id: Option<String>,
         summary: Option<String>,
+    },
+    UpdateActiveTurnRuntime {
+        turn_id: TurnId,
+        raw_user_input: Option<String>,
+        assembled_prompt: Option<String>,
+        append_prompt: Option<String>,
     },
     RequestNextContinuousTurn {
         task_run_id: Option<TaskRunId>,
@@ -3347,7 +3506,8 @@ impl TurnComplete {
     }
 }
 
-/// Active turn state (daemon-side).
+/// Runtime-only active turn state (daemon-side).
+/// Raw input and assembled prompt are correlation buffers, not canonical cognition authority.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveTurn {
     pub turn_id: TurnId,

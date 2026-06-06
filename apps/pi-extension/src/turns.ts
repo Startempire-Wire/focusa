@@ -404,6 +404,7 @@ async function getTrajectoryFocusSliceLines(): Promise<string[]> {
     const params = new URLSearchParams();
     params.set("mode", "summary");
     params.set("project_root", root);
+    params.set("allow_prior_project_trajectory", "true");
     if (S.sessionFrameKey) params.set("session_id", S.sessionFrameKey);
     if (S.continuityId) params.set("continuity_id", S.continuityId);
     const view = await focusaFetch(`/trajectory/view?${params.toString()}`);

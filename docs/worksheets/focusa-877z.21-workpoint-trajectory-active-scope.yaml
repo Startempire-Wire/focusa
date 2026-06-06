@@ -1,0 +1,65 @@
+schema_version: focusa.workpoint_trajectory_active_scope_contract.v1
+work_item_id: focusa-877z.21
+status: primary_selectors_fail_closed_on_missing_scope
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#7.5
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#7.6
+  - docs/99-original-intent-vs-implementation-audit.md#9
+normative_rule: Workpoint and Trajectory active selection uses ProjectRootKey plus WorkstreamKey; daemon-global active ids are legacy corroboration only and must not satisfy scoped authority alone.
+authority_split:
+  Workpoint:
+    role: immediate_next_action_authority
+    canonical_when:
+      - record.canonical == true
+      - status == Active
+      - project_root matches ProjectRootKey
+      - continuity_id matches WorkstreamKey
+      - project_root is safe exact project root
+    not_authority_when:
+      - selected by daemon-global active_workpoint_id without matching scope
+      - missing continuity_id
+      - missing project_root
+      - unsafe broad project_root
+  Trajectory:
+    role: goal_gap_context
+    hlt_role: durable_north_star_context
+    lower_ladder_role: adaptive_advisory_context
+    canonical_when:
+      - record.canonical == true
+      - project_root matches ProjectRootKey
+      - continuity_id matches WorkstreamKey
+    fallback_policy:
+      prior_same_project_trajectory: advisory_only_when_allow_prior_project_trajectory_true
+      fallback_must_render:
+        - fallback_prior_project_trajectory
+        - fallback_source_continuity_id
+        - scope_status
+selector_requirements:
+  workpoint_primary_selector:
+    function: active_workpoint_for_scope
+    file: crates/focusa-api/src/routes/workpoint.rs
+    required_inputs: [project_root, continuity_id]
+    missing_input_behavior: return_none_then_degraded_not_found
+    forbidden_fallback: active_workpoint(state)
+  trajectory_primary_selector:
+    function: active_persisted_trajectory
+    file: crates/focusa-api/src/routes/trajectory.rs
+    required_inputs: [project_root, continuity_id]
+    missing_input_behavior: return_none_then_advisory_projection_or_needs_definition
+    forbidden_fallback: unwrap_or_true_scope_matching
+route_expectations:
+  /v1/workpoint/current:
+    missing_scope: not_found_or_degraded_recovery
+    exact_scope: returns matching active Workpoint only
+  /v1/workpoint/resume:
+    missing_scope: no singleton adoption for canonical packet
+    exact_scope: returns canonical only if project_root+continuity_id match
+  /v1/trajectory/view:
+    missing_scope: no exact persisted trajectory adoption
+    prior_project_fallback: requires allow_prior_project_trajectory and advisory label
+proof_requirements:
+  - static selector fail-closed test
+  - two-project active Workpoint isolation test
+  - same-root different continuity Workpoint isolation test
+  - trajectory exact scope selection test
+  - trajectory prior-project fallback advisory provenance test

@@ -23,6 +23,7 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::json;
+use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -154,6 +155,10 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
     }
 }
 
+fn clean_scope_value(value: Option<&str>) -> Option<String> {
+    value.map(str::trim).filter(|value| !value.is_empty()).map(str::to_string)
+}
+
 fn frame_matches_project_root(frame: &FrameRecord, project_root: Option<&str>) -> bool {
     let Some(expected) = project_root
         .map(normalize_project_root_authority)
@@ -179,6 +184,29 @@ fn unsafe_project_root_response(reason: &'static str, value: Option<&str>) -> se
         "project_root": value,
         "retry_posture": "do_not_retry_unchanged",
         "safe_recovery": "use an exact project folder/root before creating or reading project-bound Focus frames",
+    })
+}
+
+fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
+    let issue_id = beads_issue_id.trim();
+    if issue_id.is_empty() || unsafe_project_root_reason(Some(project_root)).is_some() {
+        return false;
+    }
+    let issue_paths = [
+        Path::new(project_root).join(".beads/issues.jsonl"),
+        Path::new(project_root).join(".git/beads-worktrees/beads-sync/.beads/issues.jsonl"),
+    ];
+    issue_paths.iter().any(|path| {
+        let Ok(contents) = std::fs::read_to_string(path) else {
+            return false;
+        };
+        contents.lines().any(|line| {
+            serde_json::from_str::<serde_json::Value>(line)
+                .ok()
+                .and_then(|value| value.get("id").and_then(|id| id.as_str()).map(str::to_string))
+                .as_deref()
+                == Some(issue_id)
+        })
     })
 }
 
@@ -442,20 +470,50 @@ async fn push_frame(
         }
     }
 
-    if let Some(project_root) = body.project_root.as_deref()
-        && let Some(reason) = unsafe_project_root_reason(Some(project_root))
-    {
+    let Some(project_root) = clean_scope_value(body.project_root.as_deref()) else {
+        return Ok(Json(unsafe_project_root_response(
+            "missing_project_root",
+            body.project_root.as_deref(),
+        )));
+    };
+    if let Some(reason) = unsafe_project_root_reason(Some(project_root.as_str())) {
         return Ok(Json(unsafe_project_root_response(
             reason,
-            Some(project_root),
+            Some(project_root.as_str()),
         )));
     }
+    let Some(continuity_id) = clean_scope_value(body.continuity_id.as_deref()) else {
+        return Ok(Json(json!({
+            "status": "rejected_missing_scope",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+            "missing": "continuity_id",
+            "retry_posture": "do_not_retry_unchanged",
+            "safe_recovery": "pass continuity_id so the Focus frame is bound to a project workstream"
+        })));
+    };
 
     let beads_issue_id = body.beads_issue_id.unwrap_or_default();
-    if beads_issue_id.trim().is_empty() {
+    let beads_issue_id = beads_issue_id.trim().to_string();
+    if beads_issue_id.is_empty() {
         return Ok(Json(json!({
             "status": "rejected",
+            "canonical": false,
+            "failure_class": "validation_rejected",
             "reason": "missing_beads_issue_id",
+            "safe_recovery": "pass a real Beads issue id from the project .beads workspace before creating a canonical Focus frame",
+        })));
+    }
+    if !beads_issue_exists(&project_root, &beads_issue_id) {
+        return Ok(Json(json!({
+            "status": "rejected",
+            "canonical": false,
+            "failure_class": "validation_rejected",
+            "reason": "beads_issue_not_found",
+            "beads_issue_id": beads_issue_id,
+            "project_root": project_root,
+            "safe_recovery": "create or select a real Beads issue in this project, or keep proposal/demo frames noncanonical outside FocusFramePushed",
+            "retry_posture": "do_not_retry_unchanged",
         })));
     }
 
@@ -467,8 +525,8 @@ async fn push_frame(
             title: body.title.unwrap_or_default(),
             goal: body.goal.unwrap_or_default(),
             beads_issue_id,
-            project_root: body.project_root,
-            continuity_id: body.continuity_id,
+            project_root: Some(project_root),
+            continuity_id: Some(continuity_id),
             constraints: body.constraints,
             tags: body.tags,
         },
@@ -572,6 +630,10 @@ struct UpdateDeltaBody {
     frame_id: Option<Uuid>,
     #[serde(default)]
     turn_id: Option<String>,
+    #[serde(default)]
+    project_root: Option<String>,
+    #[serde(default)]
+    continuity_id: Option<String>,
     delta: FocusStateDelta,
 }
 
@@ -801,9 +863,8 @@ async fn update_delta(
         }
     }
 
-    // Prefer an explicit frame_id from the caller; otherwise fall back to the
-    // daemon's active frame. This preserves Pi session-scoped frame writes
-    // without relying on global active-frame alignment.
+    // Prefer explicit frame_id; otherwise resolve by ProjectRootKey + WorkstreamKey.
+    // Never adopt the daemon-global active frame as canonical Focus State write authority.
     let (fid, auto_started_session) = {
         let focusa = state.focusa.read().await;
         let session_active = focusa
@@ -812,32 +873,57 @@ async fn update_delta(
             .map(|session| session.status == SessionStatus::Active)
             .unwrap_or(false);
         if let Some(frame_id) = body.frame_id {
-            if focusa
+            let Some(frame) = focusa
                 .focus_stack
                 .frames
                 .iter()
-                .any(|frame| frame.id == frame_id)
-            {
-                (frame_id, !session_active)
-            } else {
+                .find(|frame| frame.id == frame_id)
+            else {
                 return Ok(Json(json!({"status": "no_active_frame"})));
+            };
+            if let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref()) {
+                return Ok(Json(unsafe_project_root_response(reason, frame.project_root.as_deref())));
             }
-        } else if let Some(active_id) = focusa.focus_stack.active_id {
-            if focusa
-                .focus_stack
-                .frames
-                .iter()
-                .find(|frame| frame.id == active_id)
-                .and_then(|frame| unsafe_project_root_reason(frame.project_root.as_deref()))
-                .is_some()
+            if clean_scope_value(frame.continuity_id.as_deref()).is_none() {
+                return Ok(Json(json!({
+                    "status": "rejected_missing_scope",
+                    "canonical": false,
+                    "failure_class": "scope_mismatch",
+                    "missing": "frame.continuity_id",
+                    "retry_posture": "do_not_retry_unchanged",
+                    "safe_recovery": "checkpoint or create a project-workstream scoped Focus frame before writing Focus State"
+                })));
+            }
+            if let Some(expected_project_root) = clean_scope_value(body.project_root.as_deref())
+                && frame.project_root.as_deref().map(normalize_project_root_authority).as_deref() != Some(expected_project_root.as_str())
             {
-                return Ok(Json(
-                    json!({"status": "no_active_frame", "failure_class": "frame_unavailable", "reason": "active_frame_has_unsafe_project_root"}),
-                ));
+                return Ok(Json(json!({"status":"scope_mismatch", "canonical": false, "failure_class":"scope_mismatch", "field":"project_root"})));
             }
-            (active_id, !session_active)
+            if let Some(expected_continuity_id) = clean_scope_value(body.continuity_id.as_deref())
+                && frame.continuity_id.as_deref().map(str::trim) != Some(expected_continuity_id.as_str())
+            {
+                return Ok(Json(json!({"status":"scope_mismatch", "canonical": false, "failure_class":"scope_mismatch", "field":"continuity_id"})));
+            }
+            (frame_id, !session_active)
         } else {
-            return Ok(Json(json!({"status": "no_active_frame"})));
+            let resolved = resolve_scoped_frame(
+                &focusa.focus_stack,
+                None,
+                None,
+                body.continuity_id.as_deref(),
+                body.project_root.as_deref(),
+            );
+            let Some((frame, _)) = resolved else {
+                return Ok(Json(json!({
+                    "status": "no_active_frame",
+                    "canonical": false,
+                    "failure_class": "scope_mismatch",
+                    "reason": "focus_update_requires_frame_id_or_project_root_plus_continuity_id",
+                    "retry_posture": "do_not_retry_unchanged",
+                    "safe_recovery": "call /v1/focus/frame/current with project_root+continuity_id or pass explicit frame_id"
+                })));
+            };
+            (frame.id, !session_active)
         }
     };
 

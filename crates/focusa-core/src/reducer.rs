@@ -1254,6 +1254,9 @@ pub fn reduce_with_meta(
             };
             let _ = crate::memory::semantic::upsert(&mut state.memory, key, value, memory_source);
         }
+        FocusaEvent::SemanticMemoryContradictionsResolved { reason: _ } => {
+            crate::memory::semantic::resolve_contradictions(&mut state.memory);
+        }
         FocusaEvent::RuleReinforced { .. } | FocusaEvent::MemoryDecayTick { .. } => {
             // Memory maintenance events remain advisory here.
         }
@@ -3877,6 +3880,8 @@ mod tests {
                 sha256: "abc".into(),
                 created_at: Utc::now(),
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 pinned: false,
                 trajectory: None,
             },
@@ -3901,6 +3906,8 @@ mod tests {
                 sha256: "abc".into(),
                 created_at: Utc::now(),
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 pinned: false,
                 trajectory: None,
             },
@@ -3918,6 +3925,8 @@ mod tests {
                 sha256: "def".into(),
                 created_at: Utc::now(),
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 pinned: false,
                 trajectory: None,
             },
@@ -3941,6 +3950,8 @@ mod tests {
                     sha256: "abc".into(),
                     created_at: Utc::now(),
                     session_id: None,
+                    project_root: None,
+                    continuity_id: None,
                     pinned: false,
                     trajectory: None,
                 },
@@ -3973,6 +3984,8 @@ mod tests {
                     sha256: "abc".into(),
                     created_at: Utc::now(),
                     session_id: None,
+                    project_root: None,
+                    continuity_id: None,
                     pinned: false,
                     trajectory: None,
                 },

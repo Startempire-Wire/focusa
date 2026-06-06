@@ -116,12 +116,16 @@ async fn store_visual_evidence(
     let content = body.resolve_content()?;
     let label = body.to_artifact_label();
 
+    let handle_id = uuid::Uuid::now_v7();
     state
         .command_tx
         .send(Action::StoreArtifact {
             kind: body.kind,
             label: label.clone(),
             content,
+            handle_id: Some(handle_id),
+            project_root: None,
+            continuity_id: None,
         })
         .await
         .map_err(visual_dispatch_failed)?;
@@ -133,7 +137,7 @@ async fn store_visual_evidence(
             .reference_index
             .handles
             .iter()
-            .find(|h| h.label == label)
+            .find(|h| h.id == handle_id)
         {
             break h.id;
         }

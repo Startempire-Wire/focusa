@@ -69,6 +69,8 @@ mod tests {
             sha256: "abc".into(),
             created_at: Utc::now() - Duration::days(30),
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             pinned: true,
             trajectory: None,
         });
@@ -88,6 +90,8 @@ mod tests {
             sha256: "def".into(),
             created_at: Utc::now() - Duration::days(30),
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             pinned: false,
             trajectory: None,
         });
@@ -107,6 +111,8 @@ mod tests {
             sha256: "ghi".into(),
             created_at: Utc::now(),
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             pinned: false,
             trajectory: None,
         });

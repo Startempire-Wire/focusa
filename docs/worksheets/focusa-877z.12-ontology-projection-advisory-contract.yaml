@@ -1,0 +1,60 @@
+schema_version: focusa.ontology_projection_advisory_contract.v1
+work_item_id: focusa-877z.12
+status: ontology_projection_promotion_boundary_defined
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#13.14
+normative_rule: Ontology/read-index active-object, working-set, affordance, retrieval, and next-action projections are advisory by default; they may guide selection but are not canonical task meaning until promoted through Workpoint, PRE proposal, evidence capture, or reducer/governance events.
+projection_surfaces:
+  ontology_world:
+    advisory_only: true
+    canonical: false
+    promotion_path: world projection -> bounded selection -> reducer-governed ontology proposal/promotion
+  ontology_read_index_cache_metadata:
+    advisory_only: true
+    projection_canonical: false
+    canonical_field_meaning: cache_entry_freshness_only_not_task_authority
+    promotion_path: read-index cache hit -> bounded projection selection -> Workpoint/PRE/reducer promotion path
+  ontology_adjacency_read_index:
+    advisory_only: true
+    canonical: false
+    promotion_path: adjacency projection -> active-object resolution/evidence -> Workpoint or reducer proposal
+  ontology_working_set_projection:
+    advisory_only: true
+    canonical: false
+    promotion_path: working-set projection -> selected target refs -> Workpoint checkpoint or reducer proposal
+  ontology_prompt_safe_context:
+    advisory_only: true
+    canonical: false
+    promotion_path: prompt-safe active object/next-action projection -> active-object resolve -> Workpoint checkpoint/evidence capture
+  ontology_affordance_execution_projection:
+    advisory_only: true
+    canonical: false
+    promotion_path: affordance projection -> verified action/evidence -> Workpoint or reducer-governed ontology event
+  ontology_retrieval_governor:
+    advisory_only: true
+    canonical: false
+    promotion_path: retrieval plan -> operator/tool selection -> Workpoint checkpoint/PRE proposal/reducer promotion
+shared_authority_metadata:
+  function: ontology_projection_authority_metadata
+  required_fields:
+    - advisory_only
+    - canonical
+    - canonical_truth_mutation
+    - promotion_path
+    - canonicalization_tools
+    - do_not_use_as
+canonicalization_tools:
+  - focusa_workpoint_checkpoint
+  - focusa_active_object_resolve
+  - focusa_evidence_capture
+forbidden_uses:
+  - canonical_task_meaning
+  - resume_authority
+  - focus_state_mutation
+proof_requirements:
+  - static guard proves shared ontology authority metadata exists
+  - static guard proves major projection payloads expose advisory_only=true, canonical/projection_canonical=false, and promotion_path
+  - static guard proves read-index cache canonical is documented as cache freshness only
+  - static guard proves retrieval-governor and prompt-safe active context do not mutate canonical truth
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass

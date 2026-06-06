@@ -653,6 +653,9 @@ fn map_command_to_action(
                 kind: p.kind,
                 label: p.to_artifact_label(),
                 content,
+                handle_id: None,
+                project_root: None,
+                continuity_id: None,
             })
         }
         "instances.connect" => {

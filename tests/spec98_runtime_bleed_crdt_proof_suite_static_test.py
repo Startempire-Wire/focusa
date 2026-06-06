@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Spec98 Phase H: proof-suite manifest/runner honesty guard."""
+from pathlib import Path
+import sys
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+CONTRACT = ROOT / "docs/worksheets/focusa-877z.26-runtime-bleed-crdt-proof-suite.yaml"
+RUNNER = ROOT / "tests/spec98_runtime_bleed_crdt_regression_suite.sh"
+
+
+def fail(message: str) -> None:
+    print(f"✗ FAIL: {message}")
+    sys.exit(1)
+
+
+def main() -> None:
+    data = yaml.safe_load(CONTRACT.read_text())
+    if data.get("schema_version") != "focusa.runtime_bleed_crdt_proof_suite.v1":
+        fail("unexpected .26 schema_version")
+    if data.get("status") != "proof_suite_defined":
+        fail(".26 status must be proof_suite_defined")
+    groups = data.get("proof_groups") or {}
+    for group in ["project_scope_and_bleed", "partition_contracts", "crdt_foundation", "build_gates"]:
+        if group not in groups:
+            fail(f"proof group missing {group}")
+        if not groups[group].get("commands"):
+            fail(f"proof group {group} has no commands")
+    gaps = "\n".join(data.get("known_gaps") or [])
+    for phrase in ["writer-claim", "CRDT schema migration", "multi-daemon"]:
+        if phrase not in gaps:
+            fail(f"known gaps missing {phrase}")
+    runner = RUNNER.read_text()
+    for command in [
+        "bun tests/spec98_pi_scope_cache_switch_handling_runtime_test.mts",
+        "bun tests/pi_project_root_inference_test.mts",
+        "tests/spec98_workpoint_trajectory_active_scope_static_test.py",
+        "tests/spec98_focus_stack_state_scope_static_test.py",
+        "tests/spec98_crdt_event_store_wiring_static_test.py",
+        " test -p focusa-core sync::crdt",
+        "npm --prefix apps/pi-extension run check",
+        " check",
+    ]:
+        if command not in runner:
+            fail(f"runner missing command: {command}")
+    for gap in ["active_writer is legacy-global", "same-root sync import reconciliation remain pending", "multi-daemon same-root sync proof remains pending"]:
+        if gap not in runner:
+            fail(f"runner does not print known gap: {gap}")
+    print("✓ PASS: Spec98 runtime bleed/CRDT proof suite contract and runner are honest")
+
+
+if __name__ == "__main__":
+    main()

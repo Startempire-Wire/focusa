@@ -2,14 +2,15 @@
 //!
 //! Mode B — HTTP proxy for Claude models via Anthropic's /v1/messages API.
 //!
-//! Flow:
-//!   1. Accept Anthropic messages request
-//!   2. Extract user messages
-//!   3. Assemble Focusa-enhanced prompt via Expression Engine
-//!   4. Inject into system prompt field
-//!   5. Forward to upstream Anthropic
-//!   6. Return response unchanged
-//!   7. Emit turn events
+//! Transparent pipeline (see `PROXY_PIPELINE_STAGE_CONTRACT`):
+//!   1. RequestIntake — accept Anthropic messages request; no cognition mutation
+//!   2. UserInputExtraction — extract user messages; no rendering
+//!   3. RetrievalEnrichmentPlanning — delegate minimal-slice planning to OpenAI-compatible planner
+//!   4. DeterministicExpressionRender — render prepared prompt content only
+//!   5. ProviderRequestInjection — inject into system prompt field
+//!   6. ProviderCompatibilityShim — opt-in sanitizer for provider quirks
+//!   7. UpstreamProviderForward — forward to upstream Anthropic-compatible provider
+//!   8. RuntimeTelemetryCapture — extract usage/turn telemetry; non-cognition freshness
 //!
 //! Failure: passthrough raw request (fail-safe).
 
@@ -179,7 +180,7 @@ fn extract_text_content(content: &Value) -> Option<String> {
     }
 }
 
-/// Inject Focusa context into the system prompt.
+/// ProviderRequestInjection stage: inject Focusa context into the system prompt.
 fn inject_system_prompt(request: &mut MessagesRequest, content: &str) {
     if let Some(ref mut sys) = request.system {
         // Prepend Focusa context.
@@ -224,7 +225,7 @@ pub fn extract_usage(response: &Value) -> (u32, u32) {
     (input, output)
 }
 
-/// Best-effort compatibility sanitizer for Anthropic-shaped providers.
+/// ProviderCompatibilityShim stage: best-effort compatibility sanitizer for Anthropic-shaped providers.
 ///
 /// Important: keep `tools` / `tool_choice` so upstream can still perform
 /// actual tool-calling; only strip known incompatible extras and normalize

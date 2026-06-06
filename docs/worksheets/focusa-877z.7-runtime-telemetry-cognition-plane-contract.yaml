@@ -1,0 +1,55 @@
+schema_version: focusa.runtime_telemetry_cognition_plane_contract.v1
+work_item_id: focusa-877z.7
+status: core_authority_planes_defined_in_types
+source_specs:
+  - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.7
+  - docs/99-original-intent-vs-implementation-audit.md#E7
+normative_rule: Core state distinguishes canonical cognition, runtime correlation, telemetry/history, advisory projection, and bounded orchestration; only canonical cognition participates in Focus State authority without explicit promotion.
+plane_classes:
+  canonical_cognition:
+    meaning: durable reducer-backed cognition that can affect Focus State/resume authority
+    examples: [focus_stack, memory, constitution, workpoint, reference_index]
+  runtime_correlation:
+    meaning: in-memory/runtime correlation for sessions, turns, transports, or diagnostics
+    examples: [session, instances, attachments, threads, active_turn]
+  telemetry_history:
+    meaning: metrics, histories, traces, CLT interaction logs, token/resource accounting, export queues
+    examples: [telemetry, clt, rfm, contribution, uxp, ufi]
+  advisory_projection:
+    meaning: read-model/candidate/proposal guidance requiring explicit promotion before authority
+    examples: [focus_gate, ontology, trajectory, pre, anticipated_context]
+  bounded_orchestration:
+    meaning: execution/orchestration state with writer ownership and operator controls
+    examples: [work_loop]
+implemented_slice:
+  authority_plane_enum:
+    file: crates/focusa-core/src/types.rs
+    enum: AuthorityPlane
+    variants: [CanonicalCognition, RuntimeCorrelation, TelemetryHistory, AdvisoryProjection, BoundedOrchestration]
+  field_contract:
+    file: crates/focusa-core/src/types.rs
+    const: FOCUSA_STATE_PLANE_CONTRACT
+    rule: every FocusaState field has an explicit plane label
+  active_turn_boundary:
+    field: active_turn
+    plane: runtime_correlation
+    supporting_contract: docs/worksheets/focusa-877z.1-active-turn-runtime-separation.yaml
+  focus_gate_boundary:
+    field: focus_gate
+    plane: advisory_projection
+    supporting_contract: docs/worksheets/focusa-877z.4-focus-gate-authority-plane-contract.yaml
+  work_loop_boundary:
+    field: work_loop
+    plane: bounded_orchestration
+    rule: writer-owned orchestration does not equal Focus State authority
+proof_requirements:
+  - static AuthorityPlane enum exists with all five variants
+  - static FOCUSA_STATE_PLANE_CONTRACT maps all FocusaState fields
+  - static active_turn maps to RuntimeCorrelation
+  - static telemetry/clt/contribution map to TelemetryHistory
+  - static focus_gate/ontology/trajectory/pre map to AdvisoryProjection
+  - static work_loop maps to BoundedOrchestration
+  - Spec98 runtime-bleed proof suite passes
+  - Rust cargo check and Pi TypeScript check pass
+known_gaps:
+  - finer per-event mutation-class labeling remains covered by CRDT/event-store and future route-specific beads

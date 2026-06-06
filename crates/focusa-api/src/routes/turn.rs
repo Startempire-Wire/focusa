@@ -322,18 +322,28 @@ async fn prompt_assemble(
         user_input_tokens: user_tokens,
     };
 
-    // Update active turn with the assembled prompt.
+    // Update runtime-only active turn correlation through the daemon action path.
     drop(focusa);
-    {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == req.turn_id
-        {
-            turn.raw_user_input = Some(req.raw_user_input.clone());
-            turn.assembled_prompt = Some(assembly.content.clone());
-            state.mark_external_mutation();
-        }
-    }
+    state
+        .command_tx
+        .send(Action::UpdateActiveTurnRuntime {
+            turn_id: req.turn_id,
+            raw_user_input: Some(req.raw_user_input.clone()),
+            assembled_prompt: Some(assembly.content.clone()),
+            append_prompt: None,
+        })
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({
+                    "status": "runtime_turn_update_failed",
+                    "failure_class": "daemon_unavailable",
+                    "error": error.to_string(),
+                    "retry_posture": "safe_retry"
+                })),
+            )
+        })?;
 
     // Return as messages array (chat format) or plain string based on format hint.
     let output = if req.format.as_deref() == Some("string") {
@@ -376,17 +386,27 @@ async fn turn_append(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     tracing::trace!(turn_id = %req.turn_id, chunk_len = req.chunk.len(), "Turn chunk appended");
 
-    // Append to active turn's assembled_prompt (accumulating response).
-    {
-        let mut focusa = state.focusa.write().await;
-        if let Some(ref mut turn) = focusa.active_turn
-            && turn.turn_id == req.turn_id
-        {
-            let existing = turn.assembled_prompt.take().unwrap_or_default();
-            turn.assembled_prompt = Some(format!("{}{}", existing, req.chunk));
-            state.mark_external_mutation();
-        }
-    }
+    // Append to runtime-only active turn correlation through the daemon action path.
+    state
+        .command_tx
+        .send(Action::UpdateActiveTurnRuntime {
+            turn_id: req.turn_id,
+            raw_user_input: None,
+            assembled_prompt: None,
+            append_prompt: Some(req.chunk),
+        })
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({
+                    "status": "runtime_turn_update_failed",
+                    "failure_class": "daemon_unavailable",
+                    "error": error.to_string(),
+                    "retry_posture": "safe_retry"
+                })),
+            )
+        })?;
 
     Ok(Json(json!({"status": "accepted"})))
 }

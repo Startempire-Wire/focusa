@@ -135,6 +135,11 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
     v2Prompt,
     "",
   ].join("\n") : "";
+  const trajectorySection = formatTrajectoryPacketForPrompt(S.lastTrajectoryClarity) ? [
+    "# Trajectory Resume Packet",
+    formatTrajectoryPacketForPrompt(S.lastTrajectoryClarity),
+    "",
+  ].join("\n") : "";
   const projectLedgerSection = formatProjectSwitchLedgerLines(ask).length ? [
     "# Project Switch Ledger",
     ...formatProjectSwitchLedgerLines(ask).map((value) => `- ${value}`),
@@ -143,6 +148,7 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
   return [
     attentionSection,
     workpointSection,
+    trajectorySection,
     projectLedgerSection,
     "# Focusa Cognitive Summary",
     `## Intent\n${fs?.intent || mission || "Continue current operator-directed work."}`,
@@ -193,6 +199,98 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
     }
   } catch { /* best effort */ }
   return null;
+}
+
+async function checkpointTrajectoryBeforeCompaction(reason = "before_compaction"): Promise<any | null> {
+  if (!S.focusaAvailable) return null;
+  const root = S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) return null;
+  try {
+    return await focusaFetch("/trajectory/checkpoint", {
+      method: "POST",
+      body: JSON.stringify({
+        summary: `Pi ${reason}: preserve Trajectory Ladder north-star context across compaction.`,
+        continuity_id: ensureContinuityId(root),
+        session_id: S.sessionFrameKey,
+        project_root: root,
+        idempotency_key: `pi-trajectory-${reason}-${S.sessionFrameKey || "session"}-${S.turnCount}`,
+      }),
+    });
+  } catch { return null; }
+}
+
+async function refreshTrajectoryResumePacket(reason = "compaction"): Promise<any | null> {
+  if (!S.focusaAvailable) return null;
+  const root = S.sessionCwd || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) return null;
+  try {
+    const packet = await focusaFetch("/trajectory/resume", {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "summary",
+        continuity_id: ensureContinuityId(root),
+        session_id: S.sessionFrameKey,
+        project_root: root,
+      }),
+    });
+    const view = packet?.resume_packet || packet?.trajectory_checkpoint || packet;
+    const trajectory = view?.trajectory || {};
+    S.lastTrajectoryClarity = {
+      ...(S.lastTrajectoryClarity || {}),
+      reason,
+      refreshed_at: Date.now(),
+      project_root: root,
+      continuity_id: S.continuityId || ensureContinuityId(root),
+      session_id: S.sessionFrameKey || null,
+      status: String(view?.intelligence_view?.clarity_gate?.status || trajectory.definition_status || packet?.status || "unknown"),
+      recommended_action: String(view?.intelligence_view?.clarity_gate?.recommended_action || view?.intelligence_view?.context_sufficiency?.recommended_action || "unknown"),
+      canonical: packet?.canonical === true || view?.canonical === true,
+      degraded: packet?.degraded === true || view?.degraded === true,
+      trajectory_id: trajectory.trajectory_id || S.lastTrajectoryClarity?.trajectory_id || null,
+      fallback_prior_project_trajectory: trajectory.fallback_prior_project_trajectory === true,
+      fallback_source_continuity_id: trajectory.fallback_source_continuity_id || null,
+      long_term_goal: trajectory.long_term_goal || trajectory.trajectory_ladder?.hlt || S.lastTrajectoryClarity?.long_term_goal || null,
+      desired_end_state: trajectory.desired_end_state || S.lastTrajectoryClarity?.desired_end_state || null,
+      mid_level_goal: trajectory.mid_level_goal || trajectory.trajectory_ladder?.mlg || S.lastTrajectoryClarity?.mid_level_goal || null,
+      short_term_goal: trajectory.short_term_goal || trajectory.trajectory_ladder?.stg || S.lastTrajectoryClarity?.short_term_goal || null,
+      waypoints: trajectory.waypoints || trajectory.trajectory_ladder?.waypoints || S.lastTrajectoryClarity?.waypoints || [],
+      current_state: trajectory.current_state || S.lastTrajectoryClarity?.current_state || null,
+      active_gap: trajectory.active_gap || S.lastTrajectoryClarity?.active_gap || null,
+      resume_packet: view || null,
+    };
+    return packet || S.lastTrajectoryClarity;
+  } catch { return S.lastTrajectoryClarity || null; }
+}
+
+function formatTrajectoryPacketForPrompt(packet: any): string {
+  const view = packet?.resume_packet || packet?.trajectory_checkpoint || packet?.resume_packet?.resume_packet || packet;
+  const trajectory = view?.trajectory || packet?.trajectory || packet || {};
+  const hlt = compactText(trajectory.long_term_goal || trajectory.trajectory_ladder?.hlt || packet?.long_term_goal, "missing", 220);
+  const mlg = compactText(trajectory.mid_level_goal || trajectory.trajectory_ladder?.mlg || packet?.mid_level_goal, "missing", 180);
+  const stg = compactText(trajectory.short_term_goal || trajectory.trajectory_ladder?.stg || packet?.short_term_goal, "missing", 180);
+  const desired = compactText(trajectory.desired_end_state || packet?.desired_end_state, "missing", 220);
+  const gap = compactText(trajectory.active_gap || packet?.active_gap, "none", 220);
+  const waypoints = Array.isArray(trajectory.waypoints || packet?.waypoints) ? (trajectory.waypoints || packet?.waypoints).slice(0, 5).map((item: any) => compactText(item, "", 100)).filter(Boolean) : [];
+  if (hlt === "missing" && mlg === "missing" && stg === "missing" && desired === "missing") return "";
+  return [
+    "## TrajectoryResumePacket",
+    `STATUS: ${String(packet?.status || view?.status || trajectory.definition_status || "unknown")}`,
+    `CANONICAL: ${packet?.canonical === true || view?.canonical === true}`,
+    `DEGRADED: ${packet?.degraded === true || view?.degraded === true}`,
+    `TRAJECTORY_ID: ${compactText(trajectory.trajectory_id || packet?.trajectory_id, "unknown", 120)}`,
+    `FALLBACK_PRIOR_PROJECT_TRAJECTORY: ${trajectory.fallback_prior_project_trajectory === true || packet?.fallback_prior_project_trajectory === true}`,
+    `FALLBACK_SOURCE_CONTINUITY_ID: ${compactText(trajectory.fallback_source_continuity_id || packet?.fallback_source_continuity_id, "none", 120)}`,
+    `HLT: ${hlt}`,
+    `MLG: ${mlg}`,
+    `STG: ${stg}`,
+    `DESIRED_END_STATE: ${desired}`,
+    `ACTIVE_GAP: ${gap}`,
+    `WAYPOINTS: ${waypoints.join(" → ") || "derive_next"}`,
+    "AUTHORITY: TL is north-star route context; Workpoint remains immediate action authority.",
+    "NEXT_TOOLS: focusa_workpoint_resume, focusa_trajectory_view, focusa_active_object_resolve",
+    "STRUCTURED_PACKET_JSON:",
+    JSON.stringify(view || packet, null, 2).slice(0, 3500),
+  ].join("\n");
 }
 
 
@@ -380,7 +478,10 @@ export function registerCompaction(pi: ExtensionAPI) {
       });
     }
     await checkpointBeforeCompaction();
+    await checkpointTrajectoryBeforeCompaction("before_compaction");
     await refreshTrajectoryClarityLifecycle("before_compaction", S.sessionCwd || process.cwd());
+    const trajectoryPacket = await refreshTrajectoryResumePacket("before_compaction");
+    void trajectoryPacket;
     const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
 
     // Always persist to Pi session entries as backup
@@ -465,6 +566,7 @@ export function registerCompaction(pi: ExtensionAPI) {
     if (!S.compactResumePending && !recentlySubmitted) {
       await refreshWorkpointResumePacket("compact_prompt");
       await refreshTrajectoryClarityLifecycle("after_compaction", S.sessionCwd || process.cwd());
+      const trajectoryPacket = await refreshTrajectoryResumePacket("after_compaction");
       S.lastCompactResumeKey = compactResumeKey;
       S.lastCompactResumeAt = Date.now();
       persistState();
@@ -479,6 +581,7 @@ export function registerCompaction(pi: ExtensionAPI) {
           // lastDecision saved above, before localDecisions was cleared
           const scopedPacket = getScopedWorkpointPacket();
           const v2Prompt = formatResumePacketV2ForPrompt(scopedPacket);
+          const trajectoryPrompt = formatTrajectoryPacketForPrompt(trajectoryPacket || S.lastTrajectoryClarity);
           const visibleRecapReason = toolOutputVisibleRecapReason();
           const attentionPrompt = [
             ...formatAttentionRecallFocusSliceLines(buildAttentionRecallVerdict({
@@ -494,7 +597,7 @@ export function registerCompaction(pi: ExtensionAPI) {
             ...formatToolOutputVisibleRecapLines(visibleRecapReason),
           ].join("\n");
           const directive = v2Prompt
-            ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Then use focusa_trajectory_view for orientation and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
+            ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Use the injected TrajectoryResumePacket as TL north-star context, then use focusa_trajectory_view for refresh and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
             : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, focusa_metacog_doctor, focusa_predict_recent/stats, or focusa_tool_doctor before trusting any carryover.`;
           const note = S.totalCompactions > 0 ? ` [compaction #${S.totalCompactions}]` : "";
           const steerMessage = `# Compaction Complete${note}
@@ -504,6 +607,8 @@ ${S.lastCompactDecision || "pre-compaction work"}
 ${attentionPrompt}
 ## WorkpointResumePacketV2
 ${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
+## TrajectoryResumePacket
+${trajectoryPrompt || `No project-bound TrajectoryResumePacket recorded (${projectRootAuthorityFailure(S.sessionCwd || process.cwd()) || "trajectory packet unavailable"}); call focusa_trajectory_view before treating TL context as current.`}
 ## Directive
 ${directive}
 
@@ -594,6 +699,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     }
     if (S.focusaAvailable) {
       await checkpointBeforeCompaction();
+      await checkpointTrajectoryBeforeCompaction("hard_context_pressure");
       await refreshTrajectoryClarityLifecycle("hard_context_pressure", S.sessionCwd || process.cwd());
     }
     const r = S.focusaAvailable
@@ -620,6 +726,7 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
     if (S.focusaAvailable) {
       await checkpointBeforeCompaction();
+      await checkpointTrajectoryBeforeCompaction("auto_context_pressure");
       await refreshTrajectoryClarityLifecycle("auto_context_pressure", S.sessionCwd || process.cwd());
     }
     const r = S.focusaAvailable
