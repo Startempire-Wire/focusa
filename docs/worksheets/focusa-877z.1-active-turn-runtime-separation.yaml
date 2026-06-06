@@ -1,6 +1,6 @@
 schema_version: focusa.active_turn_runtime_separation_contract.v1
 work_item_id: focusa-877z.1
-status: active_turn_runtime_only_action_routed
+status: active_turn_runtime_only_action_routed_and_diagnostics_handle_bounded
 source_specs:
   - docs/98-project-root-crdt-reconciliation-foundation-spec.md#12.1
   - docs/99-original-intent-vs-implementation-audit.md#active-turn-separation
@@ -37,14 +37,22 @@ implemented_slice:
     reducer_policy: no FocusaEvent emitted; runtime-only daemon mutation plus shared-state sync
     effect: turn/proxy prompt and chunk updates no longer directly mutate active_turn through API write-lock state edits
 remaining_migration:
-  - replace session/status assembled_prompt exposure with bounded runtime diagnostics handle
   - move ActiveTurn storage from FocusaState memory into a dedicated runtime cache once consumers are migrated
+implemented_diagnostics:
+  session_status_prompt_stats:
+    file: crates/focusa-api/src/routes/session.rs
+    routes: [/v1/status, /v1/status/deep]
+    handle_field: active_turn_diagnostics_handle
+    handle_status: bounded_runtime_metadata_only
+    exposed_fields: [turn_id, raw_input_chars, assembled_chars, estimated_tokens]
+    forbidden_fields: [raw_user_input, assembled_prompt]
+    authority_class: runtime_correlation
 proof_requirements:
   - static ActiveTurn serde skip guard
   - static API routes do not directly assign ActiveTurn raw_user_input/assembled_prompt
   - static turn/proxy routes use Action::UpdateActiveTurnRuntime
   - Rust cargo check
   - runtime turn correlation preserved by existing turn/proxy paths
+  - static session/status prompt_stats exposes active_turn_diagnostics_handle and nulls raw prompt buffers
 known_gaps:
   - ActiveTurn remains in FocusaState memory for compatibility but is non-persistent runtime-only
-  - session/status can still expose bounded active_turn metadata from runtime shared state until diagnostics handle migration

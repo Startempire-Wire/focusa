@@ -32,4 +32,5 @@ proof_requirements:
   - Rust cargo check and Pi TypeScript check pass
 known_gaps:
   - broader proxy pipeline still mixes render/enrichment/eval/telemetry stages and remains covered by later child beads
-  - session/status diagnostics handle migration remains covered by focusa-877z.1 follow-up gap
+resolved_followups:
+  - session/status diagnostics now expose bounded active_turn_diagnostics_handle via focusa-877z.1 implementation

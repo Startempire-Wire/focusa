@@ -128,17 +128,39 @@ async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
             })
         });
 
+        let active_turn_id = focusa.active_turn.as_ref().map(|t| t.turn_id.clone());
         let assembled_chars = focusa
             .active_turn
             .as_ref()
             .and_then(|t| t.assembled_prompt.as_ref())
             .map(|s| s.len() as u64)
             .unwrap_or(0);
+        let raw_input_chars = focusa
+            .active_turn
+            .as_ref()
+            .and_then(|t| t.raw_user_input.as_ref())
+            .map(|s| s.len() as u64)
+            .unwrap_or(0);
+        let active_turn_diagnostics_handle = active_turn_id
+            .as_ref()
+            .map(|turn_id| format!("runtime-diagnostics:active-turn:{turn_id}"));
+        let active_turn_diagnostics_handle_status = if active_turn_diagnostics_handle.is_some() {
+            "bounded_runtime_metadata_only"
+        } else {
+            "none"
+        };
 
         let prompt_stats = json!({
             "last_assembled_chars": assembled_chars,
             "last_assembled_estimated_tokens": assembled_chars / 4,
-            "active_turn_id": focusa.active_turn.as_ref().map(|t| t.turn_id.clone()),
+            "active_turn_id": active_turn_id,
+            "active_turn_diagnostics_handle": active_turn_diagnostics_handle,
+            "active_turn_diagnostics_handle_status": active_turn_diagnostics_handle_status,
+            "active_turn_diagnostics_fields": ["turn_id", "raw_input_chars", "assembled_chars", "estimated_tokens"],
+            "raw_input_chars": raw_input_chars,
+            "raw_user_input": Value::Null,
+            "assembled_prompt": Value::Null,
+            "authority_class": "runtime_correlation",
         });
 
         let worker_status = json!({
