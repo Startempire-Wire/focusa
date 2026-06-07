@@ -3417,13 +3417,23 @@ export function registerTools(pi: ExtensionAPI) {
       const consoleItems = [...asArray(diagnostics.console), ...asArray(diagnostics.diagnostics?.console), ...asArray(diagnostics.console_errors)];
       const exceptionItems = [...asArray(diagnostics.exceptions), ...asArray(diagnostics.page_errors), ...asArray(diagnostics.errors)];
       const failedItems = [...asArray(diagnostics.failed_requests), ...asArray(diagnostics.network_failures), ...asArray(diagnostics.diagnostics?.failed_requests)];
+      const classifyDiagnosticsSeverity = () => {
+        const allText = JSON.stringify({ consoleItems, exceptionItems, failedItems, diagnostics }).toLowerCase();
+        const benignAsset = failedItems.length > 0 && failedItems.every((item: any) => /\.(png|jpe?g|gif|webp|svg|ico|css|woff2?|ttf)(\?|$)|favicon|analytics|pixel|beacon|tracking/.test(String(item.url || item.request_url || item.name || item).toLowerCase()));
+        if (exceptionItems.length > 0 || /blank page|page crashed|navigation failed|main frame|document failed|hydration failed/.test(allText)) return { severity: "page_breaking", alarm: "repair_required", recommended_action: "capture diagnostics evidence, inspect page-breaking exception/navigation failure, then repair before retry" };
+        if (/selector_not_found|timeout|click failed|form failed|wait failed|429|403|cors|api failed|workflow blocked/.test(allText)) return { severity: "workflow_blocking", alarm: "action_blocked", recommended_action: "use snapshot/read/diagnostics to choose a different selector or API recovery path" };
+        if (benignAsset) return { severity: "benign_asset", alarm: "calm", recommended_action: "record bounded evidence only if relevant; continue workflow without alarming repair loop" };
+        if (consoleItems.length === 0 && exceptionItems.length === 0 && failedItems.length === 0) return { severity: "unknown", alarm: "baseline", recommended_action: "treat as clean baseline unless UI state contradicts diagnostics" };
+        return { severity: "unknown", alarm: "review", recommended_action: "review diagnostics context before deciding whether repair is needed" };
+      };
+      const severityClassification = classifyDiagnosticsSeverity();
       const errorClass = String(diagnostics.error_class || diagnostics.error?.class || "browser_diagnostics");
       const url = String(diagnostics.url || diagnostics.page_url || diagnostics.session?.url || dig(diagnostics, ["diagnostics", "url"]) || "unknown-url");
       const action = String(diagnostics.action || diagnostics.operation || diagnostics.selector ? `${diagnostics.action || "browser_action"}:${diagnostics.selector || "unknown-selector"}` : "browser_diagnostics");
       const targetRef = String(p.target_ref || (url !== "unknown-url" ? url : action));
       const evidenceRef = String(p.diagnostics_ref || diagnostics.evidence_ref || focusaScope.evidence_ref || `browser-diagnostics:${new Date().toISOString()}`);
       const diagSummary = String(diagnostics.diagnostics_summary || diagnostics.summary || "");
-      const resultSummary = String(p.result || `${errorClass}: console=${consoleItems.length} exceptions=${exceptionItems.length} failed_requests=${failedItems.length}${diagSummary ? `; ${diagSummary}` : ""}`).slice(0, 500);
+      const resultSummary = String(p.result || `${errorClass}: severity=${severityClassification.severity} alarm=${severityClassification.alarm} console=${consoleItems.length} exceptions=${exceptionItems.length} failed_requests=${failedItems.length}${diagSummary ? `; ${diagSummary}` : ""}`).slice(0, 500);
       const activeObjectHints = Array.from(new Set([targetRef, url, action, diagnostics.selector, diagnostics.request_url, diagnostics.endpoint].filter(Boolean).map(String))).slice(0, 8);
       const sideEffects: string[] = [];
       const evidenceRefs: string[] = [evidenceRef];
@@ -3449,9 +3459,9 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.create_prediction !== false) {
         predictionResult = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify({
           prediction_type: "browser_diagnostics_next_action",
-          predicted_outcome: failedItems.length || exceptionItems.length || consoleItems.length ? "Diagnostics intake will shorten the next browser-debug loop by preserving concrete console/network/error evidence." : "Diagnostics intake will act as a clean baseline for future browser-debug comparisons.",
-          confidence: failedItems.length || exceptionItems.length || consoleItems.length ? 0.78 : 0.62,
-          recommended_action: "Use active_object_hints plus evidence_ref before choosing the next browser fix or Workpoint update.",
+          predicted_outcome: severityClassification.severity === "benign_asset" ? "Benign asset diagnostics will not trigger an unnecessary repair loop." : failedItems.length || exceptionItems.length || consoleItems.length ? "Diagnostics intake will shorten the next browser-debug loop by preserving concrete console/network/error evidence." : "Diagnostics intake will act as a clean baseline for future browser-debug comparisons.",
+          confidence: severityClassification.severity === "benign_asset" ? 0.82 : failedItems.length || exceptionItems.length || consoleItems.length ? 0.78 : 0.62,
+          recommended_action: severityClassification.recommended_action,
           why: resultSummary,
           context_refs: evidenceRefs,
           ontology_context: { object_refs: activeObjectHints, evidence_refs: evidenceRefs, action_refs: [action], tool_refs: ["focusa_browser_diagnostics_intake"] },
@@ -3477,7 +3487,7 @@ export function registerTools(pi: ExtensionAPI) {
       const ok = p.attach_to_workpoint === false || evidenceResult?.ok === true;
       const status = ok ? "completed" : "blocked";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `browser diagnostics intake → ${status} evidence=${evidenceRef}`, tool: "focusa_browser_diagnostics_intake", family: "workpoint", side_effects: sideEffects, evidence_refs: evidenceRefs, next_tools: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_predict_record", "focusa_metacog_capture"], raw: { evidence: evidenceResult?.body, prediction: predictionResult?.body, metacog: metacogResult?.body } });
-      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, focusa_scope: compactApiEcho(focusaScope), scoped_workpoint_id: scopedWorkpointId || null, scoped_continuity_id: scopedContinuityId || null, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
+      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} severity=${severityClassification.severity} alarm=${severityClassification.alarm} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, diagnostics_severity: severityClassification, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, focusa_scope: compactApiEcho(focusaScope), scoped_workpoint_id: scopedWorkpointId || null, scoped_continuity_id: scopedContinuityId || null, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
     },
   });
 
