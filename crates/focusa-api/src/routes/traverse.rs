@@ -150,6 +150,34 @@ const TRUST_BADGE_VOCABULARY: &[&str] = &[
     "canonical", "advisory", "projected", "stale", "degraded", "blocked", "spec_only", "partial", "verified", "unsafe_scope",
 ];
 
+fn profile_selector_catalog() -> Vec<Value> {
+    vec![
+        json!({"id":"daily_driver","profile_id":"daily_driver","label":"Daily Driver","BLOATGAURD_PROFILE":"Daily Driver","CONTEXT_POSTURE":"balanced","FULL_PAYLOAD":"cold opt-in","availability":"implemented","authority":"render_policy_only","mutates":false,"trust_badges":["implemented","verified"]}),
+        json!({"id":"beast_mode","profile_id":"beast_mode","label":"Beast Mode","BLOATGAURD_PROFILE":"Beast Mode","CONTEXT_POSTURE":"broad context, bounded handles","FULL_PAYLOAD":"cold opt-in required","availability":"partial","authority":"render_policy_only","mutates":false,"trust_badges":["partial","advisory"]}),
+        json!({"id":"speedy","profile_id":"speedy","label":"Speedy","BLOATGAURD_PROFILE":"Speedy","CONTEXT_POSTURE":"low-token fast path","FULL_PAYLOAD":"off by default","availability":"implemented","authority":"render_policy_only","mutates":false,"trust_badges":["implemented","verified"]}),
+        json!({"id":"neat_freak","profile_id":"neat_freak","label":"Neat Freak","BLOATGAURD_PROFILE":"Neat Freak","CONTEXT_POSTURE":"audit/cleanup","FULL_PAYLOAD":"cold opt-in","availability":"partial","authority":"render_policy_only","mutates":false,"trust_badges":["partial","advisory"]}),
+        json!({"id":"tightwad","profile_id":"tightwad","label":"Tightwad","BLOATGAURD_PROFILE":"Tightwad","CONTEXT_POSTURE":"strict budget","FULL_PAYLOAD":"blocked unless explicit","availability":"partial","authority":"render_policy_only","mutates":false,"trust_badges":["partial","advisory"]}),
+    ]
+}
+
+fn profile_selector_payload(items: &[Value]) -> Value {
+    json!({"schema":"focusa.profile_selector.v1","profile_count":items.len(),"authority":"profiles change model-visible render/posture only; Workpoint/evidence remain authority"})
+}
+
+fn routine_commands_catalog() -> Vec<Value> {
+    vec![
+        json!({"id":"scout","routine_id":"scout","label":"The Scout","purpose":"choose route","command":"focusa routine scout","availability":"partial","requires_verified_scope":true,"mutates":false,"trust_badges":["partial","advisory"]}),
+        json!({"id":"librarian","routine_id":"librarian","label":"The Librarian","purpose":"compile context","command":"focusa routine librarian","availability":"spec_only","requires_verified_scope":true,"mutates":false,"trust_badges":["spec_only","advisory"]}),
+        json!({"id":"squeezer","routine_id":"squeezer","label":"The Squeezer","purpose":"compact tool history","command":"focusa routine squeezer","availability":"partial","requires_verified_scope":true,"mutates":false,"trust_badges":["partial","advisory"]}),
+        json!({"id":"deep_dive","routine_id":"deep_dive","label":"The Deep Dive","purpose":"rehydrate exact proof","command":"focusa routine deep_dive","availability":"partial","requires_verified_scope":true,"mutates":false,"trust_badges":["partial","advisory"]}),
+        json!({"id":"gatekeeper","routine_id":"gatekeeper","label":"The Gatekeeper","purpose":"strict check","command":"focusa routine gatekeeper","availability":"implemented","requires_verified_scope":true,"mutates":false,"trust_badges":["implemented","verified"]}),
+    ]
+}
+
+fn routine_commands_payload(items: &[Value]) -> Value {
+    json!({"schema":"focusa.routine_commands.v1","routine_count":items.len(),"policy":"routine commands are discovery affordances; automatic routines require verified project_root+continuity_id and do not delete/archive/rewrite code"})
+}
+
 fn spec_availability_registry() -> Vec<Value> {
     vec![
         json!({"id":"Spec100","spec_id":"Spec100","feature":"Context Cognition","availability":"spec_only","runtime_entrypoint":Value::Null,"docs_ref":"docs/100-context-cognition-spec.md","first_implementation_slice":"focusa-pm2b.24","trust_badges":["spec_only","advisory"],"SpecRuntimeAvailabilityLabel":"spec_only"}),
@@ -1218,6 +1246,8 @@ fn surface_items(
         "metacognition" | "metacog" => metacognition_items(state),
         "predictions" | "prediction" => prediction_items(state),
         "snapshots" | "snapshot" => snapshot_items(state),
+        "profile_selector" | "bloatgaurd_profiles" => profile_selector_catalog(),
+        "routine_commands" | "bloatgaurd_routines" => routine_commands_catalog(),
         "spec_availability" | "spec_registry" | "specs" => spec_availability_registry(),
         "verbosity_profile" | "verbosity_profiles" | "profiles" => verbosity_profile_catalog(),
         "change_feed" | "changes" => change_feed_items(state, req),
@@ -1271,6 +1301,14 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "tags",
                 "created_at",
             ],
+        ),
+        "profile_selector" | "bloatgaurd_profiles" => (
+            &["profile_id", "label", "BLOATGAURD_PROFILE", "CONTEXT_POSTURE", "FULL_PAYLOAD", "availability", "authority", "mutates"],
+            &["id", "profile_id", "label", "BLOATGAURD_PROFILE", "CONTEXT_POSTURE", "FULL_PAYLOAD", "availability", "authority", "mutates", "trust_badges"],
+        ),
+        "routine_commands" | "bloatgaurd_routines" => (
+            &["routine_id", "label", "purpose", "command", "availability", "requires_verified_scope", "mutates"],
+            &["id", "routine_id", "label", "purpose", "command", "availability", "requires_verified_scope", "mutates", "trust_badges"],
         ),
         "spec_availability" | "spec_registry" | "specs" => (
             &["spec_id", "feature", "availability", "runtime_entrypoint", "docs_ref", "trust_badges"],
@@ -1441,6 +1479,10 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             | "commands"
             | "snapshots"
             | "snapshot"
+            | "profile_selector"
+            | "bloatgaurd_profiles"
+            | "routine_commands"
+            | "bloatgaurd_routines"
             | "spec_availability"
             | "spec_registry"
             | "specs"
@@ -1630,6 +1672,8 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         "route_recommendation": route_recommendation_payload(&surface, &sel, false),
         "stuck_loop": stuck_loop_payload(&surface, &items),
         "evidence_diff": evidence_diff_payload(&surface, &items),
+        "profile_selector": if matches!(surface.as_str(), "profile_selector" | "bloatgaurd_profiles") { profile_selector_payload(&items) } else { Value::Null },
+        "routine_commands": if matches!(surface.as_str(), "routine_commands" | "bloatgaurd_routines") { routine_commands_payload(&items) } else { Value::Null },
         "spec_availability": if matches!(surface.as_str(), "spec_availability" | "spec_registry" | "specs") { spec_availability_payload(&items) } else { Value::Null },
         "verbosity_profile": if matches!(surface.as_str(), "verbosity_profile" | "verbosity_profiles" | "profiles") { verbosity_profile_payload(&items) } else { Value::Null },
         "change_feed": if matches!(surface.as_str(), "change_feed" | "changes") { change_feed_payload(&items, req.query.as_deref()) } else { Value::Null },
