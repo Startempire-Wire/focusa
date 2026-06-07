@@ -210,6 +210,30 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
     }
 }
 
+fn wrong_id_taxonomy_payload(
+    status: &str,
+    workpoint_id: Option<Uuid>,
+    requested_workpoint_id: Option<Uuid>,
+    requested_found: bool,
+    scope_found: bool,
+    fallback_used: bool,
+    canonical_for_requested_scope: bool,
+    canonical_for_fallback_scope: bool,
+) -> Value {
+    json!({
+        "schema": "focusa.wrong_id_taxonomy.v1",
+        "WrongIdConsistency": true,
+        "status": status,
+        "workpoint_id": workpoint_id,
+        "requested_workpoint_id": requested_workpoint_id,
+        "requested_found": requested_found,
+        "scope_found": scope_found,
+        "fallback_used": fallback_used,
+        "canonical_for_requested_scope": canonical_for_requested_scope,
+        "canonical_for_fallback_scope": canonical_for_fallback_scope,
+    })
+}
+
 fn unsafe_project_root_rejection(
     record: &WorkpointRecord,
     reason: &'static str,
@@ -225,6 +249,12 @@ fn unsafe_project_root_rejection(
         "expected_project_root": expected_project_root,
         "packet_project_root": record.project_root,
         "safe_recovery": "ignore this resume packet; bind Focusa to a specific project/repo root and checkpoint a fresh Workpoint",
+        "requested_found": true,
+        "scope_found": false,
+        "fallback_used": false,
+        "canonical_for_requested_scope": false,
+        "canonical_for_fallback_scope": false,
+        "wrong_id_taxonomy": wrong_id_taxonomy_payload("scope_mismatch_for_requested_id", Some(record.workpoint_id), Some(record.workpoint_id), true, false, false, false, false),
         "next_step_hint": "cd into the exact project/repo or pass an explicit safe project_root before trusting resume"
     })
 }
@@ -325,6 +355,12 @@ fn evaluate_resume_scope(
                 "expected_project_root": expected,
                 "packet_project_root": actual,
                 "safe_recovery": "ignore this resume packet; follow latest operator instruction and local git/beads for the current project",
+                "requested_found": true,
+                "scope_found": false,
+                "fallback_used": false,
+                "canonical_for_requested_scope": false,
+                "canonical_for_fallback_scope": false,
+                "wrong_id_taxonomy": wrong_id_taxonomy_payload("scope_mismatch_for_requested_id", Some(record.workpoint_id), Some(record.workpoint_id), true, false, false, false, false),
                 "next_step_hint": "create a new Workpoint checkpoint in the current project before trusting resume"
             }));
             return decision;
@@ -349,6 +385,12 @@ fn evaluate_resume_scope(
                 "expected_continuity_id": expected,
                 "packet_continuity_id": actual,
                 "safe_recovery": "select the matching SilentSession/Pi continuity_id or checkpoint a fresh Workpoint for this logical session",
+                "requested_found": true,
+                "scope_found": false,
+                "fallback_used": false,
+                "canonical_for_requested_scope": false,
+                "canonical_for_fallback_scope": false,
+                "wrong_id_taxonomy": wrong_id_taxonomy_payload("scope_mismatch_for_requested_id", Some(record.workpoint_id), Some(record.workpoint_id), true, false, false, false, false),
                 "next_step_hint": "list/reopen the correct SilentSession or create a checkpoint carrying this continuity_id"
             }));
             return decision;
@@ -2214,6 +2256,12 @@ async fn resume(
             "workpoint_id": null,
             "requested_workpoint_id": requested_workpoint_id,
             "warnings": ["no workpoint available to resume"],
+            "requested_found": requested_workpoint_id.is_none(),
+            "scope_found": false,
+            "fallback_used": false,
+            "canonical_for_requested_scope": false,
+            "canonical_for_fallback_scope": false,
+            "wrong_id_taxonomy": wrong_id_taxonomy_payload("not_found_no_scope_fallback", None, requested_workpoint_id, requested_workpoint_id.is_none(), false, false, false, false),
             "next_step_hint": "checkpoint the current mission/action before retrying resume"
         })));
     };
@@ -2331,6 +2379,8 @@ async fn resume(
         response.insert("fallback_object_id".to_string(), json!(workpoint_id));
         response.insert("canonical_for_requested_scope".to_string(), json!(false));
         response.insert("canonical_for_fallback_scope".to_string(), json!(canonical));
+        response.insert("scope_found".to_string(), json!(true));
+        response.insert("wrong_id_taxonomy".to_string(), wrong_id_taxonomy_payload("fallback_from_missing_requested_id", Some(workpoint_id), requested_workpoint_id, false, true, true, false, canonical));
         response.insert("misuse_hint".to_string(), json!("requested Workpoint id was not found; returned same-project active Workpoint as an explicit fallback, not as canonical for requested scope"));
     }
     Ok(Json(Value::Object(response)))
