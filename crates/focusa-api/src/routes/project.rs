@@ -1502,6 +1502,45 @@ fn candidate_payload(
     } else {
         "mismatch"
     };
+    let requested_project_root = expected
+        .and_then(|req| clean(req.project_root.as_deref()).or_else(|| clean(req.cwd.as_deref())))
+        .unwrap_or_else(|| candidate.project_root.clone());
+    let persisted_project_root = expected.and_then(|req| clean(req.persisted_project_root.as_deref()));
+    let verified_project_root = candidate.project_root.clone();
+    let mut matched_axes = Vec::<String>::new();
+    let mut mismatched_axes = Vec::<String>::new();
+    if requested_project_root == verified_project_root {
+        matched_axes.push("requested_project_root==verified_project_root".to_string());
+    } else {
+        mismatched_axes.push("requested_project_root!=verified_project_root".to_string());
+    }
+    if let Some(persisted) = persisted_project_root.as_deref() {
+        if persisted == requested_project_root {
+            matched_axes.push("persisted_project_root==requested_project_root".to_string());
+        } else {
+            mismatched_axes.push("persisted_project_root!=requested_project_root".to_string());
+        }
+        if persisted == verified_project_root {
+            matched_axes.push("persisted_project_root==verified_project_root".to_string());
+        } else {
+            mismatched_axes.push("persisted_project_root!=verified_project_root".to_string());
+        }
+    }
+    let mismatch_semantics = if verified {
+        Value::Null
+    } else {
+        json!({
+            "schema": "focusa.project_identity_mismatch.v1",
+            "ProjectIdentityMismatchSemantics": true,
+            "requested_project_root": requested_project_root,
+            "persisted_project_root": persisted_project_root,
+            "verified_project_root": verified_project_root,
+            "matched_axes": matched_axes,
+            "mismatched_axes": mismatched_axes,
+            "authority_decision": "operator_confirmation_required",
+            "safe_next_action": "Run focusa_project_verify/focusa_project_identity, then focusa_workpoint_checkpoint in the confirmed project_root before mutation",
+        })
+    };
     let project_summary = compact_project_summary(&candidate);
     let authority_boundary = if candidate.remote_context.is_null() {
         "project_root_plus_fingerprint"
@@ -1509,7 +1548,7 @@ fn candidate_payload(
         "remote_host_plus_project_root_plus_fingerprint"
     };
     json!({
-        "status": status,
+        "status": if !verified && !mismatches.is_empty() { "mismatch" } else { status },
         "canonical": canonical,
         "degraded": !canonical,
         "project_summary": project_summary.clone(),
@@ -1535,13 +1574,14 @@ fn candidate_payload(
             "verified_at": candidate.verified_at,
             "authority_boundary": authority_boundary,
         },
+        "mismatch_semantics": mismatch_semantics,
         "verification": {
             "verified": verified,
             "quorum_rule": "high confidence requires at least two independent matching signals; cwd-only is degraded",
             "matching_independent_signals": candidate.signals.iter().filter(|signal| signal.independent && signal.root.as_deref() == Some(candidate.project_root.as_str())).count(),
             "required_recovery": if verified { Value::Null } else { json!("resolve mismatched project signals or provide explicit project_root after checking current repo") },
         },
-        "next_tools": ["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
+        "next_tools": if verified { json!(["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"]) } else { json!(["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_trajectory_view", "focusa_workpoint_resume"]) },
         "details": {"tool_result_v1": {
             "ok": verified,
             "status": status,
@@ -1551,7 +1591,7 @@ fn candidate_payload(
             "retry": {"safe": verified, "posture": if verified { "safe_retry" } else { "do_not_retry_unchanged" }},
             "side_effects": [],
             "evidence_refs": [],
-            "next_tools": ["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"]
+            "next_tools": if verified { json!(["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"]) } else { json!(["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_trajectory_view", "focusa_workpoint_resume"]) }
         }}
     })
 }
