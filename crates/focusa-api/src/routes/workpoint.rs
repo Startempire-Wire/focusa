@@ -1133,40 +1133,6 @@ async fn wait_for_workpoint_record(
     None
 }
 
-async fn wait_for_workpoint_evidence(
-    state: &Arc<AppState>,
-    workpoint_id: Uuid,
-    evidence_ref: Option<&str>,
-    target_ref: &str,
-    result: &str,
-) -> Option<WorkpointRecord> {
-    let attempts = workpoint_visibility_wait_attempts();
-    for attempt in 0..attempts {
-        {
-            let focusa = state.focusa.read().await;
-            if let Some(record) = focusa
-                .workpoint
-                .records
-                .iter()
-                .find(|record| record.workpoint_id == workpoint_id)
-            {
-                let linked = record.verification_records.iter().any(|verification| {
-                    verification.target_ref == target_ref
-                        && verification.result == result
-                        && verification.evidence_ref.as_deref() == evidence_ref
-                });
-                if linked {
-                    return Some(record.clone());
-                }
-            }
-        }
-        if attempt + 1 < attempts {
-            sleep(Duration::from_millis(50)).await;
-        }
-    }
-    None
-}
-
 fn workpoint_failure(
     http_status: StatusCode,
     error: impl Into<String>,
@@ -2556,22 +2522,28 @@ async fn link_evidence(
             "next_step_hint": "preview only; repeat without preview/dry_run to link evidence"
         })));
     }
-    dispatch_event(
+    let materialized_state = materialize_workpoint_events(
         &state,
-        FocusaEvent::WorkpointEvidenceLinked {
+        vec![FocusaEvent::WorkpointEvidenceLinked {
             workpoint_id,
             verification: verification.clone(),
-        },
+        }],
+        "workpoint_evidence_link",
     )
     .await?;
-    let linked_record = wait_for_workpoint_evidence(
-        &state,
-        workpoint_id,
-        verification.evidence_ref.as_deref(),
-        &verification.target_ref,
-        &verification.result,
-    )
-    .await;
+    let linked_record = materialized_state
+        .workpoint
+        .records
+        .iter()
+        .find(|record| {
+            record.workpoint_id == workpoint_id
+                && record.verification_records.iter().any(|linked| {
+                    linked.target_ref == verification.target_ref
+                        && linked.result == verification.result
+                        && linked.evidence_ref == verification.evidence_ref
+                })
+        })
+        .cloned();
     if linked_record.is_none() {
         return Err((
             StatusCode::ACCEPTED,
