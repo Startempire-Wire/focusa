@@ -1,6 +1,6 @@
 # Spec102 Repair Report — current
 
-Generated: 2026-06-07T21:40:49.034507+00:00
+Generated: 2026-06-07T22:27:31.967937+00:00
 
 ```yaml
 repair_report_index:
