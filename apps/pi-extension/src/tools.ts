@@ -1397,11 +1397,14 @@ export function registerTools(pi: ExtensionAPI) {
     ]);
     const body = metrics.body || health.body || {};
     const queue = body.queue || {};
+    const currentCapacity = body.current_capacity || body.agent_pressure?.current_capacity || {};
+    const capacityAvailable = currentCapacity.capacity_available === true || Number(currentCapacity.remaining_page_slots || 0) > 0 || Number(currentCapacity.available_idle_pages || 0) > 0;
     const p95 = Number(queue.p95_wait_ms || 0);
     const p99 = Number(queue.p99_wait_ms || 0);
     const rejected = Number(queue.rejected || 0);
     const status = String(body.status || (health.ok || metrics.ok ? "ok" : "unavailable"));
-    const pressure = p99 >= 5000 || p95 >= 2500 || rejected > 0 ? "high" : p99 >= 1500 || p95 >= 750 ? "medium" : "low";
+    const historicalPressure = p99 >= 5000 || p95 >= 2500 || rejected > 0 ? "high" : p99 >= 1500 || p95 >= 750 ? "medium" : "low";
+    const pressure = capacityAvailable ? "low" : historicalPressure;
     return {
       ok: health.ok || metrics.ok,
       status,
@@ -1411,6 +1414,8 @@ export function registerTools(pi: ExtensionAPI) {
       browser_alive: body.browser_alive,
       browser_state: body.browser_state,
       queue,
+      current_capacity: currentCapacity,
+      historical_pressure: historicalPressure,
       pressure,
       recommended_action: pressure === "high" ? "narrow browser workload, close stale sessions, or retry after queue drains" : pressure === "medium" ? "monitor browser queue before parallel UIAI work" : "continue normally",
       response: compactApiEcho(body),
@@ -2529,6 +2534,11 @@ export function registerTools(pi: ExtensionAPI) {
         return acc;
       }, {});
       const latestToken = S.spec92TokenTelemetry.at(-1) || null;
+      const latestTokenTurn = String((latestToken as any)?.turn_id || "");
+      const currentTurnId = `pi-turn-${S.turnCount}`;
+      const latestTokenIsCurrent = latestTokenTurn === currentTurnId || !latestTokenTurn;
+      const latestTokenBudgetClass = String((latestToken as any)?.budget_class || "unknown");
+      const tokenBudgetStatus = latestTokenIsCurrent ? latestTokenBudgetClass : `historical:${latestTokenBudgetClass}`;
       const resourceMode = resource.body?.resource_mode || {};
       const latestTransition = resourceMode.latest_transition || (Array.isArray(resource.body?.transition_history) ? resource.body.transition_history[0] : null);
       const transitionLabel = latestTransition ? `${String(latestTransition.from_mode || "?")}→${String(latestTransition.to_mode || "?")}` : "none";
@@ -2571,8 +2581,8 @@ export function registerTools(pi: ExtensionAPI) {
       const evidenceResult = contractDrift.drift_detected
         ? `readiness=${ready ? "ready" : "degraded"} drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
         : `readiness=${ready ? "ready" : "degraded"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
-      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), uiai_browser: compactApiEcho(uiaiBrowser), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: driftDetails, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: evidenceResult, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
+      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), uiai_browser: compactApiEcho(uiaiBrowser), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: driftDetails, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, token_budget: { status: tokenBudgetStatus, budget_class: latestTokenBudgetClass, turn_id: latestTokenTurn || null, current_turn_id: currentTurnId, current: latestTokenIsCurrent }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: evidenceResult, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
     },
   });
 

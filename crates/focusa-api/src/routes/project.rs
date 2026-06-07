@@ -2543,7 +2543,7 @@ async fn card(
                 "blocker_count": record.blockers.len(),
             })
         });
-    let runtime_ontology_objects = focusa.ontology.objects.len();
+    let canonical_ontology_objects = focusa.ontology.objects.len();
     let derived_project_objects = 1usize
         + usize::from(trajectory.is_some())
         + usize::from(active_workpoint.is_some())
@@ -2552,7 +2552,8 @@ async fn card(
             .as_ref()
             .map(|t| t.waypoints.len().min(8))
             .unwrap_or(0);
-    let effective_ontology_objects = runtime_ontology_objects + derived_project_objects;
+    let runtime_ontology_objects = canonical_ontology_objects + derived_project_objects;
+    let effective_ontology_objects = runtime_ontology_objects;
     let ontology_scope_key = project
         .get("project_root")
         .and_then(Value::as_str)
@@ -2569,11 +2570,13 @@ async fn card(
         "scope_key": ontology_scope_key,
         "selector": "project_card_effective",
         "freshness": "live_state_snapshot_plus_project_derivatives",
-        "count_semantics": "objects is effective_project_card_objects = runtime ontology objects plus derived project/trajectory/workpoint objects; runtime_objects matches focusa_traverse(surface=ontology,selector=window).traversal.total",
-        "why_zero_if_empty": "runtime_objects=0 means the runtime ontology read index has no objects; derived_project_objects may still provide advisory project-card context",
+        "canonical_objects": canonical_ontology_objects,
+        "count_semantics": "objects/runtime_objects is the project-card live ontology view: canonical ontology objects plus derived project/trajectory/workpoint objects; canonical_objects is the persisted ontology store count",
+        "why_zero_if_empty": "runtime_objects=0 means neither canonical ontology objects nor project/trajectory/workpoint derivatives are available for this scope",
         "next_selector": "focusa_traverse surface=ontology selector=window for runtime objects; focusa_traverse surface=workpoints selector=window or focusa_trajectory_view for derived context",
         "counts": {
             "runtime_objects": runtime_ontology_objects,
+            "canonical_objects": canonical_ontology_objects,
             "derived_project_objects": derived_project_objects,
             "effective_project_card_objects": effective_ontology_objects,
             "runtime_links": focusa.ontology.links.len()

@@ -128,6 +128,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     const summary = payloadSummary(event?.payload || event?.request || event);
     const record: any = {
       hook: "before_provider_request",
+      turn_id: `pi-turn-${S.turnCount}`,
       provider: event?.provider || event?.model?.provider || "unknown",
       model: event?.model?.id || event?.model || "unknown",
       ...summary,
