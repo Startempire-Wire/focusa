@@ -2181,6 +2181,33 @@ fn inferred_workpoint_candidate(
             }
         })
         .unwrap_or("infer next slice from recent project activity");
+    let active_workpoint_mission = active_workpoint
+        .as_ref()
+        .and_then(|value| value.get("mission"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let ask_differs_from_active_workpoint = !current_ask.trim().is_empty()
+        && !active_workpoint_mission.trim().is_empty()
+        && current_ask.trim() != active_workpoint_mission.trim();
+    let recommended_bridge_action = if ask_differs_from_active_workpoint {
+        "checkpoint_new_workpoint_from_current_ask"
+    } else if active_workpoint.is_some() {
+        "resume_active_workpoint"
+    } else {
+        "checkpoint_current_ask_after_identity_verification"
+    };
+    let checkpoint_payload_hint = json!({"mission": next_action, "current_action": action_type, "target_objects": target_objects, "next_action": next_action, "canonical": true});
+    let ask_to_workpoint_bridge = json!({
+        "schema": "focusa.ask_to_workpoint_bridge.v1",
+        "safe_after_identity_verification": true,
+        "project_root": root,
+        "current_ask": current_ask,
+        "active_workpoint_mission": active_workpoint_mission,
+        "ask_differs_from_active_workpoint": ask_differs_from_active_workpoint,
+        "recommended_bridge_action": recommended_bridge_action,
+        "exact_next_action": if ask_differs_from_active_workpoint || active_workpoint.is_none() { "focusa_workpoint_checkpoint with checkpoint_payload_hint" } else { "focusa_workpoint_resume active Workpoint" },
+        "checkpoint_payload_hint": checkpoint_payload_hint,
+    });
     json!({
         "schema": "focusa.inferred_workpoint_candidate.v1",
         "advisory_only": true,
@@ -2192,7 +2219,8 @@ fn inferred_workpoint_candidate(
         "next_action": next_action,
         "target_objects": target_objects,
         "source_signals": {"git_status": status, "git_recent_files": recent, "prior_session_workpath": recent_frames, "recent_decisions": recent_decisions, "focus_goal_signals": focus_goal_signals, "prediction_summary": prediction, "ontology_summary": ontology, "metacognition_prompt": "retrieve lessons for inferred Workpoint before checkpointing", "had_prior_workpoint": active_workpoint.is_some(), "current_ask_present": !current_ask.trim().is_empty(), "trajectory_stg_present": trajectory_stg.is_some()},
-        "checkpoint_payload_hint": {"mission": next_action, "current_action": action_type, "target_objects": target_objects, "next_action": next_action, "canonical": true},
+        "checkpoint_payload_hint": checkpoint_payload_hint,
+        "ask_to_workpoint_bridge": ask_to_workpoint_bridge,
         "operator_prompt_required": false
     })
 }
@@ -2485,6 +2513,10 @@ async fn card(
             .map(|t| t.waypoints.len().min(8))
             .unwrap_or(0);
     let effective_ontology_objects = runtime_ontology_objects + derived_project_objects;
+    let ontology_scope_key = project
+        .get("project_root")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
     let ontology = json!({
         "objects": effective_ontology_objects,
         "runtime_objects": runtime_ontology_objects,
@@ -2493,6 +2525,19 @@ async fn card(
         "proposals": focusa.ontology.proposals.len(),
         "verifications": focusa.ontology.verifications.len(),
         "working_set_refreshes": focusa.ontology.working_set_refreshes.len(),
+        "source_index": "project_card_effective_ontology",
+        "scope_key": ontology_scope_key,
+        "selector": "project_card_effective",
+        "freshness": "live_state_snapshot_plus_project_derivatives",
+        "count_semantics": "objects is effective_project_card_objects = runtime ontology objects plus derived project/trajectory/workpoint objects; runtime_objects matches focusa_traverse(surface=ontology,selector=window).traversal.total",
+        "why_zero_if_empty": "runtime_objects=0 means the runtime ontology read index has no objects; derived_project_objects may still provide advisory project-card context",
+        "next_selector": "focusa_traverse surface=ontology selector=window for runtime objects; focusa_traverse surface=workpoints selector=window or focusa_trajectory_view for derived context",
+        "counts": {
+            "runtime_objects": runtime_ontology_objects,
+            "derived_project_objects": derived_project_objects,
+            "effective_project_card_objects": effective_ontology_objects,
+            "runtime_links": focusa.ontology.links.len()
+        },
         "bridge_status": if runtime_ontology_objects > 0 { "runtime_ontology_plus_project_derivatives" } else { "project_derivatives_used_until_runtime_ontology_populates" }
     });
     let reference_handles = focusa.reference_index.handles.len();
@@ -2627,6 +2672,10 @@ async fn card(
         &recent_decisions,
         &focus_goal_signals,
     );
+    let ask_to_workpoint_bridge = inferred_workpoint
+        .get("ask_to_workpoint_bridge")
+        .cloned()
+        .unwrap_or(Value::Null);
     let sequence_plan = project_success_sequence(
         project_name,
         trajectory_hlt.as_deref(),
@@ -2690,6 +2739,7 @@ async fn card(
         "algorithm_run_id": algorithm_run_id,
         "success_sequence": sequence_plan,
         "inferred_workpoint_candidate": inferred_workpoint,
+        "ask_to_workpoint_bridge": ask_to_workpoint_bridge,
         "efficiency_summary": efficiency_summary,
         "trajectory_report_card": trajectory_report_card,
         "crosswire_health": crosswire_health,

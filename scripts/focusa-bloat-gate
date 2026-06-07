@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+log() { printf '\n==> %s\n' "$*"; }
+
+log "UIAI-first web/research routing guard"
+tests/spec98_uiai_first_web_research_static_test.py
+
+log "Spec98 Pi/UIAI authority impact guard"
+tests/spec98_pi_uiai_authority_impact_static_test.py
+
+log "PASS: Focusa bloat/route gate completed"

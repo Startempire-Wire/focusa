@@ -92,13 +92,44 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
                 .to_string()
         });
     let canonical = record.map(|r| r.canonical).unwrap_or(false);
-    [
+    let authority = if canonical { "workpoint" } else { "operator_current_ask" };
+    let workpoint_status = if canonical { "verified" } else { "unavailable/not_verified" };
+    let exact_next_action = if canonical { next } else { "Call /v1/trajectory/view, then checkpoint a project-bound Workpoint before risky continuation." };
+    let reconciliation_envelope = if canonical {
+        Vec::<String>::new()
+    } else {
+        vec![
+            "RECONCILIATION_ENVELOPE:".to_string(),
+            format!("- surface_states=workpoint:{workpoint_status}; trajectory:verify_first; focus_state:unknown; ontology:unknown; evidence:capture_after_checkpoint; doctor:unknown; work_loop:unknown"),
+            "- resolution=checkpoint_project_bound_workpoint".to_string(),
+            "- authority_for_next_action=operator_current_ask_until_checkpoint".to_string(),
+            format!("- supporting_context=project_root:{project_root}; continuity_id:{continuity}; session_id:{session}"),
+            "- blocked_or_stale_surfaces=workpoint,trajectory".to_string(),
+            "- next_repair_tool=focusa_workpoint_checkpoint".to_string(),
+        ]
+    };
+    let mut lines = vec![
         "# Focusa Utility Card".to_string(),
         format!("Status: available{}", if canonical { " / project-bound Workpoint found" } else { " / no project-bound Workpoint found" }),
         format!("Agent: adapter={adapter} workspace={workspace} agent={agent} operator={operator}"),
         format!("Mission: {mission}"),
         format!("Next anchor: {next}"),
         format!("Project folder: project_root={project_root}; continuity_id={continuity}; session_id={session} (temporal metadata)"),
+        "NOW_CARD:".to_string(),
+        format!("- authority={authority}; scope=project_root:{project_root} continuity_id:{continuity}"),
+        format!("- readiness=scope:declared workpoint:{workpoint_status} trajectory:verify_first"),
+        format!("- exact_next_action={exact_next_action}"),
+        "WHY_CARD:".to_string(),
+        format!("- why=included adapter/workspace/operator identifiers and {} ; excluded transcript_tail as authority", if canonical { "canonical scoped Workpoint" } else { "declared scope plus latest operator ask" }),
+        "- source_authority_order=operator_steering > verified_project_identity > canonical_workpoint > trajectory_projection > traverse/evidence > transcript_tail_never".to_string(),
+        "HEALTH_CARD:".to_string(),
+        format!("- scope=declared; workpoint={workpoint_status}; trajectory=verify_first; evidence=capture_after_proof; token_pressure=unknown; drift=none_known; uiai=unknown"),
+        "DO_CARD:".to_string(),
+        format!("- exact_next_action={exact_next_action}"),
+        format!("- mutates={}; rollback=checkpoint/resume packet; rehydrate_refs=/v1/workpoint/resume,/v1/trajectory/view,/v1/traverse", if canonical { "only when selected execution tool is called" } else { "workpoint checkpoint if accepted" }),
+    ];
+    lines.extend(reconciliation_envelope.clone());
+    lines.extend(vec![
         "Trajectory: call /v1/trajectory/view before choosing work; high/mid/low similarity is advisory only and must_not_merge_sessions=true.".to_string(),
         "Reflex affordances: if blocked/degraded, follow reflex_suggestions or traverse surface=reflex_primitives for the smallest safe next step.".to_string(),
         String::new(),
@@ -111,7 +142,8 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
         "- Before risky or uncertain next action: record a prediction; after outcome: evaluate it.".to_string(),
         "- If Focusa is unavailable, mark cognition_degraded=true and continue only with explicit fallback context.".to_string(),
         "Operator steering always wins; Focusa guides, preserves, and audits.".to_string(),
-    ].join("\n")
+    ]);
+    lines.join("\n")
 }
 
 async fn card(

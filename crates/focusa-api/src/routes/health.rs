@@ -157,9 +157,60 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let idle_without_task =
         s.work_loop.status == focusa_core::types::WorkLoopStatus::Idle && !current_task_present;
     let churn_risk = idle_without_task && (driver_start_attempts > 0 || driver_stop_attempts > 0);
+    let active_workpoint = s.workpoint.active_workpoint_id.and_then(|id| {
+        s.workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == id)
+    });
+    let readiness_categories = json!({
+        "runtime_readiness": {
+            "status": "ready",
+            "reason": "daemon health route is reachable",
+            "scope": "runtime",
+        },
+        "project_scope_readiness": {
+            "status": if active_workpoint.and_then(|record| record.project_root.as_deref()).is_some() { "ready" } else { "not_checked" },
+            "reason": if active_workpoint.and_then(|record| record.project_root.as_deref()).is_some() { "active Workpoint carries project_root" } else { "no active project scope checked by /v1/doctor" },
+            "scope": "project_root",
+        },
+        "workpoint_readiness": {
+            "status": if active_workpoint.map(|record| record.canonical).unwrap_or(false) { "ready" } else { "not_checked" },
+            "reason": if active_workpoint.is_some() { "active Workpoint state inspected" } else { "no active Workpoint visible" },
+            "workpoint_id": active_workpoint.map(|record| record.workpoint_id),
+        },
+        "trajectory_readiness": {
+            "status": if s.trajectory.active_trajectory_id.is_some() { "ready" } else { "not_checked" },
+            "reason": if s.trajectory.active_trajectory_id.is_some() { "active trajectory id present" } else { "trajectory view not required for runtime readiness" },
+            "trajectory_id": s.trajectory.active_trajectory_id,
+        },
+        "focus_state_readiness": {
+            "status": if active_frame.is_some() { "ready" } else { "not_checked" },
+            "reason": if active_frame.is_some() { "active Focus frame present" } else { "Focus State frame not required for daemon runtime readiness" },
+        },
+        "source_build_readiness": {
+            "status": if portability.get("missing_source_build").and_then(Value::as_array).is_some_and(|items| items.is_empty()) { "ready" } else { "blocked" },
+            "reason": "PATH-based cargo/rustc source-build plane; separate from daemon runtime readiness",
+            "missing": portability.get("missing_source_build").cloned().unwrap_or_else(|| json!([])),
+        },
+        "release_readiness": {
+            "status": if portability.get("missing_helpers").and_then(Value::as_array).is_some_and(|items| items.is_empty()) { "ready" } else { "partial" },
+            "reason": "release/helper tooling plane; separate from daemon runtime readiness",
+            "missing": portability.get("missing_helpers").cloned().unwrap_or_else(|| json!([])),
+        },
+        "telemetry_readiness": {
+            "status": if token_records > 0 || cache_records > 0 { "ready" } else { "not_checked" },
+            "reason": if token_records > 0 || cache_records > 0 { "token/cache telemetry records present" } else { "run a Pi/provider turn to populate token/cache telemetry" },
+        },
+        "ui_browser_readiness": {
+            "status": "not_checked",
+            "reason": "UIAI browser plane is checked by Pi/UIAI health, not daemon runtime doctor",
+        },
+    });
     Json(json!({
         "status": "ok",
-        "summary": "Focusa daemon is reachable; minimal Spec92 doctor checks passed",
+        "summary": "Focusa daemon is reachable; runtime readiness is separate from source/release helper planes",
+        "readiness_categories": readiness_categories,
         "daemon": {
             "ok": true,
             "version": env!("CARGO_PKG_VERSION"),

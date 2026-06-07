@@ -146,6 +146,288 @@ fn stable_value_digest(value: &Value) -> String {
     digest_text(&serde_json::to_string(value).unwrap_or_default(), 24)
 }
 
+const TRUST_BADGE_VOCABULARY: &[&str] = &[
+    "canonical", "advisory", "projected", "stale", "degraded", "blocked", "spec_only", "partial", "verified", "unsafe_scope",
+];
+
+fn verbosity_profile_catalog() -> Vec<Value> {
+    vec![
+        json!({"id":"operator","profile":"operator","compact_fields":["status","next_action","proof","blocker"],"detail_fields":["summary","trust_badges"],"hidden_by_default":["debug_payload","raw_payload","internal_scores"],"escalation_fields":["blocker","risk","operator_decision_needed"]}),
+        json!({"id":"coding_agent","profile":"coding_agent","compact_fields":["status","next_action","target_files","tool"],"detail_fields":["workpoint_id","route_recommendation","tests_run","evidence_refs"],"hidden_by_default":["raw_payload","deep_lineage"],"escalation_fields":["failure_class","blocked_surface","safe_recovery"]}),
+        json!({"id":"qa_agent","profile":"qa_agent","compact_fields":["status","tests_run","proof","residual_risk"],"detail_fields":["bead_review","clean_repair_checklist","evidence_diff"],"hidden_by_default":["raw_payload","debug_payload"],"escalation_fields":["missing_proof","regressions","residual_ui_risk"]}),
+        json!({"id":"release_agent","profile":"release_agent","compact_fields":["status","readiness","risks","gates"],"detail_fields":["release_checks","rollback_card","change_feed"],"hidden_by_default":["debug_payload","raw_payload"],"escalation_fields":["blocked","unsafe_scope","regressions"]}),
+        json!({"id":"debug_agent","profile":"debug_agent","compact_fields":["status","failure_class","route"],"detail_fields":["raw_payload","debug_payload","tool_result_v1","telemetry_refs"],"hidden_by_default":[],"escalation_fields":["failure_class","stack_trace","raw_payload"]}),
+    ]
+}
+
+fn verbosity_profile_payload(items: &[Value]) -> Value {
+    items.first().cloned().unwrap_or(Value::Null)
+}
+
+fn change_feed_items(state: &FocusaState, req: &TraverseRequest) -> Vec<Value> {
+    let query = req.query.as_deref().unwrap_or_default().to_ascii_lowercase();
+    if query.is_empty() {
+        return Vec::new();
+    }
+    state
+        .workpoint
+        .records
+        .iter()
+        .filter(|record| {
+            let haystack = [
+                record.workpoint_id.to_string(),
+                record.work_item_id.clone().unwrap_or_default(),
+                record.session_id.clone().unwrap_or_default(),
+                record.mission.clone().unwrap_or_default(),
+                record.next_slice.clone().unwrap_or_default(),
+                record.active_object_refs.join(" "),
+                record
+                    .verification_records
+                    .iter()
+                    .map(|verification| format!("{} {} {}", verification.target_ref, verification.result, verification.evidence_ref.clone().unwrap_or_default()))
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            ]
+            .join(" ")
+            .to_ascii_lowercase();
+            haystack.contains(&query)
+        })
+        .filter_map(|record| serde_json::to_value(record).ok())
+        .collect()
+}
+
+fn change_feed_payload(items: &[Value], query: Option<&str>) -> Value {
+    let mut files_changed = Vec::<String>::new();
+    let mut beads_changed = Vec::<String>::new();
+    let mut workpoints_changed = Vec::<String>::new();
+    let mut evidence_changed = Vec::<String>::new();
+    let mut agents_changed = Vec::<String>::new();
+    for item in items {
+        if let Some(id) = item.get("workpoint_id").and_then(Value::as_str) {
+            workpoints_changed.push(id.to_string());
+        }
+        if let Some(bead) = item.get("work_item_id").and_then(Value::as_str) {
+            beads_changed.push(bead.to_string());
+        }
+        if let Some(agent) = item.get("session_id").and_then(Value::as_str) {
+            agents_changed.push(agent.to_string());
+        }
+        if let Some(files) = item.get("active_object_refs").and_then(Value::as_array) {
+            for file in files.iter().filter_map(Value::as_str) {
+                files_changed.push(file.to_string());
+            }
+        }
+        if let Some(evidence) = item.get("verification_records").and_then(Value::as_array) {
+            for proof in evidence {
+                if let Some(evidence_ref) = proof.get("evidence_ref").and_then(Value::as_str) {
+                    evidence_changed.push(evidence_ref.to_string());
+                }
+            }
+        }
+    }
+    files_changed.sort(); files_changed.dedup();
+    beads_changed.sort(); beads_changed.dedup();
+    workpoints_changed.sort(); workpoints_changed.dedup();
+    evidence_changed.sort(); evidence_changed.dedup();
+    agents_changed.sort(); agents_changed.dedup();
+    let attention_required = !(files_changed.is_empty() && beads_changed.is_empty() && workpoints_changed.is_empty() && evidence_changed.is_empty() && agents_changed.is_empty());
+    json!({
+        "since": query,
+        "files_changed": files_changed,
+        "beads_changed": beads_changed,
+        "workpoints_changed": workpoints_changed,
+        "evidence_changed": evidence_changed,
+        "predictions_changed": [],
+        "agents_changed": agents_changed,
+        "attention_required": attention_required,
+        "summary": if attention_required { "changes changed; attention required" } else { "changes: none relevant" },
+    })
+}
+
+fn command_palette_catalog() -> Vec<Value> {
+    vec![
+        json!({"id":"resume_work","label":"Resume work","tool":"focusa_workpoint_resume","args_preview":{"project_root":"/home/wirebot/focusa","mode":"compact_prompt"},"when":"after compaction/resume or before choosing next action"}),
+        json!({"id":"link_proof","label":"Link proof","tool":"focusa_evidence_capture","args_preview":{"target_ref":"file/test/api","result":"PASS summary","evidence_ref":"evidence:handle"},"when":"after test/API/file proof changes confidence"}),
+        json!({"id":"start_next_bead","label":"Start next bead","tool":"focusa_workpoint_checkpoint","args_preview":{"work_item_id":"focusa-pm2b.N","mission":"next bead"},"when":"before durable implementation work"}),
+        json!({"id":"explain_conflict","label":"Explain conflict","tool":"focusa_project_verify","args_preview":{"project_root":"/home/wirebot/focusa"},"when":"scope or authority signals conflict"}),
+        json!({"id":"make_repair_report","label":"Make repair report","tool":"scripts/spec102-repair-report","args_preview":{"epic":"focusa-pm2b"},"when":"after closing a repair bead"}),
+        json!({"id":"run_clean_repair_check","label":"Run clean-repair check","tool":"tests/spec102_proof_matrix_enforcement_test.sh","args_preview":{},"when":"before closing Spec102 repair work"}),
+    ]
+}
+
+fn command_palette_payload(items: &[Value], selector: &str) -> Value {
+    json!({
+        "mode": if selector == "full" { "full" } else { "top" },
+        "commands": items,
+        "full_palette_available": selector != "full",
+    })
+}
+
+fn recovery_playbook_catalog() -> Vec<Value> {
+    vec![
+        json!({"id":"project_identity_mismatch","scenario":"project_identity_mismatch","symptoms":["project_root mismatch","saved scope differs from operator ask"],"first_safe_tool":"focusa_project_verify","next_tools":["focusa_project_identity","focusa_workpoint_checkpoint"],"proof_to_capture":"verified project_root/repo/continuity evidence","stop_conditions":["verified project_root and continuity match current ask"]}),
+        json!({"id":"unsafe_broad_cwd","scenario":"unsafe_broad_cwd","symptoms":["cwd is /root or broad/unsafe"],"first_safe_tool":"focusa_project_identity","next_tools":["focusa_project_verify","focusa_workpoint_checkpoint"],"proof_to_capture":"explicit project identity with safe root","stop_conditions":["safe project_root verified"]}),
+        json!({"id":"stale_trajectory","scenario":"stale_trajectory","symptoms":["trajectory provisional/stale/missing evidence"],"first_safe_tool":"focusa_trajectory_view","next_tools":["focusa_trajectory_assess","focusa_trajectory_define_goal"],"proof_to_capture":"trajectory state/gap evidence or operator-confirmed goal","stop_conditions":["trajectory has current state, desired state, active gap"]}),
+        json!({"id":"wrong_workpoint_id","scenario":"wrong_workpoint_id","symptoms":["requested Workpoint missing or fallback risk"],"first_safe_tool":"focusa_workpoint_resume","next_tools":["focusa_traverse","focusa_workpoint_checkpoint"],"proof_to_capture":"canonical Workpoint id in verified project scope","stop_conditions":["requested id resolves or new scoped checkpoint exists"]}),
+        json!({"id":"focus_state_blocked","scenario":"focus_state_blocked","symptoms":["Focus State write blocked or frame unavailable"],"first_safe_tool":"focusa_scratch","next_tools":["focusa_project_identity","focusa_workpoint_resume"],"proof_to_capture":"scratch fallback plus canonical Workpoint resume","stop_conditions":["frame/scope reloaded or note safely stored in scratch"]}),
+        json!({"id":"evidence_index_lag","scenario":"evidence_index_lag","symptoms":["linked evidence pending or not visible"],"first_safe_tool":"focusa_workpoint_resume","next_tools":["focusa_traverse","focusa_resource_mode"],"proof_to_capture":"evidence_ref visible in Workpoint or artifact browser","stop_conditions":["evidence appears in scoped traversal"]}),
+        json!({"id":"ontology_selector_empty","scenario":"ontology_selector_empty","symptoms":["ontology selector returns zero unexpectedly"],"first_safe_tool":"focusa_traverse","next_tools":["focusa_project_card","focusa_tool_doctor"],"proof_to_capture":"source_index/scope_key/count_semantics for selected ontology layer","stop_conditions":["correct selector/source explains zero or returns objects"]}),
+        json!({"id":"doctor_ready_blocked_ambiguity","scenario":"doctor_ready_blocked_ambiguity","symptoms":["doctor ready vs blocked surfaces conflict"],"first_safe_tool":"focusa_tool_doctor","next_tools":["focusa_project_identity","focusa_workpoint_resume"],"proof_to_capture":"readiness plane and failing component evidence","stop_conditions":["runtime/project/workpoint/source planes separated"]}),
+        json!({"id":"uiai_pressure","scenario":"uiai_pressure","symptoms":["UIAI pressure or diagnostics confusion"],"first_safe_tool":"uiai_health","next_tools":["uiai_browser_diagnostics","focusa_browser_diagnostics_intake"],"proof_to_capture":"health/diagnostics packet with current failures separated from history","stop_conditions":["current UIAI condition and next browser action clear"]}),
+        json!({"id":"stuck_loop_no_confidence_change","scenario":"stuck_loop_no_confidence_change","symptoms":["repeated resume/checkpoint/search without proof delta"],"first_safe_tool":"focusa_traverse","next_tools":["focusa_evidence_capture","focusa_predict_record"],"proof_to_capture":"confidence-changing evidence or operator-chosen route change","stop_conditions":["new evidence changes confidence or route changes"]}),
+    ]
+}
+
+fn recovery_playbook_payload(items: &[Value]) -> Value {
+    items.first().cloned().unwrap_or(Value::Null)
+}
+
+fn evidence_diff_payload(surface: &str, items: &[Value]) -> Value {
+    if !matches!(surface, "evidence" | "ecs" | "references") {
+        return Value::Null;
+    }
+    if items.len() < 2 {
+        return json!({
+            "before_ref": items.first().and_then(|item| item.get("evidence_ref").or_else(|| item.get("id"))).cloned().unwrap_or(Value::Null),
+            "after_ref": Value::Null,
+            "changed_claims": [],
+            "confidence_delta": "no_confidence_change",
+            "regressions": [],
+            "stale_refs_removed": [],
+            "new_followups": ["capture or link the next proof that changes the current claim confidence"],
+        });
+    }
+    let before = &items[0];
+    let after = &items[items.len() - 1];
+    let before_ref = before.get("evidence_ref").or_else(|| before.get("id")).cloned().unwrap_or(Value::Null);
+    let after_ref = after.get("evidence_ref").or_else(|| after.get("id")).cloned().unwrap_or(Value::Null);
+    let before_claim = before.get("summary").or_else(|| before.get("result")).and_then(Value::as_str).unwrap_or("");
+    let after_claim = after.get("summary").or_else(|| after.get("result")).and_then(Value::as_str).unwrap_or("");
+    let changed_claims = if before_claim != after_claim {
+        vec![json!({"before": before_claim, "after": after_claim})]
+    } else {
+        Vec::new()
+    };
+    let confidence_delta = if changed_claims.is_empty() { "no_confidence_change" } else { "increased/proof_linked" };
+    json!({
+        "before_ref": before_ref,
+        "after_ref": after_ref,
+        "changed_claims": changed_claims,
+        "confidence_delta": confidence_delta,
+        "regressions": [],
+        "stale_refs_removed": [],
+        "new_followups": if confidence_delta == "no_confidence_change" { vec!["next proof should capture a different passing test/API/file result or remove stale evidence"] } else { Vec::<&str>::new() },
+    })
+}
+
+fn stuck_loop_payload(surface: &str, items: &[Value]) -> Value {
+    if !matches!(surface, "workpoints" | "workpoint" | "evidence" | "ecs" | "references") {
+        return Value::Null;
+    }
+    let repeated_actions = items
+        .iter()
+        .filter_map(|item| {
+            let mission = item.get("mission").and_then(Value::as_str).unwrap_or("");
+            let next = item.get("next_slice").and_then(Value::as_str).unwrap_or("");
+            let work_item = item.get("work_item_id").and_then(Value::as_str).unwrap_or("");
+            if mission.is_empty() && next.is_empty() && work_item.is_empty() {
+                None
+            } else {
+                Some(format!("work_item={work_item}; mission={mission}; next={next}"))
+            }
+        })
+        .collect::<Vec<_>>();
+    let has_confidence_change = items.iter().any(|item| {
+        item.get("confidence_delta").and_then(Value::as_str).is_some_and(|delta| delta != "none")
+            || item.get("verified_evidence_refs").and_then(Value::as_array).is_some_and(|refs| !refs.is_empty())
+            || item.get("evidence_ref").and_then(Value::as_str).is_some_and(|value| !value.trim().is_empty())
+    });
+    let detected = repeated_actions.len() >= 3 && !has_confidence_change;
+    if !detected {
+        return json!({"detected": false});
+    }
+    json!({
+        "detected": true,
+        "repeated_actions": repeated_actions.into_iter().take(5).collect::<Vec<_>>(),
+        "last_confidence_change": "none/no_confidence_change",
+        "likely_cause": "repeated route/checkpoint cycle without linked proof or confidence-changing evidence",
+        "break_glass_action": "link evidence that changes confidence, change route, or ask operator to choose a different action boundary",
+    })
+}
+
+fn empty_state_payload(surface: &str, selector: &str, query: Option<&str>, returned: usize, supported: bool, full_payload_blocked: bool) -> Value {
+    if returned > 0 {
+        return Value::Null;
+    }
+    let empty_because = if !supported {
+        "wrong_selector"
+    } else if full_payload_blocked {
+        "cold_path_disabled"
+    } else if matches!(surface, "telemetry" | "turns" | "commands") {
+        "not_checked"
+    } else {
+        "none_exist"
+    };
+    json!({
+        "empty_because": empty_because,
+        "scope": {"surface": surface, "query": query},
+        "selector": selector,
+        "next_selector": match empty_because {
+            "wrong_selector" => "use a supported surface/selector such as workpoints, evidence, ontology, trajectory",
+            "cold_path_disabled" => "retry with a narrower selector or resource-safe budget",
+            "not_checked" => "run the relevant bounded status route first",
+            _ => "adjust query/scope, or capture/link evidence if proof should exist",
+        },
+        "repair_or_retry": match empty_because {
+            "wrong_selector" => "choose a supported surface/selector; this empty result is not proof of absence",
+            "cold_path_disabled" => "reduce payload request or use focusa_resource_mode before retry",
+            "not_checked" => "not checked in this bounded route; use a specific read/status tool",
+            _ => "true empty for this current scope/query; verify selector/scope or capture/link evidence",
+        },
+        "vocabulary": ["none_exist", "wrong_selector", "wrong_scope", "index_unavailable", "permission_blocked", "cold_path_disabled", "not_checked"],
+    })
+}
+
+fn route_recommendation_payload(surface: &str, selector: &str, degraded: bool) -> Value {
+    json!({
+        "recommended_tool": "focusa_traverse",
+        "why": if degraded { "bounded retry or narrower selector is safer than broad/cold reads" } else { "bounded traversal answers the requested slice without full lineage or ontology graph" },
+        "expected_output": match surface {
+            "evidence" | "ecs" | "references" => "bounded evidence/artifact slice with count, source, freshness, and rehydrate refs",
+            "workpoints" | "workpoint" => "bounded Workpoint slice with current ids and next actions",
+            _ => "bounded items slice with metadata, cursor, and rehydrate refs",
+        },
+        "confidence": if degraded { "medium" } else { "high" },
+        "alternatives": ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_active_object_resolve"],
+        "avoid": ["full lineage tree", "full ontology graph", "full telemetry logs", "transcript tail as authority"],
+        "selector": selector,
+    })
+}
+
+fn trust_badges(canonical: bool, degraded: bool, blocked: bool, projected: bool, partial: bool, unsafe_scope: bool) -> Vec<&'static str> {
+    let _ = TRUST_BADGE_VOCABULARY;
+    if blocked {
+        return vec!["blocked", "degraded"];
+    }
+    if unsafe_scope {
+        return vec!["unsafe_scope", "degraded"];
+    }
+    if degraded {
+        return vec!["degraded"];
+    }
+    if partial {
+        return vec!["partial", "advisory"];
+    }
+    if projected {
+        return vec!["projected", "advisory"];
+    }
+    if canonical {
+        vec!["canonical", "verified"]
+    } else {
+        vec!["advisory"]
+    }
+}
+
 fn tag_component(value: &str) -> String {
     let clean = value
         .chars()
@@ -529,6 +811,138 @@ fn snapshot_items(state: &FocusaState) -> Vec<Value> {
     })]
 }
 
+fn ownership_board_items(state: &FocusaState, req: &TraverseRequest) -> Vec<Value> {
+    let query = req.query.as_deref().unwrap_or_default().trim().to_ascii_lowercase();
+    state
+        .workpoint
+        .records
+        .iter()
+        .filter(|record| record.canonical)
+        .filter(|record| {
+            if query.is_empty() {
+                return true;
+            }
+            let haystack = [
+                record.workpoint_id.to_string(),
+                record.work_item_id.clone().unwrap_or_default(),
+                record.session_id.clone().unwrap_or_default(),
+                record.project_root.clone().unwrap_or_default(),
+                record.continuity_id.clone().unwrap_or_default(),
+                record.mission.clone().unwrap_or_default(),
+                record.next_slice.clone().unwrap_or_default(),
+                record.active_object_refs.join(" "),
+            ]
+            .join(" ")
+            .to_ascii_lowercase();
+            haystack.contains(&query)
+        })
+        .map(|record| {
+            let agent_id = record
+                .session_id
+                .clone()
+                .or_else(|| {
+                    record
+                        .session_identity
+                        .as_ref()
+                        .and_then(|identity| identity.pi_session_id.clone())
+                })
+                .unwrap_or_else(|| format!("agent:workpoint:{}", record.workpoint_id));
+            let touched_files = record.active_object_refs.clone();
+            json!({
+                "id": format!("ownership:{}", record.workpoint_id),
+                "kind": "agent_ownership",
+                "agent_id": agent_id,
+                "owns": record.mission,
+                "touched_files": touched_files,
+                "last_activity": record.updated_at.or(record.created_at),
+                "lease_status": if record.rejection_reason.is_none() { "active" } else { "released" },
+                "workpoint_id": record.workpoint_id,
+                "bead_id": record.work_item_id,
+                "project_root": record.project_root,
+                "continuity_id": record.continuity_id,
+                "safe_next_action": "continue if ownership: clear; coordinate before edits when collision_risk is high",
+            })
+        })
+        .collect()
+}
+
+fn artifact_group_by(sel: &str) -> String {
+    match sel {
+        "workpoint" | "bead" | "spec" | "file" | "test" | "confidence_change" => sel.to_string(),
+        _ => "workpoint".to_string(),
+    }
+}
+
+fn artifact_group_key(item: &Value, group_by: &str) -> Value {
+    match group_by {
+        "workpoint" => item.get("workpoint_id").cloned().unwrap_or(Value::Null),
+        "bead" => item.get("bead_id").or_else(|| item.get("work_item_id")).cloned().unwrap_or(Value::Null),
+        "spec" => item
+            .get("target_ref")
+            .and_then(Value::as_str)
+            .and_then(|target| target.split('#').next())
+            .filter(|target| target.contains("spec") || target.contains("docs/"))
+            .map(|target| json!(target))
+            .unwrap_or(Value::Null),
+        "file" => item.get("target_ref").cloned().unwrap_or(Value::Null),
+        "test" => item
+            .get("target_ref")
+            .and_then(Value::as_str)
+            .filter(|target| target.contains("test"))
+            .map(|target| json!(target))
+            .unwrap_or(Value::Null),
+        "confidence_change" => item.get("confidence_delta").cloned().unwrap_or(json!("none")),
+        _ => item.get("workpoint_id").cloned().unwrap_or(Value::Null),
+    }
+}
+
+fn ownership_board_payload(items: &[Value]) -> Value {
+    let active_agents = items
+        .iter()
+        .filter(|item| item.get("lease_status").and_then(Value::as_str) == Some("active"))
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut file_to_agents: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for agent in &active_agents {
+        let agent_id = agent
+            .get("agent_id")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown-agent")
+            .to_string();
+        if let Some(files) = agent.get("touched_files").and_then(Value::as_array) {
+            for file in files.iter().filter_map(Value::as_str) {
+                file_to_agents.entry(file.to_string()).or_default().push(agent_id.clone());
+            }
+        }
+    }
+    let collision_files = file_to_agents
+        .iter()
+        .filter(|(_, agents)| agents.len() > 1)
+        .map(|(file, _)| file.clone())
+        .collect::<Vec<_>>();
+    let collision_risk = if collision_files.is_empty() { "none" } else { "high" };
+    let status = if collision_risk == "none" && active_agents.len() <= 1 {
+        "ownership: clear"
+    } else if collision_risk == "none" {
+        "ownership: shared_clear"
+    } else {
+        "ownership: collision"
+    };
+    let safe_next_action = if collision_risk == "none" {
+        "continue with current Workpoint; no ownership collision detected"
+    } else {
+        "collision detected: coordinate owners, pause overlapping file edits, or handoff before mutation"
+    };
+    json!({
+        "ownership_board": true,
+        "status": status,
+        "active_agents": active_agents,
+        "collision_risk": collision_risk,
+        "collision_files": collision_files,
+        "safe_next_action": safe_next_action,
+    })
+}
+
 fn reflex_primitive_items(req: &TraverseRequest, sel: &str) -> Vec<Value> {
     let registry: Value = serde_json::from_str(include_str!(
         "../../../../docs/current/focusa-reflex-primitives.json"
@@ -605,7 +1019,7 @@ fn generic_filter_items(mut items: Vec<Value>, req: &TraverseRequest, sel: &str)
                     .collect()
             }
         }
-        "search" => {
+        "search" | "scenario" | "profile" | "confidence_change" | "window" | "workpoint" | "bead" | "spec" | "file" | "test" => {
             if query.is_empty() {
                 items
             } else {
@@ -686,11 +1100,6 @@ fn surface_items(
     surface: &str,
     sel: &str,
 ) -> Vec<Value> {
-    let query = req
-        .query
-        .as_deref()
-        .unwrap_or_default()
-        .to_ascii_lowercase();
     let items = match surface {
         "trajectory" => trajectory_items(state),
         "lineage" | "tree" | "clt" => lineage_items(state, req, sel),
@@ -722,17 +1131,78 @@ fn surface_items(
             .iter()
             .filter_map(|record| serde_json::to_value(record).ok())
             .collect(),
-        "evidence" | "ecs" | "references" => state
-            .reference_index
-            .handles
-            .iter()
-            .filter(|handle| query.is_empty() || handle.label.to_ascii_lowercase().contains(&query))
-            .filter_map(|handle| serde_json::to_value(handle).ok())
-            .collect(),
+        "ownership" | "ownership_board" | "agents" => ownership_board_items(state, req),
+        "evidence" | "ecs" | "references" => {
+            let mut evidence_items = state
+                .reference_index
+                .handles
+                .iter()
+                .filter_map(|handle| {
+                    let mut value = serde_json::to_value(handle).ok()?;
+                    if let Some(obj) = value.as_object_mut() {
+                        obj.insert("source_index".to_string(), json!("reference_index.handles"));
+                    }
+                    Some(value)
+                })
+                .collect::<Vec<_>>();
+            for record in &state.workpoint.records {
+                for verification in &record.verification_records {
+                    let evidence_id = verification
+                        .evidence_ref
+                        .clone()
+                        .unwrap_or_else(|| format!("workpoint:{}:{}", record.workpoint_id, verification.target_ref));
+                    let proof_kind = if verification.result.to_ascii_lowercase().contains("pass") || verification.target_ref.contains("test") {
+                        "test"
+                    } else if verification.target_ref.contains("http") || verification.target_ref.contains("/v1/") {
+                        "api"
+                    } else if verification.target_ref.contains(".md") {
+                        "report"
+                    } else {
+                        "file"
+                    };
+                    evidence_items.push(json!({
+                        "id": evidence_id,
+                        "kind": "workpoint_verification",
+                        "proof_kind": proof_kind,
+                        "label": verification.evidence_ref.clone().unwrap_or_else(|| verification.target_ref.clone()),
+                        "summary": verification.result,
+                        "target_ref": verification.target_ref,
+                        "result": verification.result,
+                        "evidence_ref": verification.evidence_ref,
+                        "workpoint_id": record.workpoint_id,
+                        "work_item_id": record.work_item_id,
+                        "bead_id": record.work_item_id,
+                        "project_root": record.project_root,
+                        "continuity_id": record.continuity_id,
+                        "verified_at": verification.verified_at,
+                        "source_index": "workpoint.verification_records",
+                        "confidence_delta": if verification.result.trim().is_empty() { "none" } else { "proof_linked" },
+                        "confidence_change": true,
+                        "stale_refs": [],
+                        "duplicate_cluster": Value::Null,
+                        "rehydrate_ref": format!("workpoint:{}#evidence:{}", record.workpoint_id, evidence_id),
+                    }));
+                }
+            }
+            if sel == "confidence_change" {
+                evidence_items.retain(|item| item.get("confidence_change").and_then(Value::as_bool) == Some(true));
+            }
+            if matches!(sel, "workpoint" | "bead" | "spec" | "file" | "test" | "confidence_change") {
+                if let Some(query) = req.query.as_deref().map(str::trim).filter(|query| !query.is_empty()) {
+                    let query = query.to_ascii_lowercase();
+                    evidence_items.retain(|item| serde_json::to_string(item).unwrap_or_default().to_ascii_lowercase().contains(&query));
+                }
+            }
+            evidence_items
+        },
         "telemetry" | "turns" | "commands" => state.telemetry.trace_events.clone(),
         "metacognition" | "metacog" => metacognition_items(state),
         "predictions" | "prediction" => prediction_items(state),
         "snapshots" | "snapshot" => snapshot_items(state),
+        "verbosity_profile" | "verbosity_profiles" | "profiles" => verbosity_profile_catalog(),
+        "change_feed" | "changes" => change_feed_items(state, req),
+        "command_palette" | "palette" => command_palette_catalog(),
+        "recovery_playbooks" | "recovery_playbook" | "playbooks" => recovery_playbook_catalog(),
         "reflex" | "reflexes" | "reflex_primitives" => reflex_primitive_items(req, sel),
         "tool_registry" | "capabilities" => vec![json!({
             "id": "tool_registry_summary",
@@ -782,6 +1252,22 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "created_at",
             ],
         ),
+        "verbosity_profile" | "verbosity_profiles" | "profiles" => (
+            &["profile", "compact_fields", "detail_fields", "hidden_by_default", "escalation_fields"],
+            &["id", "profile", "compact_fields", "detail_fields", "hidden_by_default", "escalation_fields"],
+        ),
+        "change_feed" | "changes" => (
+            &["workpoint_id", "work_item_id", "session_id", "active_object_refs", "verification_records"],
+            &["workpoint_id", "work_item_id", "session_id", "active_object_refs", "verification_records", "updated_at", "mission", "next_slice"],
+        ),
+        "command_palette" | "palette" => (
+            &["label", "tool", "args_preview", "when"],
+            &["id", "label", "tool", "args_preview", "when"],
+        ),
+        "recovery_playbooks" | "recovery_playbook" | "playbooks" => (
+            &["scenario", "first_safe_tool", "next_tools", "proof_to_capture", "stop_conditions"],
+            &["id", "scenario", "symptoms", "first_safe_tool", "next_tools", "proof_to_capture", "stop_conditions"],
+        ),
         "reflex" | "reflexes" | "reflex_primitives" => (
             &[
                 "primitive_id",
@@ -809,6 +1295,7 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
         "workpoints" | "workpoint" => (
             &[
                 "workpoint_id",
+                "work_item_id",
                 "status",
                 "mission",
                 "next_slice",
@@ -826,18 +1313,60 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "updated_at",
             ],
         ),
-        "evidence" | "ecs" | "references" => (
-            &["id", "kind", "label", "trajectory", "created_at"],
+        "ownership" | "ownership_board" | "agents" => (
+            &[
+                "agent_id",
+                "owns",
+                "touched_files",
+                "last_activity",
+                "lease_status",
+                "workpoint_id",
+                "bead_id",
+            ],
             &[
                 "id",
                 "kind",
+                "agent_id",
+                "owns",
+                "touched_files",
+                "last_activity",
+                "lease_status",
+                "workpoint_id",
+                "bead_id",
+                "project_root",
+                "continuity_id",
+                "safe_next_action",
+            ],
+        ),
+        "evidence" | "ecs" | "references" => (
+            &["id", "kind", "label", "summary", "evidence_ref", "target_ref", "workpoint_id", "work_item_id", "bead_id", "project_root", "source_index", "confidence_delta", "rehydrate_ref"],
+            &[
+                "id",
+                "kind",
+                "proof_kind",
                 "label",
+                "summary",
                 "trajectory",
                 "created_at",
                 "pinned",
                 "session_id",
                 "size",
                 "sha256",
+                "target_ref",
+                "result",
+                "evidence_ref",
+                "workpoint_id",
+                "work_item_id",
+                "bead_id",
+                "project_root",
+                "continuity_id",
+                "verified_at",
+                "source_index",
+                "confidence_delta",
+                "confidence_change",
+                "stale_refs",
+                "duplicate_cluster",
+                "rehydrate_ref",
             ],
         ),
         _ => (
@@ -873,6 +1402,9 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             | "frames"
             | "workpoints"
             | "workpoint"
+            | "ownership"
+            | "ownership_board"
+            | "agents"
             | "evidence"
             | "ecs"
             | "references"
@@ -885,6 +1417,16 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             | "commands"
             | "snapshots"
             | "snapshot"
+            | "verbosity_profile"
+            | "verbosity_profiles"
+            | "profiles"
+            | "change_feed"
+            | "changes"
+            | "command_palette"
+            | "palette"
+            | "recovery_playbooks"
+            | "recovery_playbook"
+            | "playbooks"
             | "reflex"
             | "reflexes"
             | "reflex_primitives"
@@ -898,6 +1440,8 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             "status": "validation_rejected",
             "canonical": false,
             "degraded": true,
+            "trust_badges": trust_badges(false, true, true, false, false, false),
+            "route_recommendation": route_recommendation_payload(&surface, &sel, true),
             "failure_class": "validation_rejected",
             "items": [],
             "summary": "unsupported traversal surface or selector",
@@ -908,12 +1452,14 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
                 "returned": 0,
                 "total": 0,
                 "truncated": false,
+                "empty_state": empty_state_payload(&surface, &sel, req.query.as_deref(), 0, false, false),
                 "caps": {"limit": 0, "depth": 0, "radius": 0, "payload_bytes": 0, "budget_tokens": req.budget_tokens},
                 "omitted": ["unsupported_surface"],
                 "rehydrate_refs": [],
                 "stale_tags": [],
                 "verified_tags": []
             },
+            "empty_state": empty_state_payload(&surface, &sel, req.query.as_deref(), 0, false, false),
             "tag_scheme": {
                 "version": "focusa-traverse-tag-v1",
                 "algorithm": "opaque_version",
@@ -961,9 +1507,107 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
     } else {
         Vec::<String>::new()
     };
+    let (source_index, scope_key, freshness, count_semantics, why_zero_if_empty, next_selector) =
+        if surface == "ontology" {
+            (
+                match sel.as_str() {
+                    "links" | "adjacency" | "neighborhood" => "runtime_ontology_links",
+                    "proposals" => "runtime_ontology_proposals",
+                    _ => "runtime_ontology_objects",
+                },
+                req.session_identity
+                    .as_ref()
+                    .and_then(|value| value.pointer("/project_identity/project_root"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("global_runtime_ontology"),
+                "live_state_snapshot",
+                match sel.as_str() {
+                    "links" | "adjacency" | "neighborhood" => "total is runtime ontology links for the requested selector; compare project-card counts.runtime_links for parity",
+                    "proposals" => "total is runtime ontology proposals for selector=proposals",
+                    _ => "total is runtime ontology objects only; compare project-card counts.runtime_objects, not effective_project_card_objects",
+                },
+                match sel.as_str() {
+                    "links" | "adjacency" | "neighborhood" => "zero means no runtime ontology links currently match this selector",
+                    "proposals" => "zero means no runtime ontology proposals currently match this selector",
+                    _ => "zero means no runtime ontology objects currently match this selector; project-card derived objects may still exist outside this runtime index",
+                },
+                match sel.as_str() {
+                    "links" | "adjacency" | "neighborhood" => "focusa_traverse surface=ontology selector=window for objects, or focusa_project_card for effective derived counts",
+                    "proposals" => "focusa_traverse surface=ontology selector=window for objects, or selector=links for links",
+                    _ => "focusa_project_card for effective derived counts; focusa_traverse surface=workpoints selector=window or focusa_trajectory_view for derived context",
+                },
+            )
+        } else {
+            (
+                surface.as_str(),
+                "surface_default",
+                "live_state_snapshot",
+                "total is the bounded traversal source count for this surface and selector",
+                "zero means no items matched this surface/selector/query in the current bounded source",
+                "adjust selector/query/anchor or use the listed next_tools",
+            )
+        };
+    let index_health = if matches!(surface.as_str(), "evidence" | "ecs" | "references") {
+        json!({
+            "status": "healthy",
+            "index_lag": false,
+            "source_index": "reference_index.handles_plus_workpoint.verification_records",
+            "freshness": "live_state_snapshot",
+            "count_semantics": "search matches reference handles and linked Workpoint verification records by target_ref, result text, evidence_ref, id, and label",
+            "why_zero_if_empty": "zero means no current evidence handle or linked Workpoint verification matched the selector/query",
+            "exact_handle_alternatives": ["query by exact evidence_ref", "query by exact target_ref", "focusa_workpoint_resume for active Workpoint verification records"],
+        })
+    } else {
+        Value::Null
+    };
+    let artifact_browser = if matches!(surface.as_str(), "evidence" | "ecs" | "references") {
+        let group_by = artifact_group_by(&sel);
+        json!({
+            "group_by": group_by,
+            "filters": {"selector": sel, "query": req.query, "workpoint": req.anchor},
+            "stale_refs": [],
+            "duplicate_clusters": [],
+            "artifacts": items.iter().take(20).map(|item| json!({
+                "evidence_ref": item.get("evidence_ref").or_else(|| item.get("id")).cloned().unwrap_or(Value::Null),
+                "target_ref": item.get("target_ref").cloned().unwrap_or(Value::Null),
+                "workpoint_id": item.get("workpoint_id").cloned().unwrap_or(Value::Null),
+                "bead_id": item.get("bead_id").or_else(|| item.get("work_item_id")).cloned().unwrap_or(Value::Null),
+                "project_root": item.get("project_root").cloned().unwrap_or(Value::Null),
+                "kind": item.get("proof_kind").or_else(|| item.get("kind")).cloned().unwrap_or(Value::Null),
+                "confidence_delta": item.get("confidence_delta").cloned().unwrap_or(json!("none")),
+                "freshness": item.get("verified_at").or_else(|| item.get("created_at")).cloned().unwrap_or(json!("live_state_snapshot")),
+                "rehydrate_ref": item.get("rehydrate_ref").cloned().unwrap_or_else(|| item.get("id").and_then(Value::as_str).map(|id| json!(format!("evidence:{id}"))).unwrap_or(Value::Null)),
+                "group_key": artifact_group_key(item, &group_by),
+            })).collect::<Vec<_>>()
+        })
+    } else {
+        Value::Null
+    };
+    let ownership_board = if matches!(surface.as_str(), "ownership" | "ownership_board" | "agents") {
+        ownership_board_payload(&items)
+    } else {
+        Value::Null
+    };
     let traversal_meta = json!({
         "surface": surface,
         "selector": sel,
+        "source_index": source_index,
+        "scope_key": scope_key,
+        "freshness": freshness,
+        "count_semantics": count_semantics,
+        "why_zero_if_empty": why_zero_if_empty,
+        "next_selector": next_selector,
+        "index_health": index_health,
+        "artifact_browser": artifact_browser,
+        "ownership_board": ownership_board,
+        "route_recommendation": route_recommendation_payload(&surface, &sel, false),
+        "stuck_loop": stuck_loop_payload(&surface, &items),
+        "evidence_diff": evidence_diff_payload(&surface, &items),
+        "verbosity_profile": if matches!(surface.as_str(), "verbosity_profile" | "verbosity_profiles" | "profiles") { verbosity_profile_payload(&items) } else { Value::Null },
+        "change_feed": if matches!(surface.as_str(), "change_feed" | "changes") { change_feed_payload(&items, req.query.as_deref()) } else { Value::Null },
+        "command_palette": if matches!(surface.as_str(), "command_palette" | "palette") { command_palette_payload(&items, &sel) } else { Value::Null },
+        "recovery_playbook": if matches!(surface.as_str(), "recovery_playbooks" | "recovery_playbook" | "playbooks") { recovery_playbook_payload(&items) } else { Value::Null },
+        "empty_state": empty_state_payload(&surface, &sel, req.query.as_deref(), returned, true, full_payload_blocked),
         "anchor": req.anchor,
         "query": req.query,
         "cursor": metadata.get("cursor").cloned().unwrap_or(Value::Null),
@@ -1015,6 +1659,10 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         "status": if degraded { "degraded" } else { "completed" },
         "canonical": !degraded,
         "degraded": degraded,
+        "trust_badges": trust_badges(!degraded, degraded, false, false, false, false),
+        "route_recommendation": route_recommendation_payload(&surface, &sel, degraded),
+        "empty_state": empty_state_payload(&surface, &sel, req.query.as_deref(), returned, true, full_payload_blocked),
+        "recovery_playbook": if matches!(surface.as_str(), "recovery_playbooks" | "recovery_playbook" | "playbooks") { recovery_playbook_payload(&items) } else { Value::Null },
         "failure_class": failure_class,
         "surface": surface,
         "selector": sel,

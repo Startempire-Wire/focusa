@@ -399,6 +399,11 @@ function compactHint(value?: string): string | undefined {
   return value.replace(/\s+/g, " ").trim().slice(0, 140);
 }
 
+function compactText(value: unknown, fallback = "unknown", max = 140): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  return (text || fallback).slice(0, max);
+}
+
 function compactApiEcho(value: unknown): unknown {
   if (!value || typeof value !== "object") return value;
   const input = value as Record<string, any>;
@@ -1445,6 +1450,22 @@ export function registerTools(pi: ExtensionAPI) {
     }
   }
 
+  function formatWorkLoopBudgetRemaining(value: any): string {
+    if (value == null) return "unknown";
+    if (typeof value !== "object") return String(value);
+    const fields = [
+      "remaining_turn_budget",
+      "remaining_wall_clock_ms",
+      "remaining_failure_budget",
+      "remaining_low_productivity_budget",
+      "remaining_same_subproblem_budget",
+    ];
+    const parts = fields
+      .filter((field) => value[field] !== undefined && value[field] !== null)
+      .map((field) => `${field}=${String(value[field])}`);
+    return parts.length > 0 ? parts.join(",") : "empty";
+  }
+
   function explainWorkLoopResult(result: { ok: boolean; status: number; body: any | null }, fallback: string): string {
     if (result.ok) return fallback;
     const msg = String(result.body?.error || "").toLowerCase();
@@ -1700,7 +1721,7 @@ export function registerTools(pi: ExtensionAPI) {
         ? loopStatus.enabled
         : !!loopStatus?.work_loop?.enabled;
       const activeWriter = String(loopStatus?.active_writer || "none");
-      const budget = loopStatus?.budget_remaining == null ? "unknown" : String(loopStatus.budget_remaining);
+      const budget = formatWorkLoopBudgetRemaining(loopStatus?.budget_remaining);
       return {
         content: [{ type: "text", text: `Work-loop summary: ${statusText} (enabled=${enabled ? "yes" : "no"}) active_writer=${activeWriter} budget_remaining=${budget} replay=not_checked_hot_path` }],
         details: {
@@ -2528,8 +2549,22 @@ export function registerTools(pi: ExtensionAPI) {
         ...(contractDrift.drift_detected ? ["focusa_tool_doctor"] : []),
       ]));
       const recommendedAction = recommendations[0] || "Proceed with explicit project_root for project-aware tools and checkpoint before compaction.";
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"} drift=${contractDrift.drift_detected ? "yes" : "no"} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
-      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), uiai_browser: compactApiEcho(uiaiBrowser), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: { drift_detected: contractDrift.drift_detected, missing_live: contractDrift.missing_live.slice(0, 6), stale_live_contracts: contractDrift.stale_live_contracts.slice(0, 6) }, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: `readiness=${ready ? "ready" : "degraded"} drift=${contractDrift.drift_detected ? "yes" : "no"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
+      const driftCauseCounts = {
+        missing_live: contractDrift.missing_live.length,
+        extra_live: contractDrift.extra_live.length,
+        stale_live_contracts: contractDrift.stale_live_contracts.length,
+      };
+      const driftSummary = contractDrift.drift_detected
+        ? ` drift=yes drift_causes=missing_live:${driftCauseCounts.missing_live},extra_live:${driftCauseCounts.extra_live},stale_live_contracts:${driftCauseCounts.stale_live_contracts} source_refs=static:apps/pi-extension/src/tools.ts,live:/v1/ontology/tool-contracts`
+        : "";
+      const driftDetails = contractDrift.drift_detected
+        ? { drift_detected: true, cause_counts: driftCauseCounts, source_refs: ["static:apps/pi-extension/src/tools.ts", "live:/v1/ontology/tool-contracts"], missing_live: contractDrift.missing_live.slice(0, 6), extra_live: contractDrift.extra_live.slice(0, 6), stale_live_contracts: contractDrift.stale_live_contracts.slice(0, 6) }
+        : { drift_detected: false };
+      const evidenceResult = contractDrift.drift_detected
+        ? `readiness=${ready ? "ready" : "degraded"} drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
+        : `readiness=${ready ? "ready" : "degraded"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
+      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${S.spec92HookTelemetry.length} token_budget=${String((latestToken as any)?.budget_class || "unknown")} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
+      return { content: [{ type: "text", text }], details: { ok: ready && !contractDrift.drift_detected, status: ready && !contractDrift.drift_detected ? "completed" : "degraded", health: compactApiEcho(health.body), resource_mode: compactApiEcho(resource.body), workpoint: compactApiEcho(workpoint.body), work_loop: compactApiEcho(loop.body), uiai_browser: compactApiEcho(uiaiBrowser), contracts_total: contractSummary.total, contracts_by_family: contractSummary.by_family, contract_coverage: { scoped: scopedContracts.length, missing_docs: missingDocs, known_exemptions: knownExemptions }, contract_drift: driftDetails, session_scope: { cwd: sessionRoot, safe: sessionScopeSafe, project_root_resolution: compactApiEcho(sessionResolution || null) }, recommendations: recommendations.slice(0, 6), recommended_action: recommendedAction, evidence_capture_suggestion: focusaEvidenceCaptureSuggestion({ target_ref: "focusa_tool_doctor", result: evidenceResult, evidence_ref: `focusa_tool_doctor:${String(p.scope || "all")}`, project_root: sessionScopeSafe ? sessionRoot : undefined, attach_to_workpoint: false }), next_tools: nextTools.slice(0, 4), spec92: { hook_records: S.spec92HookTelemetry.length, token_records: S.spec92TokenTelemetry.length } } } as any;
     },
   });
 
@@ -2756,16 +2791,18 @@ export function registerTools(pi: ExtensionAPI) {
       const trajectoryReport = body.trajectory_report_card || {};
       const crosswire = body.crosswire_health || {};
       const inferredWorkpoint = body.inferred_workpoint_candidate || bootstrap.candidate?.inferred_workpoint_candidate || {};
+      const askToWorkpointBridge = body.ask_to_workpoint_bridge || inferredWorkpoint.ask_to_workpoint_bridge || {};
       const waypointSummary = trajectoryReport.accomplishment_summary || {};
       const shortest = sequence.shortest_path_to_success || {};
       const selectedPath = shortest.selected || {};
       const eliminatedCount = Array.isArray(shortest.eliminated_candidates) ? shortest.eliminated_candidates.length : 0;
+      const ontologyCounts = ontology.counts || {};
       const text = result.ok
-        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} root=${String(project.project_root || "unknown")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(priorLadder.high_level_goal || body.trajectory?.hlt || "missing").slice(0, 80)} stg=${String(priorLadder.short_term_goal || body.trajectory?.stg || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} crosswire=${String(crosswire.prediction_feed?.elapsed_tokens_waypoints_feed_future_predictions === true ? "ok" : "check")} inferred_wp=${String(inferredWorkpoint.current_action || "none")} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_objects=${String(ontology.objects ?? "unknown")}`
+        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} root=${String(project.project_root || "unknown")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(priorLadder.high_level_goal || body.trajectory?.hlt || "missing").slice(0, 80)} stg=${String(priorLadder.short_term_goal || body.trajectory?.stg || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} crosswire=${String(crosswire.prediction_feed?.elapsed_tokens_waypoints_feed_future_predictions === true ? "ok" : "check")} inferred_wp=${String(inferredWorkpoint.current_action || "none")} ask_bridge=${String(askToWorkpointBridge.recommended_bridge_action || "unknown")} exact_next=${String(askToWorkpointBridge.exact_next_action || inferredWorkpoint.next_action || "unknown").slice(0, 80)} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_runtime=${String(ontologyCounts.runtime_objects ?? ontology.runtime_objects ?? "unknown")} ontology_effective=${String(ontologyCounts.effective_project_card_objects ?? ontology.objects ?? "unknown")} ontology_source=${String(ontology.source_index || "unknown")} selector=${String(ontology.selector || "unknown")}`
         : `project card blocked → ${explainWorkLoopResult(result, "project card unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(body.status || "completed") : "blocked", canonical: false, degraded: !result.ok, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_project_card_outcome", "focusa_traverse", "focusa_trajectory_view", "focusa_metacog_retrieve"] };
-      const compactResponse = { status: body.status, schema: body.schema, algorithm_run_id: body.algorithm_run_id, bootstrap_needed: bootstrap.needed, inferred_workpoint_candidate: inferredWorkpoint, trajectory_report_card: trajectoryReport, efficiency_summary: efficiency, crosswire_health: crosswire, recommended_first_event: sequence.recommended_first_event, ranking_basis: sequence.ranking_basis, shortest_path_to_success: { selected: selectedPath, eliminated_candidates: shortest.eliminated_candidates || [] }, outcome_learning: body.algorithmic_intelligence?.outcome_learning, next_tools: body.next_tools };
-      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card", advisory_only: body.advisory_only !== false, project_identity: project, trajectory: body.trajectory || null, inferred_workpoint_candidate: inferredWorkpoint, trajectory_report_card: trajectoryReport, efficiency_summary: efficiency, crosswire_health: crosswire, prior_session_context: prior, success_sequence: sequence, ontology, evidence: body.evidence || null, prediction, algorithmic_intelligence: { outcome_learning: body.algorithmic_intelligence?.outcome_learning || null, expected_utility: body.algorithmic_intelligence?.expected_utility || null }, metacognition: body.metacognition || null, active_workpoint: body.active_workpoint || null, bootstrap, possibilities: body.possibilities || [], next_step_quality_rule: body.next_step_quality_rule || null, tool_result_v1: toolResult, next_tools: toolResult.next_tools || body.next_tools || ["focusa_workpoint_checkpoint", "focusa_project_card_outcome", "focusa_traverse", "focusa_trajectory_view"], response: compactResponse } } as any;
+      const compactResponse = { status: body.status, schema: body.schema, algorithm_run_id: body.algorithm_run_id, bootstrap_needed: bootstrap.needed, inferred_workpoint_candidate: inferredWorkpoint, ask_to_workpoint_bridge: { ask_differs_from_active_workpoint: askToWorkpointBridge.ask_differs_from_active_workpoint, recommended_bridge_action: askToWorkpointBridge.recommended_bridge_action, exact_next_action: askToWorkpointBridge.exact_next_action, checkpoint_payload_hint: askToWorkpointBridge.checkpoint_payload_hint, safe_after_identity_verification: askToWorkpointBridge.safe_after_identity_verification }, trajectory_report_card: trajectoryReport, efficiency_summary: efficiency, crosswire_health: crosswire, recommended_first_event: sequence.recommended_first_event, ranking_basis: sequence.ranking_basis, shortest_path_to_success: { selected: selectedPath, eliminated_candidates: shortest.eliminated_candidates || [] }, outcome_learning: body.algorithmic_intelligence?.outcome_learning, next_tools: body.next_tools };
+      return { content: [{ type: "text", text }], details: { ok: result.ok, status: String(body.status || (result.ok ? "completed" : "blocked")), endpoint: "/v1/project/card", advisory_only: body.advisory_only !== false, project_identity: project, trajectory: body.trajectory || null, inferred_workpoint_candidate: inferredWorkpoint, ask_to_workpoint_bridge: askToWorkpointBridge, trajectory_report_card: trajectoryReport, efficiency_summary: efficiency, crosswire_health: crosswire, prior_session_context: prior, success_sequence: sequence, ontology, evidence: body.evidence || null, prediction, algorithmic_intelligence: { outcome_learning: body.algorithmic_intelligence?.outcome_learning || null, expected_utility: body.algorithmic_intelligence?.expected_utility || null }, metacognition: body.metacognition || null, active_workpoint: body.active_workpoint || null, bootstrap, possibilities: body.possibilities || [], next_step_quality_rule: body.next_step_quality_rule || null, tool_result_v1: toolResult, next_tools: toolResult.next_tools || body.next_tools || ["focusa_workpoint_checkpoint", "focusa_project_card_outcome", "focusa_traverse", "focusa_trajectory_view"], response: compactResponse } } as any;
     },
   });
 
@@ -4159,12 +4196,15 @@ export function registerTools(pi: ExtensionAPI) {
         strategy_class: strategyCheck.value,
       };
       const res = await callSpec80Tool("focusa_metacog_capture", "/metacognition/capture", req, { method: "POST", writer: true });
+      const captureId = String(res.body?.capture_id || "stored");
+      const lessonLine = compactText(req.content, "no lesson content", 120);
+      const relevanceReason = compactText(req.rationale || (req.evidence_refs.length ? `evidence=${req.evidence_refs[0]}` : "captured for future retrieval"), "captured for future retrieval", 100);
       return spec80Result(
         "focusa_metacog_capture",
         "/v1/metacognition/capture",
-        { ...req, writer_id: res.writerId || null },
+        { ...req, writer_id: res.writerId || null, compact_lesson_line: { lesson: lessonLine, why_relevant: relevanceReason, rehydrate_id: captureId } },
         res,
-        `metacog capture: ${String(res.body?.capture_id || "stored")}\nkind=${req.kind} confidence=${req.confidence ?? "n/a"} strategy_class=${req.strategy_class || "none"}\nnext_tools=focusa_metacog_retrieve,focusa_metacog_reflect`,
+        `metacog capture: id=${captureId} lesson="${lessonLine}" why="${relevanceReason}" rehydrate_id=${captureId}`,
         "metacog capture",
       );
     },
@@ -4201,14 +4241,17 @@ export function registerTools(pi: ExtensionAPI) {
       const candidates = Array.isArray(res.body?.candidates) ? res.body.candidates : [];
       const total = candidates.length;
       const top = candidates[0];
+      const topCapture = String(top?.capture_id || "none");
+      const topLesson = compactText(top?.summary || top?.content || top?.signal || "no lesson content", "no lesson content", 120);
+      const topWhy = compactText(top?.rationale || top?.why_relevant || (top?.score !== undefined ? `retrieval_score=${String(top.score)}` : `matched current_ask=${req.current_ask}`), "matched current ask", 100);
       return spec80Result(
         "focusa_metacog_retrieve",
         "/v1/metacognition/retrieve",
-        req,
+        { ...req, compact_top_lesson: total > 0 ? { lesson: topLesson, why_relevant: topWhy, rehydrate_id: topCapture } : null },
         res,
         total > 0
-          ? `metacog retrieve: candidates=${total} top_capture=${String(top?.capture_id || "none")}\ntop_kind=${String(top?.kind || "unknown")} top_score=${String(top?.score ?? "n/a")}\nnext_tools=focusa_metacog_reflect,focusa_metacog_plan_adjust`
-          : `metacog retrieve: candidates=0\nno prior signals matched\nnext_tools=focusa_metacog_capture,focusa_metacog_reflect`,
+          ? `metacog retrieve: candidates=${total} top_lesson="${topLesson}" why="${topWhy}" rehydrate_id=${topCapture}`
+          : `metacog retrieve: candidates=0 lesson="none" why="no prior signals matched" rehydrate_id=none`,
         "metacog retrieve",
       );
     },
@@ -4900,8 +4943,13 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const res = await focusaFetchDetailed("/predictions", { method: "POST", body: JSON.stringify(payload) });
       const body = res.body || {};
       if (!res.ok) return blockedToolResponse("focusa_predict_record", "prediction", `prediction record blocked → ${explainWorkLoopResult(res, "prediction write unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_tool_doctor", "focusa_resource_mode", "focusa_predict_recent"]);
-      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction record → ${body.status || "accepted"}`, tool: "focusa_predict_record", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"], raw: body });
-      return { content: [{ type: "text", text: `prediction record → ${body.status || "accepted"}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
+      const prediction = body.prediction || {};
+      const predictionId = String(prediction.prediction_id || body.prediction_id || "unknown");
+      const predictionScope = `project=${String(prediction.project_root || payload?.project_root || "unknown")} continuity=${String(prediction.continuity_id || payload?.continuity_id || "unknown")}`;
+      const predictionEvalHint = `focusa_predict_evaluate prediction_id=${predictionId}`;
+      const predictionConfidence = String(prediction.confidence ?? payload?.confidence ?? "unknown");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction record → ${body.status || "accepted"} id=${predictionId}`, tool: "focusa_predict_record", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"], raw: body });
+      return { content: [{ type: "text", text: `prediction record → ${body.status || "accepted"} id=${predictionId} confidence=${predictionConfidence} scope=(${predictionScope}) eval_hint="${predictionEvalHint}"` }], details: { ...body, compact_actionability: { prediction_id: predictionId, confidence: predictionConfidence, scope: predictionScope, evaluation_hint: predictionEvalHint }, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });
 
@@ -4915,9 +4963,14 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const res = await focusaFetchDetailed(`/predictions/recent?limit=${limit}`);
       const body = res.body || {};
       if (!res.ok) return blockedToolResponse("focusa_predict_recent", "prediction", `predictions recent blocked → ${explainWorkLoopResult(res, "prediction read unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_tool_doctor", "focusa_resource_mode"]);
-      const count = Array.isArray(body.predictions) ? body.predictions.length : 0;
-      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `predictions recent → ${count}`, tool: "focusa_predict_recent", family: "prediction", side_effects: [], evidence_refs: [], next_tools: ["focusa_predict_record", "focusa_predict_evaluate"], raw: body });
-      return { content: [{ type: "text", text: `predictions recent → ${count}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
+      const predictions = Array.isArray(body.predictions) ? body.predictions : [];
+      const count = predictions.length;
+      const actionable = predictions.slice().reverse().find((item: any) => item && !item.evaluated_at && item.prediction_id) || predictions.at(-1) || null;
+      const actionLine = actionable
+        ? ` next_id=${String(actionable.prediction_id)} confidence=${String(actionable.confidence ?? "unknown")} scope=(project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}) eval_hint="focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}"`
+        : " next_id=none eval_hint=record_prediction_first";
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `predictions recent → ${count}${actionable ? ` next_id=${String(actionable.prediction_id)}` : ""}`, tool: "focusa_predict_recent", family: "prediction", side_effects: [], evidence_refs: [], next_tools: ["focusa_predict_record", "focusa_predict_evaluate"], raw: body });
+      return { content: [{ type: "text", text: `predictions recent → ${count}${actionLine}` }], details: { ...body, compact_actionability: actionable ? { prediction_id: String(actionable.prediction_id), confidence: actionable.confidence ?? null, project_root: actionable.project_root || null, continuity_id: actionable.continuity_id || null, evaluation_hint: `focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}` } : null, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
     },
   });
 

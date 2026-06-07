@@ -378,6 +378,21 @@ async function getResourceModeFocusSliceLines(): Promise<string[]> {
   }
 }
 
+function currentAskLooksLikeWebResearch(text: string | undefined): boolean {
+  const value = String(text || "").toLowerCase();
+  return /https?:\/\//.test(value) || /\b(url|website|webpage|browser|browse|research|docs?|article|blog|github\.com)\b/.test(value);
+}
+
+function getUiaiFirstFocusSliceLines(askText: string | undefined): string[] {
+  if (!currentAskLooksLikeWebResearch(askText)) return [];
+  return [
+    "UIAI_FIRST_WEB_RESEARCH: required=true",
+    "UIAI_FIRST_ROUTE: pi_uiai_agent_card → uiai_health → uiai_browser_open/read or UIAI source/markdown/search",
+    "UIAI_FALLBACK_RULE: web_search/fetch_content only after UIAI unavailable/saturated-with-no-closable-session/unsuitable",
+    "UIAI_PRESSURE_RULE: close unused UIAI sessions before generic web fallback",
+  ];
+}
+
 function getToolAffordanceFocusSliceLines(options: {
   resourceModeActive: boolean;
   hasTrajectory: boolean;
@@ -527,6 +542,7 @@ export function registerTurns(pi: ExtensionAPI) {
         "VIEW_PROFILE: pi_operator_view",
         askText ? `CURRENT_ASK: ${askText}` : "CURRENT_ASK: (none)",
         `QUERY_SCOPE: ${scopeKind} · ${S.queryScope?.carryoverPolicy || "allow_if_relevant"}`,
+        ...getUiaiFirstFocusSliceLines(askText),
         `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
@@ -548,6 +564,7 @@ export function registerTurns(pi: ExtensionAPI) {
         "PROJECTION_KIND: operator_view",
         "VIEW_PROFILE: pi_operator_view",
         "FOCUS_STATE: unavailable; using project/trajectory fallback card",
+        ...getUiaiFirstFocusSliceLines(S.currentAsk?.text),
         `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
         ...formatWorkpointContextSections(),
         ...toolAffordanceLines,
@@ -698,6 +715,7 @@ export function registerTurns(pi: ExtensionAPI) {
       buildSliceSection("resource_mode", "RESOURCE_MODE", resourceModeLines, resourceModeLines.length > 0, (values) => values.join("\n"), 0, 4, 100),
       buildSliceSection("trajectory", "PROJECT_TRAJECTORY", trajectoryLines, trajectoryLines.length > 0, (values) => `PROJECT_TRAJECTORY:\n${values.map((value) => `  - ${value}`).join("\n")}`, 0, 5, 100),
       buildSliceSection("workpoint", "WORKPOINT", formatWorkpointContextSections(), Boolean(S.activeWorkpointPacket), (values) => values.join("\n"), 0, 6, 100),
+      buildSliceSection("uiai_first_web_research", "UIAI_FIRST_WEB_RESEARCH", getUiaiFirstFocusSliceLines(askText), currentAskLooksLikeWebResearch(askText), (values) => values.join("\n"), 0, 4, 98),
       buildSliceSection("tool_affordances", "TOOL_AFFORDANCES", toolAffordanceLines, toolAffordanceLines.length > 0, (values) => values.join("\n"), 0, 7, 95),
       { key: "focus_frame", text: `FOCUS_FRAME: ${frame?.title || "(untitled)"}`, include: missionIncluded && Boolean(frame?.title), selectedCount: frame?.title ? 1 : 0, excludedCount: 0, priority: 10, relevanceScore: missionIncluded ? 50 : 0 },
       { key: "current_focus", text: `CURRENT_FOCUS: ${fs.current_focus || fs.current_state || "(none)"}`, include: missionIncluded && Boolean(fs.current_focus || fs.current_state), selectedCount: (fs.current_focus || fs.current_state) ? 1 : 0, excludedCount: 0, priority: 11, relevanceScore: missionIncluded ? 45 : 0 },
@@ -739,12 +757,23 @@ export function registerTurns(pi: ExtensionAPI) {
       ...(failures.excluded.length ? ["failures"] : []),
       ...(relevantArtifacts.excluded.length ? ["artifacts"] : []),
     ];
+    const receiptExcludedCount = scopeExcludedLabels.length + irrelevantExcludedLabels.length;
+    const contextReceiptHelpful = receiptExcludedCount > 0 || Boolean(visibleRecapReason) || scopeKind === "correction" || scopeKind === "mission_carryover" || !missionIncluded;
+    const staleOrAdvisory = [
+      trajectoryLines.length ? "trajectory_advisory" : "",
+      toolAffordanceLines.length ? "tool_affordances_advisory" : "",
+      S.activeWorkpointPacket ? "" : "workpoint_not_verified",
+    ].filter(Boolean);
+    const contextReceiptLines = contextReceiptHelpful ? [
+      `CONTEXT_RECEIPT: included=${scopedEntries.length} excluded=${receiptExcludedCount} omitted_bytes=${Math.max(0, receiptExcludedCount * 96)} rehydrate_refs=focusa_workpoint_resume,focusa_trajectory_view,focusa_traverse reason=current_ask+Workpoint+trajectory_gap stale_or_advisory=${staleOrAdvisory.join(",") || "none"}`,
+    ] : [];
 
     // §Prompt Serialization: uppercase section headers, bullets for list items
     const lines: string[] = [
       `[Focusa Focus Slice — minimal applicable context]`,
       ...attentionLines,
       ...formatToolOutputVisibleRecapLines(visibleRecapReason),
+      ...contextReceiptLines,
       ...scopedEntries.map((entry) => entry.text),
     ];
 

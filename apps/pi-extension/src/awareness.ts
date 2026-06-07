@@ -66,6 +66,32 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     `- boundary=operator steering wins; project_root+continuity_id are authority; trajectory similarity/fallback is advisory only`,
   ];
 
+  const reconciliationActive = !safeScope || needsConfirm || trajectoryFallback || (trajectorySet && !scopedPacket && workpointStatus !== "verified");
+  const reconciliationEnvelope = reconciliationActive ? [
+    "RECONCILIATION_ENVELOPE:",
+    `- surface_states=workpoint:${workpointStatus}; trajectory:${trajectoryFallback ? "fallback_advisory" : trajectorySet ? "available" : "not_hydrated"}; focus_state:unknown; ontology:unknown; evidence:${scopedPacket ? "workpoint_refs_available" : "checkpoint_first"}; doctor:unknown; work_loop:unknown`,
+    `- resolution=${!safeScope || needsConfirm ? "verify_project_scope_first" : trajectoryFallback ? "refresh_current_trajectory" : "checkpoint_or_resume_workpoint"}`,
+    `- authority_for_next_action=${!safeScope || needsConfirm ? "project_identity_verification" : scopedPacket ? "canonical_workpoint" : "operator_current_ask_until_checkpoint"}`,
+    `- supporting_context=project_root:${projectRoot || "unknown"}; continuity_id:${continuityId || "unknown"}`,
+    `- blocked_or_stale_surfaces=${[!safeScope || needsConfirm ? "scope" : "", trajectoryFallback ? "trajectory" : "", !scopedPacket ? "workpoint" : ""].filter(Boolean).join(",") || "none"}`,
+    `- next_repair_tool=${!safeScope || needsConfirm ? "focusa_project_identity" : trajectoryFallback ? "focusa_trajectory_view" : "focusa_workpoint_checkpoint"}`,
+  ] : [];
+
+  const nowWhyHealthDoCards = [
+    "NOW_CARD:",
+    `- authority=${scopedPacket ? "workpoint" : safeScope && !needsConfirm ? "operator_current_ask" : "blocked"}; scope=project_root:${projectRoot || "unknown"} continuity_id:${continuityId || "unknown"}`,
+    `- readiness=scope:${safeScope && !needsConfirm ? "verified" : "unverified"} workpoint:${workpointStatus} trajectory:${trajectorySet ? "available" : "not_hydrated"}`,
+    `- exact_next_action=${!safeScope || needsConfirm ? "focusa_project_identity with explicit project_root before durable writes" : next ? compact(next) : compact(trajectory.active_gap || trajectory.short_term_goal || mission || "refresh trajectory then checkpoint mission")}`,
+    "WHY_CARD:",
+    `- why=included verified project scope, current operator ask, ${scopedPacket ? "scoped Workpoint" : "trajectory/bootstrap route"}; excluded transcript_tail and cross-project fallback as authority`,
+    "- source_authority_order=operator_steering > verified_project_identity > canonical_workpoint > trajectory_projection > traverse/evidence > transcript_tail_never",
+    "HEALTH_CARD:",
+    `- scope=${safeScope && !needsConfirm ? "verified" : "unverified"}; workpoint=${workpointStatus}; trajectory=${trajectorySet ? "available" : "not_hydrated"}; evidence=${scopedPacket ? "workpoint_refs_available" : "link_after_checkpoint"}; token_pressure=unknown; drift=${trajectoryFallback ? "trajectory_fallback_advisory" : "none_known"}; uiai=unknown`,
+    "DO_CARD:",
+    `- exact_next_action=${!safeScope || needsConfirm ? "focusa_project_identity" : scopedPacket ? "focusa_workpoint_resume or execute next anchor" : "focusa_trajectory_view then focusa_workpoint_checkpoint"}`,
+    `- mutates=${!safeScope || needsConfirm ? "nothing" : scopedPacket ? "only when selected execution tool is called" : "workpoint checkpoint if accepted"}; rollback=checkpoint/resume packet; rehydrate_refs=focusa_workpoint_resume,focusa_trajectory_view,focusa_traverse`,
+  ];
+
   const friendlyQ = [
     "Friendly Focusa Q (internal orientation, not a blocker):",
     "1. Where am I? project_root + continuity_id → focusa_project_identity / focusa_project_verify.",
@@ -88,6 +114,8 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       prefix,
       `Status: ${status}`,
       ...missionPacket,
+      ...nowWhyHealthDoCards,
+      ...reconciliationEnvelope,
       `Project folder: ${projectRoot || "unknown"}${safeScope ? "" : " (broad/unsafe — no Workpoint auto-resume)"}${confidence}`,
       ...friendlyQ,
       "Project-bound Workpoint: none verified yet; latest operator instruction + trajectory gap are the seed, then checkpoint to create canonical Workpoint.",
@@ -102,6 +130,8 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     prefix,
     `Status: ${status}`,
     ...missionPacket,
+    ...nowWhyHealthDoCards,
+    ...reconciliationEnvelope,
     scopedPacket ? "Project-bound Workpoint: verified project_root + continuity_id match." : "Project-bound Workpoint: none verified for this logical session; use trajectory gap + operator ask, then checkpoint; ignore stale carryover.",
     !safeScope || needsConfirm ? "Project folder check: confirm the project file folder/container before durable state writes." : "Project root: confirmed project file folder/container; trajectory provides the functional route.",
     mission ? `Mission: ${mission}` : "Mission: use latest operator instruction as seed; bind it to trajectory + Workpoint before long work.",

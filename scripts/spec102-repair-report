@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+import json, subprocess, sys, pathlib, re
+from datetime import datetime, UTC
+root = pathlib.Path.cwd()
+epic = sys.argv[1] if len(sys.argv) > 1 else "focusa-pm2b"
+out = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else root / "docs/evidence/SPEC102_REPAIR_REPORT_CURRENT.md"
+raw = subprocess.check_output(["bd", "--no-daemon", "list", "--parent", epic, "--all", "--json", "--no-pager"], cwd=root, text=True)
+items = json.loads(raw)
+closed = [i for i in items if i.get("status") == "closed"]
+
+def block(notes, name):
+    idx = notes.find(name + ":")
+    if idx < 0: return ""
+    nxt = len(notes)
+    for marker in ["\nprep_packet:", "\nimplementation_proof:"]:
+        j = notes.find(marker, idx + 1)
+        if j > idx: nxt = min(nxt, j)
+    return notes[idx:nxt].strip()
+
+def has(notes, key): return key in notes
+rows=[]; missing=[]
+for item in closed:
+    notes=item.get("notes") or ""
+    proof=block(notes,"implementation_proof")
+    prep=block(notes,"prep_packet")
+    checks={
+      "target_refs": any(k in notes for k in ["target_files:", "target_routes_or_tools:", "code_refs:"]),
+      "original_failure_proof": any(k in notes for k in ["original_failure_before:", "current_failing_output_ref:", "current_result:", "current_gate_output_ref:", "current_audit:", "policy_status:", "fixed_failure_after:"]),
+      "happy_path_proof": "restored_happy_path_after:" in notes or "happy_path_proof:" in notes,
+      "clean_repair_checklist_result": "residual_ui_risk: none" in notes and "residual_authority_risk: none" in notes,
+      "evidence_refs": any(k in notes for k in ["test_refs:", "evidence_refs:", "code_refs:"]),
+    }
+    bad=[k for k,v in checks.items() if not v]
+    if bad: missing.append((item["id"], bad))
+    rows.append({"id":item["id"],"title":item.get("title",""),"checks":checks,"prep":prep,"proof":proof})
+
+lines=["# Spec102 Repair Report — current", "", f"Generated: {datetime.now(UTC).isoformat()}", "", "```yaml", "repair_report_index:", f"  epic_id: {epic}", f"  closed_repairs: {len(closed)}", f"  missing_required_fields: {len(missing)}", "  required_template_fields:", "    - repair_id", "    - priority", "    - target_files_or_routes", "    - operator_visible_change", "    - original_failure_proof", "    - happy_path_proof", "    - clean_repair_checklist_result", "    - residual_ui_risk", "    - residual_authority_risk", "    - follow_up_needed", "    - evidence_refs", "```", ""]
+for row in rows:
+    c=row["checks"]
+    lines += [f"## {row['id']} — {row['title']}", "", "```yaml", f"repair_id: {row['id']}", "priority: Spec102 child bead", f"target_files_or_routes: {'present' if c['target_refs'] else 'missing'}", "operator_visible_change: summarized in bead implementation_proof", f"original_failure_proof: {'present' if c['original_failure_proof'] else 'missing'}", f"happy_path_proof: {'present' if c['happy_path_proof'] else 'missing'}", f"clean_repair_checklist_result: {'pass' if c['clean_repair_checklist_result'] else 'missing'}", "residual_ui_risk: none" if c['clean_repair_checklist_result'] else "residual_ui_risk: missing", "residual_authority_risk: none" if c['clean_repair_checklist_result'] else "residual_authority_risk: missing", "follow_up_needed: none unless child bead remains open", f"evidence_refs: {'present' if c['evidence_refs'] else 'missing'}", "```", ""]
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text("\n".join(lines))
+print(f"generated={out}")
+print(f"closed_repairs={len(closed)}")
+print(f"missing_required_fields={len(missing)}")
+if missing:
+    for item,bad in missing: print(f"missing {item}: {','.join(bad)}")
+    sys.exit(1)

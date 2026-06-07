@@ -26,6 +26,7 @@ tests/spec98_unscoped_canonical_inventory_static_test.py
 log "Spec98 CRDT/event-store foundation proofs"
 tests/spec98_crdt_event_store_wiring_static_test.py
 tests/spec98_pi_uiai_authority_impact_static_test.py
+tests/spec98_uiai_first_web_research_static_test.py
 tests/spec98_uiai_packet_capture_headless_static_test.py
 tests/spec98_uiai_packet_capture_status_rendering_static_test.py
 tests/spec98_uiai_cross_project_scope_guard_static_test.py

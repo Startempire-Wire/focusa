@@ -20,7 +20,7 @@ use focusa_core::types::{
     WorkpointDriftSeverity, WorkpointRecord, WorkpointStatus, WorkpointVerificationRecord,
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;
@@ -57,6 +57,8 @@ pub struct WorkpointCheckpointRequest {
     pub source_turn_id: Option<String>,
     pub promote: Option<bool>,
     pub idempotency_key: Option<String>,
+    #[serde(default, alias = "dry_run")]
+    pub preview: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -97,6 +99,8 @@ pub struct WorkpointEvidenceLinkRequest {
     pub target_ref: String,
     pub result: String,
     pub evidence_ref: Option<String>,
+    #[serde(default, alias = "dry_run")]
+    pub preview: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -902,14 +906,156 @@ fn resume_summary(record: &WorkpointRecord) -> String {
         .next_slice
         .as_deref()
         .unwrap_or("continue from active workpoint");
+    let handoff = if record.canonical
+        && record.next_slice.as_deref().is_some_and(|value| !value.trim().is_empty())
+        && record.verification_records.iter().any(|verification| verification.evidence_ref.as_deref().is_some_and(|value| !value.trim().is_empty()))
+    {
+        "handoff: ready"
+    } else {
+        "handoff: partial"
+    };
     format!(
-        "WORKPOINT {}: mission={}; action={}; next={}; canonical={}",
+        "WORKPOINT {}: mission={}; action={}; next={}; canonical={}; {}",
         record.workpoint_id,
         record.mission.as_deref().unwrap_or("unknown"),
         action,
         next,
-        record.canonical
+        record.canonical,
+        handoff
     )
+}
+
+fn handoff_quality_payload(record: &WorkpointRecord, canonical: bool, action_authority: bool) -> Value {
+    let next_exact = record
+        .next_slice
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty() && value != "continue from active workpoint");
+    let proof_linked = record
+        .verification_records
+        .iter()
+        .any(|verification| verification.evidence_ref.as_deref().is_some_and(|value| !value.trim().is_empty()));
+    let mut missing = Vec::<String>::new();
+    if !canonical || !action_authority {
+        missing.push("canonical_authority".to_string());
+    }
+    if !next_exact {
+        missing.push("exact_next_action".to_string());
+    }
+    if !proof_linked {
+        missing.push("linked_proof".to_string());
+    }
+    let stale = if canonical { Vec::<String>::new() } else { vec!["authority".to_string()] };
+    let mut score: i64 = 100;
+    if !canonical || !action_authority {
+        score -= 45;
+    }
+    if !next_exact {
+        score -= 25;
+    }
+    if !proof_linked {
+        score -= 20;
+    }
+    let score = score.clamp(0, 100) as u64;
+    let status = if score >= 90 && missing.is_empty() && stale.is_empty() {
+        "ready"
+    } else if score >= 50 {
+        "partial"
+    } else {
+        "unsafe"
+    };
+    json!({
+        "score": score,
+        "status": status,
+        "missing": missing,
+        "stale": stale,
+        "authority": if canonical && action_authority { "canonical" } else { "degraded" },
+        "next_action_quality": if next_exact { "exact" } else { "missing_or_generic" },
+        "proof_quality": if proof_linked { "linked" } else { "missing" },
+        "exact_next_action": safest_next_action(record),
+    })
+}
+
+fn checkpoint_mutation_preview(req: &WorkpointCheckpointRequest, workpoint_id: Uuid, safe_to_apply: bool) -> Value {
+    json!({
+        "route": "POST /v1/workpoint/checkpoint",
+        "would_create": [{"type": "workpoint", "workpoint_id": workpoint_id, "work_item_id": req.work_item_id, "mission": req.mission}],
+        "would_update": if req.promote.unwrap_or(true) && req.canonical.unwrap_or(true) { json!([{"type": "active_workpoint", "workpoint_id": workpoint_id}]) } else { json!([]) },
+        "would_link": req.verification_records.as_ref().map(|records| json!(records.iter().map(|record| json!({"target_ref": record.target_ref, "evidence_ref": record.evidence_ref})).collect::<Vec<_>>())).unwrap_or_else(|| json!([])),
+        "authority_scope": {"project_root": req.project_root, "continuity_id": req.continuity_id, "session_id": req.session_id},
+        "risk": if safe_to_apply { "low" } else { "unsafe_scope" },
+        "irreversible": false,
+        "safe_to_apply": safe_to_apply,
+    })
+}
+
+const TRUST_BADGE_VOCABULARY: &[&str] = &[
+    "canonical", "advisory", "projected", "stale", "degraded", "blocked", "spec_only", "partial", "verified", "unsafe_scope",
+];
+
+fn route_recommendation_payload(canonical: bool, action_authority: bool) -> Value {
+    json!({
+        "recommended_tool": if canonical && action_authority { "focusa_trajectory_view" } else { "focusa_project_identity" },
+        "why": if canonical && action_authority { "bounded next route refreshes goal/state/gap without broad or cold reads" } else { "project scope must be verified before durable continuation" },
+        "expected_output": if canonical && action_authority { "current goal, verified state, active gap, and next Workpoint candidate" } else { "verified project_root, continuity_id, repo identity, and safe scope" },
+        "confidence": if canonical && action_authority { "high" } else { "medium" },
+        "alternatives": if canonical && action_authority { vec!["focusa_traverse", "focusa_workpoint_resume", "focusa_active_object_resolve"] } else { vec!["focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_tool_doctor"] },
+        "avoid": ["full lineage tree", "full ontology graph", "full telemetry logs", "transcript tail as authority"],
+    })
+}
+
+fn trust_badges(canonical: bool, degraded: bool, blocked: bool, projected: bool, partial: bool, unsafe_scope: bool) -> Vec<&'static str> {
+    let _ = TRUST_BADGE_VOCABULARY;
+    if blocked {
+        return vec!["blocked", "degraded"];
+    }
+    if unsafe_scope {
+        return vec!["unsafe_scope", "degraded"];
+    }
+    if degraded {
+        return vec!["degraded"];
+    }
+    if partial {
+        return vec!["partial", "advisory"];
+    }
+    if projected {
+        return vec!["projected", "advisory"];
+    }
+    if canonical {
+        vec!["canonical", "verified"]
+    } else {
+        vec!["advisory"]
+    }
+}
+
+fn rollback_card_payload(
+    latest_safe_snapshot: Value,
+    workpoint_id: Option<Uuid>,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    reversible_action: &str,
+    expected_after_restore: &str,
+) -> Value {
+    json!({
+        "latest_safe_snapshot": latest_safe_snapshot,
+        "reversible_actions": [reversible_action],
+        "irreversible_actions": [],
+        "restore_tool": "focusa_tree_restore_state",
+        "restore_scope": {"project_root": project_root, "continuity_id": continuity_id, "workpoint_id": workpoint_id},
+        "expected_after_restore": expected_after_restore,
+    })
+}
+
+fn evidence_link_mutation_preview(record: &WorkpointRecord, verification: &WorkpointVerificationRecord) -> Value {
+    json!({
+        "route": "POST /v1/workpoint/evidence/link",
+        "would_create": [],
+        "would_update": [{"type": "workpoint.verification_records", "workpoint_id": record.workpoint_id}],
+        "would_link": [{"workpoint_id": record.workpoint_id, "target_ref": verification.target_ref, "evidence_ref": verification.evidence_ref}],
+        "authority_scope": {"project_root": record.project_root, "continuity_id": record.continuity_id, "session_id": record.session_id},
+        "risk": "low",
+        "irreversible": false,
+        "safe_to_apply": true,
+    })
 }
 
 fn workpoint_visibility_wait_attempts() -> usize {
@@ -1237,6 +1383,30 @@ async fn checkpoint(
         ));
     }
 
+    if req.preview {
+        if let Some(rejection) =
+            session_identity_requires_project_root_confirmation(req.session_identity.as_ref())
+        {
+            return Err(rejection);
+        }
+        apply_checkpoint_session_identity(&mut req);
+        let workpoint_id = req.workpoint_id.unwrap_or_else(Uuid::now_v7);
+        let requested_canonical = req.canonical.unwrap_or(true);
+        let safe_scope = !requested_canonical
+            || (unsafe_project_root_reason(req.project_root.as_deref()).is_none()
+                && clean_resume_scope_value(req.continuity_id.as_deref()).is_some());
+        return Ok(Json(json!({
+            "status": "preview",
+            "canonical": false,
+            "preview": true,
+            "side_effects": [],
+            "trust_badges": trust_badges(false, false, false, false, true, !safe_scope),
+            "workpoint_id": workpoint_id,
+            "mutation_preview": checkpoint_mutation_preview(&req, workpoint_id, safe_scope),
+            "next_step_hint": "preview only; repeat without preview/dry_run to apply this Workpoint checkpoint"
+        })));
+    }
+
     if let Some(key) = req
         .idempotency_key
         .as_ref()
@@ -1373,9 +1543,18 @@ async fn checkpoint(
         "status": if promote && canonical { "accepted" } else { "partial" },
         "workpoint_id": workpoint_id,
         "canonical": canonical,
+        "trust_badges": trust_badges(canonical, false, false, false, !promote || !canonical, false),
         "idempotent_replay": false,
         "idempotency_cache": idempotency_cache_status_payload(),
         "workpoint": promoted_record.as_ref().map(workpoint_packet),
+        "rollback_card": rollback_card_payload(
+            json!({"snapshot_id": materialized_state.clt.head_id, "source": "current_clt_head"}),
+            Some(workpoint_id),
+            promoted_record.as_ref().and_then(|record| record.project_root.as_deref()),
+            promoted_record.as_ref().and_then(|record| record.continuity_id.as_deref()),
+            "workpoint_checkpoint",
+            "active Workpoint and linked evidence return to the selected safe snapshot scope"
+        ),
         "warnings": if promote && !canonical { vec!["non-canonical checkpoint was proposed but not promoted"] } else { vec![] },
         "next_step_hint": "call /v1/workpoint/resume to render the packet for Pi continuation"
     })))
@@ -1919,6 +2098,7 @@ fn workpoint_resume_packet_v2(
         ])
     };
     let migration_posture = workpoint_migration_posture(record, canonical);
+    let handoff_quality = handoff_quality_payload(record, canonical, action_authority);
     let tool_result = json!({
         "ok": canonical && action_authority,
         "status": "completed",
@@ -1953,6 +2133,8 @@ fn workpoint_resume_packet_v2(
         "resume_source": packet_resume_source(record, req),
         "canonical": canonical,
         "degraded": !canonical || !action_authority,
+        "trust_badges": trust_badges(canonical, !canonical || !action_authority, false, false, false, canonical && !action_authority),
+        "route_recommendation": route_recommendation_payload(canonical, action_authority),
         "canonical_for_saved_scope": current_ask_scope.get("canonical_for_saved_scope").cloned().unwrap_or(json!(canonical)),
         "matches_current_ask_scope": current_ask_scope.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)),
         "action_authority_for_current_ask": current_ask_scope.get("action_authority_for_current_ask").cloned().unwrap_or(json!(canonical)),
@@ -1969,6 +2151,7 @@ fn workpoint_resume_packet_v2(
         "workpoint_id": record.workpoint_id,
         "work_item_id": record.work_item_id,
         "rendered_summary": summary,
+        "handoff_quality": handoff_quality,
         "resume_summary": resume_summary_v2(record, summary, canonical, scope),
         "workpoint": workpoint_v2_payload(record, canonical),
         "identity_axes": workpoint_identity_axes_payload(record, canonical),
@@ -2005,23 +2188,25 @@ async fn resume(
     }
     apply_resume_session_identity(&mut req);
     let focusa = state.focusa.read().await;
-    let record = req
-        .workpoint_id
-        .and_then(|id| {
-            focusa
-                .workpoint
-                .records
-                .iter()
-                .find(|record| record.workpoint_id == id)
-        })
-        .or_else(|| {
-            active_workpoint_for_scope(
-                &focusa,
-                req.project_root.as_deref(),
-                req.continuity_id.as_deref(),
-            )
-        });
     let requested_workpoint_id = req.workpoint_id;
+    let requested_record = requested_workpoint_id.and_then(|id| {
+        focusa
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == id)
+    });
+    let fallback_record = if requested_record.is_none() {
+        active_workpoint_for_scope(
+            &focusa,
+            req.project_root.as_deref(),
+            req.continuity_id.as_deref(),
+        )
+    } else {
+        None
+    };
+    let record = requested_record.or(fallback_record);
+    let requested_id_miss = requested_workpoint_id.is_some() && requested_record.is_none();
     let Some(record) = record else {
         return Ok(Json(json!({
             "status": "not_found",
@@ -2112,30 +2297,43 @@ async fn resume(
     if resume_render_dispatch_warning.is_some() {
         warnings.push("resume render telemetry dispatch degraded; packet returned from read model to preserve continuation".to_string());
     }
-    Ok(Json(json!({
-        "status": "completed",
-        "schema_version": "focusa.workpoint_resume_packet.v2",
-        "workpoint_id": workpoint_id,
-        "canonical": canonical,
-        "degraded": !canonical || !action_authority,
-        "canonical_for_saved_scope": packet_v2.get("canonical_for_saved_scope").cloned().unwrap_or(json!(canonical)),
-        "matches_current_ask_scope": packet_v2.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)),
-        "action_authority_for_current_ask": packet_v2.get("action_authority_for_current_ask").cloned().unwrap_or(json!(canonical)),
-        "scope_conflict_reason": packet_v2.get("scope_conflict_reason").cloned().unwrap_or(json!("none")),
-        "current_ask_scope": packet_v2.get("current_ask_scope").cloned().unwrap_or_else(|| json!({})),
-        "failure_class": failure_class,
-        "resume_packet": packet,
-        "resume_packet_v2": packet_v2,
-        "rendered_summary": summary,
-        "warnings": warnings,
-        "resume_render_dispatch_warning": resume_render_dispatch_warning,
-        "session_continuity": session_continuity,
-        "identity_confidence": identity_confidence,
-        "identity_confidence_percent": identity_confidence.get("percent").and_then(Value::as_u64).unwrap_or(0),
-        "next_tools": response_next_tools,
-        "details": {"tool_result_v1": tool_result},
-        "next_step_hint": "inject rendered_summary plus resume_packet before the next Pi turn"
-    })))
+    let mut response = Map::new();
+    response.insert("status".to_string(), json!("completed"));
+    response.insert("schema_version".to_string(), json!("focusa.workpoint_resume_packet.v2"));
+    response.insert("workpoint_id".to_string(), json!(workpoint_id));
+    response.insert("canonical".to_string(), json!(canonical));
+    response.insert("degraded".to_string(), json!(!canonical || !action_authority));
+    response.insert("trust_badges".to_string(), json!(trust_badges(canonical, !canonical || !action_authority, false, false, false, canonical && !action_authority)));
+    response.insert("route_recommendation".to_string(), packet_v2.get("route_recommendation").cloned().unwrap_or_else(|| route_recommendation_payload(canonical, action_authority)));
+    response.insert("canonical_for_saved_scope".to_string(), packet_v2.get("canonical_for_saved_scope").cloned().unwrap_or(json!(canonical)));
+    response.insert("matches_current_ask_scope".to_string(), packet_v2.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)));
+    response.insert("action_authority_for_current_ask".to_string(), packet_v2.get("action_authority_for_current_ask").cloned().unwrap_or(json!(canonical)));
+    response.insert("scope_conflict_reason".to_string(), packet_v2.get("scope_conflict_reason").cloned().unwrap_or(json!("none")));
+    response.insert("current_ask_scope".to_string(), packet_v2.get("current_ask_scope").cloned().unwrap_or_else(|| json!({})));
+    response.insert("failure_class".to_string(), failure_class);
+    response.insert("resume_packet".to_string(), packet);
+    response.insert("resume_packet_v2".to_string(), packet_v2.clone());
+    response.insert("rendered_summary".to_string(), json!(summary));
+    response.insert("handoff_quality".to_string(), packet_v2.get("handoff_quality").cloned().unwrap_or(Value::Null));
+    response.insert("warnings".to_string(), json!(warnings));
+    response.insert("resume_render_dispatch_warning".to_string(), json!(resume_render_dispatch_warning));
+    response.insert("session_continuity".to_string(), session_continuity);
+    response.insert("identity_confidence".to_string(), identity_confidence.clone());
+    response.insert("identity_confidence_percent".to_string(), json!(identity_confidence.get("percent").and_then(Value::as_u64).unwrap_or(0)));
+    response.insert("next_tools".to_string(), response_next_tools);
+    response.insert("details".to_string(), json!({"tool_result_v1": tool_result}));
+    response.insert("next_step_hint".to_string(), json!("inject rendered_summary plus resume_packet before the next Pi turn"));
+    if requested_id_miss {
+        response.insert("requested_workpoint_id".to_string(), json!(requested_workpoint_id));
+        response.insert("requested_found".to_string(), json!(false));
+        response.insert("fallback_used".to_string(), json!(true));
+        response.insert("fallback_source".to_string(), json!("active_workstream"));
+        response.insert("fallback_object_id".to_string(), json!(workpoint_id));
+        response.insert("canonical_for_requested_scope".to_string(), json!(false));
+        response.insert("canonical_for_fallback_scope".to_string(), json!(canonical));
+        response.insert("misuse_hint".to_string(), json!("requested Workpoint id was not found; returned same-project active Workpoint as an explicit fallback, not as canonical for requested scope"));
+    }
+    Ok(Json(Value::Object(response)))
 }
 
 async fn resolve_active_object(
@@ -2292,6 +2490,22 @@ async fn link_evidence(
         evidence_ref: req.evidence_ref,
         verified_at: None,
     };
+    let rollback_snapshot = {
+        let focusa = state.focusa.read().await;
+        json!({"snapshot_id": focusa.clt.head_id, "source": "current_clt_head"})
+    };
+    if req.preview {
+        return Ok(Json(json!({
+            "status": "preview",
+            "canonical": false,
+            "preview": true,
+            "side_effects": [],
+            "workpoint_id": workpoint_id,
+            "verification": verification,
+            "mutation_preview": evidence_link_mutation_preview(&record, &verification),
+            "next_step_hint": "preview only; repeat without preview/dry_run to link evidence"
+        })));
+    }
     dispatch_event(
         &state,
         FocusaEvent::WorkpointEvidenceLinked {
@@ -2318,6 +2532,14 @@ async fn link_evidence(
                 "workpoint_id": workpoint_id,
                 "verification": verification,
                 "warnings": ["evidence link accepted but is not visible in Workpoint state yet"],
+                "rollback_card": rollback_card_payload(
+                    rollback_snapshot,
+                    Some(workpoint_id),
+                    record.project_root.as_deref(),
+                    record.continuity_id.as_deref(),
+                    "workpoint_evidence_link",
+                    "Workpoint verification_records return to the selected safe snapshot scope"
+                ),
                 "retry_posture": "safe_retry",
                 "resource_mode": resource_mode_status(),
                 "next_tools": ["focusa_workpoint_resume", "focusa_traverse", "focusa_resource_mode"],
@@ -2329,11 +2551,20 @@ async fn link_evidence(
     Ok(Json(json!({
         "status": "accepted",
         "canonical": true,
+        "trust_badges": trust_badges(true, false, false, false, false, false),
         "workpoint_id": workpoint_id,
         "verification": verification,
         "workpoint": if summary_only { None } else { linked_record.as_ref().map(workpoint_packet) },
         "summary_only": summary_only,
         "resource_mode": resource_mode_status(),
+        "rollback_card": rollback_card_payload(
+            rollback_snapshot,
+            Some(workpoint_id),
+            record.project_root.as_deref(),
+            record.continuity_id.as_deref(),
+            "workpoint_evidence_link",
+            "Workpoint verification_records return to the selected safe snapshot scope"
+        ),
         "next_tools": ["focusa_workpoint_resume", "focusa_traverse"],
         "next_step_hint": "call /v1/workpoint/resume to see linked evidence in the packet"
     })))

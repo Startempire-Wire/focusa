@@ -18,11 +18,11 @@ use axum::{
 use chrono::Utc;
 use focusa_core::reducer;
 use focusa_core::types::{
-    CompletionReason, EventLogEntry, FocusStackState, FocusStateDelta, FocusaEvent, FrameRecord,
-    FrameStatus, SessionState, SessionStatus, SignalOrigin,
+    CompletionReason, EventLogEntry, FocusStackState, FocusStateDelta, FocusaEvent, FocusaState,
+    FrameRecord, FrameStatus, SessionState, SessionStatus, SignalOrigin, WorkpointStatus,
 };
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -253,6 +253,56 @@ fn focus_frame_authority_posture(frame: &FrameRecord) -> serde_json::Value {
         },
         "promotion_path": ["focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_current_focus"],
     })
+}
+
+fn focus_state_workpoint_bridge(
+    state: &FocusaState,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    focus_state_status: &'static str,
+) -> Option<Value> {
+    let project_root = clean_scope_value(project_root)?;
+    if unsafe_project_root_reason(Some(project_root.as_str())).is_some() {
+        return None;
+    }
+    let continuity_id = clean_scope_value(continuity_id)?;
+    let record = state.workpoint.records.iter().rev().find(|record| {
+        record.status == WorkpointStatus::Active
+            && record.canonical
+            && unsafe_project_root_reason(record.project_root.as_deref()).is_none()
+            && record.project_root.as_deref().map(str::trim) == Some(project_root.as_str())
+            && record.continuity_id.as_deref().map(str::trim) == Some(continuity_id.as_str())
+    })?;
+    Some(json!({
+        "focus_state_status": focus_state_status,
+        "workpoint_status": "canonical",
+        "workpoint_id": record.workpoint_id,
+        "authority_for_next_action": "workpoint",
+        "resolution": "use canonical Workpoint for immediate next action; create or select a project-bound Focus frame before durable Focus State writes",
+        "next_repair_tool": "focusa_workpoint_checkpoint",
+        "supporting_context": "same project_root+continuity_id canonical Workpoint exists while Focus State frame is unavailable",
+    }))
+}
+
+fn attach_focus_state_workpoint_bridge(
+    response: &mut Value,
+    bridge: Option<Value>,
+) {
+    let Some(bridge) = bridge else { return; };
+    if let Some(obj) = response.as_object_mut() {
+        obj.insert("focus_state_workpoint_bridge".to_string(), bridge.clone());
+        obj.insert("workpoint_status".to_string(), json!("canonical"));
+        obj.insert(
+            "workpoint_id".to_string(),
+            bridge.get("workpoint_id").cloned().unwrap_or(Value::Null),
+        );
+        obj.insert(
+            "focus_state_status".to_string(),
+            bridge.get("focus_state_status").cloned().unwrap_or(Value::Null),
+        );
+        obj.insert("authority_for_next_action".to_string(), json!("workpoint"));
+        obj.insert("next_tools".to_string(), json!(["focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"]));
+    }
 }
 
 fn resolve_scoped_frame<'a>(
@@ -841,7 +891,13 @@ async fn update_delta(
             )));
         }
         if target.is_none() {
-            return Ok(Json(json!({
+            let bridge = focus_state_workpoint_bridge(
+                &focusa,
+                body.project_root.as_deref(),
+                body.continuity_id.as_deref(),
+                "target_frame_unavailable",
+            );
+            let mut response = json!({
                 "status": "frame_unavailable",
                 "failure_class": "frame_unavailable",
                 "reason": "target_frame_id_not_found",
@@ -852,7 +908,9 @@ async fn update_delta(
                 "safe_recovery": "call /v1/focus/frame/current with continuity_id or checkpoint a fresh Workpoint/Focus frame",
                 "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
                 "details": {"tool_result_v1": {"ok": false, "status": "blocked", "failure_class": "frame_unavailable", "canonical": false, "degraded": true, "retry": {"safe": true, "posture": "safe_retry", "reason": "frame_unavailable"}, "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"]}}
-            })));
+            });
+            attach_focus_state_workpoint_bridge(&mut response, bridge);
+            return Ok(Json(response));
         }
     }
 
@@ -932,7 +990,21 @@ async fn update_delta(
                 .iter()
                 .find(|frame| frame.id == frame_id)
             else {
-                return Ok(Json(json!({"status": "no_active_frame"})));
+                let bridge = focus_state_workpoint_bridge(
+                    &focusa,
+                    body.project_root.as_deref(),
+                    body.continuity_id.as_deref(),
+                    "target_frame_unavailable",
+                );
+                let mut response = json!({
+                    "status": "no_active_frame",
+                    "canonical": false,
+                    "failure_class": "frame_unavailable",
+                    "reason": "target_frame_id_not_found",
+                    "safe_recovery": "call /v1/focus/frame/current with project_root+continuity_id or pass explicit frame_id"
+                });
+                attach_focus_state_workpoint_bridge(&mut response, bridge);
+                return Ok(Json(response));
             };
             if let Some(reason) = unsafe_project_root_reason(frame.project_root.as_deref()) {
                 return Ok(Json(unsafe_project_root_response(
@@ -980,14 +1052,22 @@ async fn update_delta(
                 body.project_root.as_deref(),
             );
             let Some((frame, _)) = resolved else {
-                return Ok(Json(json!({
+                let bridge = focus_state_workpoint_bridge(
+                    &focusa,
+                    body.project_root.as_deref(),
+                    body.continuity_id.as_deref(),
+                    "missing_project_bound_frame",
+                );
+                let mut response = json!({
                     "status": "no_active_frame",
                     "canonical": false,
                     "failure_class": "scope_mismatch",
                     "reason": "focus_update_requires_frame_id_or_project_root_plus_continuity_id",
                     "retry_posture": "do_not_retry_unchanged",
                     "safe_recovery": "call /v1/focus/frame/current with project_root+continuity_id or pass explicit frame_id"
-                })));
+                });
+                attach_focus_state_workpoint_bridge(&mut response, bridge);
+                return Ok(Json(response));
             };
             (frame.id, !session_active)
         }

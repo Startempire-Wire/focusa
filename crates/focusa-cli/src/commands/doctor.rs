@@ -299,9 +299,41 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
         .filter(|c| c.get("status").and_then(|v| v.as_str()) == Some("blocked"))
         .count();
     let status = if blocked > 0 { "blocked" } else { worst };
+    let api_readiness = checks
+        .iter()
+        .find(|check| check.get("path").and_then(Value::as_str) == Some("/v1/doctor"))
+        .and_then(|check| check.pointer("/details/readiness_categories"))
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let source_blocked = checks.iter().any(|check| {
+        check.get("status").and_then(Value::as_str) == Some("blocked")
+            && check
+                .get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name.contains("Spec90") || name.contains("proof") || name.contains("Pi") || name.contains("Mac"))
+    });
+    let release_blocked = checks.iter().any(|check| {
+        check.get("status").and_then(Value::as_str) == Some("blocked")
+            && check
+                .get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name.contains("release") || name.contains("Guardian") || name.contains("Mac"))
+    });
+    let readiness_categories = json!({
+        "runtime_readiness": api_readiness.get("runtime_readiness").cloned().unwrap_or_else(|| json!({"status":"ready", "reason":"daemon health and doctor API checks completed"})),
+        "project_scope_readiness": api_readiness.get("project_scope_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"project scope is checked by project identity/verify routes"})),
+        "workpoint_readiness": api_readiness.get("workpoint_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"workpoint current check is advisory in CLI doctor"})),
+        "trajectory_readiness": api_readiness.get("trajectory_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"trajectory view is not required for CLI runtime doctor"})),
+        "focus_state_readiness": api_readiness.get("focus_state_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"Focus frame is not required for CLI runtime doctor"})),
+        "source_build_readiness": api_readiness.get("source_build_readiness").cloned().unwrap_or_else(|| json!({"status": if source_blocked { "blocked" } else { "ready" }, "reason":"source-build checks are separate from daemon runtime readiness"})),
+        "release_readiness": json!({"status": if release_blocked { "blocked" } else if blocked > 0 { "partial" } else { "ready" }, "reason":"release/helper checks are separate from daemon runtime readiness"}),
+        "telemetry_readiness": api_readiness.get("telemetry_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"telemetry detail is available through token/cache doctor"})),
+        "ui_browser_readiness": api_readiness.get("ui_browser_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"UIAI browser plane is checked by Pi/UIAI tools"})),
+    });
     let response = json!({
         "status": status,
-        "summary": if blocked > 0 { format!("{blocked} doctor check(s) blocked") } else { "All required doctor checks completed".to_string() },
+        "summary": if blocked > 0 { format!("{blocked} doctor check(s) blocked; readiness categories split runtime/source/release planes") } else { "All required doctor checks completed".to_string() },
+        "readiness_categories": readiness_categories,
         "next_action": if blocked > 0 { "Run the recovery command for the first blocked check, then re-run focusa doctor" } else { "Continue with focusa continue or focusa release prove --tag <tag> when ready" },
         "why": "Spec92 requires one agent-first command center covering health, contracts, workpoint/work-loop, telemetry, cache, Pi skills, Mac app, release proof, Guardian, and cleanup readiness.",
         "commands": [

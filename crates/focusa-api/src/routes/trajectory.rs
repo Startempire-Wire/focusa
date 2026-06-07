@@ -1368,12 +1368,60 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "evidence_refs": delta_evidence_refs,
     });
 
+    let workpoint_status = workpoint
+        .map(|record| {
+            if record.canonical && record.status == WorkpointStatus::Active {
+                "canonical"
+            } else if record.status == WorkpointStatus::Active {
+                "active"
+            } else {
+                "stale"
+            }
+        })
+        .unwrap_or("missing");
+    let trajectory_status = if canonical {
+        "canonical"
+    } else if bootstrap_default_trajectory {
+        "bootstrap_default"
+    } else if using_prior_project_trajectory {
+        "prior_project_fallback"
+    } else if status == "not_found" {
+        "missing"
+    } else {
+        definition_status
+    };
+    let reconciliation_aligned = canonical && workpoint_status == "canonical";
+    let reconciliation_conflicts = if reconciliation_aligned {
+        Vec::<String>::new()
+    } else if workpoint_status == "canonical" {
+        vec![format!("trajectory_status:{trajectory_status}")]
+    } else {
+        vec![format!("workpoint_status:{workpoint_status}")]
+    };
+    let trajectory_workpoint_reconciliation = json!({
+        "surface_states": {
+            "workpoint": workpoint_status,
+            "trajectory": trajectory_status,
+        },
+        "workpoint_status": workpoint_status,
+        "workpoint_id": workpoint.map(|record| record.workpoint_id),
+        "trajectory_status": trajectory_status,
+        "trajectory_id": active_trajectory_id,
+        "resolution": if reconciliation_aligned { "aligned" } else if workpoint_status == "canonical" { "use_workpoint_for_immediate_next_action" } else { "verify_first" },
+        "authority_for_next_action": if workpoint_status == "canonical" { "workpoint" } else if canonical { "trajectory" } else { "blocked" },
+        "supporting_context": if workpoint_status == "canonical" { "canonical Workpoint provides immediate next action; Trajectory remains route context until aligned" } else { "Trajectory remains advisory until a canonical Workpoint is checkpointed or resumed" },
+        "blocked_or_stale_surfaces": reconciliation_conflicts,
+        "conflicts": reconciliation_conflicts,
+        "next_repair_tool": if reconciliation_aligned { "none" } else if workpoint_status == "canonical" { "focusa_trajectory_define_goal" } else { "focusa_workpoint_checkpoint" },
+    });
+
     json!({
         "status": status,
         "canonical": canonical,
         "degraded": status == "degraded",
         "source": "per_project_trajectory_projection_v1",
         "mode": query.mode.as_deref().unwrap_or("summary"),
+        "trajectory_workpoint_reconciliation": trajectory_workpoint_reconciliation.clone(),
         "project_identity": {
             "status": project_identity_status,
             "project_root": project_root,
@@ -1459,6 +1507,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "clarity_gate": clarity_gate,
             "relevance_rationale": relevance_rationale,
             "current_state_delta": current_state_delta,
+            "trajectory_workpoint_reconciliation": trajectory_workpoint_reconciliation,
             "focus_trajectory_sync": focus_trajectory_sync,
             "learning_refs": Vec::<String>::new(),
             "prediction_refs": Vec::<String>::new(),

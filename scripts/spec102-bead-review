@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+import json, subprocess, sys, pathlib, re
+root = pathlib.Path.cwd()
+bead_id = sys.argv[1] if len(sys.argv) > 1 else "focusa-pm2b.36"
+out = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else pathlib.Path("-")
+if bead_id == "__missing_proof_fixture":
+    item = {"id": bead_id, "status": "open", "notes": "prep_packet:\n  bead_id: __missing_proof_fixture\n  requirement_id: ReviewModeMissingProofFixture\n"}
+else:
+    raw = subprocess.check_output(["bd", "--no-daemon", "show", bead_id, "--json"], cwd=root, text=True)
+    item = json.loads(raw)
+    if isinstance(item, list): item = item[0]
+notes = item.get("notes") or ""
+status = item.get("status") or "unknown"
+
+def section_after(marker):
+    idx = notes.find(marker)
+    return notes[idx:] if idx >= 0 else ""
+proof = section_after("implementation_proof:")
+prep = section_after("prep_packet:")
+changed = re.findall(r"^\s*-\s+([^\n]+)", proof or prep, re.M)
+changed_files = [x for x in changed if any(p in x for p in ["crates/", "apps/", "tests/", "scripts/", "docs/"])]
+tests_run = [x for x in changed if " PASS" in x or x.startswith("tests/")]
+linked_evidence = [x for x in changed if "evidence" in x.lower() or "proof" in x.lower()]
+has_proof = "implementation_proof:" in notes
+has_clean = "residual_ui_risk: none" in notes and "residual_authority_risk: none" in notes
+has_refs = any(k in notes for k in ["test_refs:", "evidence_refs:", "code_refs:"])
+residual_ui = "none" if "residual_ui_risk: none" in notes else "missing_or_not_none"
+residual_auth = "none" if "residual_authority_risk: none" in notes else "missing_or_not_none"
+if has_proof and has_clean and has_refs:
+    recommendation = "close"
+elif has_proof and has_refs:
+    recommendation = "split_followup"
+else:
+    recommendation = "keep_open"
+review = {
+  "bead_review": {
+    "bead_id": bead_id,
+    "status": status,
+    "changed_files": changed_files,
+    "linked_evidence": linked_evidence,
+    "tests_run": tests_run,
+    "clean_repair_checklist": {"implementation_proof": has_proof, "refs_present": has_refs, "residual_risks_none": has_clean},
+    "residual_ui_risk": residual_ui,
+    "residual_authority_risk": residual_auth,
+    "next_follow_up": "none" if recommendation == "close" else "add missing proof/clean-repair evidence before closure",
+    "close_recommendation": recommendation,
+  }
+}
+text = json.dumps(review, indent=2)
+if str(out) == "-":
+    print(text)
+else:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text + "\n")
+    print(f"generated={out}")
+    print(f"close_recommendation={recommendation}")

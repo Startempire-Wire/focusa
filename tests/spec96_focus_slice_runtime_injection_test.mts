@@ -139,6 +139,8 @@ const injected = result?.messages?.[0]?.content?.[0]?.text || "";
 assert(injected.includes("MEMORY_ANCHOR:"), `missing MEMORY_ANCHOR prefix:\n${injected}`);
 assert(injected.includes("latest_report_summary_ref="), `missing latest_report_summary_ref field:\n${injected}`);
 assert(injected.includes("ATTENTION_RECALL_VERDICT: schema=focusa.attention_recall_verdict.v1"), `missing AttentionRecallVerdict line:\n${injected}`);
+assert(injected.includes("CONTEXT_RECEIPT:"), `missing CONTEXT_RECEIPT line:\n${injected}`);
+assert(injected.includes("included=") && injected.includes("excluded=") && injected.includes("rehydrate_refs="), `context receipt missing counts/rehydrate refs:\n${injected}`);
 assert(injected.indexOf("MEMORY_ANCHOR:") < injected.indexOf("PROJECT_TRAJECTORY:"), `MEMORY_ANCHOR must precede PROJECT_TRAJECTORY:\n${injected}`);
 assert(injected.includes("PROJECT_IDENTITY: status=verified"), `missing PROJECT_IDENTITY line:
 ${injected}`);
