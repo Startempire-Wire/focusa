@@ -1,11 +1,11 @@
 # Spec102 Repair Report — current
 
-Generated: 2026-06-07T17:27:03.470380+00:00
+Generated: 2026-06-07T17:40:20.001278+00:00
 
 ```yaml
 repair_report_index:
   epic_id: focusa-pm2b
-  closed_repairs: 40
+  closed_repairs: 41
   missing_required_fields: 0
   required_template_fields:
     - repair_id
@@ -585,6 +585,22 @@ evidence_refs: present
 
 ```yaml
 repair_id: focusa-pm2b.33
+priority: Spec102 child bead
+target_files_or_routes: present
+operator_visible_change: summarized in bead implementation_proof
+original_failure_proof: present
+happy_path_proof: present
+clean_repair_checklist_result: pass
+residual_ui_risk: none
+residual_authority_risk: none
+follow_up_needed: none unless child bead remains open
+evidence_refs: present
+```
+
+## focusa-pm2b.15 — Spec102 P2: SpecAvailabilityRegistry
+
+```yaml
+repair_id: focusa-pm2b.15
 priority: Spec102 child bead
 target_files_or_routes: present
 operator_visible_change: summarized in bead implementation_proof

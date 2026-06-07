@@ -150,6 +150,25 @@ const TRUST_BADGE_VOCABULARY: &[&str] = &[
     "canonical", "advisory", "projected", "stale", "degraded", "blocked", "spec_only", "partial", "verified", "unsafe_scope",
 ];
 
+fn spec_availability_registry() -> Vec<Value> {
+    vec![
+        json!({"id":"Spec100","spec_id":"Spec100","feature":"Context Cognition","availability":"spec_only","runtime_entrypoint":Value::Null,"docs_ref":"docs/100-context-cognition-spec.md","first_implementation_slice":"focusa-pm2b.24","trust_badges":["spec_only","advisory"],"SpecRuntimeAvailabilityLabel":"spec_only"}),
+        json!({"id":"Spec101","spec_id":"Spec101","feature":"Focusa Bloatgaurd","availability":"partial","runtime_entrypoint":Value::Null,"docs_ref":"docs/101-focusa-bloatgaurd-spec.md","first_implementation_slice":"focusa-pm2b.24","trust_badges":["partial","advisory"],"SpecRuntimeAvailabilityLabel":"partial"}),
+        json!({"id":"Spec102","spec_id":"Spec102","feature":"Agent UX composition and real-life repair backlog","availability":"implemented","runtime_entrypoint":"/v1/traverse + tests/spec102_*","docs_ref":"docs/102-focusa-agent-ux-composition-and-real-life-test-spec.md","first_implementation_slice":"focusa-pm2b","trust_badges":["implemented","verified"],"SpecRuntimeAvailabilityLabel":"implemented"}),
+        json!({"id":"deprecated-singleton-current","spec_id":"LegacyCurrentSingleton","feature":"Singleton current/active authority surfaces","availability":"deprecated","runtime_entrypoint":Value::Null,"docs_ref":"docs/102-focusa-agent-ux-composition-and-real-life-test-spec.md#13","first_implementation_slice":"Spec98/99 migration","trust_badges":["deprecated","advisory"],"SpecRuntimeAvailabilityLabel":"deprecated"}),
+    ]
+}
+
+fn spec_availability_payload(items: &[Value]) -> Value {
+    let mut counts = BTreeMap::<String, usize>::new();
+    for item in items {
+        if let Some(status) = item.get("availability").and_then(Value::as_str) {
+            *counts.entry(status.to_string()).or_insert(0) += 1;
+        }
+    }
+    json!({"schema":"focusa.spec_availability.v1","availability_counts":counts,"happy_path_rule":"implemented runtime features omit spec_only caveats","labels":["spec_only","partial","implemented","deprecated"]})
+}
+
 fn verbosity_profile_catalog() -> Vec<Value> {
     vec![
         json!({"id":"operator","profile":"operator","compact_fields":["status","next_action","proof","blocker"],"detail_fields":["summary","trust_badges"],"hidden_by_default":["debug_payload","raw_payload","internal_scores"],"escalation_fields":["blocker","risk","operator_decision_needed"]}),
@@ -1199,6 +1218,7 @@ fn surface_items(
         "metacognition" | "metacog" => metacognition_items(state),
         "predictions" | "prediction" => prediction_items(state),
         "snapshots" | "snapshot" => snapshot_items(state),
+        "spec_availability" | "spec_registry" | "specs" => spec_availability_registry(),
         "verbosity_profile" | "verbosity_profiles" | "profiles" => verbosity_profile_catalog(),
         "change_feed" | "changes" => change_feed_items(state, req),
         "command_palette" | "palette" => command_palette_catalog(),
@@ -1251,6 +1271,10 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
                 "tags",
                 "created_at",
             ],
+        ),
+        "spec_availability" | "spec_registry" | "specs" => (
+            &["spec_id", "feature", "availability", "runtime_entrypoint", "docs_ref", "trust_badges"],
+            &["id", "spec_id", "feature", "availability", "runtime_entrypoint", "docs_ref", "first_implementation_slice", "trust_badges", "SpecRuntimeAvailabilityLabel"],
         ),
         "verbosity_profile" | "verbosity_profiles" | "profiles" => (
             &["profile", "compact_fields", "detail_fields", "hidden_by_default", "escalation_fields"],
@@ -1417,6 +1441,9 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
             | "commands"
             | "snapshots"
             | "snapshot"
+            | "spec_availability"
+            | "spec_registry"
+            | "specs"
             | "verbosity_profile"
             | "verbosity_profiles"
             | "profiles"
@@ -1603,6 +1630,7 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
         "route_recommendation": route_recommendation_payload(&surface, &sel, false),
         "stuck_loop": stuck_loop_payload(&surface, &items),
         "evidence_diff": evidence_diff_payload(&surface, &items),
+        "spec_availability": if matches!(surface.as_str(), "spec_availability" | "spec_registry" | "specs") { spec_availability_payload(&items) } else { Value::Null },
         "verbosity_profile": if matches!(surface.as_str(), "verbosity_profile" | "verbosity_profiles" | "profiles") { verbosity_profile_payload(&items) } else { Value::Null },
         "change_feed": if matches!(surface.as_str(), "change_feed" | "changes") { change_feed_payload(&items, req.query.as_deref()) } else { Value::Null },
         "command_palette": if matches!(surface.as_str(), "command_palette" | "palette") { command_palette_payload(&items, &sel) } else { Value::Null },
