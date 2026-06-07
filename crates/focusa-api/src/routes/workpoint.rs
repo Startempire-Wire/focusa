@@ -932,6 +932,16 @@ fn current_workpoint_payload(record: &WorkpointRecord) -> Value {
         "operation_status": "completed",
         "workpoint_id": record.workpoint_id,
         "canonical": record.canonical,
+        "project_root": record.project_root,
+        "continuity_id": record.continuity_id,
+        "session_id": record.session_id,
+        "scope": {
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "session_id": record.session_id,
+            "scope_status": if record.project_root.as_deref().is_some_and(|value| !value.trim().is_empty())
+                && record.continuity_id.as_deref().is_some_and(|value| !value.trim().is_empty()) { "verified" } else { "partial" },
+        },
         "workpoint": workpoint_packet(record),
         "warnings": [],
         "next_step_hint": record.next_slice,

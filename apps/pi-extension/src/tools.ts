@@ -52,6 +52,14 @@ function emitWriteTelemetry(event: string, body: Record<string, any>): void {
   });
 }
 
+function stableJson(value: any): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function deltaTargets(delta: { decisions?: string[]; constraints?: string[]; failures?: string[]; intent?: string; current_focus?: string; next_steps?: string[]; open_questions?: string[]; recent_results?: string[]; notes?: string[]; artifacts?: Array<{ kind: string; label: string; path_or_id?: string }> }): string[] {
   return Object.entries(delta)
     .filter(([, value]) => value !== undefined)
@@ -2493,7 +2501,7 @@ export function registerTools(pi: ExtensionAPI) {
       const extra_live = liveContractList.map((contract: any) => String(contract.name || "")).filter((name: string) => name && !staticNames.has(name));
       const stale_live_contracts = scopedContracts.filter((contract) => {
         const live = liveContractList.find((item: any) => item?.name === contract.name);
-        return live && JSON.stringify(live) !== JSON.stringify(contract);
+        return live && stableJson(live) !== stableJson(contract);
       }).map((contract) => contract.name);
       const repairProjectRoot = S.lastProjectRootResolution?.projectRoot || resolvePiProjectRoot(S.sessionCwd || process.cwd());
       const portableDaemonRestart =
