@@ -23,16 +23,16 @@ Any DX/UX improvement that weakens these is out-of-scope.
 
 ## 2) Explicit assumption from operator
 
-Spec100 Context Cognition and Spec101 Bloatgaurd are **future-implementation targets**.
-This scope aligns to them now but does not assume they are already complete in runtime.
+Spec105 planning is authored **as if Spec100 Context Cognition and Spec101 Bloatgaurd are implemented**.
+If runtime implementation lags, that lag is tracked as an execution gap, not as a reduction of Spec105 scope.
 
 ## 3) Inputs merged into this scope
 
 - Spec100 Context Cognition (`docs/100-context-cognition-spec.md`)
   - `ContextCognitionPacket` is advisory.
-  - Context Curator/Context Compiler path is the target architecture.
+  - Context Curator/Context Compiler path is treated as available architecture baseline for Spec105 planning.
 - Spec101 Bloatgaurd (`docs/101-focusa-bloatgaurd-spec.md`)
-  - leanness is a product invariant.
+  - leanness is a product invariant baseline for Spec105 planning.
   - must reuse Spec100 context architecture, not create parallel engines.
 - Spec102 Agent UX Composition + real-life testing (`docs/102-focusa-agent-ux-composition-and-real-life-test-spec.md`)
   - practical UX/friction findings from live battery use.
