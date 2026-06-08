@@ -208,6 +208,7 @@ Prediction records include bounded `trajectory` and `ontology_context` fields. M
 
 ### proposals
 - `GET /v1/proposals`
+- `POST /v1/proposals/focus-frame`
 - `POST /v1/proposals/resolve`
 
 ### proxy
@@ -221,6 +222,9 @@ Prediction records include bounded `trajectory` and `ontology_context` fields. M
 - `GET /v1/reflect/status`
 - `GET /v1/reflect/scheduler`
 - `POST /v1/reflect/scheduler/tick`
+
+### release
+- `GET /v1/release/proof/status`
 
 ### resource
 - `GET /v1/resource/mode`
@@ -264,6 +268,8 @@ Prediction records include bounded `trajectory` and `ontology_context` fields. M
 - `POST /v1/sync/push/{peer_id}`
 - `POST /v1/sync/receive`
 - `POST /v1/sync/transfer`
+- `GET /v1/sync/crdt/export`
+- `POST /v1/sync/crdt/import`
 
 ### telemetry
 - `GET /v1/telemetry/memory`

@@ -304,6 +304,11 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
   if (S.vitalInfoPrompted[key]) return false;
   S.vitalInfoPrompted[key] = Date.now();
   persistState();
+  if (typeof ctx.ui?.select !== "function") {
+    ctx.ui?.notify?.("Focusa Workpoint prompt skipped: Pi UI select is unavailable.", "warning");
+    focusaPost("/telemetry/trace", { event_type: "pi_vital_workpoint_prompt_unavailable", payload: { reason, project_root: projectRoot, missing_ui: "select" } });
+    return false;
+  }
   const options = workpointDraftOptions(projectRoot);
   const choice = await ctx.ui.select(
     "Focusa Workpoint is missing — choose a checkpoint draft",

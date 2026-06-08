@@ -11,8 +11,9 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::types::{
-    Action, BlockerClass, FocusaEvent, ProjectRunId, SpecLinkedTaskPacket, TaskClass,
-    WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset, WorkLoopStatus,
+    Action, BlockerClass, EventLogEntry, FocusaEvent, ProjectRunId, SignalOrigin,
+    SpecLinkedTaskPacket, TaskClass, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
+    WorkLoopStatus,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -2573,6 +2574,7 @@ async fn select_next(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
+    let parent_work_item_id = payload.parent_work_item_id.clone();
 
     send_work_loop_action(
         &state,
@@ -2582,6 +2584,36 @@ async fn select_next(
         },
     )
     .await?;
+    {
+        let mut focusa = state.focusa.write().await;
+        if focusa.work_loop.pause_flags.governance_decision_pending {
+            focusa.work_loop.last_blocker_class = Some(BlockerClass::Governance);
+            focusa.work_loop.last_continue_reason = Some(
+                "governance continuation boundary: paused select-next pending governing decision"
+                    .to_string(),
+            );
+            let turn_id = focusa
+                .work_loop
+                .decision_context
+                .source_turn_id
+                .clone()
+                .unwrap_or_else(|| "work_loop_select_next".to_string());
+            focusa.telemetry.trace_events.push(json!({
+                "event_id": Uuid::now_v7().to_string(),
+                "event_type": "scope_failure_recorded",
+                "timestamp": Utc::now().to_rfc3339(),
+                "turn_id": turn_id,
+                "payload": {
+                    "event_type": "scope_failure_recorded",
+                    "failure_kind": "governance_continuation_boundary",
+                    "reason": "governance decision pending",
+                    "path": "select_next_continuous_subtask",
+                    "parent_work_item_id": parent_work_item_id,
+                }
+            }));
+            state.mark_external_mutation();
+        }
+    }
     let _ = maybe_dispatch_continuous_turn_prompt(
         &state,
         "ready work selected for continuous execution",
@@ -2603,56 +2635,61 @@ async fn set_decision_context(
 
     let writer_id = ensure_claimed_writer_matches_for_context(&state, &headers).await?;
 
-    let expected_current_ask = payload.current_ask.clone();
-    let expected_operator_steering = payload.operator_steering_detected;
+    let event = FocusaEvent::ContinuousDecisionContextUpdated {
+        current_ask: payload.current_ask,
+        ask_kind: payload.ask_kind,
+        scope_kind: payload.scope_kind,
+        carryover_policy: payload.carryover_policy,
+        excluded_context_reason: payload.excluded_context_reason,
+        excluded_context_labels: payload.excluded_context_labels,
+        source_turn_id: payload.source_turn_id,
+        operator_steering_detected: payload.operator_steering_detected,
+    };
 
-    send_work_loop_action(
-        &state,
-        "work_loop_context",
-        Action::SetContinuousDecisionContext {
-            current_ask: payload.current_ask,
-            ask_kind: payload.ask_kind,
-            scope_kind: payload.scope_kind,
-            carryover_policy: payload.carryover_policy,
-            excluded_context_reason: payload.excluded_context_reason,
-            excluded_context_labels: payload.excluded_context_labels,
-            source_turn_id: payload.source_turn_id,
-            operator_steering_detected: payload.operator_steering_detected,
-        },
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
     )
-    .await?;
-
-    for _ in 0..20 {
-        {
-            let focusa = state.focusa.read().await;
-            let wl = &focusa.work_loop;
-            if expected_current_ask
-                .as_deref()
-                .is_none_or(|ask| wl.decision_context.current_ask.as_deref() == Some(ask))
-                && expected_operator_steering.is_none_or(|steering| {
-                    wl.decision_context.operator_steering_detected == steering
-                })
-                && (expected_operator_steering != Some(true)
-                    || wl.last_continue_reason.as_deref() == Some("operator steering detected"))
-            {
-                return Ok(Json(json!({
-                    "status": "accepted",
-                    "writer_id": writer_id,
-                    "canonical": true,
-                    "materialized": true
-                })));
-            }
-        }
-        sleep(Duration::from_millis(50)).await;
+    .map_err(|error| {
+        work_loop_failure(
+            StatusCode::BAD_REQUEST,
+            "work_loop_context",
+            "reducer_rejected",
+            error.to_string(),
+        )
+    })?;
+    let new_state = result.new_state;
+    let entry = EventLogEntry {
+        id: Uuid::now_v7(),
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some("api:work_loop_context".to_string()),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    let _ = state.persistence.append_event(&entry);
+    let _ = state.persistence.save_state(&new_state);
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
     }
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
 
     Ok(Json(json!({
-        "status": "pending",
+        "status": "accepted",
         "writer_id": writer_id,
-        "canonical": false,
-        "materialized": false,
-        "retry_posture": "safe_retry",
-        "reason": "work_loop_context_not_yet_materialized"
+        "canonical": true,
+        "materialized": true
     })))
 }
 
@@ -2974,15 +3011,48 @@ async fn attach_session(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    send_work_loop_action(
-        &state,
-        "work_loop_attach_session",
-        Action::AttachContinuousTransportSession {
-            adapter: payload.adapter,
-            session_id: payload.session_id,
-        },
+    let event = FocusaEvent::ContinuousTransportSessionAttached {
+        adapter: payload.adapter,
+        session_id: payload.session_id,
+    };
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
     )
-    .await?;
+    .map_err(|error| {
+        work_loop_failure(
+            StatusCode::BAD_REQUEST,
+            "work_loop_attach_session",
+            "reducer_rejected",
+            error.to_string(),
+        )
+    })?;
+    let new_state = result.new_state;
+    let entry = EventLogEntry {
+        id: Uuid::now_v7(),
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some("api:work_loop_attach_session".to_string()),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    let _ = state.persistence.append_event(&entry);
+    let _ = state.persistence.save_state(&new_state);
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
+    }
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -2998,16 +3068,49 @@ async fn abort_session(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    send_work_loop_action(
-        &state,
-        "work_loop_abort_session",
-        Action::AbortContinuousTransportSession {
-            reason: payload
-                .reason
-                .unwrap_or_else(|| "abort requested".to_string()),
-        },
+    let event = FocusaEvent::ContinuousTransportAbortForwarded {
+        reason: payload
+            .reason
+            .unwrap_or_else(|| "abort requested".to_string()),
+    };
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
     )
-    .await?;
+    .map_err(|error| {
+        work_loop_failure(
+            StatusCode::BAD_REQUEST,
+            "work_loop_abort_session",
+            "reducer_rejected",
+            error.to_string(),
+        )
+    })?;
+    let new_state = result.new_state;
+    let entry = EventLogEntry {
+        id: Uuid::now_v7(),
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some("api:work_loop_abort_session".to_string()),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    let _ = state.persistence.append_event(&entry);
+    let _ = state.persistence.save_state(&new_state);
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
+    }
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }
@@ -3053,17 +3156,61 @@ async fn set_pause_flags(
     }
 
     let writer_id = ensure_writer_claim(&state, &headers).await?;
-    send_work_loop_action(
-        &state,
-        "work_loop_pause_flags",
-        Action::SetContinuousPauseFlags {
-            destructive_confirmation_required: payload.destructive_confirmation_required,
-            governance_decision_pending: payload.governance_decision_pending,
-            operator_override_active: payload.operator_override_active,
-            reason: payload.reason,
-        },
+    let event = FocusaEvent::ContinuousPauseFlagsUpdated {
+        destructive_confirmation_required: payload.destructive_confirmation_required,
+        governance_decision_pending: payload.governance_decision_pending,
+        operator_override_active: payload.operator_override_active,
+        reason: payload.reason,
+    };
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
     )
-    .await?;
+    .map_err(|error| {
+        work_loop_failure(
+            StatusCode::BAD_REQUEST,
+            "work_loop_pause_flags",
+            "reducer_rejected",
+            error.to_string(),
+        )
+    })?;
+    let mut new_state = result.new_state;
+    if new_state.work_loop.pause_flags.governance_decision_pending {
+        new_state.work_loop.last_blocker_class = Some(BlockerClass::Governance);
+        new_state.work_loop.last_continue_reason = Some(
+            "governance continuation boundary: paused select-next pending governing decision"
+                .to_string(),
+        );
+        if new_state.work_loop.last_blocker_reason.is_none() {
+            new_state.work_loop.last_blocker_reason =
+                Some("governance decision pending".to_string());
+        }
+    }
+    let entry = EventLogEntry {
+        id: Uuid::now_v7(),
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some("api:work_loop_pause_flags".to_string()),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    let _ = state.persistence.append_event(&entry);
+    let _ = state.persistence.save_state(&new_state);
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
+    }
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
 
     Ok(Json(json!({ "ok": true, "writer_id": writer_id })))
 }

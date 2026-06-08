@@ -10,7 +10,8 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::{Action, FocusStateDelta};
+use chrono::Utc;
+use focusa_core::types::{EventLogEntry, FocusStateDelta, FocusaEvent, SignalOrigin};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -109,22 +110,6 @@ fn ascc_no_active_frame() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
-fn ascc_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
-    ascc_failure(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("failed to dispatch ASCC delta: {error}"),
-        "daemon_unavailable",
-        "ASCC delta could not be dispatched to the daemon command channel.",
-        "Check daemon health and retry after command channel recovery is clear.",
-        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
-        vec![
-            "focusa_tool_doctor",
-            "focusa_work_loop_status",
-            "focusa_workpoint_resume",
-        ],
-    )
-}
-
 /// GET /v1/ascc/frame/:frame_id — get ASCC data for a frame.
 ///
 /// Returns checkpoints and focus state for the specified frame.
@@ -179,17 +164,53 @@ async fn update_delta(
         }
     };
 
-    state
-        .command_tx
-        .send(Action::UpdateCheckpointDelta {
-            frame_id,
-            turn_id: Uuid::now_v7().to_string(),
-            delta: body.delta,
-        })
-        .await
-        .map_err(ascc_dispatch_failed)?;
+    let event = FocusaEvent::FocusStateUpdated {
+        frame_id,
+        delta: body.delta,
+    };
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
+    )
+    .map_err(|error| {
+        ascc_failure(
+            StatusCode::BAD_REQUEST,
+            error.to_string(),
+            "reducer_rejected",
+            "ASCC delta was rejected by the canonical reducer.",
+            "Verify frame_id exists and retry with a valid FocusStateDelta.",
+            "Likely stale frame_id, invalid delta shape, or conflicting frame lifecycle state.",
+            vec!["focusa_active_object_resolve", "focusa_tool_doctor"],
+        )
+    })?;
+    let new_state = result.new_state;
+    let entry = EventLogEntry {
+        id: Uuid::now_v7(),
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some("api:ascc_update_delta".to_string()),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    let _ = state.persistence.append_event(&entry);
+    let _ = state.persistence.save_state(&new_state);
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
+    }
+    *state.focusa.write().await = new_state;
+    state.mark_external_mutation();
 
-    Ok(Json(json!({"status": "accepted"})))
+    Ok(Json(json!({"status": "accepted", "canonical": true})))
 }
 
 /// GET /v1/ascc/state — get ASCC state for active frame.

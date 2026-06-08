@@ -11,9 +11,9 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::{Json, Router, routing::get, routing::post};
 use chrono::Utc;
 use focusa_core::types::{
-    Action, CacheBustCategory, CandidateId, CompletionReason, FocusStackState, FrameStatus,
-    HandleKind, InstanceKind, MemorySource, SessionState, SessionStatus, Signal, SignalKind,
-    SignalOrigin,
+    Action, AsccSections, CacheBustCategory, CandidateId, CompletionReason, FocusStackState,
+    FrameStatus, HandleKind, InstanceKind, MemorySource, SessionState, SessionStatus, Signal,
+    SignalKind, SignalOrigin,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -678,6 +678,28 @@ fn map_command_to_action(
 }
 
 /// POST /v1/commands/submit
+async fn materialize_compact_action(
+    state: &Arc<AppState>,
+    force: bool,
+    tier: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let _guard = state.write_serial_lock.lock().await;
+    let mut current = { state.focusa.read().await.clone() };
+    for frame in &mut current.focus_stack.frames {
+        if !AsccSections::from(&frame.focus_state).is_empty() {
+            frame.ascc_checkpoint_id = Some(format!("ascc:{}", frame.id));
+        }
+    }
+    let session_id = current.session.as_ref().map(|session| session.session_id);
+    let threshold = if force || tier == "micro" { 1 } else { 1000 };
+    let _summarized =
+        focusa_core::clt::compact_if_needed(&mut current.clt, session_id, threshold, 50).await;
+    let _ = state.persistence.save_state(&current);
+    *state.focusa.write().await = current;
+    state.mark_external_mutation();
+    Ok(())
+}
+
 async fn submit_command(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -726,6 +748,28 @@ async fn submit_command(
     {
         let mut store = state.command_store.write().await;
         store.insert(command_id.clone(), record.clone());
+    }
+
+    if let Action::CompactContext { force, tier, .. } = &action {
+        materialize_compact_action(&state, *force, tier).await?;
+        let dispatched_at = Utc::now();
+        record.status = CommandExecutionStatus::Dispatched;
+        record.dispatched_at = Some(dispatched_at);
+        record.logs.push(CommandLogEntry {
+            ts: dispatched_at,
+            level: "info".to_string(),
+            message: "Compact command materialized synchronously".to_string(),
+        });
+        let mut store = state.command_store.write().await;
+        store.insert(command_id.clone(), record.clone());
+        return Ok(Json(json!({
+            "accepted": true,
+            "command_id": command_id,
+            "status": record.status,
+            "submitted_at": record.submitted_at,
+            "dispatched_at": record.dispatched_at,
+            "idempotency_key": req.idempotency_key,
+        })));
     }
 
     match tokio::time::timeout(Duration::from_millis(1500), state.command_tx.send(action)).await {

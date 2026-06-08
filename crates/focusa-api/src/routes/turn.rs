@@ -322,28 +322,19 @@ async fn prompt_assemble(
         user_input_tokens: user_tokens,
     };
 
-    // Update runtime-only active turn correlation through the daemon action path.
+    // Update runtime-only active turn correlation without blocking prompt assembly hot path.
+    let mut warnings = assembly.warnings;
+    let mut degraded = assembly.degraded;
     drop(focusa);
-    state
-        .command_tx
-        .send(Action::UpdateActiveTurnRuntime {
-            turn_id: req.turn_id,
-            raw_user_input: Some(req.raw_user_input.clone()),
-            assembled_prompt: Some(assembly.content.clone()),
-            append_prompt: None,
-        })
-        .await
-        .map_err(|error| {
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(json!({
-                    "status": "runtime_turn_update_failed",
-                    "failure_class": "daemon_unavailable",
-                    "error": error.to_string(),
-                    "retry_posture": "safe_retry"
-                })),
-            )
-        })?;
+    if let Err(error) = state.command_tx.try_send(Action::UpdateActiveTurnRuntime {
+        turn_id: req.turn_id,
+        raw_user_input: Some(req.raw_user_input.clone()),
+        assembled_prompt: Some(assembly.content.clone()),
+        append_prompt: None,
+    }) {
+        degraded = true;
+        warnings.push(format!("runtime_turn_update_skipped: {error}"));
+    }
 
     // Return as messages array (chat format) or plain string based on format hint.
     let output = if req.format.as_deref() == Some("string") {
@@ -368,8 +359,8 @@ async fn prompt_assemble(
         "stats": context_stats.clone(),
         "handles_used": handles_owned,
         "strategy": req.strategy.clone().unwrap_or_else(|| "focusa".to_string()),
-        "warnings": assembly.warnings,
-        "degraded": assembly.degraded,
+        "warnings": warnings,
+        "degraded": degraded,
         "ontology_slice": ontology_slice_payload,
         // Backward-compatible runtime keys
         "assembled_prompt": output,
@@ -522,25 +513,31 @@ async fn turn_complete(
                 "turn completed with recorded errors or blocker markers; evidence: {assistant_excerpt}"
             ))
         };
-        if let Err(e) = state
-            .command_tx
-            .send(Action::ObserveContinuousTurnOutcome {
-                task_run_id: None,
-                work_item_id: Some(task.work_item_id.clone()),
-                summary,
-                continue_reason,
-                verification_satisfied,
-                spec_conformant,
-            })
-            .await
+        let observe_action = Action::ObserveContinuousTurnOutcome {
+            task_run_id: None,
+            work_item_id: Some(task.work_item_id.clone()),
+            summary,
+            continue_reason,
+            verification_satisfied,
+            spec_conformant,
+        };
+        match tokio::time::timeout(
+            std::time::Duration::from_millis(250),
+            state.command_tx.send(observe_action),
+        )
+        .await
         {
-            tracing::error!("Failed to observe continuous turn outcome: {}", e);
-        } else {
-            let _ = maybe_dispatch_continuous_turn_prompt(
-                &state,
-                "continuous turn outcome evaluated and ready work remains",
-            )
-            .await;
+            Ok(Ok(())) => {
+                let _ = maybe_dispatch_continuous_turn_prompt(
+                    &state,
+                    "continuous turn outcome evaluated and ready work remains",
+                )
+                .await;
+            }
+            Ok(Err(e)) => tracing::error!("Failed to observe continuous turn outcome: {}", e),
+            Err(_) => tracing::warn!(
+                "Timed out enqueueing continuous turn outcome; accepted turn completion without blocking hot path"
+            ),
         }
     }
 

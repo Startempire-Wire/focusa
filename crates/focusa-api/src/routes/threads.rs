@@ -13,7 +13,8 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::{Action, FocusaEvent};
+use chrono::Utc;
+use focusa_core::types::{Action, EventLogEntry, FocusaEvent, SignalOrigin};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -126,6 +127,55 @@ impl ThreadFailureFieldExt for (StatusCode, Json<Value>) {
     }
 }
 
+async fn materialize_thread_event(
+    state: &Arc<AppState>,
+    event: FocusaEvent,
+    correlation_id: &'static str,
+) -> AppResult<focusa_core::types::FocusaState> {
+    let _guard = state.write_serial_lock.lock().await;
+    let current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
+    let result = focusa_core::reducer::reduce_with_meta(
+        current,
+        event.clone(),
+        machine_id.as_deref(),
+        None,
+        false,
+    )
+    .map_err(|error| {
+        thread_failure(
+            StatusCode::BAD_REQUEST,
+            error.to_string(),
+            "reducer_rejected",
+            "Thread mutation was rejected by the canonical reducer.",
+            "Verify the thread id and payload against current /v1/threads state before retrying.",
+            "Likely stale thread id, invalid payload, or conflicting thread lifecycle state.",
+            vec!["focusa_traverse", "focusa_tool_doctor"],
+        )
+    })?;
+    let new_state = result.new_state;
+    let entry = EventLogEntry {
+        id: Uuid::now_v7(),
+        timestamp: Utc::now(),
+        event,
+        correlation_id: Some(correlation_id.to_string()),
+        origin: SignalOrigin::Cli,
+        machine_id,
+        instance_id: None,
+        session_id: new_state.session.as_ref().map(|session| session.session_id),
+        thread_id: None,
+        is_observation: false,
+    };
+    let _ = state.persistence.append_event(&entry);
+    let _ = state.persistence.save_state(&new_state);
+    if let Ok(serialized) = serde_json::to_string(&entry) {
+        let _ = state.events_tx.send(serialized);
+    }
+    *state.focusa.write().await = new_state.clone();
+    state.mark_external_mutation();
+    Ok(new_state)
+}
+
 /// GET /v1/threads — list threads in state.
 async fn list_threads(State(state): State<Arc<AppState>>) -> Json<Value> {
     let focus_state = state.focusa.read().await;
@@ -179,40 +229,23 @@ async fn create_thread(
         owner_machine_id: body.owner_machine_id.clone(),
     };
 
-    state
-        .command_tx
-        .send(Action::EmitEvent { event })
-        .await
-        .map_err(|error| thread_dispatch_failed("thread creation", error))?;
-
-    // Wait briefly for daemon reducer + shared-state sync.
-    for _ in 0..20 {
-        {
-            let focusa_state = state.focusa.read().await;
-            if let Some(thread) = focusa_state.threads.iter().find(|t| t.id == thread_id) {
-                return Ok((
-                    StatusCode::CREATED,
-                    Json(json!({
-                        "thread": {
-                            "id": thread.id.to_string(),
-                            "name": thread.name,
-                            "status": format!("{:?}", thread.status),
-                            "owner_machine_id": thread.owner_machine_id,
-                            "created_at": thread.created_at,
-                        }
-                    })),
-                ));
-            }
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
-    }
+    let new_state = materialize_thread_event(&state, event, "api:thread_create").await?;
+    let thread = new_state
+        .threads
+        .iter()
+        .find(|t| t.id == thread_id)
+        .ok_or_else(|| thread_not_found(&thread_id.to_string()))?;
 
     Ok((
-        StatusCode::ACCEPTED,
+        StatusCode::CREATED,
         Json(json!({
-            "status": "accepted",
-            "thread_id": thread_id.to_string(),
-            "warning": "thread creation dispatched but not yet visible"
+            "thread": {
+                "id": thread.id.to_string(),
+                "name": thread.name,
+                "status": format!("{:?}", thread.status),
+                "owner_machine_id": thread.owner_machine_id,
+                "created_at": thread.created_at,
+            }
         })),
     ))
 }
@@ -281,30 +314,13 @@ async fn fork_thread(
         owner_machine_id: body.owner_machine_id.clone(),
     };
 
-    state
-        .command_tx
-        .send(Action::EmitEvent { event })
-        .await
-        .map_err(|error| thread_dispatch_failed("thread fork", error))?;
-
-    let mut forked = None;
-    for _ in 0..80 {
-        {
-            let focusa = state.focusa.read().await;
-            forked = focusa.threads.iter().find(|t| t.id == forked_id).cloned();
-        }
-        if forked.is_some() {
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
-    }
-
-    let forked = forked.ok_or_else(|| {
-        (
-            StatusCode::ACCEPTED,
-            Json(json!({"status": "accepted", "thread_id": forked_id.to_string(), "warning": "thread fork dispatched but not yet visible"})),
-        )
-    })?;
+    let new_state = materialize_thread_event(&state, event, "api:thread_fork").await?;
+    let forked = new_state
+        .threads
+        .iter()
+        .find(|t| t.id == forked_id)
+        .cloned()
+        .ok_or_else(|| thread_not_found(&forked_id.to_string()))?;
 
     Ok(Json(json!({
         "thread": {

@@ -106,6 +106,7 @@ ORIG_DESTRUCTIVE=$(echo "$STATUS0" | jq -r '.pause_flags.destructive_confirmatio
 ORIG_GOVERNANCE=$(echo "$STATUS0" | jq -r '.pause_flags.governance_decision_pending // false')
 ORIG_OVERRIDE=$(echo "$STATUS0" | jq -r '.pause_flags.operator_override_active // false')
 
+http_json -X POST "${BASE_URL}/v1/session/close" -H 'Content-Type: application/json' -d '{"reason":"doc78-production-runtime-reset"}' >/dev/null || true
 SESSION=$(http_json -X POST "${BASE_URL}/v1/session/start" -H 'Content-Type: application/json' -d '{"workspace_id":"doc78-production-runtime-smoke"}')
 write_artifact "session_start" "$SESSION"
 if echo "$SESSION" | jq -e '.ok == true or .status == "ok" or .status == "started" or .status == "accepted"' >/dev/null 2>&1; then

@@ -8409,10 +8409,7 @@ async fn world(
     let link_type_counts = value_field_counts(&projection.links, "type", "related_to");
     let object_bounds = bounded_metadata(object_total, objects.len(), object_options);
     let link_bounds = bounded_metadata(link_total, links.len(), link_options);
-    let action_catalog = query
-        .include_action_catalog
-        .then(action_catalog_projection)
-        .unwrap_or_default();
+    let action_catalog = action_catalog_projection();
     let action_catalog_returned = action_catalog.len();
     let working_sets = if query.include_working_sets {
         json!({
@@ -8459,9 +8456,10 @@ async fn world(
             "action_catalog": {
                 "total": ACTION_TYPES.len(),
                 "returned": action_catalog_returned,
-                "truncated": !query.include_action_catalog,
-                "include_action_catalog": query.include_action_catalog,
-                "rehydrate": if query.include_action_catalog { Value::Null } else { json!({"parameter":"include_action_catalog","value":"true"}) }
+                "truncated": false,
+                "include_action_catalog": true,
+                "requested_include_action_catalog": query.include_action_catalog,
+                "rehydrate": Value::Null
             },
             "working_sets": {
                 "total": SLICE_TYPES.len(),

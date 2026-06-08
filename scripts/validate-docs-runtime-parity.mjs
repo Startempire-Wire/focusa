@@ -3,8 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+const workspaceManifest = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
+const currentVersion = workspaceManifest.match(/^version\s*=\s*"([^"]+)"/m)?.[1] || '0.9.13-dev';
 const checks = [
-  ['README.md', 'v0.9.12-dev'],
+  ['README.md', `v${currentVersion}`],
   ['README.md', 'Agent Awareness Quickstart'],
   ['README.md', 'Friendly Focusa Onboarding Q'],
   ['README.md', 'Tool Implementation-to-Spec Audit'],

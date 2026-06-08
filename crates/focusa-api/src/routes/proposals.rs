@@ -48,7 +48,10 @@ async fn submit_focus_frame_proposal(
     State(state): State<Arc<AppState>>,
     Json(body): Json<FocusFrameProposalRequest>,
 ) -> (StatusCode, Json<Value>) {
-    let source = body.source.clone().unwrap_or_else(|| "api:pre_focus_frame_proposal".to_string());
+    let source = body
+        .source
+        .clone()
+        .unwrap_or_else(|| "api:pre_focus_frame_proposal".to_string());
     let payload = json!({
         "schema_version": "focusa.pre_focus_frame_proposal.v1",
         "noncanonical": true,
@@ -95,32 +98,35 @@ async fn submit_focus_frame_proposal(
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 
-    (StatusCode::ACCEPTED, Json(json!({
-        "status": "accepted",
-        "schema_version": "focusa.pre_focus_frame_proposal_response.v1",
-        "proposal_id": proposal_id.map(|id| id.to_string()),
-        "kind": "focus_change",
-        "target_class": "focus",
-        "canonical": false,
-        "advisory": true,
-        "noncanonical": true,
-        "proposal_only": true,
-        "event_path": "PRE ProposalSubmitted; no FocusFramePushed emitted by this route",
-        "promotion_path": "resolve PRE proposal, then canonical FocusFramePushed still requires Beads validation",
-        "tool_result_v1": {
-            "ok": true,
+    (
+        StatusCode::ACCEPTED,
+        Json(json!({
             "status": "accepted",
+            "schema_version": "focusa.pre_focus_frame_proposal_response.v1",
+            "proposal_id": proposal_id.map(|id| id.to_string()),
+            "kind": "focus_change",
+            "target_class": "focus",
             "canonical": false,
             "advisory": true,
-            "degraded": false,
-            "stale": false,
-            "failure_class": null,
-            "retry": {"safe": true, "posture": "retry_with_idempotency_key"},
-            "side_effects": ["pre_proposal_append"],
-            "evidence_refs": [],
-            "next_tools": ["focusa_project_verify", "focusa_workpoint_checkpoint"]
-        }
-    })))
+            "noncanonical": true,
+            "proposal_only": true,
+            "event_path": "PRE ProposalSubmitted; no FocusFramePushed emitted by this route",
+            "promotion_path": "resolve PRE proposal, then canonical FocusFramePushed still requires Beads validation",
+            "tool_result_v1": {
+                "ok": true,
+                "status": "accepted",
+                "canonical": false,
+                "advisory": true,
+                "degraded": false,
+                "stale": false,
+                "failure_class": null,
+                "retry": {"safe": true, "posture": "retry_with_idempotency_key"},
+                "side_effects": ["pre_proposal_append"],
+                "evidence_refs": [],
+                "next_tools": ["focusa_project_verify", "focusa_workpoint_checkpoint"]
+            }
+        })),
+    )
 }
 
 /// POST /v1/proposals — submit a proposal via daemon command channel.
@@ -145,45 +151,22 @@ async fn submit_proposal(
     let payload_for_audit = payload.clone();
     let submit_source = source.to_string();
 
-    let _ = state
-        .command_tx
-        .send(Action::SubmitProposal {
-            kind,
-            source: submit_source.clone(),
-            payload,
-            deadline_ms,
-            score,
-        })
-        .await;
-
-    let mut proposal_id: Option<Uuid> = None;
-    for _ in 0..240 {
-        {
-            let s = state.focusa.read().await;
-            proposal_id = s
-                .pre
-                .proposals
-                .iter()
-                .rev()
-                .find(|p| p.kind == kind && p.source == submit_source)
-                .map(|p| p.id);
-        }
-        if proposal_id.is_some() {
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    let _guard = state.write_serial_lock.lock().await;
+    let mut focusa = state.focusa.write().await;
+    let proposal_id =
+        focusa_core::pre::submit(&mut focusa.pre, kind, &submit_source, payload, deadline_ms);
+    if let Some(score) = score {
+        let _ = focusa_core::pre::score_proposal(&mut focusa.pre, proposal_id, score);
     }
+    let _ = state.persistence.save_state(&focusa);
+    state.mark_external_mutation();
+    drop(focusa);
 
     if let Ok(machine_id) = state.persistence.machine_id() {
         let entry = EventLogEntry {
             id: Uuid::now_v7(),
             timestamp: chrono::Utc::now(),
-            event: submission_audit_event(
-                proposal_id.unwrap_or_else(Uuid::now_v7),
-                kind,
-                source,
-                &payload_for_audit,
-            ),
+            event: submission_audit_event(proposal_id, kind, source, &payload_for_audit),
             correlation_id: Some("api:submit_proposal".to_string()),
             origin: SignalOrigin::Cli,
             machine_id: Some(machine_id),
@@ -197,17 +180,13 @@ async fn submit_proposal(
 
     Json(json!({
         "status": "accepted",
-        "proposal_id": proposal_id.map(|id| id.to_string()),
+        "proposal_id": proposal_id.to_string(),
         "kind": kind_str,
         "target_class": proposal_target_class(kind),
     }))
 }
 
-fn apply_focus_change_proposal(
-    state: focusa_core::types::FocusaState,
-    winner: &focusa_core::types::Proposal,
-    machine_id: &str,
-) -> Result<focusa_core::types::ReductionResult, String> {
+fn focus_change_event(winner: &focusa_core::types::Proposal) -> Result<FocusaEvent, String> {
     let title = winner
         .payload
         .get("title")
@@ -247,31 +226,24 @@ fn apply_focus_change_proposal(
         })
         .unwrap_or_default();
 
-    reducer::reduce_with_meta(
-        state,
-        FocusaEvent::FocusFramePushed {
-            frame_id: Uuid::now_v7(),
-            beads_issue_id,
-            title,
-            goal,
-            project_root: winner
-                .payload
-                .get("project_root")
-                .and_then(|v| v.as_str())
-                .map(String::from),
-            continuity_id: winner
-                .payload
-                .get("continuity_id")
-                .and_then(|v| v.as_str())
-                .map(String::from),
-            constraints,
-            tags,
-        },
-        Some(machine_id),
-        None,
-        false,
-    )
-    .map_err(|e| e.to_string())
+    Ok(FocusaEvent::FocusFramePushed {
+        frame_id: Uuid::now_v7(),
+        beads_issue_id,
+        title,
+        goal,
+        project_root: winner
+            .payload
+            .get("project_root")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        continuity_id: winner
+            .payload
+            .get("continuity_id")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        constraints,
+        tags,
+    })
 }
 
 fn thesis_update_event(winner: &focusa_core::types::Proposal) -> Result<FocusaEvent, String> {
@@ -835,22 +807,6 @@ fn proposal_payload_rejected(err: impl Into<String>) -> (StatusCode, Json<Value>
     )
 }
 
-fn proposal_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<Value>) {
-    proposal_failure(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("failed to dispatch proposal resolution event: {error}"),
-        "daemon_unavailable",
-        "Proposal resolution event could not be dispatched to daemon command channel.",
-        "Check daemon health and retry after command channel recovery is clear.",
-        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
-        vec![
-            "focusa_tool_doctor",
-            "focusa_work_loop_status",
-            "focusa_workpoint_resume",
-        ],
-    )
-}
-
 async fn resolve_proposals(
     State(state): State<Arc<AppState>>,
     Json(body): Json<Value>,
@@ -927,11 +883,10 @@ async fn resolve_proposals(
         } => {
             visibility_target = Some((winner.kind, winner.payload.clone()));
             let (applied_kind, mut domain_events): (String, Vec<FocusaEvent>) = match winner.kind {
-                ProposalKind::FocusChange => {
-                    let reduction = apply_focus_change_proposal(snapshot.clone(), &winner, "api")
-                        .map_err(proposal_payload_rejected)?;
-                    ("focus_frame_pushed".to_string(), reduction.emitted_events)
-                }
+                ProposalKind::FocusChange => (
+                    "focus_frame_pushed".to_string(),
+                    vec![focus_change_event(&winner).map_err(proposal_payload_rejected)?],
+                ),
                 ProposalKind::ThesisUpdate => (
                     "thread_thesis_updated".to_string(),
                     vec![thesis_update_event(&winner).map_err(proposal_payload_rejected)?],
@@ -1042,13 +997,35 @@ async fn resolve_proposals(
         }
     };
 
+    let _guard = state.write_serial_lock.lock().await;
+    let mut current = { state.focusa.read().await.clone() };
+    let machine_id = state.persistence.machine_id().ok();
     for event in events_to_emit {
-        state
-            .command_tx
-            .send(Action::EmitEvent { event })
-            .await
-            .map_err(proposal_dispatch_failed)?;
+        let result =
+            reducer::reduce_with_meta(current, event.clone(), machine_id.as_deref(), None, false)
+                .map_err(|error| proposal_payload_rejected(error.to_string()))?;
+        current = result.new_state;
+        let entry = EventLogEntry {
+            id: Uuid::now_v7(),
+            timestamp: chrono::Utc::now(),
+            event,
+            correlation_id: Some("api:resolve_proposals".to_string()),
+            origin: SignalOrigin::Cli,
+            machine_id: machine_id.clone(),
+            instance_id: None,
+            session_id: current.session.as_ref().map(|session| session.session_id),
+            thread_id: None,
+            is_observation: false,
+        };
+        let _ = state.persistence.append_event(&entry);
+        if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
     }
+    let _ = state.persistence.save_state(&current);
+    *state.focusa.write().await = current;
+    state.mark_external_mutation();
+    drop(_guard);
 
     if let Some((kind, payload)) = visibility_target {
         for _ in 0..120 {
@@ -1135,6 +1112,9 @@ async fn resolve_proposals(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/proposals", get(list_proposals).post(submit_proposal))
-        .route("/v1/proposals/focus-frame", post(submit_focus_frame_proposal))
+        .route(
+            "/v1/proposals/focus-frame",
+            post(submit_focus_frame_proposal),
+        )
         .route("/v1/proposals/resolve", post(resolve_proposals))
 }

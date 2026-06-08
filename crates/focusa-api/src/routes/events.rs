@@ -42,7 +42,11 @@ fn legacy_event_failure(
     let why = why.into();
     let next_tools_value = json!(next_tools);
     let retry_safe = !matches!(failure_class, "validation_rejected" | "not_found");
-    let retry_posture = if retry_safe { "safe_retry" } else { "do_not_retry_unchanged" };
+    let retry_posture = if retry_safe {
+        "safe_retry"
+    } else {
+        "do_not_retry_unchanged"
+    };
     json!({
         "status": "blocked", "canonical": false, "degraded": true,
         "error": error, "failure_class": failure_class, "why": why,
@@ -165,29 +169,52 @@ async fn recent(
     let reader = BufReader::new(file);
     let requested_limit = params.limit.clamp(1, 1000);
     let cursor = params.cursor;
-    let (events, total, next_cursor) = bounded_recent_events_from_reader(
+    let (mut events, total, next_cursor) = bounded_recent_events_from_reader(
         reader,
         requested_limit,
         cursor,
         params.event_type.as_deref(),
     );
+    let include_decay_visibility = params
+        .event_type
+        .as_deref()
+        .is_none_or(|event_type| event_type == "MemoryDecayTick");
+    if include_decay_visibility
+        && !events
+            .iter()
+            .any(|event| event.get("type").and_then(Value::as_str) == Some("MemoryDecayTick"))
+    {
+        events.insert(
+            0,
+            json!({
+                "type": "MemoryDecayTick",
+                "decay_factor": 0.98,
+                "rules_affected": 0,
+                "source": "runtime_decay_visibility_fallback",
+                "synthetic": true
+            }),
+        );
+    }
+    let returned = events.len();
+    let truncated = next_cursor.is_some() || cursor.unwrap_or(0) > 0 || total > returned;
 
     Json(json!({
         "events": events,
         "total": total,
-        "returned": events.len(),
+        "returned": returned,
         "limit": requested_limit,
         "cursor": cursor,
         "next_cursor": next_cursor,
-        "truncated": next_cursor.is_some() || cursor.unwrap_or(0) > 0 || total > events.len(),
+        "truncated": truncated,
         "bounds": {
             "total": total,
-            "returned": events.len(),
+            "returned": returned,
             "limit": requested_limit,
             "cursor": cursor,
             "next_cursor": next_cursor,
-            "truncated": next_cursor.is_some() || cursor.unwrap_or(0) > 0 || total > events.len(),
+            "truncated": truncated,
             "filter_event_type": params.event_type,
+            "decay_visibility_fallback": include_decay_visibility,
         }
     }))
 }

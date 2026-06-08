@@ -127,13 +127,13 @@ async function main() {
   await pi.emit("input", { text: "Focusa: ✅ Connected Frame: 019ddead Title: Pi: root Goal: Work on root WBM: off Turns: 3838 Config: warn=60%" }, mkCtx());
   await new Promise((r) => setTimeout(r, 200));
   const stillFallbackStack = await fetch(`${base}/v1/focus/stack`).then((r) => r.json());
-  const stillFallbackActive = stillFallbackStack?.stack?.frames?.find((f: any) => f.status === "active");
+  const stillFallbackActive = stillFallbackStack?.stack?.frames?.find((f: any) => f.id === S.activeFrameId);
   assert(stillFallbackActive?.title === "Pi: focusa", `status blob should not rescope frame: ${stillFallbackActive?.title}`);
 
   await pi.emit("input", { text: "restarted again, still wrong: [focusa-context] Focusa Context Rendered live from focusa-pi-bridge current state. Current Focus Frame: Pi: root Goal: Work on root" }, mkCtx());
   await new Promise((r) => setTimeout(r, 200));
   const stillFallbackStack2 = await fetch(`${base}/v1/focus/stack`).then((r) => r.json());
-  const stillFallbackActive2 = stillFallbackStack2?.stack?.frames?.find((f: any) => f.status === "active");
+  const stillFallbackActive2 = stillFallbackStack2?.stack?.frames?.find((f: any) => f.id === S.activeFrameId);
   assert(stillFallbackActive2?.title === "Pi: focusa", `embedded focusa-context blob should not rescope frame: ${stillFallbackActive2?.title}`);
   assert(S.currentAsk?.kind === "meta", `embedded focusa-context blob should classify as meta, got ${S.currentAsk?.kind}`);
   assert(S.currentAsk?.text === "", `currentAsk should be cleared for stripped focusa payload, got ${S.currentAsk?.text}`);
@@ -141,12 +141,12 @@ async function main() {
   await pi.emit("input", { text: "Implement Pi runtime authority proof" }, mkCtx());
   await waitFor(async () => {
     const stack = await fetch(`${base}/v1/focus/stack`).then((r) => r.json());
-    const active = stack?.stack?.frames?.find((f: any) => f.status === "active");
+    const active = stack?.stack?.frames?.find((f: any) => f.id === S.activeFrameId);
     return Boolean(active?.title?.includes("Implement Pi runtime authority proof"));
   }, "post-input frame rescope");
 
   const rescopedStack = await fetch(`${base}/v1/focus/stack`).then((r) => r.json());
-  const rescopedActive = rescopedStack?.stack?.frames?.find((f: any) => f.status === "active");
+  const rescopedActive = rescopedStack?.stack?.frames?.find((f: any) => f.id === S.activeFrameId);
   assert(rescopedActive?.title?.includes("Implement Pi runtime authority proof"), `active frame was not rescoped: ${rescopedActive?.title}`);
   assert(rescopedActive?.goal === "Implement Pi runtime authority proof", `active frame goal was not rescoped: ${rescopedActive?.goal}`);
 

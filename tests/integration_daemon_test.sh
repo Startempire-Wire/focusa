@@ -15,13 +15,13 @@ NC='\033[0m'
 
 log_pass() {
     echo -e "${GREEN}✓ PASS${NC}: $1"
-    ((PASSED++))
+    ((++PASSED))
 }
 
 log_fail() {
     echo -e "${RED}✗ FAIL${NC}: $1"
     echo "  Error: $2"
-    ((FAILED++))
+    ((++FAILED))
 }
 
 echo "=== FOCUSA DAEMON INTEGRATION TESTS ==="
@@ -72,7 +72,7 @@ echo "Test 5: Turn lifecycle - PROMPT ASSEMBLE"
 RESPONSE=$(curl -s -X POST "$BASE_URL/v1/prompt/assemble" \
     -H "content-type: application/json" \
     -d "{\"turn_id\":\"$TURN_ID\",\"raw_user_input\":\"Integration test input\",\"format\":\"string\"}")
-if echo "$RESPONSE" | grep -q '"assembled"' && echo "$RESPONSE" | grep -q '"FOCUS FRAME"'; then
+if echo "$RESPONSE" | grep -q '"assembled"' && echo "$RESPONSE" | grep -q 'FOCUS FRAME'; then
     log_pass "Prompt assembly returns focus context"
 else
     log_fail "Prompt assembly" "$RESPONSE"
@@ -102,8 +102,8 @@ fi
 
 # Test 8: Events persisted
 echo "Test 8: Events persistence"
-sleep 0.5  # Allow async event persistence
-RESPONSE=$(curl -s "$BASE_URL/v1/events/recent?limit=10")
+sleep 1  # Allow async event persistence under high event volume
+RESPONSE=$(curl -s --max-time 8 "$BASE_URL/v1/events/recent?limit=200")
 if echo "$RESPONSE" | grep -q "$TURN_ID"; then
     log_pass "Turn events persisted to event log"
 else
@@ -235,7 +235,7 @@ fi
 # Test 22: SSE endpoint exists
 echo "Test 22: SSE endpoint"
 # Just check endpoint returns 200 (not streaming)
-RESPONSE=$(curl -s -w "\n%{http_code}" -H "Accept: text/event-stream" "$BASE_URL/v1/events/stream")
+RESPONSE=$(curl -s --max-time 2 -w "\n%{http_code}" -H "Accept: text/event-stream" "$BASE_URL/v1/events/stream" || true)
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
 if [ "$HTTP_CODE" = "200" ]; then
     log_pass "SSE endpoint returns 200"

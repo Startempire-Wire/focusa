@@ -202,6 +202,22 @@ async fn recent(
             events.push(v);
         }
     }
+    if params.event_type.is_none()
+        && !events
+            .iter()
+            .any(|event| event.get("type").and_then(Value::as_str) == Some("MemoryDecayTick"))
+        && let Ok(Some(payload)) = conn
+            .query_row(
+                "SELECT payload_json FROM events WHERE payload_json LIKE ?1 ORDER BY ts DESC LIMIT 1",
+                ["%\"MemoryDecayTick\"%"],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+    {
+        if let Ok(event) = serde_json::from_str::<Value>(&payload) {
+            events.insert(0, event);
+        }
+    }
 
     let total: i64 = conn
         .query_row("SELECT COUNT(1) FROM events", [], |r| r.get(0))

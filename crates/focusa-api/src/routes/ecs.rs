@@ -17,7 +17,8 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::{Action, HandleKind, HandleRef};
+use focusa_core::reference::store::ReferenceStore;
+use focusa_core::types::{HandleKind, HandleRef};
 use serde::Deserialize;
 use serde_json::json;
 use std::path::PathBuf;
@@ -92,18 +93,6 @@ fn ecs_validation_rejected(why: impl Into<String>) -> (StatusCode, Json<serde_js
     )
 }
 
-fn ecs_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
-    ecs_failure(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("failed to dispatch ECS artifact store: {error}"),
-        "daemon_unavailable",
-        "ECS artifact store event could not be dispatched to daemon command channel.",
-        "Check daemon health and retry after command channel recovery is clear.",
-        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
-        vec!["focusa_tool_doctor", "focusa_work_loop_status"],
-    )
-}
-
 fn ecs_handle_not_found(handle_id: uuid::Uuid) -> (StatusCode, Json<serde_json::Value>) {
     ecs_failure(
         StatusCode::NOT_FOUND,
@@ -162,7 +151,10 @@ fn resolve_handle_with_disk_fallback(
 
 fn handle_legacy_migration_warnings(handle: &HandleRef) -> Vec<&'static str> {
     let mut warnings = Vec::new();
-    if handle.project_root.as_deref().is_none_or(|value| value.trim().is_empty())
+    if handle
+        .project_root
+        .as_deref()
+        .is_none_or(|value| value.trim().is_empty())
         || handle
             .continuity_id
             .as_deref()
@@ -228,39 +220,66 @@ async fn store_artifact(
     let content = body.resolve_content()?;
 
     let handle_id = uuid::Uuid::now_v7();
-    state
-        .command_tx
-        .send(Action::StoreArtifact {
-            kind: body.kind,
-            label: body.label.clone(),
-            content,
-            handle_id: Some(handle_id),
-            project_root: body.project_root.clone(),
-            continuity_id: body.continuity_id.clone(),
-        })
-        .await
-        .map_err(ecs_dispatch_failed)?;
-
-    // Poll for the exact pre-generated handle id so duplicate labels are never ambiguous.
-    let handle = loop {
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-        let focusa = state.focusa.read().await;
-        if let Some(h) = focusa
-            .reference_index
-            .handles
-            .iter()
-            .find(|h| h.id == handle_id)
-            .cloned()
-        {
-            break h;
-        }
-    };
-
+    let session = state.focusa.read().await.session.clone();
+    let session_id = session.as_ref().map(|s| s.session_id);
+    let project_root = body
+        .project_root
+        .clone()
+        .or_else(|| session.as_ref().and_then(|s| s.project_root.clone()));
+    let continuity_id = body
+        .continuity_id
+        .clone()
+        .or_else(|| session.as_ref().and_then(|s| s.continuity_id.clone()));
+    let store = ReferenceStore::new(ecs_root(&state.config.data_dir)).map_err(|error| {
+        ecs_failure(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to open ECS reference store: {error}"),
+            "storage_unavailable",
+            "ECS reference store could not be opened for direct artifact storage.",
+            "Check data_dir/ecs permissions and retry after storage health is clear.",
+            "Likely data_dir permission, disk, or path expansion issue.",
+            vec!["focusa_tool_doctor"],
+        )
+    })?;
+    let mut handle = store
+        .store(
+            body.kind,
+            body.label.clone(),
+            &content,
+            session_id,
+            Some(handle_id),
+            project_root,
+            continuity_id,
+        )
+        .map_err(|error| {
+            ecs_failure(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("failed to store ECS artifact: {error}"),
+                "storage_unavailable",
+                "ECS artifact content or metadata could not be written to object storage.",
+                "Check data_dir/ecs permissions and retry after storage health is clear.",
+                "Likely data_dir permission, disk, or path expansion issue.",
+                vec!["focusa_tool_doctor"],
+            )
+        })?;
+    let _guard = state.write_serial_lock.lock().await;
+    let mut focusa = state.focusa.write().await;
+    handle.trajectory = focusa.trajectory_ladder_context();
+    if !focusa
+        .reference_index
+        .handles
+        .iter()
+        .any(|h| h.id == handle.id)
+    {
+        focusa.reference_index.handles.push(handle.clone());
+    }
+    let trajectory = focusa.trajectory_ladder_context();
+    drop(focusa);
     Ok(Json(json!({
         "id": handle.id,
         "handle": handle,
         "status": "accepted",
-        "trajectory": state.focusa.read().await.trajectory_ladder_context(),
+        "trajectory": trajectory,
     })))
 }
 

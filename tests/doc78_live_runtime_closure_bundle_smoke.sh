@@ -27,7 +27,7 @@ log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info(){ echo -e "${YELLOW}INFO${NC}: $1"; }
 
 start_daemon() {
-  FOCUSA_BASE_URL="$BASE_URL" FOCUSA_BIND="$BIND_ADDR" FOCUSA_DATA_DIR="$DATA_DIR" "$DAEMON_BIN" >/tmp/focusa-doc78-live-smoke.log 2>&1 &
+  FOCUSA_BASE_URL="$BASE_URL" FOCUSA_BIND="$BIND_ADDR" FOCUSA_DATA_DIR="$DATA_DIR" "$DAEMON_BIN" >"${DATA_DIR}/daemon.log" 2>&1 &
   DAEMON_PID=$!
   for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
     if curl -fsS "${BASE_URL}/v1/health" >/dev/null 2>&1; then

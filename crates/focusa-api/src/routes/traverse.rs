@@ -147,7 +147,16 @@ fn stable_value_digest(value: &Value) -> String {
 }
 
 const TRUST_BADGE_VOCABULARY: &[&str] = &[
-    "canonical", "advisory", "projected", "stale", "degraded", "blocked", "spec_only", "partial", "verified", "unsafe_scope",
+    "canonical",
+    "advisory",
+    "projected",
+    "stale",
+    "degraded",
+    "blocked",
+    "spec_only",
+    "partial",
+    "verified",
+    "unsafe_scope",
 ];
 
 fn profile_selector_catalog() -> Vec<Value> {
@@ -212,7 +221,11 @@ fn verbosity_profile_payload(items: &[Value]) -> Value {
 }
 
 fn change_feed_items(state: &FocusaState, req: &TraverseRequest) -> Vec<Value> {
-    let query = req.query.as_deref().unwrap_or_default().to_ascii_lowercase();
+    let query = req
+        .query
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
     if query.is_empty() {
         return Vec::new();
     }
@@ -231,7 +244,14 @@ fn change_feed_items(state: &FocusaState, req: &TraverseRequest) -> Vec<Value> {
                 record
                     .verification_records
                     .iter()
-                    .map(|verification| format!("{} {} {}", verification.target_ref, verification.result, verification.evidence_ref.clone().unwrap_or_default()))
+                    .map(|verification| {
+                        format!(
+                            "{} {} {}",
+                            verification.target_ref,
+                            verification.result,
+                            verification.evidence_ref.clone().unwrap_or_default()
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join(" "),
             ]
@@ -272,12 +292,21 @@ fn change_feed_payload(items: &[Value], query: Option<&str>) -> Value {
             }
         }
     }
-    files_changed.sort(); files_changed.dedup();
-    beads_changed.sort(); beads_changed.dedup();
-    workpoints_changed.sort(); workpoints_changed.dedup();
-    evidence_changed.sort(); evidence_changed.dedup();
-    agents_changed.sort(); agents_changed.dedup();
-    let attention_required = !(files_changed.is_empty() && beads_changed.is_empty() && workpoints_changed.is_empty() && evidence_changed.is_empty() && agents_changed.is_empty());
+    files_changed.sort();
+    files_changed.dedup();
+    beads_changed.sort();
+    beads_changed.dedup();
+    workpoints_changed.sort();
+    workpoints_changed.dedup();
+    evidence_changed.sort();
+    evidence_changed.dedup();
+    agents_changed.sort();
+    agents_changed.dedup();
+    let attention_required = !(files_changed.is_empty()
+        && beads_changed.is_empty()
+        && workpoints_changed.is_empty()
+        && evidence_changed.is_empty()
+        && agents_changed.is_empty());
     json!({
         "since": query,
         "files_changed": files_changed,
@@ -346,16 +375,36 @@ fn evidence_diff_payload(surface: &str, items: &[Value]) -> Value {
     }
     let before = &items[0];
     let after = &items[items.len() - 1];
-    let before_ref = before.get("evidence_ref").or_else(|| before.get("id")).cloned().unwrap_or(Value::Null);
-    let after_ref = after.get("evidence_ref").or_else(|| after.get("id")).cloned().unwrap_or(Value::Null);
-    let before_claim = before.get("summary").or_else(|| before.get("result")).and_then(Value::as_str).unwrap_or("");
-    let after_claim = after.get("summary").or_else(|| after.get("result")).and_then(Value::as_str).unwrap_or("");
+    let before_ref = before
+        .get("evidence_ref")
+        .or_else(|| before.get("id"))
+        .cloned()
+        .unwrap_or(Value::Null);
+    let after_ref = after
+        .get("evidence_ref")
+        .or_else(|| after.get("id"))
+        .cloned()
+        .unwrap_or(Value::Null);
+    let before_claim = before
+        .get("summary")
+        .or_else(|| before.get("result"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let after_claim = after
+        .get("summary")
+        .or_else(|| after.get("result"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
     let changed_claims = if before_claim != after_claim {
         vec![json!({"before": before_claim, "after": after_claim})]
     } else {
         Vec::new()
     };
-    let confidence_delta = if changed_claims.is_empty() { "no_confidence_change" } else { "increased/proof_linked" };
+    let confidence_delta = if changed_claims.is_empty() {
+        "no_confidence_change"
+    } else {
+        "increased/proof_linked"
+    };
     json!({
         "before_ref": before_ref,
         "after_ref": after_ref,
@@ -368,7 +417,10 @@ fn evidence_diff_payload(surface: &str, items: &[Value]) -> Value {
 }
 
 fn stuck_loop_payload(surface: &str, items: &[Value]) -> Value {
-    if !matches!(surface, "workpoints" | "workpoint" | "evidence" | "ecs" | "references") {
+    if !matches!(
+        surface,
+        "workpoints" | "workpoint" | "evidence" | "ecs" | "references"
+    ) {
         return Value::Null;
     }
     let repeated_actions = items
@@ -376,18 +428,31 @@ fn stuck_loop_payload(surface: &str, items: &[Value]) -> Value {
         .filter_map(|item| {
             let mission = item.get("mission").and_then(Value::as_str).unwrap_or("");
             let next = item.get("next_slice").and_then(Value::as_str).unwrap_or("");
-            let work_item = item.get("work_item_id").and_then(Value::as_str).unwrap_or("");
+            let work_item = item
+                .get("work_item_id")
+                .and_then(Value::as_str)
+                .unwrap_or("");
             if mission.is_empty() && next.is_empty() && work_item.is_empty() {
                 None
             } else {
-                Some(format!("work_item={work_item}; mission={mission}; next={next}"))
+                Some(format!(
+                    "work_item={work_item}; mission={mission}; next={next}"
+                ))
             }
         })
         .collect::<Vec<_>>();
     let has_confidence_change = items.iter().any(|item| {
-        item.get("confidence_delta").and_then(Value::as_str).is_some_and(|delta| delta != "none")
-            || item.get("verified_evidence_refs").and_then(Value::as_array).is_some_and(|refs| !refs.is_empty())
-            || item.get("evidence_ref").and_then(Value::as_str).is_some_and(|value| !value.trim().is_empty())
+        item.get("confidence_delta")
+            .and_then(Value::as_str)
+            .is_some_and(|delta| delta != "none")
+            || item
+                .get("verified_evidence_refs")
+                .and_then(Value::as_array)
+                .is_some_and(|refs| !refs.is_empty())
+            || item
+                .get("evidence_ref")
+                .and_then(Value::as_str)
+                .is_some_and(|value| !value.trim().is_empty())
     });
     let detected = repeated_actions.len() >= 3 && !has_confidence_change;
     if !detected {
@@ -402,7 +467,14 @@ fn stuck_loop_payload(surface: &str, items: &[Value]) -> Value {
     })
 }
 
-fn empty_state_payload(surface: &str, selector: &str, query: Option<&str>, returned: usize, supported: bool, full_payload_blocked: bool) -> Value {
+fn empty_state_payload(
+    surface: &str,
+    selector: &str,
+    query: Option<&str>,
+    returned: usize,
+    supported: bool,
+    full_payload_blocked: bool,
+) -> Value {
     if returned > 0 {
         return Value::Null;
     }
@@ -451,7 +523,14 @@ fn route_recommendation_payload(surface: &str, selector: &str, degraded: bool) -
     })
 }
 
-fn trust_badges(canonical: bool, degraded: bool, blocked: bool, projected: bool, partial: bool, unsafe_scope: bool) -> Vec<&'static str> {
+fn trust_badges(
+    canonical: bool,
+    degraded: bool,
+    blocked: bool,
+    projected: bool,
+    partial: bool,
+    unsafe_scope: bool,
+) -> Vec<&'static str> {
     let _ = TRUST_BADGE_VOCABULARY;
     if blocked {
         return vec!["blocked", "degraded"];
@@ -859,7 +938,12 @@ fn snapshot_items(state: &FocusaState) -> Vec<Value> {
 }
 
 fn ownership_board_items(state: &FocusaState, req: &TraverseRequest) -> Vec<Value> {
-    let query = req.query.as_deref().unwrap_or_default().trim().to_ascii_lowercase();
+    let query = req
+        .query
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
     state
         .workpoint
         .records
@@ -923,7 +1007,11 @@ fn artifact_group_by(sel: &str) -> String {
 fn artifact_group_key(item: &Value, group_by: &str) -> Value {
     match group_by {
         "workpoint" => item.get("workpoint_id").cloned().unwrap_or(Value::Null),
-        "bead" => item.get("bead_id").or_else(|| item.get("work_item_id")).cloned().unwrap_or(Value::Null),
+        "bead" => item
+            .get("bead_id")
+            .or_else(|| item.get("work_item_id"))
+            .cloned()
+            .unwrap_or(Value::Null),
         "spec" => item
             .get("target_ref")
             .and_then(Value::as_str)
@@ -938,7 +1026,10 @@ fn artifact_group_key(item: &Value, group_by: &str) -> Value {
             .filter(|target| target.contains("test"))
             .map(|target| json!(target))
             .unwrap_or(Value::Null),
-        "confidence_change" => item.get("confidence_delta").cloned().unwrap_or(json!("none")),
+        "confidence_change" => item
+            .get("confidence_delta")
+            .cloned()
+            .unwrap_or(json!("none")),
         _ => item.get("workpoint_id").cloned().unwrap_or(Value::Null),
     }
 }
@@ -958,7 +1049,10 @@ fn ownership_board_payload(items: &[Value]) -> Value {
             .to_string();
         if let Some(files) = agent.get("touched_files").and_then(Value::as_array) {
             for file in files.iter().filter_map(Value::as_str) {
-                file_to_agents.entry(file.to_string()).or_default().push(agent_id.clone());
+                file_to_agents
+                    .entry(file.to_string())
+                    .or_default()
+                    .push(agent_id.clone());
             }
         }
     }
@@ -967,7 +1061,11 @@ fn ownership_board_payload(items: &[Value]) -> Value {
         .filter(|(_, agents)| agents.len() > 1)
         .map(|(file, _)| file.clone())
         .collect::<Vec<_>>();
-    let collision_risk = if collision_files.is_empty() { "none" } else { "high" };
+    let collision_risk = if collision_files.is_empty() {
+        "none"
+    } else {
+        "high"
+    };
     let status = if collision_risk == "none" && active_agents.len() <= 1 {
         "ownership: clear"
     } else if collision_risk == "none" {
@@ -1066,7 +1164,8 @@ fn generic_filter_items(mut items: Vec<Value>, req: &TraverseRequest, sel: &str)
                     .collect()
             }
         }
-        "search" | "scenario" | "profile" | "confidence_change" | "window" | "workpoint" | "bead" | "spec" | "file" | "test" => {
+        "search" | "scenario" | "profile" | "confidence_change" | "window" | "workpoint"
+        | "bead" | "spec" | "file" | "test" => {
             if query.is_empty() {
                 items
             } else {
@@ -1155,7 +1254,10 @@ fn lineage_items(state: &FocusaState, req: &TraverseRequest, sel: &str) -> Vec<V
 
 fn lineage_node_summary_and_ref(value: &Value) -> (String, Option<String>) {
     let payload = value.get("payload").unwrap_or(&Value::Null);
-    let node_type = value.get("node_type").and_then(Value::as_str).unwrap_or("node");
+    let node_type = value
+        .get("node_type")
+        .and_then(Value::as_str)
+        .unwrap_or("node");
     if let Some(content_ref) = payload.get("content_ref").and_then(Value::as_str) {
         return (content_ref.to_string(), Some(content_ref.to_string()));
     }
@@ -1165,7 +1267,10 @@ fn lineage_node_summary_and_ref(value: &Value) -> (String, Option<String>) {
     if let Some(reason) = payload.get("reason").and_then(Value::as_str) {
         return (reason.to_string(), None);
     }
-    let created = value.get("created_at").and_then(Value::as_str).unwrap_or("unknown_time");
+    let created = value
+        .get("created_at")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown_time");
     (format!("{node_type} at {created}"), None)
 }
 
@@ -1222,13 +1327,19 @@ fn surface_items(
                 .collect::<Vec<_>>();
             for record in &state.workpoint.records {
                 for verification in &record.verification_records {
-                    let evidence_id = verification
-                        .evidence_ref
-                        .clone()
-                        .unwrap_or_else(|| format!("workpoint:{}:{}", record.workpoint_id, verification.target_ref));
-                    let proof_kind = if verification.result.to_ascii_lowercase().contains("pass") || verification.target_ref.contains("test") {
+                    let evidence_id = verification.evidence_ref.clone().unwrap_or_else(|| {
+                        format!(
+                            "workpoint:{}:{}",
+                            record.workpoint_id, verification.target_ref
+                        )
+                    });
+                    let proof_kind = if verification.result.to_ascii_lowercase().contains("pass")
+                        || verification.target_ref.contains("test")
+                    {
                         "test"
-                    } else if verification.target_ref.contains("http") || verification.target_ref.contains("/v1/") {
+                    } else if verification.target_ref.contains("http")
+                        || verification.target_ref.contains("/v1/")
+                    {
                         "api"
                     } else if verification.target_ref.contains(".md") {
                         "report"
@@ -1260,16 +1371,31 @@ fn surface_items(
                 }
             }
             if sel == "confidence_change" {
-                evidence_items.retain(|item| item.get("confidence_change").and_then(Value::as_bool) == Some(true));
+                evidence_items.retain(|item| {
+                    item.get("confidence_change").and_then(Value::as_bool) == Some(true)
+                });
             }
-            if matches!(sel, "workpoint" | "bead" | "spec" | "file" | "test" | "confidence_change") {
-                if let Some(query) = req.query.as_deref().map(str::trim).filter(|query| !query.is_empty()) {
+            if matches!(
+                sel,
+                "workpoint" | "bead" | "spec" | "file" | "test" | "confidence_change"
+            ) {
+                if let Some(query) = req
+                    .query
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|query| !query.is_empty())
+                {
                     let query = query.to_ascii_lowercase();
-                    evidence_items.retain(|item| serde_json::to_string(item).unwrap_or_default().to_ascii_lowercase().contains(&query));
+                    evidence_items.retain(|item| {
+                        serde_json::to_string(item)
+                            .unwrap_or_default()
+                            .to_ascii_lowercase()
+                            .contains(&query)
+                    });
                 }
             }
             evidence_items
-        },
+        }
         "telemetry" | "turns" | "commands" => state.telemetry.trace_events.clone(),
         "metacognition" | "metacog" => metacognition_items(state),
         "predictions" | "prediction" => prediction_items(state),
@@ -1331,32 +1457,129 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
             ],
         ),
         "profile_selector" | "bloatgaurd_profiles" => (
-            &["profile_id", "label", "BLOATGAURD_PROFILE", "CONTEXT_POSTURE", "FULL_PAYLOAD", "availability", "authority", "mutates"],
-            &["id", "profile_id", "label", "BLOATGAURD_PROFILE", "CONTEXT_POSTURE", "FULL_PAYLOAD", "availability", "authority", "mutates", "trust_badges"],
+            &[
+                "profile_id",
+                "label",
+                "BLOATGAURD_PROFILE",
+                "CONTEXT_POSTURE",
+                "FULL_PAYLOAD",
+                "availability",
+                "authority",
+                "mutates",
+            ],
+            &[
+                "id",
+                "profile_id",
+                "label",
+                "BLOATGAURD_PROFILE",
+                "CONTEXT_POSTURE",
+                "FULL_PAYLOAD",
+                "availability",
+                "authority",
+                "mutates",
+                "trust_badges",
+            ],
         ),
         "routine_commands" | "bloatgaurd_routines" => (
-            &["routine_id", "label", "purpose", "command", "availability", "requires_verified_scope", "mutates"],
-            &["id", "routine_id", "label", "purpose", "command", "availability", "requires_verified_scope", "mutates", "trust_badges"],
+            &[
+                "routine_id",
+                "label",
+                "purpose",
+                "command",
+                "availability",
+                "requires_verified_scope",
+                "mutates",
+            ],
+            &[
+                "id",
+                "routine_id",
+                "label",
+                "purpose",
+                "command",
+                "availability",
+                "requires_verified_scope",
+                "mutates",
+                "trust_badges",
+            ],
         ),
         "spec_availability" | "spec_registry" | "specs" => (
-            &["spec_id", "feature", "availability", "runtime_entrypoint", "docs_ref", "trust_badges"],
-            &["id", "spec_id", "feature", "availability", "runtime_entrypoint", "docs_ref", "first_implementation_slice", "trust_badges", "SpecRuntimeAvailabilityLabel"],
+            &[
+                "spec_id",
+                "feature",
+                "availability",
+                "runtime_entrypoint",
+                "docs_ref",
+                "trust_badges",
+            ],
+            &[
+                "id",
+                "spec_id",
+                "feature",
+                "availability",
+                "runtime_entrypoint",
+                "docs_ref",
+                "first_implementation_slice",
+                "trust_badges",
+                "SpecRuntimeAvailabilityLabel",
+            ],
         ),
         "verbosity_profile" | "verbosity_profiles" | "profiles" => (
-            &["profile", "compact_fields", "detail_fields", "hidden_by_default", "escalation_fields"],
-            &["id", "profile", "compact_fields", "detail_fields", "hidden_by_default", "escalation_fields"],
+            &[
+                "profile",
+                "compact_fields",
+                "detail_fields",
+                "hidden_by_default",
+                "escalation_fields",
+            ],
+            &[
+                "id",
+                "profile",
+                "compact_fields",
+                "detail_fields",
+                "hidden_by_default",
+                "escalation_fields",
+            ],
         ),
         "change_feed" | "changes" => (
-            &["workpoint_id", "work_item_id", "session_id", "active_object_refs", "verification_records"],
-            &["workpoint_id", "work_item_id", "session_id", "active_object_refs", "verification_records", "updated_at", "mission", "next_slice"],
+            &[
+                "workpoint_id",
+                "work_item_id",
+                "session_id",
+                "active_object_refs",
+                "verification_records",
+            ],
+            &[
+                "workpoint_id",
+                "work_item_id",
+                "session_id",
+                "active_object_refs",
+                "verification_records",
+                "updated_at",
+                "mission",
+                "next_slice",
+            ],
         ),
         "command_palette" | "palette" => (
             &["label", "tool", "args_preview", "when"],
             &["id", "label", "tool", "args_preview", "when"],
         ),
         "recovery_playbooks" | "recovery_playbook" | "playbooks" => (
-            &["scenario", "first_safe_tool", "next_tools", "proof_to_capture", "stop_conditions"],
-            &["id", "scenario", "symptoms", "first_safe_tool", "next_tools", "proof_to_capture", "stop_conditions"],
+            &[
+                "scenario",
+                "first_safe_tool",
+                "next_tools",
+                "proof_to_capture",
+                "stop_conditions",
+            ],
+            &[
+                "id",
+                "scenario",
+                "symptoms",
+                "first_safe_tool",
+                "next_tools",
+                "proof_to_capture",
+                "stop_conditions",
+            ],
         ),
         "reflex" | "reflexes" | "reflex_primitives" => (
             &[
@@ -1429,7 +1652,22 @@ fn surface_defaults(surface: &str) -> (&'static [&'static str], &'static [&'stat
             ],
         ),
         "evidence" | "ecs" | "references" => (
-            &["id", "kind", "label", "summary", "evidence_ref", "target_ref", "workpoint_id", "work_item_id", "bead_id", "project_root", "source_index", "confidence_delta", "rehydrate_ref"],
+            &[
+                "id",
+                "kind",
+                "label",
+                "summary",
+                "trajectory",
+                "evidence_ref",
+                "target_ref",
+                "workpoint_id",
+                "work_item_id",
+                "bead_id",
+                "project_root",
+                "source_index",
+                "confidence_delta",
+                "rehydrate_ref",
+            ],
             &[
                 "id",
                 "kind",
@@ -1619,19 +1857,35 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
                     .unwrap_or("global_runtime_ontology"),
                 "live_state_snapshot",
                 match sel.as_str() {
-                    "links" | "adjacency" | "neighborhood" => "total is runtime ontology links for the requested selector; compare project-card counts.runtime_links for parity",
+                    "links" | "adjacency" | "neighborhood" => {
+                        "total is runtime ontology links for the requested selector; compare project-card counts.runtime_links for parity"
+                    }
                     "proposals" => "total is runtime ontology proposals for selector=proposals",
-                    _ => "total is runtime ontology objects only; compare project-card counts.runtime_objects, not effective_project_card_objects",
+                    _ => {
+                        "total is runtime ontology objects only; compare project-card counts.runtime_objects, not effective_project_card_objects"
+                    }
                 },
                 match sel.as_str() {
-                    "links" | "adjacency" | "neighborhood" => "zero means no runtime ontology links currently match this selector",
-                    "proposals" => "zero means no runtime ontology proposals currently match this selector",
-                    _ => "zero means no runtime ontology objects currently match this selector; project-card derived objects may still exist outside this runtime index",
+                    "links" | "adjacency" | "neighborhood" => {
+                        "zero means no runtime ontology links currently match this selector"
+                    }
+                    "proposals" => {
+                        "zero means no runtime ontology proposals currently match this selector"
+                    }
+                    _ => {
+                        "zero means no runtime ontology objects currently match this selector; project-card derived objects may still exist outside this runtime index"
+                    }
                 },
                 match sel.as_str() {
-                    "links" | "adjacency" | "neighborhood" => "focusa_traverse surface=ontology selector=window for objects, or focusa_project_card for effective derived counts",
-                    "proposals" => "focusa_traverse surface=ontology selector=window for objects, or selector=links for links",
-                    _ => "focusa_project_card for effective derived counts; focusa_traverse surface=workpoints selector=window or focusa_trajectory_view for derived context",
+                    "links" | "adjacency" | "neighborhood" => {
+                        "focusa_traverse surface=ontology selector=window for objects, or focusa_project_card for effective derived counts"
+                    }
+                    "proposals" => {
+                        "focusa_traverse surface=ontology selector=window for objects, or selector=links for links"
+                    }
+                    _ => {
+                        "focusa_project_card for effective derived counts; focusa_traverse surface=workpoints selector=window or focusa_trajectory_view for derived context"
+                    }
                 },
             )
         } else {
@@ -1680,7 +1934,8 @@ fn traverse_response(state: &FocusaState, req: TraverseRequest, verify_only: boo
     } else {
         Value::Null
     };
-    let ownership_board = if matches!(surface.as_str(), "ownership" | "ownership_board" | "agents") {
+    let ownership_board = if matches!(surface.as_str(), "ownership" | "ownership_board" | "agents")
+    {
         ownership_board_payload(&items)
     } else {
         Value::Null

@@ -837,7 +837,38 @@ async fn get_trace_events(
         })
         .skip(cursor)
         .take(limit)
-        .cloned()
+        .map(|event| {
+            let mut normalized = event.clone();
+            let event_type = normalized
+                .get("event_type")
+                .and_then(|v| v.as_str())
+                .map(str::to_string);
+            if event_type.as_deref() == Some("governing_priors_applied")
+                && normalized
+                    .get("payload")
+                    .is_none_or(|payload| payload.is_null())
+            {
+                normalized["payload"] = serde_json::json!({
+                    "governing_priors": normalized.get("governing_priors").cloned().unwrap_or_else(|| serde_json::json!([])),
+                    "ranking_consumers": normalized.get("ranking_consumers").cloned().unwrap_or_else(|| serde_json::json!([])),
+                    "prior_hits": normalized.get("prior_hits").cloned().unwrap_or_else(|| serde_json::json!({})),
+                });
+            }
+            if event_type.as_deref() == Some("verification_result")
+                && let Some(payload) = normalized.get_mut("payload").and_then(|v| v.as_object_mut())
+            {
+                payload
+                    .entry("retention_policy".to_string())
+                    .or_insert_with(|| serde_json::json!(lowmem_retention_policy()));
+                payload
+                    .entry("selected_count".to_string())
+                    .or_insert_with(|| serde_json::json!(0));
+                payload
+                    .entry("pruned_count".to_string())
+                    .or_insert_with(|| serde_json::json!(0));
+            }
+            normalized
+        })
         .collect();
     let count = filtered.len();
     let next_cursor = (cursor + count < events.len()).then(|| (cursor + count).to_string());
