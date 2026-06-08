@@ -1137,8 +1137,36 @@ fn lineage_items(state: &FocusaState, req: &TraverseRequest, sel: &str) -> Vec<V
     };
     nodes
         .iter()
-        .filter_map(|node| serde_json::to_value(node).ok())
+        .filter_map(|node| {
+            let mut value = serde_json::to_value(node).ok()?;
+            let (summary, content_ref) = lineage_node_summary_and_ref(&value);
+            if let Some(obj) = value.as_object_mut() {
+                if !summary.is_empty() {
+                    obj.insert("summary".to_string(), json!(summary));
+                }
+                if let Some(content_ref) = content_ref {
+                    obj.insert("content_ref".to_string(), json!(content_ref));
+                }
+            }
+            Some(value)
+        })
         .collect()
+}
+
+fn lineage_node_summary_and_ref(value: &Value) -> (String, Option<String>) {
+    let payload = value.get("payload").unwrap_or(&Value::Null);
+    let node_type = value.get("node_type").and_then(Value::as_str).unwrap_or("node");
+    if let Some(content_ref) = payload.get("content_ref").and_then(Value::as_str) {
+        return (content_ref.to_string(), Some(content_ref.to_string()));
+    }
+    if let Some(summary) = payload.get("summary").and_then(Value::as_str) {
+        return (summary.to_string(), None);
+    }
+    if let Some(reason) = payload.get("reason").and_then(Value::as_str) {
+        return (reason.to_string(), None);
+    }
+    let created = value.get("created_at").and_then(Value::as_str).unwrap_or("unknown_time");
+    (format!("{node_type} at {created}"), None)
 }
 
 fn surface_items(

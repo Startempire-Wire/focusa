@@ -380,6 +380,28 @@ fn lineage_node_cap(q: &SessionScopedQuery) -> usize {
     q.limit.or(q.max_nodes).unwrap_or(ceiling).clamp(1, ceiling)
 }
 
+fn enriched_lineage_node_value(node: &focusa_core::types::CltNode) -> Value {
+    let mut value = serde_json::to_value(node).unwrap_or(Value::Null);
+    let payload = value.get("payload").cloned().unwrap_or(Value::Null);
+    let content_ref = payload.get("content_ref").and_then(Value::as_str).map(str::to_string);
+    let summary = content_ref
+        .clone()
+        .or_else(|| payload.get("summary").and_then(Value::as_str).map(str::to_string))
+        .or_else(|| payload.get("reason").and_then(Value::as_str).map(str::to_string))
+        .unwrap_or_else(|| {
+            let kind = value.get("node_type").and_then(Value::as_str).unwrap_or("node");
+            let created = value.get("created_at").and_then(Value::as_str).unwrap_or("unknown_time");
+            format!("{kind} at {created}")
+        });
+    if let Some(obj) = value.as_object_mut() {
+        obj.insert("summary".to_string(), json!(summary));
+        if let Some(content_ref) = content_ref {
+            obj.insert("content_ref".to_string(), json!(content_ref));
+        }
+    }
+    value
+}
+
 fn traversal_caps(limit: usize, depth: Option<usize>, radius: Option<usize>) -> Value {
     json!({
         "limit": limit,
@@ -502,13 +524,15 @@ async fn lineage_tree(
         },
     });
 
+    let nodes = nodes.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let returned = nodes.len();
     Ok(Json(json!({
         "session_id": q.session_id,
         "root": root,
         "head": head,
         "nodes": nodes,
         "total": total,
-        "returned": nodes.len(),
+        "returned": returned,
         "truncated": next_cursor.is_some(),
         "max_nodes": cap,
         "next_cursor": next_cursor,
@@ -579,6 +603,7 @@ async fn lineage_neighborhood(
         radius: Some(radius),
         omitted: vec!["full_tree"],
     });
+    let selected = selected.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
     Ok(Json(json!({
         "anchor": clt_node_id,
         "nodes": selected,
@@ -597,7 +622,7 @@ async fn lineage_node(
     let s = state.focusa.read().await;
     let node = s.clt.nodes.iter().find(|n| n.node_id == clt_node_id);
     match node {
-        Some(n) => Ok(Json(json!({"node": n}))),
+        Some(n) => Ok(Json(json!({"node": enriched_lineage_node_value(n)}))),
         None => Ok(Json(clt_node_not_found(&clt_node_id))),
     }
 }
@@ -638,9 +663,11 @@ async fn lineage_path(
         }
     }
 
+    let out = out.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let depth = out.len();
     Ok(Json(json!({
         "path": out,
-        "depth": out.len(),
+        "depth": depth,
         "truncated": truncated,
     })))
 }
@@ -668,17 +695,19 @@ async fn lineage_children(
     }
 
     let next_cursor = (children.len() < total).then_some(children.len());
+    let children = children.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let returned = children.len();
     Ok(Json(json!({
         "children": children,
         "total": total,
-        "returned": children.len(),
-        "truncated": total > children.len(),
+        "returned": returned,
+        "truncated": total > returned,
         "max_nodes": cap,
         "traversal": traversal_metadata(TraversalMetadataArgs {
             surface: "lineage",
             selector: "children",
             anchor: Some(clt_node_id.as_str()),
-            returned: children.len(),
+            returned,
             total_known: total,
             cursor: Some(0),
             next_cursor,
@@ -712,12 +741,14 @@ async fn lineage_summaries(
         }
     }
 
+    let summaries = summaries.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let returned = summaries.len();
     Ok(Json(json!({
         "session_id": q.session_id,
         "summaries": summaries,
         "total": total,
-        "returned": summaries.len(),
-        "truncated": total > summaries.len(),
+        "returned": returned,
+        "truncated": total > returned,
         "max_nodes": cap,
     })))
 }

@@ -3981,9 +3981,45 @@ export function registerTools(pi: ExtensionAPI) {
     return Type.Object(properties, { additionalProperties: false });
   }
 
+  function summarizeValue(value: unknown): string {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value.length > 160 ? `${value.slice(0, 157)}…` : value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (Array.isArray(value)) return `[${value.slice(0, 4).map(summarizeValue).filter(Boolean).join(", ")}]`;
+    if (typeof value === "object") {
+      const record = value as Record<string, any>;
+      const label = record.node_id || record.workpoint_id || record.id || record.anchor || record.label || record.title;
+      const kind = record.node_type || record.kind || record.status;
+      const payload = record.payload && typeof record.payload === "object" ? record.payload as Record<string, any> : null;
+      const summary = record.summary || record.mission || record.next_slice || record.goal || record.content_ref || payload?.content_ref || payload?.summary || payload?.reason || record.created_at;
+      const parts = [label, kind, summary].map(summarizeValue).filter(Boolean);
+      if (parts.length) return parts.join(" | ");
+      try {
+        const json = JSON.stringify(record);
+        return json.length > 180 ? `${json.slice(0, 177)}…` : json;
+      } catch {
+        return "[object]";
+      }
+    }
+    return String(value);
+  }
+
   function summarizeArray(values: unknown[], limit = 3): string {
     if (!Array.isArray(values) || values.length === 0) return "none";
-    return values.slice(0, limit).map((value) => String(value)).join(", ");
+    return values.slice(0, limit).map(summarizeValue).filter(Boolean).join("; ") || "none";
+  }
+
+  function summarizeTraverseItems(items: unknown[], limit = 6): string {
+    if (!Array.isArray(items) || items.length === 0) return "items=none";
+    return items.slice(0, limit).map((item, index) => {
+      const record = item as Record<string, any>;
+      const data = (record && typeof record === "object" && record.data && typeof record.data === "object") ? record.data as Record<string, any> : record;
+      const anchor = record?.anchor || data?.node_id || data?.workpoint_id || data?.id || `#${index + 1}`;
+      const kind = record?.kind || data?.node_type || data?.status || data?.kind || "item";
+      const payload = data?.payload && typeof data.payload === "object" ? data.payload as Record<string, any> : null;
+      const summary = record?.summary || data?.summary || data?.mission || data?.next_slice || data?.goal || data?.content_ref || payload?.content_ref || payload?.summary || payload?.reason || data?.created_at || "";
+      return `${index + 1}. ${summarizeValue(anchor)} ${summarizeValue(kind)} ${summarizeValue(summary)}`.trim();
+    }).join("\n");
   }
 
   function boolLabel(value: unknown): string {
@@ -4798,6 +4834,7 @@ export function registerTools(pi: ExtensionAPI) {
         res,
         `traverse: surface=${req.surface} selector=${selector} returned=${items.length}/${String(traversal.total ?? items.length)} truncated=${Boolean(traversal.truncated)}
 next_cursor=${String(traversal.next_cursor ?? "none")} tags=${Array.isArray(res.body?.tags) ? res.body.tags.length : 0} verified=${Array.isArray(res.body?.verified_tags) ? res.body.verified_tags.length : 0} stale=${Array.isArray(res.body?.stale_tags) ? res.body.stale_tags.length : 0}
+${summarizeTraverseItems(items, 8)}
 next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         "traverse",
       );
