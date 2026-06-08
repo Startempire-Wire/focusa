@@ -1378,21 +1378,19 @@ fn surface_items(
             if matches!(
                 sel,
                 "workpoint" | "bead" | "spec" | "file" | "test" | "confidence_change"
-            ) {
-                if let Some(query) = req
-                    .query
-                    .as_deref()
-                    .map(str::trim)
-                    .filter(|query| !query.is_empty())
-                {
-                    let query = query.to_ascii_lowercase();
-                    evidence_items.retain(|item| {
-                        serde_json::to_string(item)
-                            .unwrap_or_default()
-                            .to_ascii_lowercase()
-                            .contains(&query)
-                    });
-                }
+            ) && let Some(query) = req
+                .query
+                .as_deref()
+                .map(str::trim)
+                .filter(|query| !query.is_empty())
+            {
+                let query = query.to_ascii_lowercase();
+                evidence_items.retain(|item| {
+                    serde_json::to_string(item)
+                        .unwrap_or_default()
+                        .to_ascii_lowercase()
+                        .contains(&query)
+                });
             }
             evidence_items
         }

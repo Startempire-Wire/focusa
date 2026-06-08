@@ -7,10 +7,7 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::reducer;
-use focusa_core::types::{
-    Action, EventLogEntry, FocusaEvent, ProposalKind, ProposalStatus, SignalOrigin,
-};
+use focusa_core::types::{Action, FocusaEvent, ProposalKind, ProposalStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -150,37 +147,51 @@ async fn submit_proposal(
 
     let payload_for_audit = payload.clone();
     let submit_source = source.to_string();
+    let _ = state
+        .command_tx
+        .send(Action::SubmitProposal {
+            kind,
+            source: submit_source.clone(),
+            payload,
+            deadline_ms,
+            score,
+        })
+        .await;
 
-    let _guard = state.write_serial_lock.lock().await;
-    let mut focusa = state.focusa.write().await;
-    let proposal_id =
-        focusa_core::pre::submit(&mut focusa.pre, kind, &submit_source, payload, deadline_ms);
-    if let Some(score) = score {
-        let _ = focusa_core::pre::score_proposal(&mut focusa.pre, proposal_id, score);
+    let mut proposal_id: Option<Uuid> = None;
+    for _ in 0..240 {
+        {
+            let focusa = state.focusa.read().await;
+            proposal_id = focusa
+                .pre
+                .proposals
+                .iter()
+                .rev()
+                .find(|proposal| {
+                    proposal.kind == kind
+                        && proposal.source == submit_source
+                        && proposal.payload == payload_for_audit
+                })
+                .map(|proposal| proposal.id);
+        }
+        if proposal_id.is_some() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
-    let _ = state.persistence.save_state(&focusa);
-    state.mark_external_mutation();
-    drop(focusa);
 
-    if let Ok(machine_id) = state.persistence.machine_id() {
-        let entry = EventLogEntry {
-            id: Uuid::now_v7(),
-            timestamp: chrono::Utc::now(),
-            event: submission_audit_event(proposal_id, kind, source, &payload_for_audit),
-            correlation_id: Some("api:submit_proposal".to_string()),
-            origin: SignalOrigin::Cli,
-            machine_id: Some(machine_id),
-            instance_id: None,
-            session_id: None,
-            thread_id: None,
-            is_observation: false,
-        };
-        let _ = state.persistence.append_event(&entry);
+    if let Some(proposal_id) = proposal_id {
+        let _ = state
+            .command_tx
+            .send(Action::EmitEvent {
+                event: submission_audit_event(proposal_id, kind, source, &payload_for_audit),
+            })
+            .await;
     }
 
     Json(json!({
         "status": "accepted",
-        "proposal_id": proposal_id.to_string(),
+        "proposal_id": proposal_id.map(|id| id.to_string()),
         "kind": kind_str,
         "target_class": proposal_target_class(kind),
     }))
@@ -997,35 +1008,13 @@ async fn resolve_proposals(
         }
     };
 
-    let _guard = state.write_serial_lock.lock().await;
-    let mut current = { state.focusa.read().await.clone() };
-    let machine_id = state.persistence.machine_id().ok();
     for event in events_to_emit {
-        let result =
-            reducer::reduce_with_meta(current, event.clone(), machine_id.as_deref(), None, false)
-                .map_err(|error| proposal_payload_rejected(error.to_string()))?;
-        current = result.new_state;
-        let entry = EventLogEntry {
-            id: Uuid::now_v7(),
-            timestamp: chrono::Utc::now(),
-            event,
-            correlation_id: Some("api:resolve_proposals".to_string()),
-            origin: SignalOrigin::Cli,
-            machine_id: machine_id.clone(),
-            instance_id: None,
-            session_id: current.session.as_ref().map(|session| session.session_id),
-            thread_id: None,
-            is_observation: false,
-        };
-        let _ = state.persistence.append_event(&entry);
-        if let Ok(serialized) = serde_json::to_string(&entry) {
-            let _ = state.events_tx.send(serialized);
-        }
+        state
+            .command_tx
+            .send(Action::EmitEvent { event })
+            .await
+            .map_err(|error| proposal_payload_rejected(error.to_string()))?;
     }
-    let _ = state.persistence.save_state(&current);
-    *state.focusa.write().await = current;
-    state.mark_external_mutation();
-    drop(_guard);
 
     if let Some((kind, payload)) = visibility_target {
         for _ in 0..120 {

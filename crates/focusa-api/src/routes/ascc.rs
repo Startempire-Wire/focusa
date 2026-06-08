@@ -11,7 +11,10 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
-use focusa_core::types::{EventLogEntry, FocusStateDelta, FocusaEvent, SignalOrigin};
+use focusa_core::types::{
+    AsccSections, CheckpointRecord, EventLogEntry, FocusStateDelta, FocusaEvent, FocusaState,
+    SignalOrigin,
+};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -110,6 +113,47 @@ fn ascc_no_active_frame() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
+fn persist_ascc_checkpoint(
+    data_dir: &str,
+    focusa: &mut FocusaState,
+    frame_id: Uuid,
+) -> Result<(), String> {
+    let Some(frame_index) = focusa
+        .focus_stack
+        .frames
+        .iter()
+        .position(|frame| frame.id == frame_id)
+    else {
+        return Err(format!(
+            "ASCC frame {frame_id} vanished after reducer write"
+        ));
+    };
+
+    let sections = AsccSections::from(&focusa.focus_stack.frames[frame_index].focus_state);
+    if sections.is_empty() {
+        return Ok(());
+    }
+
+    let turn_id = focusa
+        .active_turn
+        .as_ref()
+        .map(|turn| turn.turn_id.clone())
+        .unwrap_or_else(|| format!("api-{}", focusa.version));
+    focusa.focus_stack.frames[frame_index].ascc_checkpoint_id = Some(format!("ascc:{frame_id}"));
+    let frame = focusa.focus_stack.frames[frame_index].clone();
+    let checkpoint = match focusa_core::ascc::load_checkpoint(data_dir, frame_id)
+        .map_err(|error| format!("failed to load ASCC checkpoint: {error}"))?
+    {
+        Some(mut checkpoint) => {
+            checkpoint.update_from_frame(&frame, &turn_id);
+            checkpoint
+        }
+        None => CheckpointRecord::from_frame(&frame, &turn_id),
+    };
+    focusa_core::ascc::save_checkpoint(data_dir, &checkpoint)
+        .map_err(|error| format!("failed to persist ASCC checkpoint: {error}"))
+}
+
 /// GET /v1/ascc/frame/:frame_id — get ASCC data for a frame.
 ///
 /// Returns checkpoints and focus state for the specified frame.
@@ -189,7 +233,18 @@ async fn update_delta(
             vec!["focusa_active_object_resolve", "focusa_tool_doctor"],
         )
     })?;
-    let new_state = result.new_state;
+    let mut new_state = result.new_state;
+    persist_ascc_checkpoint(&state.config.data_dir, &mut new_state, frame_id).map_err(|error| {
+        ascc_failure(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            error,
+            "persistence_failed",
+            "ASCC delta reduced successfully but checkpoint file persistence failed.",
+            "Check daemon data_dir permissions and retry once checkpoint storage is writable.",
+            "Likely data_dir permissions, missing parent directory, or invalid checkpoint JSON on disk.",
+            vec!["focusa_tool_doctor", "focusa_workpoint_resume"],
+        )
+    })?;
     let entry = EventLogEntry {
         id: Uuid::now_v7(),
         timestamp: Utc::now(),

@@ -5182,7 +5182,11 @@ Return:
         let role = match event {
             FocusaEvent::FocusFramePushed { .. } => "system",
             FocusaEvent::FocusStateUpdated { .. } => "assistant",
-            FocusaEvent::IntuitionSignalObserved { signal_type, severity, .. } => {
+            FocusaEvent::IntuitionSignalObserved {
+                signal_type,
+                severity,
+                ..
+            } => {
                 if is_low_value_clt_intuition(signal_type, severity) {
                     return;
                 }
@@ -5197,7 +5201,13 @@ Return:
             ..CltMetadata::default()
         };
         let content_ref = clt_event_content_ref(event);
-        clt::append_interaction(&mut self.state.clt, session_id, role, Some(&content_ref), metadata);
+        clt::append_interaction(
+            &mut self.state.clt,
+            session_id,
+            role,
+            Some(&content_ref),
+            metadata,
+        );
     }
 }
 
@@ -5210,7 +5220,11 @@ fn is_low_value_clt_intuition(signal_type: &SignalKind, severity: &str) -> bool 
 fn clt_event_content_ref(event: &FocusaEvent) -> String {
     match event {
         FocusaEvent::FocusFramePushed { title, goal, .. } => {
-            format!("focus_frame_pushed title={} goal={}", bounded_clt_text(title), bounded_clt_text(goal))
+            format!(
+                "focus_frame_pushed title={} goal={}",
+                bounded_clt_text(title),
+                bounded_clt_text(goal)
+            )
         }
         FocusaEvent::FocusStateUpdated { delta, .. } => {
             let mut parts = Vec::new();
@@ -5220,15 +5234,15 @@ fn clt_event_content_ref(event: &FocusaEvent) -> String {
             if let Some(current_focus) = &delta.current_state {
                 parts.push(format!("current_focus={}", bounded_clt_text(current_focus)));
             }
-            if let Some(next_steps) = &delta.next_steps {
-                if let Some(next_step) = next_steps.first() {
-                    parts.push(format!("next_step={}", bounded_clt_text(next_step)));
-                }
+            if let Some(next_step) = delta.next_steps.as_ref().and_then(|steps| steps.first()) {
+                parts.push(format!("next_step={}", bounded_clt_text(next_step)));
             }
-            if let Some(recent_results) = &delta.recent_results {
-                if let Some(recent_result) = recent_results.first() {
-                    parts.push(format!("recent_result={}", bounded_clt_text(recent_result)));
-                }
+            if let Some(recent_result) = delta
+                .recent_results
+                .as_ref()
+                .and_then(|results| results.first())
+            {
+                parts.push(format!("recent_result={}", bounded_clt_text(recent_result)));
             }
             if let Some(decisions) = &delta.decisions {
                 parts.push(format!("decisions={}", decisions.len()));
@@ -5239,10 +5253,24 @@ fn clt_event_content_ref(event: &FocusaEvent) -> String {
             if let Some(failures) = &delta.failures {
                 parts.push(format!("failures={}", failures.len()));
             }
-            if parts.is_empty() { "focus_state_updated".to_string() } else { parts.join("; ") }
+            if parts.is_empty() {
+                "focus_state_updated".to_string()
+            } else {
+                parts.join("; ")
+            }
         }
-        FocusaEvent::IntuitionSignalObserved { signal_type, severity, summary, .. } => {
-            format!("intuition_signal type={:?} severity={} summary={}", signal_type, bounded_clt_text(severity), bounded_clt_text(summary))
+        FocusaEvent::IntuitionSignalObserved {
+            signal_type,
+            severity,
+            summary,
+            ..
+        } => {
+            format!(
+                "intuition_signal type={:?} severity={} summary={}",
+                signal_type,
+                bounded_clt_text(severity),
+                bounded_clt_text(summary)
+            )
         }
         _ => format!("{:?}", event).chars().take(240).collect(),
     }

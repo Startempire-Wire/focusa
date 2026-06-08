@@ -210,8 +210,8 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
     }
 }
 
-fn wrong_id_taxonomy_payload(
-    status: &str,
+struct WrongIdTaxonomy {
+    status: &'static str,
     workpoint_id: Option<Uuid>,
     requested_workpoint_id: Option<Uuid>,
     requested_found: bool,
@@ -219,18 +219,20 @@ fn wrong_id_taxonomy_payload(
     fallback_used: bool,
     canonical_for_requested_scope: bool,
     canonical_for_fallback_scope: bool,
-) -> Value {
+}
+
+fn wrong_id_taxonomy_payload(taxonomy: WrongIdTaxonomy) -> Value {
     json!({
         "schema": "focusa.wrong_id_taxonomy.v1",
         "WrongIdConsistency": true,
-        "status": status,
-        "workpoint_id": workpoint_id,
-        "requested_workpoint_id": requested_workpoint_id,
-        "requested_found": requested_found,
-        "scope_found": scope_found,
-        "fallback_used": fallback_used,
-        "canonical_for_requested_scope": canonical_for_requested_scope,
-        "canonical_for_fallback_scope": canonical_for_fallback_scope,
+        "status": taxonomy.status,
+        "workpoint_id": taxonomy.workpoint_id,
+        "requested_workpoint_id": taxonomy.requested_workpoint_id,
+        "requested_found": taxonomy.requested_found,
+        "scope_found": taxonomy.scope_found,
+        "fallback_used": taxonomy.fallback_used,
+        "canonical_for_requested_scope": taxonomy.canonical_for_requested_scope,
+        "canonical_for_fallback_scope": taxonomy.canonical_for_fallback_scope,
     })
 }
 
@@ -254,7 +256,16 @@ fn unsafe_project_root_rejection(
         "fallback_used": false,
         "canonical_for_requested_scope": false,
         "canonical_for_fallback_scope": false,
-        "wrong_id_taxonomy": wrong_id_taxonomy_payload("scope_mismatch_for_requested_id", Some(record.workpoint_id), Some(record.workpoint_id), true, false, false, false, false),
+        "wrong_id_taxonomy": wrong_id_taxonomy_payload(WrongIdTaxonomy {
+            status: "scope_mismatch_for_requested_id",
+            workpoint_id: Some(record.workpoint_id),
+            requested_workpoint_id: Some(record.workpoint_id),
+            requested_found: true,
+            scope_found: false,
+            fallback_used: false,
+            canonical_for_requested_scope: false,
+            canonical_for_fallback_scope: false,
+        }),
         "next_step_hint": "cd into the exact project/repo or pass an explicit safe project_root before trusting resume"
     })
 }
@@ -360,7 +371,16 @@ fn evaluate_resume_scope(
                 "fallback_used": false,
                 "canonical_for_requested_scope": false,
                 "canonical_for_fallback_scope": false,
-                "wrong_id_taxonomy": wrong_id_taxonomy_payload("scope_mismatch_for_requested_id", Some(record.workpoint_id), Some(record.workpoint_id), true, false, false, false, false),
+                "wrong_id_taxonomy": wrong_id_taxonomy_payload(WrongIdTaxonomy {
+                    status: "scope_mismatch_for_requested_id",
+                    workpoint_id: Some(record.workpoint_id),
+                    requested_workpoint_id: Some(record.workpoint_id),
+                    requested_found: true,
+                    scope_found: false,
+                    fallback_used: false,
+                    canonical_for_requested_scope: false,
+                    canonical_for_fallback_scope: false,
+                }),
                 "next_step_hint": "create a new Workpoint checkpoint in the current project before trusting resume"
             }));
             return decision;
@@ -390,7 +410,16 @@ fn evaluate_resume_scope(
                 "fallback_used": false,
                 "canonical_for_requested_scope": false,
                 "canonical_for_fallback_scope": false,
-                "wrong_id_taxonomy": wrong_id_taxonomy_payload("scope_mismatch_for_requested_id", Some(record.workpoint_id), Some(record.workpoint_id), true, false, false, false, false),
+                "wrong_id_taxonomy": wrong_id_taxonomy_payload(WrongIdTaxonomy {
+                    status: "scope_mismatch_for_requested_id",
+                    workpoint_id: Some(record.workpoint_id),
+                    requested_workpoint_id: Some(record.workpoint_id),
+                    requested_found: true,
+                    scope_found: false,
+                    fallback_used: false,
+                    canonical_for_requested_scope: false,
+                    canonical_for_fallback_scope: false,
+                }),
                 "next_step_hint": "list/reopen the correct SilentSession or create a checkpoint carrying this continuity_id"
             }));
             return decision;
@@ -959,9 +988,16 @@ fn resume_summary(record: &WorkpointRecord) -> String {
         .as_deref()
         .unwrap_or("continue from active workpoint");
     let handoff = if record.canonical
-        && record.next_slice.as_deref().is_some_and(|value| !value.trim().is_empty())
-        && record.verification_records.iter().any(|verification| verification.evidence_ref.as_deref().is_some_and(|value| !value.trim().is_empty()))
-    {
+        && record
+            .next_slice
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && record.verification_records.iter().any(|verification| {
+            verification
+                .evidence_ref
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+        }) {
         "handoff: ready"
     } else {
         "handoff: partial"
@@ -977,15 +1013,21 @@ fn resume_summary(record: &WorkpointRecord) -> String {
     )
 }
 
-fn handoff_quality_payload(record: &WorkpointRecord, canonical: bool, action_authority: bool) -> Value {
+fn handoff_quality_payload(
+    record: &WorkpointRecord,
+    canonical: bool,
+    action_authority: bool,
+) -> Value {
     let next_exact = record
         .next_slice
         .as_deref()
         .is_some_and(|value| !value.trim().is_empty() && value != "continue from active workpoint");
-    let proof_linked = record
-        .verification_records
-        .iter()
-        .any(|verification| verification.evidence_ref.as_deref().is_some_and(|value| !value.trim().is_empty()));
+    let proof_linked = record.verification_records.iter().any(|verification| {
+        verification
+            .evidence_ref
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+    });
     let mut missing = Vec::<String>::new();
     if !canonical || !action_authority {
         missing.push("canonical_authority".to_string());
@@ -996,7 +1038,11 @@ fn handoff_quality_payload(record: &WorkpointRecord, canonical: bool, action_aut
     if !proof_linked {
         missing.push("linked_proof".to_string());
     }
-    let stale = if canonical { Vec::<String>::new() } else { vec!["authority".to_string()] };
+    let stale = if canonical {
+        Vec::<String>::new()
+    } else {
+        vec!["authority".to_string()]
+    };
     let mut score: i64 = 100;
     if !canonical || !action_authority {
         score -= 45;
@@ -1027,7 +1073,11 @@ fn handoff_quality_payload(record: &WorkpointRecord, canonical: bool, action_aut
     })
 }
 
-fn checkpoint_mutation_preview(req: &WorkpointCheckpointRequest, workpoint_id: Uuid, safe_to_apply: bool) -> Value {
+fn checkpoint_mutation_preview(
+    req: &WorkpointCheckpointRequest,
+    workpoint_id: Uuid,
+    safe_to_apply: bool,
+) -> Value {
     json!({
         "route": "POST /v1/workpoint/checkpoint",
         "would_create": [{"type": "workpoint", "workpoint_id": workpoint_id, "work_item_id": req.work_item_id, "mission": req.mission}],
@@ -1041,7 +1091,16 @@ fn checkpoint_mutation_preview(req: &WorkpointCheckpointRequest, workpoint_id: U
 }
 
 const TRUST_BADGE_VOCABULARY: &[&str] = &[
-    "canonical", "advisory", "projected", "stale", "degraded", "blocked", "spec_only", "partial", "verified", "unsafe_scope",
+    "canonical",
+    "advisory",
+    "projected",
+    "stale",
+    "degraded",
+    "blocked",
+    "spec_only",
+    "partial",
+    "verified",
+    "unsafe_scope",
 ];
 
 fn route_recommendation_payload(canonical: bool, action_authority: bool) -> Value {
@@ -1055,7 +1114,14 @@ fn route_recommendation_payload(canonical: bool, action_authority: bool) -> Valu
     })
 }
 
-fn trust_badges(canonical: bool, degraded: bool, blocked: bool, projected: bool, partial: bool, unsafe_scope: bool) -> Vec<&'static str> {
+fn trust_badges(
+    canonical: bool,
+    degraded: bool,
+    blocked: bool,
+    projected: bool,
+    partial: bool,
+    unsafe_scope: bool,
+) -> Vec<&'static str> {
     let _ = TRUST_BADGE_VOCABULARY;
     if blocked {
         return vec!["blocked", "degraded"];
@@ -1097,7 +1163,10 @@ fn rollback_card_payload(
     })
 }
 
-fn evidence_link_mutation_preview(record: &WorkpointRecord, verification: &WorkpointVerificationRecord) -> Value {
+fn evidence_link_mutation_preview(
+    record: &WorkpointRecord,
+    verification: &WorkpointVerificationRecord,
+) -> Value {
     json!({
         "route": "POST /v1/workpoint/evidence/link",
         "would_create": [],
@@ -2038,7 +2107,10 @@ fn current_ask_action_authority_payload(
 
 fn workpoint_legacy_migration_warnings(record: &WorkpointRecord) -> Vec<&'static str> {
     let mut warnings = Vec::new();
-    if record.project_root.as_deref().is_none_or(|value| value.trim().is_empty())
+    if record
+        .project_root
+        .as_deref()
+        .is_none_or(|value| value.trim().is_empty())
         || record
             .continuity_id
             .as_deref()
@@ -2237,7 +2309,16 @@ async fn resume(
             "fallback_used": false,
             "canonical_for_requested_scope": false,
             "canonical_for_fallback_scope": false,
-            "wrong_id_taxonomy": wrong_id_taxonomy_payload("not_found_no_scope_fallback", None, requested_workpoint_id, requested_workpoint_id.is_none(), false, false, false, false),
+            "wrong_id_taxonomy": wrong_id_taxonomy_payload(WrongIdTaxonomy {
+                status: "not_found_no_scope_fallback",
+                workpoint_id: None,
+                requested_workpoint_id,
+                requested_found: requested_workpoint_id.is_none(),
+                scope_found: false,
+                fallback_used: false,
+                canonical_for_requested_scope: false,
+                canonical_for_fallback_scope: false,
+            }),
             "next_step_hint": "checkpoint the current mission/action before retrying resume"
         })));
     };
@@ -2323,32 +2404,113 @@ async fn resume(
     }
     let mut response = Map::new();
     response.insert("status".to_string(), json!("completed"));
-    response.insert("schema_version".to_string(), json!("focusa.workpoint_resume_packet.v2"));
+    response.insert(
+        "schema_version".to_string(),
+        json!("focusa.workpoint_resume_packet.v2"),
+    );
     response.insert("workpoint_id".to_string(), json!(workpoint_id));
     response.insert("canonical".to_string(), json!(canonical));
-    response.insert("degraded".to_string(), json!(!canonical || !action_authority));
-    response.insert("trust_badges".to_string(), json!(trust_badges(canonical, !canonical || !action_authority, false, false, false, canonical && !action_authority)));
-    response.insert("route_recommendation".to_string(), packet_v2.get("route_recommendation").cloned().unwrap_or_else(|| route_recommendation_payload(canonical, action_authority)));
-    response.insert("canonical_for_saved_scope".to_string(), packet_v2.get("canonical_for_saved_scope").cloned().unwrap_or(json!(canonical)));
-    response.insert("matches_current_ask_scope".to_string(), packet_v2.get("matches_current_ask_scope").cloned().unwrap_or(json!(true)));
-    response.insert("action_authority_for_current_ask".to_string(), packet_v2.get("action_authority_for_current_ask").cloned().unwrap_or(json!(canonical)));
-    response.insert("scope_conflict_reason".to_string(), packet_v2.get("scope_conflict_reason").cloned().unwrap_or(json!("none")));
-    response.insert("current_ask_scope".to_string(), packet_v2.get("current_ask_scope").cloned().unwrap_or_else(|| json!({})));
+    response.insert(
+        "degraded".to_string(),
+        json!(!canonical || !action_authority),
+    );
+    response.insert(
+        "trust_badges".to_string(),
+        json!(trust_badges(
+            canonical,
+            !canonical || !action_authority,
+            false,
+            false,
+            false,
+            canonical && !action_authority
+        )),
+    );
+    response.insert(
+        "route_recommendation".to_string(),
+        packet_v2
+            .get("route_recommendation")
+            .cloned()
+            .unwrap_or_else(|| route_recommendation_payload(canonical, action_authority)),
+    );
+    response.insert(
+        "canonical_for_saved_scope".to_string(),
+        packet_v2
+            .get("canonical_for_saved_scope")
+            .cloned()
+            .unwrap_or(json!(canonical)),
+    );
+    response.insert(
+        "matches_current_ask_scope".to_string(),
+        packet_v2
+            .get("matches_current_ask_scope")
+            .cloned()
+            .unwrap_or(json!(true)),
+    );
+    response.insert(
+        "action_authority_for_current_ask".to_string(),
+        packet_v2
+            .get("action_authority_for_current_ask")
+            .cloned()
+            .unwrap_or(json!(canonical)),
+    );
+    response.insert(
+        "scope_conflict_reason".to_string(),
+        packet_v2
+            .get("scope_conflict_reason")
+            .cloned()
+            .unwrap_or(json!("none")),
+    );
+    response.insert(
+        "current_ask_scope".to_string(),
+        packet_v2
+            .get("current_ask_scope")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+    );
     response.insert("failure_class".to_string(), failure_class);
     response.insert("resume_packet".to_string(), packet);
     response.insert("resume_packet_v2".to_string(), packet_v2.clone());
     response.insert("rendered_summary".to_string(), json!(summary));
-    response.insert("handoff_quality".to_string(), packet_v2.get("handoff_quality").cloned().unwrap_or(Value::Null));
+    response.insert(
+        "handoff_quality".to_string(),
+        packet_v2
+            .get("handoff_quality")
+            .cloned()
+            .unwrap_or(Value::Null),
+    );
     response.insert("warnings".to_string(), json!(warnings));
-    response.insert("resume_render_dispatch_warning".to_string(), json!(resume_render_dispatch_warning));
+    response.insert(
+        "resume_render_dispatch_warning".to_string(),
+        json!(resume_render_dispatch_warning),
+    );
     response.insert("session_continuity".to_string(), session_continuity);
-    response.insert("identity_confidence".to_string(), identity_confidence.clone());
-    response.insert("identity_confidence_percent".to_string(), json!(identity_confidence.get("percent").and_then(Value::as_u64).unwrap_or(0)));
+    response.insert(
+        "identity_confidence".to_string(),
+        identity_confidence.clone(),
+    );
+    response.insert(
+        "identity_confidence_percent".to_string(),
+        json!(
+            identity_confidence
+                .get("percent")
+                .and_then(Value::as_u64)
+                .unwrap_or(0)
+        ),
+    );
     response.insert("next_tools".to_string(), response_next_tools);
-    response.insert("details".to_string(), json!({"tool_result_v1": tool_result}));
-    response.insert("next_step_hint".to_string(), json!("inject rendered_summary plus resume_packet before the next Pi turn"));
+    response.insert(
+        "details".to_string(),
+        json!({"tool_result_v1": tool_result}),
+    );
+    response.insert(
+        "next_step_hint".to_string(),
+        json!("inject rendered_summary plus resume_packet before the next Pi turn"),
+    );
     if requested_id_miss {
-        response.insert("requested_workpoint_id".to_string(), json!(requested_workpoint_id));
+        response.insert(
+            "requested_workpoint_id".to_string(),
+            json!(requested_workpoint_id),
+        );
         response.insert("requested_found".to_string(), json!(false));
         response.insert("fallback_used".to_string(), json!(true));
         response.insert("fallback_source".to_string(), json!("active_workstream"));
@@ -2356,7 +2518,19 @@ async fn resume(
         response.insert("canonical_for_requested_scope".to_string(), json!(false));
         response.insert("canonical_for_fallback_scope".to_string(), json!(canonical));
         response.insert("scope_found".to_string(), json!(true));
-        response.insert("wrong_id_taxonomy".to_string(), wrong_id_taxonomy_payload("fallback_from_missing_requested_id", Some(workpoint_id), requested_workpoint_id, false, true, true, false, canonical));
+        response.insert(
+            "wrong_id_taxonomy".to_string(),
+            wrong_id_taxonomy_payload(WrongIdTaxonomy {
+                status: "fallback_from_missing_requested_id",
+                workpoint_id: Some(workpoint_id),
+                requested_workpoint_id,
+                requested_found: false,
+                scope_found: true,
+                fallback_used: true,
+                canonical_for_requested_scope: false,
+                canonical_for_fallback_scope: canonical,
+            }),
+        );
         response.insert("misuse_hint".to_string(), json!("requested Workpoint id was not found; returned same-project active Workpoint as an explicit fallback, not as canonical for requested scope"));
     }
     Ok(Json(Value::Object(response)))

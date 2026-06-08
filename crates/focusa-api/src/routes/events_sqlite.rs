@@ -213,10 +213,9 @@ async fn recent(
                 |row| row.get::<_, String>(0),
             )
             .optional()
+        && let Ok(event) = serde_json::from_str::<Value>(&payload)
     {
-        if let Ok(event) = serde_json::from_str::<Value>(&payload) {
-            events.insert(0, event);
-        }
+        events.insert(0, event);
     }
 
     let total: i64 = conn
