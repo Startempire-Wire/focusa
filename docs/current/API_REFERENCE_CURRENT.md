@@ -254,6 +254,7 @@ Prediction records include bounded `trajectory` and `ontology_context` fields. M
 ### sse
 - `GET /v1/events/stream`
 - `GET /v1/events/health`
+  - Returns a JSON readiness envelope: `ok`, `status`, `surface`, `stream_route`, and `message`.
 
 ### sync
 - `GET /v1/sync/peers`

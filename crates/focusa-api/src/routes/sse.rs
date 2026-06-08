@@ -4,12 +4,14 @@
 //! Replaces polling with push-based updates.
 
 use crate::server::AppState;
+use axum::Json;
 use axum::Router;
 use axum::routing::get;
 use axum::{
     extract::State,
     response::{Sse, sse::Event},
 };
+use serde_json::json;
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
@@ -80,8 +82,14 @@ async fn sse_handler(
 }
 
 /// Health check endpoint for SSE.
-async fn sse_health() -> &'static str {
-    "SSE endpoint ready"
+async fn sse_health() -> Json<serde_json::Value> {
+    Json(json!({
+        "ok": true,
+        "status": "ready",
+        "surface": "events_sse",
+        "stream_route": "/v1/events/stream",
+        "message": "SSE endpoint ready"
+    }))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
