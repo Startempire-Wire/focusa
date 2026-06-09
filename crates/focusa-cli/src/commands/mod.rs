@@ -27,6 +27,7 @@ pub mod reflection;
 pub mod release;
 pub mod resource;
 pub mod rfm;
+pub mod scope;
 pub mod skills;
 pub mod telemetry;
 pub mod threads;

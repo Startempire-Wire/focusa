@@ -1,6 +1,7 @@
 //! Spec96 ProjectIdentity CLI parity commands.
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -193,6 +194,15 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             persisted_project_id,
             persisted_canonical_name,
         } => {
+            ensure_project_root_scope_safe(cwd.as_deref(), "project identity: cwd")?;
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "project identity: project_root",
+            )?;
+            ensure_project_root_scope_safe(
+                persisted_project_root.as_deref(),
+                "project identity: persisted_project_root",
+            )?;
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
@@ -246,6 +256,8 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             remote_workspace_kind,
             remote_deploy_root,
         } => {
+            ensure_project_root_scope_safe(cwd.as_deref(), "project card: cwd")?;
+            ensure_project_root_scope_safe(project_root.as_deref(), "project card: project_root")?;
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
@@ -277,6 +289,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             evidence_refs,
             notes,
         } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "project card outcome: project_root",
+            )?;
             let body = json!({
                 "algorithm_run_id": algorithm_run_id,
                 "actual_outcome": actual_outcome,
@@ -299,6 +315,11 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             mission,
             next_action,
         } => {
+            ensure_project_root_scope_safe(cwd.as_deref(), "project session-transfer: cwd")?;
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "project session-transfer: project_root",
+            )?;
             let body = json!({
                 "action": action,
                 "cwd": cwd,
@@ -330,6 +351,15 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             persisted_project_id,
             persisted_canonical_name,
         } => {
+            ensure_project_root_scope_safe(cwd.as_deref(), "project verify: cwd")?;
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "project verify: project_root",
+            )?;
+            ensure_project_root_scope_safe(
+                persisted_project_root.as_deref(),
+                "project verify: persisted_project_root",
+            )?;
             let body = json!({
                 "cwd": cwd,
                 "project_root": project_root,

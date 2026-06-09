@@ -228,6 +228,13 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
             "daemon down or port unavailable",
             "focusa start || focusa-daemon",
         )
+    } else if message.contains("[CLI_SCOPE_REJECT]") {
+        (
+            "CLI_SCOPE_REJECT",
+            "Scope is unsafe for durable project binding",
+            "CLI validated an explicit project_root that maps to runtime/broad path",
+            "Retry with a confirmed project folder path",
+        )
     } else if message.contains("[API_HTTP_ERROR]") {
         (
             "API_HTTP_ERROR",

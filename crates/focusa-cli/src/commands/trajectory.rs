@@ -1,6 +1,7 @@
 //! Spec96 Trajectory Projection CLI parity commands.
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -183,20 +184,32 @@ fn print_summary(label: &str, resp: &Value) {
 pub async fn run(cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let (label, resp) = match cmd {
-        TrajectoryCmd::View(scope) => ("view", api.get(&path_for_view(&scope)).await?),
-        TrajectoryCmd::Resume(scope) => (
-            "resume",
-            api.post(
-                "/v1/trajectory/resume",
-                &json!({
-                    "project_root": scope.project_root,
-                    "session_id": scope.session_id,
-                    "continuity_id": scope.continuity_id,
-                    "mode": scope.mode,
-                }),
+        TrajectoryCmd::View(scope) => {
+            ensure_project_root_scope_safe(
+                scope.project_root.as_deref(),
+                "trajectory view: project_root",
+            )?;
+            ("view", api.get(&path_for_view(&scope)).await?)
+        }
+        TrajectoryCmd::Resume(scope) => {
+            ensure_project_root_scope_safe(
+                scope.project_root.as_deref(),
+                "trajectory resume: project_root",
+            )?;
+            (
+                "resume",
+                api.post(
+                    "/v1/trajectory/resume",
+                    &json!({
+                        "project_root": scope.project_root,
+                        "session_id": scope.session_id,
+                        "continuity_id": scope.continuity_id,
+                        "mode": scope.mode,
+                    }),
+                )
+                .await?,
             )
-            .await?,
-        ),
+        }
         TrajectoryCmd::DefineGoal {
             long_term_goal,
             desired_end_state,
@@ -212,49 +225,61 @@ pub async fn run(cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()> {
             session_id,
             continuity_id,
             idempotency_key,
-        } => (
-            "define-goal",
-            api.post(
-                "/v1/trajectory/define-goal",
-                &json!({
-                    "long_term_goal": long_term_goal,
-                    "desired_end_state": desired_end_state,
-                    "mid_level_goal": mid_level_goal,
-                    "short_term_goal": short_term_goal,
-                    "waypoints": waypoints,
-                    "current_state": current_state,
-                    "goal_source": goal_source,
-                    "supersedes_trajectory_id": supersedes_trajectory_id,
-                    "operator_confirmed": operator_confirmed,
-                    "supersession_evidence_refs": supersession_evidence_refs,
-                    "project_root": project_root,
-                    "session_id": session_id,
-                    "continuity_id": continuity_id,
-                    "idempotency_key": idempotency_key,
-                }),
+        } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "trajectory define-goal: project_root",
+            )?;
+            (
+                "define-goal",
+                api.post(
+                    "/v1/trajectory/define-goal",
+                    &json!({
+                        "long_term_goal": long_term_goal,
+                        "desired_end_state": desired_end_state,
+                        "mid_level_goal": mid_level_goal,
+                        "short_term_goal": short_term_goal,
+                        "waypoints": waypoints,
+                        "current_state": current_state,
+                        "goal_source": goal_source,
+                        "supersedes_trajectory_id": supersedes_trajectory_id,
+                        "operator_confirmed": operator_confirmed,
+                        "supersession_evidence_refs": supersession_evidence_refs,
+                        "project_root": project_root,
+                        "session_id": session_id,
+                        "continuity_id": continuity_id,
+                        "idempotency_key": idempotency_key,
+                    }),
+                )
+                .await?,
             )
-            .await?,
-        ),
+        }
         TrajectoryCmd::Assess {
             observed_state,
             evidence_refs,
             project_root,
             session_id,
             continuity_id,
-        } => (
-            "assess",
-            api.post(
-                "/v1/trajectory/assess",
-                &json!({
-                    "observed_state": observed_state,
-                    "evidence_refs": evidence_refs,
-                    "project_root": project_root,
-                    "session_id": session_id,
-                    "continuity_id": continuity_id,
-                }),
+        } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "trajectory assess: project_root",
+            )?;
+            (
+                "assess",
+                api.post(
+                    "/v1/trajectory/assess",
+                    &json!({
+                        "observed_state": observed_state,
+                        "evidence_refs": evidence_refs,
+                        "project_root": project_root,
+                        "session_id": session_id,
+                        "continuity_id": continuity_id,
+                    }),
+                )
+                .await?,
             )
-            .await?,
-        ),
+        }
         TrajectoryCmd::ProposeWorkpoint {
             trajectory_id,
             target_ref,
@@ -262,41 +287,53 @@ pub async fn run(cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()> {
             project_root,
             session_id,
             continuity_id,
-        } => (
-            "propose-workpoint",
-            api.post(
-                "/v1/trajectory/propose-workpoint",
-                &json!({
-                    "trajectory_id": trajectory_id,
-                    "target_ref": target_ref,
-                    "action_type": action_type,
-                    "project_root": project_root,
-                    "session_id": session_id,
-                    "continuity_id": continuity_id,
-                }),
+        } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "trajectory propose-workpoint: project_root",
+            )?;
+            (
+                "propose-workpoint",
+                api.post(
+                    "/v1/trajectory/propose-workpoint",
+                    &json!({
+                        "trajectory_id": trajectory_id,
+                        "target_ref": target_ref,
+                        "action_type": action_type,
+                        "project_root": project_root,
+                        "session_id": session_id,
+                        "continuity_id": continuity_id,
+                    }),
+                )
+                .await?,
             )
-            .await?,
-        ),
+        }
         TrajectoryCmd::Checkpoint {
             summary,
             project_root,
             session_id,
             continuity_id,
             idempotency_key,
-        } => (
-            "checkpoint",
-            api.post(
-                "/v1/trajectory/checkpoint",
-                &json!({
-                    "summary": summary,
-                    "project_root": project_root,
-                    "session_id": session_id,
-                    "continuity_id": continuity_id,
-                    "idempotency_key": idempotency_key,
-                }),
+        } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "trajectory checkpoint: project_root",
+            )?;
+            (
+                "checkpoint",
+                api.post(
+                    "/v1/trajectory/checkpoint",
+                    &json!({
+                        "summary": summary,
+                        "project_root": project_root,
+                        "session_id": session_id,
+                        "continuity_id": continuity_id,
+                        "idempotency_key": idempotency_key,
+                    }),
+                )
+                .await?,
             )
-            .await?,
-        ),
+        }
     };
     if json_output {
         println!("{}", serde_json::to_string_pretty(&resp)?);

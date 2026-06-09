@@ -244,6 +244,7 @@ impl App {
             ("uxp", "/v1/uxp"),
             ("ufi", "/v1/ufi"),
             ("training", "/v1/training/status"),
+            ("project_identity", "/v1/project/identity"),
         ];
 
         for (key, endpoint) in endpoints {

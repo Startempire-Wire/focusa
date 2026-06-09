@@ -4,6 +4,7 @@ use crate::app::App;
 use crate::theme;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+use serde_json::Value;
 
 pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
     let block = Block::default()
@@ -56,10 +57,56 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
 
     // Current state.
     let current = state.current_state.as_deref().unwrap_or("—");
-    let cs = Paragraph::new(Line::from(vec![
+    let mut current_lines = vec![Line::from(vec![
         Span::styled("State: ", theme::label()),
         Span::styled(current, theme::value()),
-    ]));
+    ])];
+
+    if let Some(Some(project_identity_root)) = app.extra_data.get("project_identity") {
+        let scoped = project_identity_root
+            .get("project_identity")
+            .unwrap_or(project_identity_root);
+        let status = scoped
+            .get("status")
+            .and_then(Value::as_str)
+            .or_else(|| project_identity_root.get("status").and_then(Value::as_str))
+            .unwrap_or("unknown");
+        let root = scoped
+            .get("project_root")
+            .and_then(Value::as_str)
+            .or_else(|| project_identity_root.get("project_root").and_then(Value::as_str))
+            .unwrap_or("unbound");
+        let confidence = scoped
+            .get("confidence")
+            .and_then(Value::as_str)
+            .or_else(|| project_identity_root.get("confidence").and_then(Value::as_str))
+            .unwrap_or("low");
+        let scope_label = if matches!(
+            status,
+            "unsafe_project_root" | "unsafe_user_home_project_root" | "unsafe_broad_project_root"
+        ) {
+            "⚠ Project scope blocked"
+        } else {
+            "Project scope"
+        };
+        let scope_color = if matches!(
+            status,
+            "unsafe_project_root" | "unsafe_user_home_project_root" | "unsafe_broad_project_root"
+        ) {
+            ratatui::prelude::Color::Yellow
+        } else {
+            ratatui::prelude::Color::DarkGray
+        };
+        current_lines.push(Line::from(""));
+        current_lines.push(Line::from(vec![
+            Span::styled(format!("{scope_label}: "), theme::label()),
+            Span::styled(
+                format!("{status} root={root} confidence={confidence}"),
+                Style::default().fg(scope_color),
+            ),
+        ]));
+    }
+    let cs = Paragraph::new(current_lines);
     frame.render_widget(cs, chunks[4]);
 }
 

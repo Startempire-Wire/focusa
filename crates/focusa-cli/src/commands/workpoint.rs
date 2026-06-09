@@ -1,6 +1,7 @@
 //! Spec88 Workpoint CLI parity commands.
 
 use crate::api_client::ApiClient;
+use crate::commands::scope::ensure_project_root_scope_safe;
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -217,6 +218,10 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             degraded,
             idempotency_key,
         } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "workpoint checkpoint: project_root",
+            )?;
             let mut body = json!({
                 "mission": mission,
                 "next_slice": next_action,
@@ -250,16 +255,26 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
         WorkpointCmd::Current {
             project_root,
             continuity_id,
-        } => (
-            "current",
-            api.get(&current_path(project_root, continuity_id)).await?,
-        ),
+        } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "workpoint current: project_root",
+            )?;
+            (
+                "current",
+                api.get(&current_path(project_root, continuity_id)).await?,
+            )
+        }
         WorkpointCmd::Resume {
             mode,
             project_root,
             continuity_id,
             copy_prompt: should_copy_prompt,
         } => {
+            ensure_project_root_scope_safe(
+                project_root.as_deref(),
+                "workpoint resume: project_root",
+            )?;
             copy_prompt = should_copy_prompt;
             (
                 "resume",
