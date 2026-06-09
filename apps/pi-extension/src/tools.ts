@@ -476,6 +476,63 @@ function terseToolText(summary: string, failureClass: string | null, nextTools: 
   return `${summary}; class=${failureClass || "none"}; next=${next}`.slice(0, 220);
 }
 
+type PiToolTemplateKind = "ok" | "blocked" | "preserved" | "advisory" | "no_op" | "started" | "tail";
+
+interface PiToolTemplate {
+  kind: PiToolTemplateKind;
+  tool: string;
+  summary: string;
+  ids?: Array<{ label: string; value: string | number }>;
+  fields?: Array<{ label: string; value: string | number | null | undefined }>;
+  failureClass?: string | null;
+  nextTools?: string[];
+  note?: string | null;
+}
+
+function formatPiToolTemplate(tpl: PiToolTemplate): string {
+  const lines: string[] = [];
+  const status = tpl.kind === "ok" ? "ok" : tpl.kind;
+  lines.push(`${tpl.tool} ${status} | ${tpl.summary}`.trim());
+  if (Array.isArray(tpl.ids) && tpl.ids.length) {
+    const idLine = tpl.ids
+      .filter((i) => i.value !== null && i.value !== undefined && i.value !== "")
+      .map((i) => `${i.label}=${i.value}`)
+      .join(" ");
+    if (idLine) lines.push(`ids: ${idLine}`);
+  }
+  if (Array.isArray(tpl.fields) && tpl.fields.length) {
+    const fieldLine = tpl.fields
+      .filter((f) => f.value !== null && f.value !== undefined && f.value !== "")
+      .map((f) => `${f.label}=${typeof f.value === "string" ? f.value : String(f.value)}`)
+      .join(" ");
+    if (fieldLine) lines.push(`fields: ${fieldLine}`);
+  }
+  if (tpl.failureClass) lines.push(`class: ${tpl.failureClass}`);
+  if (tpl.note) lines.push(`note: ${tpl.note}`.slice(0, 160));
+  if (Array.isArray(tpl.nextTools) && tpl.nextTools.length) {
+    const next = tpl.nextTools.slice(0, 3).join(" → ") || "focusa_tool_doctor";
+    lines.push(`next: ${next}`);
+  }
+  return lines.join("\n").slice(0, 480);
+}
+
+function piToolText(tpl: PiToolTemplate): string {
+  return formatPiToolTemplate(tpl);
+}
+
+function humanSummary(prefix: string, ids: Array<{ label: string; value: unknown }>, fields: Array<{ label: string; value: unknown }> = [], max = 240): string {
+  const idPart = ids
+    .filter((i) => i.value !== null && i.value !== undefined && i.value !== "")
+    .map((i) => `${i.label}=${i.value}`)
+    .join(" ");
+  const fieldPart = fields
+    .filter((f) => f.value !== null && f.value !== undefined && f.value !== "")
+    .map((f) => `${f.label}=${typeof f.value === "string" ? f.value : String(f.value)}`)
+    .join(" ");
+  const compact = [idPart, fieldPart].filter(Boolean).join("; ");
+  return (compact ? `${prefix} ${compact}` : prefix).slice(0, max);
+}
+
 function timeoutPreservedText(surface: string, noun = "fallback"): string {
   return `${surface} preserved cached advisory ${noun}; cause=timeout; next=resource_mode/doctor/retry`.slice(0, 160);
 }
@@ -3879,8 +3936,25 @@ export function registerTools(pi: ExtensionAPI) {
     result: { ok: boolean; status: number; body: any | null },
     successText: string,
     fallbackText: string,
+    template?: { kind: PiToolTemplateKind; ids?: Array<{ label: string; value: unknown }>; fields?: Array<{ label: string; value: unknown }>; failureClass?: string | null; nextTools?: string[]; note?: string | null },
   ) {
-    const text = result.ok && result.body ? successText : `${fallbackText} → ${explainWorkLoopResult(result, "ok")}`;
+    let text: string;
+    if (result.ok && result.body) {
+      text = template
+        ? piToolText({
+            kind: template.kind,
+            tool,
+            summary: successText,
+            ids: (template.ids || []).map((i) => ({ label: i.label, value: i.value as string | number })),
+            fields: (template.fields || []).map((f) => ({ label: f.label, value: f.value as string | number | null | undefined })),
+            failureClass: template.failureClass ?? null,
+            nextTools: template.nextTools || [],
+            note: template.note ?? null,
+          })
+        : successText;
+    } else {
+      text = `${fallbackText} → ${explainWorkLoopResult(result, "ok")}`;
+    }
     return {
       content: [{ type: "text", text }],
       details: {
@@ -3908,9 +3982,10 @@ export function registerTools(pi: ExtensionAPI) {
     response: any,
     successText: string,
     fallbackText: string,
+    template?: { kind: PiToolTemplateKind; ids?: Array<{ label: string; value: unknown }>; fields?: Array<{ label: string; value: unknown }>; failureClass?: string | null; nextTools?: string[]; note?: string | null },
   ) {
     const result = { ok, status, body: response ?? null };
-    return spec80Result(tool, endpoint, request, result, successText, fallbackText);
+    return spec80Result(tool, endpoint, request, result, successText, fallbackText, template);
   }
 
   async function callSpec80Tool(
@@ -4334,6 +4409,22 @@ export function registerTools(pi: ExtensionAPI) {
         res,
         `metacog capture: id=${captureId} lesson="${lessonLine}" why="${relevanceReason}" rehydrate_id=${captureId}`,
         "metacog capture",
+        {
+          kind: "ok",
+          ids: [
+            { label: "capture_id", value: captureId },
+            { label: "rehydrate_id", value: captureId },
+            { label: "kind", value: req.kind },
+          ],
+          fields: [
+            { label: "lesson", value: lessonLine },
+            { label: "why", value: relevanceReason },
+            { label: "strategy_class", value: req.strategy_class || null },
+            { label: "confidence", value: req.confidence ?? null },
+            { label: "evidence_refs", value: Array.isArray(req.evidence_refs) ? req.evidence_refs.length : 0 },
+          ],
+          nextTools: ["focusa_metacog_retrieve", "focusa_metacog_reflect", "focusa_metacog_doctor"],
+        },
       );
     },
   });
@@ -4381,6 +4472,17 @@ export function registerTools(pi: ExtensionAPI) {
           ? `metacog retrieve: candidates=${total} top_lesson="${topLesson}" why="${topWhy}" rehydrate_id=${topCapture}`
           : `metacog retrieve: candidates=0 lesson="none" why="no prior signals matched" rehydrate_id=none`,
         "metacog retrieve",
+        {
+          kind: total > 0 ? "ok" : "advisory",
+          ids: total > 0 ? [{ label: "rehydrate_id", value: topCapture }] : [],
+          fields: [
+            { label: "candidates", value: total },
+            { label: "top_lesson", value: total > 0 ? topLesson : "none" },
+            { label: "why", value: total > 0 ? topWhy : "no prior signals matched" },
+            { label: "ask", value: req.current_ask },
+          ],
+          nextTools: total > 0 ? ["focusa_metacog_reflect", "focusa_metacog_plan_adjust", "focusa_metacog_doctor"] : ["focusa_metacog_capture", "focusa_metacog_doctor"],
+        },
       );
     },
   });
@@ -4417,6 +4519,17 @@ export function registerTools(pi: ExtensionAPI) {
         res,
         `metacog reflect: ${String(res.body?.reflection_id || "ok")} hypotheses=${Array.isArray(res.body?.hypotheses) ? res.body.hypotheses.length : 0}\nstrategy_updates=${summarizeArray(updates, 4)}\nnext_tools=focusa_metacog_plan_adjust,focusa_metacog_doctor`,
         "metacog reflect",
+        {
+          kind: "ok",
+          ids: [{ label: "reflection_id", value: String(res.body?.reflection_id || "ok") }],
+          fields: [
+            { label: "hypotheses", value: Array.isArray(res.body?.hypotheses) ? res.body.hypotheses.length : 0 },
+            { label: "strategy_updates", value: updates.length },
+            { label: "turn_range", value: req.turn_range },
+            { label: "failure_classes", value: (req.failure_classes || []).length },
+          ],
+          nextTools: ["focusa_metacog_plan_adjust", "focusa_metacog_doctor"],
+        },
       );
     },
   });
@@ -4452,6 +4565,18 @@ export function registerTools(pi: ExtensionAPI) {
         res,
         `metacog adjust: ${String(res.body?.adjustment_id || "ok")} updates=${updatesCheck.value.length}\nnext_step_policy=${summarizeArray(res.body?.next_step_policy || updatesCheck.value, 4)}\nnext_tools=focusa_metacog_evaluate_outcome,focusa_metacog_doctor`,
         "metacog adjust",
+        {
+          kind: "ok",
+          ids: [
+            { label: "adjustment_id", value: String(res.body?.adjustment_id || "ok") },
+            { label: "reflection_id", value: req.reflection_id },
+          ],
+          fields: [
+            { label: "updates", value: updatesCheck.value.length },
+            { label: "next_step_policy", value: summarizeArray(res.body?.next_step_policy || updatesCheck.value, 4) },
+          ],
+          nextTools: ["focusa_metacog_evaluate_outcome", "focusa_metacog_doctor"],
+        },
       );
     },
   });
@@ -4490,6 +4615,19 @@ export function registerTools(pi: ExtensionAPI) {
         res,
         `metacog evaluate: decision=${String(res.body?.result || "unknown")} promote=${boolLabel(res.body?.promote_learning)}\nobserved_metrics=${summarizeArray(observed, 4)}\nnext_tools=focusa_metacog_doctor,focusa_metacog_recent_adjustments`,
         "metacog evaluate",
+        {
+          kind: "ok",
+          ids: [
+            { label: "adjustment_id", value: req.adjustment_id },
+            { label: "evaluation_id", value: String(res.body?.evaluation_id || res.body?.result || "ok") },
+          ],
+          fields: [
+            { label: "decision", value: String(res.body?.result || "unknown") },
+            { label: "promote", value: boolLabel(res.body?.promote_learning) },
+            { label: "observed_metrics", value: summarizeArray(observed, 4) },
+          ],
+          nextTools: ["focusa_metacog_doctor", "focusa_metacog_recent_adjustments"],
+        },
       );
     },
   });
@@ -4633,6 +4771,16 @@ export function registerTools(pi: ExtensionAPI) {
           ? `metacog recent reflections: total=${items.length} ids=${summarizeArray(ids, 4)}\nnext_tools=focusa_metacog_plan_adjust,focusa_metacog_loop_run`
           : `metacog recent reflections: total=0\nno prior reflections available\nnext_tools=focusa_metacog_reflect`,
         "metacog recent reflections",
+        {
+          kind: items.length > 0 ? "ok" : "advisory",
+          ids: items.length > 0 ? ids.slice(0, 4).map((id: unknown, idx: number) => ({ label: `reflection_id_${idx + 1}`, value: String(id) })) : [],
+          fields: [
+            { label: "total", value: items.length },
+            { label: "ids", value: summarizeArray(ids, 4) },
+            { label: "limit", value: limit },
+          ],
+          nextTools: items.length > 0 ? ["focusa_metacog_plan_adjust", "focusa_metacog_loop_run"] : ["focusa_metacog_reflect"],
+        },
       );
     },
   });
@@ -4665,6 +4813,16 @@ export function registerTools(pi: ExtensionAPI) {
           ? `metacog recent adjustments: total=${items.length} ids=${summarizeArray(ids, 4)}\nnext_tools=focusa_metacog_evaluate_outcome,focusa_metacog_doctor`
           : `metacog recent adjustments: total=0\nno prior adjustments available\nnext_tools=focusa_metacog_plan_adjust`,
         "metacog recent adjustments",
+        {
+          kind: items.length > 0 ? "ok" : "advisory",
+          ids: items.length > 0 ? ids.slice(0, 4).map((id: unknown, idx: number) => ({ label: `adjustment_id_${idx + 1}`, value: String(id) })) : [],
+          fields: [
+            { label: "total", value: items.length },
+            { label: "ids", value: summarizeArray(ids, 4) },
+            { label: "limit", value: limit },
+          ],
+          nextTools: items.length > 0 ? ["focusa_metacog_evaluate_outcome", "focusa_metacog_doctor"] : ["focusa_metacog_plan_adjust"],
+        },
       );
     },
   });
@@ -4767,6 +4925,22 @@ export function registerTools(pi: ExtensionAPI) {
         },
         `metacog loop run: result=${String(evaluateRes.body?.result || "unknown")} promote=${boolLabel(evaluateRes.body?.promote_learning)}\nreflection=${String(reflectRes.body?.reflection_id || "unknown")} adjustment=${String(adjustRes.body?.adjustment_id || "unknown")}\nnext_tools=focusa_metacog_doctor,focusa_metacog_evaluate_outcome`,
         "metacog loop run",
+        {
+          kind: "ok",
+          ids: [
+            { label: "capture_id", value: String(captureRes.body?.capture_id || "n/a") },
+            { label: "reflection_id", value: String(reflectRes.body?.reflection_id || "unknown") },
+            { label: "adjustment_id", value: String(adjustRes.body?.adjustment_id || "unknown") },
+            { label: "rehydrate_id", value: String(captureRes.body?.capture_id || reflectRes.body?.reflection_id || "n/a") },
+          ],
+          fields: [
+            { label: "result", value: String(evaluateRes.body?.result || "unknown") },
+            { label: "promote", value: boolLabel(evaluateRes.body?.promote_learning) },
+            { label: "current_ask", value: askCheck.value },
+            { label: "turn_range", value: turnCheck.value },
+          ],
+          nextTools: ["focusa_metacog_doctor", "focusa_metacog_evaluate_outcome"],
+        },
       );
     },
   });
@@ -4807,6 +4981,18 @@ export function registerTools(pi: ExtensionAPI) {
           ? `metacog doctor: candidates=${candidates.length} with_confidence=${withConfidence}\ntop_kind=${String(top?.kind || "unknown")} top_capture=${String(top?.capture_id || "none")}\nnext_tools=focusa_metacog_reflect,focusa_metacog_loop_run`
           : `metacog doctor: candidates=0\nno usable prior signals found\nnext_tools=focusa_metacog_capture,focusa_metacog_reflect`,
         "metacog doctor",
+        {
+          kind: candidates.length > 0 ? "ok" : "advisory",
+          ids: candidates.length > 0 ? [{ label: "top_capture_id", value: String(top?.capture_id || "none") }] : [],
+          fields: [
+            { label: "candidates", value: candidates.length },
+            { label: "with_confidence", value: withConfidence },
+            { label: "top_kind", value: String(top?.kind || "unknown") },
+            { label: "ask", value: askCheck.value },
+            { label: "k", value: normalizedK },
+          ],
+          nextTools: candidates.length > 0 ? ["focusa_metacog_reflect", "focusa_metacog_loop_run"] : ["focusa_metacog_capture", "focusa_metacog_reflect"],
+        },
       );
     },
   });
@@ -5078,7 +5264,29 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const predictionEvalHint = `focusa_predict_evaluate prediction_id=${predictionId}`;
       const predictionConfidence = String(prediction.confidence ?? payload?.confidence ?? "unknown");
       const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction record → ${body.status || "accepted"} id=${predictionId}`, tool: "focusa_predict_record", family: "prediction", side_effects: ["prediction_store"], evidence_refs: [], next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"], raw: body });
-      return { content: [{ type: "text", text: `prediction record → ${body.status || "accepted"} id=${predictionId} confidence=${predictionConfidence} scope=(${predictionScope}) eval_hint="${predictionEvalHint}"` }], details: { ...body, compact_actionability: { prediction_id: predictionId, confidence: predictionConfidence, scope: predictionScope, evaluation_hint: predictionEvalHint }, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
+      const predictionType = String(prediction.prediction_type || payload?.prediction_type || "unknown");
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_predict_record",
+            summary: `prediction record → ${body.status || "accepted"} type=${predictionType}`,
+            ids: [
+              { label: "prediction_id", value: predictionId },
+              { label: "rehydrate_id", value: predictionId },
+              { label: "prediction_type", value: predictionType },
+            ],
+            fields: [
+              { label: "confidence", value: predictionConfidence },
+              { label: "scope", value: predictionScope },
+              { label: "evaluation_hint", value: predictionEvalHint },
+            ],
+            nextTools: ["focusa_predict_evaluate", "focusa_predict_recent"],
+          }),
+        }],
+        details: { ...body, compact_actionability: { prediction_id: predictionId, prediction_type: predictionType, confidence: predictionConfidence, scope: predictionScope, evaluation_hint: predictionEvalHint }, tool_result_v1: toolResult, next_tools: toolResult.next_tools },
+      } as any;
     },
   });
 
@@ -5099,7 +5307,26 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         ? ` next_id=${String(actionable.prediction_id)} confidence=${String(actionable.confidence ?? "unknown")} scope=(project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}) eval_hint="focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}"`
         : " next_id=none eval_hint=record_prediction_first";
       const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `predictions recent → ${count}${actionable ? ` next_id=${String(actionable.prediction_id)}` : ""}`, tool: "focusa_predict_recent", family: "prediction", side_effects: [], evidence_refs: [], next_tools: ["focusa_predict_record", "focusa_predict_evaluate"], raw: body });
-      return { content: [{ type: "text", text: `predictions recent → ${count}${actionLine}` }], details: { ...body, compact_actionability: actionable ? { prediction_id: String(actionable.prediction_id), confidence: actionable.confidence ?? null, project_root: actionable.project_root || null, continuity_id: actionable.continuity_id || null, evaluation_hint: `focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}` } : null, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: count > 0 ? "ok" : "advisory",
+            tool: "focusa_predict_recent",
+            summary: `predictions recent → ${count}${actionable ? ` next_id=${String(actionable.prediction_id)}` : ""}`,
+            ids: actionable ? [{ label: "next_prediction_id", value: String(actionable.prediction_id) }] : [],
+            fields: [
+              { label: "count", value: count },
+              { label: "limit", value: limit },
+              { label: "next_confidence", value: actionable ? String(actionable.confidence ?? "unknown") : "n/a" },
+              { label: "next_scope", value: actionable ? `project=${String(actionable.project_root || "unknown")} continuity=${String(actionable.continuity_id || "unknown")}` : "n/a" },
+              { label: "evaluation_hint", value: actionable ? `focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}` : "record_prediction_first" },
+            ],
+            nextTools: ["focusa_predict_record", "focusa_predict_evaluate"],
+          }),
+        }],
+        details: { ...body, compact_actionability: actionable ? { prediction_id: String(actionable.prediction_id), confidence: actionable.confidence ?? null, project_root: actionable.project_root || null, continuity_id: actionable.continuity_id || null, evaluation_hint: `focusa_predict_evaluate prediction_id=${String(actionable.prediction_id)}` } : null, tool_result_v1: toolResult, next_tools: toolResult.next_tools },
+      } as any;
     },
   });
 
@@ -5119,7 +5346,27 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const body = res.body || {};
       if (!res.ok) return blockedToolResponse("focusa_predict_evaluate", "prediction", `prediction evaluate blocked → ${explainWorkLoopResult(res, "prediction evaluation unavailable")}`, body.failure_class || (res.status === 404 ? "not_found" : "daemon_unavailable"), body, ["focusa_predict_recent", "focusa_predict_record", "focusa_tool_doctor"]);
       const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction evaluate → ${body.status || "accepted"}`, tool: "focusa_predict_evaluate", family: "prediction", side_effects: ["prediction_store", "metacog_capture_if_score_high"], evidence_refs: [], next_tools: ["focusa_predict_stats", "focusa_metacog_retrieve", "focusa_predict_record"], raw: body });
-      return { content: [{ type: "text", text: `prediction evaluate → ${body.status || "accepted"}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_predict_evaluate",
+            summary: `prediction evaluate → ${body.status || "accepted"}`,
+            ids: [
+              { label: "prediction_id", value: String(prediction_id) },
+              { label: "rehydrate_id", value: String(prediction_id) },
+            ],
+            fields: [
+              { label: "score", value: typeof payload?.score === "number" ? payload.score : (typeof body.score === "number" ? body.score : "n/a") },
+              { label: "learning_signal_ref", value: String(payload?.learning_signal_ref || body.learning_signal_ref || "n/a") },
+              { label: "actual_outcome", value: String(payload?.actual_outcome || "n/a").slice(0, 120) },
+            ],
+            nextTools: ["focusa_predict_stats", "focusa_metacog_retrieve", "focusa_predict_record"],
+          }),
+        }],
+        details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools },
+      } as any;
     },
   });
 
@@ -5134,7 +5381,27 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       if (!res.ok) return blockedToolResponse("focusa_predict_stats", "prediction", `prediction stats blocked → ${explainWorkLoopResult(res, "prediction stats unavailable")}`, body.failure_class || "daemon_unavailable", body, ["focusa_predict_recent", "focusa_tool_doctor"]);
       const summary = String(body.summary || body.status || "available");
       const toolResult = body.details?.tool_result_v1 || focusaToolResult({ ok: true, status: "completed", summary: `prediction stats → ${summary}`, tool: "focusa_predict_stats", family: "prediction", side_effects: [], evidence_refs: [], next_tools: ["focusa_predict_record", "focusa_predict_recent"], raw: body });
-      return { content: [{ type: "text", text: `prediction stats → ${summary}` }], details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools } } as any;
+      const total = Number(body.total || body.prediction_count || body.count || 0);
+      const evaluated = Number(body.evaluated || body.evaluated_count || 0);
+      const accuracy = Number(body.accuracy ?? body.accuracy_score ?? 0);
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_predict_stats",
+            summary: `prediction stats → ${summary}`,
+            fields: [
+              { label: "total", value: total },
+              { label: "evaluated", value: evaluated },
+              { label: "accuracy", value: total > 0 ? accuracy : "n/a" },
+              { label: "summary", value: summary },
+            ],
+            nextTools: ["focusa_predict_record", "focusa_predict_recent"],
+          }),
+        }],
+        details: { ...body, tool_result_v1: toolResult, next_tools: toolResult.next_tools },
+      } as any;
     },
   });
 
