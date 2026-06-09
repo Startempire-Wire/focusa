@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 66,
-  "edge_count": 201,
+  "tool_count": 68,
+  "edge_count": 206,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -125,6 +125,15 @@
     "focusa_context_cognition": [
       "focusa_active_object_resolve",
       "focusa_workpoint_checkpoint",
+      "focusa_evidence_capture"
+    ],
+    "focusa_context_cognition_render": [
+      "focusa_context_cognition",
+      "focusa_context_cognition_proof"
+    ],
+    "focusa_context_cognition_proof": [
+      "focusa_context_cognition",
+      "focusa_context_cognition_render",
       "focusa_evidence_capture"
     ],
     "focusa_call_stack_design": [
@@ -637,6 +646,36 @@
     },
     {
       "from": "focusa_context_cognition",
+      "to": "focusa_evidence_capture",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_render",
+      "to": "focusa_context_cognition",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_render",
+      "to": "focusa_context_cognition_proof",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_proof",
+      "to": "focusa_context_cognition",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_proof",
+      "to": "focusa_context_cognition_render",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_proof",
       "to": "focusa_evidence_capture",
       "weight": 8,
       "reason": "static_next_tool_route"

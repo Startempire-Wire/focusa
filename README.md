@@ -532,7 +532,7 @@ These docs describe only the current present build/snapshot surfaces:
 
 ### Individual Focusa tool docs
 
-Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **66**.
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **68**.
 
 | Tool | Family | Doc |
 | --- | --- | --- |
@@ -543,6 +543,8 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_project_verify` | Project Identity | [`docs/focusa-tools/tools/focusa_project_verify.md`](docs/focusa-tools/tools/focusa_project_verify.md) |
 | `focusa_trajectory_view` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_view.md`](docs/focusa-tools/tools/focusa_trajectory_view.md) |
 | `focusa_context_cognition` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition.md`](docs/focusa-tools/tools/focusa_context_cognition.md) |
+| `focusa_context_cognition_render` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_render.md`](docs/focusa-tools/tools/focusa_context_cognition_render.md) |
+| `focusa_context_cognition_proof` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_proof.md`](docs/focusa-tools/tools/focusa_context_cognition_proof.md) |
 | `focusa_trajectory_define_goal` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_define_goal.md`](docs/focusa-tools/tools/focusa_trajectory_define_goal.md) |
 | `focusa_trajectory_assess` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_assess.md`](docs/focusa-tools/tools/focusa_trajectory_assess.md) |
 | `focusa_trajectory_propose_workpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md`](docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md) |

@@ -17,6 +17,20 @@ pub enum ContextCognitionCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Render the packet as compact text (for prompt/CLI/menubar).
+    Render {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
+    },
+    /// Map packet surfaces to proof commands (curl + focusa + audits).
+    Proof {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
+    },
 }
 
 pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow::Result<()> {
@@ -47,7 +61,54 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             print_human(&resp);
             Ok(())
         }
+        ContextCognitionCmd::Render {
+            project_root,
+            continuity_id,
+        } => {
+            let path = build_query("/v1/context-cognition/render", project_root, continuity_id);
+            let resp = client.get(&path).await?;
+            if let Some(render) = resp.get("render").and_then(Value::as_str) {
+                println!("{render}");
+            } else {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            }
+            Ok(())
+        }
+        ContextCognitionCmd::Proof {
+            project_root,
+            continuity_id,
+        } => {
+            let path = build_query("/v1/context-cognition/proof", project_root, continuity_id);
+            let resp = client.get(&path).await?;
+            if let Some(commands) = resp.get("proof_commands").and_then(Value::as_array) {
+                for c in commands {
+                    if let Some(s) = c.as_str() {
+                        println!("{s}");
+                    }
+                }
+            } else {
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+            }
+            Ok(())
+        }
     }
+}
+
+fn build_query(base: &str, project_root: Option<String>, continuity_id: Option<String>) -> String {
+    let mut path = String::from(base);
+    let mut sep = "?";
+    if let Some(pr) = project_root.as_deref() {
+        path.push_str(sep);
+        path.push_str("project_root=");
+        path.push_str(&urlencoding_minimal(pr));
+        sep = "&";
+    }
+    if let Some(cid) = continuity_id.as_deref() {
+        path.push_str(sep);
+        path.push_str("continuity_id=");
+        path.push_str(&urlencoding_minimal(cid));
+    }
+    path
 }
 
 fn print_human(payload: &Value) {

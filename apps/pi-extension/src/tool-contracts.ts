@@ -1062,6 +1062,50 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_context_cognition_render",
+    "label": "Context Cognition Render",
+    "purpose": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar).",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition_render",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "ContextCognitionPacket"
+    ],
+    "api_routes": ["GET /v1/context-cognition/render"],
+    "cli_commands": ["focusa context-cognition render"],
+    "core_surface": "Spec100 §11 CLI contract + §13 tool wrapper",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition/render safe probe and scope gate"
+  },
+
+  {
+    "name": "focusa_context_cognition_proof",
+    "label": "Context Cognition Proof",
+    "purpose": "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits).",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition_proof",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "ContextCognitionPacket"
+    ],
+    "api_routes": ["GET /v1/context-cognition/proof"],
+    "cli_commands": ["focusa context-cognition proof"],
+    "core_surface": "Spec100 §10 API contract + §13 tool wrapper",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_proof.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition/proof safe probe and scope gate"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -1536,6 +1580,15 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_context_cognition": [
     "focusa_active_object_resolve",
     "focusa_workpoint_checkpoint",
+    "focusa_evidence_capture"
+  ],
+  "focusa_context_cognition_render": [
+    "focusa_context_cognition",
+    "focusa_context_cognition_proof"
+  ],
+  "focusa_context_cognition_proof": [
+    "focusa_context_cognition",
+    "focusa_context_cognition_render",
     "focusa_evidence_capture"
   ],
   "focusa_call_stack_design": [

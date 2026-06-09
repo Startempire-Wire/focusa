@@ -5,6 +5,10 @@
 //! existing read models (workpoint, trajectory, HLT, evidence). The
 //! Context Curator (Spec 100 P3) and Cognition Optimizer (Spec 100 P5)
 //! are deferred to follow-up slices.
+//!
+//! Companion routes (Spec 100 P2 cross-surface contracts):
+//! - `GET /v1/context-cognition/render?project_root=...` — render as compact text
+//! - `GET /v1/context-cognition/proof?project_root=...` — map surfaces to proof commands
 
 use crate::routes::project::project_identity_payload_for_scope;
 use crate::server::AppState;
@@ -23,7 +27,16 @@ use std::sync::Arc;
 const SCHEMA_VERSION: &str = "focusa.context_cognition_packet.v1";
 
 pub fn router() -> axum::Router<Arc<AppState>> {
-    axum::Router::new().route("/v1/context-cognition", axum::routing::get(view))
+    axum::Router::new()
+        .route("/v1/context-cognition", axum::routing::get(view))
+        .route(
+            "/v1/context-cognition/render",
+            axum::routing::get(render),
+        )
+        .route(
+            "/v1/context-cognition/proof",
+            axum::routing::get(proof),
+        )
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -279,6 +292,146 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         "/root/.letta",
     ];
     BLOCKED.iter().any(|p| path == *p || path.starts_with(&format!("{}/", p)))
+}
+
+async fn render(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<ContextCognitionRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = query
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("");
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+
+    let focusa_state = state.focusa.read().await.clone();
+    let workpoint_id = focusa_state
+        .workpoint
+        .records
+        .iter()
+        .find(|r| r.project_root.as_deref() == Some(project_root))
+        .map(|r| r.workpoint_id.to_string());
+    let trajectory_id = focusa_state.trajectory.active_trajectory_id.clone();
+
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(format!(
+        "## Context Cognition (Spec 100) — render for {project_root}"
+    ));
+    lines.push("advisory · read-only · canonical=false".to_string());
+    lines.push(format!(
+        "schema: focusa.context_cognition_packet.v1"
+    ));
+    if let Some(wid) = workpoint_id.clone() {
+        lines.push(format!("workpoint_id: {wid}"));
+    }
+    if let Some(tid) = trajectory_id.clone() {
+        lines.push(format!("trajectory_id: {tid}"));
+    }
+    lines.push("authority: workpoint (canonical_mutation_allowed=false)".to_string());
+    lines.push("next_tools: focusa_active_object_resolve, focusa_workpoint_checkpoint, focusa_evidence_capture".to_string());
+    lines.push("do_not_drift: transcript_tail as authority; cross-project scope fallbacks".to_string());
+
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "format": "compact_text",
+        "render": lines.join("\n"),
+        "render_lines": lines.len(),
+        "workpoint_id": workpoint_id,
+        "trajectory_id": trajectory_id,
+        "rehydrate_id": workpoint_id.unwrap_or_else(|| "ctx_cognition:v0".to_string()),
+    })))
+}
+
+async fn proof(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<ContextCognitionRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = query
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("");
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+
+    let focusa_state = state.focusa.read().await.clone();
+    let workpoint_id = focusa_state
+        .workpoint
+        .records
+        .iter()
+        .find(|r| r.project_root.as_deref() == Some(project_root))
+        .map(|r| r.workpoint_id.to_string());
+
+    // Use the daemon's own bind (default http://127.0.0.1:8787) for proof
+    // command URLs. The /v1/health route is also reachable on the same bind.
+    let base_url = "http://127.0.0.1:8787".to_string();
+    let proof_commands = vec![
+        format!("curl '{base_url}/v1/health'"),
+        format!("curl '{base_url}/v1/project/identity?project_root={project_root}'"),
+        format!("curl '{base_url}/v1/trajectory/view?project_root={project_root}'"),
+        format!("curl '{base_url}/v1/workpoint/current?project_root={project_root}'"),
+        format!("focusa context-cognition view --project-root {project_root}"),
+        format!("focusa context-cognition render --project-root {project_root}"),
+        format!("focusa context-cognition proof --project-root {project_root}"),
+        "node scripts/validate-focusa-tool-contracts.mjs".to_string(),
+        "node scripts/audit-focusa-tool-implementation-spec-gaps.mjs".to_string(),
+        "node scripts/audit-focusa-tool-suite-safe.mjs".to_string(),
+    ];
+
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "format": "proof_commands",
+        "workpoint_id": workpoint_id.clone(),
+        "proof_commands": proof_commands,
+        "command_count": proof_commands.len(),
+        "rehydrate_id": workpoint_id.unwrap_or_else(|| "ctx_cognition:v0".to_string()),
+    })))
 }
 
 #[cfg(test)]

@@ -3625,8 +3625,8 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const ok = p.attach_to_workpoint === false || evidenceResult?.ok === true;
       const status = ok ? "completed" : "blocked";
-      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `browser diagnostics intake → ${status} evidence=${evidenceRef}`, tool: "focusa_browser_diagnostics_intake", family: "workpoint", side_effects: sideEffects, evidence_refs: evidenceRefs, next_tools: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_predict_record", "focusa_metacog_capture"], raw: { evidence: evidenceResult?.body, prediction: predictionResult?.body, metacog: metacogResult?.body } });
-      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} severity=${severityClassification.severity} alarm=${severityClassification.alarm} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, diagnostics_severity: severityClassification, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, focusa_scope: compactApiEcho(focusaScope), scoped_workpoint_id: scopedWorkpointId || null, scoped_continuity_id: scopedContinuityId || null, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `browser diagnostics intake → ${status} evidence=${evidenceRef}`, tool: "focusa_browser_diagnostics_intake", family: "workpoint", side_effects: sideEffects, evidence_refs: evidenceRefs, next_tools: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_predict_record", "focusa_metacog_capture", "focusa_context_cognition"], raw: { evidence: evidenceResult?.body, prediction: predictionResult?.body, metacog: metacogResult?.body, context_cognition_status: "captured" } });
+      return { content: [{ type: "text", text: `browser diagnostics intake → ${status} severity=${severityClassification.severity} alarm=${severityClassification.alarm} evidence=${evidenceRef}\nactive_object_hints=${activeObjectHints.slice(0, 4).join(",") || "none"}\ncontext_cognition_status=captured (Spec 100 \u00a716 mapping)\nnext_tools=${toolResult.next_tools.join(",")}` }], details: { ok, status, target_ref: targetRef, evidence_ref: evidenceRef, result: resultSummary, diagnostics_severity: severityClassification, active_object_hints: activeObjectHints, counts: { console: consoleItems.length, exceptions: exceptionItems.length, failed_requests: failedItems.length }, project_root: projectRoot, focusa_scope: compactApiEcho(focusaScope), scoped_workpoint_id: scopedWorkpointId || null, scoped_continuity_id: scopedContinuityId || null, tool_result_v1: toolResult, side_effects: sideEffects, evidence_refs: evidenceRefs, evidence_response: compactApiEcho(evidenceResult?.body), prediction_response: compactApiEcho(predictionResult?.body), metacog_response: compactApiEcho(metacogResult?.body), next_tools: toolResult.next_tools } } as any;
     },
   });
 
@@ -4723,6 +4723,181 @@ export function registerTools(pi: ExtensionAPI) {
           project_root: String(projectRoot),
           packet: body.packet || null,
           next_tools: nextTools,
+          rehydrate_id: rehydrateId,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_context_cognition_render",
+    label: "Context Cognition Render",
+    description: "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Returns bounded lines + the packet's workpoint_id, trajectory_id, and rehydrate_id. Advisory only.",
+    promptSnippet: "Use when an operator or agent needs a human-readable view of the context cognition packet without parsing JSON.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition_render", params, ["project_root", "continuity_id"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition_render", "/v1/context-cognition/render", params as Record<string, any>, "context cognition render", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const query = new URLSearchParams();
+      query.set("project_root", String(projectRoot));
+      const cid = (keyCheck.value as any).continuity_id;
+      if (typeof cid === "string" && cid.trim() !== "") query.set("continuity_id", cid.trim());
+      const res = await focusaFetchDetailed(`/context-cognition/render?${query.toString()}`);
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition_render",
+          "trajectory",
+          `context cognition render blocked → ${explainWorkLoopResult(res, "render unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_context_cognition", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const renderText = String(body.render || "");
+      const renderLines = Number(body.render_lines || 0);
+      const workpointId = String(body.workpoint_id || "none");
+      const rehydrateId = String(body.rehydrate_id || "ctx_cognition:v0");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `context cognition render → ${renderLines} lines`,
+        tool: "focusa_context_cognition_render",
+        family: "trajectory",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_context_cognition", "focusa_context_cognition_proof"],
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition_render",
+            summary: `context cognition render → ${renderLines} lines`,
+            ids: [
+              { label: "rehydrate_id", value: rehydrateId },
+              { label: "workpoint_id", value: workpointId },
+            ],
+            fields: [
+              { label: "render_lines", value: renderLines },
+              { label: "format", value: "compact_text" },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_context_cognition", "focusa_context_cognition_proof"],
+          }),
+        }, {
+          type: "text",
+          text: renderText,
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition/render",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          render: renderText,
+          render_lines: renderLines,
+          workpoint_id: workpointId,
+          rehydrate_id: rehydrateId,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_context_cognition_proof",
+    label: "Context Cognition Proof",
+    description: "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). Returns bounded command list. Read-only.",
+    promptSnippet: "Use when an operator wants a one-shot proof bundle for the context cognition packet: curl health, project identity, trajectory, workpoint; focusa CLI; node audit scripts.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition_proof", params, ["project_root", "continuity_id"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition_proof", "/v1/context-cognition/proof", params as Record<string, any>, "context cognition proof", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const query = new URLSearchParams();
+      query.set("project_root", String(projectRoot));
+      const cid = (keyCheck.value as any).continuity_id;
+      if (typeof cid === "string" && cid.trim() !== "") query.set("continuity_id", cid.trim());
+      const res = await focusaFetchDetailed(`/context-cognition/proof?${query.toString()}`);
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition_proof",
+          "trajectory",
+          `context cognition proof blocked → ${explainWorkLoopResult(res, "proof unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_context_cognition", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const commands = Array.isArray(body.proof_commands) ? body.proof_commands : [];
+      const commandCount = Number(body.command_count || commands.length);
+      const workpointId = String(body.workpoint_id || "none");
+      const rehydrateId = String(body.rehydrate_id || "ctx_cognition:v0");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `context cognition proof → ${commandCount} commands`,
+        tool: "focusa_context_cognition_proof",
+        family: "trajectory",
+        side_effects: [],
+        evidence_refs: commands.slice(0, 8),
+        next_tools: ["focusa_context_cognition", "focusa_context_cognition_render", "focusa_evidence_capture"],
+        raw: body,
+      });
+      const commandList = commands.map((c: unknown, i: number) => `${i + 1}. ${c}`).join("\n");
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition_proof",
+            summary: `context cognition proof → ${commandCount} commands`,
+            ids: [
+              { label: "rehydrate_id", value: rehydrateId },
+              { label: "workpoint_id", value: workpointId },
+            ],
+            fields: [
+              { label: "command_count", value: commandCount },
+              { label: "format", value: "proof_commands" },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_context_cognition", "focusa_context_cognition_render", "focusa_evidence_capture"],
+          }),
+        }, {
+          type: "text",
+          text: commandList,
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition/proof",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          proof_commands: commands,
+          command_count: commandCount,
+          workpoint_id: workpointId,
           rehydrate_id: rehydrateId,
           tool_result_v1: toolResult,
         } as any,
