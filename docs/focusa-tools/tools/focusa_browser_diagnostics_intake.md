@@ -1,6 +1,15 @@
 # focusa_browser_diagnostics_intake
 
+**Family:** `workpoint`  
+**Label:** Browser Diagnostics Intake
+
+## Purpose
+
 Composite Pi tool for UIAI/browser debugging evidence.
+
+## Expected result
+
+`tool_result_v1` with `ok`, status, `target_ref`, `failure_class` (when present), bounded `evidence_ref`, Workpoint linkage flag, inferred `focusa_scope`, scoped `workpoint_id` / `continuity_id`, active-object hints, optional prediction candidate, and optional metacog lesson. The tool links the diagnostics to the active Workpoint when scope is verified, never overrides Workpoint identity, and preserves the original diagnostics artifact handle.
 
 Use after a UIAI `browser_diagnostics` JSON artifact or typed browser action failure envelope is available. The tool summarizes diagnostics, links bounded evidence to the active Workpoint when safe, emits active-object hints, records a prediction candidate by default, and can optionally capture a reusable metacog lesson. If the UIAI diagnostics include `focusa_scope`, the tool uses it as the default Workpoint/project scope.
 
@@ -75,6 +84,19 @@ When attached, the tool links a bounded evidence ref to the active Workpoint. Em
 - If evidence linkage is blocked by Workpoint/project scope, run `focusa_workpoint_resume` and retry with explicit `project_root`/`workpoint_id`.
 - If trajectory clarity gates time out, treat cached advisory trajectory as orientation only; run `focusa_resource_mode`/`focusa_tool_doctor` and retry summary trajectory later.
 - Diagnostics are evidence, not canonical project truth; verify with code/tests or a second browser proof.
+
+## Failure recovery
+
+`tool_result_v1.failure_class` is part of the recovery contract. Common values: `scope_unverified` (recover with `focusa_project_verify` + `focusa_workpoint_resume`), `workpoint_unavailable` (recover with `focusa_workpoint_resume`), `daemon_unavailable` (recover with `focusa_tool_doctor`), and `evidence_attach_blocked` (drop `attach_to_workpoint=false` and re-run). When `failure_class` is missing, treat the call as advisory evidence; verify with `focusa_workpoint_resume` or `focusa_evidence_capture` before relying on the result.
+
+## Contract summary
+
+- Family: `workpoint`
+- Side effects: `composite_evidence_prediction_optional_metacog`
+- Result envelope: `tool_result_v1`
+- API routes: `POST /v1/workpoint/evidence/link`, `POST /v1/predictions`, `POST /v1/metacognition/capture`
+- CLI commands: `focusa workpoint evidence-link`, `focusa predict record`, `focusa metacognition capture`
+- Core surface: `Pi composite Workpoint evidence intake`
 
 ## Next tools
 

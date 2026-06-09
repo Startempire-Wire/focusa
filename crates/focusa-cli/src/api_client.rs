@@ -75,7 +75,10 @@ impl ApiClient {
         continuity_id: Option<&str>,
         limit: usize,
     ) -> anyhow::Result<Value> {
-        let mut path = format!("/v1/hlt/history?project_root={}", urlencoding::encode(project_root));
+        let mut path = format!(
+            "/v1/hlt/history?project_root={}",
+            urlencoding::encode(project_root)
+        );
         if let Some(cid) = continuity_id {
             path.push_str(&format!("&continuity_id={}", urlencoding::encode(cid)));
         }
@@ -90,7 +93,10 @@ impl ApiClient {
         continuity_id: Option<&str>,
         session_id: Option<&str>,
     ) -> anyhow::Result<Value> {
-        let mut path = format!("/v1/trajectory/view?project_root={}", urlencoding::encode(project_root));
+        let mut path = format!(
+            "/v1/trajectory/view?project_root={}",
+            urlencoding::encode(project_root)
+        );
         if let Some(cid) = continuity_id {
             path.push_str(&format!("&continuity_id={}", urlencoding::encode(cid)));
         }

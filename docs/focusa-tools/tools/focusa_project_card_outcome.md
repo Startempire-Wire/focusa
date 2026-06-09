@@ -34,6 +34,10 @@ Returns `schema=focusa.project_card_algorithm_outcome.v1`, the persisted `outcom
 focusa_project_card_outcome algorithm_run_id="019e..." actual_outcome="validated endpoint" score=1.0 evidence_refs=["test:pass"] project_root="/home/wirebot/focusa"
 ```
 
+## Failure recovery
+
+`tool_result_v1.failure_class` is part of the recovery contract. If the call returns `daemon_unavailable`, `storage_unwritable`, `unknown_algorithm_run_id`, or `score_out_of_range`, fix the cause and retry. On `unknown_algorithm_run_id`, run `focusa_project_card` first to obtain a fresh `algorithm_run_id` and reattach the outcome. The call is advisory-side-effect; the project-card signal weights only update on accepted outcomes.
+
 ## Contract summary
 
 - Family: Project Identity.

@@ -919,12 +919,7 @@ pub struct HltLedgerEntry {
 
 impl HltLedgerEntry {
     /// Create a new HLT ledger entry.
-    pub fn new(
-        project_root: String,
-        new_hlt: String,
-        source: &str,
-        lamport_ts: u64,
-    ) -> Self {
+    pub fn new(project_root: String, new_hlt: String, source: &str, lamport_ts: u64) -> Self {
         Self {
             timestamp: Utc::now(),
             event_id: Uuid::now_v7().to_string(),

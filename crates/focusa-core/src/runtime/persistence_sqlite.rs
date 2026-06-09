@@ -1015,10 +1015,7 @@ fn hlt_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
 impl SqlitePersistence {
     /// Append an HLT ledger entry to the scope-bounded JSONL file.
     /// Per Spec98/99: no singleton, scope-bounded by project_root.
-    pub fn append_hlt_ledger_entry(
-        &self,
-        entry: &HltLedgerEntry,
-    ) -> anyhow::Result<()> {
+    pub fn append_hlt_ledger_entry(&self, entry: &HltLedgerEntry) -> anyhow::Result<()> {
         let ledger_dir = hlt_ledger_dir_for_project(&self.data_dir, &entry.project_root);
         std::fs::create_dir_all(&ledger_dir)?;
         let ledger_file = ledger_dir.join("hlt.jsonl");
@@ -1050,11 +1047,9 @@ impl SqlitePersistence {
         let entries: Vec<HltLedgerEntry> = content
             .lines()
             .filter_map(|line| serde_json::from_str(line).ok())
-            .filter(|entry: &HltLedgerEntry| {
-                match continuity_id {
-                    Some(cid) => entry.continuity_id.as_deref() == Some(cid),
-                    None => true,
-                }
+            .filter(|entry: &HltLedgerEntry| match continuity_id {
+                Some(cid) => entry.continuity_id.as_deref() == Some(cid),
+                None => true,
             })
             .collect();
         // Return most recent `limit` entries

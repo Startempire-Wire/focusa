@@ -920,7 +920,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "POST /v1/predictions",
       "POST /v1/metacognition/capture"
     ],
-    "cli_commands": ["focusa workpoint evidence-link", "focusa predictions record", "focusa metacognition capture"],
+    "cli_commands": ["focusa workpoint evidence-link", "focusa predict record", "focusa metacognition capture"],
     "core_surface": "Pi composite Workpoint evidence intake",
     "doc_path": "docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
     "result_envelope": "tool_result_v1",
@@ -995,6 +995,27 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
+  {
+    "name": "focusa_hlt_history",
+    "label": "HLT History",
+    "purpose": "Read append-only HLT change history for a project and optional continuity filter.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.hlt_history",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord"
+    ],
+    "api_routes": ["GET /v1/hlt/history"],
+    "cli_commands": [],
+    "core_surface": "Spec98 per-project append-only HLT ledger history",
+    "doc_path": "docs/focusa-tools/tools/focusa_hlt_history.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate"
+  },
+
   {
     "name": "focusa_tree_head",
     "label": "Tree Head",
@@ -1461,6 +1482,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_workpoint_resume",
     "focusa_trajectory_view",
     "focusa_tool_doctor"
+  ],
+  "focusa_hlt_history": [
+    "focusa_trajectory_view",
+    "focusa_trajectory_define_goal",
+    "focusa_project_verify"
   ],
   "focusa_traverse": [
     "focusa_active_object_resolve",

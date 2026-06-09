@@ -41,6 +41,10 @@ Continue:
 focusa_session_transfer action="continue" project_root="/path/to/project"
 ```
 
+## Failure recovery
+
+`tool_result_v1.failure_class` is part of the recovery contract. On `project_identity_unverified`, run `focusa_project_verify` before retrying. On `daemon_unavailable`, run `focusa_tool_doctor` and retry. On `workpoint_checkpoint_blocked` during save, drop to `focusa_workpoint_resume` to capture current packet and retry. For `continue` actions, treat `inferred_workpoint_candidate` as advisory and prefer canonical `focusa_workpoint_resume` when a verified Workpoint is required.
+
 ## Contract summary
 
 - Family: Workpoint.

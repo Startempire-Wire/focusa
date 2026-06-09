@@ -81,3 +81,15 @@ Each line in `hlt.jsonl` is a JSON object:
 - Ledger is append-only — old entries are never modified or deleted.
 - Entries are ordered by timestamp (oldest first, most recent last).
 - Per Spec98/99: no singleton, scope-bounded, CRDT-grade.
+
+## Failure recovery
+
+`tool_result_v1.failure_class` is part of the recovery contract. On `project_root_missing`, provide an explicit `project_root` and retry. On `project_root_unverified`, call `focusa_project_verify` first. On `daemon_unavailable`, run `focusa_tool_doctor` and retry. On `limit_out_of_range` or `continuity_id_unresolved`, adjust parameters and re-run. When `failure_class` is missing, treat the response as read-only HLT history; do not infer changes from absence.
+
+## Contract summary
+
+- Family: `trajectory`
+- Side effects: `read_state`
+- Result envelope: `tool_result_v1`
+- API routes: `GET /v1/hlt/history`
+- Core surface: `Spec98 per-project append-only HLT ledger history`

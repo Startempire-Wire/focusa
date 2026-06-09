@@ -498,7 +498,7 @@ These docs describe only the current present build/snapshot surfaces:
 
 ### Individual Focusa tool docs
 
-Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **63**.
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **64**.
 
 | Tool | Family | Doc |
 | --- | --- | --- |
@@ -513,6 +513,7 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_trajectory_propose_workpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md`](docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md) |
 | `focusa_trajectory_checkpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_checkpoint.md`](docs/focusa-tools/tools/focusa_trajectory_checkpoint.md) |
 | `focusa_trajectory_resume` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_resume.md`](docs/focusa-tools/tools/focusa_trajectory_resume.md) |
+| `focusa_hlt_history` | Trajectory | [`docs/focusa-tools/tools/focusa_hlt_history.md`](docs/focusa-tools/tools/focusa_hlt_history.md) |
 | `focusa_traverse` | Traversal | [`docs/focusa-tools/tools/focusa_traverse.md`](docs/focusa-tools/tools/focusa_traverse.md) |
 | `focusa_reflex_primitives` | Traversal | [`docs/focusa-tools/tools/focusa_reflex_primitives.md`](docs/focusa-tools/tools/focusa_reflex_primitives.md) |
 | `focusa_predict_record` | Metacognition | [`docs/focusa-tools/tools/focusa_predict_record.md`](docs/focusa-tools/tools/focusa_predict_record.md) |

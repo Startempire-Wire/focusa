@@ -650,29 +650,29 @@ async fn close_session(
 
 /// Discover sessions from filesystem (Pi, Claude Code, Codex, Letta, etc.)
 /// Per Spec98: Multi-agent session discovery with project binding
-async fn discover_sessions(
-    Query(params): Query<DiscoverSessionsQuery>,
-) -> Json<Value> {
+async fn discover_sessions(Query(params): Query<DiscoverSessionsQuery>) -> Json<Value> {
     let agent_type = params.agent.as_deref().unwrap_or("all");
     let project_root = params.project_root.as_deref();
     let active_only = params.active_only.unwrap_or(false);
-    
+
     let mut sessions = Vec::new();
-    
+
     // Discover sessions for each agent type
     let agent_types: &[&str] = if agent_type == "all" {
         &["pi", "claude", "codex", "letta", "opencode", "claude-code"]
     } else {
         &[agent_type]
     };
-    
+
     for &agent in agent_types {
         match agent {
             "pi" => {
-                if let Some(pi_sessions) = discover_agent_sessions("pi", "$HOME/.pi/agent/sessions").await {
+                if let Some(pi_sessions) =
+                    discover_agent_sessions("pi", "$HOME/.pi/agent/sessions").await
+                {
                     sessions.extend(pi_sessions);
                 }
-            },
+            }
             "claude" | "claude-code" => {
                 if let Some(s) = discover_agent_sessions("claude", "$HOME/.claude/sessions").await {
                     sessions.extend(s);
@@ -681,31 +681,33 @@ async fn discover_sessions(
                 if let Some(s) = discover_claude_backups().await {
                     sessions.extend(s);
                 }
-            },
+            }
             "codex" => {
                 if let Some(s) = discover_agent_sessions("codex", "$HOME/.codex/sessions").await {
                     sessions.extend(s);
                 }
-            },
+            }
             "letta" => {
                 if let Some(s) = discover_agent_sessions("letta", "$HOME/.letta/sessions").await {
                     sessions.extend(s);
                 }
-            },
+            }
             "opencode" => {
-                if let Some(s) = discover_agent_sessions("opencode", "$HOME/.opencode/sessions").await {
+                if let Some(s) =
+                    discover_agent_sessions("opencode", "$HOME/.opencode/sessions").await
+                {
                     sessions.extend(s);
                 }
-            },
+            }
             _ => {}
         }
     }
-    
+
     // Filter by project_root if specified
     if let Some(root) = project_root {
         sessions.retain(|s| s.project_root.as_ref() == Some(&root.to_string()));
     }
-    
+
     // Filter for active sessions if requested (last hour)
     if active_only {
         let cutoff = chrono::Utc::now() - chrono::Duration::hours(1);
@@ -717,10 +719,10 @@ async fn discover_sessions(
                 .unwrap_or(false)
         });
     }
-    
+
     // Sort by last_activity descending
     sessions.sort_by(|a, b| b.last_activity.cmp(&a.last_activity));
-    
+
     Json(json!({
         "sessions": sessions,
         "agent_types": agent_types,
@@ -730,18 +732,21 @@ async fn discover_sessions(
 }
 
 /// Generic agent session discovery - expands $HOME in path
-async fn discover_agent_sessions(agent_type: &str, path_template: &str) -> Option<Vec<DiscoveredSession>> {
+async fn discover_agent_sessions(
+    agent_type: &str,
+    path_template: &str,
+) -> Option<Vec<DiscoveredSession>> {
     let home = env::var("HOME").unwrap_or_else(|_| "/root".to_string());
     let path_str = path_template.replace("$HOME", &home);
     let sessions_dir = PathBuf::from(&path_str);
-    
+
     tracing::debug!("Discovering {} sessions at: {:?}", agent_type, sessions_dir);
     if !sessions_dir.exists() {
         return Some(Vec::new());
     }
-    
+
     let mut sessions = Vec::new();
-    
+
     if let Ok(entries) = fs::read_dir(&sessions_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -751,7 +756,9 @@ async fn discover_agent_sessions(agent_type: &str, path_template: &str) -> Optio
                     for sub in sub_entries.flatten() {
                         let sub_path = sub.path();
                         if sub_path.extension().map_or(false, |e| e == "jsonl") {
-                            if let Some(session) = parse_generic_session(&sub_path, agent_type).await {
+                            if let Some(session) =
+                                parse_generic_session(&sub_path, agent_type).await
+                            {
                                 sessions.push(session);
                             }
                         }
@@ -764,7 +771,7 @@ async fn discover_agent_sessions(agent_type: &str, path_template: &str) -> Optio
             }
         }
     }
-    
+
     tracing::debug!("Discovered {} {} sessions", sessions.len(), agent_type);
     Some(sessions)
 }
@@ -775,27 +782,23 @@ async fn parse_generic_session(path: &PathBuf, agent_type: &str) -> Option<Disco
     if content.is_empty() {
         return None;
     }
-    
+
     // Extract session_id from filename as fallback
-    let fallback_session_id = path.file_stem()?
-        .to_str()?
-        .split('_')
-        .last()?
-        .to_string();
-    
+    let fallback_session_id = path.file_stem()?.to_str()?.split('_').last()?.to_string();
+
     // Find last non-empty line
     let last_line = content.lines().filter(|l| !l.trim().is_empty()).last()?;
-    
+
     let json: Value = serde_json::from_str(last_line).ok()?;
-    
+
     // Agent-specific parsing based on session format
     let (session_id, continuity_id, current_ask, project_root) = match agent_type {
         "pi" => parse_pi_session_data(&json, fallback_session_id),
         _ => parse_generic_session_data(&json, fallback_session_id),
     };
-    
+
     let last_activity = extract_timestamp_from_path(path);
-    
+
     Some(DiscoveredSession {
         agent: agent_type.to_string(),
         session_id,
@@ -808,23 +811,37 @@ async fn parse_generic_session(path: &PathBuf, agent_type: &str) -> Option<Disco
 }
 
 /// Parse Pi session-specific data format
-fn parse_pi_session_data(json: &Value, fallback_id: String) -> (String, Option<String>, Option<String>, Option<String>) {
+fn parse_pi_session_data(
+    json: &Value,
+    fallback_id: String,
+) -> (String, Option<String>, Option<String>, Option<String>) {
     let data = match json.get("data") {
         Some(d) => d,
-        None => return (format!("pi-{}", fallback_id.chars().take(20).collect::<String>()), None, None, None),
+        None => {
+            return (
+                format!("pi-{}", fallback_id.chars().take(20).collect::<String>()),
+                None,
+                None,
+                None,
+            );
+        }
     };
-    let session_id = data.get("sessionId")
+    let session_id = data
+        .get("sessionId")
         .and_then(|v| v.as_str())
         .map(String::from)
         .unwrap_or_else(|| format!("pi-{}", fallback_id.chars().take(20).collect::<String>()));
-    let continuity_id = data.get("continuityId")
+    let continuity_id = data
+        .get("continuityId")
         .and_then(|v| v.as_str())
         .map(String::from);
-    let current_ask = data.get("currentAsk")
+    let current_ask = data
+        .get("currentAsk")
         .and_then(|v| v.get("text"))
         .and_then(|v| v.as_str())
         .map(|s| s.chars().take(200).collect());
-    let project_root = data.get("currentAsk")
+    let project_root = data
+        .get("currentAsk")
         .and_then(|v| v.get("projectRoot"))
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
@@ -833,40 +850,50 @@ fn parse_pi_session_data(json: &Value, fallback_id: String) -> (String, Option<S
 }
 
 /// Parse generic session data format (Claude, Codex, etc.)
-fn parse_generic_session_data(json: &Value, fallback_id: String) -> (String, Option<String>, Option<String>, Option<String>) {
+fn parse_generic_session_data(
+    json: &Value,
+    fallback_id: String,
+) -> (String, Option<String>, Option<String>, Option<String>) {
     // Try various common session ID field names
-    let session_id = json.get("sessionId")
+    let session_id = json
+        .get("sessionId")
         .or_else(|| json.get("session_id"))
         .or_else(|| json.get("id"))
         .and_then(|v| v.as_str())
         .map(String::from)
         .unwrap_or_else(|| format!("gen-{}", fallback_id.chars().take(20).collect::<String>()));
-    
+
     // Try various continuity/context field names
-    let continuity_id = json.get("continuityId")
+    let continuity_id = json
+        .get("continuityId")
         .or_else(|| json.get("continuity_id"))
         .or_else(|| json.get("threadId"))
         .or_else(|| json.get("thread_id"))
         .and_then(|v| v.as_str())
         .map(String::from);
-    
+
     // Try various current task/goal field names
-    let current_ask = json.get("currentAsk")
+    let current_ask = json
+        .get("currentAsk")
         .or_else(|| json.get("current_task"))
         .or_else(|| json.get("task"))
         .or_else(|| json.get("instruction"))
-        .and_then(|v| v.as_str().or_else(|| v.get("text").and_then(|t| t.as_str())))
+        .and_then(|v| {
+            v.as_str()
+                .or_else(|| v.get("text").and_then(|t| t.as_str()))
+        })
         .map(|s| s.chars().take(200).collect());
-    
+
     // Try various project root field names
-    let project_root = json.get("projectRoot")
+    let project_root = json
+        .get("projectRoot")
         .or_else(|| json.get("project_root"))
         .or_else(|| json.get("cwd"))
         .or_else(|| json.get("root"))
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .map(String::from);
-    
+
     (session_id, continuity_id, current_ask, project_root)
 }
 
@@ -902,24 +929,27 @@ fn extract_timestamp_from_path(path: &PathBuf) -> Option<String> {
 async fn discover_claude_backups() -> Option<Vec<DiscoveredSession>> {
     let home = env::var("HOME").unwrap_or_else(|_| "/root".to_string());
     let backups_dir = PathBuf::from(&home).join(".claude/backups");
-    
+
     if !backups_dir.exists() {
         return Some(Vec::new());
     }
-    
+
     let mut sessions = Vec::new();
-    
+
     if let Ok(entries) = fs::read_dir(&backups_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |e| e.to_str().unwrap_or("").contains("backup")) {
+            if path
+                .extension()
+                .map_or(false, |e| e.to_str().unwrap_or("").contains("backup"))
+            {
                 if let Some(session) = parse_claude_backup(&path).await {
                     sessions.push(session);
                 }
             }
         }
     }
-    
+
     tracing::debug!("Discovered {} Claude backups", sessions.len());
     Some(sessions)
 }
@@ -928,28 +958,30 @@ async fn discover_claude_backups() -> Option<Vec<DiscoveredSession>> {
 async fn parse_claude_backup(path: &PathBuf) -> Option<DiscoveredSession> {
     let content = fs::read_to_string(path).ok()?;
     let json: Value = serde_json::from_str(&content).ok()?;
-    
+
     // Claude Code stores session in clientId or similar
-    let session_id = json.get("clientId")
+    let session_id = json
+        .get("clientId")
         .or_else(|| json.get("sessionId"))
         .and_then(|v| v.as_str())
         .map(|s| format!("claude-{}", s.chars().take(16).collect::<String>()))
         .unwrap_or_else(|| "claude-backup-unknown".to_string());
-    
+
     // Extract project from Claude Code config
-    let project_root = json.get("currentProject")
+    let project_root = json
+        .get("currentProject")
         .or_else(|| json.get("projectPath"))
         .or_else(|| json.get("workspaceRoot"))
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .map(String::from);
-    
+
     let last_activity = path
         .file_name()
         .and_then(|n| n.to_str())
         .and_then(|n| n.split("backup.").nth(1))
         .and_then(parse_session_timestamp_from_filename);
-    
+
     Some(DiscoveredSession {
         agent: "claude-backup".to_string(),
         session_id,
@@ -963,9 +995,9 @@ async fn parse_claude_backup(path: &PathBuf) -> Option<DiscoveredSession> {
 
 #[derive(Debug, Deserialize)]
 struct DiscoverSessionsQuery {
-    agent: Option<String>,          // "pi", "claude", "codex", "letta", "opencode", "all"
-    project_root: Option<String>,   // Filter by project root
-    active_only: Option<bool>,      // Only return sessions from last hour
+    agent: Option<String>, // "pi", "claude", "codex", "letta", "opencode", "all"
+    project_root: Option<String>, // Filter by project root
+    active_only: Option<bool>, // Only return sessions from last hour
 }
 
 #[derive(Debug, Deserialize)]
@@ -994,7 +1026,7 @@ async fn bind_session_to_trajectory(
                 "trajectory_scope must be 'project' or 'session'",
                 "Submit trajectory_scope as 'project' or 'session'",
                 "Use a valid trajectory_scope value",
-            ))
+            ));
         }
     };
 
@@ -1011,11 +1043,10 @@ async fn bind_session_to_trajectory(
     };
 
     // Check if trajectory exists for this scope.
-    let existing_trajectory = focusa
-        .trajectory
-        .records
-        .iter()
-        .find(|r| r.project_root.as_ref() == Some(&body.project_root) && r.continuity_id.as_ref() == Some(&continuity_id));
+    let existing_trajectory = focusa.trajectory.records.iter().find(|r| {
+        r.project_root.as_ref() == Some(&body.project_root)
+            && r.continuity_id.as_ref() == Some(&continuity_id)
+    });
 
     let result = json!({
         "session_id": body.session_id,
@@ -1045,15 +1076,11 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::{
-        discover_agent_sessions,
-        parse_claude_backup,
-        parse_generic_session,
-        parse_generic_session_data,
-        parse_pi_session_data,
-        parse_session_timestamp_from_filename,
+        discover_agent_sessions, parse_claude_backup, parse_generic_session,
+        parse_generic_session_data, parse_pi_session_data, parse_session_timestamp_from_filename,
     };
-    use serde_json::json;
     use chrono::{Duration, Utc};
+    use serde_json::json;
     use std::{
         fs::{self, File},
         io::Write,
@@ -1090,7 +1117,10 @@ mod tests {
     fn parse_session_timestamp_from_short_or_invalid_filename() {
         let now = Utc::now().format("%Y-%m-%dT%H").to_string();
         assert!(parse_session_timestamp_from_filename("not-a-ts").is_none());
-        assert_eq!(parse_session_timestamp_from_filename(&format!("{now}-02")), None);
+        assert_eq!(
+            parse_session_timestamp_from_filename(&format!("{now}-02")),
+            None
+        );
     }
 
     #[test]
@@ -1169,9 +1199,15 @@ mod tests {
             "{\"id\":\"letta-sess-1\",\"continuity_id\":\"cont-letta-1\",\"instruction\":\"letta task\",\"project_root\":\"/tmp/proj-letta\"}\n",
         );
 
-        let pi_sessions = discover_agent_sessions("pi", pi_root.to_str().unwrap()).await.unwrap();
-        let codex_sessions = discover_agent_sessions("codex", codex_root.to_str().unwrap()).await.unwrap();
-        let letta_sessions = discover_agent_sessions("letta", letta_root.to_str().unwrap()).await.unwrap();
+        let pi_sessions = discover_agent_sessions("pi", pi_root.to_str().unwrap())
+            .await
+            .unwrap();
+        let codex_sessions = discover_agent_sessions("codex", codex_root.to_str().unwrap())
+            .await
+            .unwrap();
+        let letta_sessions = discover_agent_sessions("letta", letta_root.to_str().unwrap())
+            .await
+            .unwrap();
 
         assert_eq!(pi_sessions.len(), 1);
         assert_eq!(codex_sessions.len(), 1);
@@ -1183,11 +1219,17 @@ mod tests {
 
         assert_eq!(codex_sessions[0].agent, "codex");
         assert_eq!(codex_sessions[0].session_id, "codex-sess-1");
-        assert_eq!(codex_sessions[0].continuity_id.as_deref(), Some("cont-codex-1"));
+        assert_eq!(
+            codex_sessions[0].continuity_id.as_deref(),
+            Some("cont-codex-1")
+        );
 
         assert_eq!(letta_sessions[0].agent, "letta");
         assert_eq!(letta_sessions[0].session_id, "letta-sess-1");
-        assert_eq!(letta_sessions[0].continuity_id.as_deref(), Some("cont-letta-1"));
+        assert_eq!(
+            letta_sessions[0].continuity_id.as_deref(),
+            Some("cont-letta-1")
+        );
 
         let _ = fs::remove_dir_all(&home);
     }
@@ -1219,7 +1261,8 @@ mod tests {
     async fn parse_claude_backup_file_parse() {
         let home = temp_home("claude_backup");
         let backup_stamp = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
-        let expected_backup = parse_session_timestamp_from_filename(&format!("{backup_stamp}-001Z"));
+        let expected_backup =
+            parse_session_timestamp_from_filename(&format!("{backup_stamp}-001Z"));
         let file_path = home.join(format!("foo.backup.{backup_stamp}-001Z"));
         write_jsonl(
             &file_path,

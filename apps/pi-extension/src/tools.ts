@@ -3143,6 +3143,70 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_hlt_history",
+    label: "HLT History",
+    description: "Read append-only HLT ledger entries with old/new values, source, and evidence refs for a project.",
+    promptSnippet: "Use when reconstructing trajectory wording across sessions or verifying exact HLT history.",
+    parameters: Type.Object({
+      project_root: Type.Optional(Type.String({ description: "Project root for HLT history scope." })),
+      continuity_id: Type.Optional(Type.String({ description: "Optional continuity_id filter." })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 500, description: "Max entries to return (defaults to 50)." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (projectRootGate) return projectRootGate;
+      const query = new URLSearchParams();
+      query.set("project_root", String(projectRoot));
+      if (p.continuity_id) query.set("continuity_id", String(p.continuity_id));
+      if (typeof p.limit === "number") query.set("limit", String(Math.min(Math.max(Math.trunc(p.limit), 1), 500)));
+      const result = await focusaFetchDetailed(`/hlt/history?${query.toString()}`);
+      const body = result.body || {};
+      if (!result.ok) {
+        return blockedToolResponse(
+          "focusa_hlt_history",
+          "trajectory",
+          `hlt history blocked → ${explainWorkLoopResult(result, "hlt history unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_trajectory_view", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        canonical: body.canonical === true,
+        degraded: body.degraded === true,
+        summary: `hlt history → project=${projectRoot} continuity=${String(p.continuity_id || "all")} count=${String(body.count || 0)}`,
+        tool: "focusa_hlt_history",
+        family: "trajectory",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_trajectory_view", "focusa_trajectory_define_goal", "focusa_project_verify"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `hlt history → ${projectRoot} continuity=${String(p.continuity_id || "all")} entries=${String(body.count || 0)} ledger=${String(body.ledger_file || "unknown")}` }],
+        details: {
+          ok: true,
+          status: String(body.status || "completed"),
+          endpoint: "/v1/hlt/history",
+          canonical: body.canonical === true,
+          degraded: body.degraded === true,
+          project_root: String(projectRoot),
+          continuity_id: p.continuity_id || body.continuity_id || null,
+          entries: Array.isArray(body.entries) ? body.entries.slice(0, 200) : [],
+          count: body.count || 0,
+          ledger_file: body.ledger_file || null,
+          tool_result_v1: toolResult,
+          next_tools: toolResult.next_tools,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_trajectory_define_goal",
     label: "Trajectory Define Goal",
     description: "Create an advisory per-project Trajectory goal candidate without changing task/execution authority.",

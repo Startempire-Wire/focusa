@@ -32,6 +32,10 @@ The card is advisory-only. Use `focusa_trajectory_define_goal` or `focusa_trajec
 focusa_project_card project_root="/home/wirebot/focusa" current_ask="Choose the next evidence-backed step"
 ```
 
+## Failure recovery
+
+`tool_result_v1.failure_class` is part of the recovery contract. When the card returns a failure (e.g. `project_identity_unverified`, `daemon_unavailable`, `scope_conflict`, `trajectory_unclear`, or `unknown_ambiguous_completion`), call `focusa_project_verify` first and re-run `focusa_project_card`. If trajectory clarity is the blocker, run `focusa_trajectory_define_goal` or `focusa_trajectory_view` and retry. The card is advisory-only and never overrides canonical Workpoint or trajectory envelopes.
+
 ## Contract summary
 
 - Family: Project Identity.

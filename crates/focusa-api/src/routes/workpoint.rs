@@ -2992,7 +2992,9 @@ mod tests {
             Some("agent_runtime_directory")
         );
         assert_eq!(
-            unsafe_project_root_reason(Some("/usr/local/lib/python3.12/site-packages/pi-coding-agent")),
+            unsafe_project_root_reason(Some(
+                "/usr/local/lib/python3.12/site-packages/pi-coding-agent"
+            )),
             Some("agent_runtime_directory")
         );
         assert_eq!(
@@ -3000,7 +3002,10 @@ mod tests {
             Some("agent_runtime_directory")
         );
         // Actual project paths remain valid
-        assert_eq!(unsafe_project_root_reason(Some("/home/wirebot/focusa")), None);
+        assert_eq!(
+            unsafe_project_root_reason(Some("/home/wirebot/focusa")),
+            None
+        );
         assert_eq!(unsafe_project_root_reason(Some("/tmp/my-project")), None);
     }
 

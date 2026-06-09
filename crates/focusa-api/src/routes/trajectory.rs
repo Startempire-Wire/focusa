@@ -328,7 +328,7 @@ fn active_persisted_trajectory<'a>(
 ) -> Option<&'a TrajectoryProjectionRecord> {
     let expected_project_root = clean(project_root)?;
     let expected_continuity_id = clean(continuity_id);
-    
+
     // Per Spec98: FIRST filter by scope, THEN select active from that set.
     // Global active_trajectory_id is NOT authoritative for scoped queries.
     let scoped_records: Vec<&TrajectoryProjectionRecord> = state
@@ -340,20 +340,27 @@ fn active_persisted_trajectory<'a>(
                 && record.continuity_id.as_deref() == expected_continuity_id.as_deref()
         })
         .collect();
-    
+
     if scoped_records.is_empty() {
         return None;
     }
-    
+
     // Check if the global active_trajectory_id is in our scoped set
     if let Some(global_id) = state.trajectory.active_trajectory_id.as_ref() {
-        if let Some(record) = scoped_records.iter().find(|r| &r.trajectory_id == global_id) {
+        if let Some(record) = scoped_records
+            .iter()
+            .find(|r| &r.trajectory_id == global_id)
+        {
             return Some(record);
         }
     }
-    
+
     // Fall back to latest canonical record in scoped set
-    scoped_records.iter().rev().find(|record| record.canonical).copied()
+    scoped_records
+        .iter()
+        .rev()
+        .find(|record| record.canonical)
+        .copied()
 }
 
 fn scoped_trajectory_history(
@@ -1049,7 +1056,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     } else {
         "unbound"
     };
-    let project_identity_status = if raw_identity_status == "verified" && project_identity_quorum_status == "unsafe_project_root" {
+    let project_identity_status = if raw_identity_status == "verified"
+        && project_identity_quorum_status == "unsafe_project_root"
+    {
         // Agent runtime path detected - override to unsafe
         "unsafe_project_root"
     } else if raw_identity_status == "verified" && project_identity_quorum_status == "mismatch" {
@@ -2073,7 +2082,10 @@ async fn define_goal(
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
     // Get old HLT before dispatch (for ledger entry)
-    let old_hlt = focusa.trajectory.records.iter()
+    let old_hlt = focusa
+        .trajectory
+        .records
+        .iter()
         .rev()
         .find(|r| r.project_root.as_ref() == body.project_root.as_ref())
         .map(|r| r.long_term_goal.clone());
@@ -2300,8 +2312,13 @@ async fn hlt_history(
     State(state): State<Arc<AppState>>,
     Query(query): Query<HltHistoryRequest>,
 ) -> Json<Value> {
-    let project_root = query.project_root.as_ref()
-        .and_then(|r| if r.trim().is_empty() { None } else { Some(r.as_str()) });
+    let project_root = query.project_root.as_ref().and_then(|r| {
+        if r.trim().is_empty() {
+            None
+        } else {
+            Some(r.as_str())
+        }
+    });
     if project_root.is_none() {
         return Json(json!({
             "status": "error",
@@ -2311,25 +2328,34 @@ async fn hlt_history(
     }
     let project_root = project_root.unwrap();
     let limit = query.limit.unwrap_or(50).min(500);
-    let continuity_id = query.continuity_id.as_ref()
-        .and_then(|r| if r.trim().is_empty() { None } else { Some(r.as_str()) });
-    let entries = state.persistence
+    let continuity_id = query.continuity_id.as_ref().and_then(|r| {
+        if r.trim().is_empty() {
+            None
+        } else {
+            Some(r.as_str())
+        }
+    });
+    let entries = state
+        .persistence
         .read_hlt_ledger_entries(project_root, continuity_id, limit)
         .unwrap_or_default();
-    let entries_json: Vec<Value> = entries.into_iter().map(|e| {
-        json!({
-            "timestamp": e.timestamp.to_rfc3339(),
-            "event_id": e.event_id,
-            "project_root": e.project_root,
-            "continuity_id": e.continuity_id,
-            "session_id": e.session_id,
-            "old_hlt": e.old_hlt,
-            "new_hlt": e.new_hlt,
-            "source": e.source,
-            "reason": e.reason,
-            "evidence_refs": e.evidence_refs,
+    let entries_json: Vec<Value> = entries
+        .into_iter()
+        .map(|e| {
+            json!({
+                "timestamp": e.timestamp.to_rfc3339(),
+                "event_id": e.event_id,
+                "project_root": e.project_root,
+                "continuity_id": e.continuity_id,
+                "session_id": e.session_id,
+                "old_hlt": e.old_hlt,
+                "new_hlt": e.new_hlt,
+                "source": e.source,
+                "reason": e.reason,
+                "evidence_refs": e.evidence_refs,
+            })
         })
-    }).collect();
+        .collect();
     let ledger_path = state.persistence.hlt_ledger_path_for_project(project_root);
     Json(json!({
         "status": "completed",
