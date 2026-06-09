@@ -46,6 +46,7 @@ If you ship code with AI agents today, you already know these pain points. Focus
 - **65 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer, browser diagnostics intake, predictions, reflex primitives, resource-mode controls, an HLT append-only ledger, and the new Spec 103 Call Stack Design tool.
 - **Spec 103 — Call Stack Architecture Blueprint**: `focusa_call_stack_design` writes a typed, append-only call stack design (entry → handlers → services → adapters → storage → output) for a feature before implementation. The design is linkable as `focusa_evidence` to an active Workpoint and is the first-class artifact an agent consumes before writing code. See `docs/103-call-stack-architecture-blueprint-spec.md`.
 - **Spec 100 — Context Cognition (Phases 1–3)**: `focusa_context_cognition` builds the bounded, advisory `ContextCognitionPacket` (scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, route frame). `focusa_context_cognition_render` returns a compact text render; `focusa_context_cognition_proof` returns bounded proof commands; `focusa_context_cognition_curate` (Phase 3 — Context Curator) does token-budgeted context selection with labeled exclusions (`low_score` / `over_budget`). Never mutates state. The Cognition Optimizer (Phase 5) is the next slice. See `docs/100-context-cognition-spec.md`.
+- **Spec 100 — Context Cognition (Phases 4–5 — feedback loop, CQRS)**: `focusa_context_cognition_curate_eval` (Phase 4) runs a curator eval case, computes precision/recall/F1, appends to `data/curator-eval-ledger/{hash}/eval-runs.jsonl`. `focusa_context_cognition_curate_optimize` (Phase 5) submits a candidate artifact and gets the `promote | rollback` decision per §15 promotion rule, appends to `data/cognition-optimizer-artifacts/{hash}/artifacts.jsonl`. `focusa_context_cognition_optimizer_artifacts` lists the versioned artifact ledger. CQRS read/write split (GET = read, POST = write); see §15.1.
 - **Human-readable templates**: every metacog and predict tool now returns `tool | summary; ids: capture_id=… rehydrate_id=…; fields: lesson=… why=… confidence=…; next: focusa_… → focusa_…` so the operator can pick up the existing hash IDs without digging into details.
 - **Project intelligence flywheel**: `focusa_project_card` fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction stats, outcomes, elapsed/token efficiency, and metacog prompts; `focusa_project_card_outcome` feeds verified outcomes back into learned weights.
 - **Session transfer**: `focusa_session_transfer` provides save/continue semantics for long Pi/Focusa work without forking continuity.
@@ -532,7 +533,7 @@ These docs describe only the current present build/snapshot surfaces:
 
 ### Individual Focusa tool docs
 
-Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **69**.
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **72**.
 
 | Tool | Family | Doc |
 | --- | --- | --- |
@@ -546,6 +547,9 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_context_cognition_render` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_render.md`](docs/focusa-tools/tools/focusa_context_cognition_render.md) |
 | `focusa_context_cognition_proof` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_proof.md`](docs/focusa-tools/tools/focusa_context_cognition_proof.md) |
 | `focusa_context_cognition_curate` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_curate.md`](docs/focusa-tools/tools/focusa_context_cognition_curate.md) |
+| `focusa_context_cognition_curate_eval` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md`](docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md) |
+| `focusa_context_cognition_curate_optimize` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md`](docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md) |
+| `focusa_context_cognition_optimizer_artifacts` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md`](docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md) |
 | `focusa_trajectory_define_goal` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_define_goal.md`](docs/focusa-tools/tools/focusa_trajectory_define_goal.md) |
 | `focusa_trajectory_assess` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_assess.md`](docs/focusa-tools/tools/focusa_trajectory_assess.md) |
 | `focusa_trajectory_propose_workpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md`](docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md) |

@@ -1129,6 +1129,74 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_context_cognition_curate_eval",
+    "label": "Context Cognition Curate Eval",
+    "purpose": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition_curate_eval",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "CuratorEvalCase",
+      "CuratorEvalRun"
+    ],
+    "api_routes": ["POST /v1/context-cognition/curate/eval", "GET /v1/context-cognition/curate/eval/runs"],
+    "cli_commands": ["focusa context-cognition curate-eval", "focusa context-cognition curate-eval-runs"],
+    "core_surface": "Spec100 §15.1 CQRS write side (eval-ledger append-only JSONL)",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_curator_eval",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition/curate/eval safe probe and scope gate"
+  },
+
+  {
+    "name": "focusa_context_cognition_curate_optimize",
+    "label": "Context Cognition Curate Optimize",
+    "purpose": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition_curate_optimize",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "CognitionOptimizerArtifact",
+      "CuratorEvalRun"
+    ],
+    "api_routes": ["POST /v1/context-cognition/curate/optimize"],
+    "cli_commands": ["focusa context-cognition curate-optimize"],
+    "core_surface": "Spec100 §15.1 CQRS write side (artifact ledger append + promotion gate)",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_cognition_optimizer_artifact",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition/curate/optimize safe probe and scope gate"
+  },
+
+  {
+    "name": "focusa_context_cognition_optimizer_artifacts",
+    "label": "Context Cognition Optimizer Artifacts",
+    "purpose": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition_optimizer_artifacts",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "CognitionOptimizerArtifact"
+    ],
+    "api_routes": ["GET /v1/context-cognition/optimizer/artifacts"],
+    "cli_commands": ["focusa context-cognition optimizer artifacts"],
+    "core_surface": "Spec100 §15.1 CQRS read side (artifact ledger)",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition/optimizer/artifacts safe probe and scope gate"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -1618,6 +1686,19 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_context_cognition",
     "focusa_context_cognition_render",
     "focusa_evidence_capture"
+  ],
+  "focusa_context_cognition_curate_eval": [
+    "focusa_context_cognition_curate_optimize",
+    "focusa_metacog_capture",
+    "focusa_predict_record"
+  ],
+  "focusa_context_cognition_curate_optimize": [
+    "focusa_context_cognition_optimizer_artifacts",
+    "focusa_predict_record",
+    "focusa_metacog_capture"
+  ],
+  "focusa_context_cognition_optimizer_artifacts": [
+    "focusa_context_cognition_curate_optimize"
   ],
   "focusa_call_stack_design": [
     "focusa_workpoint_link_evidence",

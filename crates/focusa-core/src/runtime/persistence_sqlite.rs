@@ -8,7 +8,10 @@
 
 use crate::clt::retain_hot_window;
 use crate::sync::{CrdtEvent, VectorClock};
-use crate::types::{CallStackDesign, EventLogEntry, FocusaConfig, FocusaState, SessionId};
+use crate::types::{
+    CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, EventLogEntry, FocusaConfig,
+    FocusaState, SessionId,
+};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use sha2::{Digest, Sha256};
@@ -1137,6 +1140,120 @@ impl SqlitePersistence {
     pub fn call_stack_designs_path_for_project(&self, project_root: &str) -> PathBuf {
         call_stack_designs_dir_for_project(self.data_dir.as_path(), project_root)
             .join("designs.jsonl")
+    }
+}
+
+fn curator_eval_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    project_root.hash(&mut hasher);
+    let hash = format!("{:016x}", hasher.finish());
+    data_dir.join(format!("curator-eval-ledger/{}", hash))
+}
+
+fn cognition_optimizer_artifacts_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    project_root.hash(&mut hasher);
+    let hash = format!("{:016x}", hasher.finish());
+    data_dir.join(format!("cognition-optimizer-artifacts/{}", hash))
+}
+
+impl SqlitePersistence {
+    /// Append a CuratorEvalRun to the scope-bounded JSONL ledger.
+    pub fn append_curator_eval_run(&self, run: &CuratorEvalRun) -> anyhow::Result<()> {
+        let ledger_dir =
+            curator_eval_ledger_dir_for_project(&self.data_dir, &run.project_root);
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("eval-runs.jsonl");
+        let line = serde_json::to_string(run)?;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        writeln!(file, "{}", line)?;
+        debug!("Appended CuratorEvalRun to {:?}", ledger_file);
+        Ok(())
+    }
+
+    /// Read recent CuratorEvalRuns for a project (most recent last).
+    pub fn read_curator_eval_runs(
+        &self,
+        project_root: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<CuratorEvalRun>> {
+        let ledger_dir = curator_eval_ledger_dir_for_project(&self.data_dir, project_root);
+        let ledger_file = ledger_dir.join("eval-runs.jsonl");
+        if !ledger_file.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&ledger_file)?;
+        let mut entries: Vec<CuratorEvalRun> = content
+            .lines()
+            .filter_map(|line| serde_json::from_str(line).ok())
+            .collect();
+        let start = entries.len().saturating_sub(limit);
+        entries = entries[start..].to_vec();
+        Ok(entries)
+    }
+
+    /// Get the latest promoted CognitionOptimizerArtifact for a project+module.
+    pub fn latest_promoted_artifact(
+        &self,
+        project_root: &str,
+        module_name: &str,
+    ) -> anyhow::Result<Option<CognitionOptimizerArtifact>> {
+        let entries = self.read_cognition_optimizer_artifacts(project_root, module_name, 50)?;
+        Ok(entries.into_iter().rev().find(|a| a.promoted))
+    }
+
+    /// Append a CognitionOptimizerArtifact to the scope-bounded JSONL ledger.
+    pub fn append_cognition_optimizer_artifact(
+        &self,
+        artifact: &CognitionOptimizerArtifact,
+    ) -> anyhow::Result<()> {
+        let ledger_dir = cognition_optimizer_artifacts_dir_for_project(
+            &self.data_dir,
+            &artifact.project_root,
+        );
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("artifacts.jsonl");
+        let line = serde_json::to_string(artifact)?;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        writeln!(file, "{}", line)?;
+        debug!("Appended CognitionOptimizerArtifact to {:?}", ledger_file);
+        Ok(())
+    }
+
+    /// Read recent CognitionOptimizerArtifacts for a project+module.
+    pub fn read_cognition_optimizer_artifacts(
+        &self,
+        project_root: &str,
+        module_name: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<CognitionOptimizerArtifact>> {
+        let ledger_dir =
+            cognition_optimizer_artifacts_dir_for_project(&self.data_dir, project_root);
+        let ledger_file = ledger_dir.join("artifacts.jsonl");
+        if !ledger_file.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&ledger_file)?;
+        let mut entries: Vec<CognitionOptimizerArtifact> = content
+            .lines()
+            .filter_map(|line| serde_json::from_str(line).ok())
+            .filter(|a: &CognitionOptimizerArtifact| a.module_name == module_name)
+            .collect();
+        let start = entries.len().saturating_sub(limit);
+        entries = entries[start..].to_vec();
+        Ok(entries)
     }
 }
 

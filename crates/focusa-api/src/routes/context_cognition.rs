@@ -15,11 +15,11 @@ use crate::server::AppState;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::Utc;
 use focusa_core::types::{
-    ContextCognitionAuthority, ContextCognitionEvidenceFrame, ContextCognitionFreshness,
-    ContextCognitionOntologyFrame, ContextCognitionOptimizationFrame,
-    ContextCognitionReasoningFrame, ContextCognitionRecommendedPacketUse,
-    ContextCognitionRouteFrame, ContextCognitionScope, ContextCognitionSelectedContext,
-    ContextCognitionPacket,
+    CognitionOptimizerArtifact, ContextCognitionAuthority, ContextCognitionEvidenceFrame,
+    ContextCognitionFreshness, ContextCognitionOntologyFrame,
+    ContextCognitionOptimizationFrame, ContextCognitionReasoningFrame,
+    ContextCognitionRecommendedPacketUse, ContextCognitionRouteFrame, ContextCognitionScope,
+    ContextCognitionSelectedContext, ContextCognitionPacket, CuratorEvalRun,
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -40,6 +40,22 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route(
             "/v1/context-cognition/curate",
             axum::routing::post(curate),
+        )
+        .route(
+            "/v1/context-cognition/curate/eval",
+            axum::routing::post(curate_eval),
+        )
+        .route(
+            "/v1/context-cognition/curate/eval/runs",
+            axum::routing::get(curate_eval_runs),
+        )
+        .route(
+            "/v1/context-cognition/optimizer/artifacts",
+            axum::routing::get(optimizer_artifacts),
+        )
+        .route(
+            "/v1/context-cognition/curate/optimize",
+            axum::routing::post(curate_optimize),
         )
 }
 
@@ -733,5 +749,494 @@ async fn curate(
             "focusa_evidence_capture"
         ],
         "rehydrate_id": format!("ctx_curate:{}:{}", project_root, selected.len()),
+    })))
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+pub struct CurateEvalRequest {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub case_id: Option<String>,
+    pub target: Option<String>,
+    pub token_budget: Option<usize>,
+    pub candidates: Option<Vec<CurateCandidate>>,
+    pub evidence_refs: Option<Vec<String>>,
+    pub expected_selected_paths: Option<Vec<String>>,
+    pub score_threshold: Option<f64>,
+    pub baseline_f1: Option<f64>,
+}
+
+fn compute_f1(precision: f64, recall: f64) -> f64 {
+    if precision + recall == 0.0 {
+        0.0
+    } else {
+        2.0 * precision * recall / (precision + recall)
+    }
+}
+
+fn compute_precision_recall(
+    selected: &[String],
+    expected: &[String],
+) -> (f64, f64) {
+    if expected.is_empty() {
+        return (0.0, 0.0);
+    }
+    let expected_set: std::collections::HashSet<&String> = expected.iter().collect();
+    let selected_set: std::collections::HashSet<&String> = selected.iter().collect();
+    let tp = selected_set.intersection(&expected_set).count();
+    let precision = if selected.is_empty() { 0.0 } else { tp as f64 / selected.len() as f64 };
+    let recall = tp as f64 / expected.len() as f64;
+    (precision, recall)
+}
+
+async fn curate_eval(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CurateEvalRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = body
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("")
+        .to_string();
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(&project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+
+    let case_id = body
+        .case_id
+        .clone()
+        .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
+    let target = body.target.clone().unwrap_or_default();
+    let token_budget = body.token_budget.unwrap_or(2000);
+    let score_threshold = body.score_threshold.unwrap_or(0.5);
+    let baseline_f1 = body.baseline_f1.unwrap_or(0.0);
+    let expected = body.expected_selected_paths.clone().unwrap_or_default();
+    let evidence_refs: Vec<String> = body.evidence_refs.clone().unwrap_or_default();
+
+    // Reuse the curate handler logic by re-running it. Build the request
+    // shape and call the same scoring code path.
+    let candidates: Vec<CurateCandidate> = body.candidates.clone().unwrap_or_default();
+    let tokens_estimated: Vec<CurateCandidate> = candidates
+        .into_iter()
+        .map(|mut c| {
+            if c.tokens.is_none() {
+                c.tokens = Some(estimate_tokens(c.body.as_deref().unwrap_or("")));
+            }
+            c
+        })
+        .collect();
+    let mut scored: Vec<(f64, &CurateCandidate)> = tokens_estimated
+        .iter()
+        .map(|c| (score_candidate(&target, c), c))
+        .collect();
+    let evidence_set: std::collections::HashSet<String> = evidence_refs.iter().cloned().collect();
+    for (s, c) in scored.iter_mut() {
+        if let Some(er) = c.evidence_ref.as_ref() {
+            if evidence_set.contains(er) {
+                *s += 1.0;
+            }
+        }
+    }
+    scored.sort_by(|a, b| {
+        b.0.partial_cmp(&a.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.1.tokens.unwrap_or(0).cmp(&b.1.tokens.unwrap_or(0)))
+    });
+
+    let mut selected_paths: Vec<String> = Vec::new();
+    let mut used: usize = 0;
+    for (score, cand) in scored.iter() {
+        let cand_tokens = cand.tokens.unwrap_or(0);
+        if used + cand_tokens <= token_budget {
+            used += cand_tokens;
+            selected_paths.push(cand.path.clone());
+        } else if *score < 2.0 {
+            // Drop low-score items; preserve selected_paths for scoring.
+            let _ = score;
+        }
+    }
+
+    let (precision, recall) = compute_precision_recall(&selected_paths, &expected);
+    let f1 = compute_f1(precision, recall);
+    let promoted = f1 > baseline_f1 && f1 >= score_threshold;
+
+    let run = CuratorEvalRun {
+        run_id: uuid::Uuid::now_v7().to_string(),
+        case_id: case_id.clone(),
+        project_root: project_root.clone(),
+        continuity_id: body.continuity_id.clone(),
+        target: target.clone(),
+        selected_paths: selected_paths.clone(),
+        expected_paths: expected.clone(),
+        precision,
+        recall,
+        f1,
+        baseline_f1,
+        tokens_used: used,
+        score_threshold,
+        promoted,
+        created_at: chrono::Utc::now(),
+    };
+
+    if let Err(e) = state.persistence.append_curator_eval_run(&run) {
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "blocked",
+                "failure_class": "storage_unwritable",
+                "message": format!("append failed: {}", e),
+            }),
+        ));
+    }
+
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "run_id": run.run_id,
+        "case_id": case_id,
+        "selected_paths": selected_paths,
+        "expected_paths": expected,
+        "tokens_used": used,
+        "token_budget": token_budget,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "baseline_f1": baseline_f1,
+        "score_threshold": score_threshold,
+        "promoted": promoted,
+        "eval_ref": format!("curator-eval:{}:{}", project_root, run.run_id),
+        "next_tools": [
+            "focusa_context_cognition_curate_optimize",
+            "focusa_metacog_capture",
+            "focusa_evidence_capture"
+        ],
+        "rehydrate_id": run.run_id,
+    })))
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+pub struct CurateEvalRunsRequest {
+    pub project_root: Option<String>,
+    pub limit: Option<usize>,
+}
+
+async fn curate_eval_runs(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<CurateEvalRunsRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = query
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("")
+        .to_string();
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(&project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+    let limit = query.limit.unwrap_or(10).min(200);
+    let runs = state
+        .persistence
+        .read_curator_eval_runs(&project_root, limit)
+        .unwrap_or_default();
+    let summary: Vec<Value> = runs
+        .iter()
+        .map(|r| {
+            json!({
+                "run_id": r.run_id,
+                "case_id": r.case_id,
+                "target": r.target,
+                "selected_count": r.selected_paths.len(),
+                "expected_count": r.expected_paths.len(),
+                "precision": r.precision,
+                "recall": r.recall,
+                "f1": r.f1,
+                "baseline_f1": r.baseline_f1,
+                "tokens_used": r.tokens_used,
+                "score_threshold": r.score_threshold,
+                "promoted": r.promoted,
+                "created_at": r.created_at,
+            })
+        })
+        .collect();
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "project_root": project_root,
+        "count": runs.len(),
+        "runs": summary,
+        "rehydrate_id": runs.last().map(|r| r.run_id.clone()).unwrap_or_else(|| "no_runs".to_string()),
+    })))
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+pub struct OptimizerArtifactsRequest {
+    pub project_root: Option<String>,
+    pub module_name: Option<String>,
+    pub limit: Option<usize>,
+}
+
+async fn optimizer_artifacts(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<OptimizerArtifactsRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = query
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("")
+        .to_string();
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(&project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+    let module_name = query
+        .module_name
+        .clone()
+        .unwrap_or_else(|| "curator".to_string());
+    let limit = query.limit.unwrap_or(10).min(200);
+    let artifacts = state
+        .persistence
+        .read_cognition_optimizer_artifacts(&project_root, &module_name, limit)
+        .unwrap_or_default();
+    let summary: Vec<Value> = artifacts
+        .iter()
+        .map(|a| {
+            json!({
+                "artifact_id": a.artifact_id,
+                "module_name": a.module_name,
+                "prompt_artifact_ref": a.prompt_artifact_ref,
+                "eval_score": a.eval_score,
+                "baseline_score": a.baseline_score,
+                "promoted": a.promoted,
+                "rollback_ref": a.rollback_ref,
+                "eval_run_id": a.eval_run_id,
+                "created_at": a.created_at,
+                "promoted_at": a.promoted_at,
+            })
+        })
+        .collect();
+    let latest_promoted = artifacts.iter().rev().find(|a| a.promoted).cloned();
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "project_root": project_root,
+        "module_name": module_name,
+        "count": artifacts.len(),
+        "artifacts": summary,
+        "latest_promoted": latest_promoted,
+        "rehydrate_id": artifacts.last().map(|a| a.artifact_id.clone()).unwrap_or_else(|| "no_artifacts".to_string()),
+    })))
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+pub struct CurateOptimizeRequest {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub module_name: Option<String>,
+    pub prompt_artifact_ref: Option<String>,
+    pub eval_score: Option<f64>,
+    pub baseline_score: Option<f64>,
+    pub eval_run_id: Option<String>,
+    pub score_threshold: Option<f64>,
+    pub rollback: Option<bool>,
+}
+
+async fn curate_optimize(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CurateOptimizeRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = body
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("")
+        .to_string();
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(&project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+
+    let module_name = body.module_name.clone().unwrap_or_else(|| "curator".to_string());
+    let prompt_artifact_ref = body
+        .prompt_artifact_ref
+        .clone()
+        .ok_or_else(|| {
+            rejection(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                json!({
+                    "status": "validation_rejected",
+                    "failure_class": "prompt_artifact_ref_missing",
+                    "field": "prompt_artifact_ref",
+                }),
+            )
+        })?;
+    let eval_score = body.eval_score.ok_or_else(|| {
+        rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "eval_score_missing",
+                "field": "eval_score",
+            }),
+        )
+    })?;
+    let baseline_score = body.baseline_score.unwrap_or(0.0);
+    let score_threshold = body.score_threshold.unwrap_or(0.5);
+    let explicit_rollback = body.rollback.unwrap_or(false);
+
+    // Determine the latest promoted artifact to use as the rollback_ref
+    // (or as the comparison baseline for promotion).
+    let latest_promoted = state
+        .persistence
+        .latest_promoted_artifact(&project_root, &module_name)
+        .unwrap_or(None);
+    let rollback_ref = latest_promoted.as_ref().map(|a| a.artifact_id.clone());
+
+    // Promotion rule (Spec 100 §15):
+    // - promoted=true when eval_score > baseline_score AND eval_score >= score_threshold
+    // - explicit rollback overrides to promoted=false
+    let promoted = if explicit_rollback {
+        false
+    } else {
+        eval_score > baseline_score && eval_score >= score_threshold
+    };
+    let decision = if explicit_rollback {
+        "rollback"
+    } else if promoted {
+        "promote"
+    } else {
+        "rollback"
+    };
+
+    let now = chrono::Utc::now();
+    let artifact = CognitionOptimizerArtifact {
+        artifact_id: uuid::Uuid::now_v7().to_string(),
+        module_name: module_name.clone(),
+        project_root: project_root.clone(),
+        prompt_artifact_ref,
+        eval_score,
+        baseline_score,
+        promoted,
+        rollback_ref: rollback_ref.clone(),
+        eval_run_id: body.eval_run_id.clone(),
+        created_at: now,
+        promoted_at: if promoted { Some(now) } else { None },
+    };
+
+    if let Err(e) = state
+        .persistence
+        .append_cognition_optimizer_artifact(&artifact)
+    {
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "blocked",
+                "failure_class": "storage_unwritable",
+                "message": format!("append failed: {}", e),
+            }),
+        ));
+    }
+
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "artifact_id": artifact.artifact_id,
+        "module_name": module_name,
+        "decision": decision,
+        "promoted": promoted,
+        "eval_score": eval_score,
+        "baseline_score": baseline_score,
+        "score_threshold": score_threshold,
+        "rollback_ref": rollback_ref,
+        "eval_run_id": body.eval_run_id,
+        "rehydrate_id": artifact.artifact_id,
+        "next_tools": [
+            "focusa_context_cognition_optimizer_artifacts",
+            "focusa_predict_record",
+            "focusa_metacog_capture"
+        ],
     })))
 }

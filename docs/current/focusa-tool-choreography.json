@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 69,
-  "edge_count": 209,
+  "tool_count": 72,
+  "edge_count": 216,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -140,6 +140,19 @@
       "focusa_context_cognition",
       "focusa_context_cognition_render",
       "focusa_evidence_capture"
+    ],
+    "focusa_context_cognition_curate_eval": [
+      "focusa_context_cognition_curate_optimize",
+      "focusa_metacog_capture",
+      "focusa_predict_record"
+    ],
+    "focusa_context_cognition_curate_optimize": [
+      "focusa_context_cognition_optimizer_artifacts",
+      "focusa_predict_record",
+      "focusa_metacog_capture"
+    ],
+    "focusa_context_cognition_optimizer_artifacts": [
+      "focusa_context_cognition_curate_optimize"
     ],
     "focusa_call_stack_design": [
       "focusa_workpoint_link_evidence",
@@ -701,6 +714,48 @@
       "from": "focusa_context_cognition_curate",
       "to": "focusa_evidence_capture",
       "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate_eval",
+      "to": "focusa_context_cognition_curate_optimize",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate_eval",
+      "to": "focusa_metacog_capture",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate_eval",
+      "to": "focusa_predict_record",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate_optimize",
+      "to": "focusa_context_cognition_optimizer_artifacts",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate_optimize",
+      "to": "focusa_predict_record",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate_optimize",
+      "to": "focusa_metacog_capture",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_optimizer_artifacts",
+      "to": "focusa_context_cognition_curate_optimize",
+      "weight": 10,
       "reason": "static_next_tool_route"
     },
     {

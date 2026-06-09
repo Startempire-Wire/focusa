@@ -42,6 +42,58 @@ pub enum ContextCognitionCmd {
         #[arg(long)]
         candidates_json: Option<String>,
     },
+    /// Run a curator eval case and compute precision/recall/F1 (Spec 100 Phase 4).
+    CurateEval {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        target: Option<String>,
+        #[arg(long, default_value = "2000")]
+        token_budget: usize,
+        #[arg(long)]
+        candidates_json: Option<String>,
+        #[arg(long)]
+        expected_json: Option<String>,
+        #[arg(long, default_value = "0.5")]
+        score_threshold: f64,
+        #[arg(long, default_value = "0.0")]
+        baseline_f1: f64,
+    },
+    /// List recent curator eval runs for a project (Spec 100 Phase 4).
+    CurateEvalRuns {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long, default_value = "10")]
+        limit: usize,
+    },
+    /// List Cognition Optimizer artifacts for a project+module (Spec 100 Phase 5).
+    OptimizerArtifacts {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long, default_value = "curator")]
+        module_name: String,
+        #[arg(long, default_value = "10")]
+        limit: usize,
+    },
+    /// Submit a Cognition Optimizer artifact and get the promote/rollback decision (Spec 100 Phase 5).
+    CurateOptimize {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        prompt_artifact_ref: String,
+        #[arg(long, default_value = "curator")]
+        module_name: String,
+        #[arg(long)]
+        eval_score: f64,
+        #[arg(long, default_value = "0.0")]
+        baseline_score: f64,
+        #[arg(long, default_value = "0.5")]
+        score_threshold: f64,
+        #[arg(long)]
+        eval_run_id: Option<String>,
+        #[arg(long)]
+        rollback: bool,
+    },
 }
 
 pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow::Result<()> {
@@ -126,6 +178,100 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             print_curated_human(&resp);
             Ok(())
         }
+        ContextCognitionCmd::CurateEval {
+            project_root,
+            target,
+            token_budget,
+            candidates_json,
+            expected_json,
+            score_threshold,
+            baseline_f1,
+        } => {
+            let project_root = project_root.ok_or_else(|| {
+                anyhow::anyhow!("--project-root is required for curate-eval")
+            })?;
+            let candidates: Vec<Value> = match candidates_json.as_deref() {
+                Some(s) => serde_json::from_str(s)
+                    .map_err(|e| anyhow::anyhow!("invalid --candidates-json: {e}"))?,
+                None => Vec::new(),
+            };
+            let expected: Vec<String> = match expected_json.as_deref() {
+                Some(s) => serde_json::from_str(s)
+                    .map_err(|e| anyhow::anyhow!("invalid --expected-json: {e}"))?,
+                None => Vec::new(),
+            };
+            let body = serde_json::json!({
+                "project_root": project_root,
+                "target": target,
+                "token_budget": token_budget,
+                "candidates": candidates,
+                "expected_selected_paths": expected,
+                "score_threshold": score_threshold,
+                "baseline_f1": baseline_f1,
+            });
+            let resp = client.post("/v1/context-cognition/curate/eval", &body).await?;
+            print_eval_human(&resp);
+            Ok(())
+        }
+        ContextCognitionCmd::CurateEvalRuns {
+            project_root,
+            limit,
+        } => {
+            let project_root = project_root.ok_or_else(|| {
+                anyhow::anyhow!("--project-root is required for curate-eval-runs")
+            })?;
+            let body = serde_json::json!({
+                "project_root": project_root,
+                "limit": limit,
+            });
+            let resp = client.get(&format!("/v1/context-cognition/curate/eval/runs?project_root={project_root}&limit={limit}")).await?;
+            println!("{}", serde_json::to_string_pretty(&resp)?);
+            Ok(())
+        }
+        ContextCognitionCmd::OptimizerArtifacts {
+            project_root,
+            module_name,
+            limit,
+        } => {
+            let project_root = project_root.ok_or_else(|| {
+                anyhow::anyhow!("--project-root is required for optimizer-artifacts")
+            })?;
+            let body = serde_json::json!({
+                "project_root": project_root,
+                "module_name": module_name,
+                "limit": limit,
+            });
+            let resp = client.get(&format!("/v1/context-cognition/optimizer/artifacts?project_root={project_root}&module_name={module_name}&limit={limit}")).await?;
+            println!("{}", serde_json::to_string_pretty(&resp)?);
+            Ok(())
+        }
+        ContextCognitionCmd::CurateOptimize {
+            project_root,
+            prompt_artifact_ref,
+            module_name,
+            eval_score,
+            baseline_score,
+            score_threshold,
+            eval_run_id,
+            rollback,
+        } => {
+            let project_root = project_root.ok_or_else(|| {
+                anyhow::anyhow!("--project-root is required for curate-optimize")
+            })?;
+            let body = serde_json::json!({
+                "project_root": project_root,
+                "module_name": module_name,
+                "prompt_artifact_ref": prompt_artifact_ref,
+                "eval_score": eval_score,
+                "baseline_score": baseline_score,
+                "score_threshold": score_threshold,
+                "eval_run_id": eval_run_id,
+                "rollback": rollback,
+            });
+            let resp = client.post("/v1/context-cognition/curate/optimize", &body).await?;
+            print_optimize_human(&resp);
+            Ok(())
+        }
     }
 }
 
@@ -174,6 +320,83 @@ fn print_curated_human(payload: &Value) {
             println!("  excluded: {path} reason={reason}");
         }
     }
+}
+
+fn print_eval_human(payload: &Value) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let run_id = payload
+        .get("run_id")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let precision = payload.get("precision").and_then(Value::as_f64).unwrap_or(0.0);
+    let recall = payload.get("recall").and_then(Value::as_f64).unwrap_or(0.0);
+    let f1 = payload.get("f1").and_then(Value::as_f64).unwrap_or(0.0);
+    let baseline_f1 = payload
+        .get("baseline_f1")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let tokens_used = payload.get("tokens_used").and_then(Value::as_u64).unwrap_or(0);
+    let promovido = payload
+        .get("promoted")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    println!(
+        "context cognition curate-eval {status} | run_id={run_id} precision={precision:.2} recall={recall:.2} f1={f1:.2} baseline_f1={baseline_f1:.2}"
+    );
+    println!(
+        "fields: tokens_used={tokens_used} promoted={} rehydrate_id={}",
+        if promovido { "yes" } else { "no" },
+        run_id
+    );
+    if let Some(arr) = payload.get("selected_paths").and_then(Value::as_array) {
+        for p in arr.iter().take(5) {
+            if let Some(s) = p.as_str() {
+                println!("  selected: {s}");
+            }
+        }
+    }
+}
+
+fn print_optimize_human(payload: &Value) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let artifact_id = payload
+        .get("artifact_id")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let decision = payload
+        .get("decision")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let eval_score = payload.get("eval_score").and_then(Value::as_f64).unwrap_or(0.0);
+    let baseline_score = payload
+        .get("baseline_score")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let score_threshold = payload
+        .get("score_threshold")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let rollback_ref = payload
+        .get("rollback_ref")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let promoted = payload
+        .get("promoted")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    println!(
+        "context cognition curate-optimize {status} | decision={decision} artifact_id={artifact_id}"
+    );
+    println!(
+        "fields: eval_score={eval_score:.2} baseline_score={baseline_score:.2} score_threshold={score_threshold:.2} rollback_ref={rollback_ref} promoted={}",
+        if promoted { "yes" } else { "no" }
+    );
 }
 
 fn build_query(base: &str, project_root: Option<String>, continuity_id: Option<String>) -> String {

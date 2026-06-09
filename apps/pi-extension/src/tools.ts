@@ -5013,6 +5013,320 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_context_cognition_curate_eval",
+    label: "Context Cognition Curate Eval",
+    description: "Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold).",
+    promptSnippet: "Use when measuring whether the curator's selection matches an operator's expected selection. Captures the result as a focusa_metacog_capture lesson and a focusa_predict_record prediction.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+      case_id: Type.Optional(Type.String({ description: "Optional case id; defaults to a generated UUID." })),
+      target: Type.Optional(Type.String({ description: "Curator target string." })),
+      token_budget: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000000, description: "Token budget for the selection. Defaults to 2000." })),
+      candidates: Type.Optional(Type.Array(Type.Object({
+        kind: Type.String(),
+        path: Type.String(),
+        body: Type.Optional(Type.String()),
+        evidence_ref: Type.Optional(Type.String()),
+        tokens: Type.Optional(Type.Integer()),
+      }))),
+      expected_selected_paths: Type.Optional(Type.Array(Type.String(), { description: "Operator-supplied expected selected paths for precision/recall/F1." })),
+      score_threshold: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "F1 threshold for promotion. Defaults to 0.5." })),
+      baseline_f1: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "Baseline F1 to beat. Defaults to 0.0." })),
+      evidence_refs: Type.Optional(Type.Array(Type.String())),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition_curate_eval", params, [
+        "project_root", "continuity_id", "case_id", "target", "token_budget",
+        "candidates", "expected_selected_paths", "score_threshold", "baseline_f1", "evidence_refs",
+      ]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition_curate_eval", "/v1/context-cognition/curate/eval", params as Record<string, any>, "context cognition curate eval", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const body: Record<string, any> = {
+        project_root: String(projectRoot),
+        continuity_id: (keyCheck.value as any).continuity_id ?? null,
+        case_id: (keyCheck.value as any).case_id ?? null,
+        target: (keyCheck.value as any).target ?? null,
+        token_budget: (keyCheck.value as any).token_budget ?? 2000,
+        candidates: Array.isArray((keyCheck.value as any).candidates) ? (keyCheck.value as any).candidates : [],
+        expected_selected_paths: Array.isArray((keyCheck.value as any).expected_selected_paths) ? (keyCheck.value as any).expected_selected_paths : [],
+        score_threshold: (keyCheck.value as any).score_threshold ?? 0.5,
+        baseline_f1: (keyCheck.value as any).baseline_f1 ?? 0.0,
+        evidence_refs: Array.isArray((keyCheck.value as any).evidence_refs) ? (keyCheck.value as any).evidence_refs : [],
+      };
+      const res = await focusaFetchDetailed("/context-cognition/curate/eval", { method: "POST", body: JSON.stringify(body) });
+      const resp = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition_curate_eval",
+          "trajectory",
+          `context cognition curate eval blocked → ${explainWorkLoopResult(res, "curate eval unavailable")}`,
+          resp.failure_class || "daemon_unavailable",
+          resp,
+          ["focusa_context_cognition", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const runId = String(resp.run_id || "none");
+      const evalRef = String(resp.eval_ref || "none");
+      const f1 = Number(resp.f1 || 0);
+      const precision = Number(resp.precision || 0);
+      const recall = Number(resp.recall || 0);
+      const baselineF1 = Number(resp.baseline_f1 || 0);
+      const promovido = Boolean(resp.promoted);
+      const tokensUsed = Number(resp.tokens_used || 0);
+      const toolResult = resp.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `context cognition curate eval → f1=${f1.toFixed(2)} promoted=${promovido ? "yes" : "no"}`,
+        tool: "focusa_context_cognition_curate_eval",
+        family: "trajectory",
+        side_effects: ["curator_eval_append"],
+        evidence_refs: [evalRef],
+        next_tools: ["focusa_context_cognition_curate_optimize", "focusa_metacog_capture", "focusa_predict_record"],
+        raw: resp,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition_curate_eval",
+            summary: `context cognition curate eval → f1=${f1.toFixed(2)} promoted=${promovido ? "yes" : "no"}`,
+            ids: [
+              { label: "run_id", value: runId },
+              { label: "eval_ref", value: evalRef },
+              { label: "rehydrate_id", value: runId },
+            ],
+            fields: [
+              { label: "f1", value: Number(f1.toFixed(3)) },
+              { label: "precision", value: Number(precision.toFixed(3)) },
+              { label: "recall", value: Number(recall.toFixed(3)) },
+              { label: "baseline_f1", value: Number(baselineF1.toFixed(3)) },
+              { label: "tokens_used", value: tokensUsed },
+              { label: "promoted", value: promovido ? "yes" : "no" },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_context_cognition_curate_optimize", "focusa_metacog_capture", "focusa_predict_record"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition/curate/eval",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          run_id: runId,
+          eval_ref: evalRef,
+          precision, recall, f1, baseline_f1: baselineF1,
+          tokens_used: tokensUsed,
+          promoted: promovido,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_context_cognition_curate_optimize",
+    label: "Context Cognition Curate Optimize",
+    description: "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision. Returns the decision per the §15 promotion rule (eval_score > baseline_score AND eval_score >= score_threshold). Appends to cognition-optimizer-artifacts/{hash}/artifacts.jsonl.",
+    promptSnippet: "Use after focusa_context_cognition_curate_eval when the operator has a candidate prompt/module artifact and wants the curator's promotion/rollback decision.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+      module_name: Type.Optional(Type.String({ description: "Module name (default: curator)." })),
+      prompt_artifact_ref: Type.String({ minLength: 1, maxLength: 4096, description: "Path or ref id of the candidate prompt/module artifact." }),
+      eval_score: Type.Number({ minimum: 0, maximum: 1, description: "Candidate artifact's eval F1 score." }),
+      baseline_score: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "Baseline F1 to beat. Defaults to 0.0." })),
+      score_threshold: Type.Optional(Type.Number({ minimum: 0, maximum: 1, description: "F1 threshold for promotion. Defaults to 0.5." })),
+      eval_run_id: Type.Optional(Type.String({ description: "Optional CuratorEvalRun id that produced eval_score." })),
+      rollback: Type.Optional(Type.Boolean({ description: "Explicit rollback override. Defaults to false." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition_curate_optimize", params, [
+        "project_root", "continuity_id", "module_name", "prompt_artifact_ref",
+        "eval_score", "baseline_score", "score_threshold", "eval_run_id", "rollback",
+      ]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition_curate_optimize", "/v1/context-cognition/curate/optimize", params as Record<string, any>, "context cognition curate optimize", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const body: Record<string, any> = {
+        project_root: String(projectRoot),
+        continuity_id: (keyCheck.value as any).continuity_id ?? null,
+        module_name: (keyCheck.value as any).module_name ?? "curator",
+        prompt_artifact_ref: (keyCheck.value as any).prompt_artifact_ref,
+        eval_score: (keyCheck.value as any).eval_score,
+        baseline_score: (keyCheck.value as any).baseline_score ?? 0.0,
+        score_threshold: (keyCheck.value as any).score_threshold ?? 0.5,
+        eval_run_id: (keyCheck.value as any).eval_run_id ?? null,
+        rollback: Boolean((keyCheck.value as any).rollback),
+      };
+      const res = await focusaFetchDetailed("/context-cognition/curate/optimize", { method: "POST", body: JSON.stringify(body) });
+      const resp = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition_curate_optimize",
+          "trajectory",
+          `context cognition curate optimize blocked → ${explainWorkLoopResult(res, "curate optimize unavailable")}`,
+          resp.failure_class || "daemon_unavailable",
+          resp,
+          ["focusa_context_cognition_curate_eval", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const artifactId = String(resp.artifact_id || "none");
+      const decision = String(resp.decision || "unknown");
+      const evalScore = Number(resp.eval_score || 0);
+      const baselineScore = Number(resp.baseline_score || 0);
+      const promovido = Boolean(resp.promoted);
+      const rollbackRef = String(resp.rollback_ref || "none");
+      const toolResult = resp.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `context cognition curate optimize → decision=${decision} promoted=${promovido ? "yes" : "no"}`,
+        tool: "focusa_context_cognition_curate_optimize",
+        family: "trajectory",
+        side_effects: ["cognition_optimizer_artifact_append"],
+        evidence_refs: [artifactId],
+        next_tools: ["focusa_context_cognition_optimizer_artifacts", "focusa_predict_record", "focusa_metacog_capture"],
+        raw: resp,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition_curate_optimize",
+            summary: `context cognition curate optimize → decision=${decision} promoted=${promovido ? "yes" : "no"}`,
+            ids: [
+              { label: "artifact_id", value: artifactId },
+              { label: "rehydrate_id", value: artifactId },
+              { label: "rollback_ref", value: rollbackRef },
+            ],
+            fields: [
+              { label: "decision", value: decision },
+              { label: "eval_score", value: Number(evalScore.toFixed(3)) },
+              { label: "baseline_score", value: Number(baselineScore.toFixed(3)) },
+              { label: "promoted", value: promovido ? "yes" : "no" },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_context_cognition_optimizer_artifacts", "focusa_predict_record", "focusa_metacog_capture"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition/curate/optimize",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          artifact_id: artifactId,
+          decision,
+          eval_score: evalScore,
+          baseline_score: baselineScore,
+          promoted: promovido,
+          rollback_ref: rollbackRef,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_context_cognition_optimizer_artifacts",
+    label: "Context Cognition Optimizer Artifacts",
+    description: "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. Returns the recent artifact list and the latest promoted artifact (if any).",
+    promptSnippet: "Use when checking which Cognition Optimizer artifact is currently promoted for a project, or when reviewing the artifact history for rollback decisions.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root. Defaults to Pi session cwd." })),
+      module_name: Type.Optional(Type.String({ description: "Module name (default: curator)." })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200, description: "Max artifacts to return (default 10)." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition_optimizer_artifacts", params, ["project_root", "module_name", "limit"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition_optimizer_artifacts", "/v1/context-cognition/optimizer/artifacts", params as Record<string, any>, "context cognition optimizer artifacts", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const query = new URLSearchParams();
+      query.set("project_root", String(projectRoot));
+      const moduleName = (keyCheck.value as any).module_name ?? "curator";
+      query.set("module_name", String(moduleName));
+      query.set("limit", String((keyCheck.value as any).limit ?? 10));
+      const res = await focusaFetchDetailed(`/context-cognition/optimizer/artifacts?${query.toString()}`);
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition_optimizer_artifacts",
+          "trajectory",
+          `context cognition optimizer artifacts blocked → ${explainWorkLoopResult(res, "optimizer artifacts unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const artifacts = Array.isArray(body.artifacts) ? body.artifacts : [];
+      const latestPromoted = body.latest_promoted ?? null;
+      const rehydrate = String(body.rehydrate_id || "no_artifacts");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `optimizer artifacts → count=${artifacts.length} module=${moduleName}`,
+        tool: "focusa_context_cognition_optimizer_artifacts",
+        family: "trajectory",
+        side_effects: [],
+        evidence_refs: latestPromoted ? [String(latestPromoted.artifact_id)] : [],
+        next_tools: ["focusa_context_cognition_curate_optimize"],
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition_optimizer_artifacts",
+            summary: `optimizer artifacts → count=${artifacts.length} module=${moduleName}`,
+            ids: [
+              { label: "rehydrate_id", value: rehydrate },
+              { label: "latest_promoted_id", value: latestPromoted ? String(latestPromoted.artifact_id) : "none" },
+            ],
+            fields: [
+              { label: "count", value: artifacts.length },
+              { label: "module_name", value: moduleName },
+              { label: "latest_promoted", value: latestPromoted ? `${latestPromoted.artifact_id}@${Number(latestPromoted.eval_score ?? 0).toFixed(2)}` : "none" },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_context_cognition_curate_optimize"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition/optimizer/artifacts",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          module_name: moduleName,
+          count: artifacts.length,
+          artifacts,
+          latest_promoted: latestPromoted,
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_call_stack_design",
     label: "Call Stack Design",
     description: "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103.",

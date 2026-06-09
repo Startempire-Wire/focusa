@@ -1164,6 +1164,71 @@ pub struct ContextCognitionRecommendedPacketUse {
     pub do_not_drift: Vec<String>,
 }
 
+/// CuratorEvalCase — Spec 100 §15.1 CQRS read side. Defines a curator
+/// evaluation case with candidates, expected selection, and a score
+/// threshold. Append-only JSONL.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CuratorEvalCase {
+    pub case_id: String,
+    pub project_root: String,
+    pub continuity_id: Option<String>,
+    pub target: String,
+    pub token_budget: usize,
+    pub candidates: Vec<CuratorEvalCandidate>,
+    pub expected_selected_paths: Vec<String>,
+    pub score_threshold: f64,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CuratorEvalCandidate {
+    pub kind: String,
+    pub path: String,
+    pub body: Option<String>,
+    pub evidence_ref: Option<String>,
+    pub tokens: Option<usize>,
+}
+
+/// CuratorEvalRun — Spec 100 §15.1 CQRS write side. One entry per
+/// `POST /v1/context-cognition/curate/eval` call. Append-only JSONL.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CuratorEvalRun {
+    pub run_id: String,
+    pub case_id: String,
+    pub project_root: String,
+    pub continuity_id: Option<String>,
+    pub target: String,
+    pub selected_paths: Vec<String>,
+    pub expected_paths: Vec<String>,
+    pub precision: f64,
+    pub recall: f64,
+    pub f1: f64,
+    pub baseline_f1: f64,
+    pub tokens_used: usize,
+    pub score_threshold: f64,
+    pub promoted: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+/// CognitionOptimizerArtifact — Spec 100 §15.1 CQRS write side. Versioned,
+/// append-only. `promoted=true` artifacts are the active policy; rollback is
+/// a new entry with `promoted=false` and `rollback_ref` pointing at the
+/// previous promoted artifact id.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CognitionOptimizerArtifact {
+    pub artifact_id: String,
+    pub module_name: String,
+    pub project_root: String,
+    pub prompt_artifact_ref: String,
+    pub eval_score: f64,
+    pub baseline_score: f64,
+    pub promoted: bool,
+    pub rollback_ref: Option<String>,
+    pub eval_run_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub promoted_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrajectoryStateDeltaRecord {
     pub trajectory_id: String,

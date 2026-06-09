@@ -428,6 +428,21 @@ Promotion rule:
 - promotion requires eval score improvement, rollback path, and proof refs,
 - operator steering overrides optimized behavior.
 
+### 15.1 CQRS framing (added 2026-06-09, Spec 100 P4 implementation)
+
+The Context Cognition stack follows a **CQRS pattern** with two append-only ledgers and bounded read models:
+
+- **Read side (queries):** `GET /v1/context-cognition`, `GET /v1/context-cognition/render`, `GET /v1/context-cognition/proof`, `GET /v1/context-cognition/curate/eval/runs`, `GET /v1/context-cognition/optimizer/artifacts`. All advisory, all read-only, no mutation.
+- **Write side (commands):** `POST /v1/context-cognition/curate`, `POST /v1/context-cognition/curate/eval`, `POST /v1/context-cognition/curate/optimize`. Each appends to a JSONL ledger.
+- **Ledger 1 (eval runs):** `data/curator-eval-ledger/{project_root_hash}/eval-runs.jsonl`. Each entry is a `CuratorEvalRun` with `case_id`, `selected_paths`, `expected_paths`, `score`, `baseline_score`, `promoted`, `created_at`.
+- **Ledger 2 (optimizer artifacts):** `data/cognition-optimizer-artifacts/{project_root_hash}/artifacts.jsonl`. Each entry is a `CognitionOptimizerArtifact` with `artifact_id`, `module_name`, `prompt_artifact_ref`, `eval_score`, `baseline_score`, `promoted`, `rollback_ref`, `created_at`, `promoted_at`.
+- **Read models:** the packet's `optimization_frame` is populated from the latest *promoted* artifact for the project. The eval harness summary is a bounded projection of the eval-runs ledger.
+- **Eventual consistency:** runtime consumption of a promoted artifact happens on the next `focusa_context_cognition_curate` call. The artifact is read fresh from the ledger, not cached.
+- **Rollback:** because artifacts are append-only and `promoted` is a per-entry field, "rollback" means appending a new entry with `promoted=false` referencing the previous one via `rollback_ref`. No destructive writes.
+- **Audit trail:** every eval run and every artifact promotion is a `focusa_evidence_capture` handle. The metacog lesson kind is `curator_eval_v0`; the prediction type is `curator_optimization_v1`.
+
+This matches the existing HLT ledger pattern (Spec 98/99): scope-bounded by `project_root + continuity_id`, deterministic hash, append-only, replay-friendly, no singleton.
+
 ## 16. UIAI interaction
 
 UIAI browser/search diagnostics can feed Context Cognition only as proposal material until captured.
@@ -508,6 +523,8 @@ Required eval categories:
 - UIAI scope mismatch,
 - menubar display mismatch,
 - CLI/API/Pi envelope drift.
+
+The eval harness computes precision, recall, and F1 for the curator's `selected_context` versus the eval case's `expected_selected_paths`. Each eval run is appended to the `curator-eval-ledger` JSONL ledger and emitted as a `focusa_metacog_capture` lesson with `kind=curator_eval_v0` and `strategy_class=deterministic_curator`. The promotion decision is recorded as a `focusa_predict_record` with `prediction_type=curator_optimization_v1`.
 
 Minimum metrics:
 
@@ -613,25 +630,26 @@ Deliverables:
 
 ### Phase 4 — Eval harness
 
-Create failure-driven evals.
+Create failure-driven evals with CQRS framing (see §15.1):
+
+- `CuratorEvalCase` schema with `project_root`, `target`, `token_budget`, `candidates[]`, `expected_selected_paths[]`, `score_threshold`.
+- `POST /v1/context-cognition/curate/eval` runs the curator against a case and returns `precision`, `recall`, `f1`, `tokens_used`, `eval_ref` (ledger handle).
+- `GET /v1/context-cognition/curate/eval/runs?project_root=...&limit=10` returns the recent eval summary.
+- `focusa_context_cognition_curate_eval` Pi tool + `focusa context-cognition curate-eval` CLI subcommand.
+- Each eval run is appended to `data/curator-eval-ledger/{project_root_hash}/eval-runs.jsonl` and emitted as a `focusa_metacog_capture` lesson.
+
+### Phase 5 — Cognition Optimizer (CQRS write side, see §15.1)
+
+Build versioned optimizer artifacts with promotion/rollback.
 
 Deliverables:
 
-- eval case format,
-- baseline Focusa scores,
-- metrics dashboard or report,
-- proof bundle integration.
-
-### Phase 5 — Cognition Optimizer
-
-Use DSPy-style optimization for selected planner/judge modules.
-
-Deliverables:
-
-- optimized prompt/module artifacts,
-- eval comparison reports,
-- promotion criteria,
-- rollback path.
+- `CognitionOptimizerArtifact` schema (artifact_id, module_name, prompt_artifact_ref, eval_score, baseline_score, promoted, rollback_ref, created_at, promoted_at).
+- `POST /v1/context-cognition/curate/optimize` submits a candidate artifact; the route returns `decision: promote | rollback` per the §15 promotion rule.
+- `GET /v1/context-cognition/optimizer/artifacts?project_root=...&module_name=curator&limit=10` returns the versioned artifact list.
+- `focusa_context_cognition_optimizer_artifacts` Pi tool + `focusa context-cognition curate-optimize` + `focusa context-cognition optimizer artifacts` CLI subcommands.
+- Each artifact is appended to `data/cognition-optimizer-artifacts/{project_root_hash}/artifacts.jsonl`; promotion is a new entry with `promoted=true`; rollback is a new entry with `promoted=false` referencing the previous artifact via `rollback_ref`.
+- Optimized artifacts are config/prompt artifacts, not canonical state; promotion requires eval score improvement, rollback path, and proof refs; operator steering overrides optimized behavior.
 
 ### Phase 6 — Runtime consumption
 
@@ -642,7 +660,8 @@ Deliverables:
 - Pi/CLI/menubar render,
 - Workpoint/Trajectory support sections,
 - low-memory behavior,
-- stale/degraded fallback behavior.
+- stale/degraded fallback behavior,
+- `optimization_frame` in the packet is populated from the latest *promoted* artifact for the project (P5 ↔ P6 integration).
 
 ## 24. Open design questions
 
