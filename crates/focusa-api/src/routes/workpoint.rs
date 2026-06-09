@@ -211,6 +211,15 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
         _ if root.starts_with("/opt/node-") => Some("agent_runtime_directory"),
         _ if root == "/usr/local/bin" => Some("agent_runtime_directory"),
         _ if root.starts_with("/usr/local/lib/node_modules") => Some("agent_runtime_directory"),
+        // Claude Code, OpenCode, Letta, and other agent runtimes
+        _ if root.contains("/.claude") => Some("agent_runtime_directory"),
+        _ if root.contains("/.opencode") => Some("agent_runtime_directory"),
+        _ if root.contains("/.letta") => Some("agent_runtime_directory"),
+        _ if root.contains("/.pi/") || root.ends_with("/.pi") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/letta") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/open-code") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/pi-coding-agent") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/claude") => Some("agent_runtime_directory"),
         _ => None,
     }
 }
@@ -2915,6 +2924,7 @@ mod tests {
 
     #[test]
     fn agent_runtime_paths_rejected_as_project_root() {
+        // Pi agent
         assert_eq!(
             unsafe_project_root_reason(Some("/root/pi-mono")),
             Some("agent_runtime_directory")
@@ -2923,6 +2933,7 @@ mod tests {
             unsafe_project_root_reason(Some("/root/pi-agent")),
             Some("agent_runtime_directory")
         );
+        // Node/npm agent installs
         assert_eq!(
             unsafe_project_root_reason(Some("/opt/node-v22.22.3-linux-x64")),
             Some("agent_runtime_directory")
@@ -2933,6 +2944,59 @@ mod tests {
         );
         assert_eq!(
             unsafe_project_root_reason(Some("/usr/local/lib/node_modules/@foo/bar")),
+            Some("agent_runtime_directory")
+        );
+        // Claude Code
+        assert_eq!(
+            unsafe_project_root_reason(Some("/root/.claude")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/home/user/.claude/backups")),
+            Some("agent_runtime_directory")
+        );
+        // OpenCode
+        assert_eq!(
+            unsafe_project_root_reason(Some("/root/.opencode")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/home/user/.opencode/config")),
+            Some("agent_runtime_directory")
+        );
+        // Letta
+        assert_eq!(
+            unsafe_project_root_reason(Some("/root/.letta")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/home/user/.letta/sessions")),
+            Some("agent_runtime_directory")
+        );
+        // Pi config/state
+        assert_eq!(
+            unsafe_project_root_reason(Some("/root/.pi")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/home/user/.pi/agent")),
+            Some("agent_runtime_directory")
+        );
+        // Python site-packages agent installs
+        assert_eq!(
+            unsafe_project_root_reason(Some("/usr/local/lib/python3.12/site-packages/letta")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/usr/local/lib/python3.12/site-packages/open-code")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/usr/local/lib/python3.12/site-packages/pi-coding-agent")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/usr/local/lib/python3.12/site-packages/claude-code")),
             Some("agent_runtime_directory")
         );
         // Actual project paths remain valid

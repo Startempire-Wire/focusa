@@ -209,6 +209,15 @@ fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
         _ if root.starts_with("/opt/node-") => Some("agent_runtime_directory"),
         _ if root == "/usr/local/bin" => Some("agent_runtime_directory"),
         _ if root.starts_with("/usr/local/lib/node_modules") => Some("agent_runtime_directory"),
+        // Claude Code, OpenCode, Letta, and other agent runtimes
+        _ if root.contains("/.claude") => Some("agent_runtime_directory"),
+        _ if root.contains("/.opencode") => Some("agent_runtime_directory"),
+        _ if root.contains("/.letta") => Some("agent_runtime_directory"),
+        _ if root.contains("/.pi/") || root.ends_with("/.pi") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/letta") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/open-code") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/pi-coding-agent") => Some("agent_runtime_directory"),
+        _ if root.contains("/site-packages/claude") => Some("agent_runtime_directory"),
         _ => None,
     }
 }
