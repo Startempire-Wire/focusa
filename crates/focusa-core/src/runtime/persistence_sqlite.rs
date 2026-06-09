@@ -8,7 +8,7 @@
 
 use crate::clt::retain_hot_window;
 use crate::sync::{CrdtEvent, VectorClock};
-use crate::types::{EventLogEntry, FocusaConfig, FocusaState, SessionId};
+use crate::types::{CallStackDesign, EventLogEntry, FocusaConfig, FocusaState, SessionId};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use sha2::{Digest, Sha256};
@@ -1070,6 +1070,73 @@ impl SqlitePersistence {
     /// Get the HLT ledger file path for a project (for API exposure).
     pub fn hlt_ledger_path_for_project(&self, project_root: &str) -> PathBuf {
         hlt_ledger_dir_for_project(&self.data_dir, project_root).join("hlt.jsonl")
+    }
+}
+
+fn call_stack_designs_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    project_root.hash(&mut hasher);
+    let hash = format!("{:016x}", hasher.finish());
+    data_dir.join(format!("call-stack-designs/{}", hash))
+}
+
+impl SqlitePersistence {
+    /// Append a Call Stack Design to the scope-bounded JSONL file.
+    /// Per Spec 103: no singleton, scope-bounded by `project_root`.
+    pub fn append_call_stack_design(&self, design: &CallStackDesign) -> anyhow::Result<()> {
+        let ledger_dir =
+            call_stack_designs_dir_for_project(&self.data_dir, &design.project_root);
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("designs.jsonl");
+        let line = serde_json::to_string(design)?;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        writeln!(file, "{}", line)?;
+        debug!("Appended Call Stack Design to {:?}", ledger_file);
+        Ok(())
+    }
+
+    /// Read Call Stack Designs for a project, scoped by continuity_id and entry_name.
+    pub fn read_call_stack_designs(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+        entry_name: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<CallStackDesign>> {
+        let ledger_dir = call_stack_designs_dir_for_project(self.data_dir.as_path(), project_root);
+        let ledger_file = ledger_dir.join("designs.jsonl");
+        if !ledger_file.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&ledger_file)?;
+        let mut entries: Vec<CallStackDesign> = content
+            .lines()
+            .filter_map(|line| serde_json::from_str(line).ok())
+            .filter(|d: &CallStackDesign| match continuity_id {
+                Some(cid) => d.continuity_id.as_deref() == Some(cid),
+                None => true,
+            })
+            .filter(|d: &CallStackDesign| match entry_name {
+                Some(name) => d.entry_name == name,
+                None => true,
+            })
+            .collect();
+        // Return most recent `limit` entries
+        let start = entries.len().saturating_sub(limit);
+        entries = entries[start..].to_vec();
+        Ok(entries)
+    }
+
+    /// Get the Call Stack Designs ledger file path for a project (for API exposure).
+    pub fn call_stack_designs_path_for_project(&self, project_root: &str) -> PathBuf {
+        call_stack_designs_dir_for_project(self.data_dir.as_path(), project_root)
+            .join("designs.jsonl")
     }
 }
 

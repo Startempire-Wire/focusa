@@ -1017,6 +1017,28 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_call_stack_design",
+    "label": "Call Stack Design",
+    "purpose": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.call_stack_design",
+    "ontology_objects": [
+      "CallStackDesign",
+      "ProjectIdentity",
+      "WorkpointRecord"
+    ],
+    "api_routes": ["POST /v1/call-stack/design"],
+    "cli_commands": [],
+    "core_surface": "Spec103 per-project append-only Call Stack Design ledger",
+    "doc_path": "docs/focusa-tools/tools/focusa_call_stack_design.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_call_stack_design",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/call-stack/design safe probe and scope gate"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -1486,6 +1508,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_hlt_history": [
     "focusa_trajectory_view",
     "focusa_trajectory_define_goal",
+    "focusa_project_verify"
+  ],
+  "focusa_call_stack_design": [
+    "focusa_workpoint_link_evidence",
+    "focusa_trajectory_assess",
     "focusa_project_verify"
   ],
   "focusa_traverse": [

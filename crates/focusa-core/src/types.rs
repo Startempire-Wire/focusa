@@ -961,6 +961,71 @@ impl HltLedgerEntry {
     }
 }
 
+/// Call Stack Design — typed, append-only, evidence-linkable artifact
+/// written *before* implementing a feature. Per Spec 103.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CallStackDesign {
+    /// ISO8601 timestamp when the design was written.
+    pub timestamp: DateTime<Utc>,
+    /// Unique design id (UUID v7).
+    pub design_id: String,
+    /// Optional parent design id (chain refinements).
+    #[serde(default)]
+    pub parent_design_id: Option<String>,
+    /// Scope: project root this design applies to.
+    pub project_root: String,
+    /// Optional continuity scope.
+    pub continuity_id: Option<String>,
+    /// Optional session scope.
+    pub session_id: Option<String>,
+    /// Optional Workpoint to attach to.
+    pub workpoint_id: Option<String>,
+    /// Short description of the feature this design covers.
+    pub mission: String,
+    /// Entry surface: pi_tool | cli_command | http_route.
+    pub entry_surface: String,
+    /// Proposed tool/command/route name.
+    pub entry_name: String,
+    /// Whether the design is linked to the Workpoint as evidence.
+    #[serde(default)]
+    pub attach_to_workpoint: bool,
+    /// Whether the design sets the active STG.
+    #[serde(default)]
+    pub attach_to_stg: bool,
+    /// Optional bounded notes.
+    #[serde(default)]
+    pub notes: Option<String>,
+    /// Handlers in the call chain.
+    #[serde(default)]
+    pub handlers: Vec<CallStackStep>,
+    /// Services in the call chain.
+    #[serde(default)]
+    pub services: Vec<CallStackStep>,
+    /// Adapters in the call chain.
+    #[serde(default)]
+    pub adapters: Vec<CallStackStep>,
+    /// Storage layer reference.
+    #[serde(default)]
+    pub storage_kind: Option<String>,
+    #[serde(default)]
+    pub storage_path: Option<String>,
+    /// Output envelope kind.
+    #[serde(default)]
+    pub output_envelope: Option<String>,
+    /// Evidence refs linked to this design.
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+/// A single step in a call stack design.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CallStackStep {
+    /// Step name.
+    pub name: String,
+    /// Step purpose.
+    pub purpose: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrajectoryStateDeltaRecord {
     pub trajectory_id: String,

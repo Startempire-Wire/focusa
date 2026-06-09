@@ -1,7 +1,7 @@
 {
   "schema": "spec90.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 64,
+  "tool_count": 65,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -1154,6 +1154,31 @@
         "domain_cli_only"
       ],
       "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate"
+    },
+    {
+      "name": "focusa_call_stack_design",
+      "label": "Call Stack Design",
+      "purpose": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold.",
+      "family": "workpoint",
+      "ontology_action": "workpoint.call_stack_design",
+      "ontology_objects": [
+        "CallStackDesign",
+        "ProjectIdentity",
+        "WorkpointRecord"
+      ],
+      "api_routes": [
+        "POST /v1/call-stack/design"
+      ],
+      "cli_commands": [],
+      "core_surface": "Spec103 per-project append-only Call Stack Design ledger",
+      "doc_path": "docs/focusa-tools/tools/focusa_call_stack_design.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_call_stack_design",
+      "parity_status": "domain",
+      "exemptions": [
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/call-stack/design safe probe and scope gate"
     },
     {
       "name": "focusa_tree_head",

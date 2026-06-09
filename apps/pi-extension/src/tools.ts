@@ -4633,6 +4633,112 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_call_stack_design",
+    label: "Call Stack Design",
+    description: "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103.",
+    promptSnippet: "Use when designing a new feature or refactor that will be implemented by an AI agent. The design is a typed artifact, not free-form prose.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root for the design. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+      mission: Type.String({ minLength: 1, maxLength: 200, description: "Short description of the feature this design covers." }),
+      entry_surface: Type.Optional(Type.Union([Type.Literal("pi_tool"), Type.Literal("cli_command"), Type.Literal("http_route")], { description: "Entry surface kind (default: pi_tool)." })),
+      entry_name: Type.String({ minLength: 1, maxLength: 120, description: "Proposed tool/command/route name." }),
+      workpoint_id: Type.Optional(Type.String({ maxLength: 256, description: "Workpoint to attach the design to (required when attach_to_workpoint=true)." })),
+      attach_to_workpoint: Type.Optional(Type.Boolean({ description: "When true, the design becomes focusa_evidence linked to the active Workpoint." })),
+      attach_to_stg: Type.Optional(Type.Boolean({ description: "When true, the design sets the active STG of the active Trajectory." })),
+      parent_design_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional parent design id to chain refinements." })),
+      notes: Type.Optional(Type.String({ maxLength: 2048, description: "Optional bounded free-form notes." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_call_stack_design", params, [
+        "project_root",
+        "continuity_id",
+        "mission",
+        "entry_surface",
+        "entry_name",
+        "workpoint_id",
+        "attach_to_workpoint",
+        "attach_to_stg",
+        "parent_design_id",
+        "notes",
+      ]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_call_stack_design", "/v1/call-stack/design", params as Record<string, any>, "call stack design", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const raw: Record<string, any> = { ...(keyCheck.value as Record<string, any>), project_root: projectRoot };
+      const res = await focusaFetchDetailed("/call-stack/design", { method: "POST", body: JSON.stringify(raw) });
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_call_stack_design",
+          "workpoint",
+          `call stack design blocked → ${explainWorkLoopResult(res, "design unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_project_verify", "focusa_workpoint_resume", "focusa_tool_doctor"],
+        );
+      }
+      const designId = String(body.design_id || body.design?.design_id || "stored");
+      const entryName = String(body.design?.entry_name || raw.entry_name || "unknown");
+      const entrySurface = String(body.design?.entry_surface || raw.entry_surface || "pi_tool");
+      const mission = String(body.design?.mission || raw.mission || "").slice(0, 80);
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `call stack design → ${designId} entry=${entryName}`,
+        tool: "focusa_call_stack_design",
+        family: "workpoint",
+        side_effects: ["call_stack_design_append"],
+        evidence_refs: [],
+        next_tools: ["focusa_workpoint_link_evidence", "focusa_trajectory_assess", "focusa_project_verify"],
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_call_stack_design",
+            summary: `call stack design → mission="${mission}"`,
+            ids: [
+              { label: "design_id", value: designId },
+              { label: "rehydrate_id", value: designId },
+              { label: "entry_name", value: entryName },
+              { label: "entry_surface", value: entrySurface },
+            ],
+            fields: [
+              { label: "mission", value: mission },
+              { label: "project_root", value: projectRoot },
+              { label: "attach_to_workpoint", value: raw.attach_to_workpoint ? "yes" : "no" },
+              { label: "attach_to_stg", value: raw.attach_to_stg ? "yes" : "no" },
+              { label: "ledger_file", value: String(body.ledger_file || "unknown") },
+            ],
+            nextTools: ["focusa_workpoint_link_evidence", "focusa_trajectory_assess", "focusa_project_verify"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/call-stack/design",
+          canonical: false,
+          advisory: true,
+          project_root: projectRoot,
+          design_id: designId,
+          entry_name: entryName,
+          entry_surface: entrySurface,
+          design: body.design || null,
+          next_tools: body.next_tools || toolResult.next_tools,
+          ledger_file: body.ledger_file || null,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_tree_recent_snapshots",
     label: "Tree Recent Snapshots",
     description: "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",

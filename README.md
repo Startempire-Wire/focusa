@@ -1,24 +1,57 @@
 # Focusa
 
-> **Local-first cognitive continuity and governance for AI agents.**
+> **Local-first cognitive continuity and governance for AI coding agents.**
 >
-> Focusa helps coding agents remember what matters, recover after compaction, keep evidence attached to work, and make long-running sessions auditable instead of relying on fragile chat history.
+> Focusa is the missing OS layer for long-running AI work. It gives your agent typed memory, auditable evidence, recovery after compaction, and a public surface that makes its work inspectable. Built in Rust, packaged for macOS, surfaced on the web.
 
 **Current public snapshot:** `v0.9.13-dev` / **Focusa Operator Preview**
 **Runtime state:** Rust daemon + HTTP API + CLI + TUI + Pi extension + menubar web/macOS package proof are implemented and live-tested.
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
-**Preview promise:** a developer can start a real AI coding session, create a Workpoint, attach evidence, recover after compaction/session drift, and continue without losing the thread.
+**The one-line pitch:** Focusa turns "long AI chat" into "long AI project."
+
+---
+
+## Why Focusa is amazing for developers
+
+If you ship code with AI agents today, you already know these pain points. Focusa is the first toolchain built to make them go away.
+
+- **Compaction is not a wipeout.** A typed `Workpoint` survives any model context reset. Resume from the exact next step instead of re-discovering what the agent was doing.
+- **Evidence is structural, not a screenshot.** Every claim the agent makes can be linked to a file, a test, a route, or a screenshot. Auditors (and your future self) can replay the proof.
+- **Trajectory is a ladder, not a vibe.** HLT / MLG / STG + waypoints give the agent a typed north star. When it drifts, the ladder catches it.
+- **Predictions are trackable, not mystical.** The agent records what it expects, you evaluate the outcome, calibration improves across sessions.
+- **Metacognition compounds.** Lessons learned today are retrievable tomorrow. The agent doesn't rediscover the same mistakes.
+- **Multi-agent is first-class.** Project roots, continuity IDs, and writer arbitration let multiple agents work in the same repo without stepping on each other.
+- **Local-first, audit-ready.** Everything runs on your machine or your VPS. The daemon is a typed HTTP API. Nothing leaks to a third-party model.
+- **Real observability.** Hot-path latency, cold-path cost, resource pressure, and degraded modes are surfaced in tools, not buried in logs.
+- **Real GUI.** The Tauri menubar app shows live focus, workpoint, and trajectory state on macOS — not a CLI you have to remember.
+- **Public surface ready.** Tools emit typed envelopes, project cards are shareable, and every public surface is opt-in and redacted by default.
+
+**A developer, not a demo.** Focusa is built by developers who run long agent sessions daily. The roadmap is "what we wished existed" and ships in days, not quarters.
+
+---
+
+## What you can do today
+
+- **Run a long Pi session and keep it.** Start a real AI coding session, create a Workpoint, attach evidence, recover after compaction/session drift, and continue without losing the thread.
+- **Inspect any past work.** `focusa_traverse` walks the project graph, `focusa_hlt_history` shows the exact HLT ladder at any point in time, `focusa_metacog_recent_reflections` shows the agent's recent lessons.
+- **Ship a Tauri menubar app on macOS.** The bundled macOS app proof (`apps/menubar`) is built in CI on every push.
+- **Wire it into your CI.** GitHub Actions runs Rust tests, strict spec gates, and the macOS Tauri package proof; static audits verify all 64 tools stay in sync.
+- **Stream public cards.** With `FOCUSA_PUBLIC_STREAM=1`, tool calls become typed public cards — perfect for showcasing live agent work.
+
+---
 
 ## Recent additions in this snapshot
 
-- **63 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer, browser diagnostics intake, predictions, reflex primitives, and resource-mode controls.
+- **65 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer, browser diagnostics intake, predictions, reflex primitives, resource-mode controls, an HLT append-only ledger, and the new Spec 103 Call Stack Design tool.
+- **Spec 103 — Call Stack Architecture Blueprint**: `focusa_call_stack_design` writes a typed, append-only call stack design (entry → handlers → services → adapters → storage → output) for a feature before implementation. The design is linkable as `focusa_evidence` to an active Workpoint and is the first-class artifact an agent consumes before writing code. See `docs/103-call-stack-architecture-blueprint-spec.md`.
+- **Human-readable templates**: every metacog and predict tool now returns `tool | summary; ids: capture_id=… rehydrate_id=…; fields: lesson=… why=… confidence=…; next: focusa_… → focusa_…` so the operator can pick up the existing hash IDs without digging into details.
 - **Project intelligence flywheel**: `focusa_project_card` fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction stats, outcomes, elapsed/token efficiency, and metacog prompts; `focusa_project_card_outcome` feeds verified outcomes back into learned weights.
 - **Session transfer**: `focusa_session_transfer` provides save/continue semantics for long Pi/Focusa work without forking continuity.
 - **UIAI browser diagnostics integration**: scoped UIAI browser sessions and reliability reports emit Focusa-ready `focusa_evidence` handles; `focusa_browser_diagnostics_intake` turns diagnostics into evidence, active-object hints, predictions, and optional metacog signals.
 - **Doctor browser awareness**: `focusa_tool_doctor` surfaces UIAI browser health/pressure so browser failures are visible during Focusa troubleshooting.
-- **Menubar cockpit proof**: the Svelte/Tauri menubar app now has passing web build and GitHub macOS Tauri package proof.
-- **Strict CI proof**: GitHub CI run `26494511174` passed Rust tests/clippy, strict spec gates, and Menubar package proof at `326217e`.
+- **Menubar cockpit proof**: the Svelte/Tauri menubar app has a passing web build and GitHub macOS Tauri package proof on every push.
+- **Strict CI proof**: GitHub CI passes Rust tests/clippy, strict spec gates, and the macOS Tauri package proof on every push to `main`.
 
 ---
 
@@ -498,7 +531,7 @@ These docs describe only the current present build/snapshot surfaces:
 
 ### Individual Focusa tool docs
 
-Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **64**.
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **65**.
 
 | Tool | Family | Doc |
 | --- | --- | --- |
@@ -546,6 +579,7 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_evidence_capture` | Workpoint | [`docs/focusa-tools/tools/focusa_evidence_capture.md`](docs/focusa-tools/tools/focusa_evidence_capture.md) |
 | `focusa_browser_diagnostics_intake` | Workpoint | [`docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`](docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md) |
 | `focusa_workpoint_checkpoint` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_checkpoint.md`](docs/focusa-tools/tools/focusa_workpoint_checkpoint.md) |
+| `focusa_call_stack_design` | Workpoint | [`docs/focusa-tools/tools/focusa_call_stack_design.md`](docs/focusa-tools/tools/focusa_call_stack_design.md) |
 | `focusa_workpoint_link_evidence` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_link_evidence.md`](docs/focusa-tools/tools/focusa_workpoint_link_evidence.md) |
 | `focusa_workpoint_resume` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_resume.md`](docs/focusa-tools/tools/focusa_workpoint_resume.md) |
 | `focusa_tree_head` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_head.md`](docs/focusa-tools/tools/focusa_tree_head.md) |
