@@ -45,6 +45,7 @@ If you ship code with AI agents today, you already know these pain points. Focus
 
 - **65 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer, browser diagnostics intake, predictions, reflex primitives, resource-mode controls, an HLT append-only ledger, and the new Spec 103 Call Stack Design tool.
 - **Spec 103 — Call Stack Architecture Blueprint**: `focusa_call_stack_design` writes a typed, append-only call stack design (entry → handlers → services → adapters → storage → output) for a feature before implementation. The design is linkable as `focusa_evidence` to an active Workpoint and is the first-class artifact an agent consumes before writing code. See `docs/103-call-stack-architecture-blueprint-spec.md`.
+- **Spec 100 — Context Cognition (Phase 1)**: `focusa_context_cognition` builds the bounded, advisory `ContextCognitionPacket` (scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, route frame). Never mutates state. The Context Curator (Phase 3) and Cognition Optimizer (Phase 5) are follow-up slices. See `docs/100-context-cognition-spec.md`.
 - **Human-readable templates**: every metacog and predict tool now returns `tool | summary; ids: capture_id=… rehydrate_id=…; fields: lesson=… why=… confidence=…; next: focusa_… → focusa_…` so the operator can pick up the existing hash IDs without digging into details.
 - **Project intelligence flywheel**: `focusa_project_card` fuses ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction stats, outcomes, elapsed/token efficiency, and metacog prompts; `focusa_project_card_outcome` feeds verified outcomes back into learned weights.
 - **Session transfer**: `focusa_session_transfer` provides save/continue semantics for long Pi/Focusa work without forking continuity.
@@ -531,7 +532,7 @@ These docs describe only the current present build/snapshot surfaces:
 
 ### Individual Focusa tool docs
 
-Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **65**.
+Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, example usage, expected result, recovery notes, and related tools. Current contract count: **66**.
 
 | Tool | Family | Doc |
 | --- | --- | --- |
@@ -541,6 +542,7 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_session_transfer` | Workpoint | [`docs/focusa-tools/tools/focusa_session_transfer.md`](docs/focusa-tools/tools/focusa_session_transfer.md) |
 | `focusa_project_verify` | Project Identity | [`docs/focusa-tools/tools/focusa_project_verify.md`](docs/focusa-tools/tools/focusa_project_verify.md) |
 | `focusa_trajectory_view` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_view.md`](docs/focusa-tools/tools/focusa_trajectory_view.md) |
+| `focusa_context_cognition` | Trajectory | [`docs/focusa-tools/tools/focusa_context_cognition.md`](docs/focusa-tools/tools/focusa_context_cognition.md) |
 | `focusa_trajectory_define_goal` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_define_goal.md`](docs/focusa-tools/tools/focusa_trajectory_define_goal.md) |
 | `focusa_trajectory_assess` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_assess.md`](docs/focusa-tools/tools/focusa_trajectory_assess.md) |
 | `focusa_trajectory_propose_workpoint` | Trajectory | [`docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md`](docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md) |

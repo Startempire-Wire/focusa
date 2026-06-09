@@ -193,6 +193,10 @@ enum Commands {
     #[command(subcommand)]
     Traverse(commands::traverse::TraverseCmd),
 
+    /// Spec 100 Context Cognition packet view (advisory, read-only).
+    #[command(subcommand)]
+    ContextCognition(commands::context_cognition::ContextCognitionCmd),
+
     /// Spec88 Workpoint continuity operations.
     #[command(subcommand)]
     Workpoint(commands::workpoint::WorkpointCmd),
@@ -602,6 +606,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,
         Commands::Hlt(cmd) => commands::hlt::run(cmd, cli.json).await,
         Commands::Traverse(cmd) => commands::traverse::run(cmd, cli.json).await,
+        Commands::ContextCognition(cmd) => {
+            let mut client = crate::api_client::ApiClient::new();
+            commands::context_cognition::handle(&mut client, cmd).await
+        }
         Commands::Workpoint(cmd) => commands::workpoint::run(cmd, cli.json).await,
         Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,
         Commands::Wrap { command } => commands::wrap::run(command).await,

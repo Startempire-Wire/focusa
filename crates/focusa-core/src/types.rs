@@ -1026,6 +1026,144 @@ pub struct CallStackStep {
     pub purpose: String,
 }
 
+/// ContextCognitionPacket — Spec 100 primary output.
+///
+/// A bounded, advisory packet describing the agent's current context
+/// (selected files/diffs/docs/codemaps, ontology frame, evidence frame,
+/// reasoning frame, optimization frame, route frame, scope, authority).
+/// Always advisory; never mutates state.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionPacket {
+    pub schema_version: String,
+    pub status: String,
+    pub advisory: bool,
+    pub canonical: bool,
+    pub scope_status: String,
+    pub freshness: ContextCognitionFreshness,
+    pub scope: ContextCognitionScope,
+    pub authority: ContextCognitionAuthority,
+    pub selected_context: ContextCognitionSelectedContext,
+    pub ontology_frame: ContextCognitionOntologyFrame,
+    pub evidence_frame: ContextCognitionEvidenceFrame,
+    pub reasoning_frame: ContextCognitionReasoningFrame,
+    pub optimization_frame: ContextCognitionOptimizationFrame,
+    pub route_frame: ContextCognitionRouteFrame,
+    #[serde(default)]
+    pub side_effects: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub recommended_packet_use: ContextCognitionRecommendedPacketUse,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionFreshness {
+    pub generated_at: Option<DateTime<Utc>>,
+    pub stale: bool,
+    pub source_snapshot: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionScope {
+    pub project_root: String,
+    pub continuity_id: Option<String>,
+    pub session_id: Option<String>,
+    pub workpoint_id: Option<String>,
+    pub trajectory_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionAuthority {
+    pub action_authority: String,
+    pub goal_context: String,
+    pub semantic_context: String,
+    pub proof_context: String,
+    pub canonical_mutation_allowed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionSelectedContext {
+    #[serde(default)]
+    pub files: Vec<String>,
+    #[serde(default)]
+    pub diffs: Vec<String>,
+    #[serde(default)]
+    pub docs: Vec<String>,
+    #[serde(default)]
+    pub codemaps: Vec<String>,
+    #[serde(default)]
+    pub snippets: Vec<String>,
+    #[serde(default)]
+    pub excluded_context: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionOntologyFrame {
+    #[serde(default)]
+    pub active_objects: Vec<String>,
+    #[serde(default)]
+    pub relations: Vec<String>,
+    #[serde(default)]
+    pub affordances: Vec<String>,
+    #[serde(default)]
+    pub risks: Vec<String>,
+    #[serde(default)]
+    pub valid_next_actions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionEvidenceFrame {
+    #[serde(default)]
+    pub proven: Vec<String>,
+    #[serde(default)]
+    pub unproven: Vec<String>,
+    #[serde(default)]
+    pub stale: Vec<String>,
+    #[serde(default)]
+    pub missing: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionReasoningFrame {
+    pub likely_goal: Option<String>,
+    pub active_gap: Option<String>,
+    pub confidence: Option<f64>,
+    #[serde(default)]
+    pub contradiction_flags: Vec<String>,
+    #[serde(default)]
+    pub drift_risks: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionOptimizationFrame {
+    pub module_name: Option<String>,
+    pub prompt_artifact_ref: Option<String>,
+    pub eval_score: Option<f64>,
+    pub baseline_score: Option<f64>,
+    pub promoted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionRouteFrame {
+    #[serde(default)]
+    pub next_tools: Vec<String>,
+    #[serde(default)]
+    pub recovery_tools: Vec<String>,
+    #[serde(default)]
+    pub do_not_use_by_default: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContextCognitionRecommendedPacketUse {
+    #[serde(default)]
+    pub include_in_prompt: Vec<String>,
+    #[serde(default)]
+    pub exclude_from_prompt: Vec<String>,
+    #[serde(default)]
+    pub next_tools: Vec<String>,
+    #[serde(default)]
+    pub do_not_drift: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrajectoryStateDeltaRecord {
     pub trajectory_id: String,

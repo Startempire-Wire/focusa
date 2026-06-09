@@ -80,8 +80,17 @@ async function getJsonWithRetry(endpoint, attempts = 2) {
     } catch (err) {
       lastErr = err;
       if (attempt < attempts) {
-        pushWarning(err.name === 'TimeoutError' ? timeoutFailureClass(endpoint) : 'daemon_unavailable', endpoint, `attempt ${attempt} failed: ${err.message}`, 'Retry succeeded/remaining attempts will determine failure; inspect daemon resource pressure if repeated.');
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        const isValidation = typeof err.message === 'string' && /\bHTTP 4\d\d\b/.test(err.message);
+        if (err.name === 'TimeoutError') {
+          pushWarning(timeoutFailureClass(endpoint), endpoint, `attempt ${attempt} failed: ${err.message}`, 'Retry succeeded/remaining attempts will determine failure; inspect daemon resource pressure if repeated.');
+        } else if (isValidation) {
+          // Don't warn on retryable 4xx; the outer catch will classify the
+          // final error as `probe_validation_expected`.
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        } else {
+          pushWarning('daemon_unavailable', endpoint, `attempt ${attempt} failed: ${err.message}`, 'Retry succeeded/remaining attempts will determine failure; inspect daemon resource pressure if repeated.');
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
       }
     }
   }
@@ -257,7 +266,16 @@ for (const endpoint of [...getRoutes].sort()) {
       pushWarning('unknown_ambiguous_completion', endpoint, 'Trajectory view lacks project_identity', 'Trajectory must be per-project and ProjectIdentity-gated.', body);
     }
   } catch (err) {
-    pushFailure(err.name === 'TimeoutError' ? timeoutFailureClass(endpoint) : 'daemon_unavailable', endpoint, err.message, 'Fix route availability or mark contract with explicit exemption.');
+    if (err.name === 'TimeoutError') {
+      pushFailure(timeoutFailureClass(endpoint), endpoint, err.message, 'Move cold work off hot route or lower payload/lock work.');
+    } else if (typeof err.message === 'string' && /\bHTTP 4\d\d\b/.test(err.message)) {
+      // 4xx means the route exists and responded with a validation error
+      // (e.g. required query param missing). Treat as a soft warning, not a
+      // daemon failure, because the route is alive.
+      pushWarning('probe_validation_expected', endpoint, `hot probe returned 4xx (expected for required-param routes): ${err.message}`, 'If a route legitimately requires query params, this warning is expected; otherwise add default query to the audit probe.');
+    } else {
+      pushFailure('daemon_unavailable', endpoint, err.message, 'Fix route availability or mark contract with explicit exemption.');
+    }
   }
 }
 

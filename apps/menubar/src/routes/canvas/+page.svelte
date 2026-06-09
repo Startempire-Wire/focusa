@@ -3,6 +3,7 @@
   import FocusCanvas from '$lib/canvas/FocusCanvas.svelte';
   import AsccPanel from '$lib/canvas/AsccPanel.svelte';
   import Timeline from '$lib/canvas/Timeline.svelte';
+  import ContextCognitionPeek from '$lib/components/ContextCognitionPeek.svelte';
   import { focusCanvasStore } from '$lib/stores/focus-canvas.svelte';
   
   let selectedEventId: string | null = null;
@@ -80,6 +81,7 @@
           on:select={handleEventSelect}
           on:replay={handleEventReplay}
         />
+        <ContextCognitionPeek />
       </aside>
     {/if}
   </div>

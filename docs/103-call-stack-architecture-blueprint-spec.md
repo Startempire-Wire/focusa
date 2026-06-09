@@ -6,18 +6,33 @@ Canonical label: Call Stack Architecture Blueprint (CSAB)
 
 ## 0. Normative basis
 
-This spec is built on top of Spec 100 (Context Cognition) and Spec 101 (Bloatgaurd), not in competition with them. It defers surface contracts to Spec 100 and leanness/budget concerns to Spec 101.
+This spec references Spec 100 (Context Cognition, `status=planning`) and Spec 101 (Focusa Bloatgaurd, `status=iterable-spec-v0`, "design first; no implementation authority") as forward-looking design lineage, **not as build-time dependencies**. Spec 103's implementation is complete today on existing Focusa primitives; the references to 100/101 are commitments that future revisions of this spec will defer to 100/101's surface contracts and leanness invariants once those specs ship their implementation phases.
 
-Spec 100/101 corrections that govern this spec:
+### 0.1 Implementation status (as of v0)
 
-- project scope is bounded by `project_root + continuity_id` (Spec 100 §2, §4);
-- Workpoint remains immediate action authority (Spec 100 §4);
-- Trajectory supplies project/workstream goal and gap context (Spec 100 §4);
-- HLT is durable north-star context while MLG/STG/waypoints are adaptive advisory context (Spec 100 §2);
-- Ontology is semantic structure, not proof by itself (Spec 100 §5);
-- Evidence refs are the proof boundary (Spec 100 §5);
-- Bounded artifacts beat context dumps (Spec 101 §1, §5.5);
-- Tool-call history is elided; structured rehydration is the contract (Spec 101 §5.10).
+- **103 implementation: shipped.** Daemon route `POST /v1/call-stack/design`, `CallStackDesign` type, append-only JSONL ledger, `focusa_call_stack_design` Pi tool, contract entry, choreography entry, tool doc page, and `BENEFITS.md` narrative all live. Audits: 65/65 contracts, 198 edges, 0 failures, 0 warnings.
+- **103's actual runtime dependencies (all implemented):** `project_identity_payload_for_scope` (in `routes/project.rs`), `AppState` + axum routing (pre-existing), `spec80Result` + `piToolText` template (Spec 103 references its own round 1 here, not 100/101), `SqlitePersistence::append_call_stack_design` (new in 103), `focusa_project_identity` / `focusa_project_verify` for recovery (pre-existing).
+- **100 implementation: not started.** Status `planning`; no code touches Spec 100's `ContextCognitionPacket` or eval harness.
+- **101 implementation: not started.** Status `iterable-spec-v0`; no code implements the Bloatgaurd budget domains or adaptive router.
+
+### 0.2 Design lineage from 100/101 (forward-looking, not load-bearing)
+
+The following 100/101 concepts are referenced for design coherence only. None of them is enforced by the v0 implementation; 103 works without them.
+
+- project scope is bounded by `project_root + continuity_id` (Spec 100 §2, §4) — already enforced by existing `project_identity_payload_for_scope`.
+- Workpoint remains immediate action authority (Spec 100 §4) — already enforced by existing workpoint route handlers.
+- Trajectory supplies project/workstream goal and gap context (Spec 100 §4) — already enforced by trajectory route handlers.
+- HLT is durable north-star context while MLG/STG/waypoints are adaptive advisory context (Spec 100 §2) — already enforced by HLT append-only ledger (`/v1/hlt/history`).
+- Ontology is semantic structure, not proof by itself (Spec 100 §5) — already enforced by ontology route.
+- Evidence refs are the proof boundary (Spec 100 §5) — already enforced by `focusa_evidence_capture` and `focusa_workpoint_link_evidence`.
+- Bounded artifacts beat context dumps (Spec 101 §1, §5.5) — design goal for 103; the `CallStackDesign` envelope is bounded to ≤ 1KB JSON.
+- Tool-call history is elided; structured rehydration is the contract (Spec 101 §5.10) — already enforced by `focusa_traverse` and the ledger pattern.
+
+When 100 and 101 land their implementation phases, this spec (103) will be revised to:
+- (100) defer the `focusa_call_stack_design` surface contract to whatever 100's `Pi extension contract` (§12) and `Focusa tool wrappers` (§13) prescribe.
+- (101) defer the `CallStackDesign` envelope bounds to whatever 101's `Tool-call compression` (§5.2) and `Output firewall` (§5.1) prescribe.
+
+Until then, 103 ships as a thin, self-contained tool that uses existing Focusa primitives and existing design lineage from 100/101 as documented commitments only.
 
 ## 1. Purpose
 

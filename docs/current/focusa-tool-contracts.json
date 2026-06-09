@@ -1,7 +1,7 @@
 {
   "schema": "spec90.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 65,
+  "tool_count": 66,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -1154,6 +1154,32 @@
         "domain_cli_only"
       ],
       "live_check": "contract_static plus /v1/hlt/history safe probe and scope gate"
+    },
+    {
+      "name": "focusa_context_cognition",
+      "label": "Context Cognition",
+      "purpose": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state.",
+      "family": "trajectory",
+      "ontology_action": "trajectory.context_cognition",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "WorkpointRecord",
+        "TrajectoryRecord",
+        "OntologyFrame"
+      ],
+      "api_routes": [
+        "GET /v1/context-cognition"
+      ],
+      "cli_commands": [
+        "focusa context-cognition view"
+      ],
+      "core_surface": "Spec100 bounded ContextCognitionPacket envelope (advisory)",
+      "doc_path": "docs/focusa-tools/tools/focusa_context_cognition.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate"
     },
     {
       "name": "focusa_call_stack_design",

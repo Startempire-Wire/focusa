@@ -1017,6 +1017,29 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_context_cognition",
+    "label": "Context Cognition",
+    "purpose": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "TrajectoryRecord",
+      "OntologyFrame"
+    ],
+    "api_routes": ["GET /v1/context-cognition"],
+    "cli_commands": ["focusa context-cognition view"],
+    "core_surface": "Spec100 bounded ContextCognitionPacket envelope (advisory)",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate"
+  },
+
+  {
     "name": "focusa_call_stack_design",
     "label": "Call Stack Design",
     "purpose": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold.",
@@ -1509,6 +1532,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_trajectory_view",
     "focusa_trajectory_define_goal",
     "focusa_project_verify"
+  ],
+  "focusa_context_cognition": [
+    "focusa_active_object_resolve",
+    "focusa_workpoint_checkpoint",
+    "focusa_evidence_capture"
   ],
   "focusa_call_stack_design": [
     "focusa_workpoint_link_evidence",

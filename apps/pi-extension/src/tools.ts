@@ -4633,6 +4633,104 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_context_cognition",
+    label: "Context Cognition",
+    description: "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state.",
+    promptSnippet: "Use when an operator or agent needs a structured, bounded view of the current project context before making decisions. The packet is advisory and never overrides Workpoint or Trajectory.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root for the packet. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+      session_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional session id filter." })),
+      include_rehydrate_refs: Type.Optional(Type.Boolean({ description: "When true, return rehydrate_refs for each surface." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition", params, ["project_root", "continuity_id", "session_id", "include_rehydrate_refs"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition", "/v1/context-cognition", params as Record<string, any>, "context cognition", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const query = new URLSearchParams();
+      query.set("project_root", String(projectRoot));
+      const cid = (keyCheck.value as any).continuity_id;
+      if (typeof cid === "string" && cid.trim() !== "") query.set("continuity_id", cid.trim());
+      const sid = (keyCheck.value as any).session_id;
+      if (typeof sid === "string" && sid.trim() !== "") query.set("session_id", sid.trim());
+      const include = (keyCheck.value as any).include_rehydrate_refs;
+      if (typeof include === "boolean") query.set("include_rehydrate_refs", String(include));
+      const res = await focusaFetchDetailed(`/context-cognition?${query.toString()}`);
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition",
+          "trajectory",
+          `context cognition blocked → ${explainWorkLoopResult(res, "context cognition unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_project_verify", "focusa_workpoint_resume", "focusa_tool_doctor"],
+        );
+      }
+      const schema = String(body.packet?.schema_version || "focusa.context_cognition_packet.v1");
+      const scopeStatus = String(body.scope_status || "unknown");
+      const workpointId = String(body.packet?.scope?.workpoint_id || "none");
+      const trajectoryId = String(body.packet?.scope?.trajectory_id || "none");
+      const actionAuthority = String(body.packet?.authority?.action_authority || "unknown");
+      const evidenceCount = Array.isArray(body.packet?.evidence_refs) ? body.packet.evidence_refs.length : 0;
+      const nextTools = Array.isArray(body.next_tools) ? body.next_tools : [];
+      const rehydrateId = String(body.rehydrate_id || "ctx_cognition:v0");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `context cognition → ${schema} scope=${scopeStatus}`,
+        tool: "focusa_context_cognition",
+        family: "trajectory",
+        side_effects: [],
+        evidence_refs: Array.isArray(body.packet?.evidence_refs) ? body.packet.evidence_refs : [],
+        next_tools: nextTools,
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition",
+            summary: `context cognition → ${schema} scope=${scopeStatus}`,
+            ids: [
+              { label: "rehydrate_id", value: rehydrateId },
+              { label: "workpoint_id", value: workpointId },
+              { label: "trajectory_id", value: trajectoryId },
+              { label: "action_authority", value: actionAuthority },
+            ],
+            fields: [
+              { label: "schema", value: schema },
+              { label: "scope_status", value: scopeStatus },
+              { label: "evidence_refs", value: evidenceCount },
+              { label: "advisory", value: "true" },
+              { label: "canonical", value: "false" },
+            ],
+            note: "advisory only; never mutates Workpoint or Trajectory",
+            nextTools: nextTools.length ? nextTools : ["focusa_active_object_resolve", "focusa_workpoint_checkpoint"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          packet: body.packet || null,
+          next_tools: nextTools,
+          rehydrate_id: rehydrateId,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_call_stack_design",
     label: "Call Stack Design",
     description: "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103.",
