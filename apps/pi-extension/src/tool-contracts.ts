@@ -1106,6 +1106,29 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_context_cognition_curate",
+    "label": "Context Cognition Curate",
+    "purpose": "Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
+    "family": "trajectory",
+    "ontology_action": "trajectory.context_cognition_curate",
+    "ontology_objects": [
+      "ProjectIdentity",
+      "WorkpointRecord",
+      "ContextCognitionPacket",
+      "CurateCandidate"
+    ],
+    "api_routes": ["POST /v1/context-cognition/curate"],
+    "cli_commands": ["focusa context-cognition curate"],
+    "core_surface": "Spec100 §14 Context Curator with token-budgeted selection",
+    "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/context-cognition/curate safe probe and scope gate"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -1587,6 +1610,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_context_cognition_proof"
   ],
   "focusa_context_cognition_proof": [
+    "focusa_context_cognition",
+    "focusa_context_cognition_render",
+    "focusa_evidence_capture"
+  ],
+  "focusa_context_cognition_curate": [
     "focusa_context_cognition",
     "focusa_context_cognition_render",
     "focusa_evidence_capture"

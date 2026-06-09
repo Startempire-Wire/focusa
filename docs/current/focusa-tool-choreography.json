@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 68,
-  "edge_count": 206,
+  "tool_count": 69,
+  "edge_count": 209,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -132,6 +132,11 @@
       "focusa_context_cognition_proof"
     ],
     "focusa_context_cognition_proof": [
+      "focusa_context_cognition",
+      "focusa_context_cognition_render",
+      "focusa_evidence_capture"
+    ],
+    "focusa_context_cognition_curate": [
       "focusa_context_cognition",
       "focusa_context_cognition_render",
       "focusa_evidence_capture"
@@ -676,6 +681,24 @@
     },
     {
       "from": "focusa_context_cognition_proof",
+      "to": "focusa_evidence_capture",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate",
+      "to": "focusa_context_cognition",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate",
+      "to": "focusa_context_cognition_render",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_context_cognition_curate",
       "to": "focusa_evidence_capture",
       "weight": 8,
       "reason": "static_next_tool_route"

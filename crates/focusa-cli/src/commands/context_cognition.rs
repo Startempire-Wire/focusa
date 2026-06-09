@@ -31,6 +31,17 @@ pub enum ContextCognitionCmd {
         #[arg(long)]
         continuity_id: Option<String>,
     },
+    /// Curate context under a token budget (Spec 100 Phase 3).
+    Curate {
+        #[arg(long)]
+        project_root: Option<String>,
+        #[arg(long)]
+        target: Option<String>,
+        #[arg(long, default_value = "2000")]
+        token_budget: usize,
+        #[arg(long)]
+        candidates_json: Option<String>,
+    },
 }
 
 pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow::Result<()> {
@@ -90,6 +101,77 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             }
             Ok(())
+        }
+        ContextCognitionCmd::Curate {
+            project_root,
+            target,
+            token_budget,
+            candidates_json,
+        } => {
+            let project_root = project_root.ok_or_else(|| {
+                anyhow::anyhow!("--project-root is required for curate")
+            })?;
+            let candidates: Vec<Value> = match candidates_json.as_deref() {
+                Some(s) => serde_json::from_str(s)
+                    .map_err(|e| anyhow::anyhow!("invalid --candidates-json: {e}"))?,
+                None => Vec::new(),
+            };
+            let body = serde_json::json!({
+                "project_root": project_root,
+                "target": target,
+                "token_budget": token_budget,
+                "candidates": candidates,
+            });
+            let resp = client.post("/v1/context-cognition/curate", &body).await?;
+            print_curated_human(&resp);
+            Ok(())
+        }
+    }
+}
+
+fn print_curated_human(payload: &Value) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let target = payload
+        .get("target")
+        .and_then(Value::as_str)
+        .unwrap_or("<none>");
+    let budget = payload.get("token_budget").and_then(Value::as_u64).unwrap_or(0);
+    let used = payload.get("tokens_used").and_then(Value::as_u64).unwrap_or(0);
+    let selected_count = payload
+        .get("selected_count")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let excluded_count = payload
+        .get("excluded_count")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let rehydrate = payload
+        .get("rehydrate_id")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    println!(
+        "context cognition curate {status} | target=\"{target}\" budget={budget} used={used}"
+    );
+    println!(
+        "fields: selected={selected_count} excluded={excluded_count} rehydrate_id={rehydrate}"
+    );
+    if let Some(arr) = payload.get("selected_context").and_then(Value::as_array) {
+        for s in arr.iter().take(5) {
+            let path = s.get("path").and_then(Value::as_str).unwrap_or("?");
+            let kind = s.get("kind").and_then(Value::as_str).unwrap_or("?");
+            let tokens = s.get("tokens").and_then(Value::as_u64).unwrap_or(0);
+            let score = s.get("score").and_then(Value::as_f64).unwrap_or(0.0);
+            println!("  selected: {kind} {path} tokens={tokens} score={score:.2}");
+        }
+    }
+    if let Some(arr) = payload.get("excluded_context").and_then(Value::as_array) {
+        for e in arr.iter().take(5) {
+            let path = e.get("path").and_then(Value::as_str).unwrap_or("?");
+            let reason = e.get("reason").and_then(Value::as_str).unwrap_or("?");
+            println!("  excluded: {path} reason={reason}");
         }
     }
 }

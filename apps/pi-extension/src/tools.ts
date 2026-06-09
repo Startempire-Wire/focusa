@@ -4906,6 +4906,113 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_context_cognition_curate",
+    label: "Context Cognition Curate",
+    description: "Spec 100 Phase 3 — token-budgeted context selection. Takes candidates (files/docs/diffs/snippets/codemaps/evidence) and selects the highest-scoring subset under a token budget. Returns selected_context + excluded_context (with reasons).",
+    promptSnippet: "Use when the agent or operator has a candidate list (files, docs, diffs, evidence) and needs a token-budgeted selection that maximizes relevance to a target (workpoint next_slice, mission, or query).",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity id filter." })),
+      target: Type.Optional(Type.String({ description: "Curator target string (workpoint next_slice, mission, query). Defaults to the active workpoint's next_slice/mission." })),
+      token_budget: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000000, description: "Token budget for the selection. Defaults to 2000." })),
+      candidates: Type.Optional(Type.Array(Type.Object({
+        kind: Type.String({ description: "Candidate kind: file | doc | diff | snippet | codemap | evidence." }),
+        path: Type.String({ description: "Candidate path or ref id." }),
+        body: Type.Optional(Type.String({ description: "Optional candidate body; tokens are estimated from word count if absent." })),
+        evidence_ref: Type.Optional(Type.String({ description: "Optional evidence ref id; curator boosts candidates matching the supplied evidence_refs." })),
+        tokens: Type.Optional(Type.Integer({ minimum: 0, description: "Optional explicit token count; overrides body-derived estimate." })),
+      }), { description: "Candidates to curate. Each is a {kind, path, body?, evidence_ref?, tokens?} object." })),
+      evidence_refs: Type.Optional(Type.Array(Type.String(), { description: "Evidence refs that boost candidate ranking when matched." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_context_cognition_curate", params, ["project_root", "continuity_id", "target", "token_budget", "candidates", "evidence_refs"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_context_cognition_curate", "/v1/context-cognition/curate", params as Record<string, any>, "context cognition curate", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const body: Record<string, any> = {
+        project_root: String(projectRoot),
+        continuity_id: (keyCheck.value as any).continuity_id ?? null,
+        target: (keyCheck.value as any).target ?? null,
+        token_budget: (keyCheck.value as any).token_budget ?? 2000,
+        candidates: Array.isArray((keyCheck.value as any).candidates) ? (keyCheck.value as any).candidates : [],
+        evidence_refs: Array.isArray((keyCheck.value as any).evidence_refs) ? (keyCheck.value as any).evidence_refs : [],
+      };
+      const res = await focusaFetchDetailed("/context-cognition/curate", { method: "POST", body: JSON.stringify(body) });
+      const resp = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_context_cognition_curate",
+          "trajectory",
+          `context cognition curate blocked → ${explainWorkLoopResult(res, "curate unavailable")}`,
+          resp.failure_class || "daemon_unavailable",
+          resp,
+          ["focusa_context_cognition", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const selectedCount = Number(resp.selected_count || 0);
+      const excludedCount = Number(resp.excluded_count || 0);
+      const tokensUsed = Number(resp.tokens_used || 0);
+      const tokenBudget = Number(resp.token_budget || 0);
+      const target = String(resp.target || "<none>");
+      const rehydrate = String(resp.rehydrate_id || "ctx_curate:v0");
+      const toolResult = resp.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `context cognition curate → selected=${selectedCount} excluded=${excludedCount}`,
+        tool: "focusa_context_cognition_curate",
+        family: "trajectory",
+        side_effects: [],
+        evidence_refs: Array.isArray(resp.evidence_refs) ? resp.evidence_refs : [],
+        next_tools: ["focusa_context_cognition", "focusa_context_cognition_render", "focusa_evidence_capture"],
+        raw: resp,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_context_cognition_curate",
+            summary: `context cognition curate → selected=${selectedCount} excluded=${excludedCount}`,
+            ids: [
+              { label: "rehydrate_id", value: rehydrate },
+              { label: "target", value: target },
+            ],
+            fields: [
+              { label: "selected_count", value: selectedCount },
+              { label: "excluded_count", value: excludedCount },
+              { label: "tokens_used", value: tokensUsed },
+              { label: "token_budget", value: tokenBudget },
+              { label: "tokens_remaining", value: Number(resp.tokens_remaining || 0) },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_context_cognition", "focusa_context_cognition_render", "focusa_evidence_capture"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/context-cognition/curate",
+          canonical: false,
+          advisory: true,
+          project_root: String(projectRoot),
+          target,
+          token_budget: tokenBudget,
+          tokens_used: tokensUsed,
+          selected_count: selectedCount,
+          excluded_count: excludedCount,
+          selected_context: resp.selected_context || [],
+          excluded_context: resp.excluded_context || [],
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_call_stack_design",
     label: "Call Stack Design",
     description: "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103.",

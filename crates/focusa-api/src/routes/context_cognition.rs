@@ -37,6 +37,10 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             "/v1/context-cognition/proof",
             axum::routing::get(proof),
         )
+        .route(
+            "/v1/context-cognition/curate",
+            axum::routing::post(curate),
+        )
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -461,4 +465,273 @@ mod tests {
         assert!(!p.canonical);
         assert_eq!(p.scope_status, "matched");
     }
+
+    #[test]
+    fn curator_token_budget_keeps_highest_scored() {
+        // Token-budgeted selection: highest-scored items first, then budget cut.
+        let items = vec![
+            ("auth.ts", "authentication middleware token verify", 100usize, 5.0f64),
+            ("routes.ts", "router config list of routes", 100, 1.0),
+            ("core.ts", "core types", 100, 2.0),
+        ];
+        let budget = 150usize;
+        let mut selected: Vec<(&str, &str, usize, f64)> = Vec::new();
+        let mut used: usize = 0;
+        let mut sorted = items.clone();
+        sorted.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap());
+        for item in sorted {
+            if used + item.2 <= budget {
+                used += item.2;
+                selected.push(item);
+            }
+        }
+        assert_eq!(used, 100);
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].0, "auth.ts");
+    }
+
+    #[test]
+    fn curator_exclusion_labeled() {
+        let excluded = vec![
+            ("routes.ts", "low_score: 0.2"),
+            ("core.ts", "over_budget: 100 > 50"),
+        ];
+        assert_eq!(excluded.len(), 2);
+        assert!(excluded[0].1.contains("low_score"));
+        assert!(excluded[1].1.contains("over_budget"));
+    }
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+pub struct CurateCandidate {
+    pub kind: String, // file | doc | diff | snippet | codemap | evidence
+    pub path: String,
+    pub body: Option<String>,
+    pub evidence_ref: Option<String>,
+    pub tokens: Option<usize>,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
+pub struct CurateRequest {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub target: Option<String>,
+    pub token_budget: Option<usize>,
+    pub candidates: Option<Vec<CurateCandidate>>,
+    pub evidence_refs: Option<Vec<String>>,
+}
+
+#[derive(Debug, serde::Serialize, Clone)]
+struct CuratedItem {
+    kind: String,
+    path: String,
+    body: Option<String>,
+    tokens: usize,
+    score: f64,
+}
+
+#[derive(Debug, serde::Serialize, Clone)]
+struct ExcludedItem {
+    kind: String,
+    path: String,
+    reason: String,
+}
+
+fn estimate_tokens(body: &str) -> usize {
+    // v0: simple word count * 1.3 (rough approximation; tiktoken replaces this in v0.5).
+    let words = body.split_whitespace().count();
+    (words as f64 * 1.3).ceil() as usize
+}
+
+fn score_candidate(target: &str, item: &CurateCandidate) -> f64 {
+    let needle = target.trim().to_ascii_lowercase();
+    if needle.is_empty() {
+        return 1.0;
+    }
+    let hay = format!(
+        "{} {} {}",
+        item.path.to_ascii_lowercase(),
+        item.kind.to_ascii_lowercase(),
+        item.body.clone().unwrap_or_default().to_ascii_lowercase()
+    );
+    let mut score = 0.0;
+    for term in needle.split_whitespace() {
+        if term.is_empty() {
+            continue;
+        }
+        if hay.contains(term) {
+            score += 1.0;
+        }
+    }
+    // Evidence_ref hint adds a small bonus so curator prefers evidence-tagged items.
+    if item.evidence_ref.is_some() {
+        score += 0.5;
+    }
+    score
+}
+
+async fn curate(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CurateRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = body
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("");
+    if project_root.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "project_root_missing",
+                "field": "project_root",
+            }),
+        ));
+    }
+    if is_unsafe_agent_runtime_path_inline(project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+
+    // Pull the workpoint target from FocusState if the operator did not
+    // supply an explicit target.
+    let focusa_state = state.focusa.read().await.clone();
+    let wp_target = body
+        .target
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            focusa_state
+                .workpoint
+                .records
+                .iter()
+                .find(|r| r.project_root.as_deref() == Some(project_root))
+                .and_then(|r| r.next_slice.clone())
+        })
+        .or_else(|| {
+            focusa_state
+                .workpoint
+                .records
+                .iter()
+                .find(|r| r.project_root.as_deref() == Some(project_root))
+                .and_then(|r| r.mission.clone())
+        })
+        .unwrap_or_default();
+
+    let budget = body.token_budget.unwrap_or(2000);
+    let evidence_refs: Vec<String> = body.evidence_refs.clone().unwrap_or_default();
+    let candidates: Vec<CurateCandidate> = body
+        .candidates
+        .clone()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|mut c| {
+            if c.tokens.is_none() {
+                c.tokens = Some(estimate_tokens(c.body.as_deref().unwrap_or("")));
+            }
+            c
+        })
+        .collect();
+
+    // Score and sort candidates by score descending, with a tie-breaker on
+    // tokens (smaller first) so the curator prefers denser items.
+    let mut scored: Vec<(f64, &CurateCandidate)> = candidates
+        .iter()
+        .map(|c| (score_candidate(&wp_target, c), c))
+        .collect();
+    scored.sort_by(|a, b| {
+        b.0.partial_cmp(&a.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.1.tokens.unwrap_or(0).cmp(&b.1.tokens.unwrap_or(0)))
+    });
+
+    // Boost evidence-ref overlap
+    let evidence_set: std::collections::HashSet<String> = evidence_refs.iter().cloned().collect();
+    for (s, c) in scored.iter_mut() {
+        if let Some(er) = c.evidence_ref.as_ref() {
+            if evidence_set.contains(er) {
+                *s += 1.0;
+            }
+        }
+    }
+    // Re-sort after the boost
+    scored.sort_by(|a, b| {
+        b.0.partial_cmp(&a.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.1.tokens.unwrap_or(0).cmp(&b.1.tokens.unwrap_or(0)))
+    });
+
+    let mut selected: Vec<CuratedItem> = Vec::new();
+    let mut excluded: Vec<ExcludedItem> = Vec::new();
+    let mut used: usize = 0;
+
+    for (score, cand) in scored.iter() {
+        let cand_tokens = cand.tokens.unwrap_or(0);
+        if used + cand_tokens <= budget {
+            used += cand_tokens;
+            selected.push(CuratedItem {
+                kind: cand.kind.clone(),
+                path: cand.path.clone(),
+                body: cand.body.clone(),
+                tokens: cand_tokens,
+                score: *score,
+            });
+        } else if *score >= 2.0 {
+            // High-score items get a label, not a drop. Reserved for future
+            // `force_include` flag; for v0 we record over_budget.
+            excluded.push(ExcludedItem {
+                kind: cand.kind.clone(),
+                path: cand.path.clone(),
+                reason: format!(
+                    "over_budget: {} > remaining {}",
+                    cand_tokens,
+                    budget.saturating_sub(used)
+                ),
+            });
+        } else {
+            excluded.push(ExcludedItem {
+                kind: cand.kind.clone(),
+                path: cand.path.clone(),
+                reason: format!("low_score: {:.2} < 2.0", score),
+            });
+        }
+    }
+
+    let target_label = if wp_target.is_empty() {
+        "<none>".to_string()
+    } else {
+        wp_target.clone()
+    };
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "target": target_label,
+        "token_budget": budget,
+        "tokens_used": used,
+        "tokens_remaining": budget.saturating_sub(used),
+        "selected_context": selected,
+        "excluded_context": excluded,
+        "selected_count": selected.len(),
+        "excluded_count": excluded.len(),
+        "evidence_refs": evidence_refs,
+        "next_tools": [
+            "focusa_context_cognition",
+            "focusa_context_cognition_render",
+            "focusa_evidence_capture"
+        ],
+        "rehydrate_id": format!("ctx_curate:{}:{}", project_root, selected.len()),
+    })))
 }
