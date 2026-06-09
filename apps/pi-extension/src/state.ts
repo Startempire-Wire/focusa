@@ -1799,13 +1799,47 @@ export function normalizeProjectRoot(value: unknown): string {
   return normalized === "" ? "" : normalized;
 }
 
+// QN Addendum (2026-06-08): Agent runtime paths must NEVER be treated as project scope
+// Matches Rust unsafe_project_root_reason() in project.rs and workpoint.rs
 const UNSAFE_PROJECT_AUTHORITY_ROOTS = new Set(["/", "/root", "/home", "/Users", "/tmp", "/var", "/usr", "/opt"]);
+
+// Agent runtime directory patterns - must check before project markers
+const AGENT_RUNTIME_PATTERNS = [
+  // Pi agent
+  /\/root\/pi-mono$/,
+  /^\/root\/pi-/,  // /root/pi-*
+  // Node/npm agent installs
+  /^\/opt\/node-/,  // /opt/node-*
+  /^\/usr\/local\/bin$/,
+  /^\/usr\/local\/lib\/node_modules\//,
+  // Claude Code
+  /\/.claude\//,
+  /\/.claude$/,
+  // OpenCode
+  /\/.opencode\//,
+  /\/.opencode$/,
+  // Letta
+  /\/.letta\//,
+  /\/.letta$/,
+  // Pi config/state
+  /\/.pi\//,
+  /\.pi$/,
+  // Python site-packages agent installs
+  /\/site-packages\/letta\//,
+  /\/site-packages\/open-code\//,
+  /\/site-packages\/pi-coding-agent\//,
+  /\/site-packages\/claude-code\//,
+];
 
 export function projectRootAuthorityFailure(value: unknown): string | null {
   const root = normalizeProjectRoot(value);
   if (!root) return "missing_project_root";
   if (UNSAFE_PROJECT_AUTHORITY_ROOTS.has(root)) return "unsafe_broad_project_root";
   if (/^\/home\/[^/]+$/.test(root) || /^\/Users\/[^/]+$/.test(root)) return "unsafe_user_home_project_root";
+  // QN Addendum: Check agent runtime patterns
+  for (const pattern of AGENT_RUNTIME_PATTERNS) {
+    if (pattern.test(root)) return "agent_runtime_directory";
+  }
   return null;
 }
 
