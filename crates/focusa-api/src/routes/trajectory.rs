@@ -1042,12 +1042,20 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
 
     let project_bound = project_root != "unbound";
     let scope_match = mismatches.is_empty();
-    let project_identity_status = if project_bound && scope_match {
+    // QN Addendum (2026-06-08): Check actual project identity status, not just bounds
+    // Agent runtime paths (unsafe_project_root) must be rejected
+    let raw_identity_status = if project_bound && scope_match {
         "verified"
-    } else if project_bound {
-        "mismatch"
     } else {
         "unbound"
+    };
+    let project_identity_status = if raw_identity_status == "verified" && project_identity_quorum_status == "unsafe_project_root" {
+        // Agent runtime path detected - override to unsafe
+        "unsafe_project_root"
+    } else if raw_identity_status == "verified" && project_identity_quorum_status == "mismatch" {
+        "mismatch"
+    } else {
+        raw_identity_status
     };
     let project_confidence = if project_identity_quorum_confidence == "high"
         && project_identity_status == "verified"
@@ -1096,6 +1104,54 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         frame_goal,
         frame_title,
     ]);
+    // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
+    // Do not infer goals from agent runtime directories (pi-mono, .claude, .letta, etc.)
+    if project_identity_status == "unsafe_project_root" {
+        return json!({
+            "canonical": false,
+            "degraded": true,
+            "trajectory": {
+                "long_term_goal": null,
+                "mid_level_goal": null,
+                "short_term_goal": null,
+                "waypoints": [],
+                "desired_end_state": null,
+                "current_state": null,
+                "active_gap": "agent_runtime_directory",
+                "bootstrap_default": false,
+                "needs_definition": false
+            },
+            "intelligence_view": {
+                "clarity_gate": {
+                    "status": "blocked",
+                    "blocking_reasons": ["agent_runtime_directory"],
+                    "recommended_action": "use_actual_project_root",
+                    "ask_operator_if": ["Provide an actual project root, not an agent runtime directory"]
+                },
+                "constraints": [
+                    "Agent runtime paths (/root/pi-mono, /.claude/, /.letta/, etc.) are NEVER project scope"
+                ],
+                "do_not_use": [
+                    "Do NOT infer goals from agent runtime directories",
+                    "Do NOT use ladder fallback when project_root is agent runtime"
+                ]
+            },
+            "context_sufficiency": {
+                "score": 0,
+                "status": "blocked",
+                "proceed_posture": "blocked",
+                "missing_facts": ["project_root is agent runtime directory, not a project"],
+                "recommended_action": "Verify project_root with focusa_project_identity and use an actual project folder"
+            },
+            "next_tools": [
+                "focusa_project_identity",
+                "focusa_project_verify",
+                "focusa_trajectory_define_goal (with explicit project_root)"
+            ],
+            "next_step_hint": "project_root is an agent/runtime directory (not a project). Use an actual project folder like /home/wirebot/focusa instead of /root/pi-mono or similar agent paths."
+        });
+    }
+
     let bootstrap_default_trajectory = persisted_trajectory.is_none()
         && project_bound
         && scope_match
@@ -1990,6 +2046,29 @@ async fn define_goal(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryDefineGoalRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
+    let project_root = body.project_root.as_deref().unwrap_or("");
+    let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root));
+    let identity_status = identity
+        .get("project_identity")
+        .and_then(|pi| pi.get("status"))
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    if identity_status == "unsafe_project_root" {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+                "unsafe_reason": "agent_runtime_directory",
+                "retry_posture": "do_not_retry_unchanged",
+                "next_step_hint": "project_root is an agent/runtime directory. Use an actual project folder instead of agent paths like /root/pi-mono, /.claude/, /.letta/, etc."
+            })),
+        ));
+    }
     let focusa = state.focusa.read().await;
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
@@ -2085,6 +2164,31 @@ async fn assess(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TrajectoryAssessRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
+    let project_root = body.project_root.as_deref().unwrap_or("");
+    if !project_root.is_empty() {
+        let identity = project_identity_payload_for_scope(Some(project_root), Some(project_root));
+        let identity_status = identity
+            .get("project_identity")
+            .and_then(|pi| pi.get("status"))
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+        if identity_status == "unsafe_project_root" {
+            return Err((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({
+                    "status": "validation_rejected",
+                    "canonical": false,
+                    "failure_class": "scope_mismatch",
+                    "field": "project_root",
+                    "rejected_value": project_root,
+                    "unsafe_reason": "agent_runtime_directory",
+                    "retry_posture": "do_not_retry_unchanged",
+                    "next_step_hint": "project_root is an agent/runtime directory. Use an actual project folder instead."
+                })),
+            ));
+        }
+    }
     let focusa = state.focusa.read().await;
     let payload = assess_payload(&focusa, &body);
     let trajectory_id = payload

@@ -109,6 +109,88 @@ From the projection contract:
 5. Trajectory route context remains separate from execution authority in docs and code comments/roles.
 6. Critical HLT continuity changes emit visible agent alerts and keep manual HLT history retrieval opt-in.
 
+## 12) QN Addendum: Non-Lazy HLT Inference (2026-06-08)
+
+### Problem
+HLT ladder reuse became lazy because Focusa inferred from missing verified state. When current verified state is absent or stale, Focusa fell back to stale ladder lines, causing:
+- Repeated non-meaningful HLT/MLG/STG entries
+- Scope confusion (wrong project context persisted)
+- Agents operating without explicit intent
+
+### Root Cause
+Focusa did not enforce a "verified state gate" before HLT inference. The system allowed inference from:
+- Unverified or missing project_root
+- Stale continuity packets (e.g., agent runtime paths like `/root/pi-mono`)
+- Empty/missing evidence refs
+- Missing `current_ask` context
+
+### Non-Lazy HLT Flow (Required Pattern)
+
+**Rule: No ladder mutation unless explicit intent is passed.**
+
+#### Step 1: Lock Scope First (Single Source)
+```bash
+focusa project identity --project-root /path/to/project
+git -C /path/to/project status --short > /tmp/recent-files.txt
+git -C /path/to/project diff --name-only > /tmp/changed-files.txt
+```
+
+#### Step 2: Build Evidence Packet (from repo, CLI)
+```bash
+# Add your own checks: node/php/css lint + TODO scan + test outputs
+focusa trajectory assess \
+  --project-root /path/to/project \
+  --observed-state "explicit evidence summary..."
+```
+
+#### Step 3: Set HLT/derived Goals Explicitly (No Inference Fallback)
+```bash
+focusa trajectory define-goal \
+  --project-root /path/to/project \
+  --goal-source operator \
+  --operator-confirmed \
+  --long-term-goal "What the project desires to be..." \
+  --desired-end-state "Deterministic, file-backed audit closure..." \
+  --mid-level-goal "Reconcile and harden implementation..." \
+  --short-term-goal "Close current gap with CLI-verified evidence..." \
+  --current-state "Verified scope=/path/...; evidence captured in /tmp/..." \
+  --waypoint "Waypoint 1 description" \
+  --waypoint "Waypoint 2 description"
+```
+
+#### Step 4: Verify It Stuck to Your Inputs
+```bash
+focusa trajectory view --project-root /path/to/project --json \
+  | jq '.trajectory | {long_term_goal, mlg, stg, waypoints, active_gap}'
+```
+
+### Implementation Requirements
+
+1. **Verified State Gate**: Before HLT inference, require:
+   - Verified `project_root` (not agent runtime path, not broad root)
+   - Explicit `current_ask` or `mission` present
+   - Evidence refs captured OR explicit operator override
+
+2. **No Lazy Fallback**: If verified state is missing:
+   - Do NOT infer HLT/MLG/STG from stale ladder lines
+   - Return `active_gap: "missing_verified_state"` with guidance to capture state
+   - Emit warning: "Cannot infer goals without verified project scope and evidence"
+
+3. **Scope Isolation**:
+   - Agent runtime paths (`/root/pi-mono`, `/.claude/`, `/.letta/`, etc.) are NEVER project scope
+   - See Spec98 for full agent runtime blocklist
+
+4. **Evidence-Backed Inference**: Stronger inference allowed for:
+   - STG/current-state reasoning with evidence tags
+   - MLG gaps with captured proof
+
+5. **Explicit Override**: Operator can override with `--operator-confirmed` flag to bypass verified state gate when intent is explicitly provided.
+
+### Smart Pattern Summary
+Explicit values + explicit current_state + explicit waypoints = non-lazy HLT. Without `--current-state` and explicit goals, Focusa must NOT use fallback text and must NOT "repeat" non-meaningful ladder lines.
+
+---
+
 ## 12) References
 
 - `docs/00-glossary.md`
