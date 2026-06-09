@@ -137,7 +137,8 @@ mod tests {
     use super::*;
 
     fn test_store() -> ReferenceStore {
-        let root = std::env::temp_dir().join(format!("focusa-reference-store-test-{}", Uuid::now_v7()));
+        let root =
+            std::env::temp_dir().join(format!("focusa-reference-store-test-{}", Uuid::now_v7()));
         ReferenceStore::new(root).unwrap()
     }
 
@@ -192,11 +193,21 @@ mod tests {
     fn legacy_unscoped_handle_remains_readable_but_not_scoped() {
         let store = test_store();
         let handle = store
-            .store(HandleKind::Text, "legacy".to_string(), b"content", None, None, None, None)
+            .store(
+                HandleKind::Text,
+                "legacy".to_string(),
+                b"content",
+                None,
+                None,
+                None,
+                None,
+            )
             .unwrap();
         assert!(store.resolve(handle.id).is_ok());
-        assert!(store
-            .resolve_scoped(handle.id, Some("/tmp/project"), Some("cont-a"))
-            .is_err());
+        assert!(
+            store
+                .resolve_scoped(handle.id, Some("/tmp/project"), Some("cont-a"))
+                .is_err()
+        );
     }
 }

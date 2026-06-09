@@ -185,6 +185,10 @@ enum Commands {
     #[command(subcommand)]
     Trajectory(commands::trajectory::TrajectoryCmd),
 
+    /// HLT Ledger: read/set/verify High-Level Trajectory history (Spec98/99).
+    #[command(subcommand)]
+    Hlt(commands::hlt::HltCmd),
+
     /// Bounded surgical traversal across Focusa surfaces (Spec96).
     #[command(subcommand)]
     Traverse(commands::traverse::TraverseCmd),
@@ -589,6 +593,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,
         Commands::Resource(cmd) => commands::resource::run(cmd, cli.json).await,
         Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,
+        Commands::Hlt(cmd) => commands::hlt::run(cmd, cli.json).await,
         Commands::Traverse(cmd) => commands::traverse::run(cmd, cli.json).await,
         Commands::Workpoint(cmd) => commands::workpoint::run(cmd, cli.json).await,
         Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,

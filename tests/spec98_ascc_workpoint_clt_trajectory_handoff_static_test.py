@@ -3,6 +3,7 @@
 from pathlib import Path
 import sys
 import yaml
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "docs/worksheets/focusa-877z.9-ascc-workpoint-clt-trajectory-handoff-contract.yaml"
@@ -44,7 +45,8 @@ def main() -> None:
             fail(f"HandoffSystemRole missing {variant}")
     const_body = types[const_start:types.find("pub const FOCUSA_STATE_PLANE_CONTRACT", const_start)]
     for system in ["ascc", "workpoint", "clt", "trajectory_ladder"]:
-        if f'("{system}", HandoffSystemRole::' not in const_body:
+        pattern = re.compile(rf"\(\s*\"{system}\"\s*,\s*HandoffSystemRole::")
+        if not pattern.search(const_body):
             fail(f"HANDOFF_SYSTEM_ROLE_CONTRACT missing {system}")
 
     for phrase in [

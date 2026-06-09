@@ -16,7 +16,7 @@ use chrono::Utc;
 use focusa_core::reducer;
 use focusa_core::types::{
     EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
-    SignalOrigin, TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord,
+    HltLedgerEntry, SignalOrigin, TrajectoryConfidence, TrajectoryDefinitionOfDoneRecord,
     TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord, TrajectoryMilestoneRecord,
     TrajectoryMilestoneStatus, TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
     trajectory_caps,
@@ -25,6 +25,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::warn;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Default)]
@@ -318,35 +319,93 @@ fn trajectory_confidence(value: &str) -> TrajectoryConfidence {
     }
 }
 
+/// Per Spec98: Canonical state is scoped by (project_root + continuity_id).
+/// The global active_trajectory_id is NOT authority - scope must be respected first.
 fn active_persisted_trajectory<'a>(
     state: &'a FocusaState,
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
     let expected_project_root = clean(project_root)?;
-    let expected_continuity_id = clean(continuity_id)?;
-    state
+    let expected_continuity_id = clean(continuity_id);
+    
+    // Per Spec98: FIRST filter by scope, THEN select active from that set.
+    // Global active_trajectory_id is NOT authoritative for scoped queries.
+    let scoped_records: Vec<&TrajectoryProjectionRecord> = state
         .trajectory
-        .active_trajectory_id
-        .as_ref()
-        .and_then(|id| {
-            state
-                .trajectory
-                .records
-                .iter()
-                .find(|record| &record.trajectory_id == id)
-        })
+        .records
+        .iter()
         .filter(|record| {
             record.project_root.as_deref() == Some(expected_project_root.as_str())
-                && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
+                && record.continuity_id.as_deref() == expected_continuity_id.as_deref()
         })
-        .or_else(|| {
-            state.trajectory.records.iter().rev().find(|record| {
-                record.canonical
-                    && record.project_root.as_deref() == Some(expected_project_root.as_str())
-                    && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
+        .collect();
+    
+    if scoped_records.is_empty() {
+        return None;
+    }
+    
+    // Check if the global active_trajectory_id is in our scoped set
+    if let Some(global_id) = state.trajectory.active_trajectory_id.as_ref() {
+        if let Some(record) = scoped_records.iter().find(|r| &r.trajectory_id == global_id) {
+            return Some(record);
+        }
+    }
+    
+    // Fall back to latest canonical record in scoped set
+    scoped_records.iter().rev().find(|record| record.canonical).copied()
+}
+
+fn scoped_trajectory_history(
+    records: &[TrajectoryProjectionRecord],
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    limit: usize,
+) -> Vec<Value> {
+    let Some(project_root) = project_root.map(str::trim).filter(|root| !root.is_empty()) else {
+        return Vec::new();
+    };
+    if project_root == "unbound" {
+        return Vec::new();
+    }
+    records
+        .iter()
+        .rev()
+        .filter(|record| record.project_root.as_deref() == Some(project_root))
+        .filter(|record| {
+            continuity_id
+                .and_then(|id| Some(id == record.continuity_id.as_deref().unwrap_or("")))
+                .unwrap_or(true)
+        })
+        .take(limit)
+        .map(|record| {
+            json!({
+                "trajectory_id": record.trajectory_id,
+                "continuity_id": record.continuity_id,
+                "root_long_term_goal": bounded(record.root_long_term_goal.as_str(), 220),
+                "long_term_goal": bounded(record.long_term_goal.as_str(), 220),
+                "desired_end_state": bounded(record.desired_end_state.as_str(), 220),
+                "canonical": record.canonical,
+                "definition_status": serde_json::to_value(&record.definition_status)
+                    .unwrap_or(Value::String("unclear".to_string())),
+                "root_goal_stability": serde_json::to_value(&record.root_goal_stability)
+                    .unwrap_or(Value::String("stable".to_string())),
+                "confidence": serde_json::to_value(&record.confidence)
+                    .unwrap_or(Value::String("medium".to_string())),
+                "created_at": record
+                    .created_at
+                    .as_ref()
+                    .map(|value| value.to_rfc3339()),
+                "updated_at": record
+                    .updated_at
+                    .as_ref()
+                    .map(|value| value.to_rfc3339()),
+                "goal_provenance_count": record.goal_provenance.len(),
+                "milestones_count": record.milestones.len(),
+                "supersedes_trajectory_id": record.supersedes_trajectory_id,
             })
         })
+        .collect()
 }
 
 fn prior_project_trajectory<'a>(
@@ -1343,6 +1402,12 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .take(8)
         .cloned()
         .collect::<Vec<_>>();
+    let hlt_history = scoped_trajectory_history(
+        state.trajectory.records.as_slice(),
+        Some(project_root.as_str()),
+        continuity_id.as_deref(),
+        12,
+    );
     let since_checkpoint = lifecycle_checkpoints
         .first()
         .and_then(|checkpoint| checkpoint.persisted_at.as_ref())
@@ -1476,6 +1541,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "updated_at": persisted_trajectory.and_then(|record| record.updated_at.as_ref().map(|value| value.to_rfc3339())),
                 "checkpoint_count": lifecycle_checkpoints.len(),
                 "state_delta_count": lifecycle_state_deltas.len(),
+                "history": hlt_history,
                 "checkpoints": lifecycle_checkpoints,
                 "state_deltas": lifecycle_state_deltas,
                 "definition_of_done": persisted_trajectory.and_then(|record| record.definition_of_done.clone()),
@@ -1927,6 +1993,15 @@ async fn define_goal(
     let focusa = state.focusa.read().await;
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
+    // Get old HLT before dispatch (for ledger entry)
+    let old_hlt = focusa.trajectory.records.iter()
+        .rev()
+        .find(|r| r.project_root.as_ref() == body.project_root.as_ref())
+        .map(|r| r.long_term_goal.clone());
+    let project_root_for_ledger = body.project_root.clone();
+    let continuity_id_for_ledger = body.continuity_id.clone();
+    let session_id_for_ledger = body.session_id.clone();
+    let new_hlt_from_body = body.long_term_goal.clone();
     drop(focusa);
     let mut side_effects = Vec::new();
     let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
@@ -1970,6 +2045,25 @@ async fn define_goal(
             return Err((status, Json(pending_payload)));
         }
         side_effects.push("trajectory_goal_defined");
+        // HLT Ledger: append entry for this goal definition (Spec98/99: scope-bounded, no singleton)
+        if let Some(ref project_root) = project_root_for_ledger {
+            let entry = HltLedgerEntry::new(
+                project_root.clone(),
+                new_hlt_from_body.clone(),
+                "trajectory_define_goal",
+                Utc::now().timestamp() as u64,
+            )
+            .with_old_hlt(old_hlt)
+            .with_scope(continuity_id_for_ledger, session_id_for_ledger)
+            .with_reason(Some("trajectory_goal_defined".to_string()))
+            .with_evidence(evidence_refs.clone());
+            if let Err(e) = state.persistence.append_hlt_ledger_entry(&entry) {
+                warn!("Failed to append HLT ledger entry: {:?}", e);
+                side_effects.push("hlt_ledger_write_failed");
+            } else {
+                side_effects.push("hlt_ledger_entry_appended");
+            }
+        }
         if let Some(obj) = payload.as_object_mut() {
             obj.insert("persisted".to_string(), Value::Bool(true));
             obj.insert("mutates_canonical_state".to_string(), Value::Bool(true));
@@ -2090,6 +2184,59 @@ async fn resume(
     ))
 }
 
+/// HLT History request — scope-bounded by project_root and continuity_id.
+#[derive(Debug, Deserialize, Default)]
+pub struct HltHistoryRequest {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub limit: Option<usize>,
+}
+
+async fn hlt_history(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HltHistoryRequest>,
+) -> Json<Value> {
+    let project_root = query.project_root.as_ref()
+        .and_then(|r| if r.trim().is_empty() { None } else { Some(r.as_str()) });
+    if project_root.is_none() {
+        return Json(json!({
+            "status": "error",
+            "message": "project_root is required for HLT history",
+            "entries": Vec::<Value>::new(),
+        }));
+    }
+    let project_root = project_root.unwrap();
+    let limit = query.limit.unwrap_or(50).min(500);
+    let continuity_id = query.continuity_id.as_ref()
+        .and_then(|r| if r.trim().is_empty() { None } else { Some(r.as_str()) });
+    let entries = state.persistence
+        .read_hlt_ledger_entries(project_root, continuity_id, limit)
+        .unwrap_or_default();
+    let entries_json: Vec<Value> = entries.into_iter().map(|e| {
+        json!({
+            "timestamp": e.timestamp.to_rfc3339(),
+            "event_id": e.event_id,
+            "project_root": e.project_root,
+            "continuity_id": e.continuity_id,
+            "session_id": e.session_id,
+            "old_hlt": e.old_hlt,
+            "new_hlt": e.new_hlt,
+            "source": e.source,
+            "reason": e.reason,
+            "evidence_refs": e.evidence_refs,
+        })
+    }).collect();
+    let ledger_path = state.persistence.hlt_ledger_path_for_project(project_root);
+    Json(json!({
+        "status": "completed",
+        "project_root": project_root,
+        "continuity_id": continuity_id,
+        "count": entries_json.len(),
+        "entries": entries_json,
+        "ledger_file": ledger_path.to_string_lossy(),
+    }))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/trajectory/view", get(view))
@@ -2098,6 +2245,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/trajectory/propose-workpoint", post(propose_workpoint))
         .route("/v1/trajectory/checkpoint", post(checkpoint))
         .route("/v1/trajectory/resume", post(resume))
+        .route("/v1/hlt/history", get(hlt_history))
 }
 
 #[cfg(test)]
@@ -2728,6 +2876,21 @@ mod tests {
     #[test]
     fn trajectory_view_exposes_durable_lifecycle_history() {
         let mut state = state_with_workpoint("/repo/focusa");
+        let prior_trajectory_id = "trajectory:focusa:cont-a:lifecycle-prior".to_string();
+        state.trajectory.records.push(TrajectoryProjectionRecord {
+            trajectory_id: prior_trajectory_id.clone(),
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            root_long_term_goal: "Build prior trajectory".to_string(),
+            long_term_goal: "Build prior trajectory".to_string(),
+            desired_end_state: "Prior lifecycle queryable".to_string(),
+            definition_status: TrajectoryDefinitionStatus::Clear,
+            session_clarity_status: TrajectoryDefinitionStatus::Clear,
+            confidence: TrajectoryConfidence::High,
+            canonical: true,
+            created_at: Some(Utc::now()),
+            ..TrajectoryProjectionRecord::default()
+        });
         let trajectory_id = "trajectory:focusa:cont-a:lifecycle".to_string();
         state.trajectory.active_trajectory_id = Some(trajectory_id.clone());
         state.trajectory.records.push(TrajectoryProjectionRecord {
@@ -2819,6 +2982,25 @@ mod tests {
                 .unwrap()[0]
                 .as_str(),
             Some("cargo test")
+        );
+
+        let history = lifecycle["history"].as_array().unwrap();
+        assert_eq!(history.len(), 2);
+        assert_eq!(
+            history[0]["trajectory_id"].as_str(),
+            Some("trajectory:focusa:cont-a:lifecycle")
+        );
+        assert_eq!(
+            history[1]["trajectory_id"].as_str(),
+            Some("trajectory:focusa:cont-a:lifecycle-prior")
+        );
+        assert_eq!(
+            history[0]["long_term_goal"].as_str(),
+            Some("Ship Focusa trajectory")
+        );
+        assert_eq!(
+            history[1]["long_term_goal"].as_str(),
+            Some("Build prior trajectory")
         );
     }
 

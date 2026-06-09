@@ -1,4 +1,4 @@
-# Spec99 — Original Intent vs Implementation Audit
+# Spec99 - Original Intent vs Implementation Audit
 
 Status: initial full audit record
 Date: 2026-06-05
@@ -92,7 +92,7 @@ Key intent:
 - proposals are grouped by thread/target/time window
 - one canonical outcome is resolved while alternatives remain preserved
 
-### 3.5 CRDT was real, not “CRDT-ish”
+### 3.5 CRDT was real, not "CRDT-ish"
 
 `docs/43-multi-device-sync.md` defines local-first bidirectional sync, deterministic behavior, idempotency, event cursors, and no silent merges.
 
@@ -129,7 +129,7 @@ The intent class is real CRDT-backed reconciliation substrate.
 
 ## 5. Detailed findings
 
-### F1 — `FocusaState` remains a singleton state root
+### F1 - `FocusaState` remains a singleton state root
 
 Implementation evidence: `crates/focusa-core/src/types.rs` defines one `FocusaState` with:
 
@@ -153,7 +153,7 @@ Repair direction:
 - materialize scoped state under verified root/workstream
 - keep daemon-global state only for health, peer registry, and unowned telemetry
 
-### F2 — Focus Stack active pointer is still singleton
+### F2 - Focus Stack active pointer is still singleton
 
 Implementation evidence:
 
@@ -174,7 +174,7 @@ Repair direction:
 - move active frame pointer under `WorkstreamState` or `ThreadState`
 - unscoped active frame reads return `scope_required`
 
-### F3 — Focus State write path can still fall back to daemon active frame
+### F3 - Focus State write path can still fall back to daemon active frame
 
 Implementation evidence:
 
@@ -194,7 +194,7 @@ Repair direction:
 - require frame id or scoped root/workstream identity for Focus State mutation
 - remove daemon active frame fallback for canonical writes
 
-### F4 — Workpoint active pointer is singleton with guards, not foundationally scoped
+### F4 - Workpoint active pointer is singleton with guards, not foundationally scoped
 
 Implementation evidence:
 
@@ -214,7 +214,7 @@ Repair direction:
 - move Workpoint records/index under project/workstream registry
 - delete or de-authorize singleton `active_workpoint_id`
 
-### F5 — Trajectory active pointer is singleton and prior-project fallback exists
+### F5 - Trajectory active pointer is singleton and prior-project fallback exists
 
 Implementation evidence:
 
@@ -235,7 +235,7 @@ Repair direction:
 - active trajectory must be keyed by project root + continuity/workstream
 - prior project trajectory should be cross-scope advisory only, never in canonical trajectory packet path
 
-### F6 — Work-loop is daemon-global
+### F6 - Work-loop is daemon-global
 
 Implementation evidence:
 
@@ -255,7 +255,7 @@ Repair direction:
 - introduce scoped `WorkLoopId` or project/workstream keyed loop state
 - writer ownership scoped per loop
 
-### F7 — Sync imports remote events as observations by default, limiting CRDT update reconciliation
+### F7 - Sync imports remote events as observations by default, limiting CRDT update reconciliation
 
 Implementation evidence:
 
@@ -276,7 +276,7 @@ Repair direction:
 - keep observation quarantine for unverified/foreign roots
 - for same verified project root, route compatible update operations through CRDT reconciliation and PRE/resolution
 
-### F8 — CRDT implementation exists but is not the canonical state root
+### F8 - CRDT implementation exists but is not the canonical state root
 
 Implementation evidence:
 
@@ -295,7 +295,7 @@ Repair direction:
 - make project timeline/event log the canonical source for materialized scoped state
 - store causal metadata in canonical-capable events
 
-### F9 — Pi extension keeps singleton session-local caches that can bleed on project switches
+### F9 - Pi extension keeps singleton session-local caches that can bleed on project switches
 
 Implementation evidence: `apps/pi-extension/src/state.ts` defines singleton mutable fields:
 
@@ -322,7 +322,7 @@ Repair direction:
 - replace singleton caches with `scopeCache[ProjectRootKey][WorkstreamKey]`
 - make compaction/resume block unless packet scope matches current verified root and continuity
 
-### F10 — Project identity work is good but retrofitted
+### F10 - Project identity work is good but retrofitted
 
 Implementation evidence:
 
@@ -422,50 +422,50 @@ ProjectRegistry
 
 ## 9. Implementation decomposition
 
-### Phase A — Inventory and hard fail unscoped canonical paths
+### Phase A - Inventory and hard fail unscoped canonical paths
 
 - enumerate every API/CLI/Pi route that returns active/current/last state
 - add `scope_required` fail-closed behavior where safe
 - mark singleton state fields legacy/non-authoritative
 
-### Phase B — ProjectRootKey + WorkstreamKey
+### Phase B - ProjectRootKey + WorkstreamKey
 
 - define canonical key types in core
 - add keys to event envelope
 - add project registry skeleton
 - add migration mapping from old records to project/workstream buckets
 
-### Phase C — Workpoint + Trajectory first
+### Phase C - Workpoint + Trajectory first
 
 - move active Workpoint and Trajectory under workstream state
 - delete singleton active authority from route payloads
 - update Pi Workpoint/Trajectory packets
 
-### Phase D — Focus Stack + Focus State
+### Phase D - Focus Stack + Focus State
 
 - move active frame under workstream/thread state
 - require frame/workstream identity on Focus State writes
 - remove daemon active-frame fallback
 
-### Phase E — Work-loop
+### Phase E - Work-loop
 
 - add loop id or workstream keyed loop state
 - scope writer ownership and current task
 
-### Phase F — CRDT reconciliation path
+### Phase F - CRDT reconciliation path
 
 - carry vector/Lamport metadata on project events
 - integrate `CrdtLog` with project timeline persistence
 - support same-root compatible update merge
 - route conflicting same-root decisions into PRE
 
-### Phase G — Pi extension scope cache
+### Phase G - Pi extension scope cache
 
 - replace singleton `S.last*` and `S.active*` caches with keyed cache
 - compaction packets include project root key, continuity, timeline head
 - ambiguous cwd blocks canonical binding
 
-### Phase H — Regression proof
+### Phase H - Regression proof
 
 - two-project bleed test
 - same-root two-session timeline test
@@ -572,7 +572,7 @@ Spec98 is the repair foundation. This audit is the evidence record for why that 
 
 This section records the deeper pass requested after the initial audit. These findings are not just more confirmation of singleton state; they identify disconnected or under-integrated intended subsystems.
 
-### S1 — CRDT module is effectively orphaned from production sync
+### S1 - CRDT module is effectively orphaned from production sync
 
 Evidence:
 
@@ -584,7 +584,7 @@ Implication:
 
 The CRDT implementation exists as a tested island, not as the production reconciliation engine. This is a larger divergence than singleton active pointers: the named CRDT foundation is not wired into canonical runtime sync.
 
-### S2 — SQLite event schema lacks causal/project-root columns
+### S2 - SQLite event schema lacks causal/project-root columns
 
 Evidence:
 
@@ -596,7 +596,7 @@ Implication:
 
 Even if payload JSON contains some identity fields, persistence is not shaped for project-root source-of-truth timelines or CRDT causal queries. It cannot efficiently or structurally enforce the intended root-keyed reconciliation model.
 
-### S3 — PRE implementation is threshold scoring, not the documented resolution-window model
+### S3 - PRE implementation is threshold scoring, not the documented resolution-window model
 
 Evidence:
 
@@ -608,7 +608,7 @@ Implication:
 
 The real PRE is not yet the intended conflict-resolution substrate for concurrent same-root/session decisions. It is closer to a scored queue than deterministic windowed reconciliation.
 
-### S4 — Thread ownership enforcement is bypassed by many first-party route calls
+### S4 - Thread ownership enforcement is bypassed by many first-party route calls
 
 Evidence:
 
@@ -625,7 +625,7 @@ Implication:
 
 Thread ownership exists in reducer code but is optional metadata. Canonical API routes frequently omit it, so the intended ownership model is not actually a hard authority boundary.
 
-### S5 — CLI operator/agent status silently composes unscoped surfaces
+### S5 - CLI operator/agent status silently composes unscoped surfaces
 
 Evidence:
 
@@ -639,9 +639,9 @@ Evidence:
 
 Implication:
 
-The CLI itself reinforces daemon-global “current” ergonomics. Even if API routes are guarded, the user-facing command center still trains operators/agents to trust unscoped current state.
+The CLI itself reinforces daemon-global "current" ergonomics. Even if API routes are guarded, the user-facing command center still trains operators/agents to trust unscoped current state.
 
-### S6 — Session/project identity exists but is not the event-store partition key
+### S6 - Session/project identity exists but is not the event-store partition key
 
 Evidence:
 
@@ -653,7 +653,7 @@ Implication:
 
 ProjectIdentity is currently a validation/envelope layer, not the database/state partition foundation. This explains why cross-session bleed can recur despite many scope guards.
 
-### S7 — Sync transfer has only a narrow mutating exception
+### S7 - Sync transfer has only a narrow mutating exception
 
 Evidence:
 
@@ -664,7 +664,7 @@ Implication:
 
 The system has one narrow canonical remote update path but no general same-root CRDT reconciliation path for ordinary cognitive/project changes.
 
-### S8 — The implementation has the right words but wrong attachment point
+### S8 - The implementation has the right words but wrong attachment point
 
 Evidence:
 
@@ -681,7 +681,7 @@ This is why earlier patches looked plausible: the vocabulary is there. The failu
 
 This pass excludes CRDT/multi-device reconciliation and asks: what veered in early implementation relative to the first Focusa docs?
 
-### E1 — Conversation leaked into canonical state shape
+### E1 - Conversation leaked into canonical state shape
 
 Early docs say conversation history is never part of `FocusaState` and conversation never mutates cognition.
 
@@ -689,7 +689,7 @@ Implementation stores `ActiveTurn { raw_user_input, assembled_prompt }` inside `
 
 This is not a CRDT problem. It is a boundary error between runtime correlation and cognition state.
 
-### E2 — Direct mutation bypassed the reducer contract
+### E2 - Direct mutation bypassed the reducer contract
 
 Early docs say all mutable cognition transitions must go through the single-writer reducer and be replayable.
 
@@ -697,13 +697,13 @@ Implementation directly mutates state in API paths, including active-turn prompt
 
 This weakens replayability and violates the reducer-as-authority foundation.
 
-### E3 — Beads validation became string validation
+### E3 - Beads validation became string validation
 
 Early docs make Beads the task authority and forbid frames without Beads linkage.
 
 Implementation checks only that `beads_issue_id` is non-empty in focus/command paths; proposals can default to `proposal-focus-change`; tests and helpers use synthetic `issue-{title}` ids.
 
-This means “Beads authority” became “string present”.
+This means "Beads authority" became "string present".
 
 ### E4 — Focus Gate lost its central gate role
 
@@ -713,6 +713,19 @@ Implementation lets many subsystems develop independent authority surfaces: Work
 
 This is a spec evolution gap: either Focus Gate must be restored as the canonical front door or explicitly superseded.
 
+### E6 — HLT history was reconstructive, not first-class
+
+Original intent: HLT (High-Level Trajectory) as the north-star of the project should be saved precisely with a historical list always easily available.
+
+Previous implementation: HLT lived inside `TrajectoryProjectionRecord` snapshots and trajectory projections, with no dedicated append-only ledger. HLT history was effectively reconstructive from compressed summaries.
+
+Fixed (2026-06-08): Implemented HLT Ledger per Spec98/99:
+- Append-only JSONL ledger: `{data_dir}/hlt-ledger/{project_root_hash}/hlt.jsonl`
+- Scope-bounded by `(project_root, continuity_id)`, no singleton
+- CRDT-grade with Lamport timestamps
+- API: `GET /v1/hlt/history` + tool `focusa_hlt_history`
+- `define_goal` route atomically appends entry on successful HLT change
+
 ### E5 — Expression Engine accumulated non-expression responsibilities
 
 Early docs define Expression Engine as deterministic output shaping only, with no reasoning/planning, no memory mutation, no implicit summarization, and explicit degradation.
@@ -721,7 +734,7 @@ Implementation includes richer dynamic assembly and nearby proxy behavior that r
 
 This blurred expression, retrieval, memory maintenance, and runtime turn storage.
 
-### E6 — Reference Store lost strict source/scope ergonomics
+### E6 - Reference Store lost strict source/scope ergonomics
 
 Early docs require lossless, immutable, scoped, explicit rehydration.
 
@@ -729,7 +742,7 @@ Implementation enforces handle-id immutability in reducer, but the store route d
 
 This is a storage/ergonomics leak independent of CRDT.
 
-### E7 — Runtime, telemetry, and cognition planes were not kept separate
+### E7 - Runtime, telemetry, and cognition planes were not kept separate
 
 Early daemon docs describe staged runtime flow. Core reducer docs keep cognition state pure and event-replayable.
 
@@ -767,7 +780,7 @@ This pass covers all core systems, not just the first visible non-CRDT veers.
 | Ontology/read indexes | Advisory intelligence/read model | Active-object/next-action projections may look canonical | Mark ontology projections advisory unless promoted |
 | Workpoint | Later continuity layer | Became canonical compaction/resume authority without updating early docs | Formalize as continuity authority layer |
 | Trajectory | Later project goal projection | Can compete with Focus State for goal authority | Bind to project+continuity and define supersession rules |
-| Work-loop | Later continuous execution | Supersedes “not automation engine/scheduler” boundary | Declare bounded orchestration plane or externalize it |
+| Work-loop | Later continuous execution | Supersedes "not automation engine/scheduler" boundary | Declare bounded orchestration plane or externalize it |
 | API/CLI | Status/stack/memory/events control | Many route classes with mixed mutation semantics | Add route taxonomy and tests |
 
 ### 16.1 The central pattern
@@ -813,7 +826,7 @@ Operator guidance: decisions must be evaluated for their cascading effects acros
 
 ### 17.1 Why this changes the audit
 
-The audit cannot simply say “move X out of `FocusaState`” or “make Y advisory.” Those changes can improve reducer purity while harming agent continuity if the agent loses clear handoff context.
+The audit cannot simply say "move X out of `FocusaState`" or "make Y advisory." Those changes can improve reducer purity while harming agent continuity if the agent loses clear handoff context.
 
 The correct lens is:
 

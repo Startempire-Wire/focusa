@@ -1,0 +1,306 @@
+{
+  "advisory_only": true,
+  "canonical": true,
+  "degraded": false,
+  "details": {
+    "tool_result_v1": {
+      "canonical": true,
+      "degraded": false,
+      "evidence_refs": [],
+      "failure_class": null,
+      "next_tools": [
+        "focusa_trajectory_assess",
+        "focusa_trajectory_propose_workpoint"
+      ],
+      "ok": true,
+      "retry": {
+        "posture": "safe_retry",
+        "safe": true
+      },
+      "side_effects": [
+        "trajectory_goal_defined",
+        "hlt_ledger_entry_appended"
+      ],
+      "status": "completed"
+    }
+  },
+  "mutates_canonical_state": true,
+  "next_step_hint": "use focusa_trajectory_assess, then propose a Workpoint candidate if the gap is actionable",
+  "next_tools": [
+    "focusa_trajectory_assess",
+    "focusa_trajectory_propose_workpoint"
+  ],
+  "persisted": true,
+  "persistence_event": "trajectory_goal_defined",
+  "project_identity": {
+    "authority_boundary": "project_root_plus_continuity_id",
+    "confidence": "medium",
+    "continuity_id": "session-a1",
+    "fingerprint": "project-fnv1a64:790264f9fe660c88",
+    "mismatches": [],
+    "project_identity_api": {
+      "aliases": [],
+      "authority_boundary": "project_root_plus_fingerprint",
+      "beads_prefix": "project-a",
+      "canonical_name": "project-a",
+      "confidence": "medium",
+      "deployment": {
+        "environment": "local",
+        "inference_confidence": "low"
+      },
+      "fingerprint": "project-fnv1a64:3c05a84a37af10c2",
+      "mismatches": [],
+      "project_id": "project-a",
+      "project_root": "/tmp/project-a",
+      "project_summary": {
+        "authority_boundary": "project_root_plus_fingerprint",
+        "deployment": {
+          "environment": "local",
+          "inference_confidence": "low"
+        },
+        "environment_confidence": "low",
+        "local_only": true,
+        "project": {
+          "aliases": [],
+          "beads_prefix": "project-a",
+          "canonical_name": "project-a",
+          "confidence": "medium",
+          "key_dirs": [],
+          "project_id": "project-a",
+          "project_root": "/tmp/project-a",
+          "repo_remote": null,
+          "stack": [],
+          "status": "degraded",
+          "workspace_kind": null
+        },
+        "public_repo": null,
+        "schema": "focusa.project_summary.v1",
+        "summary_lines": [
+          "project=project-a id=project-a root=/tmp/project-a confidence=medium status=degraded public_repo=unknown",
+          "aliases=none",
+          "stack=unknown workspace=unknown dirs=unknown",
+          "urls=local_only:true root:unknown live:none local:unknown wp:unknown app:unknown auth:unknown graphql:unknown api:unknown",
+          "deploy=env:local target:unknown location:unknown command:unknown confidence:low"
+        ],
+        "urls": {
+          "inference_confidence": "low"
+        }
+      },
+      "project_urls": {
+        "inference_confidence": "low"
+      },
+      "remote_context": null,
+      "repo_remote": null,
+      "schema": "focusa.project_identity.v1",
+      "signals": [
+        {
+          "confidence": "low",
+          "details": {
+            "path": "/tmp/project-a"
+          },
+          "independent": false,
+          "root": "/tmp/project-a",
+          "source": "cwd"
+        },
+        {
+          "confidence": "medium",
+          "details": {
+            "project_root": "/tmp/project-a"
+          },
+          "independent": true,
+          "root": "/tmp/project-a",
+          "source": "operator_supplied_scope"
+        },
+        {
+          "confidence": "medium",
+          "details": {
+            "authority_note": "independent only when no explicit project/cwd override is supplied",
+            "working_directory": "/root"
+          },
+          "independent": false,
+          "root": "/root",
+          "source": "daemon_working_directory"
+        }
+      ],
+      "status": "degraded",
+      "verified_at": "2026-06-09T03:12:23.961520057+00:00",
+      "workspace_kind": null
+    },
+    "project_root": "/tmp/project-a",
+    "quorum_confidence": "medium",
+    "quorum_status": "degraded",
+    "session_id": null,
+    "session_id_policy": "temporal_metadata_only",
+    "signals": [
+      {
+        "continuity_id": "session-a1",
+        "project_root": "/tmp/project-a",
+        "session_id": null,
+        "source": "query"
+      },
+      {
+        "continuity_id": null,
+        "project_root": null,
+        "session_id": null,
+        "source": "workpoint"
+      },
+      {
+        "project_identity": {
+          "aliases": [],
+          "authority_boundary": "project_root_plus_fingerprint",
+          "beads_prefix": "project-a",
+          "canonical_name": "project-a",
+          "confidence": "medium",
+          "deployment": {
+            "environment": "local",
+            "inference_confidence": "low"
+          },
+          "fingerprint": "project-fnv1a64:3c05a84a37af10c2",
+          "mismatches": [],
+          "project_id": "project-a",
+          "project_root": "/tmp/project-a",
+          "project_summary": {
+            "authority_boundary": "project_root_plus_fingerprint",
+            "deployment": {
+              "environment": "local",
+              "inference_confidence": "low"
+            },
+            "environment_confidence": "low",
+            "local_only": true,
+            "project": {
+              "aliases": [],
+              "beads_prefix": "project-a",
+              "canonical_name": "project-a",
+              "confidence": "medium",
+              "key_dirs": [],
+              "project_id": "project-a",
+              "project_root": "/tmp/project-a",
+              "repo_remote": null,
+              "stack": [],
+              "status": "degraded",
+              "workspace_kind": null
+            },
+            "public_repo": null,
+            "schema": "focusa.project_summary.v1",
+            "summary_lines": [
+              "project=project-a id=project-a root=/tmp/project-a confidence=medium status=degraded public_repo=unknown",
+              "aliases=none",
+              "stack=unknown workspace=unknown dirs=unknown",
+              "urls=local_only:true root:unknown live:none local:unknown wp:unknown app:unknown auth:unknown graphql:unknown api:unknown",
+              "deploy=env:local target:unknown location:unknown command:unknown confidence:low"
+            ],
+            "urls": {
+              "inference_confidence": "low"
+            }
+          },
+          "project_urls": {
+            "inference_confidence": "low"
+          },
+          "remote_context": null,
+          "repo_remote": null,
+          "schema": "focusa.project_identity.v1",
+          "signals": [
+            {
+              "confidence": "low",
+              "details": {
+                "path": "/tmp/project-a"
+              },
+              "independent": false,
+              "root": "/tmp/project-a",
+              "source": "cwd"
+            },
+            {
+              "confidence": "medium",
+              "details": {
+                "project_root": "/tmp/project-a"
+              },
+              "independent": true,
+              "root": "/tmp/project-a",
+              "source": "operator_supplied_scope"
+            },
+            {
+              "confidence": "medium",
+              "details": {
+                "authority_note": "independent only when no explicit project/cwd override is supplied",
+                "working_directory": "/root"
+              },
+              "independent": false,
+              "root": "/root",
+              "source": "daemon_working_directory"
+            }
+          ],
+          "status": "degraded",
+          "verified_at": "2026-06-09T03:12:23.961520057+00:00",
+          "workspace_kind": null
+        },
+        "source": "project_identity_api"
+      }
+    ],
+    "status": "verified",
+    "warnings": []
+  },
+  "status": "completed",
+  "trajectory_candidate": {
+    "current_state": null,
+    "definition_of_done": {
+      "acceptance_risks": [
+        "current state is stale or unverified",
+        "scope mismatch hides incomplete work"
+      ],
+      "criteria": [
+        "Session A1 done"
+      ],
+      "desired_end_state": "Session A1 done",
+      "evidence_required": [
+        "evidence proving desired end state"
+      ],
+      "not_done_if": [
+        "desired end state lacks linked evidence",
+        "required checks have not run",
+        "project_root or continuity_id mismatch remains unresolved"
+      ],
+      "required_checks": [
+        "verify desired end state with linked evidence"
+      ],
+      "required_evidence_refs": [
+        "evidence proving desired end state"
+      ],
+      "status": "defined",
+      "verified_evidence_refs": []
+    },
+    "definition_status": "clear",
+    "desired_end_state": "Session A1 done",
+    "goal_source": "cli",
+    "lifecycle": {
+      "refresh_triggers": [
+        "operator_goal_changed",
+        "trajectory_superseded",
+        "workpoint_completed",
+        "evidence_captured",
+        "project_identity_mismatch",
+        "continuity_id_changed",
+        "post_compaction_resume"
+      ],
+      "root_goal_change_policy": "operator_confirmed_or_durable_supersession_evidence_only",
+      "source_precedence": [
+        "operator_confirmed",
+        "durable_supersession_evidence",
+        "workpoint_checkpoint",
+        "active_focus_frame",
+        "focus_state_projection",
+        "inferred_context"
+      ]
+    },
+    "long_term_goal": "Project A session 1",
+    "mid_level_goal": null,
+    "operator_confirmed": true,
+    "provenance": "operator_or_tool_supplied_projection_candidate",
+    "root_goal_change_allowed": true,
+    "short_term_goal": null,
+    "supersedes_trajectory_id": null,
+    "supersession_evidence_refs": [],
+    "waypoints": []
+  },
+  "trajectory_id": "trajectory:project-fnv1a64:790264f9fe660c88:defined-goal",
+  "validation_errors": []
+}

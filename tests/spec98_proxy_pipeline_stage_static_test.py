@@ -74,7 +74,25 @@ def main() -> None:
             fail(f"ProxyPipelineStage missing {stage}")
         if f"ProxyPipelineStage::{stage}" not in const_body:
             fail(f"PROXY_PIPELINE_STAGE_CONTRACT missing {stage}")
-    deterministic_true = re.findall(r"stage: ProxyPipelineStage::(\w+), deterministic_render: true", const_body)
+
+    entries = const_body.split("ProxyPipelineStageContract {")
+
+    def stage_block(stage_name: str) -> str:
+        marker = f"stage: ProxyPipelineStage::{stage_name},"
+        for chunk in entries[1:]:
+            if marker not in chunk:
+                continue
+            end = chunk.find("},")
+            if end == -1:
+                fail(f"PROXY_PIPELINE_STAGE_CONTRACT malformed block for {stage_name}")
+            return "ProxyPipelineStageContract {" + chunk[:end] + "},"
+        fail(f"PROXY_PIPELINE_STAGE_CONTRACT missing block for {stage_name}")
+
+    deterministic_true = []
+    for stage in STAGES:
+        block = stage_block(stage)
+        if "deterministic_render: true" in block:
+            deterministic_true.append(stage)
     if deterministic_true != ["DeterministicExpressionRender"]:
         fail(f"only DeterministicExpressionRender may set deterministic_render=true, got {deterministic_true}")
     for stage, flag in [
@@ -85,8 +103,8 @@ def main() -> None:
         ("RuntimeTelemetryCapture", "telemetry_only: true"),
         ("EvalRegeneration", "eval_or_regeneration: true"),
     ]:
-        row = re.search(rf"ProxyPipelineStageContract \{{ stage: ProxyPipelineStage::{stage},[^\n]+", const_body)
-        if not row or flag not in row.group(0):
+        row = stage_block(stage)
+        if flag not in row:
             fail(f"{stage} row missing side-effect flag {flag}")
 
     openai = OPENAI.read_text()

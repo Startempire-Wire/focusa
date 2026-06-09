@@ -92,18 +92,34 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
                 .to_string()
         });
     let canonical = record.map(|r| r.canonical).unwrap_or(false);
-    let authority = if canonical { "workpoint" } else { "operator_current_ask" };
-    let workpoint_status = if canonical { "verified" } else { "unavailable/not_verified" };
-    let exact_next_action = if canonical { next } else { "Call /v1/trajectory/view, then checkpoint a project-bound Workpoint before risky continuation." };
+    let authority = if canonical {
+        "workpoint"
+    } else {
+        "operator_current_ask"
+    };
+    let workpoint_status = if canonical {
+        "verified"
+    } else {
+        "unavailable/not_verified"
+    };
+    let exact_next_action = if canonical {
+        next
+    } else {
+        "Call /v1/trajectory/view, then checkpoint a project-bound Workpoint before risky continuation."
+    };
     let reconciliation_envelope = if canonical {
         Vec::<String>::new()
     } else {
         vec![
             "RECONCILIATION_ENVELOPE:".to_string(),
-            format!("- surface_states=workpoint:{workpoint_status}; trajectory:verify_first; focus_state:unknown; ontology:unknown; evidence:capture_after_checkpoint; doctor:unknown; work_loop:unknown"),
+            format!(
+                "- surface_states=workpoint:{workpoint_status}; trajectory:verify_first; focus_state:unknown; ontology:unknown; evidence:capture_after_checkpoint; doctor:unknown; work_loop:unknown"
+            ),
             "- resolution=checkpoint_project_bound_workpoint".to_string(),
             "- authority_for_next_action=operator_current_ask_until_checkpoint".to_string(),
-            format!("- supporting_context=project_root:{project_root}; continuity_id:{continuity}; session_id:{session}"),
+            format!(
+                "- supporting_context=project_root:{project_root}; continuity_id:{continuity}; session_id:{session}"
+            ),
             "- blocked_or_stale_surfaces=workpoint,trajectory".to_string(),
             "- next_repair_tool=focusa_workpoint_checkpoint".to_string(),
         ]

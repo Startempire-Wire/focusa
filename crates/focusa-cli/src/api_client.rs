@@ -64,6 +64,42 @@ impl ApiClient {
         &self.client
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HLT Ledger API — Spec98/99: scope-bounded, no singleton
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// Get HLT history for a project (scope-bounded by project_root + continuity_id).
+    pub async fn get_hlt_history(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Value> {
+        let mut path = format!("/v1/hlt/history?project_root={}", urlencoding::encode(project_root));
+        if let Some(cid) = continuity_id {
+            path.push_str(&format!("&continuity_id={}", urlencoding::encode(cid)));
+        }
+        path.push_str(&format!("&limit={}", limit));
+        self.get(&path).await
+    }
+
+    /// Get current HLT from trajectory view (scope-bounded).
+    pub async fn get_trajectory_view(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+        session_id: Option<&str>,
+    ) -> anyhow::Result<Value> {
+        let mut path = format!("/v1/trajectory/view?project_root={}", urlencoding::encode(project_root));
+        if let Some(cid) = continuity_id {
+            path.push_str(&format!("&continuity_id={}", urlencoding::encode(cid)));
+        }
+        if let Some(sid) = session_id {
+            path.push_str(&format!("&session_id={}", urlencoding::encode(sid)));
+        }
+        self.get(&path).await
+    }
+
     pub async fn get(&self, path: &str) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
         let resp = self

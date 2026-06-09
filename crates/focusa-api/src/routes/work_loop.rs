@@ -17,7 +17,7 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
@@ -35,12 +35,54 @@ fn project_root() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
-fn project_root_string() -> String {
-    project_root().to_string_lossy().to_string()
+fn git_safe_directory_arg(root_hint: &str) -> String {
+    format!("safe.directory={}", root_hint)
 }
 
-fn git_safe_directory_arg() -> String {
-    format!("safe.directory={}", project_root_string())
+fn task_scope_root(task: Option<&focusa_core::types::SpecLinkedTaskPacket>) -> Option<String> {
+    task.and_then(|task| {
+        task.allowed_scope.iter().find_map(|scope| {
+            scope
+                .strip_prefix("project_root:")
+                .or_else(|| scope.strip_prefix("project:"))
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.trim().is_empty())
+        })
+    })
+}
+
+fn work_loop_scope_root(focusa: &focusa_core::types::FocusaState) -> PathBuf {
+    if let Some(root) = task_scope_root(focusa.work_loop.current_task.as_ref()) {
+        return root.into();
+    }
+
+    if let Some(active_id) = focusa.workpoint.active_workpoint_id {
+        if let Some(workpoint) = focusa
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == active_id)
+        {
+            if let Some(root) = workpoint
+                .project_root
+                .as_ref()
+                .filter(|value| !value.trim().is_empty())
+            {
+                return root.clone().into();
+            }
+        }
+    }
+
+    if let Some(root) = focusa
+        .session
+        .as_ref()
+        .and_then(|session| session.project_root.clone())
+        .filter(|value| !value.trim().is_empty())
+    {
+        return root.into();
+    }
+
+    project_root()
 }
 
 fn pi_rpc_bin() -> String {
@@ -325,18 +367,7 @@ fn writer_claim_key_from_state(focusa: &focusa_core::types::FocusaState) -> Stri
         .as_ref()
         .map(|task| task.work_item_id.clone())
         .unwrap_or_else(|| "no_active_work_item".to_string());
-    let scope_project = wl
-        .current_task
-        .as_ref()
-        .and_then(|task| {
-            task.allowed_scope.iter().find_map(|scope| {
-                scope
-                    .strip_prefix("project_root:")
-                    .or_else(|| scope.strip_prefix("project:"))
-                    .map(str::to_string)
-            })
-        })
-        .unwrap_or_else(|| project_root().to_string_lossy().to_string());
+    let scope_project = work_loop_scope_root(focusa).to_string_lossy().to_string();
     let workstream = wl
         .decision_context
         .source_turn_id
@@ -462,11 +493,12 @@ async fn ensure_claimed_writer_matches_for_context(
     Ok(Some(writer_id))
 }
 
-async fn worktree_status_snapshot() -> Value {
-    let safe_dir = git_safe_directory_arg();
+async fn worktree_status_snapshot(project_root: &Path) -> Value {
+    let project_root_hint = project_root.to_string_lossy().to_string();
+    let safe_dir = git_safe_directory_arg(&project_root_hint);
     let top = match Command::new("git")
         .args(["-c", safe_dir.as_str(), "rev-parse", "--show-toplevel"])
-        .current_dir(project_root())
+        .current_dir(project_root)
         .output()
         .await
     {
@@ -476,7 +508,7 @@ async fn worktree_status_snapshot() -> Value {
                 "git_available": true,
                 "in_worktree": false,
                 "clean": false,
-                "repo_root_hint": project_root_string(),
+                "repo_root_hint": project_root_hint,
                 "error": String::from_utf8_lossy(&top.stderr).trim().to_string(),
             });
         }
@@ -545,6 +577,7 @@ async fn worktree_status_snapshot() -> Value {
 
 async fn alternate_ready_work_snapshot(
     current_task: Option<&focusa_core::types::SpecLinkedTaskPacket>,
+    project_root: &Path,
 ) -> Value {
     let Some(task) = current_task else {
         return json!({ "exists": false });
@@ -555,7 +588,7 @@ async fn alternate_ready_work_snapshot(
 
     let output = match Command::new("bd")
         .args(["show", parent_work_item_id, "--json"])
-        .current_dir(project_root())
+        .current_dir(project_root)
         .output()
         .await
     {
@@ -876,7 +909,11 @@ async fn dispatch_pi_prompt(
     Ok(())
 }
 
-async fn defer_work_item_for_alternate_switch(work_item_id: &str, reason: &str) {
+async fn defer_work_item_for_alternate_switch(
+    work_item_id: &str,
+    reason: &str,
+    project_root: &Path,
+) {
     let note = format!(
         "Continuous loop deferred for alternate-ready switch: {}",
         reason.chars().take(180).collect::<String>()
@@ -890,7 +927,7 @@ async fn defer_work_item_for_alternate_switch(work_item_id: &str, reason: &str) 
             "--append-notes",
             &note,
         ])
-        .current_dir(project_root())
+        .current_dir(project_root)
         .output()
         .await;
 }
@@ -899,13 +936,14 @@ async fn maybe_auto_advance_from_blocked(
     state: &Arc<AppState>,
     reason: &str,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
-    let (enabled, status, current_task, boundary_reason) = {
+    let (enabled, status, current_task, boundary_reason, scope_root) = {
         let focusa = state.focusa.read().await;
         (
             focusa.work_loop.enabled,
             focusa.work_loop.status,
             focusa.work_loop.current_task.clone(),
             continuation_boundary_reason(&focusa.work_loop),
+            work_loop_scope_root(&focusa),
         )
     };
 
@@ -915,7 +953,7 @@ async fn maybe_auto_advance_from_blocked(
     }
 
     let Some(task) = current_task else {
-        if maybe_select_global_ready_work_item(state).await? {
+        if maybe_select_global_ready_work_item(state, &scope_root).await? {
             let _ = state
                 .command_tx
                 .send(Action::CheckpointContinuousLoop {
@@ -933,7 +971,7 @@ async fn maybe_auto_advance_from_blocked(
     };
 
     if blocked {
-        defer_work_item_for_alternate_switch(&task.work_item_id, reason).await;
+        defer_work_item_for_alternate_switch(&task.work_item_id, reason, &scope_root).await;
     }
 
     let parent_work_item_id = task
@@ -998,6 +1036,7 @@ fn extract_work_item_id_and_title(item: &Value) -> Option<(String, String)> {
 
 async fn maybe_select_global_ready_work_item(
     state: &Arc<AppState>,
+    scope_root: &Path,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
     let boundary_reason = {
         let focusa = state.focusa.read().await;
@@ -1009,7 +1048,7 @@ async fn maybe_select_global_ready_work_item(
 
     let all_items_output = Command::new("bd")
         .args(["list", "--all", "--limit", "0", "--json"])
-        .current_dir(project_root())
+        .current_dir(scope_root)
         .output()
         .await
         .map_err(|e| bad_request(format!("failed to run bd list --all --json: {e}")))?;
@@ -1040,7 +1079,7 @@ async fn maybe_select_global_ready_work_item(
     } else {
         let output = Command::new("bd")
             .args(["ready", "--json"])
-            .current_dir(project_root())
+            .current_dir(scope_root)
             .output()
             .await
             .map_err(|e| bad_request(format!("failed to run bd ready --json: {e}")))?;
@@ -1107,6 +1146,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         status_heartbeat_ms,
         transport_session_state,
         boundary_reason,
+        scope_root,
     ) = {
         let focusa = state.focusa.read().await;
         let active_frame = focusa
@@ -1129,6 +1169,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
             focusa.work_loop.policy.status_heartbeat_ms,
             focusa.work_loop.transport_session_state.clone(),
             continuation_boundary_reason(&focusa.work_loop),
+            work_loop_scope_root(&focusa),
         )
     };
 
@@ -1149,7 +1190,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
     }
 
     if current_task.is_none() {
-        if maybe_select_global_ready_work_item(state).await? {
+        if maybe_select_global_ready_work_item(state, &scope_root).await? {
             let refreshed_task = {
                 let focusa = state.focusa.read().await;
                 focusa.work_loop.current_task.clone()
@@ -1208,7 +1249,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         TaskClass::Code | TaskClass::Refactor | TaskClass::Integration | TaskClass::Architecture
     );
     if task_requires_local_edit_affordance {
-        let worktree = worktree_status_snapshot().await;
+        let worktree = worktree_status_snapshot(&scope_root).await;
         let execution_environment =
             execution_environment_for_status(transport_session_state.as_deref(), &worktree);
         let safe_local_edit_affordance = execution_environment
@@ -2139,8 +2180,10 @@ async fn status(
             })
         })
     };
-    let worktree = worktree_status_snapshot().await;
-    let alternate_ready_work = alternate_ready_work_snapshot(wl.current_task.as_ref()).await;
+    let scope_root = work_loop_scope_root(&s);
+    let worktree = worktree_status_snapshot(&scope_root).await;
+    let alternate_ready_work =
+        alternate_ready_work_snapshot(wl.current_task.as_ref(), &scope_root).await;
     let blocker_package = build_blocker_package(wl, alternate_ready_work.clone());
     let transport_health = transport_health_for_status(wl);
     let execution_environment =
@@ -2367,7 +2410,11 @@ async fn status_deep(
         })
     };
 
-    let worktree = worktree_status_snapshot().await;
+    let scope_root = {
+        let focusa = state.focusa.read().await;
+        work_loop_scope_root(&focusa)
+    };
+    let worktree = worktree_status_snapshot(&scope_root).await;
     if let Some(obj) = payload.as_object_mut() {
         obj.insert("worktree".into(), worktree);
     }
@@ -2704,6 +2751,11 @@ async fn start_pi_driver(
     }
     let writer_id = ensure_writer_claim(&state, &headers).await?;
 
+    let work_loop_root = {
+        let focusa = state.focusa.read().await;
+        work_loop_scope_root(&focusa)
+    };
+
     let mut guard = state.pi_rpc_session.lock().await;
     if guard.is_some() {
         return Err(conflict("pi rpc driver already active", Some(writer_id)));
@@ -2736,6 +2788,8 @@ async fn start_pi_driver(
     }
     if let Some(cwd) = payload.cwd.as_deref() {
         cmd.current_dir(cwd);
+    } else {
+        cmd.current_dir(&work_loop_root);
     }
 
     let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;

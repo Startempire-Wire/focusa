@@ -888,6 +888,84 @@ pub struct TrajectoryCheckpointRecord {
     pub persisted_at: Option<DateTime<Utc>>,
 }
 
+/// HLT Ledger Entry — append-only, scope-bounded by (project_root, continuity_id).
+/// Per Spec98/99: no singleton, CRDT-grade events, local-first reconciliation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HltLedgerEntry {
+    /// ISO8601 timestamp.
+    pub timestamp: DateTime<Utc>,
+    /// Unique event ID for this HLT change.
+    pub event_id: String,
+    /// Lamport timestamp for total ordering (CRDT-grade).
+    pub lamport_ts: u64,
+    /// Scope: project root this HLT applies to.
+    pub project_root: String,
+    /// Optional continuity scope.
+    pub continuity_id: Option<String>,
+    /// Optional session scope.
+    pub session_id: Option<String>,
+    /// Previous HLT value (None if initial/first).
+    pub old_hlt: Option<String>,
+    /// New HLT value.
+    pub new_hlt: String,
+    /// Source of the HLT change.
+    pub source: String,
+    /// Optional reason for change.
+    pub reason: Option<String>,
+    /// Evidence refs supporting this HLT change.
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+impl HltLedgerEntry {
+    /// Create a new HLT ledger entry.
+    pub fn new(
+        project_root: String,
+        new_hlt: String,
+        source: &str,
+        lamport_ts: u64,
+    ) -> Self {
+        Self {
+            timestamp: Utc::now(),
+            event_id: Uuid::now_v7().to_string(),
+            lamport_ts,
+            project_root,
+            continuity_id: None,
+            session_id: None,
+            old_hlt: None,
+            new_hlt,
+            source: source.to_string(),
+            reason: None,
+            evidence_refs: Vec::new(),
+        }
+    }
+
+    /// Set the previous HLT value.
+    pub fn with_old_hlt(mut self, old_hlt: Option<String>) -> Self {
+        self.old_hlt = old_hlt;
+        self
+    }
+
+    /// Set the continuity/session scope.
+    pub fn with_scope(mut self, continuity_id: Option<String>, session_id: Option<String>) -> Self {
+        self.continuity_id = continuity_id;
+        self.session_id = session_id;
+        self
+    }
+
+    /// Set the reason.
+    pub fn with_reason(mut self, reason: Option<String>) -> Self {
+        self.reason = reason;
+        self
+    }
+
+    /// Set evidence refs.
+    pub fn with_evidence(mut self, evidence_refs: Vec<String>) -> Self {
+        self.evidence_refs = evidence_refs;
+        self
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrajectoryStateDeltaRecord {
     pub trajectory_id: String,
@@ -2654,6 +2732,10 @@ pub struct FocusaConfig {
     /// Maximum metacognition retrieval candidates.
     /// Default: 50
     pub metacog_retrieve_max_k: usize,
+    /// HLT ledger directory for append-only HLT history files.
+    /// Default: {data_dir}/hlt-ledger
+    /// Per Spec98/99: scope-bounded, no singleton.
+    pub hlt_ledger_dir: Option<String>,
 }
 
 impl Default for FocusaConfig {
@@ -2683,6 +2765,7 @@ impl Default for FocusaConfig {
             metacog_max_adjustments: 500,
             metacog_ttl_minutes: 7 * 24 * 60,
             metacog_retrieve_max_k: 50,
+            hlt_ledger_dir: None,
         }
     }
 }

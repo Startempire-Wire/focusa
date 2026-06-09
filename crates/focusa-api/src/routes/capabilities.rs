@@ -383,14 +383,33 @@ fn lineage_node_cap(q: &SessionScopedQuery) -> usize {
 fn enriched_lineage_node_value(node: &focusa_core::types::CltNode) -> Value {
     let mut value = serde_json::to_value(node).unwrap_or(Value::Null);
     let payload = value.get("payload").cloned().unwrap_or(Value::Null);
-    let content_ref = payload.get("content_ref").and_then(Value::as_str).map(str::to_string);
+    let content_ref = payload
+        .get("content_ref")
+        .and_then(Value::as_str)
+        .map(str::to_string);
     let summary = content_ref
         .clone()
-        .or_else(|| payload.get("summary").and_then(Value::as_str).map(str::to_string))
-        .or_else(|| payload.get("reason").and_then(Value::as_str).map(str::to_string))
+        .or_else(|| {
+            payload
+                .get("summary")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .or_else(|| {
+            payload
+                .get("reason")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .unwrap_or_else(|| {
-            let kind = value.get("node_type").and_then(Value::as_str).unwrap_or("node");
-            let created = value.get("created_at").and_then(Value::as_str).unwrap_or("unknown_time");
+            let kind = value
+                .get("node_type")
+                .and_then(Value::as_str)
+                .unwrap_or("node");
+            let created = value
+                .get("created_at")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown_time");
             format!("{kind} at {created}")
         });
     if let Some(obj) = value.as_object_mut() {
@@ -524,7 +543,10 @@ async fn lineage_tree(
         },
     });
 
-    let nodes = nodes.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let nodes = nodes
+        .iter()
+        .map(enriched_lineage_node_value)
+        .collect::<Vec<_>>();
     let returned = nodes.len();
     Ok(Json(json!({
         "session_id": q.session_id,
@@ -603,7 +625,10 @@ async fn lineage_neighborhood(
         radius: Some(radius),
         omitted: vec!["full_tree"],
     });
-    let selected = selected.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let selected = selected
+        .iter()
+        .map(enriched_lineage_node_value)
+        .collect::<Vec<_>>();
     Ok(Json(json!({
         "anchor": clt_node_id,
         "nodes": selected,
@@ -663,7 +688,10 @@ async fn lineage_path(
         }
     }
 
-    let out = out.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let out = out
+        .iter()
+        .map(enriched_lineage_node_value)
+        .collect::<Vec<_>>();
     let depth = out.len();
     Ok(Json(json!({
         "path": out,
@@ -695,7 +723,10 @@ async fn lineage_children(
     }
 
     let next_cursor = (children.len() < total).then_some(children.len());
-    let children = children.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let children = children
+        .iter()
+        .map(enriched_lineage_node_value)
+        .collect::<Vec<_>>();
     let returned = children.len();
     Ok(Json(json!({
         "children": children,
@@ -741,7 +772,10 @@ async fn lineage_summaries(
         }
     }
 
-    let summaries = summaries.iter().map(enriched_lineage_node_value).collect::<Vec<_>>();
+    let summaries = summaries
+        .iter()
+        .map(enriched_lineage_node_value)
+        .collect::<Vec<_>>();
     let returned = summaries.len();
     Ok(Json(json!({
         "session_id": q.session_id,

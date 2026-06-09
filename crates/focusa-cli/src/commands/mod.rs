@@ -14,6 +14,7 @@ pub mod env;
 pub mod export;
 pub mod focus;
 pub mod gate;
+pub mod hlt;
 pub mod lineage;
 pub mod memory;
 pub mod metacognition;

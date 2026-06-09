@@ -34,14 +34,33 @@ fn default_nodes_limit() -> usize {
 
 fn enrich_clt_node_for_recovery(value: &mut Value) {
     let payload = value.get("payload").cloned().unwrap_or(Value::Null);
-    let content_ref = payload.get("content_ref").and_then(Value::as_str).map(str::to_string);
+    let content_ref = payload
+        .get("content_ref")
+        .and_then(Value::as_str)
+        .map(str::to_string);
     let summary = content_ref
         .clone()
-        .or_else(|| payload.get("summary").and_then(Value::as_str).map(str::to_string))
-        .or_else(|| payload.get("reason").and_then(Value::as_str).map(str::to_string))
+        .or_else(|| {
+            payload
+                .get("summary")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .or_else(|| {
+            payload
+                .get("reason")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .unwrap_or_else(|| {
-            let kind = value.get("node_type").and_then(Value::as_str).unwrap_or("node");
-            let created = value.get("created_at").and_then(Value::as_str).unwrap_or("unknown_time");
+            let kind = value
+                .get("node_type")
+                .and_then(Value::as_str)
+                .unwrap_or("node");
+            let created = value
+                .get("created_at")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown_time");
             format!("{kind} at {created}")
         });
     if let Some(obj) = value.as_object_mut() {

@@ -994,6 +994,90 @@ pub struct SyncCursor {
     pub updated_at: String,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// HLT LEDGER — Spec98/99: scope-bounded, no singleton, CRDT-grade events
+// ═══════════════════════════════════════════════════════════════════════════════
+
+use crate::types::HltLedgerEntry;
+
+/// Compute the HLT ledger directory for a given project_root.
+/// Returns: {hlt_ledger_dir}/{project_root_hash}/
+fn hlt_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    // Hash project_root to avoid path issues and ensure scope isolation
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    project_root.hash(&mut hasher);
+    let hash = format!("{:016x}", hasher.finish());
+    data_dir.join(format!("hlt-ledger/{}", hash))
+}
+
+impl SqlitePersistence {
+    /// Append an HLT ledger entry to the scope-bounded JSONL file.
+    /// Per Spec98/99: no singleton, scope-bounded by project_root.
+    pub fn append_hlt_ledger_entry(
+        &self,
+        entry: &HltLedgerEntry,
+    ) -> anyhow::Result<()> {
+        let ledger_dir = hlt_ledger_dir_for_project(&self.data_dir, &entry.project_root);
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("hlt.jsonl");
+        let line = serde_json::to_string(entry)?;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        writeln!(file, "{}", line)?;
+        debug!("Appended HLT ledger entry to {:?}", ledger_file);
+        Ok(())
+    }
+
+    /// Read HLT ledger entries for a project, scoped by continuity_id if provided.
+    /// Returns entries in chronological order (oldest first), most recent last.
+    pub fn read_hlt_ledger_entries(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<HltLedgerEntry>> {
+        let ledger_dir = hlt_ledger_dir_for_project(&self.data_dir, project_root);
+        let ledger_file = ledger_dir.join("hlt.jsonl");
+        if !ledger_file.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&ledger_file)?;
+        let entries: Vec<HltLedgerEntry> = content
+            .lines()
+            .filter_map(|line| serde_json::from_str(line).ok())
+            .filter(|entry: &HltLedgerEntry| {
+                match continuity_id {
+                    Some(cid) => entry.continuity_id.as_deref() == Some(cid),
+                    None => true,
+                }
+            })
+            .collect();
+        // Return most recent `limit` entries
+        let start = entries.len().saturating_sub(limit);
+        Ok(entries[start..].to_vec())
+    }
+
+    /// Get the latest HLT entry for a project (most recent HLT value).
+    pub fn latest_hlt_for_project(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+    ) -> anyhow::Result<Option<HltLedgerEntry>> {
+        let entries = self.read_hlt_ledger_entries(project_root, continuity_id, 1)?;
+        Ok(entries.into_iter().last())
+    }
+
+    /// Get the HLT ledger file path for a project (for API exposure).
+    pub fn hlt_ledger_path_for_project(&self, project_root: &str) -> PathBuf {
+        hlt_ledger_dir_for_project(&self.data_dir, project_root).join("hlt.jsonl")
+    }
+}
+
 fn shellexpand(path: &str) -> PathBuf {
     if let Some(rest) = path.strip_prefix("~/")
         && let Ok(home) = std::env::var("HOME")

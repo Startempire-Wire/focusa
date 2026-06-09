@@ -171,6 +171,7 @@ This is **institutional intelligence**, not novelty AI.
 - [current/LIVE_TOOL_CONTRACT_PROOF.md](current/LIVE_TOOL_CONTRACT_PROOF.md) — live proof command and expected result.
 - [96-trajectory-projection-and-daemon-stability-spec.md](96-trajectory-projection-and-daemon-stability-spec.md) — Trajectory Projection, ProjectIdentity, hot/cold daemon stability, and tool failure taxonomy.
 - [98-project-root-crdt-reconciliation-foundation-spec.md](98-project-root-crdt-reconciliation-foundation-spec.md) — Project-root source of truth and CRDT reconciliation foundation for multi-session/multi-device Focusa.
+- [102-trajectory-ladder-consolidated-spec.md](102-trajectory-ladder-consolidated-spec.md) — Consolidated canonical spec for Trajectory Ladder authority, persistence, inference, and scope safety.
 - [99-original-intent-vs-implementation-audit.md](99-original-intent-vs-implementation-audit.md) — Audit of original multiplex/CRDT intent against current core/API/Pi implementation.
 
 ## Focused tool and skill docs

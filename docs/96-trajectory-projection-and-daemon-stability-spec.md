@@ -694,6 +694,45 @@ If no clear Trajectory exists, predetermined recovery steps are:
 6. locally verify missing current-state facts when possible,
 7. ask the operator to confirm/edit only if still unclear or conflicted.
 
+### 7.11 HLT Ledger (append-only persistence)
+
+**Per Spec98/99:** HLT changes are persisted to an append-only JSONL ledger scoped by `(project_root, continuity_id)`. This ensures the north-star is never lost and history is always recoverable.
+
+**Ledger file:** `{data_dir}/hlt-ledger/{project_root_hash}/hlt.jsonl`
+
+**Entry schema:**
+```json
+{
+  "timestamp": "2026-06-08T12:00:00Z",
+  "event_id": "uuid-v7",
+  "lamport_ts": 12345,
+  "project_root": "/path/to/project",
+  "continuity_id": "focusa-cont-...",
+  "session_id": "pi-session-...",
+  "old_hlt": "previous HLT or null",
+  "new_hlt": "current HLT value",
+  "source": "trajectory_define_goal|operator|focus_state|...",
+  "reason": "optional reason",
+  "evidence_refs": ["ref1", "ref2"]
+}
+```
+
+**API:** `GET /v1/hlt/history?project_root=<path>&continuity_id=<id>&limit=50`
+
+**Tool:** `focusa_hlt_history` exposes exact HLT history with old/new values
+
+**Rules:**
+- Ledger is **append-only** — old entries are never modified or deleted
+- Each HLT change via `trajectory_define_goal` atomically appends to the ledger
+- Scope-bounded: each project has isolated ledger via project_root hash
+- CRDT-grade: Lamport timestamp for total ordering
+- No singleton: ledger is per-project, not global
+
+**Integration points:**
+- `define_goal` route appends entry on successful trajectory goal definition
+- `hlt_history` route reads scoped entries from JSONL file
+- Tool doc: `docs/focusa-tools/tools/focusa_hlt_history.md`
+
 ---
 
 ## 8) Trajectory Projection inputs from existing primitives

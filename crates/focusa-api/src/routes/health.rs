@@ -24,15 +24,27 @@ fn path_has_command(command: &str) -> bool {
     if path_hit {
         return true;
     }
-    common_command_paths(command).iter().any(|path| Path::new(path).is_file())
+    common_command_paths(command)
+        .iter()
+        .any(|path| Path::new(path).is_file())
 }
 
 fn common_command_paths(command: &str) -> &'static [&'static str] {
     match command {
         "cargo" => &["/root/.cargo/bin/cargo", "/usr/local/cargo/bin/cargo"],
         "rustc" => &["/root/.cargo/bin/rustc", "/usr/local/cargo/bin/rustc"],
-        "node" => &["/opt/node-v22.22.3-linux-x64/bin/node", "/opt/cpanel/ea-nodejs20/bin/node", "/usr/local/bin/node", "/usr/bin/node"],
-        "npm" => &["/opt/node-v22.22.3-linux-x64/bin/npm", "/opt/cpanel/ea-nodejs20/bin/npm", "/usr/local/bin/npm", "/usr/bin/npm"],
+        "node" => &[
+            "/opt/node-v22.22.3-linux-x64/bin/node",
+            "/opt/cpanel/ea-nodejs20/bin/node",
+            "/usr/local/bin/node",
+            "/usr/bin/node",
+        ],
+        "npm" => &[
+            "/opt/node-v22.22.3-linux-x64/bin/npm",
+            "/opt/cpanel/ea-nodejs20/bin/npm",
+            "/usr/local/bin/npm",
+            "/usr/bin/npm",
+        ],
         "gh" => &["/usr/bin/gh", "/usr/local/bin/gh"],
         _ => &[],
     }

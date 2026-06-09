@@ -220,6 +220,7 @@ async fn store_artifact(
     let content = body.resolve_content()?;
 
     let handle_id = uuid::Uuid::now_v7();
+    let handle_id = Some(handle_id); // handle_id: Some(handle_id)
     let session = state.focusa.read().await.session.clone();
     let session_id = session.as_ref().map(|s| s.session_id);
     let project_root = body
@@ -247,7 +248,7 @@ async fn store_artifact(
             body.label.clone(),
             &content,
             session_id,
-            Some(handle_id),
+            handle_id,
             project_root,
             continuity_id,
         )

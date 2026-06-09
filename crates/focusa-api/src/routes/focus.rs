@@ -220,7 +220,10 @@ fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
 
 fn focus_frame_legacy_migration_warnings(frame: &FrameRecord) -> Vec<&'static str> {
     let mut warnings = Vec::new();
-    if frame.project_root.as_deref().is_none_or(|value| value.trim().is_empty())
+    if frame
+        .project_root
+        .as_deref()
+        .is_none_or(|value| value.trim().is_empty())
         || frame
             .continuity_id
             .as_deref()
@@ -284,11 +287,10 @@ fn focus_state_workpoint_bridge(
     }))
 }
 
-fn attach_focus_state_workpoint_bridge(
-    response: &mut Value,
-    bridge: Option<Value>,
-) {
-    let Some(bridge) = bridge else { return; };
+fn attach_focus_state_workpoint_bridge(response: &mut Value, bridge: Option<Value>) {
+    let Some(bridge) = bridge else {
+        return;
+    };
     if let Some(obj) = response.as_object_mut() {
         obj.insert("focus_state_workpoint_bridge".to_string(), bridge.clone());
         obj.insert("workpoint_status".to_string(), json!("canonical"));
@@ -298,10 +300,20 @@ fn attach_focus_state_workpoint_bridge(
         );
         obj.insert(
             "focus_state_status".to_string(),
-            bridge.get("focus_state_status").cloned().unwrap_or(Value::Null),
+            bridge
+                .get("focus_state_status")
+                .cloned()
+                .unwrap_or(Value::Null),
         );
         obj.insert("authority_for_next_action".to_string(), json!("workpoint"));
-        obj.insert("next_tools".to_string(), json!(["focusa_workpoint_resume", "focusa_workpoint_checkpoint", "focusa_tool_doctor"]));
+        obj.insert(
+            "next_tools".to_string(),
+            json!([
+                "focusa_workpoint_resume",
+                "focusa_workpoint_checkpoint",
+                "focusa_tool_doctor"
+            ]),
+        );
     }
 }
 
@@ -332,17 +344,7 @@ fn resolve_scoped_frame<'a>(
 
     let key = session_key.map(str::trim).unwrap_or_default();
     if key.is_empty() {
-        if project_root
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .is_some()
-        {
-            return None;
-        }
-        return stack
-            .active_id
-            .and_then(|id| stack.frames.iter().find(|frame| frame.id == id))
-            .map(|frame| (frame, "active_frame"));
+        return None;
     }
 
     stack.frames.iter().rev().find_map(|frame| {
@@ -405,6 +407,21 @@ async fn get_scoped_frame(
     Query(query): Query<ScopedFrameQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
+    if query.frame_id.is_none()
+        && query.session_key.is_none()
+        && query.continuity_id.is_none()
+        && query.project_root.is_none()
+    {
+        return Json(json!({
+            "status": "rejected",
+            "canonical": false,
+            "failure_class": "scope_required",
+            "reason": "frame_current_requires_project_scope",
+            "retry_posture": "do_not_retry_unchanged",
+            "safe_recovery": "call /v1/focus/frame/current with project_root+continuity_id or explicit frame_id",
+        }));
+    }
+
     let focusa = state.focusa.read().await;
     let resolved = resolve_scoped_frame(
         &focusa.focus_stack,
@@ -418,7 +435,6 @@ async fn get_scoped_frame(
         "matched_by": resolved.map(|(_, matched_by)| matched_by).unwrap_or("none"),
         "authority_posture": resolved.map(|(frame, _)| focus_frame_authority_posture(frame)),
         "migration_warnings": resolved.map(|(frame, _)| focus_frame_legacy_migration_warnings(frame)).unwrap_or_else(|| vec!["focus_state_legacy_scope_inferred"]),
-        "active_frame_id": focusa.focus_stack.active_id,
         "requested_project_root": query.project_root,
     }))
 }
@@ -1210,7 +1226,7 @@ mod tests {
     }
 
     #[test]
-    fn resolve_scoped_frame_rejects_unsafe_global_active_when_project_requested() {
+    fn resolve_scoped_frame_requires_scope() {
         let active_id = Uuid::now_v7();
         let mut unsafe_frame = frame(active_id, FrameStatus::Active, "unsafe", &["cont-root"]);
         unsafe_frame.project_root = Some("/root".to_string());
@@ -1224,10 +1240,7 @@ mod tests {
         assert!(
             resolve_scoped_frame(&stack, None, None, None, Some("/workspace/focusa")).is_none()
         );
-        assert_eq!(
-            resolve_scoped_frame(&stack, None, None, None, None).map(|(frame, by)| (frame.id, by)),
-            Some((active_id, "active_frame"))
-        );
+        assert!(resolve_scoped_frame(&stack, None, None, None, None).is_none());
     }
 
     #[test]
@@ -1277,7 +1290,7 @@ mod tests {
     }
 
     #[test]
-    fn resolve_scoped_frame_without_scope_returns_active_frame() {
+    fn resolve_scoped_frame_without_scope_is_none() {
         let a = Uuid::now_v7();
         let b = Uuid::now_v7();
         let stack = FocusStackState {
@@ -1291,10 +1304,7 @@ mod tests {
             version: 2,
         };
 
-        let (resolved, matched_by) =
-            resolve_scoped_frame(&stack, None, None, None, None).expect("frame");
-        assert_eq!(resolved.id, b);
-        assert_eq!(matched_by, "active_frame");
+        assert!(resolve_scoped_frame(&stack, None, None, None, None).is_none());
     }
 
     #[test]

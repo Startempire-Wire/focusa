@@ -310,14 +310,21 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
             && check
                 .get("name")
                 .and_then(Value::as_str)
-                .is_some_and(|name| name.contains("Spec90") || name.contains("proof") || name.contains("Pi") || name.contains("Mac"))
+                .is_some_and(|name| {
+                    name.contains("Spec90")
+                        || name.contains("proof")
+                        || name.contains("Pi")
+                        || name.contains("Mac")
+                })
     });
     let release_blocked = checks.iter().any(|check| {
         check.get("status").and_then(Value::as_str) == Some("blocked")
             && check
                 .get("name")
                 .and_then(Value::as_str)
-                .is_some_and(|name| name.contains("release") || name.contains("Guardian") || name.contains("Mac"))
+                .is_some_and(|name| {
+                    name.contains("release") || name.contains("Guardian") || name.contains("Mac")
+                })
     });
     let readiness_categories = json!({
         "runtime_readiness": api_readiness.get("runtime_readiness").cloned().unwrap_or_else(|| json!({"status":"ready", "reason":"daemon health and doctor API checks completed"})),

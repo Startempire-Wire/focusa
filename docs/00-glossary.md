@@ -306,6 +306,14 @@ HLT → MLG → STG → Waypoints → Workpoint
 - Not a replacement for Beads.
 - Not a reason to merge sessions without project_root + continuity_id match.
 
+**HLT Ledger (append-only persistence)**
+- Per Spec98/99: HLT changes are persisted to an append-only JSONL ledger scoped by `(project_root, continuity_id)`
+- File: `{data_dir}/hlt-ledger/{project_root_hash}/hlt.jsonl`
+- Each entry: timestamp, event_id, lamport_ts, project_root, continuity_id, session_id, old_hlt, new_hlt, source, reason, evidence_refs
+- Tool: `focusa_hlt_history` exposes exact HLT history with old/new values
+- Ledger is **append-only** — old entries are never modified or deleted
+- See: `docs/102-trajectory-ladder-consolidated-spec.md §4.2`
+
 ---
 
 ## Canonical Cognitive Flow

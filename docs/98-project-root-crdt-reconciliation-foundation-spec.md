@@ -279,6 +279,8 @@ All session changes under the same project root are timestamped, causally ordere
 - Active Trajectory is scoped inside a workstream.
 - Similarity groups are advisory clustering only.
 - Trajectory views must identify project root, continuity, timeline head, and confidence.
+- **HLT Ledger:** HLT changes are persisted to append-only JSONL ledger scoped by `(project_root, continuity_id)` with CRDT-grade Lamport timestamps. File: `{data_dir}/hlt-ledger/{project_root_hash}/hlt.jsonl`. This ensures the north-star is never lost and history is always recoverable.
+- HLT changes via `trajectory_define_goal` atomically append to the ledger.
 
 ### 7.7 Focus Stack / Focus State
 

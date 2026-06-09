@@ -1,0 +1,1 @@
+{"timestamp":"2026-06-09T03:12:04.572556717Z","event_id":"019eaa5d-a5dc-7201-915f-b617ae2e8a73","lamport_ts":1780974724,"project_root":"/tmp/project-b","continuity_id":null,"session_id":null,"old_hlt":null,"new_hlt":"Project B goal","source":"trajectory_define_goal","reason":"trajectory_goal_defined","evidence_refs":[]}
