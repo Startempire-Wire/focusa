@@ -203,6 +203,12 @@ fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
         {
             Some("unsafe_user_home_project_root")
         }
+        // Agent runtime paths — never treat as project scope
+        "/root/pi-mono" => Some("agent_runtime_directory"),
+        _ if root.starts_with("/root/pi-") => Some("agent_runtime_directory"),
+        _ if root.starts_with("/opt/node-") => Some("agent_runtime_directory"),
+        _ if root == "/usr/local/bin" => Some("agent_runtime_directory"),
+        _ if root.starts_with("/usr/local/lib/node_modules") => Some("agent_runtime_directory"),
         _ => None,
     }
 }

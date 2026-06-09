@@ -206,6 +206,11 @@ fn unsafe_project_root_reason(value: Option<&str>) -> Option<&'static str> {
         {
             Some("unsafe_user_home_project_root")
         }
+        "/root/pi-mono" => Some("agent_runtime_directory"),
+        _ if root.starts_with("/root/pi-") => Some("agent_runtime_directory"),
+        _ if root.starts_with("/opt/node-") => Some("agent_runtime_directory"),
+        _ if root == "/usr/local/bin" => Some("agent_runtime_directory"),
+        _ if root.starts_with("/usr/local/lib/node_modules") => Some("agent_runtime_directory"),
         _ => None,
     }
 }
@@ -246,11 +251,11 @@ fn unsafe_project_root_rejection(
         "canonical": false,
         "failure_class": "scope_mismatch",
         "workpoint_id": record.workpoint_id,
-        "warnings": ["workpoint project_root is missing or too broad to be an authority boundary"],
+        "warnings": [if reason == "agent_runtime_directory" { "workpoint project_root is an agent/runtime directory, not a project — never treat as project scope" } else { "workpoint project_root is missing or too broad to be an authority boundary" }],
         "unsafe_reason": reason,
         "expected_project_root": expected_project_root,
         "packet_project_root": record.project_root,
-        "safe_recovery": "ignore this resume packet; bind Focusa to a specific project/repo root and checkpoint a fresh Workpoint",
+        "safe_recovery": if reason == "agent_runtime_directory" { "ignore this resume packet; cd to the actual project/repo and bind Focusa to that root" } else { "ignore this resume packet; bind Focusa to a specific project/repo root and checkpoint a fresh Workpoint" },
         "requested_found": true,
         "scope_found": false,
         "fallback_used": false,
@@ -275,6 +280,11 @@ fn unsafe_checkpoint_rejection(
     field: &'static str,
     value: Option<&str>,
 ) -> (StatusCode, Json<Value>) {
+    let hint = if reason == "agent_runtime_directory" {
+        "project_root is an agent/runtime directory, not a project — cd to the actual project/repo"
+    } else {
+        "provide project_root for the exact project/repo and continuity_id before creating a canonical Workpoint"
+    };
     (
         StatusCode::UNPROCESSABLE_ENTITY,
         Json(json!({
@@ -285,7 +295,7 @@ fn unsafe_checkpoint_rejection(
             "rejected_value": value.unwrap_or(""),
             "unsafe_reason": reason,
             "retry_posture": "do_not_retry_unchanged",
-            "next_step_hint": "provide project_root for the exact project/repo and continuity_id before creating a canonical Workpoint"
+            "next_step_hint": hint
         })),
     )
 }
@@ -2901,6 +2911,33 @@ mod tests {
         assert_eq!(payload["status"].as_str(), Some("ok"));
         assert!(payload["max_entries"].as_u64().unwrap_or(0) >= 1);
         assert!(payload["ttl_seconds"].as_u64().unwrap_or(0) >= 1);
+    }
+
+    #[test]
+    fn agent_runtime_paths_rejected_as_project_root() {
+        assert_eq!(
+            unsafe_project_root_reason(Some("/root/pi-mono")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/root/pi-agent")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/opt/node-v22.22.3-linux-x64")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/usr/local/bin")),
+            Some("agent_runtime_directory")
+        );
+        assert_eq!(
+            unsafe_project_root_reason(Some("/usr/local/lib/node_modules/@foo/bar")),
+            Some("agent_runtime_directory")
+        );
+        // Actual project paths remain valid
+        assert_eq!(unsafe_project_root_reason(Some("/home/wirebot/focusa")), None);
+        assert_eq!(unsafe_project_root_reason(Some("/tmp/my-project")), None);
     }
 
     fn test_session_identity(
