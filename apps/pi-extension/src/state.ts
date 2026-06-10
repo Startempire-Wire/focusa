@@ -378,6 +378,12 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
         ...opts,
         headers: {
           "Content-Type": "application/json",
+          // Mark this client as the focusa-pi-extension so the daemon can
+          // surface the agent-layer prompt (X-Focusa-Agent-Prompt response
+          // header + structured /v1/agent/prompt body). See
+          // crates/focusa-api/src/routes/agent_reminder.rs.
+          "X-Focusa-Client": "pi",
+          "X-Extension-Token": `focusa-pi-${S.cfg?.focusaExtensionBuild || "v0"}`,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(opts.headers as Record<string, string> || {}),
         },

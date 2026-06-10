@@ -74,12 +74,20 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         let root = scoped
             .get("project_root")
             .and_then(Value::as_str)
-            .or_else(|| project_identity_root.get("project_root").and_then(Value::as_str))
+            .or_else(|| {
+                project_identity_root
+                    .get("project_root")
+                    .and_then(Value::as_str)
+            })
             .unwrap_or("unbound");
         let confidence = scoped
             .get("confidence")
             .and_then(Value::as_str)
-            .or_else(|| project_identity_root.get("confidence").and_then(Value::as_str))
+            .or_else(|| {
+                project_identity_root
+                    .get("confidence")
+                    .and_then(Value::as_str)
+            })
             .unwrap_or("low");
         let scope_label = if matches!(
             status,

@@ -13,7 +13,6 @@ use crate::routes::sse::EventBroadcaster;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
-use tower_http::cors::{Any, CorsLayer};
 use focusa_core::types::{
     Action, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
     WorkLoopStatus,
@@ -26,6 +25,7 @@ use std::time::{Duration, Instant};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::RwLock as TokioRwLock;
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
+use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
 #[cfg(target_os = "linux")]
@@ -338,6 +338,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::awareness::router())
         .merge(routes::tokens::router())
         .merge(routes::sse::router())
+        .merge(routes::agent_reminder::router())
+        .layer(axum_mw::from_fn(
+            routes::agent_reminder::agent_prompt_response_header_mw,
+        ))
         .layer(menubar_cors_layer())
         .layer(DefaultBodyLimit::max(routes::bounded::env_limit(
             "FOCUSA_API_MAX_BODY_BYTES",

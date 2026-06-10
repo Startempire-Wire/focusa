@@ -583,6 +583,7 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_state_hygiene_apply` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_state_hygiene_apply.md`](docs/focusa-tools/tools/focusa_state_hygiene_apply.md) |
 | `focusa_silent_sessions` | Work-loop | [`docs/focusa-tools/tools/focusa_silent_sessions.md`](docs/focusa-tools/tools/focusa_silent_sessions.md) |
 | `focusa_tool_doctor` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_tool_doctor.md`](docs/focusa-tools/tools/focusa_tool_doctor.md) |
+| `focusa_agent_prompt` | Focus State | [`docs/focusa-tools/tools/focusa_agent_prompt.md`](docs/focusa-tools/tools/focusa_agent_prompt.md) |
 | `focusa_resource_mode` | Diagnostics / Hygiene | [`docs/focusa-tools/tools/focusa_resource_mode.md`](docs/focusa-tools/tools/focusa_resource_mode.md) |
 | `focusa_active_object_resolve` | Workpoint | [`docs/focusa-tools/tools/focusa_active_object_resolve.md`](docs/focusa-tools/tools/focusa_active_object_resolve.md) |
 | `focusa_evidence_capture` | Workpoint | [`docs/focusa-tools/tools/focusa_evidence_capture.md`](docs/focusa-tools/tools/focusa_evidence_capture.md) |

@@ -1089,8 +1089,7 @@ impl SqlitePersistence {
     /// Append a Call Stack Design to the scope-bounded JSONL file.
     /// Per Spec 103: no singleton, scope-bounded by `project_root`.
     pub fn append_call_stack_design(&self, design: &CallStackDesign) -> anyhow::Result<()> {
-        let ledger_dir =
-            call_stack_designs_dir_for_project(&self.data_dir, &design.project_root);
+        let ledger_dir = call_stack_designs_dir_for_project(&self.data_dir, &design.project_root);
         std::fs::create_dir_all(&ledger_dir)?;
         let ledger_file = ledger_dir.join("designs.jsonl");
         let line = serde_json::to_string(design)?;
@@ -1170,7 +1169,11 @@ impl SqlitePersistence {
     }
 
     /// Read recent DeviceRecords for a project (most recent last).
-    pub fn read_device_records(&self, host: &str, limit: usize) -> anyhow::Result<Vec<DeviceRecord>> {
+    pub fn read_device_records(
+        &self,
+        host: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<DeviceRecord>> {
         let ledger_dir = device_pairing_dir_for_project(&self.data_dir, host);
         let ledger_file = ledger_dir.join("devices.jsonl");
         if !ledger_file.exists() {
@@ -1188,8 +1191,7 @@ impl SqlitePersistence {
 
     /// Get the device pairing ledger file path for a host (for API exposure).
     pub fn device_pairing_path_for_host(&self, host: &str) -> PathBuf {
-        device_pairing_dir_for_project(self.data_dir.as_path(), host)
-            .join("devices.jsonl")
+        device_pairing_dir_for_project(self.data_dir.as_path(), host).join("devices.jsonl")
     }
 }
 
@@ -1214,8 +1216,7 @@ fn cognition_optimizer_artifacts_dir_for_project(data_dir: &Path, project_root: 
 impl SqlitePersistence {
     /// Append a CuratorEvalRun to the scope-bounded JSONL ledger.
     pub fn append_curator_eval_run(&self, run: &CuratorEvalRun) -> anyhow::Result<()> {
-        let ledger_dir =
-            curator_eval_ledger_dir_for_project(&self.data_dir, &run.project_root);
+        let ledger_dir = curator_eval_ledger_dir_for_project(&self.data_dir, &run.project_root);
         std::fs::create_dir_all(&ledger_dir)?;
         let ledger_file = ledger_dir.join("eval-runs.jsonl");
         let line = serde_json::to_string(run)?;
@@ -1265,10 +1266,8 @@ impl SqlitePersistence {
         &self,
         artifact: &CognitionOptimizerArtifact,
     ) -> anyhow::Result<()> {
-        let ledger_dir = cognition_optimizer_artifacts_dir_for_project(
-            &self.data_dir,
-            &artifact.project_root,
-        );
+        let ledger_dir =
+            cognition_optimizer_artifacts_dir_for_project(&self.data_dir, &artifact.project_root);
         std::fs::create_dir_all(&ledger_dir)?;
         let ledger_file = ledger_dir.join("artifacts.jsonl");
         let line = serde_json::to_string(artifact)?;

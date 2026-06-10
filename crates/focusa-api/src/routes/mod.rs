@@ -1,22 +1,23 @@
 pub mod ascc;
 pub mod attachments;
-pub mod call_stack;
-pub mod context_cognition;
-pub mod device_pairing;
 pub mod autonomy;
 pub mod awareness;
 pub mod bounded;
+pub mod call_stack;
 pub mod capabilities;
 pub mod capabilities_extra;
 pub mod clt;
 pub mod commands;
 pub mod constitution;
+pub mod context_cognition;
+pub mod device_pairing;
 pub mod ecs;
 pub mod env;
 pub mod sync;
 pub mod sync_receive;
 pub mod sync_transfer;
 // pub mod events; // deprecated JSONL event tailing
+pub mod agent_reminder;
 pub mod events_sqlite;
 pub mod events_stream;
 pub mod focus;

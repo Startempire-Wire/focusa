@@ -2090,8 +2090,10 @@ async fn define_goal(
         .find(|r| r.project_root.as_ref() == body.project_root.as_ref())
         .map(|r| r.long_term_goal.clone());
     let project_root_for_ledger = body.project_root.clone();
-    let continuity_id_for_ledger = body.continuity_id.clone();
-    let session_id_for_ledger = body.session_id.clone();
+    let continuity_id_for_ledger = body.continuity_id.clone()
+        .or_else(|| session_identity_continuity_id(body.session_identity.as_ref()));
+    let session_id_for_ledger = body.session_id.clone()
+        .or_else(|| session_identity_session_id(body.session_identity.as_ref()));
     let new_hlt_from_body = body.long_term_goal.clone();
     drop(focusa);
     let mut side_effects = Vec::new();

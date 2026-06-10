@@ -16,10 +16,10 @@ use axum::{Json, extract::State, http::StatusCode};
 use chrono::Utc;
 use focusa_core::types::{
     CognitionOptimizerArtifact, ContextCognitionAuthority, ContextCognitionEvidenceFrame,
-    ContextCognitionFreshness, ContextCognitionOntologyFrame,
-    ContextCognitionOptimizationFrame, ContextCognitionReasoningFrame,
-    ContextCognitionRecommendedPacketUse, ContextCognitionRouteFrame, ContextCognitionScope,
-    ContextCognitionSelectedContext, ContextCognitionPacket, CuratorEvalRun,
+    ContextCognitionFreshness, ContextCognitionOntologyFrame, ContextCognitionOptimizationFrame,
+    ContextCognitionPacket, ContextCognitionReasoningFrame, ContextCognitionRecommendedPacketUse,
+    ContextCognitionRouteFrame, ContextCognitionScope, ContextCognitionSelectedContext,
+    CuratorEvalRun,
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -29,18 +29,9 @@ const SCHEMA_VERSION: &str = "focusa.context_cognition_packet.v1";
 pub fn router() -> axum::Router<Arc<AppState>> {
     axum::Router::new()
         .route("/v1/context-cognition", axum::routing::get(view))
-        .route(
-            "/v1/context-cognition/render",
-            axum::routing::get(render),
-        )
-        .route(
-            "/v1/context-cognition/proof",
-            axum::routing::get(proof),
-        )
-        .route(
-            "/v1/context-cognition/curate",
-            axum::routing::post(curate),
-        )
+        .route("/v1/context-cognition/render", axum::routing::get(render))
+        .route("/v1/context-cognition/proof", axum::routing::get(proof))
+        .route("/v1/context-cognition/curate", axum::routing::post(curate))
         .route(
             "/v1/context-cognition/curate/eval",
             axum::routing::post(curate_eval),
@@ -101,9 +92,7 @@ fn default_recommended_use() -> ContextCognitionRecommendedPacketUse {
             "authority.action_authority".to_string(),
             "reasoning_frame.likely_goal".to_string(),
         ],
-        exclude_from_prompt: vec![
-            "excluded_context".to_string(),
-        ],
+        exclude_from_prompt: vec!["excluded_context".to_string()],
         next_tools: vec![
             "focusa_active_object_resolve".to_string(),
             "focusa_workpoint_checkpoint".to_string(),
@@ -311,7 +300,9 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         "/root/.opencode",
         "/root/.letta",
     ];
-    BLOCKED.iter().any(|p| path == *p || path.starts_with(&format!("{}/", p)))
+    BLOCKED
+        .iter()
+        .any(|p| path == *p || path.starts_with(&format!("{}/", p)))
 }
 
 async fn render(
@@ -360,9 +351,7 @@ async fn render(
         "## Context Cognition (Spec 100) — render for {project_root}"
     ));
     lines.push("advisory · read-only · canonical=false".to_string());
-    lines.push(format!(
-        "schema: focusa.context_cognition_packet.v1"
-    ));
+    lines.push(format!("schema: focusa.context_cognition_packet.v1"));
     if let Some(wid) = workpoint_id.clone() {
         lines.push(format!("workpoint_id: {wid}"));
     }
@@ -371,7 +360,9 @@ async fn render(
     }
     lines.push("authority: workpoint (canonical_mutation_allowed=false)".to_string());
     lines.push("next_tools: focusa_active_object_resolve, focusa_workpoint_checkpoint, focusa_evidence_capture".to_string());
-    lines.push("do_not_drift: transcript_tail as authority; cross-project scope fallbacks".to_string());
+    lines.push(
+        "do_not_drift: transcript_tail as authority; cross-project scope fallbacks".to_string(),
+    );
 
     Ok(Json(json!({
         "status": "completed",
@@ -486,7 +477,12 @@ mod tests {
     fn curator_token_budget_keeps_highest_scored() {
         // Token-budgeted selection: highest-scored items first, then budget cut.
         let items = vec![
-            ("auth.ts", "authentication middleware token verify", 100usize, 5.0f64),
+            (
+                "auth.ts",
+                "authentication middleware token verify",
+                100usize,
+                5.0f64,
+            ),
             ("routes.ts", "router config list of routes", 100, 1.0),
             ("core.ts", "core types", 100, 2.0),
         ];
@@ -774,17 +770,18 @@ fn compute_f1(precision: f64, recall: f64) -> f64 {
     }
 }
 
-fn compute_precision_recall(
-    selected: &[String],
-    expected: &[String],
-) -> (f64, f64) {
+fn compute_precision_recall(selected: &[String], expected: &[String]) -> (f64, f64) {
     if expected.is_empty() {
         return (0.0, 0.0);
     }
     let expected_set: std::collections::HashSet<&String> = expected.iter().collect();
     let selected_set: std::collections::HashSet<&String> = selected.iter().collect();
     let tp = selected_set.intersection(&expected_set).count();
-    let precision = if selected.is_empty() { 0.0 } else { tp as f64 / selected.len() as f64 };
+    let precision = if selected.is_empty() {
+        0.0
+    } else {
+        tp as f64 / selected.len() as f64
+    };
     let recall = tp as f64 / expected.len() as f64;
     (precision, recall)
 }
@@ -1137,20 +1134,20 @@ async fn curate_optimize(
         ));
     }
 
-    let module_name = body.module_name.clone().unwrap_or_else(|| "curator".to_string());
-    let prompt_artifact_ref = body
-        .prompt_artifact_ref
+    let module_name = body
+        .module_name
         .clone()
-        .ok_or_else(|| {
-            rejection(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                json!({
-                    "status": "validation_rejected",
-                    "failure_class": "prompt_artifact_ref_missing",
-                    "field": "prompt_artifact_ref",
-                }),
-            )
-        })?;
+        .unwrap_or_else(|| "curator".to_string());
+    let prompt_artifact_ref = body.prompt_artifact_ref.clone().ok_or_else(|| {
+        rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "prompt_artifact_ref_missing",
+                "field": "prompt_artifact_ref",
+            }),
+        )
+    })?;
     let eval_score = body.eval_score.ok_or_else(|| {
         rejection(
             StatusCode::UNPROCESSABLE_ENTITY,

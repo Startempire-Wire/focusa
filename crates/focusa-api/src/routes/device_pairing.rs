@@ -23,20 +23,20 @@ use crate::server::AppState;
 use axum::{Json, extract::State, http::StatusCode};
 use chrono::{Duration, Utc};
 use focusa_core::types::{DevicePairCode, DevicePairCompletion, DeviceRecord, DeviceToken};
-use uuid::Uuid;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
-const CODE_TTL_SECS: i64 = 300;        // 5 min
-const TOKEN_TTL_SECS: i64 = 60 * 60 * 24 * 30;  // 30 days
+const CODE_TTL_SECS: i64 = 300; // 5 min
+const TOKEN_TTL_SECS: i64 = 60 * 60 * 24 * 30; // 30 days
 
 #[derive(Default)]
 struct PairingState {
     pending: HashMap<String, DevicePairCode>, // code -> pair
-    tokens: HashMap<String, DeviceToken>,      // token -> token
+    tokens: HashMap<String, DeviceToken>,     // token -> token
 }
 
 pub type SharedPairingState = Arc<RwLock<PairingState>>;
@@ -48,18 +48,9 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             "/v1/device/pair/complete",
             axum::routing::post(pair_complete),
         )
-        .route(
-            "/v1/device/pair/status",
-            axum::routing::get(pair_status),
-        )
-        .route(
-            "/v1/device/pair/list",
-            axum::routing::get(pair_list),
-        )
-        .route(
-            "/v1/device/pair/revoke",
-            axum::routing::post(pair_revoke),
-        )
+        .route("/v1/device/pair/status", axum::routing::get(pair_status))
+        .route("/v1/device/pair/list", axum::routing::get(pair_list))
+        .route("/v1/device/pair/revoke", axum::routing::post(pair_revoke))
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -91,9 +82,15 @@ fn shared_state() -> SharedPairingState {
 
 fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
     const BLOCKED: &[&str] = &[
-        "/root/pi-mono", "/root/.pi", "/root/.claude", "/root/.opencode", "/root/.letta",
+        "/root/pi-mono",
+        "/root/.pi",
+        "/root/.claude",
+        "/root/.opencode",
+        "/root/.letta",
     ];
-    BLOCKED.iter().any(|p| path == *p || path.starts_with(&format!("{}/", p)))
+    BLOCKED
+        .iter()
+        .any(|p| path == *p || path.starts_with(&format!("{}/", p)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -114,7 +111,9 @@ async fn pair_start(
     let daemon_base_url = body
         .daemon_base_url
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
-    let scopes = body.scopes.unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let scopes = body
+        .scopes
+        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
 
     if device_name.trim().is_empty() {
         return Err(rejection(
@@ -389,13 +388,15 @@ async fn pair_status(
             .tokens
             .values()
             .find(|t| t.device_id == device_id)
-            .map(|t| json!({
-                "token": t.token,
-                "scopes": t.scopes,
-                "issued_at": t.issued_at,
-                "expires_at": t.expires_at,
-                "expired": t.expires_at < now,
-            }));
+            .map(|t| {
+                json!({
+                    "token": t.token,
+                    "scopes": t.scopes,
+                    "issued_at": t.issued_at,
+                    "expires_at": t.expires_at,
+                    "expired": t.expires_at < now,
+                })
+            });
         return Ok(Json(json!({
             "status": "completed",
             "device_id": device_id,

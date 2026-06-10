@@ -544,6 +544,30 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
   },
   {
+    "name": "focusa_agent_prompt",
+    "label": "Agent Prompt",
+    "purpose": "Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift.",
+    "family": "focus_state",
+    "ontology_action": "focus_state.agent.prompt",
+    "ontology_objects": [
+      "FocusState"
+    ],
+    "api_routes": [
+      "GET /v1/agent/prompt"
+    ],
+    "cli_commands": [],
+    "core_surface": "Pi runtime reminder and tool-discovery surface",
+    "doc_path": "docs/focusa-tools/tools/focusa_agent_prompt.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_only",
+    "parity_status": "pi_only",
+    "exemptions": [
+      "pi_only",
+      "domain_cli_only"
+    ],
+    "live_check": "contract_static plus /v1/agent/prompt with Pi headers"
+  },
+  {
     "name": "focusa_note",
     "label": "Record Note",
     "purpose": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first.",
@@ -1903,6 +1927,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_evidence_capture",
     "focusa_trajectory_assess",
     "focusa_workpoint_checkpoint"
+  ],
+  "focusa_agent_prompt": [
+    "focusa_tool_doctor",
+    "focusa_trajectory_view",
+    "focusa_project_identity"
   ],
   "focusa_note": [
     "focusa_project_identity",

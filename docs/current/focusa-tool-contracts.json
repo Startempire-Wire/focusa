@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 77,
+  "tool_count": 78,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -661,6 +661,30 @@
       "parity_status": "full",
       "exemptions": [],
       "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    },
+    {
+      "name": "focusa_agent_prompt",
+      "label": "Agent Prompt",
+      "purpose": "Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift.",
+      "family": "focus_state",
+      "ontology_action": "focus_state.agent.prompt",
+      "ontology_objects": [
+        "FocusState"
+      ],
+      "api_routes": [
+        "GET /v1/agent/prompt"
+      ],
+      "cli_commands": [],
+      "core_surface": "Pi runtime reminder and tool-discovery surface",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_prompt.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_only",
+      "parity_status": "pi_only",
+      "exemptions": [
+        "pi_only",
+        "domain_cli_only"
+      ],
+      "live_check": "contract_static plus /v1/agent/prompt with Pi headers"
     },
     {
       "name": "focusa_note",

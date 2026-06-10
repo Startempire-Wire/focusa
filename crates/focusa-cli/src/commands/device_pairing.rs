@@ -113,12 +113,20 @@ pub async fn handle(client: &mut ApiClient, cmd: DeviceCmd) -> anyhow::Result<()
             Ok(())
         }
         DeviceCmd::PairList { host, limit } => {
-            let path = format!("/v1/device/pair/list?host={}&limit={}", urlencoding_minimal(&host), limit);
+            let path = format!(
+                "/v1/device/pair/list?host={}&limit={}",
+                urlencoding_minimal(&host),
+                limit
+            );
             let resp = client.get(&path).await?;
             print_pair_list_human(&resp);
             Ok(())
         }
-        DeviceCmd::PairRevoke { device_id, host, reason } => {
+        DeviceCmd::PairRevoke {
+            device_id,
+            host,
+            reason,
+        } => {
             let body = serde_json::json!({
                 "device_id": device_id,
                 "host": host,
@@ -144,23 +152,41 @@ fn urlencoding_minimal(s: &str) -> String {
 
 fn print_pair_start_human(payload: &Value) {
     let code = payload.get("code").and_then(Value::as_str).unwrap_or("?");
-    let device_id = payload.get("device_id").and_then(Value::as_str).unwrap_or("?");
+    let device_id = payload
+        .get("device_id")
+        .and_then(Value::as_str)
+        .unwrap_or("?");
     let scopes = payload.get("scopes").cloned().unwrap_or(Value::Null);
-    let expires_in = payload.get("expires_in_secs").and_then(Value::as_u64).unwrap_or(0);
-    let operator_handoff = payload.get("operator_handoff").cloned().unwrap_or(Value::Null);
+    let expires_in = payload
+        .get("expires_in_secs")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let operator_handoff = payload
+        .get("operator_handoff")
+        .cloned()
+        .unwrap_or(Value::Null);
     println!("device pair start | code={code} device_id={device_id} expires_in={expires_in}s");
     println!("fields: scopes={scopes} advisory=true");
-    if let Some(on_vps) = operator_handoff.get("on_your_vps_run").and_then(Value::as_str) {
+    if let Some(on_vps) = operator_handoff
+        .get("on_your_vps_run")
+        .and_then(Value::as_str)
+    {
         println!("on_your_vps_run: {on_vps}");
     }
 }
 
 fn print_pair_complete_human(payload: &Value) {
     let status = payload.get("status").and_then(Value::as_str).unwrap_or("?");
-    let device_id = payload.get("device_id").and_then(Value::as_str).unwrap_or("?");
+    let device_id = payload
+        .get("device_id")
+        .and_then(Value::as_str)
+        .unwrap_or("?");
     let token = payload.get("token").and_then(Value::as_str).unwrap_or("?");
     let host = payload.get("host").and_then(Value::as_str).unwrap_or("?");
-    let expires = payload.get("token_expires_at").and_then(Value::as_str).unwrap_or("?");
+    let expires = payload
+        .get("token_expires_at")
+        .and_then(Value::as_str)
+        .unwrap_or("?");
     println!("device pair complete {status} | device_id={device_id} host={host}");
     println!("fields: token={token} token_expires_at={expires}");
 }
@@ -181,8 +207,14 @@ fn print_pair_list_human(payload: &Value) {
 
 fn print_pair_revoke_human(payload: &Value) {
     let status = payload.get("status").and_then(Value::as_str).unwrap_or("?");
-    let device_id = payload.get("device_id").and_then(Value::as_str).unwrap_or("?");
-    let appended = payload.get("ledger_appended").and_then(Value::as_bool).unwrap_or(false);
+    let device_id = payload
+        .get("device_id")
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    let appended = payload
+        .get("ledger_appended")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     println!("device pair revoke {status} | device_id={device_id} ledger_appended={appended}");
 }
 

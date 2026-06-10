@@ -394,7 +394,9 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         "/root/.opencode",
         "/root/.letta",
     ];
-    BLOCKED.iter().any(|p| path == *p || path.starts_with(&format!("{}/", p)))
+    BLOCKED
+        .iter()
+        .any(|p| path == *p || path.starts_with(&format!("{}/", p)))
 }
 
 fn sanitize_stub(s: &str) -> String {
@@ -428,7 +430,10 @@ mod tests {
     #[test]
     fn sanitize_stub_lowercases_and_replaces() {
         assert_eq!(sanitize_stub("/Home/User!"), "home_user");
-        assert_eq!(sanitize_stub("Add Call Stack Design"), "add_call_stack_design");
+        assert_eq!(
+            sanitize_stub("Add Call Stack Design"),
+            "add_call_stack_design"
+        );
     }
 
     #[test]

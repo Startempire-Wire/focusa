@@ -5,7 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary } from "./state.js";
+import { S, focusaFetch, focusaPost, checkFocusa, kickstartFocusaDaemon, persistState, persistAuthoritativeState, getFocusState, createPiFrame, ensurePiFrame, classifyCurrentAsk, isNonTaskStatusLikeText, isGenericPiFrameForCwd, trimFrameText, stripQuotedFocusaContext, ensureContinuityId, adoptPersistedContinuityForSession, isProjectRootAuthoritySafe, isWorkpointPacketScopedToCurrentSession, normalizeWorkpointResumePacketEnvelope, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, resetPiSessionScopedState, adoptPiProjectRoot, normalizeProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, buildFocusaSessionIdentity } from "./state.js";
 import { pushDelta } from "./tools.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -386,6 +386,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
     session_id: S.sessionFrameKey,
     goal_source: parsed.goal_source || "operator_selected_inference",
     operator_confirmed: true,
+    session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: ensureContinuityId(projectRoot), sessionId: S.sessionFrameKey }),
   };
   const res = await focusaFetch("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
   if (res?.canonical === true || res?.persisted === true) {

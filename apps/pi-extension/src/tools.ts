@@ -2645,6 +2645,29 @@ export function registerTools(pi: ExtensionAPI) {
 
 
   pi.registerTool({
+    name: "focusa_agent_prompt",
+    label: "Focusa Agent Prompt",
+    description: "Retrieve canonical Pi-aware daemon guidance and project-level reminder text.",
+    promptSnippet: "Use first when reminder visibility is needed or tool usage drifts back to raw daemon calls.",
+    parameters: Type.Object({}),
+    async execute(_id, _params) {
+      const prompt = await focusaFetchDetailed("/agent/prompt", { method: "GET" });
+      const body = prompt.body || {};
+      return {
+        content: [{ type: "text", text: `agent prompt → is_agent=${body?.is_agent === true ? "true" : "false"} marker=${String(body?.marker || "")}` }],
+        details: {
+          ok: prompt.ok,
+          status: prompt.ok ? "completed" : "blocked",
+          endpoint: "/v1/agent/prompt",
+          agent_prompt: body,
+          next_tools: ["focusa_tool_doctor", "focusa_trajectory_view", "focusa_project_identity"],
+        },
+      } as any;
+    },
+  });
+
+
+  pi.registerTool({
     name: "focusa_resource_mode",
     label: "Focusa Resource Mode",
     description: "Read or control Focusa resource mode, including activating/deactivating LowMem mode when resources are constrained.",

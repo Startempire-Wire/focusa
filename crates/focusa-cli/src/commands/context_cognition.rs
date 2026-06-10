@@ -160,9 +160,8 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             token_budget,
             candidates_json,
         } => {
-            let project_root = project_root.ok_or_else(|| {
-                anyhow::anyhow!("--project-root is required for curate")
-            })?;
+            let project_root = project_root
+                .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate"))?;
             let candidates: Vec<Value> = match candidates_json.as_deref() {
                 Some(s) => serde_json::from_str(s)
                     .map_err(|e| anyhow::anyhow!("invalid --candidates-json: {e}"))?,
@@ -187,9 +186,8 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             score_threshold,
             baseline_f1,
         } => {
-            let project_root = project_root.ok_or_else(|| {
-                anyhow::anyhow!("--project-root is required for curate-eval")
-            })?;
+            let project_root = project_root
+                .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate-eval"))?;
             let candidates: Vec<Value> = match candidates_json.as_deref() {
                 Some(s) => serde_json::from_str(s)
                     .map_err(|e| anyhow::anyhow!("invalid --candidates-json: {e}"))?,
@@ -209,7 +207,9 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
                 "score_threshold": score_threshold,
                 "baseline_f1": baseline_f1,
             });
-            let resp = client.post("/v1/context-cognition/curate/eval", &body).await?;
+            let resp = client
+                .post("/v1/context-cognition/curate/eval", &body)
+                .await?;
             print_eval_human(&resp);
             Ok(())
         }
@@ -255,9 +255,8 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             eval_run_id,
             rollback,
         } => {
-            let project_root = project_root.ok_or_else(|| {
-                anyhow::anyhow!("--project-root is required for curate-optimize")
-            })?;
+            let project_root = project_root
+                .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate-optimize"))?;
             let body = serde_json::json!({
                 "project_root": project_root,
                 "module_name": module_name,
@@ -268,7 +267,9 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
                 "eval_run_id": eval_run_id,
                 "rollback": rollback,
             });
-            let resp = client.post("/v1/context-cognition/curate/optimize", &body).await?;
+            let resp = client
+                .post("/v1/context-cognition/curate/optimize", &body)
+                .await?;
             print_optimize_human(&resp);
             Ok(())
         }
@@ -284,8 +285,14 @@ fn print_curated_human(payload: &Value) {
         .get("target")
         .and_then(Value::as_str)
         .unwrap_or("<none>");
-    let budget = payload.get("token_budget").and_then(Value::as_u64).unwrap_or(0);
-    let used = payload.get("tokens_used").and_then(Value::as_u64).unwrap_or(0);
+    let budget = payload
+        .get("token_budget")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let used = payload
+        .get("tokens_used")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
     let selected_count = payload
         .get("selected_count")
         .and_then(Value::as_u64)
@@ -298,9 +305,7 @@ fn print_curated_human(payload: &Value) {
         .get("rehydrate_id")
         .and_then(Value::as_str)
         .unwrap_or("none");
-    println!(
-        "context cognition curate {status} | target=\"{target}\" budget={budget} used={used}"
-    );
+    println!("context cognition curate {status} | target=\"{target}\" budget={budget} used={used}");
     println!(
         "fields: selected={selected_count} excluded={excluded_count} rehydrate_id={rehydrate}"
     );
@@ -331,14 +336,20 @@ fn print_eval_human(payload: &Value) {
         .get("run_id")
         .and_then(Value::as_str)
         .unwrap_or("none");
-    let precision = payload.get("precision").and_then(Value::as_f64).unwrap_or(0.0);
+    let precision = payload
+        .get("precision")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
     let recall = payload.get("recall").and_then(Value::as_f64).unwrap_or(0.0);
     let f1 = payload.get("f1").and_then(Value::as_f64).unwrap_or(0.0);
     let baseline_f1 = payload
         .get("baseline_f1")
         .and_then(Value::as_f64)
         .unwrap_or(0.0);
-    let tokens_used = payload.get("tokens_used").and_then(Value::as_u64).unwrap_or(0);
+    let tokens_used = payload
+        .get("tokens_used")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
     let promovido = payload
         .get("promoted")
         .and_then(Value::as_bool)
@@ -373,7 +384,10 @@ fn print_optimize_human(payload: &Value) {
         .get("decision")
         .and_then(Value::as_str)
         .unwrap_or("unknown");
-    let eval_score = payload.get("eval_score").and_then(Value::as_f64).unwrap_or(0.0);
+    let eval_score = payload
+        .get("eval_score")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
     let baseline_score = payload
         .get("baseline_score")
         .and_then(Value::as_f64)
@@ -505,7 +519,10 @@ mod tests {
 
     #[test]
     fn urlencoding_escapes_paths() {
-        assert_eq!(urlencoding_minimal("/home/wirebot/focusa"), "%2Fhome%2Fwirebot%2Ffocusa");
+        assert_eq!(
+            urlencoding_minimal("/home/wirebot/focusa"),
+            "%2Fhome%2Fwirebot%2Ffocusa"
+        );
         assert_eq!(urlencoding_minimal("a-b_c.d~e"), "a-b_c.d~e");
     }
 }

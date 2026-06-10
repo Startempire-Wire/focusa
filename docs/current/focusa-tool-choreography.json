@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 77,
-  "edge_count": 225,
+  "tool_count": 78,
+  "edge_count": 228,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -252,6 +252,11 @@
       "focusa_evidence_capture",
       "focusa_trajectory_assess",
       "focusa_workpoint_checkpoint"
+    ],
+    "focusa_agent_prompt": [
+      "focusa_tool_doctor",
+      "focusa_trajectory_view",
+      "focusa_project_identity"
     ],
     "focusa_note": [
       "focusa_project_identity",
@@ -1116,6 +1121,24 @@
     {
       "from": "focusa_recent_result",
       "to": "focusa_workpoint_checkpoint",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_agent_prompt",
+      "to": "focusa_tool_doctor",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_agent_prompt",
+      "to": "focusa_trajectory_view",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_agent_prompt",
+      "to": "focusa_project_identity",
       "weight": 8,
       "reason": "static_next_tool_route"
     },

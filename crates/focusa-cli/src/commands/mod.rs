@@ -1,15 +1,15 @@
 pub mod autonomy;
 pub mod awareness;
 pub mod cache;
-pub mod context_cognition;
-pub mod device_pairing;
 pub mod cleanup;
 pub mod clt;
 pub mod constitution;
+pub mod context_cognition;
 pub mod continue_work;
 pub mod contribute;
 pub mod daemon;
 pub mod debug;
+pub mod device_pairing;
 pub mod doctor;
 pub mod ecs;
 pub mod env;
