@@ -25,6 +25,19 @@ pub enum DeviceCmd {
         #[arg(long, value_delimiter = ',')]
         scopes: Vec<String>,
     },
+    /// Shortcut for `pair-start` with QR handoff: prints pair_url prominently.
+    /// focusa-ui0y.11 — Mode B (Telegram/Discord-style QR + phone).
+    #[command(name = "pair-qr")]
+    PairQr {
+        #[arg(long)]
+        device_name: Option<String>,
+        #[arg(long, default_value = "macos")]
+        platform: String,
+        #[arg(long, default_value = "http://127.0.0.1:8787")]
+        daemon_base_url: String,
+        #[arg(long, value_delimiter = ',')]
+        scopes: Vec<String>,
+    },
     /// Complete a pending pairing (run on the VPS side; returns the token).
     #[command(name = "pair-complete")]
     PairComplete {
@@ -80,6 +93,22 @@ pub async fn handle(client: &mut ApiClient, cmd: DeviceCmd) -> anyhow::Result<()
             });
             let resp = client.post("/v1/device/pair/start", &body).await?;
             print_pair_start_human(&resp);
+            Ok(())
+        }
+        DeviceCmd::PairQr {
+            device_name,
+            platform,
+            daemon_base_url,
+            scopes,
+        } => {
+            let body = serde_json::json!({
+                "device_name": device_name.unwrap_or_else(|| "operator-device".to_string()),
+                "platform": platform,
+                "daemon_base_url": daemon_base_url,
+                "scopes": if scopes.is_empty() { vec!["read".to_string(),"write".to_string()] } else { scopes },
+            });
+            let resp = client.post("/v1/device/pair/start", &body).await?;
+            print_pair_qr_human(&resp);
             Ok(())
         }
         DeviceCmd::PairComplete {
@@ -173,6 +202,48 @@ fn print_pair_start_human(payload: &Value) {
     {
         println!("on_your_vps_run: {on_vps}");
     }
+}
+
+/// focusa-ui0y.11: print QR-handoff output prominently.
+fn print_pair_qr_human(payload: &Value) {
+    let code = payload.get("code").and_then(Value::as_str).unwrap_or("?");
+    let device_id = payload
+        .get("device_id")
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    let expires_in = payload
+        .get("expires_in_secs")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let pair_url = payload
+        .get("pair_url")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let pair_url_qr_payload = payload
+        .get("pair_url_qr_payload")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let on_vps = payload
+        .get("operator_handoff")
+        .and_then(|h| h.get("on_your_vps_run"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+
+    println!("device pair qr | code={code} device_id={device_id} expires_in={expires_in}s");
+    println!();
+    println!("  pair_url: {pair_url}");
+    if pair_url_qr_payload != pair_url {
+        println!("  pair_url_qr_payload: {pair_url_qr_payload}");
+    }
+    println!();
+    println!("  Encode pair_url in a QR. Operator scans with phone, opens");
+    println!("  the focusa-pairing PWA helper, and taps \"Complete on this VPS\".");
+    println!();
+    if !on_vps.is_empty() {
+        println!("  Alternative (CLI):  {on_vps}");
+    }
+    println!();
+    println!("See: docs/53-focusa-device-pairing-spec.md#3-handoff-modes");
 }
 
 fn print_pair_complete_human(payload: &Value) {
