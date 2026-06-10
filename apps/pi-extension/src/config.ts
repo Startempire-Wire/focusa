@@ -42,6 +42,7 @@ export interface FocusaConfig {
   workLoopMaxWallClockMs: number;
   workLoopMaxRetries: number;
   workLoopCooldownMs: number;
+  focusaExtensionBuild?: string;
   workLoopAllowDestructiveActions: boolean;
   workLoopRequireOperatorForGovernance: boolean;
   workLoopRequireOperatorForScopeChange: boolean;

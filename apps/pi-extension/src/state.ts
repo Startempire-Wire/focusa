@@ -176,6 +176,7 @@ export const S = {
   activeFramePromise: null as Promise<string | null> | null,
   activeFrameTitle: "" as string,
   activeFrameGoal: "" as string,
+  uiCtx: null as any,  // §93: SSE handler needs ctx.ui for high-priority agent alerts
   sessionFrameKey: "" as string,
   sessionCwd: "" as string,
   continuityId: "" as string,

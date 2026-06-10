@@ -520,6 +520,19 @@ function handleSSEEvent(evt: any) {
         S.pi?.exec("echo", [], { timeout: 1 }).catch(() => {}); // no-op to access ctx
       }
       break;
+    case "trajectory_goal_defined":
+      // §93: high-priority agent alert on HLT continuity change
+      if (evt.data?.trajectory) {
+        const t = evt.data.trajectory;
+        const hlt = t.long_term_goal || "unknown";
+        const display = hlt.length > 80 ? hlt.substring(0, 77) + "…" : hlt;
+        S.uiCtx?.notify(`[HLT CHANGED] ${display}`, "error");
+        if (t.mid_level_goal) {
+          S.lastMetacogEvent = `[MLG] ${t.mid_level_goal}`;
+          setTimeout(() => { S.lastMetacogEvent = ""; }, 15000);
+        }
+      }
+      break;
     default:
       break;
   }
@@ -529,6 +542,7 @@ export function registerSession(pi: ExtensionAPI) {
   // ── session_start — single merged handler ──────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
     S.pi = pi;
+    S.uiCtx = ctx.ui;  // §93: SSE handler needs ctx.ui for high-priority agent alerts
     S.sessionStartTime = Date.now();
     const eventSessionId = (event as any).sessionId || `pi-${process.pid}-${Date.now()}`;
     S.sessionFrameKey = eventSessionId;
