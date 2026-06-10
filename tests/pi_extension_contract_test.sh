@@ -116,7 +116,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/update" -H "Content-Type: application/json" \
-  -d '{"delta":{"decisions":["Pi extension contract requires non-empty recent decision evidence"]}}')
+  -d "{\"delta\":{\"decisions\":[\"Pi extension contract requires non-empty recent decision evidence\"]},\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed ASCC decision accepted"
 else

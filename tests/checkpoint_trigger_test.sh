@@ -53,8 +53,15 @@ else
 fi
 
 log_info "Trigger 1: session start"
+# Close any prior active session so SessionStarted is accepted by the reducer.
+# (A prior CI run may have left a session alive in the daemon's session
+# store; the reducer rejects "Invalid event for current state:
+# SessionStarted but an active session already exists".)
+http_code -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
+  -d '{"reason":"checkpoint-trigger-test-reset"}' >/dev/null 2>&1 || true
+WS_ID="checkpoint-test-$(date +%s)-$$"
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d '{"workspace_id":"test-workspace"}')
+  -d "{\"workspace_id\":\"${WS_ID}\",\"continuity_id\":\"${WS_ID}\",\"project_root\":\"${ROOT_DIR}\",\"adapter_id\":\"pi\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Session start accepted"
 else
