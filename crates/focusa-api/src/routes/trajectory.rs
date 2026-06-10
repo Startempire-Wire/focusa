@@ -23,6 +23,7 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::warn;
@@ -2144,7 +2145,7 @@ async fn define_goal(
                 project_root.clone(),
                 new_hlt_from_body.clone(),
                 "trajectory_define_goal",
-                Utc::now().timestamp() as u64,
+                state.external_mutation_epoch.fetch_add(0, Ordering::Acquire) + 1,
             )
             .with_old_hlt(old_hlt)
             .with_scope(continuity_id_for_ledger, session_id_for_ledger)
