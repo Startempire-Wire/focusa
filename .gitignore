@@ -35,5 +35,7 @@ Thumbs.db
 .focusa/
 .tmp/
 /focusa.sqlite
+/focusa.sqlite-shm
+/focusa.sqlite-wal
 /focusa-daemon.lock
 /.beads/daemon-*.log.gz

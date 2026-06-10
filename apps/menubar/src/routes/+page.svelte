@@ -15,6 +15,7 @@
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
   import PairingPanel from '$lib/components/PairingPanel.svelte';
+  import ToastContainer from '$lib/components/ToastContainer.svelte';
 
   type Tab = 'focus' | 'cockpit' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'pair' | 'settings';
   let activeTab = $state<Tab>('focus');
@@ -178,6 +179,9 @@
     <Settings />
   {/if}
 </main>
+
+<!-- Global toast notifications for action buttons -->
+<ToastContainer />
 
 <style>
   .header {

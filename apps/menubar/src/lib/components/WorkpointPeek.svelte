@@ -1,11 +1,19 @@
 <script lang="ts">
   import { normalizeToolResult } from '$lib/api';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
+  import { workpointActions, type WorkpointScope, type WorkpointSnapshot } from '$lib/actions/workpointActions.svelte';
+  import { toastStore } from '$lib/stores/toast.svelte';
+  import { getProjectContext } from '$lib/projectContext.svelte';
 
   let s = $derived(runtimeStore.snapshot);
   let workpoint = $derived(s.workpointResume ?? s.workpoint ?? {});
   let packet = $derived(workpoint.resume_packet ?? workpoint.packet ?? workpoint);
   let result = $derived(normalizeToolResult(workpoint));
+  let projectCtx = $derived(getProjectContext(s));
+
+  let showLinkEvidence = $state(false);
+  let evidenceResult = $state('');
+  let evidenceRef = $state('');
 
   function text(v: any, fallback = 'unknown') {
     if (v === null || v === undefined || v === '') return fallback;
@@ -18,6 +26,78 @@
     if (!v) return [];
     if (Array.isArray(v)) return v.map((item) => typeof item === 'string' ? item : JSON.stringify(item));
     return [text(v)];
+  }
+
+  function buildScope(): WorkpointScope {
+    return {
+      projectRoot: projectCtx.projectRoot || '',
+      continuityId: projectCtx.continuityId || '',
+      sessionId: projectCtx.sessionId,
+      workItemId: projectCtx.workItemId,
+    };
+  }
+
+  function buildWorkpoint(): WorkpointSnapshot {
+    return {
+      workpoint_id: text(workpoint.workpoint_id, ''),
+      work_item_id: text(packet.work_item_id, ''),
+      mission: text(packet.mission, ''),
+      current_action: text(packet.current_action, ''),
+      next_action: text(packet.next_action, ''),
+      next_slice: text(packet.next_slice, ''),
+      source_turn_id: text(packet.source_turn_id, ''),
+      verified_evidence: list(packet.verified_evidence),
+      blockers: list(packet.blockers),
+      do_not_drift: list(packet.do_not_drift),
+    };
+  }
+
+  async function onCheckpoint() {
+    const scope = buildScope();
+    const wp = buildWorkpoint();
+    if (!scope.projectRoot) {
+      toastStore.warn('No project scope', 'Set a verified project root before checkpointing.');
+      return;
+    }
+    const result = await workpointActions.checkpoint({ scope, workpoint: wp });
+    if (result.ok) {
+      // Refresh workpoint resume after a successful checkpoint
+      void runtimeStore.update({});
+    }
+  }
+
+  async function onResume() {
+    const scope = buildScope();
+    const wpId = workpoint.workpoint_id || packet.workpoint_id;
+    const result = await workpointActions.resume({ scope, workpoint_id: wpId });
+    if (result.ok) {
+      runtimeStore.update({ workpointResume: result.tool_result_v1 || { ok: true, refreshed_at: Date.now() } });
+    }
+  }
+
+  async function onLinkEvidence() {
+    const scope = buildScope();
+    const wpId = workpoint.workpoint_id || packet.workpoint_id;
+    if (!wpId) {
+      toastStore.warn('No active workpoint', 'Cannot link evidence without an active workpoint_id.');
+      return;
+    }
+    if (!evidenceResult.trim() || !evidenceRef.trim()) {
+      toastStore.warn('Missing fields', 'Both result and evidence_ref are required.');
+      return;
+    }
+    const result = await workpointActions.linkEvidence({
+      scope,
+      workpoint_id: wpId,
+      target_ref: wpId,
+      result: evidenceResult.trim(),
+      evidence_ref: evidenceRef.trim(),
+    });
+    if (result.ok) {
+      showLinkEvidence = false;
+      evidenceResult = '';
+      evidenceRef = '';
+    }
   }
 
   let canonical = $derived(workpoint.canonical ?? packet.canonical ?? result.canonical);
@@ -79,6 +159,37 @@
       <p>{text(nextAction, 'not recorded')}</p>
     </article>
   </div>
+
+  <div class="action-bar">
+    <button class="btn primary" disabled={workpointActions.busy !== null} onclick={onCheckpoint} title="POST /v1/workpoint/checkpoint">
+      {workpointActions.busy === 'checkpoint' ? 'Checkpointing…' : 'Checkpoint'}
+    </button>
+    <button class="btn" disabled={workpointActions.busy !== null} onclick={onResume} title="POST /v1/workpoint/resume">
+      {workpointActions.busy === 'resume' ? 'Re-rendering…' : 'Re-render'}
+    </button>
+    <button class="btn" disabled={workpointActions.busy !== null} onclick={() => (showLinkEvidence = !showLinkEvidence)} title="POST /v1/workpoint/evidence/link">
+      Link evidence
+    </button>
+  </div>
+
+  {#if showLinkEvidence}
+    <div class="link-evidence-form">
+      <label>
+        <span>Result (one-line summary)</span>
+        <input type="text" bind:value={evidenceResult} placeholder="Captured screenshot, test passed, build green…" maxlength="240" />
+      </label>
+      <label>
+        <span>Evidence ref (handle, test id, or artifact path)</span>
+        <input type="text" bind:value={evidenceRef} placeholder="tests/foo_test.sh or focusa-evidence:..." maxlength="240" />
+      </label>
+      <div class="row gap">
+        <button class="btn primary" disabled={workpointActions.busy !== null} onclick={onLinkEvidence}>
+          {workpointActions.busy === 'linkEvidence' ? 'Linking…' : 'Link to workpoint'}
+        </button>
+        <button class="btn ghost" onclick={() => { showLinkEvidence = false; evidenceResult = ''; evidenceRef = ''; }}>Cancel</button>
+      </div>
+    </div>
+  {/if}
 
   <div class="detail-grid">
     <section class="panel">
@@ -211,6 +322,62 @@
   .warning-card { border-color: color-mix(in srgb, var(--red) 35%, var(--border)); }
   .panel.primary { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
   .action-grid,
+  .action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    padding: var(--sp-2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm, 6px);
+  }
+  .btn {
+    font-family: var(--font);
+    font-size: var(--text-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    color: var(--fg);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--bg-hover); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.ghost { background: transparent; }
+  .link-evidence-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-2);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm, 6px);
+  }
+  .link-evidence-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--text-xs);
+    color: var(--fg-secondary);
+  }
+  .link-evidence-form input {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--fg);
+    font-size: var(--text-sm);
+    font-family: var(--font);
+  }
+  .link-evidence-form input:focus { outline: 1px solid var(--accent); }
+  .row { display: flex; align-items: center; }
+  .row.gap { gap: var(--sp-2); }
   .detail-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
