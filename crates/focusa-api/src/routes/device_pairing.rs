@@ -193,7 +193,8 @@ async fn pair_start(
         "pair_url_qr_payload": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
         "next_tools": [
             "focusa_device_pair_status",
-            "focusa_device_pair_list"
+            "focusa_device_pair_list",
+            "focusa_device_pair_qr"
         ],
         "rehydrate_id": code,
     })))

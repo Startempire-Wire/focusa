@@ -1067,21 +1067,45 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   {
     "name": "focusa_device_pair_start",
     "label": "Device Pair Start",
-    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code for VPS-side completion.",
+    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
     "family": "session_transfer",
     "ontology_action": "session_transfer.device_pair_start",
     "ontology_objects": [
-      "DevicePairCode"
+      "DevicePairCode",
+      "DevicePairHandoffUrl"
     ],
     "api_routes": ["POST /v1/device/pair/start"],
-    "cli_commands": ["focusa device pair-start"],
-    "core_surface": "Mac menubar OAuth-like device pairing (8-char code, 5-min TTL)",
+    "cli_commands": ["focusa device pair-start", "focusa device pair-qr"],
+    "core_surface": "Mac menubar OAuth-like device pairing (8-char code + pair_url, 5-min TTL)",
     "doc_path": "docs/focusa-tools/tools/focusa_device_pair_start.md",
+    "spec_path": "docs/53-focusa-device-pairing-spec.md",
     "result_envelope": "tool_result_v1",
     "side_effect_profile": "write_device_pair",
     "parity_status": "full",
     "exemptions": [],
-    "live_check": "contract_static plus /v1/device/pair/start safe probe"
+    "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url field assertion"
+  },
+
+  {
+    "name": "focusa_device_pair_qr",
+    "label": "Device Pair QR",
+    "purpose": "Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style).",
+    "family": "session_transfer",
+    "ontology_action": "session_transfer.device_pair_qr",
+    "ontology_objects": [
+      "DevicePairCode",
+      "DevicePairHandoffUrl"
+    ],
+    "api_routes": ["POST /v1/device/pair/start"],
+    "cli_commands": ["focusa device pair-qr"],
+    "core_surface": "Mac menubar OAuth-like device pairing with QR handoff (Telegram/Discord-style)",
+    "doc_path": "docs/focusa-tools/tools/focusa_device_pair_qr.md",
+    "spec_path": "docs/53-focusa-device-pairing-spec.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_device_pair",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url_qr_payload assertion"
   },
 
   {
@@ -1827,6 +1851,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_metacog_capture"
   ],
   "focusa_device_pair_start": [
+    "focusa_device_pair_status",
+    "focusa_device_pair_list",
+    "focusa_device_pair_qr"
+  ],
+  "focusa_device_pair_qr": [
     "focusa_device_pair_status",
     "focusa_device_pair_list"
   ],

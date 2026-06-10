@@ -64,6 +64,7 @@ next: focusa_device_pair_status → focusa_device_pair_list
 
 - Per Spec focusa-ui0y the pairing is **OAuth-like, dumb-simple**: the operator does NOT need to type API tokens, base URLs, or auth headers manually. The mac app handles the token storage and refresh; the operator just types the code on the VPS.
 - For depth, the operator can call `focusa device pair-list` to see all paired devices, or `focusa device pair-revoke --device-id <id>` to remove one.
+- For QR handoff (Mode B), use `focusa device pair-qr` — same endpoint, but the CLI output highlights `pair_url` for QR encoding.
 
 ## Failure recovery
 

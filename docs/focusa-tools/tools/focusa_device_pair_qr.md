@@ -25,6 +25,12 @@ Same as `focusa_device_pair_start`:
 - `daemon_base_url` — daemon base URL the device reconnects to. Default: `http://127.0.0.1:8787`.
 - `scopes` — OAuth-like scopes. Default: `["read", "write"]`.
 
+## Surfaces
+
+- **API route:** `POST /v1/device/pair/start` (shared with `focusa_device_pair_start`)
+- **CLI command:** `focusa device pair-qr` (shortcut for `focusa device pair-start` with QR handoff)
+- Result envelope: `tool_result_v1` (returns `ok=true`, `advisory=true`, plus the `pair_url`/`pair_url_qr_payload` fields and `next_tools`)
+
 ## Expected result
 
 Returns `tool_result_v1` with `ok`, `advisory=true`, plus:

@@ -1220,7 +1220,7 @@
       ],
       "cli_commands": [
         "focusa device pair-start",
-        "focusa device pair qr"
+        "focusa device pair-qr"
       ],
       "core_surface": "Mac menubar OAuth-like device pairing (8-char code + pair_url, 5-min TTL)",
       "doc_path": "docs/focusa-tools/tools/focusa_device_pair_start.md",

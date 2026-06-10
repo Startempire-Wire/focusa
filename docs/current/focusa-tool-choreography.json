@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 78,
-  "edge_count": 228,
+  "tool_count": 79,
+  "edge_count": 231,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -157,7 +157,8 @@
       "focusa_device_pair_qr"
     ],
     "focusa_device_pair_qr": [
-      "focusa_device_pair_start"
+      "focusa_device_pair_status",
+      "focusa_device_pair_list"
     ],
     "focusa_device_pair_complete": [
       "focusa_device_pair_status",
@@ -788,6 +789,24 @@
     },
     {
       "from": "focusa_device_pair_start",
+      "to": "focusa_device_pair_list",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_start",
+      "to": "focusa_device_pair_qr",
+      "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_qr",
+      "to": "focusa_device_pair_status",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_qr",
       "to": "focusa_device_pair_list",
       "weight": 9,
       "reason": "static_next_tool_route"
