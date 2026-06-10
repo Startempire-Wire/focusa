@@ -3298,6 +3298,7 @@ export function registerTools(pi: ExtensionAPI) {
       short_term_goal: Type.Optional(Type.String({ description: "Current short-term goal (STG) derived from the HLT/MLG." })),
       waypoints: Type.Optional(Type.Array(Type.String(), { description: "Concrete HLT-aligned progress markers along the MLG/STG path." })),
       current_state: Type.Optional(Type.String({ description: "Current verified state if known." })),
+      current_ask: Type.Optional(Type.String({ description: "Explicit current operator intent; satisfies verified state gate (§169-175). Auto-populated from Pi session if omitted." })),
       goal_source: Type.Optional(Type.String({ description: "operator|durable_supersession|focus_state|workpoint|beads|imported|inferred_context" })),
       supersedes_trajectory_id: Type.Optional(Type.String({ description: "Prior trajectory id if this supersedes one." })),
       operator_confirmed: Type.Optional(Type.Boolean({ description: "True when operator explicitly confirmed a root goal change." })),
@@ -3316,7 +3317,7 @@ export function registerTools(pi: ExtensionAPI) {
       const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
       const projectRootGate = projectRootConfirmationGate(projectRoot, p.project_root);
       if (projectRootGate) return projectRootGate;
-      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
+      const body = { ...p, project_root: projectRoot, session_id: p.session_id || S.sessionFrameKey, continuity_id: p.continuity_id || S.continuityId, current_ask: p.current_ask || S.currentAsk?.text || "", session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", { continuityId: p.continuity_id, sessionId: p.session_id }) };
       const result = await focusaFetchDetailed("/trajectory/define-goal", { method: "POST", body: JSON.stringify(body) });
       const b = result.body || {};
       if (!result.ok && b.failure_class === "hot_path_timeout") {

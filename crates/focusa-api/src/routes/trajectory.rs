@@ -2402,6 +2402,7 @@ async fn hlt_history(
                 "new_hlt": e.new_hlt,
                 "source": e.source,
                 "reason": e.reason,
+                "lamport_ts": e.lamport_ts,  // §42: CRDT-grade Lamport clock
                 "evidence_refs": e.evidence_refs,
             })
         })
