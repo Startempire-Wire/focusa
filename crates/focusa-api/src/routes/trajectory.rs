@@ -2112,9 +2112,29 @@ async fn define_goal(
     let session_id_for_ledger = body.session_id.clone()
         .or_else(|| session_identity_session_id(body.session_identity.as_ref()));
     let new_hlt_from_body = body.long_term_goal.clone();
+    // §99: auto-derive evidence_refs from session state when body lacks explicit refs
+    let focus_state_evidence: Vec<String> = focusa
+        .focus_stack
+        .frames
+        .iter()
+        .find(|f| {
+            focusa.focus_stack.active_id.map(|aid| aid == f.id).unwrap_or(false)
+        })
+        .map(|f| {
+            f.focus_state
+                .artifacts
+                .iter()
+                .filter_map(|a| a.handle_ref.as_ref().map(|h| format!("[HANDLE:{:?}:{}]", h.kind, h.id)))
+                .chain(f.focus_state.decisions.iter().cloned())
+                .take(5)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_else(|| {
+        if focus_state_evidence.is_empty() { Vec::new() } else { focus_state_evidence }
+    });
     drop(focusa);
     let mut side_effects = Vec::new();
-    let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_default();
     if let Some(trajectory) = trajectory_record {
         if let Err((status, Json(mut pending_payload))) =
             dispatch_event(&state, FocusaEvent::TrajectoryGoalDefined { trajectory }).await
