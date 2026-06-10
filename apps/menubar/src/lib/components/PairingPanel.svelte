@@ -14,12 +14,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { pairingStore } from '$lib/stores/pairing.svelte';
+  import QRCode from './QRCode.svelte';
 
   let { host = 'operator-vps' }: { host?: string } = $props();
 
   let deviceNameInput = $state(localStorage.getItem('focusa_device_name') || 'operator-mac');
   let copied = $state(false);
   let now = $state(Date.now());
+  // focusa-ui0y.10: Mode A/B/C tabs in the waiting_vps view.
+  //   A = CLI (default; works over SSH)
+  //   B = QR + phone (Telegram/Discord-style; needs FOCUSA_PAIRING_URL)
+  //   C = QR + VPS browser (kiosk on same LAN)
+  let handoffMode = $state<'A' | 'B' | 'C'>('A');
 
   // Tick once per second for the countdown
   let tickHandle: ReturnType<typeof setInterval> | null = null;
@@ -104,23 +110,56 @@
   {:else if pairingStore.state.kind === 'waiting_vps'}
     {@const s = pairingStore.state}
     <section class="card code-card">
-      <p class="lead">Run this on your VPS within <strong>{remainingLabel}</strong>:</p>
+      <p class="lead">Complete pairing within <strong>{remainingLabel}</strong>:</p>
       {#if remainingMs <= 0}
         <p class="warn">Code expired. Generating a new one…</p>
       {/if}
-      <div class="code-block">
-        <code class="code">{s.code}</code>
-        <button class="ghost small" onclick={() => copyToClipboard(s.code)}>
-          {copied ? 'Copied' : 'Copy code'}
-        </button>
+
+      <!-- focusa-ui0y.10: Mode A/B/C tabs (CLI / QR+phone / QR+VPS browser) -->
+      <div class="tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={handoffMode === 'A'}
+          class:active={handoffMode === 'A'}
+          onclick={() => (handoffMode = 'A')}>CLI</button>
+        <button
+          role="tab"
+          aria-selected={handoffMode === 'B'}
+          class:active={handoffMode === 'B'}
+          onclick={() => (handoffMode = 'B')}
+          disabled={!s.pairUrl}>QR + phone</button>
+        <button
+          role="tab"
+          aria-selected={handoffMode === 'C'}
+          class:active={handoffMode === 'C'}
+          onclick={() => (handoffMode = 'C')}
+          disabled={!s.pairUrl}>QR + browser</button>
       </div>
-      <p class="vps-label">On your VPS, run:</p>
-      <div class="code-block">
-        <code class="cmd">{s.onYourVpsRun}</code>
-        <button class="ghost small" onclick={() => copyToClipboard(s.onYourVpsRun)}>
-          {copied ? 'Copied' : 'Copy cmd'}
-        </button>
-      </div>
+
+      {#if handoffMode === 'A'}
+        <p class="vps-label">On your VPS, run:</p>
+        <div class="code-block">
+          <code class="cmd">{s.onYourVpsRun}</code>
+          <button class="ghost small" onclick={() => copyToClipboard(s.onYourVpsRun)}>
+            {copied ? 'Copied' : 'Copy cmd'}
+          </button>
+        </div>
+        <p class="alt-hint">Or just paste this code: <code class="code-inline">{s.code}</code></p>
+      {:else}
+        <div class="qr-wrap">
+          <QRCode payload={s.pairUrlQrPayload || s.pairUrl} size={220} />
+        </div>
+        {#if handoffMode === 'B'}
+          <p class="alt-hint">Scan with your phone. Opens a focusa-pairing page where you tap <em>Complete on this VPS</em> to finish.</p>
+        {:else}
+          <p class="alt-hint">Open this URL in a VPS browser or kiosk: <code class="code-inline">{s.pairUrl}</code></p>
+        {/if}
+        <details class="raw-url">
+          <summary>Or paste the URL</summary>
+          <code class="code-inline">{s.pairUrl}</code>
+        </details>
+      {/if}
+
       <p class="poll">Polling for completion (attempt {s.attempt + 1})…</p>
       <button class="ghost" onclick={() => pairingStore.reset()}>Cancel</button>
     </section>
@@ -417,4 +456,63 @@
     font-size: 10px;
     margin-left: 4px;
   }
+  /* focusa-ui0y.10: tabs + QR display */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin: 12px 0 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .tabs button {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    color: var(--fg-secondary);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tabs button:hover:not(:disabled) { color: var(--fg-primary); }
+  .tabs button.active {
+    background: var(--bg-hover);
+    color: var(--fg-primary);
+  }
+  .tabs button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .qr-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+  }
+  /* QR itself renders dark on light; don't theme it */
+  .qr-wrap :global(svg) { color: black; }
+  .alt-hint {
+    font-size: var(--text-xs);
+    color: var(--fg-secondary);
+    margin: 8px 0;
+    line-height: 1.4;
+  }
+  .code-inline {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 4px;
+    word-break: break-all;
+  }
+  .raw-url {
+    margin-top: 8px;
+    font-size: var(--text-xs);
+    color: var(--fg-tertiary);
+  }
+  .raw-url summary { cursor: pointer; }
 </style>

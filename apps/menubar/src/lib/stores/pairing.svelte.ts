@@ -13,7 +13,7 @@ import { getApiUrl } from '$lib/api';
 export type PairingState =
   | { kind: 'idle' }
   | { kind: 'starting' }
-  | { kind: 'waiting_vps'; code: string; deviceId: string; deviceName: string; platform: string; daemonBaseUrl: string; scopes: string[]; onYourVpsRun: string; startedAt: number; expiresAt: number; attempt: number }
+  | { kind: 'waiting_vps'; code: string; deviceId: string; deviceName: string; platform: string; daemonBaseUrl: string; pairUrl: string; pairUrlQrPayload: string; scopes: string[]; onYourVpsRun: string; startedAt: number; expiresAt: number; attempt: number }
   | { kind: 'completed'; deviceId: string; deviceName: string; token: string; tokenExpiresAt: string; host: string; completedAt: number }
   | { kind: 'expired'; code: string; deviceId: string; deviceName: string; reason: string }
   | { kind: 'error'; message: string; failureClass?: string };
@@ -180,6 +180,9 @@ function createPairingStore() {
       const daemonBaseUrl = String(result.daemon_base_url || args.daemonBaseUrl || apiBase());
       const scopes = Array.isArray(result.scopes) ? result.scopes : (args.scopes ?? ['read', 'write']);
       const onYourVpsRun = String(result.operator_handoff?.on_your_vps_run || '');
+      // focusa-ui0y.9: pair_url + pair_url_qr_payload (from FOCUSA_PAIRING_URL or daemon_base_url)
+      const pairUrl = String(result.pair_url || '');
+      const pairUrlQrPayload = String(result.pair_url_qr_payload || pairUrl);
       const startedAt = Date.now();
       const expiresAt = startedAt + CODE_TTL_MS;
       state = {
@@ -189,6 +192,8 @@ function createPairingStore() {
         deviceName,
         platform,
         daemonBaseUrl,
+        pairUrl,
+        pairUrlQrPayload,
         scopes,
         onYourVpsRun,
         startedAt,
