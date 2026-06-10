@@ -165,8 +165,28 @@ def main() -> None:
     if final_count < pre_count_at_start:
         fail(f"ledger shrank: {pre_count_at_start} -> {final_count}")
 
+    # 8. Pi wrapper field-shape check (the wrapper gap fix).
+    # The Pi focusa_session_transfer wrapper must now expose
+    # session_transfer_save_packet (the actual game-save from apiBody.transfer)
+    # and workpoint_checkpoint_packet (the typed workpoint from /workpoint/checkpoint)
+    # as DISTINCT fields, so the operator can see both.
+    wrapper_path = ROOT / "apps/pi-extension/src/tools.ts"
+    wrapper_src = wrapper_path.read_text()
+    for marker in [
+        "session_transfer_save_packet",
+        "workpoint_checkpoint_packet",
+        "workpoint_resume_packet",
+        "apiBody.transfer",
+    ]:
+        if marker not in wrapper_src:
+            fail(f"Pi wrapper missing field/marker: {marker}")
+    # The old `save_packet: checkpoint?.body` (which conflated the two) must be gone.
+    if "save_packet: checkpoint?.body" in wrapper_src:
+        fail("Pi wrapper still has the old 'save_packet: checkpoint?.body' (gap not fixed)")
+
     print(f"✓ PASS: save point function (session-transfer + workpoint primitive) evaluated; "
           f"ledger grew {pre_count_at_start} -> {final_count}, workpoint_id={workpoint_id}, "
+          f"Pi wrapper exposes session_transfer_save_packet + workpoint_checkpoint_packet distinct, "
           f"rendered_summary='{summary[:80]}...'")
 
 
