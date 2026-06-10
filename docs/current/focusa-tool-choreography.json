@@ -153,7 +153,11 @@
     ],
     "focusa_device_pair_start": [
       "focusa_device_pair_status",
-      "focusa_device_pair_list"
+      "focusa_device_pair_list",
+      "focusa_device_pair_qr"
+    ],
+    "focusa_device_pair_qr": [
+      "focusa_device_pair_start"
     ],
     "focusa_device_pair_complete": [
       "focusa_device_pair_status",

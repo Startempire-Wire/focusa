@@ -5,7 +5,23 @@
 The menubar UI provides **ambient cognitive awareness** without interrupting work.
 
 It must also make **multi-device sync** legible without becoming a control surface.
-See: `docs/43-multi-device-sync.md`.
+See: `docs/43-multi-device-sync.md` and the device pairing architecture in
+[`docs/53-focusa-device-pairing-spec.md`](53-focusa-device-pairing-spec.md).
+
+### Device pairing surface (focusa-ui0y)
+
+The menubar includes a **DevicePairing panel** with three handoff modes
+(see [§3 of the pairing spec](53-focusa-device-pairing-spec.md#3-handoff-modes)):
+
+- **Mode A (CLI):** display the `FOCUS-XXXX-XXXX` code in a calm, large monospace card with the `on_your_vps_run` command beneath. Operator runs on VPS.
+- **Mode B (QR + phone):** render a QR encoding `pair_url` from `pair_start` response. Operator scans with phone.
+- **Mode C (QR + VPS browser):** same QR, but operator uses a kiosk/VPS browser.
+
+The QR is rendered using a tiny library (`qrcode` npm, ~20KB) and is sized
+to be scannable at standard phone distance (≥ 200×200px, with 4-module quiet zone).
+
+When `status=completed` from the polling loop, the panel transitions to a
+single green checkmark + the device name. No celebratory animation; ambient only.
 
 It is:
 - calm

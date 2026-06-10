@@ -3,9 +3,11 @@
 **Family:** `session_transfer`
 **Label:** Device Pair Start
 
+**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
+
 ## Purpose
 
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Generate an 8-char pairing code (format `FOCUS-XXXX-XXXX`, 5-minute TTL) that the operator pastes on their VPS. The VPS runs `focusa device pair-complete <code>` to mint a long-lived token (30-day TTL); the Mac app polls `focusa_device_pair_status` to retrieve the token and store it in the macOS Keychain (via Tauri API).
+**Mac menubar OAuth-like device pairing (focusa-ui0y).** Generate an 8-char pairing code (format `FOCUS-XXXX-XXXX`, 5-minute TTL) that the operator delivers to the VPS via one of three handoff modes (CLI / QR + phone / QR + VPS browser). The VPS runs `focusa device pair-complete <code>` to mint a long-lived token (30-day TTL); the Mac app polls `focusa_device_pair_status` to retrieve the token and store it in the macOS Keychain (via Tauri API).
 
 ## When to use
 
@@ -27,8 +29,12 @@ Returns `tool_result_v1` with `ok`, `advisory=true`, plus:
 - `device_id` — UUID v7
 - `expires_in_secs` — always `300` (5 minutes)
 - `operator_handoff.on_your_vps_run` — the exact command the operator runs on the VPS
-- `next_tools`: `["focusa_device_pair_status", "focusa_device_pair_list"]`
+- `pair_url` — full URL the operator's phone can open (built from `FOCUSA_PAIRING_URL` env or `daemon_base_url`)
+- `pair_url_qr_payload` — byte-equal to `pair_url` in this version (forward-compat invariant)
+- `next_tools`: `["focusa_device_pair_status", "focusa_device_pair_list", "focusa_device_pair_qr"]`
 - `rehydrate_id` — the code
+
+See [§4 of the pairing spec](../../53-focusa-device-pairing-spec.md#4-the-pair_url-field-new-in-pair_start) for the `pair_url` semantics, portability, and multi-tenant guarantees.
 
 ## Example
 

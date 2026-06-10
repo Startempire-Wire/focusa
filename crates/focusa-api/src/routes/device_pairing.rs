@@ -125,6 +125,14 @@ async fn pair_start(
             }),
         ));
     }
+    // Resolve pairing URL: FOCUSA_PAIRING_URL env > daemon_base_url
+    // This is the public-facing URL the operator's phone will hit (e.g.
+    // https://focusa-conn.verious.net) — needed for QR flows where the
+    // Mac is on a different network than the VPS.
+    let pairing_url = std::env::var("FOCUSA_PAIRING_URL")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| daemon_base_url.clone());
 
     let now = Utc::now();
     let expires = now + Duration::seconds(CODE_TTL_SECS);
@@ -168,6 +176,8 @@ async fn pair_start(
             "on_your_vps_run": format!("focusa device pair-complete {} --host <host>", code),
             "scopes": scopes,
         },
+        "pair_url": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
+        "pair_url_qr_payload": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
         "next_tools": [
             "focusa_device_pair_status",
             "focusa_device_pair_list"

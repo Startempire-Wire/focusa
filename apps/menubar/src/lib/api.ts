@@ -88,3 +88,52 @@ export async function fetchJson<T = any>(path: string, timeoutMs = 3000): Promis
 export async function postJson<T = any>(path: string, body?: unknown, timeoutMs = 3000): Promise<T> {
   return requestJson<T>(path, { method: 'POST', body, timeoutMs });
 }
+
+/**
+ * Build a minimal FocusaSessionIdentity for menubar → daemon calls.
+ * Fills required fields; uses menubar as resume_source so the API can distinguish
+ * menubar-initiated requests from Pi/CLI surfaces.
+ * §33 / §42 parity: menubar is a first-class Focusa surface.
+ */
+export interface MenubarSessionContext {
+  projectRoot?: string;
+  continuityId?: string;
+  sessionId?: string;
+}
+
+export function buildFocusaSessionIdentity(ctx: MenubarSessionContext): Record<string, unknown> {
+  const now = new Date().toISOString();
+  // Generate a stable session incarnation ID for this menubar session window
+  const incId = `menubar-${Date.now()}`;
+  return {
+    session_frame_key: ctx.sessionId || `menubar-${incId}`,
+    session_incarnation_id: incId,
+    project_root: ctx.projectRoot || '',
+    cwd: ctx.projectRoot || '',          // menubar has no cwd concept; use project_root as proxy
+    workspace_id: ctx.continuityId || ctx.projectRoot || 'menubar',
+    started_at: now,
+    resume_source: 'menubar',
+    continuity_id: ctx.continuityId || null,
+    pi_session_id: ctx.sessionId || null,
+    canonical_scope: false,             // menubar scope is advisory, not canonical
+  };
+}
+
+/**
+ * POST helper that auto-injects session_identity into the body.
+ * Use this instead of postJson for all Focusa tool calls.
+ */
+export async function focusaPost<T = any>(
+  path: string,
+  body: Record<string, unknown>,
+  ctx: MenubarSessionContext,
+  timeoutMs = 3000,
+): Promise<T> {
+  return postJson<T>(path, {
+    ...body,
+    project_root: body.project_root ?? ctx.projectRoot ?? undefined,
+    continuity_id: body.continuity_id ?? ctx.continuityId ?? undefined,
+    session_id: body.session_id ?? ctx.sessionId ?? undefined,
+    session_identity: buildFocusaSessionIdentity(ctx),
+  }, timeoutMs);
+}

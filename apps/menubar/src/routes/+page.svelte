@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fetchJson, postJson } from '$lib/api';
+  import { fetchJson, focusaPost } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -49,7 +49,7 @@
         safe(() => scopedQuery ? fetchJson(`/v1/focus/frame/current?${scopedQuery}`) : Promise.resolve(null)),
         safe(() => fetchJson(`/v1/trajectory/view?mode=summary${scopedSuffix}`)),
         safe(() => fetchJson(`/v1/workpoint/current${scopedPathSuffix}`)),
-        safe(() => postJson('/v1/workpoint/resume', scopedQuery ? { project_root: projectRoot, continuity_id: continuityId } : {}, 5000)),
+        safe(() => focusaPost('/v1/workpoint/resume', scopedQuery ? { project_root: projectRoot, continuity_id: continuityId } : {}, { projectRoot: projectRoot || undefined, continuityId: continuityId || undefined }, 5000)),
         safe(() => fetchJson('/v1/work-loop/status?summary_only=true')),
         safe(() => fetchJson('/v1/work-loop/health')),
         safe(() => fetchJson('/v1/work-loop/checkpoints')),

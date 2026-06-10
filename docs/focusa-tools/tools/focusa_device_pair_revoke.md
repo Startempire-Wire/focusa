@@ -3,9 +3,11 @@
 **Family:** `session_transfer`
 **Label:** Device Pair Revoke
 
+**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
+
 ## Purpose
 
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Revoke a paired device. Appends a new entry with `revoked=true` to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with `status=revoked`.
+**Mac menubar OAuth-like device pairing (focusa-ui0y).** Revoke a paired device. Appends a new entry with `revoked=true` to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with `status=revoked`. Multi-device-safe: revoking one device does not affect any other paired device. See [§6.3 of the pairing spec](../../53-focusa-device-pairing-spec.md#63-multi-device-is-a-property-of-the-ledger).
 
 This is the **delete side** of the device ledger. The read side is `focusa_device_pair_list`. The append side is `focusa_device_pair_complete` (paired=false) and `focusa_device_pair_revoke` (paired=true).
 

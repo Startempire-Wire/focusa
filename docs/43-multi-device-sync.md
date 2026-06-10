@@ -12,6 +12,25 @@ This spec is designed to align with:
 - `docs/40-instance-session-attachment-spec.md` (Instance/Session/Attachment)
 - reducer determinism and event auditability
 
+## Device Pairing Handoff (focusa-ui0y)
+
+Before a Mac or other device can sync, it must be **paired** with the daemon
+via the OAuth-like device pairing flow. The full architecture lives in
+[`docs/53-focusa-device-pairing-spec.md`](53-focusa-device-pairing-spec.md);
+the summary is:
+
+- Every paired device has a `DeviceRecord` in the daemon's append-only
+  `devices.jsonl` ledger.
+- Three handoff modes (CLI / QR+phone / QR+VPS browser) all produce
+  the same `DeviceRecord`. The **code is the trust anchor**, not the transport.
+- `pair_url` in `pair_start` response is built from `FOCUSA_PAIRING_URL`
+  env var if set, else `daemon_base_url` — this is what makes the
+  pairing portable across public VPS hosts.
+- Multi-device is a property of the ledger: each device has its own
+  `device_id` and `device_name`. Revocation is per-device.
+- The pairing ledger is the **multi-tenant boundary** for a daemon:
+  every device on the list is trusted, everything else is not.
+
 ---
 
 ## Canonical Policy (MVP)

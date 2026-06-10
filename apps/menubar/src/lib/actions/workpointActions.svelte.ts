@@ -10,7 +10,7 @@
 // workpoint fields (for the request payload). On success, callers should
 // refresh the runtime store. On failure, callers should surface a toast.
 
-import { postJson, fetchJson, summarizeError } from '$lib/api';
+import { focusaPost, fetchJson, summarizeError } from '$lib/api';
 import { toastStore } from '$lib/stores/toast.svelte';
 
 export interface WorkpointScope {
@@ -101,7 +101,11 @@ function createWorkpointActions() {
         promote: true,
         checkpoint_reason: args.reason || 'menubar_checkpoint',
       };
-      const result = await postJson<any>('/v1/workpoint/checkpoint', body, 8_000);
+      const result = await focusaPost<any>('/v1/workpoint/checkpoint', body, {
+        projectRoot: args.scope.projectRoot,
+        continuityId: args.scope.continuityId,
+        sessionId: args.scope.sessionId,
+      }, 8_000);
       toastStore.ok('Workpoint checkpointed', result?.workpoint_id || args.workpoint.workpoint_id);
       return {
         ok: true,
@@ -131,7 +135,11 @@ function createWorkpointActions() {
         workpoint_id: args.workpoint_id,
         mode: args.mode || 'compact_prompt',
       };
-      const result = await postJson<any>('/v1/workpoint/resume', body, 8_000);
+      const result = await focusaPost<any>('/v1/workpoint/resume', body, {
+        projectRoot: args.scope.projectRoot,
+        continuityId: args.scope.continuityId,
+        sessionId: args.scope.sessionId,
+      }, 8_000);
       toastStore.ok('Workpoint re-rendered', args.workpoint_id || '(no-id)');
       return {
         ok: true,
@@ -163,7 +171,11 @@ function createWorkpointActions() {
         result: args.result,
         evidence_ref: args.evidence_ref,
       };
-      const result = await postJson<any>('/v1/workpoint/evidence/link', body, 8_000);
+      const result = await focusaPost<any>('/v1/workpoint/evidence/link', body, {
+        projectRoot: args.scope.projectRoot,
+        continuityId: args.scope.continuityId,
+        sessionId: args.scope.sessionId,
+      }, 8_000);
       toastStore.ok('Evidence linked', `${args.evidence_ref.slice(0, 16)}…`);
       return {
         ok: true,

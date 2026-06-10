@@ -67,3 +67,18 @@ Scope: Rust workspace, CLI, daemon/API, TUI, Tauri menubar, Pi extension, script
 2. Add a lightweight `doctor portability` or documented checklist that checks Node/Rust/cargo/curl/jq/gh availability.
 3. Add OS-specific service snippets: launchd plist, systemd user unit, and Windows/WSL notes.
 4. Add Linux Tauri packaging only after required system libraries are documented and CI-proven.
+
+## Device pairing portability (focusa-ui0y)
+
+- `FOCUSA_PAIRING_URL` env var (added 2026-06-10) lets any operator expose the
+  PWA helper page (`GET /pair/{device_id}`) on their own public hostname
+  (e.g. `https://focusa-conn.verious.net`). When unset, the daemon falls
+  back to `daemon_base_url` (default `http://127.0.0.1:8787`), so the QR
+  flow degrades gracefully to local-network or CLI mode.
+- The `pair_url` field in `pair_start` is built from this env var, with
+  full URL-encoding of the `device_id` (UUIDv7, URL-safe by default).
+- The PWA helper page is 200 LOC, no third-party scripts, no external
+  assets — safe to serve from any Focusa install.
+- Multi-tenant isolation: each daemon is its own trust root; codes and
+  tokens generated on operator-A's daemon cannot be completed on
+  operator-B's daemon. The `devices.jsonl` ledger is the boundary.

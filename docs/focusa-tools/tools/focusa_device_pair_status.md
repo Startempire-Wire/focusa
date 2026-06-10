@@ -3,9 +3,11 @@
 **Family:** `session_transfer`
 **Label:** Device Pair Status
 
+**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
+
 ## Purpose
 
-**Mac menubar OAuth-like device pairing (focusa-ui0y).** Check the status of a pending or completed pairing by **code** or by **device_id**. Returns the token (when completed) + status + scopes + expires_at.
+**Mac menubar OAuth-like device pairing (focusa-ui0y).** Check the status of a pending or completed pairing by **code** or by **device_id**. Returns the token (when completed) + status + scopes + expires_at. This endpoint is also hit by the focusa-pairing PWA helper page (served at `GET /pair/{device_id}`) so the phone can show "Pairing done — return to your Mac."
 
 The Mac app calls this in a poll loop after `focusa_device_pair_start` to detect completion. The first call that returns `status=completed` + a non-null `token` is the signal to store the token in the macOS Keychain.
 

@@ -133,3 +133,21 @@ focusa export preference --output /tmp/focusa-pref.parquet --format parquet --js
 Export JSON now includes `quality_gates`, per-record `provenance`/`eligibility`, top-level `quality_summary`, `redaction_summary`, and manifest copies of the same quality metadata.
 
 Use `--json` for machine-readable output where supported.
+
+## `device` — Mac menubar OAuth-like device pairing (focusa-ui0y)
+
+See [`docs/53-focusa-device-pairing-spec.md`](../53-focusa-device-pairing-spec.md) for the full architecture.
+
+```text
+focusa device pair-start     Generate an 8-char FOCUS-XXXX-XXXX code
+focusa device pair qr        Shortcut: pair-start + print pair_url for QR
+focusa device pair-complete  VPS-side completion; mints 30-day token
+focusa device pair-status    Check pairing status (by code or device_id)
+focusa device pair-list      List paired devices for a host
+focusa device pair-revoke    Revoke a paired device
+```
+
+**`FOCUSA_PAIRING_URL` env var** (optional): the public URL the operator's
+phone will hit (e.g. `https://focusa-conn.verious.net`). When unset, the
+daemon uses `daemon_base_url` (default `http://127.0.0.1:8787`). This is
+what makes pairing portable across public VPS hosts.

@@ -3,9 +3,19 @@
 **Family:** `session_transfer`
 **Label:** Device Pair Complete
 
+**Architecture spec:** [`docs/53-focusa-device-pairing-spec.md`](../../53-focusa-device-pairing-spec.md)
+
 ## Purpose
 
 **Mac menubar OAuth-like device pairing (focusa-ui0y).** Run on the **VPS side** to complete a pending pairing initiated by `focusa_device_pair_start`. Returns the long-lived token (30-day TTL) that the Mac app will use for subsequent calls. Appends a `DeviceRecord` (revoked=false) to the append-only JSONL ledger.
+
+This tool is invoked in three handoff modes (see [§3 of the pairing spec](../../53-focusa-device-pairing-spec.md#3-handoff-modes)):
+
+- **Mode A (CLI):** the operator runs `focusa device pair-complete <code>` over SSH.
+- **Mode B (QR + phone):** the operator scans a QR on the Mac, opens `pair_url` on the phone, and the focusa-pairing PWA helper page calls this tool.
+- **Mode C (QR + VPS browser):** same as B but a kiosk/second device scans the QR.
+
+In all three modes, the body of the call is identical — only the transport differs.
 
 ## When to use
 

@@ -1208,25 +1208,28 @@
     {
       "name": "focusa_device_pair_start",
       "label": "Device Pair Start",
-      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code for VPS-side completion.",
+      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
       "family": "session_transfer",
       "ontology_action": "session_transfer.device_pair_start",
       "ontology_objects": [
-        "DevicePairCode"
+        "DevicePairCode",
+        "DevicePairHandoffUrl"
       ],
       "api_routes": [
         "POST /v1/device/pair/start"
       ],
       "cli_commands": [
-        "focusa device pair-start"
+        "focusa device pair-start",
+        "focusa device pair qr"
       ],
-      "core_surface": "Mac menubar OAuth-like device pairing (8-char code, 5-min TTL)",
+      "core_surface": "Mac menubar OAuth-like device pairing (8-char code + pair_url, 5-min TTL)",
       "doc_path": "docs/focusa-tools/tools/focusa_device_pair_start.md",
+      "spec_path": "docs/53-focusa-device-pairing-spec.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "write_device_pair",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus /v1/device/pair/start safe probe"
+      "live_check": "contract_static plus /v1/device/pair/start safe probe and pair_url field assertion"
     },
     {
       "name": "focusa_device_pair_complete",

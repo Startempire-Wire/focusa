@@ -14,6 +14,18 @@ Generated from current `crates/focusa-api/src/routes/*.rs` route registrations. 
 - `POST /v1/attachments/detach`
 - `GET /v1/attachments/list`
 
+### device/pair
+- `POST /v1/device/pair/start` — generate `FOCUS-XXXX-XXXX` code (5-min TTL), returns `code`, `device_id`, `pair_url`, `pair_url_qr_payload`, `expires_in_secs`, `operator_handoff.on_your_vps_run`
+- `POST /v1/device/pair/complete` — VPS-side completion, mints 30-day token, appends to `devices.jsonl`
+- `GET /v1/device/pair/status?code=...` (or `?device_id=...`) — Mac/phone poll until `status=completed`
+- `GET /v1/device/pair/list?host=...` — paired devices ledger
+- `POST /v1/device/pair/revoke` — append `revoked=true` entry
+- `GET /pair/{device_id}` — PWA helper page for QR handoff (Mode B/C)
+- `GET /pair/{device_id}/manifest.json` — PWA manifest
+- `GET /pair/{device_id}/sw.js` — service worker
+
+See [`docs/53-focusa-device-pairing-spec.md`](../53-focusa-device-pairing-spec.md) for the full architecture, portability model, and threat model.
+
 ### autonomy
 - `GET /v1/autonomy`
 - `GET /v1/autonomy/history`
