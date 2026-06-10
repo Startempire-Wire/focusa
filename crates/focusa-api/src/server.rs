@@ -13,6 +13,7 @@ use crate::routes::sse::EventBroadcaster;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
+use tower_http::cors::{Any, CorsLayer};
 use focusa_core::types::{
     Action, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
     WorkLoopStatus,
@@ -246,6 +247,45 @@ impl AppState {
     }
 }
 
+/// CORS layer for the macOS Tauri menubar app (focusa-ui0y).
+///
+/// Allows:
+///   - Tauri 2 origins: `tauri://localhost`, `http://tauri.localhost`,
+///     `https://tauri.localhost`
+///   - Vite dev server: `http://localhost:1420`, `http://127.0.0.1:1420`
+///   - Anything explicitly listed in `FOCUSA_CORS_ALLOWED_ORIGINS` (comma-separated)
+///
+/// This is intentionally permissive for menubar client development; production
+/// auth tokens are still required for write endpoints via `middleware::auth`.
+pub fn menubar_cors_layer() -> CorsLayer {
+    use axum::http::HeaderValue;
+    use tower_http::cors::AllowOrigin;
+
+    let mut allowed: Vec<HeaderValue> = vec![
+        HeaderValue::from_static("tauri://localhost"),
+        HeaderValue::from_static("http://tauri.localhost"),
+        HeaderValue::from_static("https://tauri.localhost"),
+        HeaderValue::from_static("http://localhost:1420"),
+        HeaderValue::from_static("http://127.0.0.1:1420"),
+    ];
+    if let Ok(extra) = std::env::var("FOCUSA_CORS_ALLOWED_ORIGINS") {
+        for raw in extra.split(',') {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            if let Ok(hv) = HeaderValue::from_str(trimmed) {
+                allowed.push(hv);
+            }
+        }
+    }
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(allowed))
+        .allow_methods(Any)
+        .allow_headers(Any)
+        .max_age(std::time::Duration::from_secs(86_400))
+}
+
 /// Build the axum Router with all routes.
 pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
@@ -298,6 +338,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::awareness::router())
         .merge(routes::tokens::router())
         .merge(routes::sse::router())
+        .layer(menubar_cors_layer())
         .layer(DefaultBodyLimit::max(routes::bounded::env_limit(
             "FOCUSA_API_MAX_BODY_BYTES",
             1_048_576,

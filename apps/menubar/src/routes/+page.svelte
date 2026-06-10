@@ -14,8 +14,9 @@
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
+  import PairingPanel from '$lib/components/PairingPanel.svelte';
 
-  type Tab = 'focus' | 'cockpit' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'settings';
+  type Tab = 'focus' | 'cockpit' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'pair' | 'settings';
   let activeTab = $state<Tab>('focus');
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -144,6 +145,9 @@
     <button class="tab quiet" class:active={activeTab === 'sync'} aria-pressed={activeTab === 'sync'} title="Sync" onclick={() => activeTab = 'sync'}>
       <span class="tab-mark">⇄</span><span>Sync</span>
     </button>
+    <button class="tab quiet" class:active={activeTab === 'pair'} aria-pressed={activeTab === 'pair'} title="Device Pairing" onclick={() => activeTab = 'pair'}>
+      <span class="tab-mark">⎘</span><span>Pair</span>
+    </button>
     <button class="tab icon-only quiet" class:active={activeTab === 'settings'} aria-pressed={activeTab === 'settings'} title="Settings" aria-label="Settings" onclick={() => activeTab = 'settings'}>
       ⚙
     </button>
@@ -168,6 +172,8 @@
     <GatePanel />
   {:else if activeTab === 'sync'}
     <SyncPanel />
+  {:else if activeTab === 'pair'}
+    <PairingPanel host="operator-vps" />
   {:else if activeTab === 'settings'}
     <Settings />
   {/if}
