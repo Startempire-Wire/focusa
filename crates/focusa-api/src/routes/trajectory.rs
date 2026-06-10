@@ -55,6 +55,7 @@ pub struct TrajectoryDefineGoalRequest {
     pub project_root: Option<String>,
     pub operator_confirmed: Option<bool>,
     pub supersession_evidence_refs: Option<Vec<String>>,
+    pub current_ask: Option<String>,  // §169-175: explicit operator intent for verified state gate
     pub required_evidence_refs: Option<Vec<String>>,
     pub required_checks: Option<Vec<String>>,
     pub acceptance_risks: Option<Vec<String>>,
@@ -2079,6 +2080,21 @@ async fn define_goal(
             })),
         ));
     }
+
+    // §169-175: Verified state gate — HLT writes require verified project_root + explicit
+    // current_ask OR supersession_evidence_refs.  Otherwise return active_gap warning but
+    // allow operator_override via operator_confirmed=true.
+    let has_context = body.current_ask.as_ref().map_or(false, |s| !s.is_empty())
+        || body.supersession_evidence_refs.as_ref().map_or(false, |v| !v.is_empty());
+    let is_operator_override = body.operator_confirmed.unwrap_or(false);
+    if !has_context && !is_operator_override {
+        warn!(
+            "Verified state gate: HLT write without current_ask or evidence_refs. \
+            project_root={} identity_status={}",
+            project_root, identity_status
+        );
+    }
+
     let focusa = state.focusa.read().await;
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
@@ -2166,6 +2182,17 @@ async fn define_goal(
                 "persistence_event".to_string(),
                 json!("trajectory_goal_defined"),
             );
+            // §169-175: verified state gate — signal missing context in response
+            if !has_context && !is_operator_override {
+                obj.insert("active_gap".to_string(), json!("missing_verified_state"));
+                obj.insert("verified_state_gate".to_string(), json!({
+                    "project_root_verified": identity_status == "verified",
+                    "has_explicit_current_ask": body.current_ask.as_ref().map_or(false, |s| !s.is_empty()),
+                    "has_evidence_refs": body.supersession_evidence_refs.as_ref().map_or(false, |v| !v.is_empty()),
+                    "operator_override": false,
+                    "recommendation": "Add current_ask or supersession_evidence_refs, or set operator_confirmed=true"
+                }));
+            }
         }
     }
     Ok(Json(attach_trajectory_tool_result(
