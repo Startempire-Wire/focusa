@@ -2,6 +2,7 @@ pub mod autonomy;
 pub mod awareness;
 pub mod cache;
 pub mod context_cognition;
+pub mod device_pairing;
 pub mod cleanup;
 pub mod clt;
 pub mod constitution;

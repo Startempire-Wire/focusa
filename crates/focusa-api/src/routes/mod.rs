@@ -2,6 +2,7 @@ pub mod ascc;
 pub mod attachments;
 pub mod call_stack;
 pub mod context_cognition;
+pub mod device_pairing;
 pub mod autonomy;
 pub mod awareness;
 pub mod bounded;

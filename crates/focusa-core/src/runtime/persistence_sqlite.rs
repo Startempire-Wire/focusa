@@ -9,8 +9,8 @@
 use crate::clt::retain_hot_window;
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
-    CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, EventLogEntry, FocusaConfig,
-    FocusaState, SessionId,
+    CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, DeviceRecord, EventLogEntry,
+    FocusaConfig, FocusaState, SessionId,
 };
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -1140,6 +1140,56 @@ impl SqlitePersistence {
     pub fn call_stack_designs_path_for_project(&self, project_root: &str) -> PathBuf {
         call_stack_designs_dir_for_project(self.data_dir.as_path(), project_root)
             .join("designs.jsonl")
+    }
+}
+
+fn device_pairing_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    project_root.hash(&mut hasher);
+    let hash = format!("{:016x}", hasher.finish());
+    data_dir.join(format!("device-pairing/{}", hash))
+}
+
+impl SqlitePersistence {
+    /// Append a DeviceRecord to the scope-bounded JSONL ledger.
+    pub fn append_device_record(&self, record: &DeviceRecord) -> anyhow::Result<()> {
+        let ledger_dir = device_pairing_dir_for_project(&self.data_dir, &record.host);
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("devices.jsonl");
+        let line = serde_json::to_string(record)?;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        writeln!(file, "{}", line)?;
+        debug!("Appended DeviceRecord to {:?}", ledger_file);
+        Ok(())
+    }
+
+    /// Read recent DeviceRecords for a project (most recent last).
+    pub fn read_device_records(&self, host: &str, limit: usize) -> anyhow::Result<Vec<DeviceRecord>> {
+        let ledger_dir = device_pairing_dir_for_project(&self.data_dir, host);
+        let ledger_file = ledger_dir.join("devices.jsonl");
+        if !ledger_file.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&ledger_file)?;
+        let mut entries: Vec<DeviceRecord> = content
+            .lines()
+            .filter_map(|line| serde_json::from_str(line).ok())
+            .collect();
+        let start = entries.len().saturating_sub(limit);
+        entries = entries[start..].to_vec();
+        Ok(entries)
+    }
+
+    /// Get the device pairing ledger file path for a host (for API exposure).
+    pub fn device_pairing_path_for_host(&self, host: &str) -> PathBuf {
+        device_pairing_dir_for_project(self.data_dir.as_path(), host)
+            .join("devices.jsonl")
     }
 }
 

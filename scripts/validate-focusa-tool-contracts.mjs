@@ -89,7 +89,7 @@ const extraContracts = contractNames.filter((name) => !toolSet.has(name));
 if (missingContracts.length) fail('tools missing contracts', missingContracts);
 if (extraContracts.length) fail('contracts without registered tools', extraContracts);
 
-const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal']);
+const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer']);
 const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known']);
 const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'pi_session_snapshot_only', 'pi_only']);
 

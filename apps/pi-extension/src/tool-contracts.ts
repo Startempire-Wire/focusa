@@ -9,7 +9,8 @@ export type FocusaToolFamily =
   | "diagnostics_hygiene"
   | "trajectory"
   | "project_identity"
-  | "traversal";
+  | "traversal"
+  | "session_transfer";
 
 export type FocusaToolParityStatus = "full" | "domain" | "pi_only" | "local_only" | "degraded_known";
 
@@ -1040,6 +1041,109 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_device_pair_start",
+    "label": "Device Pair Start",
+    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code for VPS-side completion.",
+    "family": "session_transfer",
+    "ontology_action": "session_transfer.device_pair_start",
+    "ontology_objects": [
+      "DevicePairCode"
+    ],
+    "api_routes": ["POST /v1/device/pair/start"],
+    "cli_commands": ["focusa device pair-start"],
+    "core_surface": "Mac menubar OAuth-like device pairing (8-char code, 5-min TTL)",
+    "doc_path": "docs/focusa-tools/tools/focusa_device_pair_start.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_device_pair",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/device/pair/start safe probe"
+  },
+
+  {
+    "name": "focusa_device_pair_complete",
+    "label": "Device Pair Complete",
+    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token.",
+    "family": "session_transfer",
+    "ontology_action": "session_transfer.device_pair_complete",
+    "ontology_objects": [
+      "DevicePairCode",
+      "DevicePairCompletion",
+      "DeviceToken"
+    ],
+    "api_routes": ["POST /v1/device/pair/complete"],
+    "cli_commands": ["focusa device pair-complete"],
+    "core_surface": "Mac menubar OAuth-like device pairing (long-lived token, 30-day TTL)",
+    "doc_path": "docs/focusa-tools/tools/focusa_device_pair_complete.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_device_pair_complete",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/device/pair/complete safe probe"
+  },
+
+  {
+    "name": "focusa_device_pair_status",
+    "label": "Device Pair Status",
+    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id.",
+    "family": "session_transfer",
+    "ontology_action": "session_transfer.device_pair_status",
+    "ontology_objects": [
+      "DevicePairCode",
+      "DeviceToken"
+    ],
+    "api_routes": ["GET /v1/device/pair/status"],
+    "cli_commands": ["focusa device pair-status"],
+    "core_surface": "Mac menubar OAuth-like device pairing (status query)",
+    "doc_path": "docs/focusa-tools/tools/focusa_device_pair_status.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/device/pair/status safe probe"
+  },
+
+  {
+    "name": "focusa_device_pair_list",
+    "label": "Device Pair List",
+    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger).",
+    "family": "session_transfer",
+    "ontology_action": "session_transfer.device_pair_list",
+    "ontology_objects": [
+      "DeviceRecord"
+    ],
+    "api_routes": ["GET /v1/device/pair/list"],
+    "cli_commands": ["focusa device pair-list"],
+    "core_surface": "Mac menubar OAuth-like device pairing (device ledger)",
+    "doc_path": "docs/focusa-tools/tools/focusa_device_pair_list.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/device/pair/list safe probe"
+  },
+
+  {
+    "name": "focusa_device_pair_revoke",
+    "label": "Device Pair Revoke",
+    "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger.",
+    "family": "session_transfer",
+    "ontology_action": "session_transfer.device_pair_revoke",
+    "ontology_objects": [
+      "DeviceRecord"
+    ],
+    "api_routes": ["POST /v1/device/pair/revoke"],
+    "cli_commands": ["focusa device pair-revoke"],
+    "core_surface": "Mac menubar OAuth-like device pairing (revoke)",
+    "doc_path": "docs/focusa-tools/tools/focusa_device_pair_revoke.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "write_device_pair_revoke",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/device/pair/revoke safe probe"
+  },
+
+  {
     "name": "focusa_call_stack_design",
     "label": "Call Stack Design",
     "purpose": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold.",
@@ -1603,6 +1707,7 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
   trajectory: ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint", "focusa_workpoint_checkpoint"],
   project_identity: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
   traversal: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_workpoint_resume"],
+  session_transfer: ["focusa_workpoint_resume", "focusa_device_pair_status", "focusa_trajectory_view"],
 };
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
@@ -1696,6 +1801,25 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_context_cognition_optimizer_artifacts",
     "focusa_predict_record",
     "focusa_metacog_capture"
+  ],
+  "focusa_device_pair_start": [
+    "focusa_device_pair_status",
+    "focusa_device_pair_list"
+  ],
+  "focusa_device_pair_complete": [
+    "focusa_device_pair_status",
+    "focusa_device_pair_list"
+  ],
+  "focusa_device_pair_status": [
+    "focusa_device_pair_list",
+    "focusa_device_pair_revoke"
+  ],
+  "focusa_device_pair_list": [
+    "focusa_device_pair_revoke",
+    "focusa_session_transfer"
+  ],
+  "focusa_device_pair_revoke": [
+    "focusa_device_pair_list"
   ],
   "focusa_context_cognition_optimizer_artifacts": [
     "focusa_context_cognition_curate_optimize"
@@ -1978,6 +2102,7 @@ const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
   trajectory: ["project_root", "continuity_id", "mode=summary"],
   project_identity: ["cwd", "project_root", "expected project id when verifying"],
   traversal: ["surface", "selector", "limit", "fields", "tags"],
+  session_transfer: ["project_root", "continuity_id", "operator_mission when known"],
 };
 
 const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
@@ -1990,6 +2115,7 @@ const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
   trajectory: ["overriding Workpoint/operator authority", "merging sessions on goal similarity alone"],
   project_identity: ["assuming unsafe broad cwd is canonical", "skipping verify after scope mismatch"],
   traversal: ["full payloads by default", "unbounded history/tree/ontology reads"],
+  session_transfer: ["raw localStorage as canonical", "raw URL paste without a saved pair"],
 };
 
 function invocationFor(contract: FocusaToolContract): string {

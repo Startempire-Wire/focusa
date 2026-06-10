@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 72,
-  "edge_count": 216,
+  "tool_count": 77,
+  "edge_count": 225,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -150,6 +150,25 @@
       "focusa_context_cognition_optimizer_artifacts",
       "focusa_predict_record",
       "focusa_metacog_capture"
+    ],
+    "focusa_device_pair_start": [
+      "focusa_device_pair_status",
+      "focusa_device_pair_list"
+    ],
+    "focusa_device_pair_complete": [
+      "focusa_device_pair_status",
+      "focusa_device_pair_list"
+    ],
+    "focusa_device_pair_status": [
+      "focusa_device_pair_list",
+      "focusa_device_pair_revoke"
+    ],
+    "focusa_device_pair_list": [
+      "focusa_device_pair_revoke",
+      "focusa_session_transfer"
+    ],
+    "focusa_device_pair_revoke": [
+      "focusa_device_pair_list"
     ],
     "focusa_context_cognition_optimizer_artifacts": [
       "focusa_context_cognition_curate_optimize"
@@ -750,6 +769,60 @@
       "from": "focusa_context_cognition_curate_optimize",
       "to": "focusa_metacog_capture",
       "weight": 8,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_start",
+      "to": "focusa_device_pair_status",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_start",
+      "to": "focusa_device_pair_list",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_complete",
+      "to": "focusa_device_pair_status",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_complete",
+      "to": "focusa_device_pair_list",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_status",
+      "to": "focusa_device_pair_list",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_status",
+      "to": "focusa_device_pair_revoke",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_list",
+      "to": "focusa_device_pair_revoke",
+      "weight": 10,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_list",
+      "to": "focusa_session_transfer",
+      "weight": 9,
+      "reason": "static_next_tool_route"
+    },
+    {
+      "from": "focusa_device_pair_revoke",
+      "to": "focusa_device_pair_list",
+      "weight": 10,
       "reason": "static_next_tool_route"
     },
     {

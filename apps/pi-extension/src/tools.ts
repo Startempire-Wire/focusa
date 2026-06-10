@@ -5013,6 +5013,402 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_device_pair_start",
+    label: "Device Pair Start",
+    description: "Mac menubar OAuth-like device pairing (Spec focusa-ui0y). Generate an 8-char pairing code (FOCUS-XXXX-XXXX, 5 min TTL). The operator runs `focusa device pair-complete <code>` on their VPS, then the Mac app polls focusa_device_pair_status to retrieve the long-lived token (30 day TTL).",
+    promptSnippet: "Use when the operator wants to connect the Focusa Mac menubar app to a remote Focusa daemon. Generates a pairing code; the operator runs the corresponding focusa device pair-complete on the VPS to mint a token.",
+    parameters: strictObject({
+      device_name: Type.Optional(Type.String({ maxLength: 256, description: "Human-readable device name (e.g. 'operator-macbook-pro'). Defaults to 'operator-device'." })),
+      platform: Type.Optional(Type.String({ description: "Platform string. Default: 'macos'." })),
+      daemon_base_url: Type.Optional(Type.String({ description: "Daemon base URL the device will reconnect to. Default: 'http://127.0.0.1:8787'." })),
+      scopes: Type.Optional(Type.Array(Type.String(), { description: "OAuth-like scopes. Default: ['read', 'write']." })),
+    }),
+    async execute(_id, params) {
+      const body = {
+        device_name: params.device_name,
+        platform: params.platform ?? "macos",
+        daemon_base_url: params.daemon_base_url ?? "http://127.0.0.1:8787",
+        scopes: Array.isArray(params.scopes) && params.scopes.length ? params.scopes : ["read", "write"],
+      };
+      const res = await focusaFetchDetailed("/device/pair/start", { method: "POST", body: JSON.stringify(body) });
+      const resp = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_device_pair_start",
+          "session_transfer",
+          `device pair start blocked → ${explainWorkLoopResult(res, "pair start unavailable")}`,
+          resp.failure_class || "daemon_unavailable",
+          resp,
+          ["focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const code = String(resp.code || "none");
+      const deviceId = String(resp.device_id || "none");
+      const expiresIn = Number(resp.expires_in_secs || 0);
+      const rehydrate = String(resp.rehydrate_id || code);
+      const toolResult = resp.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `device pair start → code=${code} device_id=${deviceId} expires_in=${expiresIn}s`,
+        tool: "focusa_device_pair_start",
+        family: "session_transfer",
+        side_effects: ["device_pair_start_append"],
+        evidence_refs: [code],
+        next_tools: ["focusa_device_pair_status", "focusa_device_pair_list"],
+        raw: resp,
+      });
+      const handoff = resp.operator_handoff || {};
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_device_pair_start",
+            summary: `device pair start → code=${code} device_id=${deviceId} expires_in=${expiresIn}s`,
+            ids: [
+              { label: "code", value: code },
+              { label: "device_id", value: deviceId },
+              { label: "rehydrate_id", value: rehydrate },
+            ],
+            fields: [
+              { label: "expires_in_secs", value: expiresIn },
+              { label: "platform", value: String(body.platform) },
+              { label: "on_your_vps_run", value: String(handoff.on_your_vps_run || "") },
+              { label: "advisory", value: "true" },
+            ],
+            note: "mac app: show the code to the operator; they run the on_your_vps_run command on their VPS; mac app polls focusa_device_pair_status until completed; then store token in Keychain and reconnect.",
+            nextTools: ["focusa_device_pair_status", "focusa_device_pair_list"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/device/pair/start",
+          canonical: false,
+          advisory: true,
+          device_id: deviceId,
+          code,
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_device_pair_complete",
+    label: "Device Pair Complete",
+    description: "Complete a pending pairing (run on the VPS side; returns the long-lived token). Idempotent: re-running with the same code returns the original token.",
+    promptSnippet: "Use on the VPS side to complete a pending pairing initiated by focusa_device_pair_start. Returns the long-lived token that the Mac app will use for subsequent calls.",
+    parameters: strictObject({
+      code: Type.String({ description: "The FOCUS-XXXX-XXXX code from focusa_device_pair_start." }),
+      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-vps')." })),
+      operator_id: Type.Optional(Type.String({ description: "Operator id (e.g. 'verious')." })),
+      completed_by: Type.Optional(Type.String({ description: "Who/what completed the pairing. Default: 'vps-cli'." })),
+    }),
+    async execute(_id, params) {
+      const body = {
+        code: String(params.code || "").trim().toUpperCase(),
+        host: params.host ?? "operator-vps",
+        operator_id: params.operator_id ?? null,
+        completed_by: params.completed_by ?? "vps-cli",
+      };
+      const res = await focusaFetchDetailed("/device/pair/complete", { method: "POST", body: JSON.stringify(body) });
+      const resp = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_device_pair_complete",
+          "session_transfer",
+          `device pair complete blocked → ${explainWorkLoopResult(res, "pair complete unavailable")}`,
+          resp.failure_class || "daemon_unavailable",
+          resp,
+          ["focusa_device_pair_status", "focusa_device_pair_list"],
+        );
+      }
+      const token = String(resp.token || "none");
+      const deviceId = String(resp.device_id || "none");
+      const rehydrate = String(resp.rehydrate_id || deviceId);
+      const toolResult = resp.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `device pair complete → token=${token}`,
+        tool: "focusa_device_pair_complete",
+        family: "session_transfer",
+        side_effects: ["device_pair_complete_ledger_append", "device_token_issue"],
+        evidence_refs: [deviceId],
+        next_tools: ["focusa_device_pair_status", "focusa_device_pair_list"],
+        raw: resp,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_device_pair_complete",
+            summary: `device pair complete → token issued for device_id=${deviceId}`,
+            ids: [
+              { label: "device_id", value: deviceId },
+              { label: "rehydrate_id", value: rehydrate },
+              { label: "token", value: token },
+            ],
+            fields: [
+              { label: "host", value: String(body.host) },
+              { label: "operator_id", value: String(params.operator_id || "n/a") },
+              { label: "token_ttl_secs", value: Number(resp.token_ttl_secs || 0) },
+              { label: "advisory", value: "true" },
+            ],
+            note: "mac app: the on_your_vps_run response is for the operator; the mac app reads the token from focusa_device_pair_status after the operator runs this command on the VPS.",
+            nextTools: ["focusa_device_pair_status", "focusa_device_pair_list"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/device/pair/complete",
+          canonical: false,
+          advisory: true,
+          device_id: deviceId,
+          token,
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_device_pair_status",
+    label: "Device Pair Status",
+    description: "Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at.",
+    promptSnippet: "Use to poll whether a focusa_device_pair_start code has been completed by the VPS, or to look up the long-lived token for a known device_id.",
+    parameters: strictObject({
+      code: Type.Optional(Type.String({ description: "Pairing code (mutually exclusive with device_id)." })),
+      device_id: Type.Optional(Type.String({ description: "Device id (mutually exclusive with code)." })),
+    }),
+    async execute(_id, params) {
+      if (!params.code && !params.device_id) {
+        return spec80ValidationResult("focusa_device_pair_status", "/v1/device/pair/status", params as Record<string, any>, "device pair status", "--code or --device-id required");
+      }
+      const q = new URLSearchParams();
+      if (params.code) q.set("code", String(params.code).trim().toUpperCase());
+      if (params.device_id) q.set("device_id", String(params.device_id));
+      const res = await focusaFetchDetailed(`/device/pair/status?${q.toString()}`);
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_device_pair_status",
+          "session_transfer",
+          `device pair status blocked → ${explainWorkLoopResult(res, "pair status unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_device_pair_start", "focusa_device_pair_list"],
+        );
+      }
+      const status = String(body.status || "unknown");
+      const token = body.token || "none";
+      const deviceId = String(body.device_id || params.code || params.device_id || "none");
+      const rehydrate = String(body.rehydrate_id || deviceId);
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `device pair status → status=${status} token=${typeof token === "string" ? token.slice(0, 8) + "..." : "n/a"}`,
+        tool: "focusa_device_pair_status",
+        family: "session_transfer",
+        side_effects: [],
+        evidence_refs: typeof token === "string" ? [token] : [],
+        next_tools: ["focusa_device_pair_list", "focusa_device_pair_revoke"],
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_device_pair_status",
+            summary: `device pair status → status=${status}`,
+            ids: [
+              { label: "device_id", value: deviceId },
+              { label: "rehydrate_id", value: rehydrate },
+            ],
+            fields: [
+              { label: "status", value: status },
+              { label: "token", value: typeof token === "string" ? token.slice(0, 8) + "..." : "n/a" },
+              { label: "expired", value: body.expired === true ? "yes" : "no" },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_device_pair_list", "focusa_device_pair_revoke"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/device/pair/status",
+          canonical: false,
+          advisory: true,
+          device_id: deviceId,
+          pair_status: status,
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_device_pair_list",
+    label: "Device Pair List",
+    description: "List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked.",
+    promptSnippet: "Use to see which devices are currently paired with this Focusa daemon, and which have been revoked.",
+    parameters: strictObject({
+      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-vps')." })),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200, description: "Max records to return. Default: 50." })),
+    }),
+    async execute(_id, params) {
+      const host = params.host ?? "operator-vps";
+      const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
+      const res = await focusaFetchDetailed(`/device/pair/list?host=${encodeURIComponent(host)}&limit=${limit}`);
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_device_pair_list",
+          "session_transfer",
+          `device pair list blocked → ${explainWorkLoopResult(res, "pair list unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_tool_doctor"],
+        );
+      }
+      const devices = Array.isArray(body.devices) ? body.devices : [];
+      const rehydrate = String(body.rehydrate_id || "no_devices");
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `device pair list → count=${devices.length} host=${host}`,
+        tool: "focusa_device_pair_list",
+        family: "session_transfer",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_device_pair_revoke", "focusa_session_transfer"],
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_device_pair_list",
+            summary: `device pair list → count=${devices.length} host=${host}`,
+            ids: [
+              { label: "rehydrate_id", value: rehydrate },
+            ],
+            fields: [
+              { label: "count", value: devices.length },
+              { label: "host", value: host },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_device_pair_revoke", "focusa_session_transfer"],
+          }),
+        }, {
+          type: "text",
+          text: devices.slice(0, 5).map((d: any) => `  - ${d.device_id || "?"} name=${d.name || "?"} revoked=${d.revoked === true ? "yes" : "no"}`).join("\n") || "(no devices)",
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/device/pair/list",
+          canonical: false,
+          advisory: true,
+          host,
+          count: devices.length,
+          devices,
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_device_pair_revoke",
+    label: "Device Pair Revoke",
+    description: "Revoke a paired device. Appends a new entry with revoked=true to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with status=revoked.",
+    promptSnippet: "Use to remove a paired device (lost laptop, rotation, security incident). The device will need to re-pair.",
+    parameters: strictObject({
+      device_id: Type.String({ description: "Device id to revoke." }),
+      host: Type.Optional(Type.String({ description: "Host label (default: 'operator-vps')." })),
+      reason: Type.Optional(Type.String({ description: "Optional human-readable reason (audit). Stored in the ledger." })),
+    }),
+    async execute(_id, params) {
+      if (!params.device_id) {
+        return spec80ValidationResult("focusa_device_pair_revoke", "/v1/device/pair/revoke", params as Record<string, any>, "device pair revoke", "--device-id required");
+      }
+      const body = {
+        device_id: String(params.device_id),
+        host: params.host ?? "operator-vps",
+        reason: params.reason ?? null,
+      };
+      const res = await focusaFetchDetailed("/device/pair/revoke", { method: "POST", body: JSON.stringify(body) });
+      const resp = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_device_pair_revoke",
+          "session_transfer",
+          `device pair revoke blocked → ${explainWorkLoopResult(res, "pair revoke unavailable")}`,
+          resp.failure_class || "daemon_unavailable",
+          resp,
+          ["focusa_device_pair_list", "focusa_tool_doctor"],
+        );
+      }
+      const deviceId = String(resp.device_id || body.device_id);
+      const rehydrate = String(resp.rehydrate_id || deviceId);
+      const appended = resp.ledger_appended === true;
+      const toolResult = resp.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `device pair revoke → device_id=${deviceId} ledger_appended=${appended}`,
+        tool: "focusa_device_pair_revoke",
+        family: "session_transfer",
+        side_effects: ["device_pair_revoke_ledger_append", "in_memory_token_invalidate"],
+        evidence_refs: [deviceId],
+        next_tools: ["focusa_device_pair_list"],
+        raw: resp,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_device_pair_revoke",
+            summary: `device pair revoke → device_id=${deviceId} ledger_appended=${appended}`,
+            ids: [
+              { label: "device_id", value: deviceId },
+              { label: "rehydrate_id", value: rehydrate },
+            ],
+            fields: [
+              { label: "ledger_appended", value: appended ? "yes" : "no" },
+              { label: "host", value: String(body.host) },
+              { label: "reason", value: String(params.reason || "n/a") },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_device_pair_list"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/device/pair/revoke",
+          canonical: false,
+          advisory: true,
+          device_id: deviceId,
+          rehydrate_id: rehydrate,
+          ledger_appended: appended,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_context_cognition_curate_eval",
     label: "Context Cognition Curate Eval",
     description: "Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold).",

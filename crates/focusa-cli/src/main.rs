@@ -197,6 +197,10 @@ enum Commands {
     #[command(subcommand)]
     ContextCognition(commands::context_cognition::ContextCognitionCmd),
 
+    /// Mac menubar OAuth-like device pairing for VPS connection (Spec focusa-ui0y).
+    #[command(subcommand)]
+    Device(commands::device_pairing::DeviceCmd),
+
     /// Spec88 Workpoint continuity operations.
     #[command(subcommand)]
     Workpoint(commands::workpoint::WorkpointCmd),
@@ -609,6 +613,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::ContextCognition(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
             commands::context_cognition::handle(&mut client, cmd).await
+        }
+        Commands::Device(cmd) => {
+            let mut client = crate::api_client::ApiClient::new();
+            commands::device_pairing::handle(&mut client, cmd).await
         }
         Commands::Workpoint(cmd) => commands::workpoint::run(cmd, cli.json).await,
         Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,

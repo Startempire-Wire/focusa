@@ -589,6 +589,11 @@ Each current `focusa_*` Pi tool has its own doc with purpose, usage guidance, ex
 | `focusa_browser_diagnostics_intake` | Workpoint | [`docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md`](docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md) |
 | `focusa_workpoint_checkpoint` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_checkpoint.md`](docs/focusa-tools/tools/focusa_workpoint_checkpoint.md) |
 | `focusa_call_stack_design` | Workpoint | [`docs/focusa-tools/tools/focusa_call_stack_design.md`](docs/focusa-tools/tools/focusa_call_stack_design.md) |
+| `focusa_device_pair_start` | Session Transfer | [`docs/focusa-tools/tools/focusa_device_pair_start.md`](docs/focusa-tools/tools/focusa_device_pair_start.md) |
+| `focusa_device_pair_complete` | Session Transfer | [`docs/focusa-tools/tools/focusa_device_pair_complete.md`](docs/focusa-tools/tools/focusa_device_pair_complete.md) |
+| `focusa_device_pair_status` | Session Transfer | [`docs/focusa-tools/tools/focusa_device_pair_status.md`](docs/focusa-tools/tools/focusa_device_pair_status.md) |
+| `focusa_device_pair_list` | Session Transfer | [`docs/focusa-tools/tools/focusa_device_pair_list.md`](docs/focusa-tools/tools/focusa_device_pair_list.md) |
+| `focusa_device_pair_revoke` | Session Transfer | [`docs/focusa-tools/tools/focusa_device_pair_revoke.md`](docs/focusa-tools/tools/focusa_device_pair_revoke.md) |
 | `focusa_workpoint_link_evidence` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_link_evidence.md`](docs/focusa-tools/tools/focusa_workpoint_link_evidence.md) |
 | `focusa_workpoint_resume` | Workpoint | [`docs/focusa-tools/tools/focusa_workpoint_resume.md`](docs/focusa-tools/tools/focusa_workpoint_resume.md) |
 | `focusa_tree_head` | Tree / Lineage | [`docs/focusa-tools/tools/focusa_tree_head.md`](docs/focusa-tools/tools/focusa_tree_head.md) |

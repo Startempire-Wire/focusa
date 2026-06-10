@@ -1229,6 +1229,60 @@ pub struct CognitionOptimizerArtifact {
     pub promoted_at: Option<DateTime<Utc>>,
 }
 
+/// DevicePairCode — Mac menubar OAuth-like device pairing (focusa-ui0y).
+/// In-memory pending pairing; ephemeral; expires in 5 minutes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DevicePairCode {
+    pub code: String,
+    pub device_id: String,
+    pub device_name: String,
+    pub platform: String,
+    pub daemon_base_url: String,
+    pub scopes: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub status: String,
+}
+
+/// DevicePairCompletion — the operator-side completion record.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DevicePairCompletion {
+    pub code: String,
+    pub device_id: String,
+    pub token: String,
+    pub scopes: Vec<String>,
+    pub completed_at: DateTime<Utc>,
+    pub completed_by: String,
+    pub host: String,
+    pub operator_id: Option<String>,
+}
+
+/// DeviceToken — long-lived token issued at pair-completion.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeviceToken {
+    pub device_id: String,
+    pub token: String,
+    pub scopes: Vec<String>,
+    pub issued_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub last_used_at: Option<DateTime<Utc>>,
+    pub issued_to: String,
+}
+
+/// DeviceRecord — append-only JSONL ledger entry per paired device.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeviceRecord {
+    pub device_id: String,
+    pub name: String,
+    pub platform: String,
+    pub host: String,
+    pub scopes: Vec<String>,
+    pub paired_at: DateTime<Utc>,
+    pub last_seen_at: DateTime<Utc>,
+    pub revoked: bool,
+    pub revoked_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrajectoryStateDeltaRecord {
     pub trajectory_id: String,

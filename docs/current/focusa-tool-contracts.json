@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 72,
+  "tool_count": 77,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -1180,6 +1180,124 @@
       "parity_status": "full",
       "exemptions": [],
       "live_check": "contract_static plus /v1/context-cognition safe probe and scope gate"
+    },
+    {
+      "name": "focusa_device_pair_start",
+      "label": "Device Pair Start",
+      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code for VPS-side completion.",
+      "family": "session_transfer",
+      "ontology_action": "session_transfer.device_pair_start",
+      "ontology_objects": [
+        "DevicePairCode"
+      ],
+      "api_routes": [
+        "POST /v1/device/pair/start"
+      ],
+      "cli_commands": [
+        "focusa device pair-start"
+      ],
+      "core_surface": "Mac menubar OAuth-like device pairing (8-char code, 5-min TTL)",
+      "doc_path": "docs/focusa-tools/tools/focusa_device_pair_start.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_device_pair",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/device/pair/start safe probe"
+    },
+    {
+      "name": "focusa_device_pair_complete",
+      "label": "Device Pair Complete",
+      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token.",
+      "family": "session_transfer",
+      "ontology_action": "session_transfer.device_pair_complete",
+      "ontology_objects": [
+        "DevicePairCode",
+        "DevicePairCompletion",
+        "DeviceToken"
+      ],
+      "api_routes": [
+        "POST /v1/device/pair/complete"
+      ],
+      "cli_commands": [
+        "focusa device pair-complete"
+      ],
+      "core_surface": "Mac menubar OAuth-like device pairing (long-lived token, 30-day TTL)",
+      "doc_path": "docs/focusa-tools/tools/focusa_device_pair_complete.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_device_pair_complete",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/device/pair/complete safe probe"
+    },
+    {
+      "name": "focusa_device_pair_status",
+      "label": "Device Pair Status",
+      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id.",
+      "family": "session_transfer",
+      "ontology_action": "session_transfer.device_pair_status",
+      "ontology_objects": [
+        "DevicePairCode",
+        "DeviceToken"
+      ],
+      "api_routes": [
+        "GET /v1/device/pair/status"
+      ],
+      "cli_commands": [
+        "focusa device pair-status"
+      ],
+      "core_surface": "Mac menubar OAuth-like device pairing (status query)",
+      "doc_path": "docs/focusa-tools/tools/focusa_device_pair_status.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/device/pair/status safe probe"
+    },
+    {
+      "name": "focusa_device_pair_list",
+      "label": "Device Pair List",
+      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger).",
+      "family": "session_transfer",
+      "ontology_action": "session_transfer.device_pair_list",
+      "ontology_objects": [
+        "DeviceRecord"
+      ],
+      "api_routes": [
+        "GET /v1/device/pair/list"
+      ],
+      "cli_commands": [
+        "focusa device pair-list"
+      ],
+      "core_surface": "Mac menubar OAuth-like device pairing (device ledger)",
+      "doc_path": "docs/focusa-tools/tools/focusa_device_pair_list.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/device/pair/list safe probe"
+    },
+    {
+      "name": "focusa_device_pair_revoke",
+      "label": "Device Pair Revoke",
+      "purpose": "Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger.",
+      "family": "session_transfer",
+      "ontology_action": "session_transfer.device_pair_revoke",
+      "ontology_objects": [
+        "DeviceRecord"
+      ],
+      "api_routes": [
+        "POST /v1/device/pair/revoke"
+      ],
+      "cli_commands": [
+        "focusa device pair-revoke"
+      ],
+      "core_surface": "Mac menubar OAuth-like device pairing (revoke)",
+      "doc_path": "docs/focusa-tools/tools/focusa_device_pair_revoke.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_device_pair_revoke",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/device/pair/revoke safe probe"
     },
     {
       "name": "focusa_call_stack_design",
