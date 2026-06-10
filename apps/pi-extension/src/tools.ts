@@ -5119,6 +5119,89 @@ export function registerTools(pi: ExtensionAPI) {
     },
   });
 
+  // focusa-ui0y.12: QR-pairing shortcut. Same as pair_start but
+  // emphasizes pair_url for QR handoff. Returns the payload the Mac
+  // app renders as a QR (Telegram/Discord-style).
+  pi.registerTool({
+    name: "focusa_device_pair_qr",
+    label: "Device Pair QR",
+    description: "Mac menubar OAuth-like device pairing with QR handoff (Spec focusa-ui0y, Mode B). Calls /v1/device/pair/start and returns pair_url + pair_url_qr_payload prominently so the Mac menubar can render a QR the operator's phone can scan.",
+    promptSnippet: "Use when the operator wants the Mac to display a QR for phone-based pairing. Requires FOCUSA_PAIRING_URL set on the VPS to a public URL, otherwise pair_url falls back to daemon_base_url (local-only).",
+    parameters: strictObject({
+      device_name: Type.Optional(Type.String({ maxLength: 256, description: "Human-readable device name (e.g. 'operator-macbook-pro'). Defaults to 'operator-device'." })),
+      platform: Type.Optional(Type.String({ description: "Platform string. Default: 'macos'." })),
+      daemon_base_url: Type.Optional(Type.String({ description: "Daemon base URL the device will reconnect to. Default: 'http://127.0.0.1:8787'." })),
+      scopes: Type.Optional(Type.Array(Type.String(), { description: "OAuth-like scopes. Default: ['read', 'write']." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const body: Record<string, unknown> = {
+        device_name: p.device_name ?? "operator-device",
+        platform: p.platform ?? "macos",
+        daemon_base_url: p.daemon_base_url ?? "http://127.0.0.1:8787",
+        scopes: p.scopes ?? ["read", "write"],
+      };
+      const resp = await focusaFetch("/device/pair/start", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      const code = String(resp.code || "");
+      const deviceId = String(resp.device_id || "");
+      const pairUrl = String(resp.pair_url || "");
+      const pairUrlQrPayload = String(resp.pair_url_qr_payload || pairUrl);
+      const expiresIn = Number(resp.expires_in_secs || 0);
+      const rehydrate = `pair_qr:${deviceId}`;
+      const toolResult = focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `device pair qr → code=${code} pair_url=${pairUrl}`,
+        tool: "focusa_device_pair_qr",
+        family: "session_transfer",
+        side_effects: ["pair_code_generated"],
+        evidence_refs: [code, pairUrl],
+        next_tools: ["focusa_device_pair_status", "focusa_device_pair_list"],
+        raw: resp,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_device_pair_qr",
+            summary: `device pair qr → code=${code} pair_url=${pairUrl} expires_in=${expiresIn}s`,
+            ids: [
+              { label: "code", value: code },
+              { label: "device_id", value: deviceId },
+              { label: "pair_url", value: pairUrl },
+              { label: "pair_url_qr_payload", value: pairUrlQrPayload },
+              { label: "rehydrate_id", value: rehydrate },
+            ],
+            fields: [
+              { label: "expires_in_secs", value: expiresIn },
+              { label: "qr_payload", value: pairUrlQrPayload },
+              { label: "advisory", value: "true" },
+            ],
+            note: "mac app: render pair_url as a QR. Operator scans with phone, opens the focusa-pairing PWA helper at /pair/{device_id}, taps 'Complete on this VPS' to finish pairing. The Mac app then polls focusa_device_pair_status until completed and stores the token in Keychain.",
+            nextTools: ["focusa_device_pair_status", "focusa_device_pair_list"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/device/pair/start",
+          canonical: false,
+          advisory: true,
+          device_id: deviceId,
+          code,
+          pair_url: pairUrl,
+          pair_url_qr_payload: pairUrlQrPayload,
+          rehydrate_id: rehydrate,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
   pi.registerTool({
     name: "focusa_device_pair_complete",
     label: "Device Pair Complete",
