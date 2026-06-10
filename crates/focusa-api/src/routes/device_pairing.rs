@@ -20,7 +20,11 @@
 //! is append-only; revocation is a new entry with `revoked=true`.
 
 use crate::server::AppState;
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+};
 use chrono::{Duration, Utc};
 use focusa_core::types::{DevicePairCode, DevicePairCompletion, DeviceRecord, DeviceToken};
 use serde::Deserialize;
@@ -51,6 +55,13 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route("/v1/device/pair/status", axum::routing::get(pair_status))
         .route("/v1/device/pair/list", axum::routing::get(pair_list))
         .route("/v1/device/pair/revoke", axum::routing::post(pair_revoke))
+        // focusa-ui0y.8: PWA helper page for QR/PWA handoff
+        .route("/pair/{device_id}", axum::routing::get(pwa_helper_page))
+        .route(
+            "/pair/{device_id}/manifest.json",
+            axum::routing::get(pwa_manifest),
+        )
+        .route("/pair/{device_id}/sw.js", axum::routing::get(pwa_service_worker))
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -125,14 +136,6 @@ async fn pair_start(
             }),
         ));
     }
-    // Resolve pairing URL: FOCUSA_PAIRING_URL env > daemon_base_url
-    // This is the public-facing URL the operator's phone will hit (e.g.
-    // https://focusa-conn.verious.net) — needed for QR flows where the
-    // Mac is on a different network than the VPS.
-    let pairing_url = std::env::var("FOCUSA_PAIRING_URL")
-        .ok()
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| daemon_base_url.clone());
     // Resolve pairing URL: FOCUSA_PAIRING_URL env > daemon_base_url
     // This is the public-facing URL the operator's phone will hit (e.g.
     // https://focusa-conn.verious.net) — needed for QR flows where the
@@ -587,4 +590,201 @@ mod tests {
         assert!(!is_unsafe_agent_runtime_path_inline("/home/wirebot/focusa"));
         assert!(!is_unsafe_agent_runtime_path_inline("/home/operator-vps"));
     }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// focusa-ui0y.8 — PWA helper page for QR/PWA handoff (Mode B/C)
+//
+// 200-LOC inline HTML + manifest + service worker. No external assets,
+// no third-party scripts (per spec §5.2 threat model).
+//
+// The page reads `device_id` from the URL, polls /v1/device/pair/status
+// every 2 seconds, and surfaces one of three states:
+//   1. Pending  → code is alive; operator can `focusa device pair-complete`
+//                 on the VPS (the same one running this daemon) or via SSH
+//   2. Completed → the Mac app will receive the token via its own polling
+//   3. Expired  → code is gone; operator must generate a new code on the Mac
+// ──────────────────────────────────────────────────────────────────────────
+
+/// PWA helper page — inline HTML, mobile-friendly, calm design.
+async fn pwa_helper_page(Path(device_id): Path<String>) -> (StatusCode, [(String, String); 2], String) {
+    let html = pwa_helper_html(&device_id);
+    (
+        StatusCode::OK,
+        [
+            ("content-type".to_string(), "text/html; charset=utf-8".to_string()),
+            ("cache-control".to_string(), "no-store".to_string()),
+        ],
+        html,
+    )
+}
+
+/// PWA manifest — minimal, no icons (spec §5.2: no third-party assets).
+async fn pwa_manifest(Path(device_id): Path<String>) -> (StatusCode, [(String, String); 2], String) {
+    let manifest = format!(
+        r##"{{
+  "name": "Focusa Pairing",
+  "short_name": "Focusa",
+  "description": "OAuth-like device pairing for Focusa",
+  "start_url": "/pair/{}",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "scope": "/pair/"
+}}"##,
+        device_id
+    );
+    (
+        StatusCode::OK,
+        [
+            ("content-type".to_string(), "application/manifest+json".to_string()),
+            ("cache-control".to_string(), "no-store".to_string()),
+        ],
+        manifest,
+    )
+}
+
+/// Service worker — minimal offline shell. The PWA is small enough that
+/// network-first is fine. We never cache responses with `device_id` in
+/// the URL to avoid leaking pairing state.
+async fn pwa_service_worker() -> (StatusCode, [(String, String); 2], &'static str) {
+    let body = r#"
+// focusa-pairing PWA service worker — minimal offline shell.
+// We deliberately do NOT cache /pair/* responses to avoid leaking
+// pairing state if the device is shared.
+self.addEventListener('install', (e) => { self.skipWaiting(); });
+self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (url.pathname.startsWith('/pair/')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+  e.respondWith(fetch(e.request).catch(() => new Response('offline', { status: 503 })));
+});
+"#;
+    (
+        StatusCode::OK,
+        [
+            ("content-type".to_string(), "application/javascript; charset=utf-8".to_string()),
+            ("cache-control".to_string(), "no-store".to_string()),
+        ],
+        body,
+    )
+}
+
+fn pwa_helper_html(device_id: &str) -> String {
+    format!(
+        r##"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="manifest" href="/pair/{device_id}/manifest.json" />
+  <title>Focusa Pairing</title>
+  <style>
+    :root {{ color-scheme: dark; }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif;
+      background: #0f1115; color: #e0e0e0;
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; line-height: 1.5;
+    }}
+    .card {{
+      max-width: 420px; width: 100%;
+      background: #1a1d24; border: 1px solid #2a2f3a; border-radius: 14px;
+      padding: 28px 24px; text-align: center;
+    }}
+    h1 {{ font-size: 20px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.3px; }}
+    p {{ font-size: 14px; color: #a0a0a0; margin-bottom: 16px; }}
+    .code {{ font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px;
+             background: #0f1115; border: 1px solid #2a2f3a; border-radius: 8px;
+             padding: 10px 14px; margin: 16px auto; display: inline-block; letter-spacing: 0.5px; }}
+    .status {{ display: inline-block; padding: 6px 12px; border-radius: 999px;
+              font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }}
+    .status.pending {{ background: rgba(196,162,101,0.12); color: #C4A265; }}
+    .status.completed {{ background: rgba(106,176,76,0.15); color: #6ab04c; }}
+    .status.expired {{ background: rgba(232,76,76,0.12); color: #e84c4c; }}
+    .cmd {{ font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px;
+           background: #0f1115; border: 1px solid #2a2f3a; border-radius: 8px;
+           padding: 10px 12px; margin: 8px 0; word-break: break-all; text-align: left; }}
+    .hint {{ font-size: 12px; color: #707070; margin-top: 16px; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Focusa Device Pairing</h1>
+    <p>Pairing code for your Mac. Complete on this VPS to finish.</p>
+    <div class="code" id="code">—</div>
+    <div><span class="status pending" id="status">Pending</span></div>
+    <p style="margin-top:20px;">On the VPS, run:</p>
+    <div class="cmd" id="cmd">focusa device pair-complete &lt;code&gt;</div>
+    <p class="hint" id="hint">This page polls every 2 seconds. Keep it open.</p>
+  </div>
+  <script>
+    const DEVICE_ID = {device_id_quoted};
+    const statusEl = document.getElementById('status');
+    const codeEl = document.getElementById('code');
+    const cmdEl = document.getElementById('cmd');
+    const hintEl = document.getElementById('hint');
+    let pollCount = 0;
+
+    function setState(state, code) {{
+      statusEl.className = 'status ' + state;
+      statusEl.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      if (state === 'pending') {{
+        if (code) {{
+          codeEl.textContent = code;
+          cmdEl.textContent = 'focusa device pair-complete ' + code;
+        }}
+        hintEl.textContent = 'This page polls every 2 seconds. Keep it open.';
+      }} else if (state === 'completed') {{
+        codeEl.textContent = '✓ paired';
+        cmdEl.textContent = 'The Mac app received the token. Return to your Mac.';
+        hintEl.textContent = 'You can close this page.';
+      }} else if (state === 'expired') {{
+        codeEl.textContent = '✗ expired';
+        cmdEl.textContent = 'Generate a new code on your Mac.';
+        hintEl.textContent = 'Codes expire after 5 minutes.';
+      }}
+    }}
+
+    async function poll() {{
+      pollCount++;
+      try {{
+        const r = await fetch('/v1/device/pair/status?device_id=' + encodeURIComponent(DEVICE_ID));
+        if (!r.ok) {{
+          setState('expired');
+          return;
+        }}
+        const d = await r.json();
+        const status = d.status || d.details?.status;
+        if (status === 'completed' || d.token) {{
+          setState('completed');
+          return;
+        }}
+        if (status === 'expired' || d.expired) {{
+          setState('expired');
+          return;
+        }}
+        // Pending — extract code from response if present
+        const code = d.code || d.details?.code;
+        setState('pending', code);
+      }} catch (e) {{
+        hintEl.textContent = 'Network error. Retrying…';
+      }}
+    }}
+
+    // initial fetch + 2s poll
+    poll();
+    setInterval(poll, 2000);
+  </script>
+</body>
+</html>"##,
+        device_id = device_id,
+        device_id_quoted = serde_json::to_string(device_id).unwrap_or_else(|_| "\"\"".to_string()),
+    )
 }
