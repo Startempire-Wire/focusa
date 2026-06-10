@@ -25,6 +25,7 @@ export interface FocusaToolContract {
   cli_commands: string[];
   core_surface: string;
   doc_path: string;
+  spec_path?: string;
   result_envelope: "tool_result_v1";
   side_effect_profile: string;
   parity_status: FocusaToolParityStatus;

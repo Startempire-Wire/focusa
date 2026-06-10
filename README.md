@@ -43,7 +43,7 @@ If you ship code with AI agents today, you already know these pain points. Focus
 
 ## Recent additions in this snapshot
 
-- **65 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer, browser diagnostics intake, predictions, reflex primitives, resource-mode controls, an HLT append-only ledger, and the new Spec 103 Call Stack Design tool.
+- **65 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer (now with QR + PWA handoff, Telegram/Discord-style), browser diagnostics intake, predictions, reflex primitives, resource-mode controls, an HLT append-only ledger, and the new Spec 103 Call Stack Design tool.
 - **Spec 103 — Call Stack Architecture Blueprint**: `focusa_call_stack_design` writes a typed, append-only call stack design (entry → handlers → services → adapters → storage → output) for a feature before implementation. The design is linkable as `focusa_evidence` to an active Workpoint and is the first-class artifact an agent consumes before writing code. See `docs/103-call-stack-architecture-blueprint-spec.md`.
 - **Spec 100 — Context Cognition (Phases 1–3)**: `focusa_context_cognition` builds the bounded, advisory `ContextCognitionPacket` (scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, route frame). `focusa_context_cognition_render` returns a compact text render; `focusa_context_cognition_proof` returns bounded proof commands; `focusa_context_cognition_curate` (Phase 3 — Context Curator) does token-budgeted context selection with labeled exclusions (`low_score` / `over_budget`). Never mutates state. The Cognition Optimizer (Phase 5) is the next slice. See `docs/100-context-cognition-spec.md`.
 - **Spec 100 — Context Cognition (Phases 4–5 — feedback loop, CQRS)**: `focusa_context_cognition_curate_eval` (Phase 4) runs a curator eval case, computes precision/recall/F1, appends to `data/curator-eval-ledger/{hash}/eval-runs.jsonl`. `focusa_context_cognition_curate_optimize` (Phase 5) submits a candidate artifact and gets the `promote | rollback` decision per §15 promotion rule, appends to `data/cognition-optimizer-artifacts/{hash}/artifacts.jsonl`. `focusa_context_cognition_optimizer_artifacts` lists the versioned artifact ledger. CQRS read/write split (GET = read, POST = write); see §15.1.
@@ -53,6 +53,8 @@ If you ship code with AI agents today, you already know these pain points. Focus
 - **UIAI browser diagnostics integration**: scoped UIAI browser sessions and reliability reports emit Focusa-ready `focusa_evidence` handles; `focusa_browser_diagnostics_intake` turns diagnostics into evidence, active-object hints, predictions, and optional metacog signals.
 - **Doctor browser awareness**: `focusa_tool_doctor` surfaces UIAI browser health/pressure so browser failures are visible during Focusa troubleshooting.
 - **Menubar cockpit proof**: the Svelte/Tauri menubar app has a passing web build and GitHub macOS Tauri package proof on every push.
+- **Mac menubar OAuth-like device pairing with QR + PWA (focusa-ui0y)**: pair a Mac to a Focusa VPS via three handoff modes — CLI (SSH), QR + phone (Telegram/Discord-style), or QR + VPS browser. Set `FOCUSA_PAIRING_URL` on the daemon to your public VPS hostname; the Mac menubar renders a QR encoding the PWA helper page at `/pair/{device_id}`. Architecture: [`docs/53-focusa-device-pairing-spec.md`](docs/53-focusa-device-pairing-spec.md). Each Focusa install is its own trust root — multi-tenant safe, no shared registry.
+- **Strict CI proof**: GitHub CI passes Rust tests/clippy, strict spec gates, and the macOS Tauri package proof on every push to `main`.
 - **Strict CI proof**: GitHub CI passes Rust tests/clippy, strict spec gates, and the macOS Tauri package proof on every push to `main`.
 
 ---
@@ -138,6 +140,7 @@ When Focusa is working well, an agent should:
 | Metacognition | Implemented, bounded | Preview/advanced |
 | Ontology governance | Partial/design-forward | Experimental unless marked current in `docs/current/` |
 | GUI/menubar | Implemented preview cockpit | Web build and GitHub macOS Tauri package proof pass; still not primary Operator Preview surface |
+| Mac device pairing (focusa-ui0y) | Implemented (CLI / QR+phone / QR+browser) | `focusa device pair-qr` + menubar QR render + PWA helper page at `/pair/{device_id}` |
 | Team/multi-user/cloud sync | Future | Not in preview |
 
 ---
