@@ -2,8 +2,8 @@
 
 **Status:** Draft (operator + agent collaboration)
 **Date:** 2026-06-10
-**Owns:** Mac menubar ⇄ VPS daemon OAuth-like device pairing
-**Beads:** `focusa-ui0y.1`–`.13`
+**Owns:** Mac menubar ⇄ Phone PWA ⇄ VPS daemon OAuth-like device pairing
+**Beads:** `focusa-ui0y.1`–`.13`, `focusa-8oc0` and children
 
 This spec owns the full pairing architecture: code flow, QR flow, PWA helper, security model, portability, multi-tenancy, and audit. Tool-level docs (`focusa_device_pair_*`) become reference material that points here.
 
@@ -11,13 +11,97 @@ This spec owns the full pairing architecture: code flow, QR flow, PWA helper, se
 
 ## 1. Goals
 
-- **Mac-like + dumb simple** — operator scans a QR or types one CLI command. No accounts, no passwords, no OAuth flows.
+- **Mac-like + dumb simple** — first-run Mac UI shows a clean QR offer; the phone PWA scans/mediates; manual typing is Advanced fallback only. No accounts, no passwords, no OAuth flows.
+- **Three-party by default** — pairing is Mac (joining device) + phone PWA (operator mediator) + VPS daemon (authority/token issuer), not a two-device flow.
 - **Depth optional** — Pi/CLI agents can drive the same flow programmatically; the Mac UI is sugar.
 - **Portability** — any operator with Focusa installed on their VPS (AlmaLinux, Ubuntu, macOS, containers) can pair any Mac with one URL.
 - **Public-VPS safe** — the pairing endpoint can be exposed behind a public hostname (e.g. `https://focusa-conn.verious.net`) without leaking the daemon's bind address.
-- **Forward-compatible** — the design leaves room for reverse pairing (phone scans a QR the VPS shows) and for camera-based local-network discovery, without breaking the current model.
+- **Forward-compatible** — the design leaves room for deep links, AirDrop/universal-clipboard handoff, camera-based local-network discovery, and CLI fallback without breaking the primary three-party model.
 
 ## 2. Pairing Model (operator-facing)
+
+### 2.0 Primary model — three-party portable phone-PWA mediation
+
+Focusa pairing is a three-party protocol:
+
+| Party | Role | Must know initially | Learns during flow |
+|---|---|---|---|
+| Mac menubar app | joining device | nothing about the VPS | VPS origin, connect session, token |
+| Phone PWA | operator mediator/control surface | current VPS origin from `window.location.origin` | Mac handoff offer |
+| VPS Focusa daemon | authority/token issuer | its own configured/public origin | Mac device record + token |
+
+The portable first-run flow is:
+
+```text
+Mac menubar shows a short-lived QR handoff offer.
+Phone PWA, already loaded from the operator's VPS, scans the Mac QR.
+Phone PWA sends the VPS origin + connect session to the Mac handoff endpoint/deep link.
+Mac joins that VPS connect session and polls for completion.
+Phone PWA shows the Mac identity and operator taps Approve.
+VPS mints a token; Mac receives it through polling and stores server+token indefinitely.
+```
+
+The Mac QR is not a server URL. It is a temporary handoff offer:
+
+```json
+{
+  "protocol": "focusa-connect-v1",
+  "role": "mac_handoff_offer",
+  "mac_name": "Verious MacBook",
+  "mac_callback": "http://127.0.0.1:<ephemeral>/handoff/<nonce>",
+  "mac_pubkey": "base64url...",
+  "nonce": "base64url...",
+  "expires_in_secs": 300
+}
+```
+
+The phone PWA derives the VPS identity from its own origin, not from hardcoded configuration:
+
+```js
+const server_url = window.location.origin;
+```
+
+Then the phone PWA delivers a signed server handoff to the Mac:
+
+```json
+{
+  "protocol": "focusa-connect-v1",
+  "role": "server_handoff",
+  "server_url": "https://this-focusa-vps.example",
+  "connect_id": "01H...",
+  "server_pubkey": "base64url...",
+  "nonce": "same nonce or server challenge",
+  "expires_in_secs": 300
+}
+```
+
+If direct browser-to-Mac callback is blocked, the phone PWA must offer Apple-like fallbacks in this order:
+
+1. Open `focusa://connect?...` deep link.
+2. Share/AirDrop the same deep link to the Mac.
+3. Copy link.
+4. Advanced manual server URL/code.
+
+Manual URL fields, device names, CLI commands, and diagnostics are always Advanced/fallback UI, never the first-run primary screen.
+
+### 2.0.1 Connect-session API contract
+
+The three-party flow uses short-lived connect sessions before falling back to the older
+`device/pair/*` code flow:
+
+| Route | Caller | Purpose |
+|---|---|---|
+| `POST /v1/connect/start` | phone PWA after scanning Mac QR | create a rendezvous from the Mac handoff offer and return a `server_handoff` |
+| `GET /v1/connect/status?connect_id=...` | Mac | poll until the phone approves and the VPS mints a token |
+| `POST /v1/connect/approve` | phone PWA | operator approval; VPS mints token and appends the device record |
+
+`connect/start` input accepts `mac_name`, `mac_nonce`, optional `mac_pubkey`, optional
+`mac_callback`, optional `server_url`, and optional scopes. The VPS chooses the public
+server URL from `FOCUSA_PAIRING_URL` first, then request `server_url`, then local default.
+
+`connect/status` returns pending/expired/completed plus the token only after approval.
+`connect/approve` is the only route that mints a token.
+
 
 Three actors:
 
@@ -58,7 +142,7 @@ These must hold for every Focusa install:
 
 The code can be delivered to the VPS three ways. All three produce the same `DeviceRecord` in the ledger.
 
-### 3.1 Mode A — CLI (current, working)
+### 3.1 Mode A — CLI fallback (current, working)
 
 ```
 Mac → POST /v1/device/pair/start → {code, on_your_vps_run}
@@ -76,6 +160,8 @@ Mac polls GET /v1/device/pair/status?code=... → {token, expires_at}
 Mac → POST /v1/device/pair/start → {code, pair_url, pair_url_qr_payload}
 Mac renders QR encoding pair_url.
 Phone scans QR → opens pair_url in browser.
+
+This legacy mode only works after the Mac already knows the correct VPS URL or public pairing URL. It is not the portable first-run default.
 Browser shows tiny focusa-pairing helper page (PWA).
 Operator on phone taps "Complete on this VPS" → helper page POSTs to
         /v1/device/pair/complete using the code embedded in the URL.
@@ -94,11 +180,12 @@ Same as Mode B but the operator's Mac or a kiosk scans the QR and the VPS browse
 | Operator situation | Best mode |
 |---|---|
 | VPS behind NAT, operator has SSH | A (CLI) |
-| VPS has a public URL (focusa-conn.verious.net) | B (QR + phone) |
+| First-run Mac does not know VPS, phone PWA can access VPS | Primary three-party phone-PWA mediation (§2.0) |
+| VPS has a public URL and Mac already knows it | B (server-generated QR + phone fallback) |
 | Mac and VPS on same LAN, Mac not in front of operator | C (QR + kiosk) |
 | Pi/agent driving the pairing | A via CLI / programmatic |
 
-**The code is the same in all three modes.** Only the transport changes.
+**The code/token ledger is the same in all fallback modes.** The primary three-party flow adds a connect-session rendezvous before device pairing so the Mac can learn the VPS without manual typing.
 
 ## 4. The `pair_url` field (new in `pair_start`)
 

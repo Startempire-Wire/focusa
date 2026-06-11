@@ -10,12 +10,34 @@ See: `docs/43-multi-device-sync.md` and the device pairing architecture in
 
 ### Device pairing surface (focusa-ui0y)
 
-The menubar includes a **DevicePairing panel** with three handoff modes
+The first-run menubar pairing surface is **Apple-like and three-party by default**
+(see [§2.0 of the pairing spec](53-focusa-device-pairing-spec.md#20-primary-model--three-party-portable-phone-pwa-mediation)):
+
+```text
+Connect to Focusa
+
+[ Mac-generated QR handoff offer ]
+
+Scan with your phone
+```
+
+The phone PWA is the operator mediator: it scans the Mac QR, derives the current VPS
+origin from `window.location.origin`, approves the Mac, and the VPS mints the token.
+The Mac stores server URL + token indefinitely until the operator deliberately disconnects.
+
+Visible first-run UI rules:
+
+- QR card first; no wall of text.
+- No server URL, public pairing URL, device name, CLI command, or device list on the primary screen.
+- `Copy errors` must be available as a small secondary action.
+- Manual URL/code/CLI/localhost/tunnel options live under **Advanced** only.
+
+Fallback modes remain available after Advanced is opened
 (see [§3 of the pairing spec](53-focusa-device-pairing-spec.md#3-handoff-modes)):
 
-- **Mode A (CLI):** display the `FOCUS-XXXX-XXXX` code in a calm, large monospace card with the `on_your_vps_run` command beneath. Operator runs on VPS.
-- **Mode B (QR + phone):** render a QR encoding `pair_url` from `pair_start` response. Operator scans with phone.
-- **Mode C (QR + VPS browser):** same QR, but operator uses a kiosk/VPS browser.
+- **Mode A (CLI fallback):** display the `FOCUS-XXXX-XXXX` code and `on_your_vps_run` command.
+- **Mode B (server-generated QR fallback):** render a QR encoding `pair_url` after the Mac already knows the VPS URL.
+- **Mode C (QR + VPS browser fallback):** same QR, but operator uses a kiosk/VPS browser.
 
 The QR is rendered using a tiny library (`qrcode` npm, ~20KB) and is sized
 to be scannable at standard phone distance (≥ 200×200px, with 4-module quiet zone).

@@ -25,7 +25,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use focusa_core::types::{DevicePairCode, DevicePairCompletion, DeviceRecord, DeviceToken};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -37,10 +37,27 @@ use uuid::Uuid;
 const CODE_TTL_SECS: i64 = 300; // 5 min
 const TOKEN_TTL_SECS: i64 = 60 * 60 * 24 * 30; // 30 days
 
+#[derive(Debug, Clone)]
+struct ConnectSession {
+    connect_id: String,
+    device_id: String,
+    mac_name: String,
+    mac_nonce: String,
+    mac_pubkey: Option<String>,
+    mac_callback: Option<String>,
+    server_url: String,
+    scopes: Vec<String>,
+    created_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+    status: String,
+    token: Option<String>,
+}
+
 #[derive(Default)]
 struct PairingState {
     pending: HashMap<String, DevicePairCode>, // code -> pair
     tokens: HashMap<String, DeviceToken>,     // token -> token
+    connect_sessions: HashMap<String, ConnectSession>, // connect_id -> rendezvous
 }
 
 type SharedPairingState = Arc<RwLock<PairingState>>;
@@ -55,6 +72,9 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route("/v1/device/pair/status", axum::routing::get(pair_status))
         .route("/v1/device/pair/list", axum::routing::get(pair_list))
         .route("/v1/device/pair/revoke", axum::routing::post(pair_revoke))
+        .route("/v1/connect/start", axum::routing::post(connect_start))
+        .route("/v1/connect/status", axum::routing::get(connect_status))
+        .route("/v1/connect/approve", axum::routing::post(connect_approve))
         // focusa-ui0y.8: PWA helper page for QR/PWA handoff
         .route("/pair/{device_id}", axum::routing::get(pwa_helper_page))
         .route(
@@ -110,6 +130,272 @@ pub struct PairStartRequest {
     pub platform: Option<String>,
     pub daemon_base_url: Option<String>,
     pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectStartRequest {
+    pub mac_name: Option<String>,
+    pub mac_nonce: Option<String>,
+    pub mac_pubkey: Option<String>,
+    pub mac_callback: Option<String>,
+    pub server_url: Option<String>,
+    pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectStatusRequest {
+    pub connect_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectApproveRequest {
+    pub connect_id: String,
+    pub host: Option<String>,
+    pub operator_id: Option<String>,
+    pub completed_by: Option<String>,
+}
+
+fn public_server_url(fallback: Option<String>) -> String {
+    std::env::var("FOCUSA_PAIRING_URL")
+        .ok()
+        .or(fallback)
+        .unwrap_or_else(|| "http://127.0.0.1:8787".to_string())
+        .trim_end_matches('/')
+        .to_string()
+}
+
+async fn connect_start(
+    Json(body): Json<ConnectStartRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let now = Utc::now();
+    let expires = now + Duration::seconds(CODE_TTL_SECS);
+    let connect_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let mac_name = body.mac_name.unwrap_or_else(|| "Focusa Mac".to_string());
+    let mac_nonce = body
+        .mac_nonce
+        .unwrap_or_else(|| Uuid::now_v7().simple().to_string());
+    let scopes = body
+        .scopes
+        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let server_url = public_server_url(body.server_url);
+
+    if mac_name.trim().is_empty() || mac_nonce.trim().is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "mac_offer_missing",
+                "message": "mac_name and mac_nonce are required",
+            }),
+        ));
+    }
+
+    let session = ConnectSession {
+        connect_id: connect_id.clone(),
+        device_id: device_id.clone(),
+        mac_name: mac_name.clone(),
+        mac_nonce: mac_nonce.clone(),
+        mac_pubkey: body.mac_pubkey,
+        mac_callback: body.mac_callback,
+        server_url: server_url.clone(),
+        scopes: scopes.clone(),
+        created_at: now,
+        expires_at: expires,
+        status: "pending".to_string(),
+        token: None,
+    };
+
+    let pairing_state = shared_state();
+    pairing_state
+        .write()
+        .await
+        .connect_sessions
+        .insert(connect_id.clone(), session);
+
+    Ok(Json(json!({
+        "status": "pending",
+        "canonical": false,
+        "advisory": true,
+        "connect_id": connect_id,
+        "device_id": device_id,
+        "mac_name": mac_name,
+        "mac_nonce": mac_nonce,
+        "server_url": server_url,
+        "scopes": scopes,
+        "expires_at": expires,
+        "expires_in_secs": CODE_TTL_SECS,
+        "server_handoff": {
+            "protocol": "focusa-connect-v1",
+            "role": "server_handoff",
+            "server_url": server_url,
+            "connect_id": connect_id,
+            "device_id": device_id,
+            "nonce": mac_nonce,
+            "expires_in_secs": CODE_TTL_SECS
+        },
+        "next_tools": ["focusa_connect_status", "focusa_connect_approve"],
+        "rehydrate_id": connect_id,
+    })))
+}
+
+async fn connect_status(
+    axum::extract::Query(query): axum::extract::Query<ConnectStatusRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let pairing_state = shared_state();
+    let s = pairing_state.read().await;
+    let connect_id = query.connect_id.trim();
+    let Some(session) = s.connect_sessions.get(connect_id) else {
+        return Err(rejection(
+            StatusCode::NOT_FOUND,
+            json!({
+                "status": "not_found",
+                "failure_class": "connect_session_not_found",
+                "connect_id": connect_id,
+            }),
+        ));
+    };
+    let expired = session.expires_at < Utc::now();
+    let status = if expired && session.token.is_none() {
+        "expired".to_string()
+    } else {
+        session.status.clone()
+    };
+    Ok(Json(json!({
+        "status": status,
+        "connect_id": session.connect_id,
+        "device_id": session.device_id,
+        "mac_name": session.mac_name,
+        "mac_nonce": session.mac_nonce,
+        "mac_pubkey": session.mac_pubkey,
+        "mac_callback": session.mac_callback,
+        "server_url": session.server_url,
+        "scopes": session.scopes,
+        "created_at": session.created_at,
+        "expires_at": session.expires_at,
+        "expired": expired,
+        "token": session.token,
+        "next_tools": ["focusa_connect_status", "focusa_device_pair_list"],
+        "rehydrate_id": session.connect_id,
+    })))
+}
+
+async fn connect_approve(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<ConnectApproveRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let connect_id = body.connect_id.trim().to_string();
+    if connect_id.is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "connect_id_missing",
+                "field": "connect_id",
+            }),
+        ));
+    }
+    let host = body.host.unwrap_or_else(|| "operator-vps".to_string());
+    if is_unsafe_agent_runtime_path_inline(&host) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "host",
+                "rejected_value": host,
+            }),
+        ));
+    }
+
+    let now = Utc::now();
+    let pairing_state = shared_state();
+    let completed = {
+        let mut s = pairing_state.write().await;
+        let Some(existing) = s.connect_sessions.get(&connect_id).cloned() else {
+            return Err(rejection(
+                StatusCode::NOT_FOUND,
+                json!({
+                    "status": "not_found",
+                    "failure_class": "connect_session_not_found",
+                    "connect_id": connect_id,
+                }),
+            ));
+        };
+        if existing.expires_at < now && existing.token.is_none() {
+            return Err(rejection(
+                StatusCode::GONE,
+                json!({
+                    "status": "expired",
+                    "failure_class": "connect_session_expired",
+                    "connect_id": connect_id,
+                    "expired_at": existing.expires_at,
+                }),
+            ));
+        }
+        if existing.token.is_some() {
+            existing
+        } else {
+            let token = generate_token();
+            let token_expires = now + Duration::seconds(TOKEN_TTL_SECS);
+            let device_token = DeviceToken {
+                token: token.clone(),
+                device_id: existing.device_id.clone(),
+                scopes: existing.scopes.clone(),
+                issued_at: now,
+                expires_at: token_expires,
+                last_used_at: None,
+                issued_to: host.clone(),
+            };
+            s.tokens.insert(token.clone(), device_token);
+            let mut updated = existing;
+            updated.status = "completed".to_string();
+            updated.token = Some(token);
+            s.connect_sessions.insert(connect_id.clone(), updated.clone());
+            updated
+        }
+    };
+
+    let record = DeviceRecord {
+        device_id: completed.device_id.clone(),
+        name: completed.mac_name.clone(),
+        platform: "macos".to_string(),
+        host: host.clone(),
+        scopes: completed.scopes.clone(),
+        paired_at: now,
+        last_seen_at: now,
+        revoked: false,
+        revoked_at: None,
+    };
+    if let Err(e) = state.persistence.append_device_record(&record) {
+        return Err(rejection(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({
+                "status": "blocked",
+                "failure_class": "storage_unwritable",
+                "message": format!("append failed: {}", e),
+            }),
+        ));
+    }
+
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "connect_id": completed.connect_id,
+        "device_id": completed.device_id,
+        "device_name": completed.mac_name,
+        "host": host,
+        "operator_id": body.operator_id,
+        "completed_by": body.completed_by.unwrap_or_else(|| "phone-pwa".to_string()),
+        "server_url": completed.server_url,
+        "scopes": completed.scopes,
+        "token": completed.token,
+        "token_expires_at": now + Duration::seconds(TOKEN_TTL_SECS),
+        "token_ttl_secs": TOKEN_TTL_SECS,
+        "next_tools": ["focusa_connect_status", "focusa_device_pair_list"],
+        "rehydrate_id": completed.connect_id,
+    })))
 }
 
 async fn pair_start(

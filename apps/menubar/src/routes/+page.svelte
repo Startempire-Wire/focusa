@@ -6,6 +6,7 @@
   import FocusView from '$lib/components/FocusView.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
+  import FirstRunConnect from '$lib/components/FirstRunConnect.svelte';
   import CockpitView from '$lib/components/CockpitView.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
@@ -172,11 +173,7 @@
 <!-- Content -->
 <main class="content">
   {#if !everConnected && focusStore.connected !== 'connected'}
-    <div class="connect-empty">
-      <h2>Connect to Focusa</h2>
-      <p>There is no content to show until this app connects successfully to Focusa.</p>
-      <Settings />
-    </div>
+    <FirstRunConnect />
   {:else if activeTab === 'focus'}
     <FocusView />
   {:else if activeTab === 'cockpit'}
@@ -324,19 +321,4 @@
     overflow-x: hidden;
   }
 
-  .connect-empty {
-    padding: var(--sp-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-  }
-  .connect-empty h2 {
-    margin: 0;
-    font-size: var(--text-lg);
-  }
-  .connect-empty > p {
-    margin: 0;
-    color: var(--fg-secondary);
-    line-height: 1.4;
-  }
 </style>

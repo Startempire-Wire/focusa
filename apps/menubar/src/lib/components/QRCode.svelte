@@ -10,14 +10,14 @@
     payload:   string to encode (e.g., `pair_url` from /v1/device/pair/start)
     size:      pixel size of the rendered SVG (default 240)
     level:     error-correction level: L | M | Q | H (default M)
-    dark:      dark color (default currentColor for theme)
-    light:     light color (default transparent)
+    dark:      dark color (default #0f1115; qrcode lib requires hex)
+    light:     light color (default #ffffff; qrcode lib requires hex)
 -->
 <script lang="ts">
   import QRCodeLib from 'qrcode';
   import { onMount } from 'svelte';
 
-  let { payload, size = 240, level = 'M', dark = 'currentColor', light = 'transparent' }: {
+  let { payload, size = 240, level = "M", dark = "#0f1115", light = "#ffffff" }: {
     payload: string;
     size?: number;
     level?: 'L' | 'M' | 'Q' | 'H';
