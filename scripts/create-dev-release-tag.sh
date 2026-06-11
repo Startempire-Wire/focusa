@@ -123,7 +123,8 @@ scripts/stamp-menubar-version.py "${TAG}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
-  git checkout -- apps/menubar/package.json apps/menubar/package-lock.json \
+  git checkout -- Cargo.toml Cargo.lock \
+    apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte
   echo "Dry run complete; reverted stamped files."
@@ -131,7 +132,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
 fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
-  git add apps/menubar/package.json apps/menubar/package-lock.json \
+  git add Cargo.toml Cargo.lock \
+    apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte
   git commit -m "chore: stamp menubar ${VERSION}"

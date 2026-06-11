@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Stamp the Focusa menubar app version from a release tag.
+"""Stamp all Focusa release-version surfaces from one release tag.
 
 Usage:
-  scripts/stamp-menubar-version.py v0.9.16-dev
-  scripts/stamp-menubar-version.py 0.9.16-dev
+  scripts/stamp-menubar-version.py v0.9.22-dev
+  scripts/stamp-menubar-version.py 0.9.22-dev
 
-This keeps Tauri DMG/app asset names diffable per dev release.
+This is intentionally the single version-stamping template used by
+scripts/create-dev-release-tag.sh. It updates Rust workspace CLI/API/TUI/core,
+root lockfile package entries, the menubar package/Tauri metadata, and the
+operator-visible Settings version.
 """
 from __future__ import annotations
 
@@ -18,12 +21,15 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_RE = re.compile(r"^v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$")
 OLD_VERSION_RE = re.compile(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
 
+ROOT_RUST_PACKAGES = {"focusa-api", "focusa-cli", "focusa-core", "focusa-tui"}
+MENUBAR_RUST_PACKAGES = {"focusa-menubar"}
+
 
 def parse_version(raw: str) -> str:
     value = raw.strip()
     match = VERSION_RE.match(value)
     if not match:
-        raise SystemExit(f"Invalid menubar release tag/version: {raw!r}")
+        raise SystemExit(f"Invalid Focusa release tag/version: {raw!r}")
     return match.group(1)
 
 
@@ -43,28 +49,78 @@ def replace_json_version(path: str, version: str) -> None:
 def replace_key_value_version(path: str, version: str) -> None:
     file_path = ROOT / path
     text = file_path.read_text()
-    text = re.sub(r'(?m)^version\s*=\s*"[^"]+"', f'version = "{version}"', text, count=1)
-    file_path.write_text(text)
+    next_text, count = re.subn(
+        r'(?m)^version\s*=\s*"[^"]+"',
+        f'version = "{version}"',
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise SystemExit(f"Expected one top-level version in {path}")
+    file_path.write_text(next_text)
 
 
 def replace_display_version(path: str, version: str) -> None:
     file_path = ROOT / path
     text = file_path.read_text()
-    text = re.sub(r"Focusa v" + OLD_VERSION_RE.pattern, f"Focusa v{version}", text)
-    file_path.write_text(text)
+    next_text, count = re.subn(r"Focusa v" + OLD_VERSION_RE.pattern, f"Focusa v{version}", text)
+    if count < 1:
+        raise SystemExit(f"Expected Focusa display version in {path}")
+    file_path.write_text(next_text)
+
+
+def replace_lock_package_versions(path: str, package_names: set[str], version: str) -> None:
+    """Update only named [[package]] lockfile entries.
+
+    This avoids the old unsafe behavior that replaced the first `version = ...`
+    line in a lockfile, which can corrupt unrelated dependency packages.
+    """
+    file_path = ROOT / path
+    lines = file_path.read_text().splitlines(keepends=True)
+    current_name: str | None = None
+    updated: set[str] = set()
+    out: list[str] = []
+
+    for line in lines:
+        if line.strip() == "[[package]]":
+            current_name = None
+            out.append(line)
+            continue
+        name_match = re.match(r'^name\s*=\s*"([^"]+)"', line)
+        if name_match:
+            current_name = name_match.group(1)
+            out.append(line)
+            continue
+        if current_name in package_names and re.match(r'^version\s*=\s*"[^"]+"', line):
+            out.append(f'version = "{version}"\n')
+            updated.add(current_name)
+            continue
+        out.append(line)
+
+    missing = package_names - updated
+    if missing:
+        raise SystemExit(f"Missing package(s) in {path}: {', '.join(sorted(missing))}")
+    file_path.write_text("".join(out))
 
 
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("Usage: scripts/stamp-menubar-version.py <tag-or-version>")
     version = parse_version(sys.argv[1])
+
+    # Rust workspace surfaces: CLI, daemon/API, core, TUI.
+    replace_key_value_version("Cargo.toml", version)
+    replace_lock_package_versions("Cargo.lock", ROOT_RUST_PACKAGES, version)
+
+    # Menubar web/Tauri surfaces.
     replace_json_version("apps/menubar/package.json", version)
     replace_json_version("apps/menubar/package-lock.json", version)
     replace_json_version("apps/menubar/src-tauri/tauri.conf.json", version)
     replace_key_value_version("apps/menubar/src-tauri/Cargo.toml", version)
-    replace_key_value_version("apps/menubar/src-tauri/Cargo.lock", version)
+    replace_lock_package_versions("apps/menubar/src-tauri/Cargo.lock", MENUBAR_RUST_PACKAGES, version)
     replace_display_version("apps/menubar/src/lib/components/Settings.svelte", version)
-    print(f"Stamped menubar version {version}")
+
+    print(f"Stamped Focusa version {version}")
     return 0
 
 
