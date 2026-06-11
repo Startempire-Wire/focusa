@@ -43,7 +43,7 @@ struct PairingState {
     tokens: HashMap<String, DeviceToken>,     // token -> token
 }
 
-pub type SharedPairingState = Arc<RwLock<PairingState>>;
+type SharedPairingState = Arc<RwLock<PairingState>>;
 
 pub fn router() -> axum::Router<Arc<AppState>> {
     axum::Router::new()
@@ -225,6 +225,8 @@ async fn pair_complete(
     }
 
     let now = Utc::now();
+    let completed_by = body.completed_by.unwrap_or_else(|| "vps-cli".to_string());
+    let operator_id = body.operator_id;
     let host = body.host.unwrap_or_else(|| "operator-vps".to_string());
     if is_unsafe_agent_runtime_path_inline(&host) {
         return Err(rejection(
@@ -309,6 +311,17 @@ async fn pair_complete(
         .map(|(_, t)| t.token.clone())
         .unwrap_or_default();
 
+    let completion = DevicePairCompletion {
+        code: code.clone(),
+        device_id: pair.device_id.clone(),
+        token: token.clone(),
+        scopes: pair.scopes.clone(),
+        completed_at: now,
+        completed_by,
+        host: host.clone(),
+        operator_id,
+    };
+
     let record = DeviceRecord {
         device_id: pair.device_id.clone(),
         name: pair.device_name.clone(),
@@ -350,6 +363,7 @@ async fn pair_complete(
         },
         "next_tools": ["focusa_device_pair_status", "focusa_device_pair_list"],
         "rehydrate_id": pair.device_id,
+        "_completion": completion,
         "_record": record,
     })))
 }

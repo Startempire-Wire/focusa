@@ -25,7 +25,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -756,20 +756,18 @@ async fn discover_agent_sessions(
                 if let Ok(sub_entries) = fs::read_dir(&path) {
                     for sub in sub_entries.flatten() {
                         let sub_path = sub.path();
-                        if sub_path.extension().map_or(false, |e| e == "jsonl") {
-                            if let Some(session) =
+                        if sub_path.extension().is_some_and(|e| e == "jsonl")
+                            && let Some(session) =
                                 parse_generic_session(&sub_path, agent_type).await
                             {
                                 sessions.push(session);
                             }
-                        }
                     }
                 }
-            } else if path.extension().map_or(false, |e| e == "jsonl") {
-                if let Some(session) = parse_generic_session(&path, agent_type).await {
+            } else if path.extension().is_some_and(|e| e == "jsonl")
+                && let Some(session) = parse_generic_session(&path, agent_type).await {
                     sessions.push(session);
                 }
-            }
         }
     }
 
@@ -785,10 +783,10 @@ async fn parse_generic_session(path: &PathBuf, agent_type: &str) -> Option<Disco
     }
 
     // Extract session_id from filename as fallback
-    let fallback_session_id = path.file_stem()?.to_str()?.split('_').last()?.to_string();
+    let fallback_session_id = path.file_stem()?.to_str()?.split('_').next_back()?.to_string();
 
     // Find last non-empty line
-    let last_line = content.lines().filter(|l| !l.trim().is_empty()).last()?;
+    let last_line = content.lines().rfind(|l| !l.trim().is_empty())?;
 
     let json: Value = serde_json::from_str(last_line).ok()?;
 
@@ -917,7 +915,7 @@ fn parse_session_timestamp_from_filename(token: &str) -> Option<String> {
 }
 
 /// Extract ISO timestamp from filename
-fn extract_timestamp_from_path(path: &PathBuf) -> Option<String> {
+fn extract_timestamp_from_path(path: &Path) -> Option<String> {
     let token = path
         .file_name()
         .and_then(|n| n.to_str())?
@@ -942,12 +940,10 @@ async fn discover_claude_backups() -> Option<Vec<DiscoveredSession>> {
             let path = entry.path();
             if path
                 .extension()
-                .map_or(false, |e| e.to_str().unwrap_or("").contains("backup"))
-            {
-                if let Some(session) = parse_claude_backup(&path).await {
+                .is_some_and(|e| e.to_str().unwrap_or("").contains("backup"))
+                && let Some(session) = parse_claude_backup(&path).await {
                     sessions.push(session);
                 }
-            }
         }
     }
 

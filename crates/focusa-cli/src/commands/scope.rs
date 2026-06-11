@@ -68,12 +68,12 @@ pub fn project_root_authority_failure(path: &str) -> Option<&'static str> {
 
 /// Validate explicit scope arguments before making API calls.
 pub fn ensure_project_root_scope_safe(path: Option<&str>, operation: &str) -> Result<()> {
-    if let Some(value) = path {
-        if let Some(reason) = project_root_authority_failure(value) {
-            bail!(
-                "[CLI_SCOPE_REJECT] operation={operation} field=project_root reason={reason} value={value}"
-            );
-        }
+    if let Some((value, reason)) = path.and_then(|value| {
+        project_root_authority_failure(value).map(|reason| (value, reason))
+    }) {
+        bail!(
+            "[CLI_SCOPE_REJECT] operation={operation} field=project_root reason={reason} value={value}"
+        );
     }
 
     Ok(())

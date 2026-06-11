@@ -12,6 +12,7 @@ use serde_json::Value;
 
 #[derive(Subcommand)]
 #[command(rename_all = "kebab-case")]
+#[allow(clippy::enum_variant_names)]
 pub enum DeviceCmd {
     /// Start a new device pairing (generates 8-char code).
     #[command(name = "pair-start")]
@@ -294,7 +295,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn urlencoding_minimal() {
+    fn urlencoding_minimal_encodes_query_values() {
         assert_eq!(urlencoding_minimal("hello"), "hello");
         assert_eq!(urlencoding_minimal("a/b"), "a%2Fb");
         assert_eq!(urlencoding_minimal("FOCUS-XYZ7-1234"), "FOCUS-XYZ7-1234");

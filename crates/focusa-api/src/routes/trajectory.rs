@@ -348,14 +348,13 @@ fn active_persisted_trajectory<'a>(
     }
 
     // Check if the global active_trajectory_id is in our scoped set
-    if let Some(global_id) = state.trajectory.active_trajectory_id.as_ref() {
-        if let Some(record) = scoped_records
+    if let Some(global_id) = state.trajectory.active_trajectory_id.as_ref()
+        && let Some(record) = scoped_records
             .iter()
             .find(|r| &r.trajectory_id == global_id)
         {
             return Some(record);
         }
-    }
 
     // Fall back to latest canonical record in scoped set
     scoped_records
@@ -382,8 +381,7 @@ fn scoped_trajectory_history(
         .rev()
         .filter(|record| record.project_root.as_deref() == Some(project_root))
         .filter(|record| {
-            continuity_id
-                .and_then(|id| Some(id == record.continuity_id.as_deref().unwrap_or("")))
+            continuity_id.map(|id| id == record.continuity_id.as_deref().unwrap_or(""))
                 .unwrap_or(true)
         })
         .take(limit)
@@ -395,11 +393,11 @@ fn scoped_trajectory_history(
                 "long_term_goal": bounded(record.long_term_goal.as_str(), 220),
                 "desired_end_state": bounded(record.desired_end_state.as_str(), 220),
                 "canonical": record.canonical,
-                "definition_status": serde_json::to_value(&record.definition_status)
+                "definition_status": serde_json::to_value(record.definition_status)
                     .unwrap_or(Value::String("unclear".to_string())),
-                "root_goal_stability": serde_json::to_value(&record.root_goal_stability)
+                "root_goal_stability": serde_json::to_value(record.root_goal_stability)
                     .unwrap_or(Value::String("stable".to_string())),
-                "confidence": serde_json::to_value(&record.confidence)
+                "confidence": serde_json::to_value(record.confidence)
                     .unwrap_or(Value::String("medium".to_string())),
                 "created_at": record
                     .created_at
@@ -2084,8 +2082,8 @@ async fn define_goal(
     // §169-175: Verified state gate — HLT writes require verified project_root + explicit
     // current_ask OR supersession_evidence_refs.  Otherwise return active_gap warning but
     // allow operator_override via operator_confirmed=true.
-    let has_context = body.current_ask.as_ref().map_or(false, |s| !s.is_empty())
-        || body.supersession_evidence_refs.as_ref().map_or(false, |v| !v.is_empty());
+    let has_context = body.current_ask.as_ref().is_some_and(|s| !s.is_empty())
+        || body.supersession_evidence_refs.as_ref().is_some_and(|v| !v.is_empty());
     let is_operator_override = body.operator_confirmed.unwrap_or(false);
     if !has_context && !is_operator_override {
         warn!(
@@ -2207,8 +2205,8 @@ async fn define_goal(
                 obj.insert("active_gap".to_string(), json!("missing_verified_state"));
                 obj.insert("verified_state_gate".to_string(), json!({
                     "project_root_verified": identity_status == "verified",
-                    "has_explicit_current_ask": body.current_ask.as_ref().map_or(false, |s| !s.is_empty()),
-                    "has_evidence_refs": body.supersession_evidence_refs.as_ref().map_or(false, |v| !v.is_empty()),
+                    "has_explicit_current_ask": body.current_ask.as_ref().is_some_and(|s| !s.is_empty()),
+                    "has_evidence_refs": body.supersession_evidence_refs.as_ref().is_some_and(|v| !v.is_empty()),
                     "operator_override": false,
                     "recommendation": "Add current_ask or supersession_evidence_refs, or set operator_confirmed=true"
                 }));

@@ -69,6 +69,7 @@ impl ApiClient {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// Get HLT history for a project (scope-bounded by project_root + continuity_id).
+    #[allow(dead_code)]
     pub async fn get_hlt_history(
         &self,
         project_root: &str,
@@ -87,6 +88,7 @@ impl ApiClient {
     }
 
     /// Get current HLT from trajectory view (scope-bounded).
+    #[allow(dead_code)]
     pub async fn get_trajectory_view(
         &self,
         project_root: &str,

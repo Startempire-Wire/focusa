@@ -2521,15 +2521,14 @@ fn scoped_trajectory_record<'a>(
             Some(root) => record.project_root.as_deref() == Some(root),
             None => true,
         };
-    if let Some(active_trajectory_id) = active_trajectory_id {
-        if let Some(record) = records
+    if let Some(active_trajectory_id) = active_trajectory_id
+        && let Some(record) = records
             .iter()
             .rev()
             .find(|record| matches_scope(record) && record.trajectory_id == active_trajectory_id)
         {
             return Some(record);
         }
-    }
     records.iter().rev().find(matches_scope)
 }
 
@@ -2542,15 +2541,14 @@ fn scoped_workpoint_record<'a>(
         Some(root) => record.project_root.as_deref() == Some(root),
         None => true,
     };
-    if let Some(active_workpoint_id) = active_workpoint_id {
-        if let Some(record) = records
+    if let Some(active_workpoint_id) = active_workpoint_id
+        && let Some(record) = records
             .iter()
             .rev()
             .find(|record| matches_scope(record) && record.workpoint_id == *active_workpoint_id)
         {
             return Some(record);
         }
-    }
     records.iter().rev().find(matches_scope)
 }
 
@@ -2572,7 +2570,7 @@ async fn card(
     let project_root = project
         .get("project_root")
         .and_then(Value::as_str)
-        .or_else(|| query.project_root.as_deref());
+        .or(query.project_root.as_deref());
     let trajectory_record = scoped_trajectory_record(
         &focusa.trajectory.records,
         focusa.trajectory.active_trajectory_id.as_deref(),

@@ -6,6 +6,101 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+
+const KEYCHAIN_SERVICE: &str = "Focusa Menubar Device Token";
+
+#[cfg(target_os = "macos")]
+fn run_security(args: &[&str]) -> Result<String, String> {
+    let output = std::process::Command::new("security")
+        .args(args)
+        .output()
+        .map_err(|e| format!("failed to run security: {e}"))?;
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+#[tauri::command]
+fn focusa_save_pairing_token(device_id: String, token: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        if device_id.trim().is_empty() || token.trim().is_empty() {
+            return Err("device_id and token are required".to_string());
+        }
+        let _ = run_security(&[
+            "delete-generic-password",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            device_id.as_str(),
+        ]);
+        run_security(&[
+            "add-generic-password",
+            "-U",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            device_id.as_str(),
+            "-w",
+            token.as_str(),
+        ])?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (device_id, token);
+        Err("Focusa pairing token storage requires macOS Keychain".to_string())
+    }
+}
+
+#[tauri::command]
+fn focusa_load_pairing_token(device_id: String) -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        if device_id.trim().is_empty() {
+            return Err("device_id is required".to_string());
+        }
+        run_security(&[
+            "find-generic-password",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            device_id.as_str(),
+            "-w",
+        ])
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = device_id;
+        Err("Focusa pairing token storage requires macOS Keychain".to_string())
+    }
+}
+
+#[tauri::command]
+fn focusa_clear_pairing_token(device_id: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        if device_id.trim().is_empty() {
+            return Err("device_id is required".to_string());
+        }
+        let _ = run_security(&[
+            "delete-generic-password",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            device_id.as_str(),
+        ]);
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = device_id;
+        Err("Focusa pairing token storage requires macOS Keychain".to_string())
+    }
+}
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -15,6 +110,11 @@ use tauri::{
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
+        .invoke_handler(tauri::generate_handler![
+            focusa_save_pairing_token,
+            focusa_load_pairing_token,
+            focusa_clear_pairing_token,
+        ])
         .setup(|app| {
             // macOS: hide dock icon — menubar-only app
             #[cfg(target_os = "macos")]

@@ -30,7 +30,7 @@
   // Tick once per second for the countdown
   let tickHandle: ReturnType<typeof setInterval> | null = null;
   onMount(() => {
-    pairingStore.bootstrapFromStorage();
+    void pairingStore.bootstrapFromStorage();
     void pairingStore.list(host);
     tickHandle = setInterval(() => { now = Date.now(); }, 1_000);
     return () => {
@@ -172,7 +172,7 @@
         <dt>Device ID</dt><dd class="mono">{s.deviceId}</dd>
         <dt>Host</dt><dd>{s.host}</dd>
         <dt>Token expires</dt><dd>{s.tokenExpiresAt || 'unknown'}</dd>
-        <dt>Token (first 8)</dt><dd class="mono">{s.token.slice(0, 8)}…</dd>
+        <dt>Token preview</dt><dd class="mono">{s.tokenPreview || 'stored in Keychain'}…</dd>
       </dl>
       <p class="hint">This Mac is now connected to the daemon. All Focusa calls will use the stored token.</p>
       <div class="row gap">

@@ -220,10 +220,6 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             let project_root = project_root.ok_or_else(|| {
                 anyhow::anyhow!("--project-root is required for curate-eval-runs")
             })?;
-            let body = serde_json::json!({
-                "project_root": project_root,
-                "limit": limit,
-            });
             let resp = client.get(&format!("/v1/context-cognition/curate/eval/runs?project_root={project_root}&limit={limit}")).await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
             Ok(())
@@ -236,11 +232,6 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             let project_root = project_root.ok_or_else(|| {
                 anyhow::anyhow!("--project-root is required for optimizer-artifacts")
             })?;
-            let body = serde_json::json!({
-                "project_root": project_root,
-                "module_name": module_name,
-                "limit": limit,
-            });
             let resp = client.get(&format!("/v1/context-cognition/optimizer/artifacts?project_root={project_root}&module_name={module_name}&limit={limit}")).await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
             Ok(())

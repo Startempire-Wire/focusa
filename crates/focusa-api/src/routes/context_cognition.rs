@@ -285,6 +285,7 @@ async fn view(
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct ContextCognitionRequest {
     pub project_root: Option<String>,
     pub continuity_id: Option<String>,
@@ -351,7 +352,7 @@ async fn render(
         "## Context Cognition (Spec 100) — render for {project_root}"
     ));
     lines.push("advisory · read-only · canonical=false".to_string());
-    lines.push(format!("schema: focusa.context_cognition_packet.v1"));
+    lines.push("schema: focusa.context_cognition_packet.v1".to_string());
     if let Some(wid) = workpoint_id.clone() {
         lines.push(format!("workpoint_id: {wid}"));
     }
@@ -671,11 +672,10 @@ async fn curate(
     // Boost evidence-ref overlap
     let evidence_set: std::collections::HashSet<String> = evidence_refs.iter().cloned().collect();
     for (s, c) in scored.iter_mut() {
-        if let Some(er) = c.evidence_ref.as_ref() {
-            if evidence_set.contains(er) {
+        if let Some(er) = c.evidence_ref.as_ref()
+            && evidence_set.contains(er) {
                 *s += 1.0;
             }
-        }
     }
     // Re-sort after the boost
     scored.sort_by(|a, b| {
@@ -848,11 +848,10 @@ async fn curate_eval(
         .collect();
     let evidence_set: std::collections::HashSet<String> = evidence_refs.iter().cloned().collect();
     for (s, c) in scored.iter_mut() {
-        if let Some(er) = c.evidence_ref.as_ref() {
-            if evidence_set.contains(er) {
+        if let Some(er) = c.evidence_ref.as_ref()
+            && evidence_set.contains(er) {
                 *s += 1.0;
             }
-        }
     }
     scored.sort_by(|a, b| {
         b.0.partial_cmp(&a.0)

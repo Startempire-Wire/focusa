@@ -471,14 +471,12 @@ async fn run_ls(
         println!("  └───────────────────────────────────────────────────────┘");
     }
 
-    if let Some(wps) = waypoints {
-        if !wps.is_empty() {
-            println!();
-            println!("  Waypoints:");
-            for (i, wp) in wps.iter().enumerate() {
-                if let Some(wp_str) = wp.as_str() {
-                    println!("    {}. {}", i + 1, wp_str);
-                }
+    if let Some(wps) = waypoints.filter(|wps| !wps.is_empty()) {
+        println!();
+        println!("  Waypoints:");
+        for (i, wp) in wps.iter().enumerate() {
+            if let Some(wp_str) = wp.as_str() {
+                println!("    {}. {}", i + 1, wp_str);
             }
         }
     }
@@ -489,6 +487,7 @@ async fn run_ls(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_set(
     api: &ApiClient,
     cwd: &str,
@@ -1185,16 +1184,18 @@ async fn run_verify(
     println!("  Current HLT: {}", wrap_text(current_hlt, 50));
 
     // Verify match
-    if let Some(entries) = ledger_response.get("entries").and_then(|v| v.as_array()) {
-        if let Some(latest) = entries.last() {
-            let ledger_hlt = latest.get("new_hlt").and_then(|v| v.as_str()).unwrap_or("");
-            let matches = ledger_hlt == current_hlt;
-            println!();
-            println!(
-                "  Ledger ↔ Trajectory: {}",
-                if matches { "✓" } else { "⚠ mismatch" }
-            );
-        }
+    if let Some(latest) = ledger_response
+        .get("entries")
+        .and_then(|v| v.as_array())
+        .and_then(|entries| entries.last())
+    {
+        let ledger_hlt = latest.get("new_hlt").and_then(|v| v.as_str()).unwrap_or("");
+        let matches = ledger_hlt == current_hlt;
+        println!();
+        println!(
+            "  Ledger ↔ Trajectory: {}",
+            if matches { "✓" } else { "⚠ mismatch" }
+        );
     }
 
     println!();
@@ -1219,7 +1220,7 @@ fn wrap_text(text: &str, width: usize) -> String {
     let mut current_line = String::new();
 
     for word in words {
-        if current_line.len() + word.len() + 1 <= width {
+        if current_line.len() + word.len() < width {
             if !current_line.is_empty() {
                 current_line.push(' ');
             }

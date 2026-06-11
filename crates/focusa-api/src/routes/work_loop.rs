@@ -56,22 +56,19 @@ fn work_loop_scope_root(focusa: &focusa_core::types::FocusaState) -> PathBuf {
         return root.into();
     }
 
-    if let Some(active_id) = focusa.workpoint.active_workpoint_id {
-        if let Some(workpoint) = focusa
+    if let Some(active_id) = focusa.workpoint.active_workpoint_id
+        && let Some(workpoint) = focusa
             .workpoint
             .records
             .iter()
             .find(|record| record.workpoint_id == active_id)
-        {
-            if let Some(root) = workpoint
+            && let Some(root) = workpoint
                 .project_root
                 .as_ref()
                 .filter(|value| !value.trim().is_empty())
             {
                 return root.clone().into();
             }
-        }
-    }
 
     if let Some(root) = focusa
         .session

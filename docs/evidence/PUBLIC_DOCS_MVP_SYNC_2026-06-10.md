@@ -39,3 +39,22 @@ cd apps/focusa-awareness && bun run check && bun run build
 
 - HEAD: `8ce7c10 docs: sync tool contract count metadata`
 - Tag: `v0.9.14-dev`
+
+## Menubar pairing hardening update
+
+After the initial MVP sync, the Mac menubar pairing path was hardened before release:
+
+- `apps/menubar/src-tauri/src/main.rs` exposes Tauri commands for macOS Keychain token save/load/clear.
+- `apps/menubar/src/lib/stores/pairing.svelte.ts` no longer stores bearer tokens in localStorage; it stores only metadata and a token preview.
+- Paired daemon requests attach `Authorization: Bearer <token>` from the in-memory token loaded from Keychain.
+- `DevicePairCompletion` is now wired into `/v1/device/pair/complete` response internals instead of remaining an unused core type.
+
+Validation:
+
+```bash
+cargo clippy --workspace -- -D warnings
+cargo test --workspace
+cd apps/menubar && bun run check && bun run build
+```
+
+Native Linux Tauri build remains blocked on this AlmaLinux host by `glib-2.0 >= 2.70` (host has 2.56.4), so the final `.app` artifact must be produced by the GitHub macOS release job or on the operator Mac.

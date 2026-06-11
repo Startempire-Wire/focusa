@@ -69,30 +69,27 @@ fn tool_contract_count() -> usize {
 
 /// True iff the request looks like it's from a Pi agent client.
 pub fn detect_pi_agent(headers: &HeaderMap) -> bool {
-    if let Some(v) = headers.get(HEADER_CLIENT) {
-        if v.to_str()
+    if let Some(v) = headers.get(HEADER_CLIENT)
+        && v.to_str()
             .map(|s| s.eq_ignore_ascii_case(DETECTED_CLIENT))
             .unwrap_or(false)
         {
             return true;
         }
-    }
-    if let Some(v) = headers.get(HEADER_EXTENSION_TOKEN) {
-        if v.to_str()
+    if let Some(v) = headers.get(HEADER_EXTENSION_TOKEN)
+        && v.to_str()
             .map(|s| s.to_ascii_lowercase().starts_with("focusa-pi"))
             .unwrap_or(false)
         {
             return true;
         }
-    }
-    if let Some(v) = headers.get(HEADER_USER_AGENT) {
-        if v.to_str()
+    if let Some(v) = headers.get(HEADER_USER_AGENT)
+        && v.to_str()
             .map(|s| s.to_ascii_lowercase().contains("focusa-pi"))
             .unwrap_or(false)
         {
             return true;
         }
-    }
     false
 }
 
@@ -140,13 +137,12 @@ pub async fn agent_prompt(State(_state): State<Arc<AppState>>, headers: HeaderMa
     } else {
         (StatusCode::OK, Json(build_non_agent_prompt())).into_response()
     };
-    if is_pi {
-        if let Ok(v) = HeaderValue::from_str(PROMPT_HINT) {
+    if is_pi
+        && let Ok(v) = HeaderValue::from_str(PROMPT_HINT) {
             response
                 .headers_mut()
                 .insert(HeaderName::from_static(HEADER_AGENT_PROMPT), v);
         }
-    }
     response
 }
 
