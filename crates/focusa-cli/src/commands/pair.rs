@@ -49,9 +49,8 @@ fn terminal_qr(payload: &str) -> anyhow::Result<String> {
         .build())
 }
 
-async fn start_room(server_url: &str) -> (Value, Option<String>) {
-    let client = ApiClient::new();
-    match client
+async fn create_room(server_url: &str) -> anyhow::Result<Value> {
+    ApiClient::new()
         .post(
             "/v1/connect/room/start",
             &json!({
@@ -60,9 +59,19 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
             }),
         )
         .await
-    {
+}
+
+async fn start_room(server_url: &str) -> (Value, Option<String>) {
+    match create_room(server_url).await {
         Ok(payload) => (payload, None),
-        Err(err) => {
+        Err(first_err) => {
+            // Dead-simple repair path: if the daemon is stale or was just rebuilt,
+            // try the idempotent starter once, then retry room creation.
+            let _ = daemon::start().await;
+            if let Ok(payload) = create_room(server_url).await {
+                return (payload, Some("Updated Focusa daemon detected; Pairing Room is ready.".to_string()));
+            }
+
             let connect_url = format!("{server_url}/connect");
             (
                 json!({
@@ -71,10 +80,9 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
                     "connect_url": connect_url,
                     "room_id": null,
                     "failure_class": "connect_room_start_unavailable",
+                    "details": first_err.to_string(),
                 }),
-                Some(format!(
-                    "Pairing Room API unavailable; showing static /connect fallback. Details: {err}"
-                )),
+                Some("Focusa Connect needs the current daemon. Run `focusa stop && focusa start`, then `focusa pair`.".to_string()),
             )
         }
     }
@@ -91,7 +99,7 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
         .unwrap_or_else(|| format!("{server_url}/connect"));
     let room_id = room_payload.get("room_id").and_then(Value::as_str);
     let local_warning = if source == "local_default" {
-        Some("Set FOCUSA_PAIRING_URL or pass --url for a phone-reachable VPS URL.")
+        Some("For phone scanning, run `focusa pair --url https://YOUR-FOCUSA-DOMAIN` or set FOCUSA_PAIRING_URL.")
     } else {
         None
     };
