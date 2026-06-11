@@ -73,3 +73,21 @@ Published Mac menubar assets:
 - `Focusa_x64.app.tar.gz`
 
 Published companion CLI/daemon assets include Apple Silicon, Intel macOS, and Linux binaries for `focusa`, `focusa-daemon`, and `focusa-tui`.
+
+## Menubar diagnostics update
+
+Pairing failures now expose a copyable diagnostics log in the app.
+
+Implemented surfaces:
+
+- `apps/menubar/src/lib/stores/diagnostics.svelte.ts` — timestamped local diagnostics ledger with error classes for network, timeout, HTTP, JSON parse, Keychain, global JS, unhandled promise rejection, and pairing phases.
+- `apps/menubar/src/routes/+layout.svelte` — installs global `window.error` and `unhandledrejection` capture.
+- `apps/menubar/src/lib/api.ts` — records generic API/network/HTTP/JSON failures.
+- `apps/menubar/src/lib/stores/pairing.svelte.ts` — records pairing start/poll/list/revoke/bootstrap failures with URL, method, status, failure class, body, stack, and timestamp where available.
+- `apps/menubar/src/lib/components/PairingPanel.svelte` — shows error timestamp/class/phase and a **Copy error log** button.
+
+Validation:
+
+```bash
+cd apps/menubar && bun run check && bun run build
+```

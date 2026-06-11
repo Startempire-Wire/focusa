@@ -1,6 +1,13 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { Snippet } from 'svelte';
+  import { installGlobalDiagnostics } from '$lib/stores/diagnostics.svelte';
+
   let { children }: { children: Snippet } = $props();
+
+  onMount(() => {
+    installGlobalDiagnostics();
+  });
 </script>
 
 <div class="popover">

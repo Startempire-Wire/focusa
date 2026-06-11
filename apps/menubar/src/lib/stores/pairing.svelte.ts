@@ -10,6 +10,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { getApiUrl } from '$lib/api';
+import { diagnosticsStore, type DiagnosticEntry } from '$lib/stores/diagnostics.svelte';
 
 export type PairingState =
   | { kind: 'idle' }
@@ -17,7 +18,7 @@ export type PairingState =
   | { kind: 'waiting_vps'; code: string; deviceId: string; deviceName: string; platform: string; daemonBaseUrl: string; pairUrl: string; pairUrlQrPayload: string; scopes: string[]; onYourVpsRun: string; startedAt: number; expiresAt: number; attempt: number }
   | { kind: 'completed'; deviceId: string; deviceName: string; tokenPreview: string; tokenExpiresAt: string; host: string; completedAt: number }
   | { kind: 'expired'; code: string; deviceId: string; deviceName: string; reason: string }
-  | { kind: 'error'; message: string; recoverable: boolean; failureClass?: string };
+  | { kind: 'error'; message: string; recoverable: boolean; failureClass?: string; diagnostic?: DiagnosticEntry; diagnosticText?: string };
 
 export interface PairedDevice {
   device_id: string;
@@ -47,6 +48,8 @@ function apiBase(): string {
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const url = `${apiBase()}${path}`;
+  const method = init?.method || 'GET';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((init?.headers as Record<string, string> | undefined) || {}),
@@ -54,26 +57,38 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   if (currentAuthToken && !headers.Authorization) {
     headers.Authorization = `Bearer ${currentAuthToken}`;
   }
-  const resp = await fetch(`${apiBase()}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(8_000),
-    headers,
-  });
-  const text = await resp.text();
-  let json: any = null;
-  if (text) {
-    try { json = JSON.parse(text); } catch { json = { raw: text }; }
+  try {
+    const resp = await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(8_000),
+      headers,
+    });
+    const text = await resp.text();
+    let json: any = null;
+    if (text) {
+      try { json = JSON.parse(text); } catch (error) {
+        const err = new Error(`json_parse: ${(error as Error).message}`);
+        (err as any).failure_class = 'json_parse';
+        (err as any).status = resp.status;
+        (err as any).body = { raw: text };
+        throw err;
+      }
+    }
+    if (!resp.ok) {
+      const fc = json?.failure_class || `http_${resp.status}`;
+      const msg = json?.message || json?.error || resp.statusText || 'request failed';
+      const err = new Error(`${fc}: ${msg}`);
+      (err as any).failure_class = fc;
+      (err as any).status = resp.status;
+      (err as any).body = json;
+      throw err;
+    }
+    return json as T;
+  } catch (error) {
+    (error as any).url = (error as any).url || url;
+    (error as any).method = (error as any).method || method;
+    throw error;
   }
-  if (!resp.ok) {
-    const fc = json?.failure_class || `http_${resp.status}`;
-    const msg = json?.message || json?.error || resp.statusText || 'request failed';
-    const err = new Error(`${fc}: ${msg}`);
-    (err as any).failure_class = fc;
-    (err as any).status = resp.status;
-    (err as any).body = json;
-    throw err;
-  }
-  return json as T;
 }
 
 function loadStoredDevice(): StoredDeviceMeta | null {
@@ -123,6 +138,23 @@ async function clearPairingToken(deviceId: string): Promise<void> {
   await invoke('focusa_clear_pairing_token', { deviceId });
 }
 
+function pairingErrorState(phase: string, error: unknown, context?: Record<string, unknown>): PairingState {
+  const diagnostic = diagnosticsStore.record({
+    area: 'pairing',
+    phase,
+    error,
+    context: { api_base: apiBase(), ...context },
+  });
+  return {
+    kind: 'error',
+    message: diagnostic.message,
+    recoverable: true,
+    failureClass: diagnostic.failure_class || diagnostic.error_class,
+    diagnostic,
+    diagnosticText: diagnosticsStore.render({ area: 'pairing', limit: 30 }),
+  };
+}
+
 function createPairingStore() {
   let state = $state<PairingState>({ kind: 'idle' });
   let paired = $state<PairedDevice[]>([]);
@@ -165,7 +197,8 @@ function createPairingStore() {
           stopPolling();
         }
       } catch (err) {
-        // Keep polling on transient network errors until expiry timer flips UI.
+        // Keep polling on transient network errors until expiry timer flips UI, but keep the log.
+        diagnosticsStore.record({ area: 'pairing', phase: 'poll_status', error: err, context: { code, deviceId, api_base: apiBase() } });
         console.debug('focusa pairing poll failed', err);
       }
     }, 2_000);
@@ -218,7 +251,7 @@ function createPairingStore() {
       };
       startPolling(code, deviceId);
     } catch (err) {
-      state = { kind: 'error', message: err instanceof Error ? err.message : 'Pairing failed', recoverable: true };
+      state = pairingErrorState('start_pairing', err, { deviceName: args.deviceName });
     }
   }
 
@@ -238,6 +271,7 @@ function createPairingStore() {
         revoked_at: d.revoked_at ?? null,
       })).filter((d: PairedDevice) => d.device_id);
     } catch (err) {
+      diagnosticsStore.record({ area: 'pairing', phase: 'list_devices', error: err, context: { host, api_base: apiBase() } });
       console.debug('focusa device list failed', err);
     }
   }
@@ -250,14 +284,14 @@ function createPairingStore() {
       });
       const stored = loadStoredDevice();
       if (stored?.deviceId === deviceId) {
-        await clearPairingToken(deviceId).catch((err) => console.debug('focusa keychain clear failed', err));
+        await clearPairingToken(deviceId).catch((err) => diagnosticsStore.record({ area: 'pairing', phase: 'keychain_clear', error: err, context: { deviceId } }));
         currentAuthToken = null;
         clearStoredDeviceMeta();
         state = { kind: 'idle' };
       }
       await list(host);
     } catch (err) {
-      state = { kind: 'error', message: err instanceof Error ? err.message : 'Revoke failed', recoverable: true };
+      state = pairingErrorState('revoke_device', err, { deviceId, host });
     }
   }
 
@@ -284,11 +318,7 @@ function createPairingStore() {
     } catch (err) {
       currentAuthToken = null;
       clearStoredDeviceMeta();
-      state = {
-        kind: 'error',
-        message: `Stored pairing metadata exists, but Keychain token could not be loaded: ${err instanceof Error ? err.message : String(err)}`,
-        recoverable: true,
-      };
+      state = pairingErrorState('bootstrap_keychain_load', err, { deviceId: stored.deviceId });
     }
   }
 

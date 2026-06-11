@@ -1,3 +1,5 @@
+import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
+
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 
 export interface ApiRequestOptions {
@@ -68,17 +70,37 @@ export function isDegraded(payload: any): boolean {
 export async function requestJson<T = any>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { timeoutMs = 3000, method = 'GET', body, headers = {} } = options;
   const base = getApiUrl();
-  const resp = await fetch(`${base}${path}`, {
-    method,
-    headers: body === undefined ? headers : { 'Content-Type': 'application/json', ...headers },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!resp.ok) {
-    const data = await resp.json().catch(() => ({}));
-    throw new Error(data?.error || data?.message || `${path} returned HTTP ${resp.status}`);
+  const url = `${base}${path}`;
+  try {
+    const resp = await fetch(url, {
+      method,
+      headers: body === undefined ? headers : { 'Content-Type': 'application/json', ...headers },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const text = await resp.text();
+    let data: any = null;
+    if (text) {
+      try { data = JSON.parse(text); } catch (error) {
+        diagnosticsStore.record({ area: 'api', phase: 'json_parse', error_class: 'json_parse', error, url, method, status: resp.status, body: text });
+        throw error;
+      }
+    }
+    if (!resp.ok) {
+      const err = new Error(data?.error || data?.message || `${path} returned HTTP ${resp.status}`);
+      (err as any).status = resp.status;
+      (err as any).failure_class = data?.failure_class || `http_${resp.status}`;
+      (err as any).body = data;
+      diagnosticsStore.record({ area: 'api', phase: 'http_response', error: err, url, method, status: resp.status, body: data });
+      throw err;
+    }
+    return data as T;
+  } catch (error) {
+    if (!(error as any)?.status) {
+      diagnosticsStore.record({ area: 'api', phase: 'fetch', error, url, method, context: { timeoutMs } });
+    }
+    throw error;
   }
-  return await resp.json() as T;
 }
 
 export async function fetchJson<T = any>(path: string, timeoutMs = 3000): Promise<T> {

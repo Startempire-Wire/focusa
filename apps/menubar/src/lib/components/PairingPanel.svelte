@@ -20,6 +20,7 @@
 
   let deviceNameInput = $state(localStorage.getItem('focusa_device_name') || 'operator-mac');
   let copied = $state(false);
+  let copiedErrorLog = $state(false);
   let now = $state(Date.now());
   // focusa-ui0y.10: Mode A/B/C tabs in the waiting_vps view.
   //   A = CLI (default; works over SSH)
@@ -62,6 +63,12 @@
       // Fallback: select-and-prompt
       window.prompt('Copy this code:', text);
     }
+  }
+
+  async function copyErrorLog(text?: string) {
+    await copyToClipboard(text || 'No pairing diagnostic log available');
+    copiedErrorLog = true;
+    setTimeout(() => (copiedErrorLog = false), 1_500);
   }
 
   function saveDeviceName() {
@@ -197,7 +204,15 @@
       {#if s.failureClass}
         <p class="meta-line">failure_class: <code>{s.failureClass}</code></p>
       {/if}
-      <button class="primary" onclick={() => pairingStore.reset()}>Try again</button>
+      {#if s.diagnostic}
+        <p class="meta-line">time: <code>{s.diagnostic.ts}</code></p>
+        <p class="meta-line">class: <code>{s.diagnostic.error_class}</code> · phase: <code>{s.diagnostic.phase}</code></p>
+      {/if}
+      <div class="row-actions">
+        <button class="secondary" onclick={() => copyErrorLog(s.diagnosticText)}>Copy error log</button>
+        <button class="primary" onclick={() => pairingStore.reset()}>Try again</button>
+      </div>
+      {#if copiedErrorLog}<p class="copied">Error log copied.</p>{/if}
     </section>
   {/if}
 
@@ -515,4 +530,20 @@
     color: var(--fg-tertiary);
   }
   .raw-url summary { cursor: pointer; }
+  .row-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  button.secondary {
+    background: var(--bg-elevated);
+    color: var(--fg-primary);
+    border: 1px solid var(--border);
+  }
+  .copied {
+    font-size: var(--text-xs);
+    color: var(--success, #22c55e);
+    margin-top: 6px;
+  }
 </style>
