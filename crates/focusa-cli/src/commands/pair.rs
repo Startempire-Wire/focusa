@@ -26,15 +26,15 @@ fn server_url(explicit: Option<String>) -> (String, &'static str) {
     if let Some(url) = explicit.filter(|v| !v.trim().is_empty()) {
         return (normalize_base(&url), "--url");
     }
-    if let Ok(url) = std::env::var("FOCUSA_PAIRING_URL") {
-        if !url.trim().is_empty() {
-            return (normalize_base(&url), "FOCUSA_PAIRING_URL");
-        }
+    if let Ok(url) = std::env::var("FOCUSA_PAIRING_URL")
+        && !url.trim().is_empty()
+    {
+        return (normalize_base(&url), "FOCUSA_PAIRING_URL");
     }
-    if let Ok(url) = std::env::var("FOCUSA_PUBLIC_URL") {
-        if !url.trim().is_empty() {
-            return (normalize_base(&url), "FOCUSA_PUBLIC_URL");
-        }
+    if let Ok(url) = std::env::var("FOCUSA_PUBLIC_URL")
+        && !url.trim().is_empty()
+    {
+        return (normalize_base(&url), "FOCUSA_PUBLIC_URL");
     }
     ("http://127.0.0.1:8787".to_string(), "local_default")
 }
