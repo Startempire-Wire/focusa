@@ -131,6 +131,9 @@ jobs:
         with:
           bun-version: 1.3.6
 
+      - name: Stamp menubar version from release tag
+        run: python3 scripts/stamp-menubar-version.py "${{ github.ref_name }}"
+
       - name: Install frontend deps
         working-directory: apps/menubar
         run: bun install

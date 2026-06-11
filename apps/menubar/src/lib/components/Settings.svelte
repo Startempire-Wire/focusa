@@ -244,7 +244,7 @@
   </section>
 
   <section class="section about">
-    <span>Focusa v0.9.14-dev</span><span>·</span><span>Cognitive Governance</span>
+    <span>Focusa v0.9.16-dev</span><span>·</span><span>Cognitive Governance</span>
   </section>
 </div>
 
