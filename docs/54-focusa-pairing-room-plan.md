@@ -135,7 +135,37 @@ Current transitional routes already exist:
 - `GET /v1/connect/status`
 - `POST /v1/connect/approve`
 
-## 7. CLI/TUI plan
+## 7. Public URL / proxy setup
+
+The Phone Bridge Flow requires a **Public Focusa URL** before a real phone can open the Focusa Connect Page.
+
+Installers/operators must provide one of:
+
+```bash
+export FOCUSA_PAIRING_URL=https://focusa.example.com
+# or
+sudo mkdir -p /etc/focusa
+printf 'https://focusa.example.com\n' | sudo tee /etc/focusa/public-url
+```
+
+The public URL must reverse-proxy both routes to the local daemon:
+
+```text
+/connect/*    -> http://127.0.0.1:8787/connect/*
+/v1/connect/* -> http://127.0.0.1:8787/v1/connect/*
+```
+
+Portable setup helper:
+
+```bash
+scripts/setup-phone-bridge-url.sh --url https://focusa.example.com --print-proxy
+scripts/setup-phone-bridge-url.sh --url https://focusa.example.com --check
+sudo scripts/setup-phone-bridge-url.sh --url https://focusa.example.com --write
+```
+
+`focusa pair` then reads the configured URL and emits a phone-scannable Bridge Room URL.
+
+## 8. CLI/TUI plan
 
 ### 7.1 `focusa pair`
 
@@ -176,7 +206,7 @@ Hostname/IP candidates count only when `GET /connect` returns the Focusa Connect
 
 Future TUI can render the same `connect_url` QR in a centered panel. No separate protocol.
 
-## 8. UI rules
+## 9. UI rules
 
 Mac first-run:
 - QR first
@@ -191,7 +221,7 @@ Focusa Connect Page:
 - Advanced paste fallback hidden
 - approval screen shows Mac name + server
 
-## 9. Security rules
+## 10. Security rules
 
 - Rooms expire quickly (default 5 min).
 - Phone never receives long-lived token except as transient response body if needed for status; Mac is the intended token consumer.
@@ -199,7 +229,7 @@ Focusa Connect Page:
 - Mac offer contains nonce and optional public key.
 - Server URL comes from server origin or configured public URL, not from Mac QR.
 
-## 10. Implementation phases
+## 11. Implementation phases
 
 ### Phase A — command surface
 
