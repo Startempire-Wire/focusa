@@ -1205,62 +1205,43 @@ fn connect_mediator_html() -> String {
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100vh; min-height: 100dvh;
-      display: flex; align-items: center; justify-content: center;
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
       padding: 24px; background: #0f1115; color: #e8e8e8;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif;
       line-height: 1.45;
     }
-    .card {
-      width: min(100%, 430px); background: #1a1d24; border: 1px solid #2b303b;
-      border-radius: 22px; padding: 24px; text-align: center;
-      box-shadow: 0 24px 80px rgba(0,0,0,.35);
-    }
+    .card { width: min(100%, 430px); background: #1a1d24; border: 1px solid #2b303b; border-radius: 22px; padding: 24px; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,.35); }
     h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; }
     p { color: #a7adba; margin: 8px 0 18px; }
-    video {
-      width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
-      border-radius: 18px; background: #0b0d12; border: 1px solid #303746;
-      display: none;
-    }
-    textarea {
-      width: 100%; min-height: 118px; resize: vertical; border-radius: 14px;
-      border: 1px solid #303746; background: #10131a; color: #e8e8e8;
-      padding: 12px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-    button {
-      width: 100%; border: 0; border-radius: 14px; padding: 14px 16px;
-      margin-top: 12px; background: #4f7cff; color: white;
-      font: inherit; font-weight: 700; cursor: pointer;
-    }
-    button.secondary { background: #262c38; color: #d8dbe3; }
-    button:disabled { opacity: .55; cursor: default; }
-    .status { margin-top: 14px; min-height: 22px; color: #a7adba; font-size: 13px; }
-    .device { display:none; text-align: left; background:#10131a; border:1px solid #303746; border-radius:14px; padding:14px; margin-top:14px; }
-    .device strong { display:block; color:#fff; margin-bottom:4px; }
-    .ok { color: #75d475; }
-    .err { color: #ff7a7a; }
-    details { margin-top: 16px; text-align: left; color: #a7adba; }
-    summary { cursor: pointer; font-weight: 700; }
+    video { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 18px; background: #0b0d12; border: 1px solid #303746; display: none; }
+    textarea { width: 100%; min-height: 118px; resize: vertical; border-radius: 14px; border: 1px solid #303746; background: #10131a; color: #e8e8e8; padding: 12px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    button { width: 100%; border: 0; border-radius: 14px; padding: 14px 16px; margin-top: 10px; font-weight: 700; color: #0b0d12; background: #8affc1; }
+    button.secondary { color: #e8e8e8; background: #2b303b; }
+    button:disabled { opacity: .45; }
+    .device { display: none; margin: 18px 0; padding: 14px; border: 1px solid #303746; border-radius: 16px; text-align: left; }
+    .device strong { display: block; font-size: 16px; }
+    .muted, #status { color: #7e8798; font-size: 13px; }
+    details { margin-top: 16px; text-align: left; }
+    summary { color: #a7adba; cursor: pointer; }
   </style>
 </head>
 <body>
   <main class="card">
     <h1>Connect a Mac</h1>
-    <p>Scan the code shown in the Focusa Mac app.</p>
+    <p id="intro">Scan the Mac QR from this Pairing Room.</p>
     <video id="video" playsinline muted></video>
-    <button id="scanBtn">Scan Mac code</button>
-    <div class="device" id="deviceBox" hidden>
+    <div class="device" id="deviceBox">
       <strong id="deviceName">Mac</strong>
-      <span id="deviceMeta">Ready to approve.</span>
+      <span class="muted" id="deviceMeta"></span>
     </div>
+    <button id="scanBtn">Scan Mac code</button>
     <button id="approveBtn" disabled>Connect this Mac</button>
-    <div class="status" id="status">This phone connects the Mac to this Focusa server.</div>
+    <p id="status">Waiting for Mac handoff code.</p>
     <details id="advancedDetails">
       <summary>Advanced</summary>
       <div id="advancedBody" hidden>
         <p>Paste the Mac QR payload if camera scan is unavailable.</p>
-        <textarea id="pasteBox" placeholder='{"protocol":"focusa-connect-v1",...}'></textarea>
+        <textarea id="pasteBox" placeholder='{"protocol":"focusa-connect-v1","role":"mac_handoff_offer",...}'></textarea>
         <button class="secondary" id="pasteBtn">Use pasted code</button>
         <button class="secondary" id="copyBtn">Copy diagnostics</button>
       </div>
@@ -1268,6 +1249,10 @@ fn connect_mediator_html() -> String {
   </main>
   <script>
     const serverUrl = location.origin;
+    const roomId = (() => {
+      const match = location.pathname.match(/^\/connect\/([^/?#]+)/);
+      return match ? decodeURIComponent(match[1]) : '';
+    })();
     const scanBtn = document.getElementById('scanBtn');
     const approveBtn = document.getElementById('approveBtn');
     const advancedDetails = document.getElementById('advancedDetails');
@@ -1282,128 +1267,113 @@ fn connect_mediator_html() -> String {
     const deviceMeta = document.getElementById('deviceMeta');
     let stream = null;
     let detector = null;
-    let connectId = '';
     let lastOffer = null;
 
+    function setStatus(text) { statusEl.textContent = text; }
+    function stopCamera() {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      stream = null;
+      video.style.display = 'none';
+    }
     function decodeOfferParam(value) {
       const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
       const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
-      return decodeURIComponent(escape(atob(padded)));
-    }
-
-    function setStatus(text, cls='') {
-      statusEl.className = 'status ' + cls;
-      statusEl.textContent = text;
+      return JSON.parse(atob(padded));
     }
     function parseOffer(raw) {
-      const data = JSON.parse(raw);
-      if (data.protocol !== 'focusa-connect-v1' || data.role !== 'mac_handoff_offer') {
-        throw new Error('Not a Focusa Mac connection code');
-      }
-      if (!data.nonce) throw new Error('Mac code is missing nonce');
-      return data;
+      const text = String(raw || '').trim();
+      if (!text) throw new Error('Empty Mac code');
+      if (text.startsWith('{')) return JSON.parse(text);
+      const url = new URL(text, serverUrl);
+      const encoded = url.searchParams.get('offer') || url.hash.replace(/^#offer=/, '');
+      if (!encoded) throw new Error('QR did not contain a Focusa Mac offer');
+      return decodeOfferParam(encoded);
     }
-    async function startConnectFromOffer(offer) {
-      lastOffer = offer;
-      setStatus('Contacting this Focusa server…');
-      const r = await fetch('/v1/connect/start', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          mac_name: offer.mac_name || 'Focusa Mac',
-          mac_nonce: offer.nonce,
-          mac_pubkey: offer.mac_pubkey || null,
-          mac_callback: offer.mac_callback || null,
-          server_url: serverUrl,
-          scopes: ['read', 'write']
-        })
+    function validateOffer(offer) {
+      if (offer.protocol !== 'focusa-connect-v1') throw new Error('Wrong protocol');
+      if (offer.role && offer.role !== 'mac_handoff_offer') throw new Error('Wrong handoff role');
+      return {
+        mac_name: offer.mac_name || offer.device_name || 'Focusa Mac',
+        mac_nonce: offer.nonce || offer.mac_nonce,
+        mac_pubkey: offer.mac_pubkey || null,
+        mac_callback: offer.mac_callback || null,
+      };
+    }
+    async function submitOffer(offer) {
+      if (!roomId) throw new Error('Missing room id. Start from the QR shown by `focusa pair`.');
+      const body = validateOffer(offer);
+      if (!body.mac_nonce) throw new Error('Mac offer missing nonce');
+      const response = await fetch(`/v1/connect/room/${encodeURIComponent(roomId)}/mac-offer`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
       });
-      if (!r.ok) throw new Error('Server rejected connect start: HTTP ' + r.status);
-      const d = await r.json();
-      connectId = d.connect_id;
-      deviceName.textContent = d.mac_name || offer.mac_name || 'Focusa Mac';
-      deviceMeta.textContent = 'Server: ' + (d.server_url || serverUrl);
-      deviceBox.hidden = false;
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Mac offer rejected');
+      lastOffer = payload;
+      deviceName.textContent = payload.mac_name || body.mac_name;
+      deviceMeta.textContent = `${serverUrl} · room ${roomId.slice(0, 8)}`;
       deviceBox.style.display = 'block';
       approveBtn.disabled = false;
-      setStatus('Mac found. Approve when ready.');
-    }
-    async function approve() {
-      if (!connectId) return;
-      approveBtn.disabled = true;
-      approveBtn.textContent = 'Connecting…';
-      setStatus('Approving this Mac…');
-      const r = await fetch('/v1/connect/approve', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ connect_id: connectId, host: location.host, completed_by: 'phone-pwa' })
-      });
-      if (!r.ok) {
-        approveBtn.disabled = false;
-        approveBtn.textContent = 'Connect this Mac';
-        throw new Error('Approve failed: HTTP ' + r.status);
-      }
-      setStatus('Connected. Return to your Mac.', 'ok');
-      approveBtn.textContent = 'Connected';
-    }
-    async function scanLoop() {
-      if (!detector || !stream) return;
-      try {
-        const codes = await detector.detect(video);
-        if (codes && codes.length) {
-          const raw = codes[0].rawValue || codes[0].rawValueText || '';
-          await stopScan();
-          await startConnectFromOffer(parseOffer(raw));
-          return;
-        }
-      } catch (e) {
-        setStatus(e.message || String(e), 'err');
-      }
-      requestAnimationFrame(scanLoop);
+      setStatus('Mac found. Tap Connect to approve.');
+      stopCamera();
     }
     async function startScan() {
       try {
-        if (!('BarcodeDetector' in window)) throw new Error('Camera QR scan unavailable; use Advanced paste.');
-        detector = new BarcodeDetector({ formats: ['qr_code'] });
+        if (!roomId) throw new Error('Open the QR from `focusa pair` first.');
+        if (!('BarcodeDetector' in window)) throw new Error('Camera QR scanning unavailable; use Advanced paste.');
+        detector = detector || new BarcodeDetector({ formats: ['qr_code'] });
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         video.srcObject = stream;
         video.style.display = 'block';
         await video.play();
-        setStatus('Point camera at the Mac code.');
-        scanLoop();
-      } catch (e) {
-        setStatus(e.message || String(e), 'err');
+        setStatus('Point the camera at the Mac QR.');
+        const tick = async () => {
+          if (!stream) return;
+          try {
+            const codes = await detector.detect(video);
+            if (codes.length) return submitOffer(parseOffer(codes[0].rawValue));
+          } catch (err) { setStatus(err.message || String(err)); }
+          requestAnimationFrame(tick);
+        };
+        tick();
+      } catch (err) {
+        advancedDetails.open = true; advancedBody.hidden = false;
+        setStatus(err.message || String(err));
       }
     }
-    async function stopScan() {
-      if (stream) stream.getTracks().forEach((t) => t.stop());
-      stream = null;
-      video.style.display = 'none';
+    async function approve() {
+      try {
+        if (!lastOffer) throw new Error('Scan or paste a Mac code first.');
+        approveBtn.disabled = true;
+        const response = await fetch(`/v1/connect/room/${encodeURIComponent(roomId)}/approve`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ host: 'operator-vps', completed_by: 'phone-pwa-room' })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Approval failed');
+        setStatus('Connected. The Mac app can now store its token.');
+        approveBtn.textContent = 'Connected';
+      } catch (err) {
+        approveBtn.disabled = false;
+        setStatus(err.message || String(err));
+      }
     }
     advancedDetails.addEventListener('toggle', () => { advancedBody.hidden = !advancedDetails.open; });
     scanBtn.addEventListener('click', startScan);
-    approveBtn.addEventListener('click', () => approve().catch((e) => setStatus(e.message || String(e), 'err')));
-    pasteBtn.addEventListener('click', () => {
-      try { startConnectFromOffer(parseOffer(pasteBox.value)); }
-      catch (e) { setStatus(e.message || String(e), 'err'); }
-    });
-    const offerParam = new URLSearchParams(location.search).get('offer');
-    if (offerParam) {
-      try { startConnectFromOffer(parseOffer(decodeOfferParam(offerParam))); }
-      catch (e) { setStatus(e.message || String(e), 'err'); }
+    approveBtn.addEventListener('click', approve);
+    pasteBtn.addEventListener('click', () => submitOffer(parseOffer(pasteBox.value)).catch(err => setStatus(err.message || String(err))));
+    copyBtn.addEventListener('click', () => navigator.clipboard.writeText(JSON.stringify({ room_id: roomId, server_url: serverUrl, last_offer: lastOffer }, null, 2)).catch(() => {}));
+    if (!roomId) {
+      approveBtn.disabled = true;
+      advancedDetails.open = true;
+      advancedBody.hidden = false;
+      setStatus('Missing room id. Run focusa pair on the server and scan that QR first.');
     }
-
-    copyBtn.addEventListener('click', async () => {
-      const payload = ['Focusa phone PWA diagnostics', 'server_url=' + serverUrl, 'connect_id=' + (connectId || '(none)'), 'offer=' + JSON.stringify(lastOffer || {})].join('\n');
-      try { await navigator.clipboard.writeText(payload); setStatus('Diagnostics copied.'); }
-      catch { prompt('Copy diagnostics:', payload); }
-    });
   </script>
 </body>
-</html>"##.to_string()
+</html>"##
+    .to_string()
 }
 
-/// PWA helper page — inline HTML, mobile-friendly, calm design.
 async fn pwa_helper_page(
     Path(device_id): Path<String>,
 ) -> (StatusCode, [(String, String); 2], String) {
