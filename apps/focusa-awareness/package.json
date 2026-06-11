@@ -1,0 +1,16 @@
+{
+  "name": "@focusa/focusa-awareness",
+  "version": "0.9.14-dev",
+  "type": "module",
+  "private": true,
+  "description": "Focusa Utility Card awareness plugin for OpenClaw-compatible hosts.",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
+  "scripts": {
+    "build": "bun build ./index.ts --target=node --format=esm --outfile=dist/index.js",
+    "check": "bun build ./index.ts --target=node --format=esm --outfile=/tmp/focusa-awareness-check.js"
+  }
+}

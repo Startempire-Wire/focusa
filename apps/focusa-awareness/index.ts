@@ -1,4 +1,14 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+interface OpenClawPluginApi {
+  pluginConfig?: Record<string, unknown>;
+  logger: {
+    info(message: string): void;
+    warn(message: string): void;
+  };
+  on(
+    event: "before_agent_start",
+    handler: (event: unknown, ctx: { sessionKey?: string }) => Promise<{ prependContext: string }>,
+  ): void;
+}
 
 interface FocusaAwarenessConfig {
   focusaUrl?: string;
