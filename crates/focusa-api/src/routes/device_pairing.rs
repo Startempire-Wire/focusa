@@ -75,6 +75,7 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route("/v1/connect/start", axum::routing::post(connect_start))
         .route("/v1/connect/status", axum::routing::get(connect_status))
         .route("/v1/connect/approve", axum::routing::post(connect_approve))
+        .route("/connect", axum::routing::get(connect_mediator_page))
         // focusa-ui0y.8: PWA helper page for QR/PWA handoff
         .route("/pair/{device_id}", axum::routing::get(pwa_helper_page))
         .route(
@@ -921,6 +922,218 @@ mod tests {
 //   2. Completed → the Mac app will receive the token via its own polling
 //   3. Expired  → code is gone; operator must generate a new code on the Mac
 // ──────────────────────────────────────────────────────────────────────────
+
+
+/// Phone PWA mediator — scans the Mac handoff QR and approves it on this VPS.
+async fn connect_mediator_page() -> (StatusCode, [(String, String); 2], String) {
+    (
+        StatusCode::OK,
+        [
+            ("content-type".to_string(), "text/html; charset=utf-8".to_string()),
+            ("cache-control".to_string(), "no-store".to_string()),
+        ],
+        connect_mediator_html(),
+    )
+}
+
+fn connect_mediator_html() -> String {
+    r##"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <title>Focusa Connect</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: #0f1115; color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif;
+      line-height: 1.45;
+    }
+    .card {
+      width: min(100%, 430px); background: #1a1d24; border: 1px solid #2b303b;
+      border-radius: 22px; padding: 24px; text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; }
+    p { color: #a7adba; margin: 8px 0 18px; }
+    video {
+      width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
+      border-radius: 18px; background: #0b0d12; border: 1px solid #303746;
+      display: none;
+    }
+    textarea {
+      width: 100%; min-height: 118px; resize: vertical; border-radius: 14px;
+      border: 1px solid #303746; background: #10131a; color: #e8e8e8;
+      padding: 12px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    button {
+      width: 100%; border: 0; border-radius: 14px; padding: 14px 16px;
+      margin-top: 12px; background: #4f7cff; color: white;
+      font: inherit; font-weight: 700; cursor: pointer;
+    }
+    button.secondary { background: #262c38; color: #d8dbe3; }
+    button:disabled { opacity: .55; cursor: default; }
+    .status { margin-top: 14px; min-height: 22px; color: #a7adba; font-size: 13px; }
+    .device { display:none; text-align: left; background:#10131a; border:1px solid #303746; border-radius:14px; padding:14px; margin-top:14px; }
+    .device strong { display:block; color:#fff; margin-bottom:4px; }
+    .ok { color: #75d475; }
+    .err { color: #ff7a7a; }
+    details { margin-top: 16px; text-align: left; color: #a7adba; }
+    summary { cursor: pointer; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Connect a Mac</h1>
+    <p>Scan the code shown in the Focusa Mac app.</p>
+    <video id="video" playsinline muted></video>
+    <button id="scanBtn">Scan Mac code</button>
+    <div class="device" id="deviceBox" hidden>
+      <strong id="deviceName">Mac</strong>
+      <span id="deviceMeta">Ready to approve.</span>
+    </div>
+    <button id="approveBtn" disabled>Connect this Mac</button>
+    <div class="status" id="status">This phone connects the Mac to this Focusa server.</div>
+    <details id="advancedDetails">
+      <summary>Advanced</summary>
+      <div id="advancedBody" hidden>
+        <p>Paste the Mac QR payload if camera scan is unavailable.</p>
+        <textarea id="pasteBox" placeholder='{"protocol":"focusa-connect-v1",...}'></textarea>
+        <button class="secondary" id="pasteBtn">Use pasted code</button>
+        <button class="secondary" id="copyBtn">Copy diagnostics</button>
+      </div>
+    </details>
+  </main>
+  <script>
+    const serverUrl = location.origin;
+    const scanBtn = document.getElementById('scanBtn');
+    const approveBtn = document.getElementById('approveBtn');
+    const advancedDetails = document.getElementById('advancedDetails');
+    const advancedBody = document.getElementById('advancedBody');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const pasteBox = document.getElementById('pasteBox');
+    const statusEl = document.getElementById('status');
+    const video = document.getElementById('video');
+    const deviceBox = document.getElementById('deviceBox');
+    const deviceName = document.getElementById('deviceName');
+    const deviceMeta = document.getElementById('deviceMeta');
+    let stream = null;
+    let detector = null;
+    let connectId = '';
+    let lastOffer = null;
+
+    function setStatus(text, cls='') {
+      statusEl.className = 'status ' + cls;
+      statusEl.textContent = text;
+    }
+    function parseOffer(raw) {
+      const data = JSON.parse(raw);
+      if (data.protocol !== 'focusa-connect-v1' || data.role !== 'mac_handoff_offer') {
+        throw new Error('Not a Focusa Mac connection code');
+      }
+      if (!data.nonce) throw new Error('Mac code is missing nonce');
+      return data;
+    }
+    async function startConnectFromOffer(offer) {
+      lastOffer = offer;
+      setStatus('Contacting this Focusa server…');
+      const r = await fetch('/v1/connect/start', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mac_name: offer.mac_name || 'Focusa Mac',
+          mac_nonce: offer.nonce,
+          mac_pubkey: offer.mac_pubkey || null,
+          mac_callback: offer.mac_callback || null,
+          server_url: serverUrl,
+          scopes: ['read', 'write']
+        })
+      });
+      if (!r.ok) throw new Error('Server rejected connect start: HTTP ' + r.status);
+      const d = await r.json();
+      connectId = d.connect_id;
+      deviceName.textContent = d.mac_name || offer.mac_name || 'Focusa Mac';
+      deviceMeta.textContent = 'Server: ' + (d.server_url || serverUrl);
+      deviceBox.hidden = false;
+      deviceBox.style.display = 'block';
+      approveBtn.disabled = false;
+      setStatus('Mac found. Approve when ready.');
+    }
+    async function approve() {
+      if (!connectId) return;
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Connecting…';
+      setStatus('Approving this Mac…');
+      const r = await fetch('/v1/connect/approve', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ connect_id: connectId, host: location.host, completed_by: 'phone-pwa' })
+      });
+      if (!r.ok) {
+        approveBtn.disabled = false;
+        approveBtn.textContent = 'Connect this Mac';
+        throw new Error('Approve failed: HTTP ' + r.status);
+      }
+      setStatus('Connected. Return to your Mac.', 'ok');
+      approveBtn.textContent = 'Connected';
+    }
+    async function scanLoop() {
+      if (!detector || !stream) return;
+      try {
+        const codes = await detector.detect(video);
+        if (codes && codes.length) {
+          const raw = codes[0].rawValue || codes[0].rawValueText || '';
+          await stopScan();
+          await startConnectFromOffer(parseOffer(raw));
+          return;
+        }
+      } catch (e) {
+        setStatus(e.message || String(e), 'err');
+      }
+      requestAnimationFrame(scanLoop);
+    }
+    async function startScan() {
+      try {
+        if (!('BarcodeDetector' in window)) throw new Error('Camera QR scan unavailable; use Advanced paste.');
+        detector = new BarcodeDetector({ formats: ['qr_code'] });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+        video.style.display = 'block';
+        await video.play();
+        setStatus('Point camera at the Mac code.');
+        scanLoop();
+      } catch (e) {
+        setStatus(e.message || String(e), 'err');
+      }
+    }
+    async function stopScan() {
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+      video.style.display = 'none';
+    }
+    advancedDetails.addEventListener('toggle', () => { advancedBody.hidden = !advancedDetails.open; });
+    scanBtn.addEventListener('click', startScan);
+    approveBtn.addEventListener('click', () => approve().catch((e) => setStatus(e.message || String(e), 'err')));
+    pasteBtn.addEventListener('click', () => {
+      try { startConnectFromOffer(parseOffer(pasteBox.value)); }
+      catch (e) { setStatus(e.message || String(e), 'err'); }
+    });
+    copyBtn.addEventListener('click', async () => {
+      const payload = ['Focusa phone PWA diagnostics', 'server_url=' + serverUrl, 'connect_id=' + (connectId || '(none)'), 'offer=' + JSON.stringify(lastOffer || {})].join('\n');
+      try { await navigator.clipboard.writeText(payload); setStatus('Diagnostics copied.'); }
+      catch { prompt('Copy diagnostics:', payload); }
+    });
+  </script>
+</body>
+</html>"##.to_string()
+}
 
 /// PWA helper page — inline HTML, mobile-friendly, calm design.
 async fn pwa_helper_page(Path(device_id): Path<String>) -> (StatusCode, [(String, String); 2], String) {
