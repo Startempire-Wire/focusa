@@ -3,8 +3,10 @@
 #
 # Default dry-run:
 #   scripts/create-dev-release-tag.sh
-# Push release tag + main:
+# Push release tag + main and wait for GitHub CI/Release workflows:
 #   scripts/create-dev-release-tag.sh --push
+# Push without waiting for GitHub workflows:
+#   scripts/create-dev-release-tag.sh --push --no-wait-ci
 # Pin a major/minor lane:
 #   scripts/create-dev-release-tag.sh --base 0.9 --push
 
@@ -14,6 +16,8 @@ cd "$(dirname "$0")/.."
 BASE="0.9"
 PUSH=0
 DRY_RUN=0
+WAIT_CI=1
+CI_TIMEOUT_SECS=1800
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -28,6 +32,18 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       DRY_RUN=1
       shift
+      ;;
+    --wait-ci)
+      WAIT_CI=1
+      shift
+      ;;
+    --no-wait-ci)
+      WAIT_CI=0
+      shift
+      ;;
+    --ci-timeout)
+      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds}"
+      shift 2
       ;;
     -h|--help)
       sed -n '1,18p' "$0"
@@ -44,6 +60,37 @@ if ! [[ "$BASE" =~ ^[0-9]+\.[0-9]+$ ]]; then
   echo "Invalid --base '$BASE'; expected MAJOR.MINOR, e.g. 0.9" >&2
   exit 2
 fi
+
+if ! [[ "$CI_TIMEOUT_SECS" =~ ^[0-9]+$ ]]; then
+  echo "Invalid --ci-timeout '$CI_TIMEOUT_SECS'; expected seconds" >&2
+  exit 2
+fi
+
+wait_for_workflow() {
+  local workflow="$1"
+  local head_sha="$2"
+  local deadline=$((SECONDS + CI_TIMEOUT_SECS))
+  local run_id=""
+
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "gh CLI is required to track ${workflow}; install/auth gh or pass --no-wait-ci." >&2
+    exit 1
+  fi
+
+  echo "Waiting for GitHub ${workflow} run for ${head_sha:0:7}..."
+  while [[ $SECONDS -lt $deadline ]]; do
+    run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
+    if [[ -n "$run_id" ]]; then
+      echo "Tracking ${workflow}: https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
+      gh run watch "$run_id" --exit-status
+      return $?
+    fi
+    sleep 10
+  done
+
+  echo "Timed out waiting for GitHub ${workflow} run to appear for ${head_sha}." >&2
+  exit 1
+}
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Working tree is not clean. Commit/revert current changes before creating a release tag." >&2
@@ -95,9 +142,17 @@ git tag "${TAG}" HEAD
 echo "Created tag ${TAG} at $(git rev-parse --short HEAD)"
 
 if [[ "$PUSH" -eq 1 ]]; then
+  HEAD_SHA=$(git rev-parse HEAD)
   git push origin HEAD:main
   git push origin "${TAG}"
-  echo "Pushed main and ${TAG}. Release workflow will build assets for ${TAG}."
+  echo "Pushed main and ${TAG}."
+  if [[ "$WAIT_CI" -eq 1 ]]; then
+    wait_for_workflow "CI" "$HEAD_SHA"
+    wait_for_workflow "Release" "$HEAD_SHA"
+    echo "GitHub CI and Release workflows passed for ${TAG}."
+  else
+    echo "Not waiting for GitHub workflows. Track with: gh run list --commit ${HEAD_SHA}"
+  fi
 else
   echo "Local only. Push with: git push origin HEAD:main && git push origin ${TAG}"
 fi
