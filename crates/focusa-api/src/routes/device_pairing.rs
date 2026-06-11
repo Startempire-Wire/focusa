@@ -75,14 +75,34 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route("/v1/connect/start", axum::routing::post(connect_start))
         .route("/v1/connect/status", axum::routing::get(connect_status))
         .route("/v1/connect/approve", axum::routing::post(connect_approve))
+        .route(
+            "/v1/connect/room/start",
+            axum::routing::post(connect_room_start),
+        )
+        .route(
+            "/v1/connect/room/{room_id}/status",
+            axum::routing::get(connect_room_status),
+        )
+        .route(
+            "/v1/connect/room/{room_id}/mac-offer",
+            axum::routing::post(connect_room_mac_offer),
+        )
+        .route(
+            "/v1/connect/room/{room_id}/approve",
+            axum::routing::post(connect_room_approve),
+        )
         .route("/connect", axum::routing::get(connect_mediator_page))
+        .route("/connect/{room_id}", axum::routing::get(connect_room_page))
         // focusa-ui0y.8: PWA helper page for QR/PWA handoff
         .route("/pair/{device_id}", axum::routing::get(pwa_helper_page))
         .route(
             "/pair/{device_id}/manifest.json",
             axum::routing::get(pwa_manifest),
         )
-        .route("/pair/{device_id}/sw.js", axum::routing::get(pwa_service_worker))
+        .route(
+            "/pair/{device_id}/sw.js",
+            axum::routing::get(pwa_service_worker),
+        )
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -156,6 +176,28 @@ pub struct ConnectApproveRequest {
     pub completed_by: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ConnectRoomStartRequest {
+    pub server_url: Option<String>,
+    pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectRoomMacOfferRequest {
+    pub mac_name: Option<String>,
+    pub mac_nonce: Option<String>,
+    pub mac_pubkey: Option<String>,
+    pub mac_callback: Option<String>,
+    pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectRoomApproveRequest {
+    pub host: Option<String>,
+    pub operator_id: Option<String>,
+    pub completed_by: Option<String>,
+}
+
 fn public_server_url(fallback: Option<String>) -> String {
     std::env::var("FOCUSA_PAIRING_URL")
         .ok()
@@ -163,6 +205,193 @@ fn public_server_url(fallback: Option<String>) -> String {
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string())
         .trim_end_matches('/')
         .to_string()
+}
+
+fn connect_status_payload(session: &ConnectSession, status: String) -> Value {
+    let expired = session.expires_at < Utc::now();
+    json!({
+        "status": status,
+        "room_id": session.connect_id,
+        "connect_id": session.connect_id,
+        "device_id": session.device_id,
+        "mac_name": session.mac_name,
+        "mac_nonce": session.mac_nonce,
+        "mac_pubkey": session.mac_pubkey,
+        "mac_callback": session.mac_callback,
+        "server_url": session.server_url,
+        "connect_url": format!("{}/connect/{}", session.server_url, session.connect_id),
+        "scopes": session.scopes,
+        "created_at": session.created_at,
+        "expires_at": session.expires_at,
+        "expired": expired,
+        "token": session.token,
+        "next_tools": ["focusa_connect_room_status", "focusa_connect_room_approve"],
+        "rehydrate_id": session.connect_id,
+    })
+}
+
+async fn connect_room_start(
+    Json(body): Json<ConnectRoomStartRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let now = Utc::now();
+    let expires = now + Duration::seconds(CODE_TTL_SECS);
+    let room_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let scopes = body
+        .scopes
+        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let server_url = public_server_url(body.server_url);
+    let connect_url = format!("{server_url}/connect/{room_id}");
+
+    let session = ConnectSession {
+        connect_id: room_id.clone(),
+        device_id: device_id.clone(),
+        mac_name: String::new(),
+        mac_nonce: String::new(),
+        mac_pubkey: None,
+        mac_callback: None,
+        server_url: server_url.clone(),
+        scopes: scopes.clone(),
+        created_at: now,
+        expires_at: expires,
+        status: "waiting_for_mac".to_string(),
+        token: None,
+    };
+
+    shared_state()
+        .write()
+        .await
+        .connect_sessions
+        .insert(room_id.clone(), session);
+
+    Ok(Json(json!({
+        "status": "waiting_for_mac",
+        "canonical": false,
+        "advisory": true,
+        "room_id": room_id,
+        "connect_id": room_id,
+        "device_id": device_id,
+        "server_url": server_url,
+        "connect_url": connect_url,
+        "scopes": scopes,
+        "expires_at": expires,
+        "expires_in_secs": CODE_TTL_SECS,
+        "server_handoff": {
+            "protocol": "focusa-connect-v1",
+            "role": "pairing_room",
+            "server_url": server_url,
+            "room_id": room_id,
+            "connect_url": connect_url,
+            "expires_in_secs": CODE_TTL_SECS
+        },
+        "next_tools": ["focusa_connect_room_status", "focusa_connect_room_mac_offer"],
+        "rehydrate_id": room_id,
+    })))
+}
+
+async fn connect_room_status(
+    Path(room_id): Path<String>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let pairing_state = shared_state();
+    let s = pairing_state.read().await;
+    let Some(session) = s.connect_sessions.get(room_id.trim()) else {
+        return Err(rejection(
+            StatusCode::NOT_FOUND,
+            json!({
+                "status": "not_found",
+                "failure_class": "connect_room_not_found",
+                "room_id": room_id,
+            }),
+        ));
+    };
+    let expired = session.expires_at < Utc::now();
+    let status = if expired && session.token.is_none() {
+        "expired".to_string()
+    } else {
+        session.status.clone()
+    };
+    Ok(Json(connect_status_payload(session, status)))
+}
+
+async fn connect_room_mac_offer(
+    Path(room_id): Path<String>,
+    Json(body): Json<ConnectRoomMacOfferRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let mac_name = body.mac_name.unwrap_or_else(|| "Focusa Mac".to_string());
+    let mac_nonce = body
+        .mac_nonce
+        .unwrap_or_else(|| Uuid::now_v7().simple().to_string());
+    if mac_name.trim().is_empty() || mac_nonce.trim().is_empty() {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "mac_offer_missing",
+                "message": "mac_name and mac_nonce are required",
+            }),
+        ));
+    }
+
+    let now = Utc::now();
+    let pairing_state = shared_state();
+    let mut s = pairing_state.write().await;
+    let Some(existing) = s.connect_sessions.get(room_id.trim()).cloned() else {
+        return Err(rejection(
+            StatusCode::NOT_FOUND,
+            json!({
+                "status": "not_found",
+                "failure_class": "connect_room_not_found",
+                "room_id": room_id,
+            }),
+        ));
+    };
+    if existing.expires_at < now && existing.token.is_none() {
+        return Err(rejection(
+            StatusCode::GONE,
+            json!({
+                "status": "expired",
+                "failure_class": "connect_room_expired",
+                "room_id": room_id,
+                "expired_at": existing.expires_at,
+            }),
+        ));
+    }
+
+    let mut updated = existing;
+    updated.mac_name = mac_name;
+    updated.mac_nonce = mac_nonce;
+    updated.mac_pubkey = body.mac_pubkey;
+    updated.mac_callback = body.mac_callback;
+    if let Some(scopes) = body.scopes {
+        updated.scopes = scopes;
+    }
+    updated.status = "mac_seen".to_string();
+    s.connect_sessions
+        .insert(updated.connect_id.clone(), updated.clone());
+    Ok(Json(connect_status_payload(
+        &updated,
+        updated.status.clone(),
+    )))
+}
+
+async fn connect_room_approve(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Json(body): Json<ConnectRoomApproveRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    connect_approve(
+        State(state),
+        Json(ConnectApproveRequest {
+            connect_id: room_id,
+            host: body.host,
+            operator_id: body.operator_id,
+            completed_by: Some(
+                body.completed_by
+                    .unwrap_or_else(|| "phone-pwa-room".to_string()),
+            ),
+        }),
+    )
+    .await
 }
 
 async fn connect_start(
@@ -334,6 +563,20 @@ async fn connect_approve(
                 }),
             ));
         }
+        if existing.status == "waiting_for_mac"
+            || existing.mac_name.trim().is_empty()
+            || existing.mac_nonce.trim().is_empty()
+        {
+            return Err(rejection(
+                StatusCode::CONFLICT,
+                json!({
+                    "status": "waiting_for_mac",
+                    "failure_class": "mac_offer_required",
+                    "connect_id": connect_id,
+                    "message": "Submit the Mac handoff offer before approving this Pairing Room.",
+                }),
+            ));
+        }
         if existing.token.is_some() {
             existing
         } else {
@@ -352,7 +595,8 @@ async fn connect_approve(
             let mut updated = existing;
             updated.status = "completed".to_string();
             updated.token = Some(token);
-            s.connect_sessions.insert(connect_id.clone(), updated.clone());
+            s.connect_sessions
+                .insert(connect_id.clone(), updated.clone());
             updated
         }
     };
@@ -722,7 +966,11 @@ async fn pair_status(
         }
         if let Some((code, pair)) = s.pending.iter().find(|(_, p)| p.device_id == device_id) {
             let expired = pair.expires_at < now;
-            let status_str = if expired { "expired".to_string() } else { pair.status.to_lowercase() };
+            let status_str = if expired {
+                "expired".to_string()
+            } else {
+                pair.status.to_lowercase()
+            };
             return Ok(Json(json!({
                 "status": status_str,
                 "code": code,
@@ -923,13 +1171,21 @@ mod tests {
 //   3. Expired  → code is gone; operator must generate a new code on the Mac
 // ──────────────────────────────────────────────────────────────────────────
 
-
 /// Phone PWA mediator — scans the Mac handoff QR and approves it on this VPS.
+async fn connect_room_page(
+    Path(_room_id): Path<String>,
+) -> (StatusCode, [(String, String); 2], String) {
+    connect_mediator_page().await
+}
+
 async fn connect_mediator_page() -> (StatusCode, [(String, String); 2], String) {
     (
         StatusCode::OK,
         [
-            ("content-type".to_string(), "text/html; charset=utf-8".to_string()),
+            (
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            ),
             ("cache-control".to_string(), "no-store".to_string()),
         ],
         connect_mediator_html(),
@@ -1148,12 +1404,17 @@ fn connect_mediator_html() -> String {
 }
 
 /// PWA helper page — inline HTML, mobile-friendly, calm design.
-async fn pwa_helper_page(Path(device_id): Path<String>) -> (StatusCode, [(String, String); 2], String) {
+async fn pwa_helper_page(
+    Path(device_id): Path<String>,
+) -> (StatusCode, [(String, String); 2], String) {
     let html = pwa_helper_html(&device_id);
     (
         StatusCode::OK,
         [
-            ("content-type".to_string(), "text/html; charset=utf-8".to_string()),
+            (
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            ),
             ("cache-control".to_string(), "no-store".to_string()),
         ],
         html,
@@ -1161,7 +1422,9 @@ async fn pwa_helper_page(Path(device_id): Path<String>) -> (StatusCode, [(String
 }
 
 /// PWA manifest — minimal, no icons (spec §5.2: no third-party assets).
-async fn pwa_manifest(Path(device_id): Path<String>) -> (StatusCode, [(String, String); 2], String) {
+async fn pwa_manifest(
+    Path(device_id): Path<String>,
+) -> (StatusCode, [(String, String); 2], String) {
     let manifest = format!(
         r##"{{
   "name": "Focusa Pairing",
@@ -1178,7 +1441,10 @@ async fn pwa_manifest(Path(device_id): Path<String>) -> (StatusCode, [(String, S
     (
         StatusCode::OK,
         [
-            ("content-type".to_string(), "application/manifest+json".to_string()),
+            (
+                "content-type".to_string(),
+                "application/manifest+json".to_string(),
+            ),
             ("cache-control".to_string(), "no-store".to_string()),
         ],
         manifest,
@@ -1207,7 +1473,10 @@ self.addEventListener('fetch', (e) => {
     (
         StatusCode::OK,
         [
-            ("content-type".to_string(), "application/javascript; charset=utf-8".to_string()),
+            (
+                "content-type".to_string(),
+                "application/javascript; charset=utf-8".to_string(),
+            ),
             ("cache-control".to_string(), "no-store".to_string()),
         ],
         body,

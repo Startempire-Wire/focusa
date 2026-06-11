@@ -1,10 +1,11 @@
 //! Apple-like Mac Pairing Room entry command.
 
+use crate::api_client::ApiClient;
 use crate::commands::daemon;
 use clap::Args;
 use qrcode::QrCode;
 use qrcode::render::unicode;
-use serde_json::json;
+use serde_json::{Value, json};
 
 #[derive(Args)]
 pub struct PairArgs {
@@ -48,11 +49,48 @@ fn terminal_qr(payload: &str) -> anyhow::Result<String> {
         .build())
 }
 
+async fn start_room(server_url: &str) -> (Value, Option<String>) {
+    let client = ApiClient::new();
+    match client
+        .post(
+            "/v1/connect/room/start",
+            &json!({
+                "server_url": server_url,
+                "scopes": ["read", "write"],
+            }),
+        )
+        .await
+    {
+        Ok(payload) => (payload, None),
+        Err(err) => {
+            let connect_url = format!("{server_url}/connect");
+            (
+                json!({
+                    "status": "fallback_static_connect",
+                    "server_url": server_url,
+                    "connect_url": connect_url,
+                    "room_id": null,
+                    "failure_class": "connect_room_start_unavailable",
+                }),
+                Some(format!(
+                    "Pairing Room API unavailable; showing static /connect fallback. Details: {err}"
+                )),
+            )
+        }
+    }
+}
+
 pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
     let (server_url, source) = server_url(args.url);
-    let connect_url = format!("{server_url}/connect");
     let daemon_started = daemon::start().await.unwrap_or(false);
-    let warning = if source == "local_default" {
+    let (room_payload, room_warning) = start_room(&server_url).await;
+    let connect_url = room_payload
+        .get("connect_url")
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
+        .unwrap_or_else(|| format!("{server_url}/connect"));
+    let room_id = room_payload.get("room_id").and_then(Value::as_str);
+    let local_warning = if source == "local_default" {
         Some("Set FOCUSA_PAIRING_URL or pass --url for a phone-reachable VPS URL.")
     } else {
         None
@@ -62,13 +100,15 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
         println!(
             "{}",
             serde_json::to_string_pretty(&json!({
-                "status": "ready",
+                "status": room_payload.get("status").and_then(Value::as_str).unwrap_or("ready"),
                 "command": "focusa pair",
                 "server_url": server_url,
                 "server_url_source": source,
+                "room_id": room_id,
                 "connect_url": connect_url,
                 "daemon": if daemon_started { "started" } else { "already_running_or_external" },
-                "warning": warning,
+                "warning": room_warning.as_deref().or(local_warning),
+                "room": room_payload,
                 "next_steps": [
                     "Scan connect_url with your phone to open Focusa Connect.",
                     "In the phone PWA, scan the QR shown in the Mac menubar app.",
@@ -80,10 +120,13 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
     }
 
     println!("Focusa Pairing Room");
+    if let Some(room_id) = room_id {
+        println!("Room: {room_id}");
+    }
     println!();
     println!("Open on phone:");
     println!("{connect_url}");
-    if let Some(warning) = warning {
+    if let Some(warning) = room_warning.as_deref().or(local_warning) {
         println!();
         println!("Warning: {warning}");
     }
