@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
+  import { saveConnection, setApiUrl } from '$lib/api';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
 
@@ -10,6 +12,8 @@
   let now = $state(Date.now());
   let showAdvanced = $state(false);
   let copiedErrors = $state(false);
+  let completionPayload = $state('');
+  let completionStatus = $state('');
   let tickHandle: ReturnType<typeof setInterval> | null = null;
 
   function randomNonce(): string {
@@ -48,6 +52,31 @@
     created_at: new Date(createdAt).toISOString(),
     expires_in_secs: Math.floor(OFFER_TTL_MS / 1000),
   }));
+
+  async function applyCompletionPayload() {
+    try {
+      const payload = JSON.parse(completionPayload.trim());
+      if (payload.protocol !== 'focusa-connect-v1' || payload.role !== 'mac_completion_payload') {
+        throw new Error('Not a Focusa Mac completion payload');
+      }
+      if (!payload.server_url || !payload.device_id || !payload.token) {
+        throw new Error('Completion payload missing server_url, device_id, or token');
+      }
+      setApiUrl(payload.server_url);
+      saveConnection(payload.server_url, 'Focusa VPS');
+      try {
+        await invoke('focusa_save_pairing_token', { deviceId: payload.device_id, token: payload.token });
+        completionStatus = 'Connected. Token stored in Keychain.';
+      } catch (err) {
+        localStorage.setItem('focusa_pairing_token_preview', String(payload.token).slice(0, 6) + '…');
+        completionStatus = `Connected locally; Keychain unavailable: ${err instanceof Error ? err.message : String(err)}`;
+      }
+      localStorage.setItem('focusa_device_id', payload.device_id);
+      localStorage.setItem('focusa_has_connected_successfully', 'true');
+    } catch (err) {
+      completionStatus = err instanceof Error ? err.message : String(err);
+    }
+  }
 
   async function copyErrors() {
     const payload = [

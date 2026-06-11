@@ -1268,6 +1268,7 @@ fn connect_mediator_html() -> String {
     let stream = null;
     let detector = null;
     let lastOffer = null;
+    let completedPayload = null;
 
     function setStatus(text) { statusEl.textContent = text; }
     function stopCamera() {
@@ -1350,8 +1351,10 @@ fn connect_mediator_html() -> String {
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Approval failed');
-        setStatus('Connected. The Mac app can now store its token.');
+        completedPayload = payload;
+        setStatus('Connected. Copy Mac setup from Advanced if the Mac does not update automatically.');
         approveBtn.textContent = 'Connected';
+        copyBtn.textContent = 'Copy Mac setup';
       } catch (err) {
         approveBtn.disabled = false;
         setStatus(err.message || String(err));
@@ -1361,7 +1364,12 @@ fn connect_mediator_html() -> String {
     scanBtn.addEventListener('click', startScan);
     approveBtn.addEventListener('click', approve);
     pasteBtn.addEventListener('click', () => submitOffer(parseOffer(pasteBox.value)).catch(err => setStatus(err.message || String(err))));
-    copyBtn.addEventListener('click', () => navigator.clipboard.writeText(JSON.stringify({ room_id: roomId, server_url: serverUrl, last_offer: lastOffer }, null, 2)).catch(() => {}));
+    copyBtn.addEventListener('click', () => {
+      const payload = completedPayload
+        ? { protocol: 'focusa-connect-v1', role: 'mac_completion_payload', room_id: roomId, server_url: completedPayload.server_url || serverUrl, device_id: completedPayload.device_id, token: completedPayload.token, token_expires_at: completedPayload.token_expires_at }
+        : { room_id: roomId, server_url: serverUrl, last_offer: lastOffer };
+      navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).catch(() => {});
+    });
     if (!roomId) {
       approveBtn.disabled = true;
       advancedDetails.open = true;
