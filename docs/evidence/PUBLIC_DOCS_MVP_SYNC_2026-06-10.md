@@ -58,3 +58,18 @@ cd apps/menubar && bun run check && bun run build
 ```
 
 Native Linux Tauri build remains blocked on this AlmaLinux host by `glib-2.0 >= 2.70` (host has 2.56.4), so the final `.app` artifact must be produced by the GitHub macOS release job or on the operator Mac.
+
+## GitHub release publication proof
+
+Release workflow `27323208477` completed successfully for tag `v0.9.14-dev`.
+
+Release URL: https://github.com/Startempire-Wire/focusa/releases/tag/v0.9.14-dev
+
+Published Mac menubar assets:
+
+- `Focusa_0.9.14-dev_aarch64.dmg`
+- `Focusa_0.9.14-dev_x64.dmg`
+- `Focusa_aarch64.app.tar.gz`
+- `Focusa_x64.app.tar.gz`
+
+Published companion CLI/daemon assets include Apple Silicon, Intel macOS, and Linux binaries for `focusa`, `focusa-daemon`, and `focusa-tui`.
