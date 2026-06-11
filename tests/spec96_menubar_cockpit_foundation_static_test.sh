@@ -2,6 +2,8 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MENUBAR="${ROOT_DIR}/apps/menubar"
+MENUBAR_VERSION="$(node -p "require('${MENUBAR}/package.json').version")"
+MENUBAR_VERSION_PATTERN="$(printf '%s' "${MENUBAR_VERSION}" | sed 's/[][\\.^$*+?{}|()]/\\&/g')"
 
 assert_has() {
   local file="$1"
@@ -33,7 +35,7 @@ assert_has apps/menubar/src/routes/+page.svelte "WorkLoopPeek|activeTab === 'wor
 assert_has apps/menubar/src/routes/+page.svelte 'aria-label="Focusa peeks"|tab-mark|icon-only|quiet|scrollbar-width: none' 'menubar navigation uses calm aesthetic peek tabs only where needed'
 assert_has apps/menubar/src/routes/+page.svelte "activeTab === 'cockpit'|CockpitView" 'menubar uses cockpit naming instead of mission naming'
 assert_has apps/menubar/src/lib/components/CockpitView.svelte 'cockpit-grid|Focusa cockpit' 'cockpit component naming is polished'
-assert_has apps/menubar/src/lib/components/Settings.svelte 'v0\.9\.13-dev' 'settings polish shows current menubar version'
+assert_has apps/menubar/src/lib/components/Settings.svelte "v${MENUBAR_VERSION_PATTERN}" 'settings polish shows current menubar version'
 assert_has apps/menubar/src/lib/components/Settings.svelte 'Direct network binding exposes Focusa' 'settings polish includes remote security copy'
 assert_has apps/menubar/src/routes/+page.svelte '/v1/release/proof/status|manual_proof_required' 'release proof card reads API posture and avoids hardcoded ready state'
 assert_has apps/menubar/src/lib/components/CockpitView.svelte 'manual gate|manual_proof_required' 'release proof UI renders manual proof gate'

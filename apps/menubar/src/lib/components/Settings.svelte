@@ -138,6 +138,7 @@
   <section class="section connect-hero">
     <div class="section-label">CONNECT TO FOCUSA</div>
     <p class="hint">Connect to your remote Focusa server. Local Focusa remains available for future local development.</p>
+    <p class="hint">Direct network binding exposes Focusa; use trusted private networks or authenticated public endpoints.</p>
 
     {#if savedConnections.length > 0}
       <div class="saved-list">
