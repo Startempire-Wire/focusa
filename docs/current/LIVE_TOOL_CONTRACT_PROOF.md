@@ -38,9 +38,9 @@ node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures --json
 
 ```text
 Spec91 live tool contract proof: passed
-health=ok version=0.9.13-dev
-static=spec90.tool_contracts.v1 count=63
-live=spec90.tool_contracts.v1 count=63
+health=ok version=0.9.14-dev
+static=spec90.tool_contracts.v1 count=79
+live=spec90.tool_contracts.v1 count=79
 payload_equal=true
 checked_endpoints=/v1/health,/v1/ontology/tool-contracts
 ```
@@ -49,9 +49,9 @@ checked_endpoints=/v1/health,/v1/ontology/tool-contracts
 
 ```text
 Spec91 live tool contract proof: passed
-health=ok version=0.9.13-dev
-static=spec90.tool_contracts.v1 count=63
-live=spec90.tool_contracts.v1 count=63
+health=ok version=0.9.14-dev
+static=spec90.tool_contracts.v1 count=79
+live=spec90.tool_contracts.v1 count=79
 payload_equal=true
 checked_endpoints=/v1/health,/v1/ontology/tool-contracts,/v1/workpoint/current,/v1/work-loop/status?summary_only=true,/v1/lineage/head,/v1/metacognition/reflections/recent,/v1/focus/frame/current
 fixture_checks=workpoint:passed,work_loop:passed,tree_lineage:passed,metacognition:passed,focus_state:passed
@@ -67,7 +67,7 @@ Default proof and safe fixture mode are read-only and local. They do not mutate 
 
 ## Latest Spec97/reflex proof
 
-- Static/live tool contract registry count: 63.
+- Static/live tool contract registry count: 79.
 - `payload_equal=true` after rebuilt daemon restart.
 - Safe hot probes include `GET /v1/trajectory/view`; cold `/v1/lineage/tree` is skipped by low-memory audit unless explicitly opted in.
 - Reflex proof includes `GET /v1/reflex/primitives?family=recovery&limit=2`, `surface=reflex_primitives` traversal, and degraded/full-payload recovery suggestions.

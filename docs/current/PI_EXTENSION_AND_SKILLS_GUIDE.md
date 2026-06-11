@@ -65,4 +65,4 @@ Every current `focusa_*` tool has one individual doc under:
 docs/focusa-tools/tools/<tool-name>.md
 ```
 
-Current public count: 62 tools. Spec97 adds `focusa_reflex_primitives` for read-only Reflex Primitive summaries; Spec98 adds `focusa_project_card_outcome` for project-card learning outcomes and `focusa_session_transfer` for save/continue transfer between Pi sessions. These pair with direct APIs, traversal/context surfaces, and bounded result envelopes.
+Current public count: 79 tools. This count is generated from `docs/current/focusa-tool-contracts.json`; keep this guide, README, tool contracts, and Pi extension registry synchronized before release.
