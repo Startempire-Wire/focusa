@@ -1,0 +1,44 @@
+name: Create Dev Release Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Major/minor release lane, e.g. 0.9'
+        required: true
+        default: '0.9'
+      push:
+        description: 'Push the computed tag and main'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  GIT_AUTHOR_NAME: github-actions[bot]
+  GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+  GIT_COMMITTER_NAME: github-actions[bot]
+  GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+
+jobs:
+  create-tag:
+    name: Compute next dev tag and start release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git auth
+        run: git config user.name "$GIT_AUTHOR_NAME" && git config user.email "$GIT_AUTHOR_EMAIL"
+
+      - name: Create next dev tag
+        run: |
+          if [ "${{ inputs.push }}" = "true" ]; then
+            scripts/create-dev-release-tag.sh --base "${{ inputs.base }}" --push
+          else
+            scripts/create-dev-release-tag.sh --base "${{ inputs.base }}" --dry-run
+          fi
