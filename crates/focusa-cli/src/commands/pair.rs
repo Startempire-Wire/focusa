@@ -6,6 +6,7 @@ use clap::Args;
 use qrcode::QrCode;
 use qrcode::render::unicode;
 use serde_json::{Value, json};
+use std::net::{IpAddr, Ipv4Addr};
 
 #[derive(Args)]
 pub struct PairArgs {
@@ -18,25 +19,205 @@ pub struct PairArgs {
     pub no_qr: bool,
 }
 
+#[derive(Debug, Clone)]
+struct UrlChoice {
+    url: String,
+    source: &'static str,
+    warning: Option<String>,
+    checked_candidates: Vec<Value>,
+}
+
 fn normalize_base(url: &str) -> String {
     url.trim().trim_end_matches('/').to_string()
 }
 
-fn server_url(explicit: Option<String>) -> (String, &'static str) {
+fn env_url(key: &str) -> Option<String> {
+    std::env::var(key)
+        .ok()
+        .map(|url| normalize_base(&url))
+        .filter(|url| !url.is_empty())
+}
+
+fn file_url(path: &str) -> Option<String> {
+    std::fs::read_to_string(path)
+        .ok()
+        .map(|url| normalize_base(&url))
+        .filter(|url| !url.is_empty() && !url.starts_with('#'))
+}
+
+fn is_local_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.contains("://127.")
+        || lower.contains("://localhost")
+        || lower.contains("://0.0.0.0")
+        || lower.contains("://[::1]")
+}
+
+fn command_output(command: &str, args: &[&str]) -> Option<String> {
+    let output = std::process::Command::new(command).args(args).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!value.is_empty()).then_some(value)
+}
+
+fn detected_hostname() -> Option<String> {
+    let hostname = command_output("hostname", &["-f"]).or_else(|| command_output("hostname", &[]))?;
+    let host = hostname.trim().trim_end_matches('.');
+    if host.is_empty()
+        || host.eq_ignore_ascii_case("localhost")
+        || host.ends_with(".local")
+        || host.ends_with(".localdomain")
+    {
+        return None;
+    }
+    Some(host.to_string())
+}
+
+fn public_ipv4(ip: Ipv4Addr) -> bool {
+    let octets = ip.octets();
+    let carrier_grade_nat = octets[0] == 100 && (64..=127).contains(&octets[1]);
+    !(ip.is_loopback()
+        || ip.is_private()
+        || ip.is_link_local()
+        || ip.is_multicast()
+        || ip.is_broadcast()
+        || ip.is_unspecified()
+        || carrier_grade_nat)
+}
+
+fn detected_public_ips() -> Vec<String> {
+    command_output("hostname", &["-I"])
+        .unwrap_or_default()
+        .split_whitespace()
+        .filter_map(|raw| raw.parse::<IpAddr>().ok())
+        .filter_map(|ip| match ip {
+            IpAddr::V4(v4) if public_ipv4(v4) => Some(v4.to_string()),
+            _ => None,
+        })
+        .collect()
+}
+
+async fn connect_probe(url: &str) -> bool {
+    let connect_url = format!("{}/connect", normalize_base(url));
+    let Ok(client) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .danger_accept_invalid_certs(true)
+        .build()
+    else {
+        return false;
+    };
+    let Ok(resp) = client.get(connect_url).send().await else {
+        return false;
+    };
+    if !resp.status().is_success() {
+        return false;
+    }
+    resp.text()
+        .await
+        .map(|body| body.contains("Focusa Connect") && body.contains("Connect a Mac"))
+        .unwrap_or(false)
+}
+
+fn push_candidate(candidates: &mut Vec<(String, &'static str)>, url: String, source: &'static str) {
+    let normalized = normalize_base(&url);
+    if !normalized.is_empty() && !candidates.iter().any(|(seen, _)| seen == &normalized) {
+        candidates.push((normalized, source));
+    }
+}
+
+async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
     if let Some(url) = explicit.filter(|v| !v.trim().is_empty()) {
-        return (normalize_base(&url), "--url");
+        return UrlChoice {
+            url: normalize_base(&url),
+            source: "--url",
+            warning: None,
+            checked_candidates: vec![],
+        };
     }
-    if let Ok(url) = std::env::var("FOCUSA_PAIRING_URL")
-        && !url.trim().is_empty()
-    {
-        return (normalize_base(&url), "FOCUSA_PAIRING_URL");
+
+    for (key, source) in [
+        ("FOCUSA_PAIRING_URL", "FOCUSA_PAIRING_URL"),
+        ("FOCUSA_PUBLIC_URL", "FOCUSA_PUBLIC_URL"),
+    ] {
+        if let Some(url) = env_url(key) {
+            return UrlChoice {
+                url,
+                source,
+                warning: None,
+                checked_candidates: vec![],
+            };
+        }
     }
-    if let Ok(url) = std::env::var("FOCUSA_PUBLIC_URL")
-        && !url.trim().is_empty()
-    {
-        return (normalize_base(&url), "FOCUSA_PUBLIC_URL");
+
+    for path in [
+        "/etc/focusa/pairing-url",
+        "/etc/focusa/public-url",
+        ".focusa-pairing-url",
+        ".focusa-public-url",
+    ] {
+        if let Some(url) = file_url(path) {
+            return UrlChoice {
+                url,
+                source: "install_config",
+                warning: None,
+                checked_candidates: vec![],
+            };
+        }
     }
-    ("http://127.0.0.1:8787".to_string(), "local_default")
+
+    for key in ["FOCUSA_API_URL", "FOCUSA_BASE_URL"] {
+        if let Some(url) = env_url(key)
+            && !is_local_url(&url)
+        {
+            return UrlChoice {
+                url,
+                source: key,
+                warning: None,
+                checked_candidates: vec![],
+            };
+        }
+    }
+
+    let mut candidates = vec![];
+    if let Some(host) = detected_hostname() {
+        push_candidate(&mut candidates, format!("https://{host}"), "hostname_https");
+        push_candidate(&mut candidates, format!("http://{host}"), "hostname_http");
+        push_candidate(&mut candidates, format!("http://{host}:8787"), "hostname_daemon_port");
+    }
+    for ip in detected_public_ips() {
+        push_candidate(&mut candidates, format!("https://{ip}"), "public_ip_https");
+        push_candidate(&mut candidates, format!("http://{ip}"), "public_ip_http");
+        push_candidate(&mut candidates, format!("http://{ip}:8787"), "public_ip_daemon_port");
+    }
+
+    let mut checked = Vec::new();
+    for (url, source) in candidates {
+        let reachable = connect_probe(&url).await;
+        checked.push(json!({
+            "url": url,
+            "source": source,
+            "connect_route_reachable": reachable,
+        }));
+        if reachable {
+            return UrlChoice {
+                url,
+                source,
+                warning: None,
+                checked_candidates: checked,
+            };
+        }
+    }
+
+    UrlChoice {
+        url: "http://127.0.0.1:8787".to_string(),
+        source: "local_default",
+        warning: Some(
+            "No phone-reachable Focusa URL was detected. Set FOCUSA_PAIRING_URL or write /etc/focusa/public-url after installing your reverse proxy.".to_string(),
+        ),
+        checked_candidates: checked,
+    }
 }
 
 fn terminal_qr(payload: &str) -> anyhow::Result<String> {
@@ -69,7 +250,10 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
             // try the idempotent starter once, then retry room creation.
             let _ = daemon::start().await;
             if let Ok(payload) = create_room(server_url).await {
-                return (payload, Some("Updated Focusa daemon detected; Pairing Room is ready.".to_string()));
+                return (
+                    payload,
+                    Some("Updated Focusa daemon detected; Pairing Room is ready.".to_string()),
+                );
             }
 
             let connect_url = format!("{server_url}/connect");
@@ -89,7 +273,9 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
 }
 
 pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
-    let (server_url, source) = server_url(args.url);
+    let choice = resolve_server_url(args.url).await;
+    let server_url = choice.url.clone();
+    let source = choice.source;
     let daemon_started = daemon::start().await.unwrap_or(false);
     let (room_payload, room_warning) = start_room(&server_url).await;
     let connect_url = room_payload
@@ -98,11 +284,7 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
         .map(ToString::to_string)
         .unwrap_or_else(|| format!("{server_url}/connect"));
     let room_id = room_payload.get("room_id").and_then(Value::as_str);
-    let local_warning = if source == "local_default" {
-        Some("For phone scanning, run `focusa pair --url https://YOUR-FOCUSA-DOMAIN` or set FOCUSA_PAIRING_URL.")
-    } else {
-        None
-    };
+    let warning = room_warning.or(choice.warning);
 
     if json_mode {
         println!(
@@ -112,10 +294,11 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
                 "command": "focusa pair",
                 "server_url": server_url,
                 "server_url_source": source,
+                "checked_candidates": choice.checked_candidates,
                 "room_id": room_id,
                 "connect_url": connect_url,
                 "daemon": if daemon_started { "started" } else { "already_running_or_external" },
-                "warning": room_warning.as_deref().or(local_warning),
+                "warning": warning,
                 "room": room_payload,
                 "next_steps": [
                     "Scan connect_url with your phone to open Focusa Connect.",
@@ -134,9 +317,10 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
     println!();
     println!("Open on phone:");
     println!("{connect_url}");
-    if let Some(warning) = room_warning.as_deref().or(local_warning) {
+    println!("Detected from: {source}");
+    if let Some(warning) = warning.as_deref() {
         println!();
-        println!("Warning: {warning}");
+        println!("Setup needed: {warning}");
     }
     if !args.no_qr {
         println!();

@@ -164,7 +164,13 @@ URL resolution priority:
 1. `--url`
 2. `FOCUSA_PAIRING_URL`
 3. `FOCUSA_PUBLIC_URL`
-4. daemon local URL (`http://127.0.0.1:8787`) with warning
+4. installer files: `/etc/focusa/pairing-url`, `/etc/focusa/public-url`, `.focusa-pairing-url`, `.focusa-public-url`
+5. non-local `FOCUSA_API_URL` / `FOCUSA_BASE_URL`
+6. verified hostname candidates: `https://<fqdn>`, `http://<fqdn>`, `http://<fqdn>:8787`
+7. verified public IPv4 candidates: `https://<ip>`, `http://<ip>`, `http://<ip>:8787`
+8. daemon local URL (`http://127.0.0.1:8787`) with setup guidance
+
+Hostname/IP candidates count only when `GET /connect` returns the Focusa Connect page, not merely any HTTP 200. This keeps installs portable and avoids cPanel/default-site false positives.
 
 ### 7.2 TUI
 
