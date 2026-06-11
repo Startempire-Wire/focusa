@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fetchJson, focusaPost } from '$lib/api';
+  import { fetchJson, focusaPost, hasEverConnected } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -19,6 +19,7 @@
 
   type Tab = 'focus' | 'cockpit' | 'trajectory' | 'workpoint' | 'proof' | 'workloop' | 'gate' | 'sync' | 'pair' | 'settings';
   let activeTab = $state<Tab>('focus');
+  let everConnected = $state(false);
 
   let pollTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -33,6 +34,7 @@
   async function poll() {
     try {
       const state = await fetchJson('/v1/state/dump', 5000);
+      everConnected = true;
       const projectIdentity = await safe(() => fetchJson('/v1/project/identity'));
       const projectRoot = projectIdentity?.project_root || projectIdentity?.project_identity?.project_root || null;
       const continuityId = projectIdentity?.continuity_id || state?.session?.continuity_id || state?.workpoint?.active?.continuity_id || null;
@@ -103,10 +105,20 @@
   }
 
   onMount(() => {
-    focusStore.setConnecting();
-    poll(); // immediate first poll
-    pollTimer = setInterval(poll, 2000);
+    everConnected = hasEverConnected();
+    const onSaved = () => {
+      everConnected = true;
+      void poll();
+      if (!pollTimer) pollTimer = setInterval(poll, 2000);
+    };
+    window.addEventListener('focusa-connection-saved', onSaved);
+    if (everConnected) {
+      focusStore.setConnecting();
+      poll(); // immediate first poll only after a saved/successful connection exists
+      pollTimer = setInterval(poll, 2000);
+    }
     return () => {
+      window.removeEventListener('focusa-connection-saved', onSaved);
       if (pollTimer) clearInterval(pollTimer);
     };
   });
@@ -118,6 +130,7 @@
     <div class="status-dot" class:connected={focusStore.connected === 'connected'} class:error={focusStore.connected === 'error'}></div>
     <span class="header-title">Focusa</span>
   </div>
+  {#if everConnected || focusStore.connected === 'connected'}
   <nav class="tabs" aria-label="Focusa peeks">
     <button class="tab primary" class:active={activeTab === 'focus'} aria-pressed={activeTab === 'focus'} title="Focus bubble" onclick={() => activeTab = 'focus'}>
       <span class="tab-mark">◌</span><span>Focus</span>
@@ -153,11 +166,18 @@
       ⚙
     </button>
   </nav>
+  {/if}
 </header>
 
 <!-- Content -->
 <main class="content">
-  {#if activeTab === 'focus'}
+  {#if !everConnected && focusStore.connected !== 'connected'}
+    <div class="connect-empty">
+      <h2>Connect to Focusa</h2>
+      <p>There is no content to show until this app connects successfully to Focusa.</p>
+      <Settings />
+    </div>
+  {:else if activeTab === 'focus'}
     <FocusView />
   {:else if activeTab === 'cockpit'}
     <CockpitView />
@@ -302,5 +322,21 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .connect-empty {
+    padding: var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .connect-empty h2 {
+    margin: 0;
+    font-size: var(--text-lg);
+  }
+  .connect-empty > p {
+    margin: 0;
+    color: var(--fg-secondary);
+    line-height: 1.4;
   }
 </style>

@@ -1,6 +1,71 @@
 import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
+export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';
+export const HAS_CONNECTED_KEY = 'focusa_has_connected_successfully';
+
+export interface SavedConnection {
+  url: string;
+  label: string;
+  first_connected_at: string;
+  last_connected_at: string;
+}
+
+export function normalizeApiUrl(url: string): string {
+  return url.trim().replace(/\/$/, '');
+}
+
+export function loadSavedConnections(): SavedConnection[] {
+  try {
+    const raw = localStorage.getItem(SAVED_CONNECTIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((c) => c?.url).map((c) => ({
+      url: normalizeApiUrl(String(c.url)),
+      label: String(c.label || c.url),
+      first_connected_at: String(c.first_connected_at || c.last_connected_at || new Date().toISOString()),
+      last_connected_at: String(c.last_connected_at || c.first_connected_at || new Date().toISOString()),
+    })) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveConnection(url: string, label?: string): SavedConnection[] {
+  const normalized = normalizeApiUrl(url);
+  const now = new Date().toISOString();
+  const current = loadSavedConnections();
+  const existing = current.find((c) => c.url === normalized);
+  const next: SavedConnection = {
+    url: normalized,
+    label: label || existing?.label || normalized,
+    first_connected_at: existing?.first_connected_at || now,
+    last_connected_at: now,
+  };
+  const merged = [next, ...current.filter((c) => c.url !== normalized)];
+  try {
+    localStorage.setItem(SAVED_CONNECTIONS_KEY, JSON.stringify(merged));
+    localStorage.setItem(HAS_CONNECTED_KEY, 'true');
+  } catch {}
+  return merged;
+}
+
+export function removeSavedConnection(url: string): SavedConnection[] {
+  const normalized = normalizeApiUrl(url);
+  const next = loadSavedConnections().filter((c) => c.url !== normalized);
+  try {
+    localStorage.setItem(SAVED_CONNECTIONS_KEY, JSON.stringify(next));
+    if (next.length === 0) localStorage.removeItem(HAS_CONNECTED_KEY);
+  } catch {}
+  return next;
+}
+
+export function hasEverConnected(): boolean {
+  try {
+    return localStorage.getItem(HAS_CONNECTED_KEY) === 'true' || loadSavedConnections().length > 0;
+  } catch {
+    return false;
+  }
+}
 
 export interface ApiRequestOptions {
   timeoutMs?: number;
