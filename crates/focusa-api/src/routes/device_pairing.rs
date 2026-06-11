@@ -1029,6 +1029,12 @@ fn connect_mediator_html() -> String {
     let connectId = '';
     let lastOffer = null;
 
+    function decodeOfferParam(value) {
+      const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+      return decodeURIComponent(escape(atob(padded)));
+    }
+
     function setStatus(text, cls='') {
       statusEl.className = 'status ' + cls;
       statusEl.textContent = text;
@@ -1125,6 +1131,12 @@ fn connect_mediator_html() -> String {
       try { startConnectFromOffer(parseOffer(pasteBox.value)); }
       catch (e) { setStatus(e.message || String(e), 'err'); }
     });
+    const offerParam = new URLSearchParams(location.search).get('offer');
+    if (offerParam) {
+      try { startConnectFromOffer(parseOffer(decodeOfferParam(offerParam))); }
+      catch (e) { setStatus(e.message || String(e), 'err'); }
+    }
+
     copyBtn.addEventListener('click', async () => {
       const payload = ['Focusa phone PWA diagnostics', 'server_url=' + serverUrl, 'connect_id=' + (connectId || '(none)'), 'offer=' + JSON.stringify(lastOffer || {})].join('\n');
       try { await navigator.clipboard.writeText(payload); setStatus('Diagnostics copied.'); }

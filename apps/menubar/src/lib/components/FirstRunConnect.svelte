@@ -52,6 +52,7 @@
   async function copyErrors() {
     const payload = [
       'Focusa first-run connect diagnostics',
+      'note=Run focusa pair on the server first; scan this Mac code inside the Focusa Connect phone page.',
       `offer_nonce=${nonce || '(none)'}`,
       `offer_age_ms=${Date.now() - createdAt}`,
       `stored_server=${localStorage.getItem('focusa_api_url') || '(unset)'}`,
@@ -85,8 +86,8 @@
       <QRCode payload={offerPayload} size={260} />
     {/if}
   </div>
-  <p class="primary-copy">Scan this code with your phone.</p>
-  <p class="secondary-copy">Phone PWA connects this Mac to your Focusa server · {remainingLabel}</p>
+  <p class="primary-copy">Scan from Focusa Connect.</p>
+  <p class="secondary-copy">Run focusa pair on the server, then scan here from the phone page · {remainingLabel}</p>
 
   <div class="utility-row">
     <button class="utility" onclick={copyErrors}>{copiedErrors ? 'Copied errors' : 'Copy errors'}</button>

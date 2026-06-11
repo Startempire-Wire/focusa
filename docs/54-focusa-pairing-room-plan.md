@@ -1,0 +1,224 @@
+# Focusa Pairing Room Plan
+
+**Status:** implementation plan
+**Scope:** magical Mac menubar pairing across three parties: VPS/server, phone PWA, Mac menubar.
+**Primary command:** `focusa pair`
+
+## 1. Goal
+
+Make first-time Mac pairing feel like an Apple handoff with no manual server URL typing.
+
+```text
+VPS shell/TUI        Phone PWA                Mac menubar
+-----------          ---------                -----------
+focusa pair   ->     scan server QR     ->    shows Mac QR
+                    opens /connect            (handoff offer)
+                    scans Mac QR       ->     waits
+                    taps Connect       ->     receives token
+```
+
+## 2. User story
+
+1. Operator installs/starts Focusa on any VPS.
+2. Operator runs:
+
+   ```bash
+   focusa pair
+   ```
+
+3. CLI/TUI shows a QR for a phone URL:
+
+   ```text
+   https://<this-vps>/connect/<room_id>
+   ```
+
+4. Phone opens the Focusa Connect PWA from the VPS origin.
+5. Mac menubar first screen shows a Mac handoff QR.
+6. Phone PWA scans the Mac handoff QR and combines:
+   - room id from the server QR URL
+   - server origin from `window.location.origin`
+   - Mac offer from Mac QR
+7. Phone PWA shows `Connect <Mac name>?`.
+8. Operator taps Connect.
+9. VPS mints token.
+10. Mac stores server URL + token indefinitely until explicit disconnect.
+
+## 3. The two QR codes
+
+### 3.1 Server/TUI QR
+
+Shown by `focusa pair`.
+
+Payload is a normal URL so any phone camera can open it:
+
+```text
+https://<server>/connect/<room_id>
+```
+
+Purpose:
+- gets phone into the right Pairing Room
+- gives phone PWA the VPS origin
+- does not identify the Mac yet
+
+### 3.2 Mac menubar QR
+
+Shown by the Mac app.
+
+Payload is a handoff offer consumed by the phone PWA scanner. It may be raw JSON or a compact encoded URL understood by the room page.
+
+```json
+{
+  "protocol": "focusa-connect-v1",
+  "role": "mac_handoff_offer",
+  "mac_name": "Verious MacBook",
+  "nonce": "...",
+  "mac_pubkey": "optional...",
+  "mac_callback": "optional...",
+  "expires_in_secs": 300
+}
+```
+
+Purpose:
+- identifies the Mac
+- gives the room a nonce/challenge
+- never contains a long-lived token
+
+## 4. Phone PWA as the combine function
+
+The PWA is the middle layer:
+
+```js
+server_url = window.location.origin
+room_id = route param from /connect/<room_id>
+mac_offer = scanned Mac QR payload
+```
+
+Then it calls:
+
+```text
+POST /v1/connect/room/<room_id>/mac-offer
+POST /v1/connect/room/<room_id>/approve
+```
+
+## 5. Pairing Room backend model
+
+Room fields:
+
+```json
+{
+  "room_id": "01J...",
+  "server_url": "https://vps.example",
+  "status": "waiting_for_mac|mac_seen|approved|completed|expired",
+  "mac_offer": null,
+  "device_id": null,
+  "token": null,
+  "created_at": "...",
+  "expires_at": "..."
+}
+```
+
+## 6. API shape
+
+Preferred final routes:
+
+| Route | Caller | Purpose |
+|---|---|---|
+| `POST /v1/connect/room/start` | CLI/TUI | create Pairing Room and return `connect_url` |
+| `GET /connect/<room_id>` | phone | PWA room page |
+| `GET /v1/connect/room/<room_id>/status` | Mac/phone | poll room state |
+| `POST /v1/connect/room/<room_id>/mac-offer` | phone PWA | submit scanned Mac QR offer |
+| `POST /v1/connect/room/<room_id>/approve` | phone PWA | approve Mac and mint token |
+
+Current transitional routes already exist:
+- `GET /connect`
+- `POST /v1/connect/start`
+- `GET /v1/connect/status`
+- `POST /v1/connect/approve`
+
+## 7. CLI/TUI plan
+
+### 7.1 `focusa pair`
+
+Default human output:
+
+```text
+Focusa Pairing Room
+
+Open on phone:
+https://<server>/connect/<room_id>
+
+[terminal QR]
+
+Then scan the Mac menubar QR from the phone page.
+```
+
+Options:
+
+```bash
+focusa pair --url https://vps.example
+focusa pair --no-qr
+focusa pair --json
+```
+
+URL resolution priority:
+1. `--url`
+2. `FOCUSA_PAIRING_URL`
+3. `FOCUSA_PUBLIC_URL`
+4. daemon local URL (`http://127.0.0.1:8787`) with warning
+
+### 7.2 TUI
+
+Future TUI can render the same `connect_url` QR in a centered panel. No separate protocol.
+
+## 8. UI rules
+
+Mac first-run:
+- QR first
+- one sentence max
+- no server URL fields unless Advanced opened
+- Copy errors always available
+- if generic camera scans raw Mac offer, copy must make clear to use phone PWA scanner
+
+Phone PWA:
+- first screen: `Connect a Mac`
+- primary button: `Scan Mac code`
+- Advanced paste fallback hidden
+- approval screen shows Mac name + server
+
+## 9. Security rules
+
+- Rooms expire quickly (default 5 min).
+- Phone never receives long-lived token except as transient response body if needed for status; Mac is the intended token consumer.
+- Token is minted only after explicit phone approval.
+- Mac offer contains nonce and optional public key.
+- Server URL comes from server origin or configured public URL, not from Mac QR.
+
+## 10. Implementation phases
+
+### Phase A — command surface
+
+- Add `focusa pair`.
+- Print `/connect` or `/connect/<room_id>` URL.
+- Render terminal QR.
+
+### Phase B — room API
+
+- Add room start/status/mac-offer/approve endpoints.
+- Keep transitional `/v1/connect/*` routes as compatibility.
+
+### Phase C — phone PWA room page
+
+- Serve `/connect/<room_id>`.
+- Scan Mac QR.
+- Submit offer + approve.
+
+### Phase D — Mac room polling
+
+- Mac joins room/status and stores token.
+
+### Phase E — proof
+
+- API smoke test.
+- UIAI phone PWA QA.
+- Menubar first-run QA.
+- Release asset tag/version proof.

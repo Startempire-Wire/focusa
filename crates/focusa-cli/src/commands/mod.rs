@@ -21,6 +21,7 @@ pub mod lineage;
 pub mod memory;
 pub mod metacognition;
 pub mod onboard;
+pub mod pair;
 pub mod ontology;
 pub mod predict;
 pub mod project;

@@ -55,6 +55,9 @@ enum Commands {
     /// Run first-run Operator Preview onboarding.
     Onboard(commands::onboard::OnboardArgs),
 
+    /// Open a Mac Pairing Room and print a phone-scannable QR.
+    Pair(commands::pair::PairArgs),
+
     /// Run full agent-first doctor checks.
     Doctor(commands::doctor::DoctorArgs),
 
@@ -550,6 +553,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Onboard(args) => commands::onboard::run(args, cli.json).await,
+        Commands::Pair(args) => commands::pair::run(args, cli.json).await,
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,

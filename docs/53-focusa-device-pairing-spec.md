@@ -5,6 +5,8 @@
 **Owns:** Mac menubar ⇄ Phone PWA ⇄ VPS daemon OAuth-like device pairing
 **Beads:** `focusa-ui0y.1`–`.13`, `focusa-8oc0` and children
 
+See also: [Pairing Room Plan](54-focusa-pairing-room-plan.md).
+
 This spec owns the full pairing architecture: code flow, QR flow, PWA helper, security model, portability, multi-tenancy, and audit. Tool-level docs (`focusa_device_pair_*`) become reference material that points here.
 
 ---
@@ -34,14 +36,15 @@ The portable first-run flow is:
 
 ```text
 Mac menubar shows a short-lived QR handoff offer.
-Phone PWA, already loaded from the operator's VPS, scans the Mac QR.
+The generic phone camera is not the scanner for this QR; it will show raw JSON.
+Phone PWA, already loaded from the operator's VPS, scans the Mac QR inside `/connect`.
 Phone PWA sends the VPS origin + connect session to the Mac handoff endpoint/deep link.
 Mac joins that VPS connect session and polls for completion.
 Phone PWA shows the Mac identity and operator taps Approve.
 VPS mints a token; Mac receives it through polling and stores server+token indefinitely.
 ```
 
-The Mac QR is not a server URL. It is a temporary handoff offer:
+The Mac QR is not a server URL and is not expected to open in the phone camera app. It is a temporary handoff offer consumed by the Focusa phone PWA scanner:
 
 ```json
 {
@@ -77,10 +80,11 @@ Then the phone PWA delivers a signed server handoff to the Mac:
 
 If direct browser-to-Mac callback is blocked, the phone PWA must offer Apple-like fallbacks in this order:
 
-1. Open `focusa://connect?...` deep link.
-2. Share/AirDrop the same deep link to the Mac.
-3. Copy link.
-4. Advanced manual server URL/code.
+1. Use the Focusa phone PWA `/connect` scanner; generic camera scanning is not a success path for Mac-offer JSON.
+2. Open `focusa://connect?...` deep link.
+3. Share/AirDrop the same deep link to the Mac.
+4. Copy link.
+5. Advanced manual server URL/code.
 
 Manual URL fields, device names, CLI commands, and diagnostics are always Advanced/fallback UI, never the first-run primary screen.
 
