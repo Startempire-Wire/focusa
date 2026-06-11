@@ -7,7 +7,7 @@ The menubar UI provides **ambient cognitive awareness** without interrupting wor
 It must also make **multi-device sync** legible without becoming a control surface.
 See: `docs/43-multi-device-sync.md`, the device pairing architecture in
 [`docs/53-focusa-device-pairing-spec.md`](53-focusa-device-pairing-spec.md), and the
-[Pairing Room Plan](54-focusa-pairing-room-plan.md).
+[Phone Bridge Flow Plan](54-focusa-pairing-room-plan.md).
 
 ### Device pairing surface (focusa-ui0y)
 
@@ -22,14 +22,14 @@ Connect to Focusa
 Scan from Focusa Connect on your phone
 ```
 
-The phone PWA is the operator mediator: it scans the Mac QR inside `/connect` (not the generic camera app), derives the current VPS
+The Focusa Connect Page is the operator mediator: it scans the Mac QR inside `/connect` (not the generic camera app), derives the current VPS
 origin from `window.location.origin`, approves the Mac, and the VPS mints the token.
 The Mac stores server URL + token indefinitely until the operator deliberately disconnects.
 
 Visible first-run UI rules:
 
 - QR card first; no wall of text.
-- Copy must say to run `focusa pair` on the server first, then scan the Mac code inside the Focusa phone PWA.
+- Copy must say to run `focusa pair` on the server first, then scan the Mac code inside the Focusa Focusa Connect Page.
 - No server URL, public pairing URL, device name, CLI command, or device list on the primary screen.
 - `Copy errors` must be available as a small secondary action.
 - Manual URL/code/CLI/localhost/tunnel options live under **Advanced** only.

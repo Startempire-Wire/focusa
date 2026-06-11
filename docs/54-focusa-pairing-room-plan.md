@@ -1,7 +1,7 @@
-# Focusa Pairing Room Plan
+# Focusa Phone Bridge Flow Plan
 
 **Status:** implementation plan
-**Scope:** magical Mac menubar pairing across three parties: VPS/server, phone PWA, Mac menubar.
+**Scope:** Phone Bridge Flow across three parties: VPS/server, phone running the Focusa Connect Page, and Mac Menubar App.
 **Primary command:** `focusa pair`
 
 ## 1. Goal
@@ -9,7 +9,7 @@
 Make first-time Mac pairing feel like an Apple handoff with no manual server URL typing.
 
 ```text
-VPS shell/TUI        Phone PWA                Mac menubar
+VPS shell/TUI        Focusa Connect Page                Mac menubar
 -----------          ---------                -----------
 focusa pair   ->     scan server QR     ->    shows Mac QR
                     opens /connect            (handoff offer)
@@ -34,11 +34,11 @@ focusa pair   ->     scan server QR     ->    shows Mac QR
 
 4. Phone opens the Focusa Connect PWA from the VPS origin.
 5. Mac menubar first screen shows a Mac handoff QR.
-6. Phone PWA scans the Mac handoff QR and combines:
+6. Focusa Connect Page scans the Mac handoff QR and combines:
    - room id from the server QR URL
    - server origin from `window.location.origin`
    - Mac offer from Mac QR
-7. Phone PWA shows `Connect <Mac name>?`.
+7. Focusa Connect Page shows `Connect <Mac name>?`.
 8. Operator taps Connect.
 9. VPS mints token.
 10. Mac stores server URL + token indefinitely until explicit disconnect.
@@ -56,15 +56,15 @@ https://<server>/connect/<room_id>
 ```
 
 Purpose:
-- gets phone into the right Pairing Room
-- gives phone PWA the VPS origin
+- gets phone into the right Bridge Room
+- gives Focusa Connect Page the VPS origin
 - does not identify the Mac yet
 
 ### 3.2 Mac menubar QR
 
 Shown by the Mac app.
 
-Payload is a handoff offer consumed by the phone PWA scanner. It may be raw JSON or a compact encoded URL understood by the room page.
+Payload is a handoff offer consumed by the Focusa Connect Page scanner. It may be raw JSON or a compact encoded URL understood by the room page.
 
 ```json
 {
@@ -83,7 +83,7 @@ Purpose:
 - gives the room a nonce/challenge
 - never contains a long-lived token
 
-## 4. Phone PWA as the combine function
+## 4. Focusa Connect Page as the combine function
 
 The PWA is the middle layer:
 
@@ -100,7 +100,7 @@ POST /v1/connect/room/<room_id>/mac-offer
 POST /v1/connect/room/<room_id>/approve
 ```
 
-## 5. Pairing Room backend model
+## 5. Bridge Room backend model
 
 Room fields:
 
@@ -123,11 +123,11 @@ Preferred final routes:
 
 | Route | Caller | Purpose |
 |---|---|---|
-| `POST /v1/connect/room/start` | CLI/TUI | create Pairing Room and return `connect_url` |
+| `POST /v1/connect/room/start` | CLI/TUI | create Bridge Room and return `connect_url` |
 | `GET /connect/<room_id>` | phone | PWA room page |
 | `GET /v1/connect/room/<room_id>/status` | Mac/phone | poll room state |
-| `POST /v1/connect/room/<room_id>/mac-offer` | phone PWA | submit scanned Mac QR offer |
-| `POST /v1/connect/room/<room_id>/approve` | phone PWA | approve Mac and mint token |
+| `POST /v1/connect/room/<room_id>/mac-offer` | Focusa Connect Page | submit scanned Mac QR offer |
+| `POST /v1/connect/room/<room_id>/approve` | Focusa Connect Page | approve Mac and mint token |
 
 Current transitional routes already exist:
 - `GET /connect`
@@ -142,14 +142,14 @@ Current transitional routes already exist:
 Default human output:
 
 ```text
-Focusa Pairing Room
+Focusa Bridge Room
 
 Open on phone:
 https://<server>/connect/<room_id>
 
 [terminal QR]
 
-Then scan the Mac menubar QR from the phone page.
+Then scan the Mac menubar QR from the Focusa Connect Page.
 ```
 
 Options:
@@ -183,10 +183,10 @@ Mac first-run:
 - one sentence max
 - no server URL fields unless Advanced opened
 - Copy errors always available
-- if generic camera scans raw Mac offer, copy must make clear to use phone PWA scanner
+- if generic camera scans raw Mac offer, copy must make clear to use Focusa Connect Page scanner
 
-Phone PWA:
-- first screen: `Connect a Mac`
+Focusa Connect Page:
+- first screen: `Connect Mac to Focusa`
 - primary button: `Scan Mac code`
 - Advanced paste fallback hidden
 - approval screen shows Mac name + server
@@ -212,7 +212,7 @@ Phone PWA:
 - Add room start/status/mac-offer/approve endpoints.
 - Keep transitional `/v1/connect/*` routes as compatibility.
 
-### Phase C — phone PWA room page
+### Phase C — Focusa Connect Page room page
 
 - Serve `/connect/<room_id>`.
 - Scan Mac QR.
@@ -225,6 +225,6 @@ Phone PWA:
 ### Phase E — proof
 
 - API smoke test.
-- UIAI phone PWA QA.
+- UIAI Focusa Connect Page QA.
 - Menubar first-run QA.
 - Release asset tag/version proof.

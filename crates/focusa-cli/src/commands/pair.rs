@@ -1,4 +1,4 @@
-//! Apple-like Mac Pairing Room entry command.
+//! Apple-like Mac Phone Bridge Flow entry command.
 
 use crate::api_client::ApiClient;
 use crate::commands::daemon;
@@ -116,7 +116,7 @@ async fn connect_probe(url: &str) -> bool {
     }
     resp.text()
         .await
-        .map(|body| body.contains("Focusa Connect") && body.contains("Connect a Mac"))
+        .map(|body| body.contains("Focusa Connect") && body.contains("Connect Mac to Focusa"))
         .unwrap_or(false)
 }
 
@@ -252,7 +252,7 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
             if let Ok(payload) = create_room(server_url).await {
                 return (
                     payload,
-                    Some("Updated Focusa daemon detected; Pairing Room is ready.".to_string()),
+                    Some("Updated Focusa daemon detected; Phone Bridge Flow is ready.".to_string()),
                 );
             }
 
@@ -302,15 +302,15 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
                 "room": room_payload,
                 "next_steps": [
                     "Scan connect_url with your phone to open Focusa Connect.",
-                    "In the phone PWA, scan the QR shown in the Mac menubar app.",
-                    "Approve the Mac from the phone PWA."
+                    "In the Focusa Connect Page, scan the QR shown in the Mac Menubar App.",
+                    "Approve the Mac from the Focusa Connect Page."
                 ],
             }))?
         );
         return Ok(());
     }
 
-    println!("Focusa Pairing Room");
+    println!("Focusa Phone Bridge Flow");
     if let Some(room_id) = room_id {
         println!("Room: {room_id}");
     }
@@ -327,6 +327,6 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
         println!("{}", terminal_qr(&connect_url)?);
     }
     println!();
-    println!("Then open the Mac menubar app and scan its code from this phone page.");
+    println!("Then open the Mac Menubar App and scan its code from the Focusa Connect Page.");
     Ok(())
 }

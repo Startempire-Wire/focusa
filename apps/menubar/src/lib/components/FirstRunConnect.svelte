@@ -81,7 +81,7 @@
   async function copyErrors() {
     const payload = [
       'Focusa first-run connect diagnostics',
-      'note=Run focusa pair on the server first; scan this Mac code inside the Focusa Connect phone page.',
+      'note=Run focusa pair on the server first; scan this Mac code inside the Focusa Connect Page.',
       `offer_nonce=${nonce || '(none)'}`,
       `offer_age_ms=${Date.now() - createdAt}`,
       `stored_server=${localStorage.getItem('focusa_api_url') || '(unset)'}`,
@@ -116,7 +116,7 @@
     {/if}
   </div>
   <p class="primary-copy">Scan from Focusa Connect.</p>
-  <p class="secondary-copy">Run focusa pair on the server, then scan here from the phone page · {remainingLabel}</p>
+  <p class="secondary-copy">Run focusa pair on the server, then scan here from the Focusa Connect Page · {remainingLabel}</p>
 
   <div class="utility-row">
     <button class="utility" onclick={copyErrors}>{copiedErrors ? 'Copied errors' : 'Copy errors'}</button>

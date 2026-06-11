@@ -573,7 +573,7 @@ async fn connect_approve(
                     "status": "waiting_for_mac",
                     "failure_class": "mac_offer_required",
                     "connect_id": connect_id,
-                    "message": "Submit the Mac handoff offer before approving this Pairing Room.",
+                    "message": "Submit the Mac handoff offer before approving this Bridge Room.",
                 }),
             ));
         }
@@ -1171,7 +1171,7 @@ mod tests {
 //   3. Expired  → code is gone; operator must generate a new code on the Mac
 // ──────────────────────────────────────────────────────────────────────────
 
-/// Phone PWA mediator — scans the Mac handoff QR and approves it on this VPS.
+/// Focusa Connect Page mediator — scans the Mac handoff QR and approves it on this VPS.
 async fn connect_room_page(
     Path(_room_id): Path<String>,
 ) -> (StatusCode, [(String, String); 2], String) {
@@ -1227,8 +1227,8 @@ fn connect_mediator_html() -> String {
 </head>
 <body>
   <main class="card">
-    <h1>Connect a Mac</h1>
-    <p id="intro">Scan the Mac QR from this Pairing Room.</p>
+    <h1>Connect Mac to Focusa</h1>
+    <p id="intro">Scan the Mac QR for this Phone Bridge Flow.</p>
     <video id="video" playsinline muted></video>
     <div class="device" id="deviceBox">
       <strong id="deviceName">Mac</strong>
@@ -1301,7 +1301,7 @@ fn connect_mediator_html() -> String {
       };
     }
     async function submitOffer(offer) {
-      if (!roomId) throw new Error('Missing room id. Start from the QR shown by `focusa pair`.');
+      if (!roomId) throw new Error('Missing Bridge Room id. Start from the QR shown by `focusa pair`.');
       const body = validateOffer(offer);
       if (!body.mac_nonce) throw new Error('Mac offer missing nonce');
       const response = await fetch(`/v1/connect/room/${encodeURIComponent(roomId)}/mac-offer`, {
@@ -1374,7 +1374,7 @@ fn connect_mediator_html() -> String {
       approveBtn.disabled = true;
       advancedDetails.open = true;
       advancedBody.hidden = false;
-      setStatus('Missing room id. Run focusa pair on the server and scan that QR first.');
+      setStatus('Missing Bridge Room id. Run focusa pair on the server and scan that QR first.');
     }
   </script>
 </body>
@@ -1405,7 +1405,7 @@ async fn pwa_manifest(
 ) -> (StatusCode, [(String, String); 2], String) {
     let manifest = format!(
         r##"{{
-  "name": "Focusa Pairing",
+  "name": "Focusa Phone Bridge",
   "short_name": "Focusa",
   "description": "OAuth-like device pairing for Focusa",
   "start_url": "/pair/{}",
@@ -1470,7 +1470,7 @@ fn pwa_helper_html(device_id: &str) -> String {
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1115" />
   <link rel="manifest" href="/pair/{device_id}/manifest.json" />
-  <title>Focusa Pairing</title>
+  <title>Focusa Phone Bridge</title>
   <style>
     :root {{ color-scheme: dark; }}
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}

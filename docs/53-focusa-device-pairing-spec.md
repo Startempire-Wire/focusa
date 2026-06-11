@@ -2,10 +2,10 @@
 
 **Status:** Draft (operator + agent collaboration)
 **Date:** 2026-06-10
-**Owns:** Mac menubar ⇄ Phone PWA ⇄ VPS daemon OAuth-like device pairing
+**Owns:** Mac menubar ⇄ Focusa Connect Page ⇄ VPS daemon OAuth-like device pairing
 **Beads:** `focusa-ui0y.1`–`.13`, `focusa-8oc0` and children
 
-See also: [Pairing Room Plan](54-focusa-pairing-room-plan.md).
+See also: [Phone Bridge Flow Plan](54-focusa-pairing-room-plan.md).
 
 This spec owns the full pairing architecture: code flow, QR flow, PWA helper, security model, portability, multi-tenancy, and audit. Tool-level docs (`focusa_device_pair_*`) become reference material that points here.
 
@@ -13,8 +13,8 @@ This spec owns the full pairing architecture: code flow, QR flow, PWA helper, se
 
 ## 1. Goals
 
-- **Mac-like + dumb simple** — first-run Mac UI shows a clean QR offer; the phone PWA scans/mediates; manual typing is Advanced fallback only. No accounts, no passwords, no OAuth flows.
-- **Three-party by default** — pairing is Mac (joining device) + phone PWA (operator mediator) + VPS daemon (authority/token issuer), not a two-device flow.
+- **Mac-like + dumb simple** — first-run Mac UI shows a clean QR offer; the Focusa Connect Page scans/mediates; manual typing is Advanced fallback only. No accounts, no passwords, no OAuth flows.
+- **Three-party by default** — pairing is Mac (joining device) + Focusa Connect Page (operator mediator) + VPS daemon (authority/token issuer), not a two-device flow.
 - **Depth optional** — Pi/CLI agents can drive the same flow programmatically; the Mac UI is sugar.
 - **Portability** — any operator with Focusa installed on their VPS (AlmaLinux, Ubuntu, macOS, containers) can pair any Mac with one URL.
 - **Public-VPS safe** — the pairing endpoint can be exposed behind a public hostname (e.g. `https://focusa-conn.verious.net`) without leaking the daemon's bind address.
@@ -29,7 +29,7 @@ Focusa pairing is a three-party protocol:
 | Party | Role | Must know initially | Learns during flow |
 |---|---|---|---|
 | Mac menubar app | joining device | nothing about the VPS | VPS origin, connect session, token |
-| Phone PWA | operator mediator/control surface | current VPS origin from `window.location.origin` | Mac handoff offer |
+| Focusa Connect Page | operator mediator/control surface | current VPS origin from `window.location.origin` | Mac handoff offer |
 | VPS Focusa daemon | authority/token issuer | its own configured/public origin | Mac device record + token |
 
 The portable first-run flow is:
@@ -37,14 +37,14 @@ The portable first-run flow is:
 ```text
 Mac menubar shows a short-lived QR handoff offer.
 The generic phone camera is not the scanner for this QR; it will show raw JSON.
-Phone PWA, already loaded from the operator's VPS, scans the Mac QR inside `/connect`.
-Phone PWA sends the VPS origin + connect session to the Mac handoff endpoint/deep link.
+Focusa Connect Page, already loaded from the operator's VPS, scans the Mac QR inside `/connect`.
+Focusa Connect Page sends the VPS origin + connect session to the Mac handoff endpoint/deep link.
 Mac joins that VPS connect session and polls for completion.
-Phone PWA shows the Mac identity and operator taps Approve.
+Focusa Connect Page shows the Mac identity and operator taps Approve.
 VPS mints a token; Mac receives it through polling and stores server+token indefinitely.
 ```
 
-The Mac QR is not a server URL and is not expected to open in the phone camera app. It is a temporary handoff offer consumed by the Focusa phone PWA scanner:
+The Mac QR is not a server URL and is not expected to open in the phone camera app. It is a temporary handoff offer consumed by the Focusa Focusa Connect Page scanner:
 
 ```json
 {
@@ -58,13 +58,13 @@ The Mac QR is not a server URL and is not expected to open in the phone camera a
 }
 ```
 
-The phone PWA derives the VPS identity from its own origin, not from hardcoded configuration:
+The Focusa Connect Page derives the VPS identity from its own origin, not from hardcoded configuration:
 
 ```js
 const server_url = window.location.origin;
 ```
 
-Then the phone PWA delivers a signed server handoff to the Mac:
+Then the Focusa Connect Page delivers a signed server handoff to the Mac:
 
 ```json
 {
@@ -78,9 +78,9 @@ Then the phone PWA delivers a signed server handoff to the Mac:
 }
 ```
 
-If direct browser-to-Mac callback is blocked, the phone PWA must offer Apple-like fallbacks in this order:
+If direct browser-to-Mac callback is blocked, the Focusa Connect Page must offer Apple-like fallbacks in this order:
 
-1. Use the Focusa phone PWA `/connect` scanner; generic camera scanning is not a success path for Mac-offer JSON.
+1. Use the Focusa Focusa Connect Page `/connect` scanner; generic camera scanning is not a success path for Mac-offer JSON.
 2. Open `focusa://connect?...` deep link.
 3. Share/AirDrop the same deep link to the Mac.
 4. Copy link.
@@ -95,9 +95,9 @@ The three-party flow uses short-lived connect sessions before falling back to th
 
 | Route | Caller | Purpose |
 |---|---|---|
-| `POST /v1/connect/start` | phone PWA after scanning Mac QR | create a rendezvous from the Mac handoff offer and return a `server_handoff` |
+| `POST /v1/connect/start` | Focusa Connect Page after scanning Mac QR | create a rendezvous from the Mac handoff offer and return a `server_handoff` |
 | `GET /v1/connect/status?connect_id=...` | Mac | poll until the phone approves and the VPS mints a token |
-| `POST /v1/connect/approve` | phone PWA | operator approval; VPS mints token and appends the device record |
+| `POST /v1/connect/approve` | Focusa Connect Page | operator approval; VPS mints token and appends the device record |
 
 `connect/start` input accepts `mac_name`, `mac_nonce`, optional `mac_pubkey`, optional
 `mac_callback`, optional `server_url`, and optional scopes. The VPS chooses the public
@@ -184,7 +184,7 @@ Same as Mode B but the operator's Mac or a kiosk scans the QR and the VPS browse
 | Operator situation | Best mode |
 |---|---|
 | VPS behind NAT, operator has SSH | A (CLI) |
-| First-run Mac does not know VPS, phone PWA can access VPS | Primary three-party phone-PWA mediation (§2.0) |
+| First-run Mac does not know VPS, Focusa Connect Page can access VPS | Primary three-party phone-PWA mediation (§2.0) |
 | VPS has a public URL and Mac already knows it | B (server-generated QR + phone fallback) |
 | Mac and VPS on same LAN, Mac not in front of operator | C (QR + kiosk) |
 | Pi/agent driving the pairing | A via CLI / programmatic |
