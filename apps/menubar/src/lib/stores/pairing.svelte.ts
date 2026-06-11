@@ -43,8 +43,12 @@ interface StoredDeviceMeta {
 const STORAGE_KEY = 'focusa_paired_device_meta';
 let currentAuthToken: string | null = null;
 
+function daemonRoot(): string {
+  return getApiUrl().replace(/\/$/, '');
+}
+
 function apiBase(): string {
-  return `${getApiUrl().replace(/\/$/, '')}/v1`;
+  return `${daemonRoot()}/v1`;
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -143,11 +147,14 @@ function pairingErrorState(phase: string, error: unknown, context?: Record<strin
     area: 'pairing',
     phase,
     error,
-    context: { api_base: apiBase(), ...context },
+    context: { daemon_root: daemonRoot(), api_base: apiBase(), ...context },
   });
+  const message = diagnostic.error_class === 'network'
+    ? `Cannot reach Focusa daemon at ${daemonRoot()}. Check Settings URL, SSH tunnel, VPN, or CORS/proxy. Original error: ${diagnostic.message}`
+    : diagnostic.message;
   return {
     kind: 'error',
-    message: diagnostic.message,
+    message,
     recoverable: true,
     failureClass: diagnostic.failure_class || diagnostic.error_class,
     diagnostic,
@@ -220,7 +227,7 @@ function createPairingStore() {
         body: JSON.stringify({
           device_name: args.deviceName,
           platform: args.platform ?? 'macos',
-          daemon_base_url: args.daemonBaseUrl ?? apiBase(),
+          daemon_base_url: args.daemonBaseUrl ?? daemonRoot(),
           scopes: args.scopes ?? ['read', 'write'],
         }),
       });
@@ -228,7 +235,7 @@ function createPairingStore() {
       const deviceId = String(result.device_id || '');
       const deviceName = String(result.device_name || args.deviceName);
       const platform = String(result.platform || args.platform || 'macos');
-      const daemonBaseUrl = String(result.daemon_base_url || args.daemonBaseUrl || apiBase());
+      const daemonBaseUrl = String(result.daemon_base_url || args.daemonBaseUrl || daemonRoot());
       const scopes = Array.isArray(result.scopes) ? result.scopes : (args.scopes ?? ['read', 'write']);
       const onYourVpsRun = String(result.on_your_vps_run || result.operator_handoff?.on_your_vps_run || `focusa device pair-complete ${code}`);
       const pairUrl = String(result.pair_url || result.operator_handoff?.pair_url || daemonBaseUrl);
