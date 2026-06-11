@@ -135,35 +135,33 @@ Current transitional routes already exist:
 - `GET /v1/connect/status`
 - `POST /v1/connect/approve`
 
-## 7. Public URL / proxy setup
+## 7. Phone Bridge Transport Resolver
 
-The Phone Bridge Flow requires a **Public Focusa URL** before a real phone can open the Focusa Connect Page.
+The Phone Bridge Flow needs a phone-reachable transport. That transport may be a public URL, non-local daemon URL, private/Tailscale URL, temporary tunnel, or optional reverse proxy.
 
-Installers/operators must provide one of:
+Focusa-owned resolver helper:
 
 ```bash
-export FOCUSA_PAIRING_URL=https://focusa.example.com
-# or
-sudo mkdir -p /etc/focusa
-printf 'https://focusa.example.com\n' | sudo tee /etc/focusa/public-url
+scripts/phone-bridge-transport.sh detect
+scripts/phone-bridge-transport.sh options
+scripts/phone-bridge-transport.sh check --url https://focusa.example.com
+sudo scripts/phone-bridge-transport.sh write --url https://focusa.example.com
 ```
 
-The public URL must reverse-proxy both routes to the local daemon:
+Transport validation requires both routes to work:
 
 ```text
-/connect/*    -> http://127.0.0.1:8787/connect/*
-/v1/connect/* -> http://127.0.0.1:8787/v1/connect/*
+/connect/*    serves the Focusa Connect Page
+/v1/connect/* reaches the Bridge Room API
 ```
 
-Portable setup helper:
+Optional reverse-proxy snippets remain available, but live webserver mutation is not a default requirement:
 
 ```bash
-scripts/setup-phone-bridge-url.sh --url https://focusa.example.com --print-proxy
-scripts/setup-phone-bridge-url.sh --url https://focusa.example.com --check
-sudo scripts/setup-phone-bridge-url.sh --url https://focusa.example.com --write
+scripts/phone-bridge-transport.sh proxy-snippets
 ```
 
-`focusa pair` then reads the configured URL and emits a phone-scannable Bridge Room URL.
+`focusa pair` uses the same resolver posture: configured URLs first, then verified hostname/IP/private candidates, then local fallback with clear setup options.
 
 ## 8. CLI/TUI plan
 
