@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 78,
+  "tool_count": 79,
   "contracts": [
     {
       "name": "focusa_project_identity",
