@@ -4,7 +4,7 @@
 >
 > Focusa is the missing OS layer for long-running AI work. It gives your agent typed memory, auditable evidence, recovery after compaction, and a public surface that makes its work inspectable. Built in Rust, packaged for macOS, surfaced on the web.
 
-**Current public snapshot:** `v0.9.13-dev` / **Focusa Operator Preview**
+**Current public snapshot:** `v0.9.14-dev` / **Focusa Operator Preview**
 **Runtime state:** Rust daemon + HTTP API + CLI + TUI + Pi extension + menubar web/macOS package proof are implemented and live-tested.
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 

@@ -1,7 +1,7 @@
 # Tauri Menubar Up-to-Speed Spec
 
 **Product:** Focusa Tauri menubar app (`apps/menubar`)
-**Target runtime:** Focusa `v0.9.13-dev` current state
+**Target runtime:** Focusa `v0.9.14-dev` current state
 **Status:** implementation spec
 **Source audit:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
 
@@ -218,7 +218,7 @@ Keep legacy Focus State visually central because that is the original app's emot
 ### Build/version
 
 - show app package version, Tauri config version, daemon version, runtime snapshot string.
-- menubar package, Tauri config, Rust crate, and Settings footer currently use `0.9.13-dev`; keep future releases synchronized.
+- menubar package, Tauri config, Rust crate, and Settings footer currently use `0.9.14-dev`; keep future releases synchronized.
 - decide Bun-only or npm parity:
   - Bun-only: remove stale npm lock or document npm unsupported.
   - npm parity: align Vite/Svelte plugin versions so `npm ci` passes.

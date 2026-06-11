@@ -335,7 +335,7 @@ mod tests {
         let mut hm = h();
         hm.insert(
             HEADER_USER_AGENT,
-            HeaderValue::from_static("focusa-pi/0.9.13-dev"),
+            HeaderValue::from_static("focusa-pi/0.9.14-dev"),
         );
         assert!(detect_pi_agent(&hm));
     }
