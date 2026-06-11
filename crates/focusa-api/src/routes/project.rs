@@ -1435,14 +1435,21 @@ fn discover_identity(
     let matching_independent = signals
         .iter()
         .filter(|signal| {
-            signal.independent && signal.root.as_deref() == Some(canonical_root.as_str())
+            signal.independent
+                && signal.source != "operator_supplied_scope"
+                && signal.root.as_deref() == Some(canonical_root.as_str())
         })
         .count();
+    let has_root_marker = signals.iter().any(|s| {
+        s.source == "root_marker"
+            && s.independent
+            && s.root.as_deref() == Some(canonical_root.as_str())
+    });
     let confidence = if unsafe_reason.is_some() {
         "low"
-    } else if mismatches.is_empty() && matching_independent >= 2 {
+    } else if mismatches.is_empty() && matching_independent >= 2 && has_root_marker {
         "high"
-    } else if mismatches.is_empty() && matching_independent == 1 {
+    } else if mismatches.is_empty() && matching_independent >= 1 {
         "medium"
     } else {
         "low"
@@ -1451,9 +1458,9 @@ fn discover_identity(
         "unsafe_project_root"
     } else if !mismatches.is_empty() {
         "mismatch"
-    } else if matching_independent >= 2 {
+    } else if matching_independent >= 2 && has_root_marker {
         "verified"
-    } else if matching_independent == 1 {
+    } else if matching_independent >= 1 {
         "degraded"
     } else {
         "cwd_only"
@@ -3102,6 +3109,11 @@ mod tests {
         .unwrap();
         fs::create_dir_all(root.join(".beads")).unwrap();
         fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
+        fs::write(
+            root.join(".focusa-project.json"),
+            r#"{"schema":"focusa.project.v1","project_id":"quorum","canonical_name":"Quorum"}"#,
+        )
+        .unwrap();
         let candidate = discover_identity(root.to_str(), None, RemoteProjectHint::default());
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
@@ -3329,6 +3341,11 @@ mod tests {
         )
         .unwrap();
         fs::write(root.join("go.mod"), "module example.test/uiai-engine\n").unwrap();
+        fs::write(
+            root.join(".focusa-project.json"),
+            r#"{"schema":"focusa.project.v1","project_id":"uiai-engine","canonical_name":"UIAI Engine"}"#,
+        )
+        .unwrap();
 
         let candidate =
             discover_identity(root.to_str(), root.to_str(), RemoteProjectHint::default());

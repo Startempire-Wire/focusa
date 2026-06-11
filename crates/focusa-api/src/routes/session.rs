@@ -235,6 +235,7 @@ async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
         "prompt_stats": prompt_stats,
         "telemetry": telemetry,
         "version": version,
+        "app_version": env!("CARGO_PKG_VERSION"),
         "runtime_process": {
             "current_pid": current_pid,
             "daemon_pids": Value::Null,

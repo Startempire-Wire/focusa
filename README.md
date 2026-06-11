@@ -312,10 +312,11 @@ cargo run --bin focusa-daemon
 cargo run --bin focusa -- status
 cargo run --bin focusa -- status --operator
 cargo run --bin focusa -- onboard --agent manual
-cargo run --bin focusa -- workpoint current
+cargo run --bin focusa -- project identity --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
+cargo run --bin focusa -- workpoint current --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1
 
 # Manual continuation packet for non-Pi agents
-cargo run --bin focusa -- workpoint resume --copy-prompt
+cargo run --bin focusa -- workpoint resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --copy-prompt
 
 # Optional golden proof loop
 bash scripts/demo-workpoint-happy-path.sh
@@ -345,15 +346,20 @@ curl -sS http://127.0.0.1:8787/v1/health | jq .
 
 ### CLI examples
 
+Project-scoped commands should carry `--project-root` plus a stable `--continuity-id`. Use the repo folder (or `FOCUSA_PROJECT_ROOT`) for `--project-root`; use a repeatable workstream id such as `cont-1`, a ticket id, or your agent continuity id for `--continuity-id`.
+
 ```bash
 # Daemon status
 focusa status
 
-# Current Workpoint
-focusa workpoint current
+# Discover the scoped project identity first
+focusa project identity --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 
-# Resume packet
-focusa workpoint resume
+# Current Workpoint for a stable logical workstream
+focusa workpoint current --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1
+
+# Resume packet for that workstream
+focusa workpoint resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1
 
 # Drift check
 focusa workpoint drift-check \

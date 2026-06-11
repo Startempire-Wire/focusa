@@ -510,7 +510,8 @@ async fn main() -> anyhow::Result<()> {
             } else if cli.json {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else {
-                let version = resp["version"].as_u64().unwrap_or(0);
+                let app_version = resp["app_version"].as_str().unwrap_or("");
+                let reducer_version = resp["version"].as_u64().unwrap_or(0);
                 let depth = resp["stack_depth"].as_u64().unwrap_or(0);
                 let session = if resp["session"].is_null() {
                     "none".to_string()
@@ -531,7 +532,12 @@ async fn main() -> anyhow::Result<()> {
                 println!("Focusa daemon: running");
                 println!("  session:     {}", session);
                 println!("  stack depth: {}", depth);
-                println!("  version:     {}", version);
+                if !app_version.is_empty() {
+                    println!("  app version: {}", app_version);
+                    println!("  reducer:     {}", reducer_version);
+                } else {
+                    println!("  version:     {}", reducer_version);
+                }
                 println!("  pid:         {}", current_pid);
                 println!("  daemons:     {}", daemon_count);
                 if duplicate_count > 0 {
