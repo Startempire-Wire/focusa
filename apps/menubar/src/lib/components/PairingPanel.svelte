@@ -13,6 +13,7 @@
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { PUBLIC_PAIRING_URL_KEY } from '$lib/api';
   import { pairingStore } from '$lib/stores/pairing.svelte';
   import QRCode from './QRCode.svelte';
 
@@ -22,11 +23,8 @@
   let copied = $state(false);
   let copiedErrorLog = $state(false);
   let now = $state(Date.now());
-  // focusa-ui0y.10: Mode A/B/C tabs in the waiting_vps view.
-  //   A = CLI (default; works over SSH)
-  //   B = QR + phone (Telegram/Discord-style; needs FOCUSA_PAIRING_URL)
-  //   C = QR + VPS browser (kiosk on same LAN)
-  let handoffMode = $state<'A' | 'B' | 'C'>('A');
+  // Apple-like default: QR scan first; manual CLI/code is fallback only.
+  let handoffMode = $state<'A' | 'B' | 'C'>('B');
 
   // Tick once per second for the countdown
   let tickHandle: ReturnType<typeof setInterval> | null = null;
@@ -75,9 +73,15 @@
     try { localStorage.setItem('focusa_device_name', deviceNameInput); } catch {}
   }
 
+  function publicPairingUrl(): string | undefined {
+    const value = localStorage.getItem(PUBLIC_PAIRING_URL_KEY)?.trim().replace(/\/$/, '');
+    return value || undefined;
+  }
+
   async function startPairing() {
     saveDeviceName();
-    await pairingStore.start({ deviceName: deviceNameInput });
+    handoffMode = 'B';
+    await pairingStore.start({ deviceName: deviceNameInput, daemonBaseUrl: publicPairingUrl() });
   }
 
   async function revokeAndClear(deviceId: string) {
@@ -93,20 +97,24 @@
   </header>
 
   {#if pairingStore.state.kind === 'idle'}
-    <section class="card">
-      <p class="lead">This Mac is not paired with a daemon.</p>
-      <p class="hint">Enter a name (operator-mac, laptop-2, etc.) and click <strong>Pair this Mac</strong> to generate a one-time code. Run the displayed command on your VPS to complete the pairing.</p>
-      <label class="row">
-        <span>Device name</span>
-        <input
-          type="text"
-          bind:value={deviceNameInput}
-          onblur={saveDeviceName}
-          placeholder="operator-mac"
-          maxlength="120"
-        />
-      </label>
-      <button class="primary" onclick={startPairing}>Pair this Mac</button>
+    <section class="card hero-card">
+      <p class="lead">Pair this Mac with a QR scan.</p>
+      <p class="hint">Click once, scan the QR with your phone, then approve pairing on your Focusa server. No manual numbers unless QR is unavailable.</p>
+      <button class="primary big" onclick={startPairing}>Show QR code</button>
+      <details class="advanced">
+        <summary>Advanced / fallback</summary>
+        <label class="row">
+          <span>Device name</span>
+          <input
+            type="text"
+            bind:value={deviceNameInput}
+            onblur={saveDeviceName}
+            placeholder="operator-mac"
+            maxlength="120"
+          />
+        </label>
+        <p class="alt-hint">If QR opens the wrong host, set <strong>Public pairing URL for QR scans</strong> in Connect settings.</p>
+      </details>
     </section>
 
   {:else if pairingStore.state.kind === 'starting'}
@@ -122,25 +130,24 @@
         <p class="warn">Code expired. Generating a new one…</p>
       {/if}
 
-      <!-- focusa-ui0y.10: Mode A/B/C tabs (CLI / QR+phone / QR+VPS browser) -->
-      <div class="tabs" role="tablist">
-        <button
-          role="tab"
-          aria-selected={handoffMode === 'A'}
-          class:active={handoffMode === 'A'}
-          onclick={() => (handoffMode = 'A')}>CLI</button>
+      <div class="tabs" role="tablist" aria-label="Pairing options">
         <button
           role="tab"
           aria-selected={handoffMode === 'B'}
           class:active={handoffMode === 'B'}
           onclick={() => (handoffMode = 'B')}
-          disabled={!s.pairUrl}>QR + phone</button>
+          disabled={!s.pairUrl}>Scan QR</button>
         <button
           role="tab"
           aria-selected={handoffMode === 'C'}
           class:active={handoffMode === 'C'}
           onclick={() => (handoffMode = 'C')}
-          disabled={!s.pairUrl}>QR + browser</button>
+          disabled={!s.pairUrl}>Open URL</button>
+        <button
+          role="tab"
+          aria-selected={handoffMode === 'A'}
+          class:active={handoffMode === 'A'}
+          onclick={() => (handoffMode = 'A')}>Manual CLI</button>
       </div>
 
       {#if handoffMode === 'A'}
@@ -154,7 +161,7 @@
         <p class="alt-hint">Or just paste this code: <code class="code-inline">{s.code}</code></p>
       {:else}
         <div class="qr-wrap">
-          <QRCode payload={s.pairUrlQrPayload || s.pairUrl} size={220} />
+          <QRCode payload={s.pairUrlQrPayload || s.pairUrl} size={240} />
         </div>
         {#if handoffMode === 'B'}
           <p class="alt-hint">Scan with your phone. Opens a focusa-pairing page where you tap <em>Complete on this VPS</em> to finish.</p>

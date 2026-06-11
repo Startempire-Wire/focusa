@@ -3,6 +3,7 @@ import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';
 export const HAS_CONNECTED_KEY = 'focusa_has_connected_successfully';
+export const PUBLIC_PAIRING_URL_KEY = 'focusa_public_pairing_url';
 
 export interface SavedConnection {
   url: string;

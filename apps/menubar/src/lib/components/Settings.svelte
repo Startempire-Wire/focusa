@@ -4,6 +4,7 @@
 <script lang="ts">
   import {
     DEFAULT_API_URL,
+    PUBLIC_PAIRING_URL_KEY,
     getApiUrl,
     loadSavedConnections,
     removeSavedConnection,
@@ -20,8 +21,10 @@
   let saved = $state(false);
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; msg: string } | null>(null);
+  let copiedError = $state(false);
   let showRemoteInput = $state(initialConnections.length === 0);
   let remoteUrl = $state('');
+  let publicPairingUrl = $state(localStorage.getItem(PUBLIC_PAIRING_URL_KEY) || '');
 
   function persistActive(nextUrl = url) {
     const normalized = nextUrl.trim().replace(/\/$/, '');
@@ -34,6 +37,33 @@
 
   function save() {
     persistActive(url);
+    savePublicPairingUrl();
+  }
+
+  function savePublicPairingUrl() {
+    const normalized = publicPairingUrl.trim().replace(/\/$/, '');
+    publicPairingUrl = normalized;
+    try {
+      if (normalized) localStorage.setItem(PUBLIC_PAIRING_URL_KEY, normalized);
+      else localStorage.removeItem(PUBLIC_PAIRING_URL_KEY);
+    } catch {}
+  }
+
+  async function copyConnectionError() {
+    const payload = [
+      'Focusa connection diagnostics',
+      `active_url=${url || '(unset)'}`,
+      `public_pairing_url=${publicPairingUrl || '(unset)'}`,
+      `connected_state=${focusStore.connected}`,
+      `result=${testResult ? `${testResult.ok ? 'ok' : 'error'}: ${testResult.msg}` : '(none)'}`,
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(payload);
+      copiedError = true;
+      setTimeout(() => copiedError = false, 1500);
+    } catch {
+      window.prompt('Copy Focusa connection diagnostics:', payload);
+    }
   }
 
   async function testConnection(targetUrl = url, options: { remember?: boolean } = { remember: true }) {
@@ -138,6 +168,19 @@
       />
     </label>
 
+    <label class="field">
+      <span class="field-label">Public pairing URL for QR scans</span>
+      <input
+        type="text"
+        bind:value={publicPairingUrl}
+        placeholder="https://your-focusa-server.example.com"
+        class="input"
+        onblur={savePublicPairingUrl}
+        onkeydown={(e) => { if (e.key === 'Enter') savePublicPairingUrl(); }}
+      />
+      <span class="field-help">Phone-scanned QR codes use this URL when the daemon itself does not know its public server URL.</span>
+    </label>
+
     <div class="preset-row">
       <button class="preset-btn" onclick={setRemote}>Add remote…</button>
       <button class="preset-btn" onclick={setLocal}>Use local (127.0.0.1)</button>
@@ -168,7 +211,10 @@
 
     {#if testResult}
       <div class="test-result" class:ok={testResult.ok} class:err={!testResult.ok}>
-        {testResult.ok ? '✓' : '✗'} {testResult.msg}
+        <span>{testResult.ok ? '✓' : '✗'} {testResult.msg}</span>
+        {#if !testResult.ok}
+          <button class="btn ghost small" onclick={copyConnectionError}>{copiedError ? 'Copied errors' : 'Copy errors'}</button>
+        {/if}
       </div>
     {/if}
   </section>
@@ -210,6 +256,7 @@
   .hint { color: var(--fg-secondary); font-size: var(--text-sm); line-height: 1.4; margin: 0 0 var(--sp-3); }
   .field { display: flex; flex-direction: column; gap: var(--sp-1); }
   .field-label { font-size: var(--text-xs); color: var(--fg-secondary); font-weight: 600; }
+  .field-help { font-size: var(--text-xs); color: var(--fg-tertiary); line-height: 1.35; }
   .input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-sm); padding: var(--sp-2); color: var(--fg); font-family: var(--font-mono); font-size: var(--text-sm); box-sizing: border-box; }
   .preset-row, .action-row, .remote-input-row, .saved-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }
   .remote-input-row { align-items: center; }
@@ -225,7 +272,7 @@
   .saved-connection { display: flex; justify-content: space-between; gap: var(--sp-2); align-items: center; border: 1px solid var(--border); background: var(--bg-elevated); border-radius: var(--r-sm); padding: var(--sp-2); }
   .saved-label { font-weight: 700; font-size: var(--text-sm); }
   .saved-url, .saved-meta, .mono { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-secondary); }
-  .test-result { margin-top: var(--sp-2); padding: var(--sp-2); border-radius: var(--r-sm); font-size: var(--text-sm); }
+  .test-result { margin-top: var(--sp-2); padding: var(--sp-2); border-radius: var(--r-sm); font-size: var(--text-sm); display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
   .test-result.ok { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
   .test-result.err { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
   .status-grid, .help-list { display: flex; flex-direction: column; gap: var(--sp-2); }

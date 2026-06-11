@@ -189,8 +189,6 @@ async fn pair_start(
         },
         "pair_url": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
         "pair_url_qr_payload": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
-        "pair_url": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
-        "pair_url_qr_payload": format!("{}/pair/{}", pairing_url.trim_end_matches('/'), device_id),
         "next_tools": [
             "focusa_device_pair_status",
             "focusa_device_pair_list",
@@ -422,26 +420,43 @@ async fn pair_status(
     }
     if let Some(device_id) = query.device_id.as_deref() {
         let now = Utc::now();
-        let token = s
-            .tokens
-            .values()
-            .find(|t| t.device_id == device_id)
-            .map(|t| {
-                json!({
-                    "token": t.token,
-                    "scopes": t.scopes,
-                    "issued_at": t.issued_at,
-                    "expires_at": t.expires_at,
-                    "expired": t.expires_at < now,
-                })
-            });
-        return Ok(Json(json!({
-            "status": "completed",
-            "device_id": device_id,
-            "token": token,
-            "next_tools": ["focusa_device_pair_list"],
-            "rehydrate_id": device_id,
-        })));
+        if let Some(token) = s.tokens.values().find(|t| t.device_id == device_id) {
+            return Ok(Json(json!({
+                "status": "completed",
+                "device_id": device_id,
+                "token": token.token,
+                "scopes": token.scopes,
+                "issued_at": token.issued_at,
+                "expires_at": token.expires_at,
+                "expired": token.expires_at < now,
+                "next_tools": ["focusa_device_pair_list"],
+                "rehydrate_id": device_id,
+            })));
+        }
+        if let Some((code, pair)) = s.pending.iter().find(|(_, p)| p.device_id == device_id) {
+            let expired = pair.expires_at < now;
+            let status_str = if expired { "expired".to_string() } else { pair.status.to_lowercase() };
+            return Ok(Json(json!({
+                "status": status_str,
+                "code": code,
+                "device_id": pair.device_id,
+                "device_name": pair.device_name,
+                "platform": pair.platform,
+                "scopes": pair.scopes,
+                "expires_at": pair.expires_at,
+                "expired": expired,
+                "next_tools": ["focusa_device_pair_list"],
+                "rehydrate_id": pair.device_id,
+            })));
+        }
+        return Err(rejection(
+            StatusCode::NOT_FOUND,
+            json!({
+                "status": "not_found",
+                "failure_class": "pair_device_not_found",
+                "device_id": device_id,
+            }),
+        ));
     }
     Err(rejection(
         StatusCode::UNPROCESSABLE_ENTITY,
@@ -613,10 +628,10 @@ mod tests {
 // 200-LOC inline HTML + manifest + service worker. No external assets,
 // no third-party scripts (per spec §5.2 threat model).
 //
-// The page reads `device_id` from the URL, polls /v1/device/pair/status
-// every 2 seconds, and surfaces one of three states:
-//   1. Pending  → code is alive; operator can `focusa device pair-complete`
-//                 on the VPS (the same one running this daemon) or via SSH
+// The page reads `device_id` from the URL, polls /v1/device/pair/status,
+// and acts as the mediator: phone/browser approval POSTs pair-complete to
+// the same server, then the Mac receives the token through its own polling.
+//   1. Pending  → one-tap Complete Pairing button is available
 //   2. Completed → the Mac app will receive the token via its own polling
 //   3. Expired  → code is gone; operator must generate a new code on the Mac
 // ──────────────────────────────────────────────────────────────────────────
@@ -726,18 +741,25 @@ fn pwa_helper_html(device_id: &str) -> String {
     .cmd {{ font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px;
            background: #0f1115; border: 1px solid #2a2f3a; border-radius: 8px;
            padding: 10px 12px; margin: 8px 0; word-break: break-all; text-align: left; }}
+    button {{ width: 100%; border: 0; border-radius: 12px; padding: 14px 16px;
+             margin: 18px 0 8px; background: #4f7cff; color: #fff;
+             font: inherit; font-weight: 700; cursor: pointer; }}
+    button:disabled {{ opacity: 0.55; cursor: default; }}
     .hint {{ font-size: 12px; color: #707070; margin-top: 16px; }}
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Focusa Device Pairing</h1>
-    <p>Pairing code for your Mac. Complete on this VPS to finish.</p>
+    <p>This page stands between your Focusa server and your Mac. Tap once to join their hands.</p>
     <div class="code" id="code">—</div>
     <div><span class="status pending" id="status">Pending</span></div>
-    <p style="margin-top:20px;">On the VPS, run:</p>
-    <div class="cmd" id="cmd">focusa device pair-complete &lt;code&gt;</div>
-    <p class="hint" id="hint">This page polls every 2 seconds. Keep it open.</p>
+    <button id="completeBtn" disabled>Complete pairing</button>
+    <details>
+      <summary>Manual fallback</summary>
+      <div class="cmd" id="cmd">focusa device pair-complete &lt;code&gt;</div>
+    </details>
+    <p class="hint" id="hint">Waiting for the server to confirm this Mac.</p>
   </div>
   <script>
     const DEVICE_ID = {device_id_quoted};
@@ -745,24 +767,32 @@ fn pwa_helper_html(device_id: &str) -> String {
     const codeEl = document.getElementById('code');
     const cmdEl = document.getElementById('cmd');
     const hintEl = document.getElementById('hint');
+    const completeBtn = document.getElementById('completeBtn');
     let pollCount = 0;
+    let currentCode = '';
 
     function setState(state, code) {{
       statusEl.className = 'status ' + state;
       statusEl.textContent = state.charAt(0).toUpperCase() + state.slice(1);
       if (state === 'pending') {{
         if (code) {{
+          currentCode = code;
           codeEl.textContent = code;
           cmdEl.textContent = 'focusa device pair-complete ' + code;
+          completeBtn.disabled = false;
         }}
-        hintEl.textContent = 'This page polls every 2 seconds. Keep it open.';
+        hintEl.textContent = 'Tap Complete pairing to approve this Mac on the server.';
       }} else if (state === 'completed') {{
         codeEl.textContent = '✓ paired';
         cmdEl.textContent = 'The Mac app received the token. Return to your Mac.';
+        completeBtn.disabled = true;
+        completeBtn.textContent = 'Paired';
         hintEl.textContent = 'You can close this page.';
       }} else if (state === 'expired') {{
         codeEl.textContent = '✗ expired';
         cmdEl.textContent = 'Generate a new code on your Mac.';
+        completeBtn.disabled = true;
+        completeBtn.textContent = 'Expired';
         hintEl.textContent = 'Codes expire after 5 minutes.';
       }}
     }}
@@ -792,6 +822,25 @@ fn pwa_helper_html(device_id: &str) -> String {
         hintEl.textContent = 'Network error. Retrying…';
       }}
     }}
+
+    completeBtn.addEventListener('click', async () => {{
+      if (!currentCode) return;
+      completeBtn.disabled = true;
+      completeBtn.textContent = 'Completing…';
+      try {{
+        const r = await fetch('/v1/device/pair/complete', {{
+          method: 'POST',
+          headers: {{ 'content-type': 'application/json' }},
+          body: JSON.stringify({{ code: currentCode, host: location.host, completed_by: 'qr-helper-page' }})
+        }});
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        setState('completed');
+      }} catch (e) {{
+        completeBtn.disabled = false;
+        completeBtn.textContent = 'Complete pairing';
+        hintEl.textContent = 'Could not complete pairing. Try again or use Manual fallback.';
+      }}
+    }});
 
     // initial fetch + 2s poll
     poll();
