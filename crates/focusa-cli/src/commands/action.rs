@@ -11,6 +11,15 @@ use serde::Serialize;
 pub enum ActionCmd {
     /// Preflight a proposed action against current environment/ask authority.
     Preflight(ActionPreflightArgs),
+    /// Classify an operator prompt before mutation.
+    ClassifyIntent(IntentClassifyArgs),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct IntentClassifyArgs {
+    /// Operator prompt/current ask to classify.
+    #[arg(long)]
+    pub prompt: String,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -87,6 +96,77 @@ pub struct PreflightConflict {
     pub why: &'static str,
 }
 
+#[derive(Debug, Serialize)]
+pub struct IntentClassificationEnvelope {
+    pub schema: &'static str,
+    pub mode: &'static str,
+    pub mutation_allowed: bool,
+    pub requires_preflight: bool,
+    pub recommended_action: &'static str,
+}
+
+pub fn classify_intent(prompt: &str) -> IntentClassificationEnvelope {
+    let lower = prompt.trim().to_ascii_lowercase();
+    let planning_markers = ["maybe", "what if", "could we", "can we", "discuss", "explore", "plan", "spec"];
+    let diagnosis_markers = ["read", "inspect", "investigate", "diagnose", "why", "what happened"];
+    let implementation_markers = ["implement", "build", "add", "fix", "patch", "change", "create"];
+    let runtime_markers = ["restart", "start daemon", "stop daemon", "pair", "deploy"];
+    let destructive_markers = ["delete", "remove", "overwrite", "reset", "clean", "kill"];
+
+    if destructive_markers.iter().any(|marker| lower.contains(marker)) {
+        return IntentClassificationEnvelope {
+            schema: "focusa.intent_mode_gate.v1",
+            mode: "destructive_or_high_risk_requires_confirmation",
+            mutation_allowed: false,
+            requires_preflight: true,
+            recommended_action: "require explicit confirmation and operational context preflight before mutation",
+        };
+    }
+    if planning_markers.iter().any(|marker| lower.contains(marker)) {
+        return IntentClassificationEnvelope {
+            schema: "focusa.intent_mode_gate.v1",
+            mode: "planning_discussion",
+            mutation_allowed: false,
+            requires_preflight: false,
+            recommended_action: "produce plan/spec only; do not mutate files or runtime",
+        };
+    }
+    if runtime_markers.iter().any(|marker| lower.contains(marker)) {
+        return IntentClassificationEnvelope {
+            schema: "focusa.intent_mode_gate.v1",
+            mode: "runtime_operation_authorized",
+            mutation_allowed: true,
+            requires_preflight: true,
+            recommended_action: "run operational context preflight before runtime mutation",
+        };
+    }
+    if implementation_markers.iter().any(|marker| lower.contains(marker)) {
+        return IntentClassificationEnvelope {
+            schema: "focusa.intent_mode_gate.v1",
+            mode: "implementation_authorized",
+            mutation_allowed: true,
+            requires_preflight: true,
+            recommended_action: "run repo/status and operational context preflight before implementation",
+        };
+    }
+    if diagnosis_markers.iter().any(|marker| lower.contains(marker)) {
+        return IntentClassificationEnvelope {
+            schema: "focusa.intent_mode_gate.v1",
+            mode: "diagnosis",
+            mutation_allowed: false,
+            requires_preflight: false,
+            recommended_action: "read/inspect only; no mutation",
+        };
+    }
+    IntentClassificationEnvelope {
+        schema: "focusa.intent_mode_gate.v1",
+        mode: "diagnosis",
+        mutation_allowed: false,
+        requires_preflight: false,
+        recommended_action: "treat ambiguous prompt as read-only until implementation intent is explicit",
+    }
+}
+
 pub async fn run(cmd: ActionCmd, json_mode: bool) -> anyhow::Result<()> {
     match cmd {
         ActionCmd::Preflight(args) => {
@@ -101,6 +181,16 @@ pub async fn run(cmd: ActionCmd, json_mode: bool) -> anyhow::Result<()> {
                 if let Some(safe_alternative) = &envelope.safe_alternative {
                     println!("safe_alternative: {safe_alternative}");
                 }
+            }
+        }
+        ActionCmd::ClassifyIntent(args) => {
+            let envelope = classify_intent(args.prompt.as_str());
+            if json_mode {
+                println!("{}", serde_json::to_string_pretty(&envelope)?);
+            } else {
+                println!("mode: {}", envelope.mode);
+                println!("mutation_allowed: {}", envelope.mutation_allowed);
+                println!("recommended_action: {}", envelope.recommended_action);
             }
         }
     }
@@ -175,6 +265,14 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn classifies_maybe_prompt_as_planning_without_mutation() {
+        let envelope = classify_intent("Maybe we can add a flag for install context");
+        assert_eq!(envelope.mode, "planning_discussion");
+        assert!(!envelope.mutation_allowed);
+        assert!(!envelope.requires_preflight);
+    }
 
     #[test]
     fn blocks_release_asset_install_on_live_build_host_during_pairing() {
