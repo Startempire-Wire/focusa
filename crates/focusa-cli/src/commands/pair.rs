@@ -1,12 +1,13 @@
 //! Apple-like Mac Phone Bridge Flow entry command.
 
 use crate::api_client::ApiClient;
-use crate::commands::daemon;
+use crate::commands::{action, daemon, runtime};
 use clap::Args;
 use qrcode::QrCode;
 use qrcode::render::unicode;
 use serde_json::{Value, json};
 use std::net::{IpAddr, Ipv4Addr};
+use std::path::Path;
 
 #[derive(Args)]
 pub struct PairArgs {
@@ -346,6 +347,30 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
     }
 }
 
+fn environment_contract_summary() -> Value {
+    let path = Path::new("/etc/focusa/environment-contract.json");
+    if let Ok(content) = std::fs::read_to_string(path)
+        && let Ok(value) = serde_json::from_str::<Value>(&content)
+    {
+        return json!({
+            "schema": "focusa.environment_contract.v1",
+            "status": "loaded",
+            "path": path.display().to_string(),
+            "install_role": value.get("install_role").and_then(Value::as_str).unwrap_or("unknown"),
+            "project_root": value.get("project_root").and_then(Value::as_str),
+            "owner": value.get("owner").and_then(Value::as_str),
+            "binary_policy": value.get("binary_policy").cloned().unwrap_or(Value::Null),
+        });
+    }
+    json!({
+        "schema": "focusa.environment_contract.v1",
+        "status": "missing",
+        "path": path.display().to_string(),
+        "install_role": "unknown",
+        "recommended_action": "run focusa env contract init after verifying this host install role"
+    })
+}
+
 fn terminal_qr(payload: &str) -> anyhow::Result<String> {
     let code = QrCode::new(payload.as_bytes())?;
     Ok(code
@@ -436,6 +461,32 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
                 .and_then(Value::as_bool)
                 .unwrap_or(false)
     });
+    let environment_contract = environment_contract_summary();
+    let env_user = std::env::var("USER").ok();
+    let expected_owner = environment_contract
+        .get("owner")
+        .and_then(Value::as_str)
+        .or(env_user.as_deref());
+    let runtime_inventory = runtime::collect_inventory(expected_owner).await;
+    let install_role = environment_contract
+        .get("install_role")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_string();
+    let action_preflight = action::evaluate_preflight(action::ActionPreflightArgs {
+        current_ask: "initiate Phone Bridge pairing".to_string(),
+        kind: "pairing_start".to_string(),
+        target: Some(connect_url.clone()),
+        source: Some("focusa_pair".to_string()),
+        install_role,
+        project_root: environment_contract
+            .get("project_root")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        repo_version: None,
+        cli_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        daemon_version: runtime_inventory.daemon.version.clone(),
+    });
 
     if json_mode {
         println!(
@@ -446,6 +497,9 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
                 "server_url": server_url,
                 "server_url_source": source,
                 "checked_candidates": choice.checked_candidates,
+                "environment_contract": environment_contract,
+                "runtime_inventory": runtime_inventory,
+                "action_preflight": action_preflight,
                 "diagnostics": {
                     "surface": "phone_bridge_flow",
                     "auto_detect": true,
