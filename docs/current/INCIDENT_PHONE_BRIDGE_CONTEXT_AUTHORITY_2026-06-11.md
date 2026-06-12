@@ -7,6 +7,15 @@
 **Recovered runtime state:** CLI `0.9.25-dev`, daemon `0.9.25-dev`, daemon user `wirebot`, bind `127.0.0.1:8787`  
 **Primary failure class:** preserved context did not become mutation-time authority.
 
+
+## Architecture translation
+
+The detailed architecture translation and bead decomposition source lives at:
+
+- `docs/current/CONTEXT_AUTHORITY_ARCHITECTURE_WORKORDER_SPEC_2026-06-12.md`
+
+This companion spec maps each incident symptom to Focusa architecture needs, enforcement points, CLI/API/data-model surfaces, tests, and implementation beads.
+
 ---
 
 ## 1. Executive thesis
