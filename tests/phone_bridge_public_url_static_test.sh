@@ -5,6 +5,7 @@ SCRIPT="${ROOT_DIR}/scripts/phone-bridge-transport.sh"
 SHIM="${ROOT_DIR}/scripts/setup-phone-bridge-url.sh"
 GLOSSARY="${ROOT_DIR}/docs/00-glossary.md"
 PLAN="${ROOT_DIR}/docs/54-focusa-pairing-room-plan.md"
+PAIR_RS="${ROOT_DIR}/crates/focusa-cli/src/commands/pair.rs"
 
 assert_has() {
   local file="$1"
@@ -33,5 +34,13 @@ assert_has "$GLOSSARY" 'Phone Bridge Flow' 'glossary defines Phone Bridge Flow'
 assert_has "$GLOSSARY" 'Public Focusa URL' 'glossary defines Public Focusa URL'
 assert_has "$PLAN" 'Phone Bridge Transport Resolver' 'Phone Bridge plan defines transport resolver'
 assert_has "$PLAN" 'scripts/phone-bridge-transport\.sh' 'Phone Bridge plan references transport resolver helper'
+assert_has "$PAIR_RS" 'daemon::start\(\)\.await.*resolve_server_url|daemon_started = daemon::start' 'focusa pair starts daemon before transport auto-detect'
+assert_has "$PAIR_RS" 'private_or_tailscale_daemon_port' 'focusa pair auto-detects private/Tailscale daemon routes'
+assert_has "$PAIR_RS" 'bridge_api_probe' 'focusa pair validates Bridge Room API route'
+assert_has "$PAIR_RS" 'bridge_api_reachable' 'focusa pair reports Bridge Room API candidate status'
+assert_has "$PAIR_RS" 'checked_candidates' 'focusa pair reports auto-detect candidate probes'
+assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'running_version_matches' 'daemon start detects stale daemon version'
+assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'kill_daemon_processes' 'daemon start force-repairs stale daemon when shutdown fails'
+assert_has "${ROOT_DIR}/crates/focusa-cli/src/commands/daemon.rs" 'focusa-daemon' 'daemon discovery keeps CLI and daemon paired'
 
 echo "Phone Bridge transport static test: PASS"

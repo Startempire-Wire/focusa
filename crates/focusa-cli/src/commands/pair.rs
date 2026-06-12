@@ -54,7 +54,10 @@ fn is_local_url(url: &str) -> bool {
 }
 
 fn command_output(command: &str, args: &[&str]) -> Option<String> {
-    let output = std::process::Command::new(command).args(args).output().ok()?;
+    let output = std::process::Command::new(command)
+        .args(args)
+        .output()
+        .ok()?;
     if !output.status.success() {
         return None;
     }
@@ -63,7 +66,8 @@ fn command_output(command: &str, args: &[&str]) -> Option<String> {
 }
 
 fn detected_hostname() -> Option<String> {
-    let hostname = command_output("hostname", &["-f"]).or_else(|| command_output("hostname", &[]))?;
+    let hostname =
+        command_output("hostname", &["-f"]).or_else(|| command_output("hostname", &[]))?;
     let host = hostname.trim().trim_end_matches('.');
     if host.is_empty()
         || host.eq_ignore_ascii_case("localhost")
@@ -87,13 +91,23 @@ fn public_ipv4(ip: Ipv4Addr) -> bool {
         || carrier_grade_nat)
 }
 
-fn detected_public_ips() -> Vec<String> {
+fn private_or_tailscale_ipv4(ip: Ipv4Addr) -> bool {
+    let octets = ip.octets();
+    let carrier_grade_nat = octets[0] == 100 && (64..=127).contains(&octets[1]);
+    !ip.is_loopback()
+        && !ip.is_link_local()
+        && !ip.is_multicast()
+        && !ip.is_broadcast()
+        && !ip.is_unspecified()
+        && (ip.is_private() || carrier_grade_nat)
+}
+
+fn detected_ips(filter: fn(Ipv4Addr) -> bool) -> Vec<String> {
     command_output("hostname", &["-I"])
         .unwrap_or_default()
         .split_whitespace()
-        .filter_map(|raw| raw.parse::<IpAddr>().ok())
-        .filter_map(|ip| match ip {
-            IpAddr::V4(v4) if public_ipv4(v4) => Some(v4.to_string()),
+        .filter_map(|value| match value.parse::<IpAddr>().ok()? {
+            IpAddr::V4(v4) if filter(v4) => Some(v4.to_string()),
             _ => None,
         })
         .collect()
@@ -120,6 +134,29 @@ async fn connect_probe(url: &str) -> bool {
         .unwrap_or(false)
 }
 
+async fn bridge_api_probe(url: &str) -> bool {
+    let probe_url = format!(
+        "{}/v1/connect/room/focusa-probe/status",
+        normalize_base(url)
+    );
+    let Ok(client) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .danger_accept_invalid_certs(true)
+        .build()
+    else {
+        return false;
+    };
+    let Ok(resp) = client.get(probe_url).send().await else {
+        return false;
+    };
+    resp.text()
+        .await
+        .map(|body| {
+            body.contains("connect_room_not_found") || body.contains("\"status\":\"not_found\"")
+        })
+        .unwrap_or(false)
+}
+
 fn push_candidate(candidates: &mut Vec<(String, &'static str)>, url: String, source: &'static str) {
     let normalized = normalize_base(&url);
     if !normalized.is_empty() && !candidates.iter().any(|(seen, _)| seen == &normalized) {
@@ -137,17 +174,14 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
         };
     }
 
+    let mut candidates = vec![];
+
     for (key, source) in [
         ("FOCUSA_PAIRING_URL", "FOCUSA_PAIRING_URL"),
         ("FOCUSA_PUBLIC_URL", "FOCUSA_PUBLIC_URL"),
     ] {
         if let Some(url) = env_url(key) {
-            return UrlChoice {
-                url,
-                source,
-                warning: None,
-                checked_candidates: vec![],
-            };
+            push_candidate(&mut candidates, url, source);
         }
     }
 
@@ -158,12 +192,7 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
         ".focusa-public-url",
     ] {
         if let Some(url) = file_url(path) {
-            return UrlChoice {
-                url,
-                source: "install_config",
-                warning: None,
-                checked_candidates: vec![],
-            };
+            push_candidate(&mut candidates, url, "install_config");
         }
     }
 
@@ -171,40 +200,63 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
         if let Some(url) = env_url(key)
             && !is_local_url(&url)
         {
-            return UrlChoice {
-                url,
-                source: key,
-                warning: None,
-                checked_candidates: vec![],
-            };
+            push_candidate(&mut candidates, url, key);
         }
     }
 
-    let mut candidates = vec![];
     if let Some(host) = detected_hostname() {
         push_candidate(&mut candidates, format!("https://{host}"), "hostname_https");
         push_candidate(&mut candidates, format!("http://{host}"), "hostname_http");
-        push_candidate(&mut candidates, format!("http://{host}:8787"), "hostname_daemon_port");
+        push_candidate(
+            &mut candidates,
+            format!("http://{host}:8787"),
+            "hostname_daemon_port",
+        );
     }
-    for ip in detected_public_ips() {
+    for ip in detected_ips(public_ipv4) {
         push_candidate(&mut candidates, format!("https://{ip}"), "public_ip_https");
         push_candidate(&mut candidates, format!("http://{ip}"), "public_ip_http");
-        push_candidate(&mut candidates, format!("http://{ip}:8787"), "public_ip_daemon_port");
+        push_candidate(
+            &mut candidates,
+            format!("http://{ip}:8787"),
+            "public_ip_daemon_port",
+        );
     }
+    for ip in detected_ips(private_or_tailscale_ipv4) {
+        push_candidate(
+            &mut candidates,
+            format!("http://{ip}:8787"),
+            "private_or_tailscale_daemon_port",
+        );
+    }
+    push_candidate(
+        &mut candidates,
+        "http://127.0.0.1:8787".to_string(),
+        "local_default",
+    );
 
     let mut checked = Vec::new();
     for (url, source) in candidates {
-        let reachable = connect_probe(&url).await;
+        let connect_ok = connect_probe(&url).await;
+        let bridge_api_ok = if connect_ok {
+            bridge_api_probe(&url).await
+        } else {
+            false
+        };
         checked.push(json!({
             "url": url,
             "source": source,
-            "connect_route_reachable": reachable,
+            "connect_route_reachable": connect_ok,
+            "bridge_api_reachable": bridge_api_ok,
         }));
-        if reachable {
+        if connect_ok && bridge_api_ok {
+            let warning = (source == "local_default").then(|| {
+                "Auto-detected local daemon URL. This works for same-machine/dev use; phones on another device need a shared network, tunnel, or public URL.".to_string()
+            });
             return UrlChoice {
                 url,
                 source,
-                warning: None,
+                warning,
                 checked_candidates: checked,
             };
         }
@@ -212,9 +264,10 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
 
     UrlChoice {
         url: "http://127.0.0.1:8787".to_string(),
-        source: "local_default",
+        source: "local_default_unverified",
         warning: Some(
-            "No phone-reachable Focusa URL was detected. Set FOCUSA_PAIRING_URL or write /etc/focusa/public-url after installing your reverse proxy.".to_string(),
+            "Focusa could not auto-detect a phone-reachable transport. Ensure the daemon is running and that the phone shares a reachable network, tunnel, or public URL."
+                .to_string(),
         ),
         checked_candidates: checked,
     }
@@ -273,10 +326,10 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
 }
 
 pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
+    let daemon_started = daemon::start().await.unwrap_or(false);
     let choice = resolve_server_url(args.url).await;
     let server_url = choice.url.clone();
     let source = choice.source;
-    let daemon_started = daemon::start().await.unwrap_or(false);
     let (room_payload, room_warning) = start_room(&server_url).await;
     let connect_url = room_payload
         .get("connect_url")

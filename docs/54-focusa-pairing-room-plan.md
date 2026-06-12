@@ -140,7 +140,9 @@ Current transitional routes already exist:
 
 The Phone Bridge Flow needs a phone-reachable transport. That transport may be a public URL, non-local daemon URL, private/Tailscale URL, temporary tunnel, or optional reverse proxy.
 
-Focusa-owned resolver helper:
+`focusa pair` runs the resolver automatically. Operators should not need to run setup steps first for normal use.
+
+Diagnostic/manual override helper:
 
 ```bash
 scripts/phone-bridge-transport.sh detect
@@ -162,7 +164,7 @@ Optional reverse-proxy snippets remain available, but live webserver mutation is
 scripts/phone-bridge-transport.sh proxy-snippets
 ```
 
-`focusa pair` uses the same resolver posture: configured URLs first, then verified hostname/IP/private candidates, then local fallback with clear setup options.
+`focusa pair` uses the same resolver posture automatically: start/repair daemon first, restart stale daemons when the running version does not match the CLI, then probe configured URLs, non-local API URLs, verified hostname/IP candidates, private/Tailscale candidates, and local fallback. A candidate is accepted only when both the Focusa Connect page and Bridge Room API are reachable.
 
 ## 8. CLI/TUI plan
 
