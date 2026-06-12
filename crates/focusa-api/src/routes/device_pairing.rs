@@ -226,6 +226,15 @@ fn connect_status_payload(session: &ConnectSession, status: String) -> Value {
         "expired": expired,
         "token": session.token,
         "next_tools": ["focusa_connect_room_status", "focusa_connect_room_approve"],
+        "diagnostics": {
+            "surface": "phone_bridge_flow",
+            "room_state": status,
+            "mac_offer_seen": !session.mac_nonce.trim().is_empty(),
+            "mac_callback_present": session.mac_callback.is_some(),
+            "token_present": session.token.is_some(),
+            "expired": expired,
+            "next_step_hint": if expired { "Run `focusa pair` again." } else if session.mac_nonce.trim().is_empty() { "Scan the Mac Handoff Offer from the Focusa Connect Page." } else if session.token.is_none() { "Approve the Mac from the Focusa Connect Page." } else { "Mac can store the returned token." }
+        },
         "rehydrate_id": session.connect_id,
     })
 }
@@ -264,6 +273,14 @@ async fn connect_room_start(
         .connect_sessions
         .insert(room_id.clone(), session);
 
+    tracing::info!(
+        room_id = %room_id,
+        device_id = %device_id,
+        server_url = %server_url,
+        expires_in_secs = CODE_TTL_SECS,
+        "phone bridge room started"
+    );
+
     Ok(Json(json!({
         "status": "waiting_for_mac",
         "canonical": false,
@@ -285,6 +302,12 @@ async fn connect_room_start(
             "expires_in_secs": CODE_TTL_SECS
         },
         "next_tools": ["focusa_connect_room_status", "focusa_connect_room_mac_offer"],
+        "diagnostics": {
+            "surface": "phone_bridge_flow",
+            "event": "room_started",
+            "room_state": "waiting_for_mac",
+            "next_step_hint": "Open the Focusa Connect Page on the phone, then scan the Mac Handoff Offer."
+        },
         "rehydrate_id": room_id,
     })))
 }
@@ -322,6 +345,7 @@ async fn connect_room_mac_offer(
         .mac_nonce
         .unwrap_or_else(|| Uuid::now_v7().simple().to_string());
     if mac_name.trim().is_empty() || mac_nonce.trim().is_empty() {
+        tracing::warn!(room_id = %room_id, "phone bridge mac offer rejected: missing mac_name or mac_nonce");
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
             json!({
@@ -336,6 +360,7 @@ async fn connect_room_mac_offer(
     let pairing_state = shared_state();
     let mut s = pairing_state.write().await;
     let Some(existing) = s.connect_sessions.get(room_id.trim()).cloned() else {
+        tracing::warn!(room_id = %room_id, "phone bridge mac offer rejected: room not found");
         return Err(rejection(
             StatusCode::NOT_FOUND,
             json!({
@@ -346,6 +371,7 @@ async fn connect_room_mac_offer(
         ));
     };
     if existing.expires_at < now && existing.token.is_none() {
+        tracing::warn!(room_id = %room_id, expired_at = %existing.expires_at, "phone bridge mac offer rejected: room expired");
         return Err(rejection(
             StatusCode::GONE,
             json!({
@@ -368,6 +394,13 @@ async fn connect_room_mac_offer(
     updated.status = "mac_seen".to_string();
     s.connect_sessions
         .insert(updated.connect_id.clone(), updated.clone());
+    tracing::info!(
+        room_id = %updated.connect_id,
+        device_id = %updated.device_id,
+        mac_name = %updated.mac_name,
+        mac_callback_present = updated.mac_callback.is_some(),
+        "phone bridge mac offer accepted"
+    );
     Ok(Json(connect_status_payload(
         &updated,
         updated.status.clone(),
@@ -623,6 +656,14 @@ async fn connect_approve(
         ));
     }
 
+    tracing::info!(
+        connect_id = %completed.connect_id,
+        device_id = %completed.device_id,
+        mac_name = %completed.mac_name,
+        host = %host,
+        "phone bridge approval completed"
+    );
+
     Ok(Json(json!({
         "status": "completed",
         "canonical": false,
@@ -639,6 +680,13 @@ async fn connect_approve(
         "token_expires_at": now + Duration::seconds(TOKEN_TTL_SECS),
         "token_ttl_secs": TOKEN_TTL_SECS,
         "next_tools": ["focusa_connect_status", "focusa_device_pair_list"],
+        "diagnostics": {
+            "surface": "phone_bridge_flow",
+            "event": "approval_completed",
+            "mac_callback_present": completed.mac_callback.is_some(),
+            "token_present": true,
+            "next_step_hint": "Mac callback should store this token automatically; use Mac Completion Payload fallback if needed."
+        },
         "rehydrate_id": completed.connect_id,
     })))
 }

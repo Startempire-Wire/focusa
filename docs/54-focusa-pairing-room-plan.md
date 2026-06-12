@@ -164,7 +164,9 @@ Optional reverse-proxy snippets remain available, but live webserver mutation is
 scripts/phone-bridge-transport.sh proxy-snippets
 ```
 
-`focusa pair` uses the same resolver posture automatically: start/repair daemon first, restart stale daemons when the running version does not match the CLI, then probe configured URLs, non-local API URLs, verified hostname/IP candidates, private/Tailscale candidates, and local fallback. A candidate is accepted only when both the Focusa Connect page and Bridge Room API are reachable.
+`focusa pair` uses the same resolver posture automatically: start/repair daemon first, restart stale daemons when the running version does not match the CLI, then probe configured URLs, non-local API URLs, verified hostname/IP candidates, private/Tailscale candidates, and local fallback. A candidate is accepted only when both the Focusa Connect page and Bridge Room API are reachable. JSON output includes `checked_candidates`, per-route probe diagnostics, first rejection reason, daemon repair status, and operator hints; human output includes a concise rejection summary.
+
+Daemon-side Bridge Room endpoints also report lifecycle diagnostics (`room_started`, `mac_offer_seen`, `approval_completed`), `next_step_hint`, and structured rejection payloads so Focusa Connect failures are explainable without raw stale JSON.
 
 ## 8. CLI/TUI plan
 

@@ -35,8 +35,17 @@ pub async fn start() -> anyhow::Result<bool> {
         if running_version_matches(&health) {
             return Ok(false);
         }
+        eprintln!(
+            "Focusa daemon version mismatch: running={} cli={}; repairing daemon before continuing.",
+            health
+                .get("version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown"),
+            env!("CARGO_PKG_VERSION")
+        );
         let _ = stop().await;
         if client.get("/v1/health").await.is_ok() {
+            eprintln!("Focusa daemon graceful shutdown did not finish; using safe process repair.");
             kill_daemon_processes();
             let _ = wait_until_stopped(&client).await;
         }

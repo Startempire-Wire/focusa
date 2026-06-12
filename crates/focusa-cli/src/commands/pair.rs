@@ -113,28 +113,57 @@ fn detected_ips(filter: fn(Ipv4Addr) -> bool) -> Vec<String> {
         .collect()
 }
 
-async fn connect_probe(url: &str) -> bool {
+async fn connect_probe_diagnostic(url: &str) -> Value {
     let connect_url = format!("{}/connect", normalize_base(url));
     let Ok(client) = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(3))
         .danger_accept_invalid_certs(true)
         .build()
     else {
-        return false;
+        return json!({
+            "ok": false,
+            "url": connect_url,
+            "failure_class": "probe_client_build_failed",
+            "message": "Could not build HTTP client for Focusa Connect probe",
+        });
     };
-    let Ok(resp) = client.get(connect_url).send().await else {
-        return false;
+    let resp = match client.get(&connect_url).send().await {
+        Ok(resp) => resp,
+        Err(err) => {
+            return json!({
+                "ok": false,
+                "url": connect_url,
+                "failure_class": if err.is_timeout() { "probe_timeout" } else if err.is_connect() { "probe_connect_failed" } else { "probe_request_failed" },
+                "message": err.to_string(),
+            });
+        }
     };
-    if !resp.status().is_success() {
-        return false;
-    }
-    resp.text()
-        .await
-        .map(|body| body.contains("Focusa Connect") && body.contains("Connect Mac to Focusa"))
-        .unwrap_or(false)
+    let status = resp.status();
+    let body = match resp.text().await {
+        Ok(body) => body,
+        Err(err) => {
+            return json!({
+                "ok": false,
+                "url": connect_url,
+                "http_status": status.as_u16(),
+                "failure_class": "probe_body_read_failed",
+                "message": err.to_string(),
+            });
+        }
+    };
+    let page_ok = status.is_success()
+        && body.contains("Focusa Connect")
+        && (body.contains("Connect Mac to Focusa") || body.contains("Connect a Mac"));
+    json!({
+        "ok": page_ok,
+        "url": connect_url,
+        "http_status": status.as_u16(),
+        "failure_class": if page_ok { Value::Null } else if !status.is_success() { json!("connect_page_http_error") } else { json!("connect_page_signature_missing") },
+        "message": if page_ok { Value::Null } else if !status.is_success() { json!(format!("Focusa Connect page returned HTTP {}", status.as_u16())) } else { json!("Response did not look like the Focusa Connect Page") },
+    })
 }
 
-async fn bridge_api_probe(url: &str) -> bool {
+async fn bridge_api_probe_diagnostic(url: &str) -> Value {
     let probe_url = format!(
         "{}/v1/connect/room/focusa-probe/status",
         normalize_base(url)
@@ -144,17 +173,46 @@ async fn bridge_api_probe(url: &str) -> bool {
         .danger_accept_invalid_certs(true)
         .build()
     else {
-        return false;
+        return json!({
+            "ok": false,
+            "url": probe_url,
+            "failure_class": "probe_client_build_failed",
+            "message": "Could not build HTTP client for Bridge Room API probe",
+        });
     };
-    let Ok(resp) = client.get(probe_url).send().await else {
-        return false;
+    let resp = match client.get(&probe_url).send().await {
+        Ok(resp) => resp,
+        Err(err) => {
+            return json!({
+                "ok": false,
+                "url": probe_url,
+                "failure_class": if err.is_timeout() { "probe_timeout" } else if err.is_connect() { "probe_connect_failed" } else { "probe_request_failed" },
+                "message": err.to_string(),
+            });
+        }
     };
-    resp.text()
-        .await
-        .map(|body| {
-            body.contains("connect_room_not_found") || body.contains("\"status\":\"not_found\"")
-        })
-        .unwrap_or(false)
+    let status = resp.status();
+    let body = match resp.text().await {
+        Ok(body) => body,
+        Err(err) => {
+            return json!({
+                "ok": false,
+                "url": probe_url,
+                "http_status": status.as_u16(),
+                "failure_class": "probe_body_read_failed",
+                "message": err.to_string(),
+            });
+        }
+    };
+    let api_ok =
+        body.contains("connect_room_not_found") || body.contains("\"status\":\"not_found\"");
+    json!({
+        "ok": api_ok,
+        "url": probe_url,
+        "http_status": status.as_u16(),
+        "failure_class": if api_ok { Value::Null } else if !status.is_success() && status.as_u16() != 404 { json!("bridge_api_http_error") } else { json!("bridge_api_signature_missing") },
+        "message": if api_ok { Value::Null } else { json!("Response did not look like the Focusa Bridge Room API") },
+    })
 }
 
 fn push_candidate(candidates: &mut Vec<(String, &'static str)>, url: String, source: &'static str) {
@@ -237,17 +295,32 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
 
     let mut checked = Vec::new();
     for (url, source) in candidates {
-        let connect_ok = connect_probe(&url).await;
-        let bridge_api_ok = if connect_ok {
-            bridge_api_probe(&url).await
+        let connect_probe = connect_probe_diagnostic(&url).await;
+        let connect_ok = connect_probe
+            .get("ok")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let bridge_probe = if connect_ok {
+            bridge_api_probe_diagnostic(&url).await
         } else {
-            false
+            json!({
+                "ok": false,
+                "url": format!("{}/v1/connect/room/focusa-probe/status", normalize_base(&url)),
+                "failure_class": "connect_probe_failed",
+                "message": "Skipped Bridge Room API probe because Focusa Connect page probe failed",
+            })
         };
+        let bridge_api_ok = bridge_probe
+            .get("ok")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         checked.push(json!({
             "url": url,
             "source": source,
             "connect_route_reachable": connect_ok,
             "bridge_api_reachable": bridge_api_ok,
+            "connect_probe": connect_probe,
+            "bridge_api_probe": bridge_probe,
         }));
         if connect_ok && bridge_api_ok {
             let warning = (source == "local_default").then(|| {
@@ -338,6 +411,31 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
         .unwrap_or_else(|| format!("{server_url}/connect"));
     let room_id = room_payload.get("room_id").and_then(Value::as_str);
     let warning = room_warning.or(choice.warning);
+    let checked_count = choice.checked_candidates.len();
+    let rejected_count = choice
+        .checked_candidates
+        .iter()
+        .filter(|candidate| {
+            !candidate
+                .get("connect_route_reachable")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                || !candidate
+                    .get("bridge_api_reachable")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+        })
+        .count();
+    let first_rejection = choice.checked_candidates.iter().find(|candidate| {
+        !candidate
+            .get("connect_route_reachable")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+            || !candidate
+                .get("bridge_api_reachable")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+    });
 
     if json_mode {
         println!(
@@ -348,6 +446,17 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
                 "server_url": server_url,
                 "server_url_source": source,
                 "checked_candidates": choice.checked_candidates,
+                "diagnostics": {
+                    "surface": "phone_bridge_flow",
+                    "auto_detect": true,
+                    "selected_source": source,
+                    "selected_url": server_url,
+                    "checked_count": checked_count,
+                    "rejected_count": rejected_count,
+                    "first_rejection": first_rejection,
+                    "daemon_repair": if daemon_started { "started_or_repaired" } else { "already_current" },
+                    "operator_hint": "Normally no manual setup is required. If selected_url is local_default, phone must share that machine/network or use tunnel/public URL."
+                },
                 "room_id": room_id,
                 "connect_url": connect_url,
                 "daemon": if daemon_started { "started" } else { "already_running_or_external" },
@@ -371,6 +480,21 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
     println!("Open on phone:");
     println!("{connect_url}");
     println!("Detected from: {source}");
+    println!("Auto-detect checked {checked_count} candidate(s), rejected {rejected_count}.");
+    if let Some(rejection) = first_rejection
+        && let Some(reason) = rejection
+            .get("connect_probe")
+            .and_then(|probe| probe.get("failure_class"))
+            .and_then(Value::as_str)
+            .or_else(|| {
+                rejection
+                    .get("bridge_api_probe")
+                    .and_then(|probe| probe.get("failure_class"))
+                    .and_then(Value::as_str)
+            })
+    {
+        println!("First rejected candidate reason: {reason}");
+    }
     if let Some(warning) = warning.as_deref() {
         println!();
         println!("Setup needed: {warning}");
