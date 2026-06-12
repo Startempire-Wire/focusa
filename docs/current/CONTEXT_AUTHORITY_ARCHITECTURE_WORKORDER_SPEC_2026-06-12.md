@@ -1,9 +1,9 @@
 # Context Authority Architecture Translation Workorder Spec
 
-**Status:** architecture translation / implementation workorder source  
-**Incident source:** `docs/current/INCIDENT_PHONE_BRIDGE_CONTEXT_AUTHORITY_2026-06-11.md`  
-**Project:** Focusa  
-**Project root:** `/home/wirebot/focusa`  
+**Status:** architecture translation / implementation workorder source
+**Incident source:** `docs/current/INCIDENT_PHONE_BRIDGE_CONTEXT_AUTHORITY_2026-06-11.md`
+**Project:** Focusa
+**Project root:** `${FOCUSA_PROJECT_ROOT:-<focusa-repo>}`
 **Purpose:** translate every architecture need exposed by the Phone Bridge context-authority incident into Focusa-specific software work, bead decomposition, enforcement points, and acceptance tests.
 
 **Implementation status:** implemented through `dc9a335` and documented in `docs/current/CONTEXT_AUTHORITY_CURRENT.md`. Child beads `focusa-9o3v.1`–`.10` and parent `focusa-9o3v` were closed after validation.
@@ -83,7 +83,7 @@ Create a single preflight authority packet for risky actions. The gate classifie
   "risk_class": "read|low|medium|high|destructive",
   "current_ask": "initiate Phone Bridge pairing",
   "workpoint_id": "...",
-  "project_root": "/home/wirebot/focusa",
+  "project_root": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
   "environment_role": "live_build_host",
   "proposed_action": {
     "kind": "binary_replace",
@@ -96,7 +96,7 @@ Create a single preflight authority packet for risky actions. The gate classifie
       "why": "This host is the live Focusa build host; release assets are not the repair source."
     }
   ],
-  "safe_alternative": "Build from /home/wirebot/focusa and restart daemon as wirebot.",
+  "safe_alternative": "Build from ${FOCUSA_PROJECT_ROOT:-<focusa-repo>} and restart daemon as wirebot.",
   "evidence_refs": []
 }
 ```
@@ -145,7 +145,7 @@ Persist machine/install role as a durable, machine-readable local contract.
   "schema": "focusa.environment_contract.v1",
   "install_role": "live_build_host|consumer_install|dev_worktree|unknown",
   "machine_kind": "vps|mac|local|container|unknown",
-  "project_root": "/home/wirebot/focusa",
+  "project_root": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
   "owner": "wirebot",
   "binary_policy": {
     "preferred_source": "local_repo_build|release_asset|package_manager",
@@ -176,7 +176,7 @@ Project mirror/read model:
 ### Required surfaces
 
 - `focusa env contract show --json`
-- `focusa env contract init --role live_build_host --project-root /home/wirebot/focusa --owner wirebot`
+- `focusa env contract init --role live_build_host --project-root ${FOCUSA_PROJECT_ROOT:-<focusa-repo>} --owner wirebot`
 - `focusa doctor` includes contract.
 - `focusa pair --json` includes contract summary.
 
@@ -213,7 +213,7 @@ Every Focusa binary should expose provenance and compatibility metadata; install
   "git_sha": "...",
   "build_profile": "release",
   "source_type": "local_repo_build|release_asset|package_manager|unknown",
-  "source_ref": "/home/wirebot/focusa",
+  "source_ref": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
   "target_triple": "x86_64-unknown-linux-gnu",
   "host_glibc_required": "...",
   "built_on": "..."
@@ -486,7 +486,7 @@ This failure must become a permanent regression test.
 {
   "scenario": "live_build_host_pairing_test_stale_runtime",
   "facts": {
-    "project_root": "/home/wirebot/focusa",
+    "project_root": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
     "install_role": "live_build_host",
     "repo_version": "0.9.25-dev",
     "daemon_version": "0.9.23-dev",

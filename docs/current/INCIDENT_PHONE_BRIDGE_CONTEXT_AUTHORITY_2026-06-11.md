@@ -1,10 +1,10 @@
 # Incident: Phone Bridge pairing exposed Focusa context-authority failure
 
-**Status:** incident record / workorder source  
-**Date range:** 2026-06-11 → 2026-06-12 UTC  
-**Project root:** `/home/wirebot/focusa`  
-**Continuity:** `focusa-cont-focusa-94854d7e-ef7d-44dc-8870-345372ead878`  
-**Recovered runtime state:** CLI `0.9.25-dev`, daemon `0.9.25-dev`, daemon user `wirebot`, bind `127.0.0.1:8787`  
+**Status:** incident record / workorder source
+**Date range:** 2026-06-11 → 2026-06-12 UTC
+**Project root:** `${FOCUSA_PROJECT_ROOT:-<focusa-repo>}`
+**Continuity:** `focusa-cont-focusa-94854d7e-ef7d-44dc-8870-345372ead878`
+**Recovered runtime state:** CLI `0.9.25-dev`, daemon `0.9.25-dev`, daemon user `wirebot`, bind `127.0.0.1:8787`
 **Primary failure class:** preserved context did not become mutation-time authority.
 
 
@@ -27,7 +27,7 @@ This incident was not a simple memory failure and not only an agent judgment fai
 Focusa preserved many relevant facts:
 
 - We were actively building Focusa itself in real time.
-- The active project root was `/home/wirebot/focusa`.
+- The active project root was `${FOCUSA_PROJECT_ROOT:-<focusa-repo>}`.
 - The VPS was a live Focusa build/development host, not a clean consumer install.
 - The daemon and CLI already existed.
 - We were testing pairing/Phone Bridge against an already installed and running Focusa.
@@ -90,7 +90,7 @@ Observed error:
 After recovery:
 
 ```text
-Project root: /home/wirebot/focusa
+Project root: ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 Git tag: v0.9.25-dev
 CLI: focusa 0.9.25-dev
 Daemon health: {"ok":true,"version":"0.9.25-dev"}
@@ -293,7 +293,7 @@ Correct expected process:
 Observed state:
 
 ```text
-Repo: /home/wirebot/focusa
+Repo: ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 Repo tag: v0.9.25-dev
 /usr/local/bin/focusa: stale 0.9.22-dev
 running daemon health: 0.9.23-dev
@@ -335,7 +335,7 @@ Result:
 
 Correct recovery:
 
-- build from local repo `/home/wirebot/focusa`
+- build from local repo `${FOCUSA_PROJECT_ROOT:-<focusa-repo>}`
 - install local build outputs
 - restart daemon
 - ensure daemon runs as `wirebot`
@@ -344,7 +344,7 @@ Correct recovery:
 Recovery path:
 
 ```bash
-cd /home/wirebot/focusa
+cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 cargo build --release --locked -p focusa-api --bin focusa-daemon -p focusa-cli --bin focusa
 install -m 755 target/release/focusa /usr/local/bin/focusa
 install -m 755 target/release/focusa-daemon /usr/local/bin/focusa-daemon
@@ -486,7 +486,7 @@ CLI: stale
 Daemon: stale/running
 Proposed mutation: replace /usr/local/bin/focusa from GitHub release asset
 Verdict: blocked
-Safe action: local rebuild/restart from /home/wirebot/focusa
+Safe action: local rebuild/restart from ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 ```
 
 ### 5.4 Context preserved but not enforced
@@ -671,7 +671,7 @@ Possible fields:
 {
   "schema": "focusa.environment_contract.v1",
   "install_role": "live_build_host",
-  "project_root": "/home/wirebot/focusa",
+  "project_root": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
   "owner": "wirebot",
   "machine_kind": "vps",
   "binary_policy": {
@@ -795,7 +795,7 @@ Create a golden scenario test:
 
 ```text
 Given:
-  project_root=/home/wirebot/focusa
+  project_root=${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
   install_role=live_build_host
   repo=v0.9.25-dev
   daemon=0.9.23-dev running

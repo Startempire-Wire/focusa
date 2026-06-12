@@ -27,7 +27,7 @@ focusa --json action preflight \
   --target /usr/local/bin/focusa \
   --source github_release_asset \
   --install-role live_build_host \
-  --project-root /home/wirebot/focusa \
+  --project-root ${FOCUSA_PROJECT_ROOT:-<focusa-repo>} \
   --repo-version 0.9.25-dev \
   --cli-version 0.9.22-dev \
   --daemon-version 0.9.23-dev
@@ -90,7 +90,7 @@ Machine-readable install/environment contract.
 ```bash
 focusa --json env contract init \
   --role live_build_host \
-  --project-root /home/wirebot/focusa \
+  --project-root ${FOCUSA_PROJECT_ROOT:-<focusa-repo>} \
   --owner wirebot \
   --machine-kind vps \
   --preferred-source local_repo_build
@@ -111,7 +111,7 @@ Schema:
   "schema": "focusa.environment_contract.v1",
   "install_role": "live_build_host",
   "machine_kind": "vps",
-  "project_root": "/home/wirebot/focusa",
+  "project_root": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
   "owner": "wirebot",
   "binary_policy": {
     "preferred_source": "local_repo_build",
@@ -234,7 +234,7 @@ CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/car
 CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_runtime_inventory_test.sh
 CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_binary_preflight_test.sh
 CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_intent_mode_test.sh
-as-user wirebot 'cd /home/wirebot/focusa && tests/spec_context_authority_hlt_ladder_static_test.sh && tests/spec_context_authority_pair_preflight_static_test.sh'
+as-user wirebot 'cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>} && tests/spec_context_authority_hlt_ladder_static_test.sh && tests/spec_context_authority_pair_preflight_static_test.sh'
 CARGO_TARGET_DIR=/tmp/focusa-target-context-authority /root/.cargo/bin/cargo check -q -p focusa-api -p focusa-cli --locked
 ```
 

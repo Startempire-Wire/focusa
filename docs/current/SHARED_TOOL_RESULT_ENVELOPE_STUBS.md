@@ -15,7 +15,7 @@ All API, CLI, Pi, UIAI, MCP, and menubar surfaces should normalize status throug
   "degraded": false,
   "stale": false,
   "scope": {
-    "project_root": "/home/wirebot/focusa",
+    "project_root": "${FOCUSA_PROJECT_ROOT:-<focusa-repo>}",
     "continuity_id": "focusa-cont-example",
     "workpoint_id": "optional",
     "scope_status": "verified",

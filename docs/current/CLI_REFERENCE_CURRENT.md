@@ -69,7 +69,7 @@ focusa --json action preflight \
   --target /usr/local/bin/focusa \
   --source github_release_asset \
   --install-role live_build_host \
-  --project-root /home/wirebot/focusa
+  --project-root ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 ```
 
 ### `focusa action classify-intent`
@@ -87,7 +87,7 @@ Environment Contract. Default path: `/etc/focusa/environment-contract.json`. Pro
 ```bash
 focusa --json env contract init \
   --role live_build_host \
-  --project-root /home/wirebot/focusa \
+  --project-root ${FOCUSA_PROJECT_ROOT:-<focusa-repo>} \
   --owner wirebot \
   --machine-kind vps \
   --preferred-source local_repo_build

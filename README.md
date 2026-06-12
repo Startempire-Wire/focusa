@@ -1,19 +1,29 @@
 # Focusa
 
-> **Local-first cognitive continuity and governance for AI coding agents.**
->
-> Focusa is the missing OS layer for long-running AI work. It gives your agent typed memory, auditable evidence, recovery after compaction, and a public surface that makes its work inspectable. Built in Rust, packaged for macOS, surfaced on the web.
+## Kill the chat. Keep the mission.
 
-**Current public snapshot:** `v0.9.25-dev` / **Focusa Operator Preview + Context Authority hardening**
-**Runtime state:** Rust daemon + HTTP API + CLI + TUI + Pi extension + menubar web/macOS package proof are implemented and live-tested; context-authority CLI gates now protect risky mutations.
-**Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
+**Focusa is the mission cohesion layer for AI coding agents.**
 
-**The one-line pitch:** Focusa turns "long AI chat" into "long AI project."
+Claude, Codex, OpenCode, OpenClaw, Pi, and other coding agents can move fast — until the session gets long, context compacts, the mission drifts, proof gets buried, or the next agent has to start over.
 
+Focusa gives long-running AI work a durable mission layer: typed project memory, Workpoints, trajectory, evidence, recovery, session transfer, and governance outside the fragile chat window.
 
-**Context Authority update:** Focusa now includes mutation-time context gates for the Phone Bridge incident class. See [`docs/current/CONTEXT_AUTHORITY_CURRENT.md`](docs/current/CONTEXT_AUTHORITY_CURRENT.md) for `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary preflight-install`, Phone Bridge preflight JSON, and HLT/TL degraded-placeholder behavior.
+It does not replace your agent.
+
+It helps your agent keep the mission.
+
+> **One-line pitch:** Focusa turns long AI chat into long-running AI project work.
 
 ---
+
+## Current Snapshot
+
+**Version:** `v0.9.25-dev`
+**Release track:** Focusa Operator Preview + Context Authority hardening
+**Runtime state:** Rust daemon, HTTP API, CLI, TUI, Pi extension, and menubar web/macOS package proof are implemented and live-tested. Context-authority CLI gates now protect risky mutations.
+**Development state:** Focusa is actively evolving. This README describes the current released snapshot, not a finished product.
+
+**Context Authority update:** Focusa now includes mutation-time context gates for the Phone Bridge incident class. See [`docs/current/CONTEXT_AUTHORITY_CURRENT.md`](docs/current/CONTEXT_AUTHORITY_CURRENT.md) for `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary preflight-install`, Phone Bridge preflight JSON, and HLT/TL degraded-placeholder behavior.
 
 ## Why Focusa is amazing for developers
 
@@ -507,7 +517,6 @@ Start here:
 - `docs/88-ontology-backed-workpoint-continuity.md` — Workpoint continuity design.
 - `docs/89-focusa-tool-suite-improvement-hardening-spec.md` — current tool-suite hardening snapshot.
 - `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md` — released runtime proof.
-
 
 ### Current-build references
 
