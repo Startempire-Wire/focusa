@@ -1,5 +1,32 @@
 # Focusa
 
+[![CI](https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg)](https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml)
+[![Release](https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg)](https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml)
+[![Dev Release Tag](https://github.com/Startempire-Wire/focusa/actions/workflows/dev-release-tag.yml/badge.svg)](https://github.com/Startempire-Wire/focusa/actions/workflows/dev-release-tag.yml)
+![Version](https://img.shields.io/badge/version-0.9.25--dev-blue)
+![License](https://img.shields.io/badge/license-BSL--1.1-orange)
+![Source Available](https://img.shields.io/badge/source-available-orange)
+![Rust](https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust)
+![Rust Edition](https://img.shields.io/badge/edition-2024-dea584?logo=rust)
+![Cargo Workspace](https://img.shields.io/badge/cargo-workspace-dea584?logo=rust)
+![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript)
+![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8db?logo=tauri)
+![Svelte](https://img.shields.io/badge/Svelte-5-ff3e00?logo=svelte)
+![Local First](https://img.shields.io/badge/local--first-agent%20infrastructure-7c3aed)
+![Operator Preview](https://img.shields.io/badge/status-operator%20preview-22c55e)
+![Mission Cohesion](https://img.shields.io/badge/category-mission%20cohesion%20layer-8b5cf6)
+![Context Authority](https://img.shields.io/badge/context-authority%20gates-0ea5e9)
+![Evidence Backed](https://img.shields.io/badge/evidence-backed%20workflows-14b8a6)
+![Workpoints](https://img.shields.io/badge/primitive-Workpoints-6366f1)
+![Trajectory](https://img.shields.io/badge/primitive-Trajectory-a855f7)
+![CLI](https://img.shields.io/badge/interface-CLI-111827)
+![HTTP API](https://img.shields.io/badge/interface-HTTP%20API-0ea5e9)
+![TUI](https://img.shields.io/badge/interface-TUI-6366f1)
+![Pi Extension](https://img.shields.io/badge/integration-Pi%20Extension-f97316)
+![macOS Menubar](https://img.shields.io/badge/app-macOS%20menubar-black?logo=apple)
+![Focusa.dev](https://img.shields.io/badge/site-focusa.dev-22d3ee)
+
 ## Kill the chat. Keep the mission.
 
 **Focusa is the mission cohesion layer for AI coding agents.**
