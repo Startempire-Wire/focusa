@@ -6,6 +6,8 @@
 **Project root:** `/home/wirebot/focusa`  
 **Purpose:** translate every architecture need exposed by the Phone Bridge context-authority incident into Focusa-specific software work, bead decomposition, enforcement points, and acceptance tests.
 
+**Implementation status:** implemented through `dc9a335` and documented in `docs/current/CONTEXT_AUTHORITY_CURRENT.md`. Child beads `focusa-9o3v.1`–`.10` and parent `focusa-9o3v` were closed after validation.
+
 ---
 
 ## 1. Thesis

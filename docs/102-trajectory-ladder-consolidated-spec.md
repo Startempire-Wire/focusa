@@ -8,6 +8,19 @@ Consolidate distributed references into one canonical spec for how Focusa repres
 
 This document defines **what Trajectory Ladder is**, **what it is not**, and how it must interact with Workpoint/ASCC/CLT.
 
+
+## Context Authority addendum — generic HLT is not authority
+
+The Phone Bridge context-authority incident proved that a generic projected HLT can mislead agents. Current behavior:
+
+- Generic bootstrap HLT text such as `Maintain and improve <project> within verified project scope` is a degraded placeholder, not a valid project HLT.
+- Generic bootstrap HLT sets `trajectory.hlt_degraded_placeholder=true`, `trajectory.needs_definition=true`, and top-level `degraded=true`.
+- Generic bootstrap HLT does not satisfy the `long_term_goal` missing-fact gate.
+- Workpoint/current_focus may not silently populate MLG/STG when HLT is invalid or generic.
+- `trajectory.trajectory_ladder.source_metadata` reports HLT/MLG/STG source and degraded state.
+- When a valid prior verbatim historical HLT exists, the trajectory view code path uses `latest_valid_historical_trajectory` instead of treating generic bootstrap text as authority.
+
+
 ## 2) Definition and status
 
 1. **No standalone file called `Trajectory Ladder` exists**.

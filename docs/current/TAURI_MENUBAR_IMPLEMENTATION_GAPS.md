@@ -2,7 +2,7 @@
 
 **Source spec:** [`TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)  
 **Audit source:** [`TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
-**Last updated:** current HLT dogfood slice after `v0.9.14-dev`.
+**Last updated:** current HLT dogfood slice after `v0.9.25-dev`.
 
 ## Implemented in the current menubar slice
 

@@ -12,6 +12,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - [Trajectory](./trajectory.md)
 - [Project Identity](./project-identity.md)
 - [Stability audit 2026-05-22](./stability-audit-2026-05-22.md)
+- [Context Authority Current Guide](../current/CONTEXT_AUTHORITY_CURRENT.md)
 
 ## Current counts
 
@@ -19,6 +20,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 - Prediction tools are first-class (`record`, `recent`, `evaluate`, `stats`).
 - Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
 - Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success; bounded `reflex_suggestions` point to Spec97 recovery primitives when applicable.
+- Context Authority CLI envelopes now cover mutation preflight, intent classification, environment contracts, runtime inventory, and binary compatibility; see `docs/current/CONTEXT_AUTHORITY_CURRENT.md`.
 - Trajectory tools are first-class per-project north-star tools: view, define_goal, assess, propose_workpoint, checkpoint, resume.
 - Spec97 Reflex Primitive docs are public and read-only through [`focusa_reflex_primitives`](tools/focusa_reflex_primitives.md), `GET /v1/reflex/primitives`, and `surface=reflex_primitives` traversal.
 - Friendly onboarding and route hints: [`FOCUSA_FRIENDLY_ONBOARDING.md`](../current/FOCUSA_FRIENDLY_ONBOARDING.md) and [`FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](../current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md).

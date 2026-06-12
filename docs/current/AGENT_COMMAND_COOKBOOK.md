@@ -25,6 +25,24 @@ git status --short
 git diff --stat
 ```
 
+
+## Before risky mutation / install / daemon repair
+
+```bash
+focusa --json action classify-intent --prompt "$CURRENT_ASK"
+focusa --json env contract show
+focusa --json runtime inventory --owner ${FOCUSA_OWNER:-$USER}
+focusa --json action preflight \
+  --current-ask "$CURRENT_ASK" \
+  --kind binary_replace \
+  --target /usr/local/bin/focusa \
+  --source github_release_asset \
+  --install-role live_build_host \
+  --project-root "$PWD"
+```
+
+If verdict is `block` or `ask_operator`, do not mutate. On a live build host, use local repo build/restart, never a release asset replacement.
+
 ## Before compaction
 
 ```text

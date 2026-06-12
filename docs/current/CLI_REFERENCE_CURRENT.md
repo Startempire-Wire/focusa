@@ -18,9 +18,12 @@ Commands:
   focus          Focus stack and Focus State operations
   stack          Show focus stack overview
   gate           Focus Gate (candidate management)
+  action         Action authority / mutation preflight operations
+  binary         Binary provenance and compatibility operations
+  runtime        Runtime inventory and daemon hygiene operations
   memory         Memory operations
   ecs            ECS (reference store) operations
-  env            Export env vars for proxy routing
+  env            Export env vars for proxy routing and environment contracts
   events         Event log inspection
   turns          Turn-level observability
   state          Dump full state (debug)
@@ -52,6 +55,69 @@ Commands:
   help           Print this message or the help of the given subcommand(s)
 
 Options:
+
+## Context Authority commands
+
+### `focusa action preflight`
+
+Operational Context Gate. Produces `focusa.operational_context_gate.v1` with `verdict=allow|block|ask_operator`, conflicts, risk class, and safe alternative. Use before risky mutation.
+
+```bash
+focusa --json action preflight \
+  --current-ask "initiate Phone Bridge pairing" \
+  --kind binary_replace \
+  --target /usr/local/bin/focusa \
+  --source github_release_asset \
+  --install-role live_build_host \
+  --project-root /home/wirebot/focusa
+```
+
+### `focusa action classify-intent`
+
+Intent Mode Gate. Produces `focusa.intent_mode_gate.v1`; planning/diagnosis prompts return `mutation_allowed=false`.
+
+```bash
+focusa --json action classify-intent --prompt "Maybe we can add a flag for install context"
+```
+
+### `focusa env contract show/init`
+
+Environment Contract. Default path: `/etc/focusa/environment-contract.json`. Produces `focusa.environment_contract.v1`.
+
+```bash
+focusa --json env contract init \
+  --role live_build_host \
+  --project-root /home/wirebot/focusa \
+  --owner wirebot \
+  --machine-kind vps \
+  --preferred-source local_repo_build
+focusa --json env contract show
+```
+
+### `focusa runtime inventory`
+
+Runtime/daemon hygiene. Produces `focusa.runtime_inventory.v1`.
+
+```bash
+focusa --json runtime inventory --owner wirebot
+```
+
+### `focusa binary inspect` / `focusa binary preflight-install`
+
+Binary provenance and compatibility. Produces `focusa.binary_provenance.v1` and `focusa.binary_preflight.v1`.
+
+```bash
+focusa --json binary inspect /usr/local/bin/focusa
+focusa --json binary preflight-install \
+  --asset /tmp/focusa-release-asset \
+  --target /usr/local/bin/focusa \
+  --install-role live_build_host \
+  --source github_release_asset
+```
+
+### `focusa pair --json` additions
+
+Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `action_preflight` in addition to transport diagnostics.
       --json             Output in JSON format
       --config <CONFIG>  Config file path
       --verbose          Verbose output
@@ -93,7 +159,7 @@ focusa onboard --agent manual
 focusa doctor --json
 focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith --continuity-id cont-1
 focusa continue --json
-focusa release prove --tag v0.9.14-dev --fast --github --json
+focusa release prove --tag v0.9.25-dev --fast --github --json
 focusa predict record --prediction-type next_action_success --predicted-outcome completed --confidence 0.8 --recommended-action "continue" --why "bounded evidence" --ontology-context '{"object_refs":["Workpoint"],"tool_refs":["focusa_workpoint_resume"]}'
 focusa predict recent --limit 20
 focusa predict evaluate <prediction_id> --actual-outcome completed --score 1.0

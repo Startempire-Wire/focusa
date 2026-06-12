@@ -4,11 +4,14 @@
 >
 > Focusa is the missing OS layer for long-running AI work. It gives your agent typed memory, auditable evidence, recovery after compaction, and a public surface that makes its work inspectable. Built in Rust, packaged for macOS, surfaced on the web.
 
-**Current public snapshot:** `v0.9.14-dev` / **Focusa Operator Preview**
-**Runtime state:** Rust daemon + HTTP API + CLI + TUI + Pi extension + menubar web/macOS package proof are implemented and live-tested.
+**Current public snapshot:** `v0.9.25-dev` / **Focusa Operator Preview + Context Authority hardening**
+**Runtime state:** Rust daemon + HTTP API + CLI + TUI + Pi extension + menubar web/macOS package proof are implemented and live-tested; context-authority CLI gates now protect risky mutations.
 **Development state:** Focusa is still actively evolving; this README describes the current released snapshot, not a finished product.
 
 **The one-line pitch:** Focusa turns "long AI chat" into "long AI project."
+
+
+**Context Authority update:** Focusa now includes mutation-time context gates for the Phone Bridge incident class. See [`docs/current/CONTEXT_AUTHORITY_CURRENT.md`](docs/current/CONTEXT_AUTHORITY_CURRENT.md) for `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary preflight-install`, Phone Bridge preflight JSON, and HLT/TL degraded-placeholder behavior.
 
 ---
 
@@ -35,6 +38,7 @@ If you ship code with AI agents today, you already know these pain points. Focus
 
 - **Run a long Pi session and keep it.** Start a real AI coding session, create a Workpoint, attach evidence, recover after compaction/session drift, and continue without losing the thread.
 - **Inspect any past work.** `focusa_traverse` walks the project graph, `focusa_hlt_history` shows the exact HLT ladder at any point in time, `focusa_metacog_recent_reflections` shows the agent's recent lessons.
+- **Stop off-context mutation.** `focusa action preflight` blocks task substitution such as installing a release asset during Phone Bridge pairing on a live build host; `focusa env contract`, `focusa runtime inventory`, and `focusa binary preflight-install` expose the facts behind that verdict.
 - **Ship a Tauri menubar app on macOS.** The bundled macOS app proof (`apps/menubar`) is built in CI on every push.
 - **Wire it into your CI.** GitHub Actions runs Rust tests, strict spec gates, and the macOS Tauri package proof; static audits verify all 79 tools stay in sync.
 - **Stream public cards.** With `FOCUSA_PUBLIC_STREAM=1`, tool calls become typed public cards — perfect for showcasing live agent work.

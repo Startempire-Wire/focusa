@@ -15,6 +15,8 @@ It is responsible for:
 
 The daemon is **not** an agent, planner, or orchestrator.
 
+The daemon/runtime is also a source of authority facts for `focusa runtime inventory`: daemon PID, user, bind, version, lock PID, CLI version, and hygiene warnings.
+
 ---
 
 ## Core Invariants
@@ -24,6 +26,7 @@ The daemon is **not** an agent, planner, or orchestrator.
 3. All mutations emit events
 4. No background task may block the hot path
 5. No subsystem may bypass Focus Gate or Focus Stack
+6. Risky daemon/runtime mutations must expose runtime inventory and pass context-authority preflight.
 
 ---
 

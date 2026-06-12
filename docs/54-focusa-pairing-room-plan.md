@@ -1,12 +1,16 @@
 # Focusa Phone Bridge Flow Plan
 
-**Status:** implementation plan
+**Status:** implemented plan with Context Authority hardening
 **Scope:** Phone Bridge Flow across three parties: VPS/server, phone running the Focusa Connect Page, and Mac Menubar App.
 **Primary command:** `focusa pair`
+
+**Context Authority:** `focusa pair --json` includes `environment_contract`, `runtime_inventory`, and `action_preflight` so pairing initiation remains pairing initiation and cannot silently become a release-asset install workflow.
 
 ## 1. Goal
 
 Make first-time Mac pairing feel like an Apple handoff with no manual server URL typing.
+
+Pairing must not perform or imply Focusa installation. If runtime binaries are stale on a live build host, the safe repair path is local repo build/restart, not GitHub release asset replacement.
 
 ```text
 VPS shell/TUI        Focusa Connect Page                Mac menubar
@@ -24,6 +28,22 @@ focusa pair   ->     scan server QR     ->    shows Mac QR
 
    ```bash
    focusa pair
+   ```
+
+   For diagnostics or agent-driven operation:
+
+   ```bash
+   focusa --json pair
+   ```
+
+   JSON output includes transport diagnostics plus context-authority facts:
+
+   ```json
+   {
+     "environment_contract": {"schema": "focusa.environment_contract.v1"},
+     "runtime_inventory": {"schema": "focusa.runtime_inventory.v1"},
+     "action_preflight": {"schema": "focusa.operational_context_gate.v1"}
+   }
    ```
 
 3. CLI/TUI shows a QR for a phone URL:

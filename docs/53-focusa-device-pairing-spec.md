@@ -9,6 +9,9 @@ See also: [Phone Bridge Flow Plan](54-focusa-pairing-room-plan.md).
 
 This spec owns the full pairing architecture: code flow, QR flow, PWA helper, security model, portability, multi-tenancy, and audit. Tool-level docs (`focusa_device_pair_*`) become reference material that points here.
 
+
+Context Authority addendum: Phone Bridge pairing is guarded by `focusa pair --json` context facts. Agents must inspect `environment_contract`, `runtime_inventory`, and `action_preflight` before treating a pairing failure as an install/update task. On `live_build_host`, release asset replacement is blocked by policy.
+
 ---
 
 ## 1. Goals

@@ -2,7 +2,7 @@
 
 ## Version
 
-- Snapshot: `v0.9.14-dev` / Operator Preview
+- Snapshot: `v0.9.25-dev` / Operator Preview + Context Authority hardening
 - Proof commits: `ccd4449` golden demo, `704b7fb` operator session card, `9ba6d04` copy-prompt, plus this public-doc sync
 - Release posture: source-available commercial preview, Workpoint-first and proof-first
 

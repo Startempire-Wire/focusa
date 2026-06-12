@@ -254,6 +254,8 @@ Prediction records include bounded `trajectory` and `ontology_context` fields. M
 - `GET /v1/status`
 - `GET /v1/status/deep`
 - `GET /v1/state/dump`
+- `GET /v1/session/discover`
+- `POST /v1/session/bind`
 - `POST /v1/session/start`
 - `POST /v1/session/resume`
 - `POST /v1/session/close`
@@ -320,6 +322,8 @@ Prediction records include bounded `trajectory` and `ontology_context` fields. M
 - `GET /v1/trajectory/view`
   - Query supports `allow_prior_project_trajectory=true` for advisory same-project reload fallback when continuity changed.
   - Response includes `trajectory.durable_lifecycle.history` with recent project-scoped HLT entries for manual continuity lookup.
+  - Context Authority hardening marks generic bootstrap HLT as degraded placeholder and includes ladder source metadata.
+- `GET /v1/hlt/history`
 - `POST /v1/trajectory/define-goal`
 - `POST /v1/trajectory/assess`
 - `POST /v1/trajectory/propose-workpoint`

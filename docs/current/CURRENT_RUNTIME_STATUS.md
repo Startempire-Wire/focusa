@@ -1,17 +1,20 @@
 # Current Runtime Status
 
-**Snapshot:** `v0.9.14-dev`
-**Repo head when written:** Release/CI sync after `326217e`
+**Snapshot:** `v0.9.25-dev`
+**Repo head when written:** Context Authority docs pass after `dc9a335`
 **State:** current development build, not a finished product.
 
 ## Implemented in the present build
 
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
+- Context Authority CLI surfaces are implemented: `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary inspect`, and `focusa binary preflight-install`.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
 - Pi extension under `apps/pi-extension` exposing 63 current `focusa_*` tools.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link; CLI `focusa workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
+- Phone Bridge `focusa pair --json` now includes `environment_contract`, `runtime_inventory`, and `action_preflight` so pairing cannot silently become a release-install workflow.
+- Trajectory Ladder projection marks generic bootstrap HLT as degraded placeholder and prevents Workpoint/current_focus pollution of MLG/STG when HLT is invalid.
 - Metacognition APIs and Pi tools for capture, retrieve, reflect, adjust, evaluate, recent lists, loop-run, and doctor; evaluations persist as first-class records, successful evaluations promote learning back into retrieval memory, and API/CLI readback includes `evaluations/recent`.
 - Work-loop APIs and Pi tools for status, writer-status, control, context, checkpoint, and select-next; `/v1/work-loop/health` exposes dispatch readiness, boundary reason, pause flags, and transport degradation while deep diagnostics remain opt-in.
 - Tree/lineage/snapshot tools and lineage API surfaces.

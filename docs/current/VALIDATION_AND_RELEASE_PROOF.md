@@ -4,6 +4,22 @@ Current build validation should distinguish script checks from real runtime proo
 
 ## Code checks
 
+## Context Authority checks
+
+Run these whenever changing action authority, Phone Bridge pairing, runtime/daemon repair, HLT/TL projection, or binary install behavior.
+
+```bash
+CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_preflight_golden_test.sh
+CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_environment_contract_test.sh
+CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_runtime_inventory_test.sh
+CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_binary_preflight_test.sh
+CARGO_TARGET_DIR=/tmp/focusa-target-context-authority CARGO=/root/.cargo/bin/cargo tests/spec_context_authority_intent_mode_test.sh
+tests/spec_context_authority_hlt_ladder_static_test.sh
+tests/spec_context_authority_pair_preflight_static_test.sh
+CARGO_TARGET_DIR=/tmp/focusa-target-context-authority /root/.cargo/bin/cargo check -q -p focusa-api -p focusa-cli --locked
+```
+
+
 ```bash
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 cargo test --workspace
@@ -103,7 +119,7 @@ Expected result: `ok=true` and `.focusa_evidence.focusa_scope` includes `workpoi
 ```bash
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}
 gh run list --limit 6 --json databaseId,status,conclusion,workflowName,headBranch,displayTitle | jq -r '.[] | [.databaseId,.workflowName,.headBranch,.status,(.conclusion//""),.displayTitle] | @tsv'
-gh release view v0.9.14-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
+gh release view v0.9.25-dev --json name,tagName,isDraft,isPrerelease,url,assets | jq '{tagName,name,isDraft,isPrerelease,url,assets:[.assets[].name]}'
 ```
 
 For Operator Preview proof, also verify first-run and manual-continuation surfaces:

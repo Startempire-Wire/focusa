@@ -6,6 +6,18 @@ This page documents the current Spec92 command-center surfaces.
 
 ## Doctor
 
+## Context Authority companion commands
+
+Doctor shows health; Context Authority explains whether a mutation is allowed. Use these before risky repair, binary replacement, daemon restart, or Phone Bridge troubleshooting:
+
+```bash
+focusa --json env contract show
+focusa --json runtime inventory --owner ${FOCUSA_OWNER:-$USER}
+focusa --json binary inspect /usr/local/bin/focusa
+focusa --json action preflight --current-ask "$CURRENT_ASK" --kind daemon_restart --target focusa-daemon --source local_repo_build --install-role live_build_host --project-root "$PWD"
+```
+
+
 ```bash
 focusa doctor
 focusa --json doctor

@@ -10,6 +10,24 @@ git status --short
 git log -1 --oneline
 ```
 
+
+Context-authority preflight for live build hosts:
+
+```bash
+focusa --json env contract show
+focusa --json runtime inventory --owner ${FOCUSA_OWNER:-$USER}
+focusa --json action classify-intent --prompt "production release build/restart"
+focusa --json action preflight \
+  --current-ask "production release build/restart" \
+  --kind daemon_restart \
+  --target focusa-daemon \
+  --source local_repo_build \
+  --install-role live_build_host \
+  --project-root "$PWD"
+```
+
+Release asset replacement is not the repair path on a `live_build_host`; build from the local repo and restart the daemon as the configured owner.
+
 ## 2. Static/tool-contract gates
 
 ```bash

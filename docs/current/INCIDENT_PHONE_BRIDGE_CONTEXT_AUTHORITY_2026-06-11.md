@@ -16,6 +16,8 @@ The detailed architecture translation and bead decomposition source lives at:
 
 This companion spec maps each incident symptom to Focusa architecture needs, enforcement points, CLI/API/data-model surfaces, tests, and implementation beads.
 
+Implementation/current guide: `docs/current/CONTEXT_AUTHORITY_CURRENT.md`.
+
 ---
 
 ## 1. Executive thesis

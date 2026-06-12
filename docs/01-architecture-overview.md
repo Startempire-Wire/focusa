@@ -54,12 +54,22 @@ Model Endpoint / Harness Backend
 - Local API: status, stack, memory, events.
 - Menubar UI: passive observability + basic controls.
 
+### 6) Context Authority Plane
+- Operational Context Gate: reconciles current ask, project/root scope, environment role, runtime inventory, binary source, and proposed mutation into allow/block/ask.
+- Environment Contract: durable local install-role facts (`live_build_host`, owner, project root, binary policy, host facts).
+- Runtime Inventory: daemon pid/user/bind/version/lock and CLI path/version hygiene.
+- Binary Provenance/Compatibility: preflight release asset policy and GLIBC/host compatibility before binary replacement.
+- Intent Mode Gate: separates planning/diagnosis from implementation/runtime/destructive operations.
+- HLT/TL validity gate: generic bootstrap HLT is degraded and cannot authorize ladder projection.
+
+
 ## Determinism & Safety Rules
 1. Focus Gate is **advisory** only.
 2. Prompt Assembly is **deterministic** given state + inputs.
 3. Any large data MUST be externalized when above threshold.
 4. No component may introduce blocking latency to request/response path beyond a strict budget (see performance budgets).
 5. All state mutations must be logged as events.
+6. Risky mutations must pass Context Authority preflight; preserved context is operational authority, not passive memory.
 
 ## Performance Budgets (MVP)
 - Hot path (proxy request processing):

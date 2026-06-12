@@ -4,6 +4,18 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+### Context Authority hardening
+
+- Added `focusa action preflight` (`focusa.operational_context_gate.v1`) to block risky mutations when current ask, environment role, runtime state, or proposed action conflict; the Phone Bridge incident golden test blocks GitHub release binary replacement on a live build host.
+- Added `focusa action classify-intent` (`focusa.intent_mode_gate.v1`) so planning prompts such as “Maybe we can...” are no-mutation planning states, not implementation authorization.
+- Added `focusa env contract show/init` (`focusa.environment_contract.v1`) for durable install role, project root, owner, binary policy, pairing state, and host facts.
+- Added `focusa runtime inventory` (`focusa.runtime_inventory.v1`) for daemon pid/user/bind/version/lock and CLI path/version hygiene.
+- Added `focusa binary inspect` and `focusa binary preflight-install` (`focusa.binary_provenance.v1`, `focusa.binary_preflight.v1`) with release-asset policy and GLIBC compatibility blocking.
+- Hardened Trajectory Ladder projection so generic bootstrap HLT is a degraded placeholder, does not satisfy the long-term-goal gate, and cannot let Workpoint/current_focus populate MLG/STG.
+- Added context-authority fields to `focusa pair --json`: `environment_contract`, `runtime_inventory`, and `action_preflight`.
+- Added context-authority validation scripts under `tests/spec_context_authority_*`.
+
+
 - Added Pi `focusa_session_transfer` wrapper for game-save style save/continue across Pi sessions without forking.
 - Expanded bootstrap `inferred_workpoint_candidate` to use prior session workpath, prediction, metacog prompt, ontology, trajectory STG, file changes, git activity, current ask, and prior Workpoint signals.
 - Added project-card `crosswire_health` and effective ontology bridge status so reporting cards show whether each signal feeds future predictions.
