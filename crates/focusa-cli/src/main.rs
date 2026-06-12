@@ -82,6 +82,10 @@ enum Commands {
     #[command(subcommand)]
     Action(commands::action::ActionCmd),
 
+    /// Binary provenance and compatibility operations.
+    #[command(subcommand)]
+    Binary(commands::binary::BinaryCmd),
+
     /// Runtime inventory and daemon hygiene operations.
     #[command(subcommand)]
     Runtime(commands::runtime::RuntimeCmd),
@@ -599,6 +603,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Gate(cmd) => commands::gate::run(cmd, cli.json).await,
         Commands::Action(cmd) => commands::action::run(cmd, cli.json).await,
         Commands::Runtime(cmd) => commands::runtime::run(cmd, cli.json).await,
+        Commands::Binary(cmd) => commands::binary::run(cmd, cli.json).await,
         Commands::Memory(cmd) => commands::memory::run(cmd, cli.json).await,
         Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await,
         Commands::Env(cmd) => commands::env::run(cmd, cli.json).await,
