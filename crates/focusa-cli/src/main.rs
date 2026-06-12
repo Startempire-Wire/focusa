@@ -82,6 +82,10 @@ enum Commands {
     #[command(subcommand)]
     Action(commands::action::ActionCmd),
 
+    /// Runtime inventory and daemon hygiene operations.
+    #[command(subcommand)]
+    Runtime(commands::runtime::RuntimeCmd),
+
     /// Memory operations.
     #[command(subcommand)]
     Memory(commands::memory::MemoryCmd),
@@ -594,6 +598,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Focus(cmd) => commands::focus::run(cmd, cli.json).await,
         Commands::Gate(cmd) => commands::gate::run(cmd, cli.json).await,
         Commands::Action(cmd) => commands::action::run(cmd, cli.json).await,
+        Commands::Runtime(cmd) => commands::runtime::run(cmd, cli.json).await,
         Commands::Memory(cmd) => commands::memory::run(cmd, cli.json).await,
         Commands::Ecs(cmd) => commands::ecs::run(cmd, cli.json).await,
         Commands::Env(cmd) => commands::env::run(cmd, cli.json).await,
