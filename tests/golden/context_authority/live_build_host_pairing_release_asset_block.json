@@ -1,0 +1,21 @@
+{
+  "scenario": "live_build_host_pairing_test_stale_runtime",
+  "facts": {
+    "project_root": "/home/wirebot/focusa",
+    "install_role": "live_build_host",
+    "repo_version": "0.9.25-dev",
+    "daemon_version": "0.9.23-dev",
+    "cli_version": "0.9.22-dev",
+    "current_ask": "initiate Phone Bridge pairing"
+  },
+  "proposed_action": {
+    "kind": "binary_replace",
+    "source": "github_release_asset",
+    "target": "/usr/local/bin/focusa"
+  },
+  "expected": {
+    "verdict": "block",
+    "reason": "consumer_install_path_conflicts_with_live_build_host",
+    "safe_alternative_contains": "local Focusa repo"
+  }
+}
