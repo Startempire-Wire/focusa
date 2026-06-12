@@ -14,7 +14,10 @@
   let copiedErrors = $state(false);
   let completionPayload = $state('');
   let completionStatus = $state('');
+  let callbackUrl = $state('');
+  let callbackStatus = $state('');
   let tickHandle: ReturnType<typeof setInterval> | null = null;
+  let callbackPollHandle: ReturnType<typeof setInterval> | null = null;
 
   function randomNonce(): string {
     const bytes = new Uint8Array(16);
@@ -34,6 +37,7 @@
     nonce = randomNonce();
     createdAt = Date.now();
     now = createdAt;
+    void startBridgeCallback(nonce);
   }
 
   const remainingLabel = $derived.by(() => {
@@ -49,13 +53,14 @@
     role: 'mac_handoff_offer',
     mac_name: deviceName(),
     nonce,
+    mac_callback: callbackUrl || undefined,
     created_at: new Date(createdAt).toISOString(),
     expires_in_secs: Math.floor(OFFER_TTL_MS / 1000),
   }));
 
-  async function applyCompletionPayload() {
+  async function applyCompletionPayloadText(raw: string) {
     try {
-      const payload = JSON.parse(completionPayload.trim());
+      const payload = JSON.parse(raw.trim());
       if (payload.protocol !== 'focusa-connect-v1' || payload.role !== 'mac_completion_payload') {
         throw new Error('Not a Focusa Mac completion payload');
       }
@@ -78,11 +83,41 @@
     }
   }
 
+  async function applyCompletionPayload() {
+    await applyCompletionPayloadText(completionPayload);
+  }
+
+  async function startBridgeCallback(nextNonce: string) {
+    callbackUrl = '';
+    callbackStatus = 'Starting automatic Mac callback…';
+    if (callbackPollHandle) clearInterval(callbackPollHandle);
+    try {
+      callbackUrl = await invoke<string>('focusa_start_bridge_callback', { nonce: nextNonce });
+      callbackStatus = 'Automatic Mac callback ready.';
+      callbackPollHandle = setInterval(async () => {
+        try {
+          const payload = await invoke<string | null>('focusa_take_bridge_completion', { nonce: nextNonce });
+          if (payload) {
+            if (callbackPollHandle) clearInterval(callbackPollHandle);
+            completionPayload = payload;
+            callbackStatus = 'Phone Bridge completion received automatically.';
+            await applyCompletionPayloadText(payload);
+          }
+        } catch (err) {
+          callbackStatus = `Callback poll unavailable: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      }, 1500);
+    } catch (err) {
+      callbackStatus = `Automatic callback unavailable; use Advanced paste fallback. ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
   async function copyErrors() {
     const payload = [
       'Focusa first-run connect diagnostics',
       'note=Run focusa pair on the server first; scan this Mac code inside the Focusa Connect Page.',
       `offer_nonce=${nonce || '(none)'}`,
+      `mac_callback=${callbackUrl || '(unavailable)'}`,
       `offer_age_ms=${Date.now() - createdAt}`,
       `stored_server=${localStorage.getItem('focusa_api_url') || '(unset)'}`,
       `stored_public_pairing_url=${localStorage.getItem('focusa_public_pairing_url') || '(unset)'}`,
@@ -104,6 +139,7 @@
     }, 1000);
     return () => {
       if (tickHandle) clearInterval(tickHandle);
+      if (callbackPollHandle) clearInterval(callbackPollHandle);
     };
   });
 </script>
@@ -117,6 +153,7 @@
   </div>
   <p class="primary-copy">Scan from Focusa Connect.</p>
   <p class="secondary-copy">Run focusa pair on the server, then scan here from the Focusa Connect Page · {remainingLabel}</p>
+  <p class="advanced-copy">{callbackStatus}</p>
 
   <div class="utility-row">
     <button class="utility" onclick={copyErrors}>{copiedErrors ? 'Copied errors' : 'Copy errors'}</button>

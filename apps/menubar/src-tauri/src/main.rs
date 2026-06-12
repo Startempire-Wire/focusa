@@ -8,6 +8,148 @@
 
 
 const KEYCHAIN_SERVICE: &str = "Focusa Menubar Device Token";
+const BRIDGE_CALLBACK_MAX_BODY: usize = 64 * 1024;
+
+use std::collections::{HashMap, HashSet};
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream, UdpSocket};
+use std::sync::{Mutex, OnceLock};
+use std::time::Duration;
+
+static BRIDGE_COMPLETIONS: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+static BRIDGE_LISTENERS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+
+fn bridge_completions() -> &'static Mutex<HashMap<String, String>> {
+    BRIDGE_COMPLETIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn bridge_listeners() -> &'static Mutex<HashSet<String>> {
+    BRIDGE_LISTENERS.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn best_local_ip() -> String {
+    UdpSocket::bind("0.0.0.0:0")
+        .and_then(|socket| {
+            let _ = socket.connect("8.8.8.8:80");
+            socket.local_addr()
+        })
+        .map(|addr| addr.ip().to_string())
+        .unwrap_or_else(|_| "127.0.0.1".to_string())
+}
+
+fn read_http_body(stream: &mut TcpStream) -> Result<(String, String), String> {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .map_err(|e| format!("callback read timeout setup failed: {e}"))?;
+    let mut buffer = vec![0_u8; 8192];
+    let mut read = 0_usize;
+    loop {
+        let n = stream
+            .read(&mut buffer[read..])
+            .map_err(|e| format!("callback read failed: {e}"))?;
+        if n == 0 {
+            break;
+        }
+        read += n;
+        if read >= 4 && buffer[..read].windows(4).any(|w| w == b"
+
+") {
+            break;
+        }
+        if read == buffer.len() {
+            buffer.resize(buffer.len() * 2, 0);
+            if buffer.len() > BRIDGE_CALLBACK_MAX_BODY {
+                return Err("callback headers too large".to_string());
+            }
+        }
+    }
+    let header_end = buffer[..read]
+        .windows(4)
+        .position(|w| w == b"
+
+")
+        .ok_or_else(|| "callback missing HTTP header terminator".to_string())?
+        + 4;
+    let header = String::from_utf8_lossy(&buffer[..header_end]).to_string();
+    let content_length = header
+        .lines()
+        .find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            name.eq_ignore_ascii_case("content-length")
+                .then(|| value.trim().parse::<usize>().ok())
+                .flatten()
+        })
+        .unwrap_or(0)
+        .min(BRIDGE_CALLBACK_MAX_BODY);
+    let mut body = buffer[header_end..read].to_vec();
+    while body.len() < content_length {
+        let mut chunk = vec![0_u8; content_length - body.len()];
+        let n = stream
+            .read(&mut chunk)
+            .map_err(|e| format!("callback body read failed: {e}"))?;
+        if n == 0 {
+            break;
+        }
+        body.extend_from_slice(&chunk[..n]);
+    }
+    Ok((header, String::from_utf8_lossy(&body).to_string()))
+}
+
+fn handle_bridge_callback(mut stream: TcpStream, nonce: String) {
+    let response = match read_http_body(&mut stream) {
+        Ok((header, body)) if header.starts_with("POST ") && header.contains(&format!("/focusa-phone-bridge/{nonce}")) => {
+            if let Ok(mut completions) = bridge_completions().lock() {
+                completions.insert(nonce, body);
+            }
+            "HTTP/1.1 200 OK\r\ncontent-type: text/html\r\naccess-control-allow-origin: *\r\nconnection: close\r\n\r\nFocusa Phone Bridge completion received. You can return to the Mac app."
+        }
+        _ => "HTTP/1.1 404 Not Found\r\naccess-control-allow-origin: *\r\nconnection: close\r\n\r\nNot found",
+    };
+    let _ = stream.write_all(response.as_bytes());
+}
+
+#[tauri::command]
+fn focusa_start_bridge_callback(nonce: String) -> Result<String, String> {
+    if nonce.trim().is_empty() {
+        return Err("nonce is required".to_string());
+    }
+    if let Ok(mut listeners) = bridge_listeners().lock() {
+        if listeners.contains(&nonce) {
+            return Err("callback listener already active for nonce".to_string());
+        }
+        listeners.insert(nonce.clone());
+    }
+    let listener = TcpListener::bind("0.0.0.0:0").map_err(|e| format!("callback bind failed: {e}"))?;
+    let port = listener
+        .local_addr()
+        .map_err(|e| format!("callback local addr failed: {e}"))?
+        .port();
+    let callback_url = format!("http://{}:{}/focusa-phone-bridge/{}", best_local_ip(), port, nonce);
+    std::thread::spawn({
+        let nonce = nonce.clone();
+        move || {
+            for stream in listener.incoming().take(1).flatten() {
+                handle_bridge_callback(stream, nonce.clone());
+            }
+            if let Ok(mut listeners) = bridge_listeners().lock() {
+                listeners.remove(&nonce);
+            }
+        }
+    });
+    Ok(callback_url)
+}
+
+#[tauri::command]
+fn focusa_take_bridge_completion(nonce: String) -> Result<Option<String>, String> {
+    if nonce.trim().is_empty() {
+        return Err("nonce is required".to_string());
+    }
+    bridge_completions()
+        .lock()
+        .map(|mut completions| completions.remove(&nonce))
+        .map_err(|_| "bridge completion store poisoned".to_string())
+}
+
 
 #[cfg(target_os = "macos")]
 fn run_security(args: &[&str]) -> Result<String, String> {
@@ -114,6 +256,8 @@ fn main() {
             focusa_save_pairing_token,
             focusa_load_pairing_token,
             focusa_clear_pairing_token,
+            focusa_start_bridge_callback,
+            focusa_take_bridge_completion,
         ])
         .setup(|app| {
             // macOS: hide dock icon — menubar-only app

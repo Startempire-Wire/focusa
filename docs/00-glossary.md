@@ -278,6 +278,7 @@ The **Phone Bridge Flow** is the temporary phone-mediated flow that connects the
 - **Bridge Room** — short-lived server-side room created for the Phone Bridge Flow. Older docs/code may say **Pairing Room**; treat that as the implementation room concept, not user-facing flow naming.
 - **Mac Handoff Offer** — short-lived QR payload shown by the Mac app; contains Mac/device name, nonce, and optional public-key/callback fields. It is not a token or server URL authority.
 - **Mac Completion Payload** — fallback handoff data that lets the Mac store approved server URL/token when automatic callback/deeplink delivery is unavailable.
+- **Mac Callback** — automatic return channel: the Mac app starts a local HTTP listener and embeds its address in the Mac Handoff Offer. After operator approval on the phone, the Focusa Connect Page POSTs the Mac Completion Payload to that address. No manual copy-paste required.
 - **Public Focusa URL** — phone-reachable URL serving Focusa Connect and proxying required `/v1/connect/*` routes to the daemon.
 - **Local Daemon URL** — loopback endpoint, usually `http://127.0.0.1:8787`; valid for local/dev use but not phone-reachable from another device.
 

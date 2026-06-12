@@ -33,15 +33,15 @@ focusa pair   ->     scan server QR     ->    shows Mac QR
    ```
 
 4. Phone opens the Focusa Connect PWA from the VPS origin.
-5. Mac menubar first screen shows a Mac handoff QR.
+5. Mac menubar starts a local callback listener and shows a Mac handoff QR containing the callback URL.
 6. Focusa Connect Page scans the Mac handoff QR and combines:
    - room id from the server QR URL
    - server origin from `window.location.origin`
-   - Mac offer from Mac QR
+   - Mac offer from Mac QR (including callback URL)
 7. Focusa Connect Page shows `Connect <Mac name>?`.
 8. Operator taps Connect.
-9. VPS mints token.
-10. Mac stores server URL + token indefinitely until explicit disconnect.
+9. VPS mints token. Focusa Connect Page POSTs the Mac Completion Payload to the Mac callback URL.
+10. Mac receives the completion payload automatically and stores server URL + token indefinitely until explicit disconnect.
 
 ## 3. The two QR codes
 
@@ -81,6 +81,7 @@ Payload is a handoff offer consumed by the Focusa Connect Page scanner. It may b
 Purpose:
 - identifies the Mac
 - gives the room a nonce/challenge
+- provides the Mac callback URL for automatic completion delivery
 - never contains a long-lived token
 
 ## 4. Focusa Connect Page as the combine function

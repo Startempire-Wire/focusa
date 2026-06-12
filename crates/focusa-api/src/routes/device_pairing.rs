@@ -1352,7 +1352,17 @@ fn connect_mediator_html() -> String {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.message || payload.failure_class || 'Approval failed');
         completedPayload = payload;
-        setStatus('Connected. Copy Mac setup from Advanced if the Mac does not update automatically.');
+        const macSetup = { protocol: 'focusa-connect-v1', role: 'mac_completion_payload', room_id: roomId, server_url: payload.server_url || serverUrl, device_id: payload.device_id, token: payload.token, token_expires_at: payload.token_expires_at };
+        if (lastOffer.mac_callback) {
+          try {
+            await fetch(lastOffer.mac_callback, { method: 'POST', mode: 'no-cors', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(macSetup) });
+            setStatus('Connected. Completion sent to the Mac automatically.');
+          } catch {
+            setStatus('Connected. Automatic Mac callback unavailable; copy Mac setup from Advanced.');
+          }
+        } else {
+          setStatus('Connected. Copy Mac setup from Advanced if the Mac does not update automatically.');
+        }
         approveBtn.textContent = 'Connected';
         copyBtn.textContent = 'Copy Mac setup';
       } catch (err) {

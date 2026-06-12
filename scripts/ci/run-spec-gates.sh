@@ -77,6 +77,7 @@ run_gate bash ./tests/security_non_loopback_auth_guard_static_test.sh
 run_gate env DAEMON_BIN="$DAEMON_BIN" bash ./tests/security_non_loopback_auth_guard_dynamic_test.sh
 run_gate bash ./tests/spec96_menubar_cockpit_foundation_static_test.sh
 run_gate bash ./tests/phone_bridge_public_url_static_test.sh
+run_gate bash ./tests/phone_bridge_automatic_callback_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
 run_gate bash ./tests/release_proof_status_route_static_test.sh
 run_gate bash ./tests/spec80_impl_parquet_export_support_test.sh
