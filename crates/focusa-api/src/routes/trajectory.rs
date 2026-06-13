@@ -329,7 +329,7 @@ fn active_persisted_trajectory<'a>(
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
     let expected_project_root = clean(project_root)?;
-    let expected_continuity_id = clean(continuity_id);
+    let expected_continuity_id = clean(continuity_id)?;
 
     // Per Spec98: FIRST filter by scope, THEN select active from that set.
     // Global active_trajectory_id is NOT authoritative for scoped queries.
@@ -339,7 +339,7 @@ fn active_persisted_trajectory<'a>(
         .iter()
         .filter(|record| {
             record.project_root.as_deref() == Some(expected_project_root.as_str())
-                && record.continuity_id.as_deref() == expected_continuity_id.as_deref()
+                && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
         })
         .collect();
 

@@ -6,6 +6,7 @@
 
 ## Implemented in the present build
 
+- Spec98 scoped active selectors: Trajectory active lookup now fails closed without both `project_root` and `continuity_id`, and exact-matches both before selecting an active/canonical trajectory.
 - Rust workspace with `focusa-core`, `focusa-api`, `focusa-cli`, and `focusa-tui` crates.
 - Context Authority CLI surfaces are implemented: `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary inspect`, and `focusa binary preflight-install`.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.

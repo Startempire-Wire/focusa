@@ -249,3 +249,9 @@ Before risky mutation, run the smallest applicable context-authority preflight:
 5. run action preflight,
 6. only mutate if verdict allows it.
 
+
+### Spec98 scoped Trajectory selector guard
+
+`active_persisted_trajectory` fails closed unless callers provide both `project_root` and `continuity_id`. Scoped resume and trajectory views must exact-match both values before treating a trajectory as active/canonical; prior-project fallback remains advisory only.
+
+Proof: `tests/spec98_workpoint_trajectory_active_scope_static_test.py` and `tests/spec98_runtime_bleed_crdt_regression_suite.sh`.

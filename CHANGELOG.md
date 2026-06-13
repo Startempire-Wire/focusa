@@ -4,6 +4,11 @@ Focusa is under active development. Versions below are current snapshot tags, no
 
 ## Unreleased — post-release HLT dogfood hardening
 
+### Spec98 authority-plane hardening
+
+- Fixed scoped Trajectory active selection to fail closed unless both `project_root` and `continuity_id` are present; this prevents cross-workstream canonical trajectory bleed during resume and scope recovery.
+- Revalidated Focus Gate, Expression Engine, Reference Store, runtime telemetry/cognition plane, and Spec98 runtime bleed + CRDT proof gates.
+
 ### Context Authority hardening
 
 - Added `focusa action preflight` (`focusa.operational_context_gate.v1`) to block risky mutations when current ask, environment role, runtime state, or proposed action conflict; the Phone Bridge incident golden test blocks GitHub release binary replacement on a live build host.
