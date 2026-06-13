@@ -31,11 +31,11 @@ def main() -> None:
 
     for needle in [
         "let handle_id = uuid::Uuid::now_v7();",
-        "handle_id: Some(handle_id)",
-        "project_root: body.project_root.clone()",
-        "continuity_id: body.continuity_id.clone()",
-        ".find(|h| h.id == handle_id)",
-        ".cloned()",
+        "Some(handle_id)",
+        ".project_root",
+        ".continuity_id",
+        "ReferenceStore::new",
+        "any(|h| h.id == handle.id)",
         '"handle": handle',
         '"scope": {',
         '"workpoint_id": body.workpoint_id',

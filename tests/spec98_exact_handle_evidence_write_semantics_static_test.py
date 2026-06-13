@@ -37,8 +37,9 @@ def main() -> None:
     ], "ECS exact handle route")
     require(VISUAL, [
         "let handle_id = uuid::Uuid::now_v7();",
-        "handle_id: Some(handle_id)",
-        ".find(|h| h.id == handle_id)",
+        "Some(handle_id)",
+        "ReferenceStore::new",
+        "any(|h| h.id == handle.id)",
         '"id": handle.id',
         '"handle": handle',
         "focusa-handle:",

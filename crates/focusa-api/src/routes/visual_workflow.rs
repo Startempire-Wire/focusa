@@ -10,12 +10,28 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::types::{Action, HandleKind};
+use focusa_core::reference::store::ReferenceStore;
+use focusa_core::types::HandleKind;
 use serde::Deserialize;
 use serde_json::json;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 type VisualResult<T = Json<serde_json::Value>> = Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+fn expand_visual_data_path(path: &str) -> PathBuf {
+    if let Some(rest) = path.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return PathBuf::from(home).join(rest);
+    }
+    PathBuf::from(path)
+}
+
+fn visual_ecs_root(data_dir: &str) -> PathBuf {
+    expand_visual_data_path(data_dir).join("ecs")
+}
+
 
 fn visual_failure(
     http_status: StatusCode,
@@ -47,17 +63,6 @@ fn visual_content_rejected(reason: &str) -> (StatusCode, Json<serde_json::Value>
         "Visual evidence store requires valid content_b64 or plain content.",
         "Send valid base64 content_b64 or non-empty content before retrying unchanged.",
         "Likely missing visual artifact content or malformed base64 from browser/vision capture.",
-    )
-}
-
-fn visual_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serde_json::Value>) {
-    visual_failure(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("visual evidence dispatch failed: {error}"),
-        "daemon_unavailable",
-        "Visual evidence artifact could not be dispatched to daemon command channel.",
-        "Check daemon health and retry after command channel recovery is clear.",
-        "Likely daemon command channel closed, runtime shutdown, or writer/transport ownership issue.",
     )
 }
 
@@ -123,33 +128,58 @@ async fn store_visual_evidence(
     let label = body.to_artifact_label();
 
     let handle_id = uuid::Uuid::now_v7();
-    state
-        .command_tx
-        .send(Action::StoreArtifact {
-            kind: body.kind,
-            label: label.clone(),
-            content,
-            handle_id: Some(handle_id),
-            project_root: body.project_root.clone(),
-            continuity_id: body.continuity_id.clone(),
-        })
-        .await
-        .map_err(visual_dispatch_failed)?;
-
-    // Poll for the exact pre-generated handle id so duplicate labels are never ambiguous.
-    let handle = loop {
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-        let focusa = state.focusa.read().await;
-        if let Some(h) = focusa
-            .reference_index
-            .handles
-            .iter()
-            .find(|h| h.id == handle_id)
-            .cloned()
-        {
-            break h;
-        }
-    };
+    let session = state.focusa.read().await.session.clone();
+    let session_id = session.as_ref().map(|s| s.session_id);
+    let project_root = body
+        .project_root
+        .clone()
+        .or_else(|| session.as_ref().and_then(|s| s.project_root.clone()));
+    let continuity_id = body
+        .continuity_id
+        .clone()
+        .or_else(|| session.as_ref().and_then(|s| s.continuity_id.clone()));
+    let store = ReferenceStore::new(visual_ecs_root(&state.config.data_dir)).map_err(|error| {
+        visual_failure(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to open ECS reference store: {error}"),
+            "storage_unavailable",
+            "visual workflow evidence store could not be opened",
+            "check data_dir/ecs permissions and retry after storage health is clear",
+            "likely data_dir permission, disk, or path expansion issue",
+        )
+    })?;
+    let mut handle = store
+        .store(
+            body.kind.clone(),
+            label.clone(),
+            &content,
+            session_id,
+            Some(handle_id),
+            project_root,
+            continuity_id,
+        )
+        .map_err(|error| {
+            visual_failure(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("failed to store visual evidence artifact: {error}"),
+                "storage_unavailable",
+                "visual workflow evidence content or metadata could not be written",
+                "check data_dir/ecs permissions and retry after storage health is clear",
+                "likely data_dir permission, disk, or path expansion issue",
+            )
+        })?;
+    let _guard = state.write_serial_lock.lock().await;
+    let mut focusa = state.focusa.write().await;
+    handle.trajectory = focusa.trajectory_ladder_context();
+    if !focusa
+        .reference_index
+        .handles
+        .iter()
+        .any(|h| h.id == handle.id)
+    {
+        focusa.reference_index.handles.push(handle.clone());
+    }
+    drop(focusa);
 
     Ok(Json(json!({
         "id": handle.id,
