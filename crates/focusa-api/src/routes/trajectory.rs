@@ -2724,6 +2724,60 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_view_ignores_stale_global_active_workpoint_when_scope_requested() {
+        let stale_id = Uuid::now_v7();
+        let scoped_id = Uuid::now_v7();
+        let mut state = FocusaState::default();
+        state.workpoint.active_workpoint_id = Some(stale_id);
+        state.workpoint.records.push(WorkpointRecord {
+            workpoint_id: stale_id,
+            work_item_id: Some("stale-root-workpoint".to_string()),
+            session_id: Some("session-root".to_string()),
+            continuity_id: Some("focusa-cont-root-stale".to_string()),
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            status: WorkpointStatus::Active,
+            checkpoint_reason: WorkpointCheckpointReason::Manual,
+            confidence: WorkpointConfidence::Verified,
+            canonical: true,
+            mission: Some("stale global active workpoint".to_string()),
+            ..WorkpointRecord::default()
+        });
+        state.workpoint.records.push(WorkpointRecord {
+            workpoint_id: scoped_id,
+            work_item_id: Some("scoped-focusa-workpoint".to_string()),
+            session_id: Some("session-focusa".to_string()),
+            continuity_id: Some("focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string()),
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            status: WorkpointStatus::Active,
+            checkpoint_reason: WorkpointCheckpointReason::Manual,
+            confidence: WorkpointConfidence::Verified,
+            canonical: true,
+            mission: Some("scoped focusa workpoint".to_string()),
+            ..WorkpointRecord::default()
+        });
+
+        let payload = trajectory_view_payload(
+            &state,
+            &TrajectoryViewQuery {
+                project_root: Some("/home/wirebot/focusa".to_string()),
+                continuity_id: Some("focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string()),
+                ..TrajectoryViewQuery::default()
+            },
+        );
+
+        assert_ne!(payload["status"].as_str(), Some("degraded"));
+        let conflict_count = payload["intelligence_view"]["conflicting_signals"]
+            .as_array()
+            .map(Vec::len)
+            .unwrap_or(0);
+        assert_eq!(conflict_count, 0);
+        assert_eq!(
+            payload["intelligence_view"]["next_workpoint_candidate"]["work_item_id"].as_str(),
+            Some("scoped-focusa-workpoint")
+        );
+    }
+
+    #[test]
     fn trajectory_view_does_not_promote_workpoint_to_long_term_goal() {
         let state = state_with_workpoint("/repo/focusa");
         let payload = trajectory_view_payload(
