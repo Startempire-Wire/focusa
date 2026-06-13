@@ -2124,6 +2124,30 @@ fn current_ask_action_authority_payload(
     })
 }
 
+fn current_ask_scope_rejection(
+    record: &WorkpointRecord,
+    req: &WorkpointResumeRequest,
+) -> Option<Value> {
+    let reason = current_ask_scope_conflict_reason(record, req)?;
+    Some(json!({
+        "status": "rejected_current_ask_scope_conflict",
+        "canonical": false,
+        "canonical_for_saved_scope": record.canonical,
+        "matches_current_ask_scope": false,
+        "action_authority_for_current_ask": false,
+        "failure_class": "scope_conflict",
+        "workpoint_id": record.workpoint_id,
+        "project_root": record.project_root,
+        "continuity_id": record.continuity_id,
+        "current_ask_scope": current_ask_action_authority_payload(record, record.canonical, req),
+        "scope_conflict_reason": reason,
+        "warnings": ["current ask names or implies a different project scope than the resumed Workpoint"],
+        "safe_recovery": "verify project identity, cd to the intended project root, then create or resume a Workpoint in that scope",
+        "next_tools": ["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+        "next_step_hint": "hard stop: do not execute resumed Workpoint actions until current ask scope matches saved project_root plus continuity_id"
+    }))
+}
+
 fn workpoint_legacy_migration_warnings(record: &WorkpointRecord) -> Vec<&'static str> {
     let mut warnings = Vec::new();
     if record
@@ -2348,6 +2372,9 @@ async fn resume(
         req.session_id.as_deref(),
     );
     if let Some(rejection) = scope.rejection {
+        return Ok(Json(rejection));
+    }
+    if let Some(rejection) = current_ask_scope_rejection(record, &req) {
         return Ok(Json(rejection));
     }
     let workpoint_id = record.workpoint_id;
@@ -3084,6 +3111,45 @@ mod tests {
                 .pointer("/session_identity/resume_source")
                 .and_then(Value::as_str),
             Some("manual")
+        );
+    }
+
+    #[test]
+    fn current_ask_scope_conflict_rejects_executable_workpoint_resume() {
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let req = WorkpointResumeRequest {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            current_ask: Some("continue work in /home/wpuiai/uiai-engine".to_string()),
+            ..WorkpointResumeRequest::default()
+        };
+
+        let rejection = current_ask_scope_rejection(&record, &req).expect("conflict rejection");
+        assert_eq!(
+            rejection.pointer("/status").and_then(Value::as_str),
+            Some("rejected_current_ask_scope_conflict")
+        );
+        assert_eq!(
+            rejection
+                .pointer("/action_authority_for_current_ask")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            rejection
+                .pointer("/current_ask_scope/matches_current_ask_scope")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            rejection.pointer("/failure_class").and_then(Value::as_str),
+            Some("scope_conflict")
         );
     }
 

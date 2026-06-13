@@ -13,7 +13,7 @@ Use `focusa_workpoint_resume` when its specific Focusa state or workflow surface
 
 ## When not to use
 
-Do not use `focusa_workpoint_resume` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance.
+Do not use `focusa_workpoint_resume` to dump unbounded logs, bypass operator steering, or create parallel memory outside Focusa. If the tool returns `pending`, `blocked`, `degraded`, or `canonical=false`, treat that as a recovery state and follow the returned next-step guidance. If it returns `status=rejected_current_ask_scope_conflict` or `action_authority_for_current_ask=false`, hard-stop: the packet is not executable next-action authority across the project mismatch.
 
 ## Project folder semantics
 

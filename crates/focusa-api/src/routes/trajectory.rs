@@ -23,8 +23,8 @@ use focusa_core::types::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tracing::warn;
 use uuid::Uuid;
@@ -55,7 +55,7 @@ pub struct TrajectoryDefineGoalRequest {
     pub project_root: Option<String>,
     pub operator_confirmed: Option<bool>,
     pub supersession_evidence_refs: Option<Vec<String>>,
-    pub current_ask: Option<String>,  // §169-175: explicit operator intent for verified state gate
+    pub current_ask: Option<String>, // §169-175: explicit operator intent for verified state gate
     pub required_evidence_refs: Option<Vec<String>>,
     pub required_checks: Option<Vec<String>>,
     pub acceptance_risks: Option<Vec<String>>,
@@ -101,6 +101,7 @@ pub struct TrajectoryResumeRequest {
     pub session_id: Option<String>,
     pub continuity_id: Option<String>,
     pub project_root: Option<String>,
+    pub current_ask: Option<String>,
 }
 
 fn clean(value: Option<&str>) -> Option<String> {
@@ -148,6 +149,57 @@ fn scoped_query_from_identity(
         identity_continuity_id.as_deref().or(continuity_id),
         mode,
     )
+}
+
+fn trajectory_explicit_project_path_from_ask(ask: &str) -> Option<String> {
+    ask.split_whitespace()
+        .map(|token| {
+            token.trim_matches(|c: char| {
+                matches!(c, ',' | '.' | ';' | ':' | ')' | '(' | '`' | '"' | '\'')
+            })
+        })
+        .find(|token| {
+            (token.starts_with("/home/") || token.starts_with("/Users/"))
+                && token.trim_matches('/').split('/').count() >= 3
+        })
+        .map(|token| token.trim_end_matches('/').to_string())
+}
+
+fn trajectory_current_ask_scope_conflict_reason(
+    saved_project_root: Option<&str>,
+    current_ask: Option<&str>,
+) -> Option<String> {
+    let ask = clean(current_ask)?;
+    let saved_root = saved_project_root?.trim().trim_end_matches('/');
+    let path = trajectory_explicit_project_path_from_ask(&ask)?;
+    let normalized = path.trim_end_matches('/');
+    (!saved_root.is_empty() && normalized != saved_root)
+        .then(|| format!("operator named different project path {normalized}"))
+}
+
+fn trajectory_current_ask_scope_rejection(
+    query: &TrajectoryViewQuery,
+    body: &TrajectoryResumeRequest,
+) -> Option<Value> {
+    let reason = trajectory_current_ask_scope_conflict_reason(
+        query.project_root.as_deref(),
+        body.current_ask.as_deref(),
+    )?;
+    Some(json!({
+        "status": "rejected_current_ask_scope_conflict",
+        "canonical": false,
+        "degraded": true,
+        "failure_class": "scope_conflict",
+        "project_root": query.project_root,
+        "continuity_id": query.continuity_id,
+        "matches_current_ask_scope": false,
+        "action_authority_for_current_ask": false,
+        "scope_conflict_reason": reason,
+        "warnings": ["current ask names or implies a different project scope than the resumed Trajectory"],
+        "safe_recovery": "verify project identity, cd to the intended project root, then resume or define Trajectory in that scope",
+        "next_tools": ["focusa_project_verify", "focusa_project_identity", "focusa_trajectory_define_goal", "focusa_workpoint_resume"],
+        "next_step_hint": "hard stop: do not use resumed Trajectory as executable route context until current ask scope matches project_root plus continuity_id"
+    }))
 }
 
 fn bounded(value: &str, max: usize) -> String {
@@ -352,9 +404,9 @@ fn active_persisted_trajectory<'a>(
         && let Some(record) = scoped_records
             .iter()
             .find(|r| &r.trajectory_id == global_id)
-        {
-            return Some(record);
-        }
+    {
+        return Some(record);
+    }
 
     // Fall back to latest canonical record in scoped set
     scoped_records
@@ -363,7 +415,6 @@ fn active_persisted_trajectory<'a>(
         .find(|record| record.canonical)
         .copied()
 }
-
 
 fn is_generic_bootstrap_hlt(value: &str) -> bool {
     let trimmed = value.trim();
@@ -376,7 +427,9 @@ fn latest_valid_historical_trajectory<'a>(
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
-    let project_root = project_root.map(str::trim).filter(|root| !root.is_empty())?;
+    let project_root = project_root
+        .map(str::trim)
+        .filter(|root| !root.is_empty())?;
     records.iter().rev().find(|record| {
         record.project_root.as_deref() == Some(project_root)
             && continuity_id
@@ -404,7 +457,8 @@ fn scoped_trajectory_history(
         .rev()
         .filter(|record| record.project_root.as_deref() == Some(project_root))
         .filter(|record| {
-            continuity_id.map(|id| id == record.continuity_id.as_deref().unwrap_or(""))
+            continuity_id
+                .map(|id| id == record.continuity_id.as_deref().unwrap_or(""))
                 .unwrap_or(true)
         })
         .take(limit)
@@ -1138,7 +1192,11 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .as_deref()
         .map(is_generic_bootstrap_hlt)
         .unwrap_or(false);
-    if long_term_goal.as_deref().map(is_generic_bootstrap_hlt).unwrap_or(true) {
+    if long_term_goal
+        .as_deref()
+        .map(is_generic_bootstrap_hlt)
+        .unwrap_or(true)
+    {
         if let Some(history_record) = latest_valid_historical_trajectory(
             state.trajectory.records.as_slice(),
             Some(project_root.as_str()).filter(|root| *root != "unbound"),
@@ -2044,6 +2102,9 @@ fn resume_payload(state: &FocusaState, body: &TrajectoryResumeRequest) -> Value 
         body.mode.as_deref(),
         body.session_identity.as_ref(),
     );
+    if let Some(rejection) = trajectory_current_ask_scope_rejection(&query, body) {
+        return rejection;
+    }
     let view = trajectory_view_payload(state, &query);
     json!({
         "status": view.get("status").cloned().unwrap_or_else(|| json!("completed")),
@@ -2150,7 +2211,10 @@ async fn define_goal(
     // current_ask OR supersession_evidence_refs.  Otherwise return active_gap warning but
     // allow operator_override via operator_confirmed=true.
     let has_context = body.current_ask.as_ref().is_some_and(|s| !s.is_empty())
-        || body.supersession_evidence_refs.as_ref().is_some_and(|v| !v.is_empty());
+        || body
+            .supersession_evidence_refs
+            .as_ref()
+            .is_some_and(|v| !v.is_empty());
     let is_operator_override = body.operator_confirmed.unwrap_or(false);
     if !has_context && !is_operator_override {
         warn!(
@@ -2172,9 +2236,13 @@ async fn define_goal(
         .find(|r| r.project_root.as_ref() == body.project_root.as_ref())
         .map(|r| r.long_term_goal.clone());
     let project_root_for_ledger = body.project_root.clone();
-    let continuity_id_for_ledger = body.continuity_id.clone()
+    let continuity_id_for_ledger = body
+        .continuity_id
+        .clone()
         .or_else(|| session_identity_continuity_id(body.session_identity.as_ref()));
-    let session_id_for_ledger = body.session_id.clone()
+    let session_id_for_ledger = body
+        .session_id
+        .clone()
         .or_else(|| session_identity_session_id(body.session_identity.as_ref()));
     let new_hlt_from_body = body.long_term_goal.clone();
     // §99: auto-derive evidence_refs from session state when body lacks explicit refs
@@ -2183,20 +2251,32 @@ async fn define_goal(
         .frames
         .iter()
         .find(|f| {
-            focusa.focus_stack.active_id.map(|aid| aid == f.id).unwrap_or(false)
+            focusa
+                .focus_stack
+                .active_id
+                .map(|aid| aid == f.id)
+                .unwrap_or(false)
         })
         .map(|f| {
             f.focus_state
                 .artifacts
                 .iter()
-                .filter_map(|a| a.handle_ref.as_ref().map(|h| format!("[HANDLE:{:?}:{}]", h.kind, h.id)))
+                .filter_map(|a| {
+                    a.handle_ref
+                        .as_ref()
+                        .map(|h| format!("[HANDLE:{:?}:{}]", h.kind, h.id))
+                })
                 .chain(f.focus_state.decisions.iter().cloned())
                 .take(5)
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
     let evidence_refs = body.supersession_evidence_refs.clone().unwrap_or_else(|| {
-        if focus_state_evidence.is_empty() { Vec::new() } else { focus_state_evidence }
+        if focus_state_evidence.is_empty() {
+            Vec::new()
+        } else {
+            focus_state_evidence
+        }
     });
     drop(focusa);
     let mut side_effects = Vec::new();
@@ -2246,7 +2326,10 @@ async fn define_goal(
                 project_root.clone(),
                 new_hlt_from_body.clone(),
                 "trajectory_define_goal",
-                state.external_mutation_epoch.fetch_add(0, Ordering::Acquire) + 1,
+                state
+                    .external_mutation_epoch
+                    .fetch_add(0, Ordering::Acquire)
+                    + 1,
             )
             .with_old_hlt(old_hlt)
             .with_scope(continuity_id_for_ledger, session_id_for_ledger)
@@ -2503,6 +2586,38 @@ mod tests {
         WorkpointCheckpointReason, WorkpointConfidence, WorkpointRecord, WorkpointStatus,
     };
     use uuid::Uuid;
+
+    #[test]
+    fn trajectory_resume_rejects_current_ask_project_path_conflict() {
+        let query = TrajectoryViewQuery {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            ..TrajectoryViewQuery::default()
+        };
+        let body = TrajectoryResumeRequest {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            current_ask: Some("continue implementation in /home/wpuiai/uiai-engine".to_string()),
+            ..TrajectoryResumeRequest::default()
+        };
+
+        let rejection =
+            trajectory_current_ask_scope_rejection(&query, &body).expect("conflict rejection");
+        assert_eq!(
+            rejection.pointer("/status").and_then(Value::as_str),
+            Some("rejected_current_ask_scope_conflict")
+        );
+        assert_eq!(
+            rejection
+                .pointer("/action_authority_for_current_ask")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            rejection.pointer("/failure_class").and_then(Value::as_str),
+            Some("scope_conflict")
+        );
+    }
 
     fn state_with_workpoint(project_root: &str) -> FocusaState {
         let workpoint_id = Uuid::now_v7();
