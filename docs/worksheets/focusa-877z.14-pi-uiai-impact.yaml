@@ -13,6 +13,7 @@ non_negotiables:
   - focusa_scope is metadata until validated against Focusa ProjectIdentity or Workpoint scope.
   - UIAI outputs remain evidence proposals until captured or linked through Focusa evidence surfaces.
   - TUI rendering is presentation only; RPC/JSON/MCP/CLI must use the same packet semantics.
+  - uiai_health_scope_integrity: uiai_health is infra_only_advisory_telemetry with no_project_scope_authority; ProjectIdentity plus Workpoint/Trajectory scope remains the source of project truth.
   - Browser pressure is operational telemetry; it may narrow workflows but must not mutate cognition truth.
 
 impacted_focusa_tools:

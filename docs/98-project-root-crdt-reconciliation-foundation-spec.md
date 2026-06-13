@@ -1104,9 +1104,9 @@ Every correction must also answer:
 
 | Surface | Required proof |
 |---|---|
-| UIAI health | `uiai_health` / `/api/health/browser` returns status, pressure, diagnostics availability, and packet recommendation. |
+| UIAI health | `uiai_health` / `/api/health/browser` returns status, pressure, diagnostics availability, and packet recommendation; uiai_health is infrastructure-only telemetry, must not seed project_root or continuity_id, and project truth comes from ProjectIdentity plus Workpoint/Trajectory scope. |
 | UIAI tool graph | `/api/tools/graph` still advertises Focusa scope echo, evidence refs, packet schema, and preferred Focusa tools. |
-| UIAI diagnostics | `browser_diagnostics` returns bounded redacted console/exception/network evidence and echoes `focusa_scope` when present. |
+| UIAI diagnostics | `browser_diagnostics` returns bounded redacted console/exception/network evidence and echoes `focusa_scope` when present; focusa_scope is echo/provenance metadata, not authority. |
 | UIAI packet | `/api/agent/research-packet` and Pi packet builder produce `uiai.focusa_research_diagnostics_packet.v1`. |
 | Focusa intake | `focusa_browser_diagnostics_intake` converts diagnostics/failure envelopes into Workpoint evidence, active-object hints, prediction, and optional metacog. |
 | Pi tool contracts | Static Pi registry and live daemon contract surfaces agree on tool names, families, next tools, and failure taxonomy. |
