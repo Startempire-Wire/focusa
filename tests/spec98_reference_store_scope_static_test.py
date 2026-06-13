@@ -61,12 +61,14 @@ def main() -> None:
     for name, text in [("ecs.rs", ecs), ("visual_workflow.rs", visual)]:
         if "let handle_id = uuid::Uuid::now_v7();" not in text:
             fail(f"{name} must pre-generate exact handle_id")
-        if "handle_id: Some(handle_id)" not in text:
-            fail(f"{name} must dispatch exact handle_id")
-        if ".find(|h| h.id == handle_id)" not in text:
-            fail(f"{name} must poll by exact handle id")
+        if "Some(handle_id)" not in text:
+            fail(f"{name} must pass exact handle_id to the store/action")
         if ".find(|h| h.label ==" in text:
             fail(f"{name} must not poll newly-created handles by label")
+    if ".find(|h| h.id == handle_id)" not in ecs:
+        fail("ecs.rs must poll by exact handle id")
+    if "any(|h| h.id == handle.id)" not in visual:
+        fail("visual_workflow.rs must index the exact returned handle id")
     if '"handle": handle' not in ecs:
         fail("ECS store response must return exact handle object")
 
