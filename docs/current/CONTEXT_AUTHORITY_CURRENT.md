@@ -5,6 +5,7 @@
 **Architecture translation:** `docs/current/CONTEXT_AUTHORITY_ARCHITECTURE_WORKORDER_SPEC_2026-06-12.md`  
 **Implementation commits:** `b9d653f`, `a5e1171`, `266b9a4`, `8060cd1`, `5362c19`, `32a453c`, `dc9a335`  
 **Validation bundle:** context-authority tests, 2026-06-12
+**Authority model:** [`AUTHORITY_MODEL.md`](AUTHORITY_MODEL.md)
 
 ## Purpose
 

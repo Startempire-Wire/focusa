@@ -3,6 +3,8 @@
 > **This glossary is authoritative.**  
 > All documentation, code comments, agent instructions, and UI language MUST conform to the terms defined here.  
 > No component may redefine these terms locally.
+>
+> See [`docs/current/AUTHORITY_MODEL.md`](current/AUTHORITY_MODEL.md) for the canonical authority role of each vocabulary-bearing surface.
 
 ---
 
@@ -429,3 +431,58 @@ Expression Engine
 > **Meaning lives in Focus State, not in conversation.**
 
 This invariant underpins all design decisions in Focusa.
+
+---
+
+## Context Cognition
+
+**Definition**  
+**Context Cognition** is an advisory bounded context packet that describes selected context, excluded context, scope, authority posture, freshness, evidence frame, reasoning frame, optimization frame, and route frame for the current project/workstream.
+
+**Role**
+- Helps agents understand relevant context without raw transcript dumps
+- Supports bounded context curation and eval-backed promotion
+- Exposes advisory/degraded/stale/mismatch state
+- References source and rehydrate handles instead of becoming proof
+
+**Authority**
+- Advisory by default
+- Never mutates Focus State
+- Never replaces Workpoint
+- Never overrides operator steering
+- Must not be treated as canonical continuation truth
+
+**What It Is Not**
+- Not a Workpoint
+- Not proof
+- Not a transcript-tail authority source
+- Not an autonomous reasoning optimizer claim
+
+---
+
+## Call Stack Design
+
+**Definition**  
+**Call Stack Design** is a typed, append-only implementation blueprint that describes the expected execution path for a feature before implementation.
+
+**Canonical Shape**
+
+```text
+entry → handlers → services → adapters → storage → output
+```
+
+**Role**
+- Makes implementation structure explicit before code changes
+- Can link to a Workpoint when explicitly attached
+- Can become evidence only when explicitly captured/linked
+- Supports future implementation-drift verification
+
+**Authority**
+- Advisory by default
+- Evidence-linkable when explicitly attached
+- Never silently mutates Workpoint or Trajectory
+
+**What It Is Not**
+- Not executable authority
+- Not a hidden task mutation
+- Not a replacement for Workpoint, Context Authority, or evidence

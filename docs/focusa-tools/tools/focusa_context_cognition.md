@@ -9,6 +9,8 @@ Build the bounded, advisory **Spec 100 `ContextCognitionPacket`** for the curren
 
 The packet is the single artifact an agent or operator can read to understand the agent's working context without digging into raw state.
 
+Authority boundary: Context Cognition is advisory context, not continuation authority. See [`docs/current/AUTHORITY_MODEL.md`](../../current/AUTHORITY_MODEL.md).
+
 ## When to use
 
 - Before a multi-step decision: "what does the agent know right now?"

@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Read the per-project Trajectory Intelligence view before acting. This is the north-star orientation tool: it shows ProjectIdentity, high/mid/low trajectory goals, desired end state, current verified state, active gap, evidence, drift boundaries, context sufficiency, and next Workpoint candidate.
+Read the per-project Trajectory Intelligence view before acting. This is the north-star orientation tool: it shows ProjectIdentity, HLT/MLG/STG/Waypoints, desired end state, current verified state, active gap, evidence, drift boundaries, context sufficiency, and next Workpoint candidate.
+
+Authority boundary: HLT/MLG/STG/Waypoints orient execution; Workpoint is immediate continuation authority. See [`docs/current/AUTHORITY_MODEL.md`](../../current/AUTHORITY_MODEL.md).
 
 ## When to use
 

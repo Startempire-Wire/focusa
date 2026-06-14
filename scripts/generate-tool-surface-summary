@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import { execSync } from "node:child_process";
+
+const root = process.cwd();
+const contractsPath = path.join(root, "docs/current/focusa-tool-contracts.json");
+const outPath = path.join(root, "docs/current/generated/tool-surface-summary.md");
+const check = process.argv.includes("--check");
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function sh(cmd, fallback = "unknown") {
+  try { return execSync(cmd, { cwd: root, stdio: ["ignore", "pipe", "ignore"] }).toString().trim() || fallback; }
+  catch { return fallback; }
+}
+
+function currentVersion() {
+  try {
+    const cargo = fs.readFileSync(path.join(root, "Cargo.toml"), "utf8");
+    const m = cargo.match(/^version\s*=\s*["']([^"']+)["']/m);
+    if (m) return m[1];
+  } catch {}
+  try { return readJson(path.join(root, "package.json")).version || "unknown"; } catch {}
+  return "unknown";
+}
+
+function existingTimestamp() {
+  if (process.env.FOCUSA_TOOL_SUMMARY_TIMESTAMP) return process.env.FOCUSA_TOOL_SUMMARY_TIMESTAMP;
+  try {
+    const text = fs.readFileSync(outPath, "utf8");
+    const m = text.match(/\*\*Generated:\*\* `([^`]+)`/);
+    if (m) return m[1];
+  } catch {}
+  return new Date().toISOString();
+}
+
+function existingSourceSha() {
+  if (process.env.FOCUSA_TOOL_SUMMARY_SOURCE_SHA) return process.env.FOCUSA_TOOL_SUMMARY_SOURCE_SHA;
+  try {
+    const text = fs.readFileSync(outPath, "utf8");
+    const m = text.match(/\*\*Source commit:\*\* `([^`]+)`/);
+    if (m) return m[1];
+  } catch {}
+  return sh("git rev-parse --short HEAD");
+}
+
+const raw = readJson(contractsPath);
+const tools = Array.isArray(raw) ? raw : (raw.tools || raw.contracts || []);
+const families = new Map();
+let apiParity = 0;
+let cliParity = 0;
+let piToolCount = 0;
+let docsCoverage = 0;
+const missingDocs = [];
+
+for (const tool of tools) {
+  const name = String(tool.name || "").trim();
+  const family = String(tool.family || tool.tool_family || "unknown").trim() || "unknown";
+  families.set(family, (families.get(family) || 0) + 1);
+  if (Array.isArray(tool.api_routes) && tool.api_routes.length) apiParity += 1;
+  if (Array.isArray(tool.cli_commands) && tool.cli_commands.length) cliParity += 1;
+  if (name.startsWith("focusa_")) piToolCount += 1;
+  const docPath = String(tool.doc_path || "").trim();
+  if (docPath && fs.existsSync(path.join(root, docPath))) docsCoverage += 1;
+  else missingDocs.push(name || "unknown");
+}
+
+const sourceSha = existingSourceSha();
+const timestamp = existingTimestamp();
+const version = currentVersion();
+const familyLines = Array.from(families.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([family, count]) => `| ${family} | ${count} |`).join("\n");
+const missingDocLine = missingDocs.length ? missingDocs.map((x) => `\`${x}\``).join(", ") : "none";
+
+const body = `# Generated Tool Surface Summary\n\n<!-- GENERATED: scripts/generate-tool-surface-summary. Do not edit counts manually. -->\n\n**Source registry:** \`docs/current/focusa-tool-contracts.json\`\n**Generated:** \`${timestamp}\`\n**Source commit:** \`${sourceSha}\`\n**Current version:** \`${version}\`\n\n## Counts\n\n| Metric | Count |\n| --- | ---: |\n| Tool contracts | ${tools.length} |\n| Tool families | ${families.size} |\n| API parity | ${apiParity} |\n| CLI parity | ${cliParity} |\n| Pi tools | ${piToolCount} |\n| Docs coverage | ${docsCoverage} |\n\n## Families\n\n| Family | Tools |\n| --- | ---: |\n${familyLines}\n\n## Docs coverage\n\nMissing tool docs: ${missingDocLine}\n\n## Use in docs\n\nREADME, BENEFITS, CURRENT_RUNTIME_STATUS, release docs, marketing copy, and tool docs should point here instead of hardcoding tool counts.\n`;
+
+if (check) {
+  const existing = fs.existsSync(outPath) ? fs.readFileSync(outPath, "utf8") : "";
+  if (existing !== body) {
+    console.error(`${outPath} is stale. Run scripts/generate-tool-surface-summary.`);
+    process.exit(1);
+  }
+  console.log("✓ tool-surface-summary is current");
+} else {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, body);
+  console.log(`wrote ${outPath}`);
+}

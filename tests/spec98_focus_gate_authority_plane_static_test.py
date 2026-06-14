@@ -10,6 +10,7 @@ TYPES = ROOT / "crates/focusa-core/src/types.rs"
 EXTRA = ROOT / "crates/focusa-api/src/routes/capabilities_extra.rs"
 REDUCER = ROOT / "crates/focusa-core/src/reducer.rs"
 DAEMON = ROOT / "crates/focusa-core/src/runtime/daemon.rs"
+GATE_ROUTE = ROOT / "crates/focusa-api/src/routes/gate.rs"
 
 
 def fail(message: str) -> None:
@@ -28,6 +29,7 @@ def main() -> None:
     extra = EXTRA.read_text()
     reducer = REDUCER.read_text()
     daemon = DAEMON.read_text()
+    gate_route = GATE_ROUTE.read_text()
 
     for invariant in [
         "INVARIANT: Focus Gate never mutates Focus State or Focus Stack.",
@@ -71,6 +73,11 @@ def main() -> None:
     for needle in forbidden_cross_writes:
         if needle in gate_section:
             fail(f"Focus Gate reducer section must not write other authority plane: {needle}")
+
+    if "fn dispatch_gate_action" not in gate_route or ".try_send(action)" not in gate_route:
+        fail("Focus Gate mutation dispatch must use bounded try_send helper")
+    if ".send(Action::IngestSignal" in gate_route or ".send(Action::SurfaceCandidate" in gate_route:
+        fail("Focus Gate HTTP routes must not await command channel sends")
 
     candidate_translate_start = daemon.find("Action::SurfaceCandidate")
     candidate_translate_end = daemon.find("Action::PinCandidate", candidate_translate_start)

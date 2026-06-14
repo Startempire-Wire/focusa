@@ -2,6 +2,8 @@
 
 One doc per current `focusa_*` tool. Family pages are indexes only.
 
+Authority-bearing tool docs should align with the canonical [Authority Model](../current/AUTHORITY_MODEL.md).
+
 - [Focus State](./focus-state.md)
 - [Workpoint](./workpoint.md)
 - [Work Loop](./work-loop.md)
@@ -16,7 +18,7 @@ One doc per current `focusa_*` tool. Family pages are indexes only.
 
 ## Current counts
 
-- 59 Pi tools documented with one page per tool.
+- See `../current/generated/tool-surface-summary.md` for current generated tool counts, families, parity, and docs coverage.
 - Prediction tools are first-class (`record`, `recent`, `evaluate`, `stats`).
 - Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
 - Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success; bounded `reflex_suggestions` point to Spec97 recovery primitives when applicable.

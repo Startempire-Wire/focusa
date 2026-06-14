@@ -1,0 +1,106 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import { execSync } from "node:child_process";
+
+const root = process.cwd();
+const strict = process.argv.includes("--strict");
+const glossaryPath = path.join(root, "docs/00-glossary.md");
+const authorityPath = "docs/current/AUTHORITY_MODEL.md";
+
+const canonicalTerms = [
+  "Focus State",
+  "Focus Stack",
+  "Workpoint",
+  "ProjectIdentity",
+  "Continuity ID",
+  "HLT",
+  "MLG",
+  "STG",
+  "Waypoints",
+  "Evidence Ref",
+  "Context Cognition",
+  "Context Authority",
+  "Call Stack Design",
+  "Focus Gate",
+  "Intuition Engine",
+  "Reference Store",
+  "Expression Engine",
+  "Canonical",
+  "Advisory",
+  "Degraded",
+];
+
+const scanRoots = [
+  "README.md",
+  "BENEFITS.md",
+  "docs/current",
+  "docs/focusa-tools",
+  "apps/pi-extension/skills/focusa/SKILL.md",
+  "apps/pi-extension/src/tool-contracts.ts",
+  "crates/focusa-cli/src",
+  "apps/menubar/src/lib/components",
+];
+
+const forbiddenPatterns = [
+  { re: /Focusa\s+is\s+(?:an?\s+)?(?:LLM|large language model|chatbot|RAG database|generic RAG system|scheduler|autonomous task runner|cloud memory product|hidden cloud memory service)/i, why: "Focusa-is-not boundary violation" },
+  { re: /replace(?:s|d)?\s+(?:the\s+)?(?:HLT|MLG|STG|trajectory ladder|Trajectory Hierarchy)\s+with\s+(?:mission|milestone|next step)/i, why: "trajectory vocabulary dilution" },
+  { re: /simplif(?:y|ied|ies)\s+(?:the\s+)?trajectory ladder\s+into/i, why: "trajectory ladder simplification" },
+];
+
+const authorityTerms = [
+  "Context Cognition",
+  "Context Authority",
+  "Workpoint",
+  "Trajectory",
+  "ProjectIdentity",
+  "Call Stack Design",
+];
+
+function listFiles(target) {
+  const full = path.join(root, target);
+  if (!fs.existsSync(full)) return [];
+  const stat = fs.statSync(full);
+  if (stat.isFile()) return [target];
+  const out = execSync(`find ${JSON.stringify(target)} -type f \\( -name '*.md' -o -name '*.ts' -o -name '*.rs' -o -name '*.svelte' -o -name '*.json' \\)`, { cwd: root }).toString().trim();
+  return out ? out.split("\n") : [];
+}
+
+function lineNumber(text, index) {
+  return text.slice(0, index).split("\n").length;
+}
+
+const failures = [];
+const warnings = [];
+const glossary = fs.readFileSync(glossaryPath, "utf8");
+for (const term of canonicalTerms) {
+  if (!glossary.includes(term)) failures.push(`${glossaryPath}: missing canonical term ${term}`);
+}
+if (!glossary.includes("AUTHORITY_MODEL.md")) failures.push(`${glossaryPath}: missing Authority Model reference`);
+
+const files = Array.from(new Set(scanRoots.flatMap(listFiles))).filter((file) => !file.includes("node_modules"));
+for (const file of files) {
+  const text = fs.readFileSync(path.join(root, file), "utf8");
+  for (const { re, why } of forbiddenPatterns) {
+    const match = re.exec(text);
+    if (match) failures.push(`${file}:${lineNumber(text, match.index)} ${why}: ${match[0].slice(0, 160)}`);
+  }
+  const mentionsAuthority = authorityTerms.some((term) => text.includes(term));
+  const shouldReferenceAuthority = file.endsWith(".md") && mentionsAuthority && !file.endsWith("AUTHORITY_MODEL.md") && !file.endsWith("106-focusa-vision-tightening-spec.md");
+  if (shouldReferenceAuthority && !text.includes("AUTHORITY_MODEL.md")) {
+    warnings.push(`${file}: mentions authority-bearing terms without AUTHORITY_MODEL.md reference`);
+  }
+}
+
+if (failures.length) {
+  console.error("Glossary compliance failures:");
+  failures.forEach((f) => console.error(`- ${f}`));
+  process.exit(1);
+}
+if (strict && warnings.length) {
+  console.error("Glossary compliance warnings promoted to failures:");
+  warnings.forEach((w) => console.error(`- ${w}`));
+  process.exit(1);
+}
+console.log(`✓ glossary compliance gate passed (${files.length} files scanned, ${warnings.length} advisory warnings)`);
+if (warnings.length && !strict) warnings.slice(0, 20).forEach((w) => console.log(`warning: ${w}`));

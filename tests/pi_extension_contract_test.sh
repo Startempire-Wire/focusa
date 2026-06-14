@@ -37,6 +37,7 @@ echo ""
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 STATE_FILE="${ROOT_DIR}/apps/pi-extension/src/state.ts"
 SESSION_FILE="${ROOT_DIR}/apps/pi-extension/src/session.ts"
+TOOLS_FILE="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
 
 if rg -n 'appendEntry\("focusa-wbm-state"' "$STATE_FILE" >/dev/null 2>&1; then
   log_pass "Pi persists resumable WBM state via focusa-wbm-state"
@@ -61,6 +62,31 @@ if rg -n 'focusa-wbm-state" \|\| e\.customType === "focusa-state"' "$SESSION_FIL
   log_pass "Pi session restore accepts only same-session resumable Focusa/WBM state"
 else
   log_fail "Pi session restore missing same-session resumable WBM state support"
+fi
+
+if rg -n 'ensureToolTrajectoryClarity' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'trajectory_ladder_summary' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'focusa\.trajectory_ladder\.v1' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'refreshTrajectoryClarityLifecycle\(`tool_hlt_pickup' "$TOOLS_FILE" >/dev/null 2>&1; then
+  log_pass "Pi focusa_* tool envelope auto-picks up HLT trajectory ladder"
+else
+  log_fail "Pi focusa_* tool envelope missing HLT trajectory ladder pickup"
+fi
+
+if rg -n 'long_term_goal: trajectory\.long_term_goal \|\| trajectoryLadder\.hlt' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'mid_level_goal: trajectory\.mid_level_goal \|\| trajectoryLadder\.mlg' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'short_term_goal: trajectory\.short_term_goal \|\| trajectoryLadder\.stg' "$TOOLS_FILE" >/dev/null 2>&1; then
+  log_pass "Pi trajectory_view cache preserves HLT/MLG/STG for downstream tools"
+else
+  log_fail "Pi trajectory_view cache does not preserve full trajectory ladder"
+fi
+
+if rg -n 'ensureVisibleToolTemplate' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'VISIBLE_TOOL_ID_KEYS' "$TOOLS_FILE" >/dev/null 2>&1 \
+  && rg -n 'visible_tool_template_v1' "$TOOLS_FILE" >/dev/null 2>&1; then
+  log_pass "Pi focusa_* wrapper appends visible IDs/status/next template"
+else
+  log_fail "Pi focusa_* wrapper missing visible ID/status/next template"
 fi
 
 log_info "Health + seeded state"

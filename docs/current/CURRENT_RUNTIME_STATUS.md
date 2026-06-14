@@ -11,7 +11,7 @@
 - Context Authority CLI surfaces are implemented: `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary inspect`, and `focusa binary preflight-install`.
 - Local daemon binary: `focusa-daemon` from `focusa-api`.
 - CLI binary: `focusa` from `focusa-cli`.
-- Pi extension under `apps/pi-extension` exposing 63 current `focusa_*` tools.
+- Pi extension under `apps/pi-extension`; see `docs/current/generated/tool-surface-summary.md` for current generated `focusa_*` tool counts, families, parity, and docs coverage.
 - Focusa skills under `.pi/skills/`, `apps/pi-extension/skills/`, and installed runtime copies under `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`.
 - Workpoint continuity APIs and Pi tools for checkpoint, current, resume, drift-check, active-object resolve, and evidence link; CLI `focusa workpoint resume --copy-prompt` prints a paste-ready continuation packet for non-Pi agents.
 - Phone Bridge `focusa pair --json` now includes `environment_contract`, `runtime_inventory`, and `action_preflight` so pairing cannot silently become a release-install workflow.

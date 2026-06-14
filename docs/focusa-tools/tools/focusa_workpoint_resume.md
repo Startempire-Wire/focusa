@@ -7,6 +7,8 @@
 
 Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.
 
+Authority boundary: a canonical Workpoint is immediate continuation authority only when scoped to the exact `project_root + continuity_id`. See [`docs/current/AUTHORITY_MODEL.md`](../../current/AUTHORITY_MODEL.md).
+
 ## When to use
 
 Use `focusa_workpoint_resume` when its specific Focusa state or workflow surface is the narrowest tool that matches the current need. Prefer this tool over raw transcript memory when the result should survive compaction, be inspectable, or guide a later agent turn.

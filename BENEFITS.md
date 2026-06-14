@@ -24,7 +24,7 @@ Modern coding agents fail the same way: context compacts, the thread is lost, dr
 
 6. **Multi-agent is first-class.** Project roots, continuity IDs, and writer arbitration let multiple agents work in the same repo without stepping on each other. `focusa_project_identity` and `focusa_work_loop_writer_status` are the locks that make this safe.
 
-7. **Local-first, audit-ready.** Everything runs on your machine or your VPS. The daemon is a typed HTTP API. Nothing leaks to a third-party model. Static audits verify all 64 tools stay in sync on every CI run.
+7. **Local-first, audit-ready.** Everything runs on your machine or your VPS. The daemon is a typed HTTP API. Nothing leaks to a third-party model. Static audits verify the generated tool surface stays in sync on every CI run.
 
 8. **Real observability.** Hot-path latency, cold-path cost, resource pressure, and degraded modes are surfaced in tools (`focusa_tool_doctor`, `focusa_resource_mode`), not buried in logs. The Tauri menubar app shows live focus, workpoint, and trajectory state on macOS.
 
@@ -108,7 +108,7 @@ This is the centerpiece of Focusa's claim that "structure beats tokens." See `do
 
 ## The roadmap that is already shipping
 
-- **Today:** 64 Pi tools, daemon, CLI, TUI, Tauri menubar, strict CI, static audits.
+- **Today:** Focusa ships a generated tool surface summary, daemon, CLI, TUI, Tauri menubar, strict CI, and static audits. See `docs/current/generated/tool-surface-summary.md` for current tool counts, families, parity, and docs coverage.
 - **This month:** public stream surface (live tool cards on focusa.dev), HLT ledger human-readable view, expanded evidence links.
 - **This quarter:** multi-agent federation, public proof bundles, MCP-native adapter.
 
@@ -132,7 +132,7 @@ focusa_workpoint_checkpoint mission="your mission"
 focusa_workpoint_resume
 ```
 
-You will be live in 5 minutes. From there, the 65 tools are your substrate.
+You will be live in 5 minutes. From there, the generated Focusa tool surface is your substrate.
 
 To design a feature before writing it:
 

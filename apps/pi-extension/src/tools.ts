@@ -10,7 +10,7 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens } from "./state.js";
+import { S, checkFocusa, focusaFetch, focusaPost, ensurePiFrame, getFocusState, ensureContinuityId, isProjectRootAuthoritySafe, projectRootAuthorityFailure, buildFocusaSessionIdentity, normalizeProjectRoot, resolvePiProjectRoot, confirmPiProjectRoot, projectRootConfirmationRequired, projectRootConfirmationSummary, refreshTrajectoryClarityLifecycle, stampWorkpointPacketForCurrentPiSession, persistState, estimateTokens } from "./state.js";
 import { FOCUSA_TOOL_CONTRACTS, focusaToolContractSummary } from "./tool-contracts.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
@@ -422,8 +422,121 @@ function compactApiEcho(value: unknown): unknown {
   return Object.keys(out).length ? out : { omitted: true, reason: "compact_api_echo" };
 }
 
-function focusaToolDetails(details: Record<string, unknown>, result: FocusaToolResultV1): Record<string, unknown> {
-  return { ...details, tool_result_v1: result };
+const FOCUSA_TOOL_TRAJECTORY_TTL_MS = 30_000;
+
+function firstNonEmptyText(...values: unknown[]): string {
+  for (const value of values) {
+    const text = String(value ?? "").replace(/\s+/g, " " ).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function objectValue(value: unknown): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
+}
+
+function toolTrajectoryProjectRoot(details: Record<string, unknown>): string {
+  const projectIdentity = objectValue(details.project_identity);
+  const trajectory = objectValue(details.trajectory);
+  const candidate = objectValue(details.trajectory_candidate);
+  const workpoint = objectValue(details.workpoint);
+  const cached = objectValue(S.lastTrajectoryClarity);
+  const candidates = [
+    details.project_root,
+    projectIdentity.project_root,
+    trajectory.project_root,
+    candidate.project_root,
+    workpoint.project_root,
+    objectValue(S.activeWorkpointPacket).project_root,
+    objectValue(S.lastProjectIdentity).project_root,
+    cached.project_root,
+    resolvePiProjectRoot(S.sessionCwd || process.cwd()),
+  ];
+  for (const candidateRoot of candidates) {
+    if (typeof candidateRoot !== "string") continue;
+    const root = normalizeProjectRoot(candidateRoot);
+    if (root && isProjectRootAuthoritySafe(root)) return root;
+  }
+  return "";
+}
+
+function normalizeToolTrajectoryLadder(source: unknown, sourceLabel: string): Record<string, unknown> | null {
+  const obj = objectValue(source);
+  const ladder = objectValue(obj.trajectory_ladder);
+  const hlt = firstNonEmptyText(obj.long_term_goal, obj.hlt, ladder.hlt, ladder.high_level_goal, ladder.high);
+  const mlg = firstNonEmptyText(obj.mid_level_goal, obj.mlg, ladder.mlg, ladder.mid);
+  const stg = firstNonEmptyText(obj.short_term_goal, obj.stg, ladder.stg, ladder.short);
+  const activeGap = firstNonEmptyText(obj.active_gap, ladder.active_gap);
+  const waypoints = Array.isArray(obj.waypoints)
+    ? obj.waypoints
+    : Array.isArray(ladder.waypoints)
+      ? ladder.waypoints
+      : [];
+  if (!hlt && !mlg && !stg && !activeGap && !waypoints.length) return null;
+  return {
+    schema: "focusa.trajectory_ladder.v1",
+    source: sourceLabel,
+    project_root: firstNonEmptyText(obj.project_root, ladder.project_root),
+    continuity_id: firstNonEmptyText(obj.continuity_id, ladder.continuity_id),
+    session_id: firstNonEmptyText(obj.session_id, ladder.session_id),
+    trajectory_id: firstNonEmptyText(obj.trajectory_id, ladder.trajectory_id),
+    hlt: hlt || null,
+    mlg: mlg || null,
+    stg: stg || null,
+    desired_end_state: firstNonEmptyText(obj.desired_end_state, ladder.desired_end_state) || null,
+    current_state: firstNonEmptyText(obj.current_state, ladder.current_state) || null,
+    active_gap: activeGap || null,
+    waypoints: waypoints.slice(0, 8),
+    fallback_prior_project_trajectory: obj.fallback_prior_project_trajectory === true || ladder.fallback_prior_project_trajectory === true,
+    fallback_source_continuity_id: firstNonEmptyText(obj.fallback_source_continuity_id, ladder.fallback_source_continuity_id) || null,
+  };
+}
+
+function cachedToolTrajectoryLadder(details: Record<string, unknown>, refreshed?: unknown): Record<string, unknown> | null {
+  return normalizeToolTrajectoryLadder(details.trajectory_ladder, "tool_details.trajectory_ladder")
+    || normalizeToolTrajectoryLadder(details.trajectory, "tool_details.trajectory")
+    || normalizeToolTrajectoryLadder(details.trajectory_candidate, "tool_details.trajectory_candidate")
+    || normalizeToolTrajectoryLadder(refreshed, "pi_state.lastTrajectoryClarity")
+    || normalizeToolTrajectoryLadder(S.lastTrajectoryClarity, "pi_state.lastTrajectoryClarity");
+}
+
+function formatToolTrajectoryLadderSummary(ladder: Record<string, unknown>): string {
+  const parts = [
+    firstNonEmptyText(ladder.hlt) ? `HLT=${compactText(ladder.hlt, "", 120)}` : "",
+    firstNonEmptyText(ladder.mlg) ? `MLG=${compactText(ladder.mlg, "", 100)}` : "",
+    firstNonEmptyText(ladder.stg) ? `STG=${compactText(ladder.stg, "", 100)}` : "",
+  ].filter(Boolean);
+  return parts.join("; " );
+}
+
+async function ensureToolTrajectoryClarity(tool: string, details: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  const projectRoot = toolTrajectoryProjectRoot(details);
+  if (!projectRoot) return objectValue(S.lastTrajectoryClarity);
+  const cached = objectValue(S.lastTrajectoryClarity);
+  const cachedRoot = typeof cached.project_root === "string" ? normalizeProjectRoot(cached.project_root) : "";
+  const cachedLadder = normalizeToolTrajectoryLadder(cached, "pi_state.lastTrajectoryClarity");
+  const cachedAt = Number(cached.refreshed_at || 0);
+  const cacheFresh = Boolean(cachedLadder && cachedRoot === projectRoot && cachedAt > 0 && Date.now() - cachedAt < FOCUSA_TOOL_TRAJECTORY_TTL_MS);
+  if (cacheFresh) return cached;
+  if (cachedToolTrajectoryLadder(details, null) && cachedRoot === projectRoot) return cached;
+  try {
+    const refreshed = await refreshTrajectoryClarityLifecycle(`tool_hlt_pickup:${tool}`, projectRoot);
+    return objectValue(refreshed || S.lastTrajectoryClarity);
+  } catch {
+    return cached;
+  }
+}
+
+function focusaToolDetails(details: Record<string, unknown>, result: FocusaToolResultV1, trajectoryClarity?: Record<string, unknown> | null): Record<string, unknown> {
+  const trajectoryLadder = cachedToolTrajectoryLadder(details, trajectoryClarity);
+  const trajectorySummary = trajectoryLadder ? formatToolTrajectoryLadderSummary(trajectoryLadder) : "";
+  return {
+    ...details,
+    ...(trajectoryLadder ? { trajectory_ladder: trajectoryLadder } : {}),
+    ...(trajectorySummary ? { trajectory_ladder_summary: trajectorySummary } : {}),
+    tool_result_v1: result,
+  };
 }
 
 function focusaEvidenceCaptureSuggestion(input: { target_ref: string; result: string; evidence_ref: string; project_root?: string | null; attach_to_workpoint?: boolean }): Record<string, unknown> {
@@ -531,6 +644,73 @@ function humanSummary(prefix: string, ids: Array<{ label: string; value: unknown
     .join(" ");
   const compact = [idPart, fieldPart].filter(Boolean).join("; ");
   return (compact ? `${prefix} ${compact}` : prefix).slice(0, max);
+}
+
+const VISIBLE_TOOL_ID_KEYS = [
+  "workpoint_id",
+  "packet_id",
+  "trajectory_id",
+  "prediction_id",
+  "reflection_id",
+  "adjustment_id",
+  "snapshot_id",
+  "baseline_snapshot_id",
+  "from_snapshot_id",
+  "to_snapshot_id",
+  "evidence_ref",
+  "eval_run_id",
+  "run_id",
+  "algorithm_run_id",
+  "project_id",
+  "device_id",
+  "code",
+  "continuity_id",
+];
+
+function collectVisibleToolIds(value: unknown, out: Map<string, string>, depth = 0): void {
+  if (!value || depth > 2 || out.size >= 10) return;
+  if (Array.isArray(value)) {
+    for (const item of value.slice(0, 6)) collectVisibleToolIds(item, out, depth + 1);
+    return;
+  }
+  if (typeof value !== "object") return;
+  const obj = value as Record<string, unknown>;
+  for (const key of VISIBLE_TOOL_ID_KEYS) {
+    const raw = obj[key];
+    if (typeof raw === "string" || typeof raw === "number") {
+      const text = String(raw).trim();
+      if (text) out.set(key, text.slice(0, 120));
+    }
+  }
+  for (const key of ["workpoint", "trajectory", "trajectory_candidate", "project_identity", "response", "raw", "handle", "packet", "resume_packet", "evaluation", "prediction", "reflection", "adjustment", "snapshot", "diff"]) {
+    collectVisibleToolIds(obj[key], out, depth + 1);
+  }
+}
+
+function ensureVisibleToolTemplate(_tool: string, result: any, details: Record<string, unknown>, toolResult: FocusaToolResultV1): any {
+  if (!Array.isArray(result?.content)) return result;
+  const textIndex = result.content.findIndex((entry: any) => entry?.type === "text");
+  if (textIndex < 0) return result;
+  const originalText = String(result.content[textIndex]?.text || "").trim();
+  const ids = new Map<string, string>();
+  collectVisibleToolIds(details, ids);
+  collectVisibleToolIds(toolResult, ids);
+  const appended: string[] = [];
+  if (ids.size && !/^ids:/m.test(originalText)) {
+    appended.push(`ids: ${Array.from(ids.entries()).slice(0, 6).map(([k, v]) => `${k}=${v}`).join(" ")}`);
+  }
+  if (!/^(fields|status):/m.test(originalText)) {
+    const fields = [`status=${toolResult.status}`];
+    if (toolResult.canonical) fields.push("canonical=true");
+    if (toolResult.degraded) fields.push("degraded=true");
+    appended.push(`fields: ${fields.join(" ")}`);
+  }
+  if (Array.isArray(toolResult.next_tools) && toolResult.next_tools.length && !/^next:/m.test(originalText)) {
+    appended.push(`next: ${toolResult.next_tools.slice(0, 3).join(" → ")}`);
+  }
+  if (!appended.length) return result;
+  const content = result.content.map((entry: any, index: number) => index === textIndex ? { ...entry, text: `${originalText}\n${appended.join("\n")}` } : entry);
+  return { ...result, content, details: { ...details, visible_tool_template_v1: true } };
 }
 
 function timeoutPreservedText(surface: string, noun = "fallback"): string {
@@ -737,7 +917,9 @@ function withToolResultEnvelope(tool: any): any {
         details = (result?.details || {}) as Record<string, unknown>;
         toolResult = inferToolResult(tool.name, result);
       }
-      return capToolOutputText({ ...result, details: focusaToolDetails(details, toolResult) });
+      const trajectoryClarity = await ensureToolTrajectoryClarity(tool.name, details);
+      const enrichedDetails = focusaToolDetails(details, toolResult, trajectoryClarity);
+      return capToolOutputText(ensureVisibleToolTemplate(tool.name, result, enrichedDetails, toolResult));
     },
   };
 }
@@ -3166,16 +3348,32 @@ export function registerTools(pi: ExtensionAPI) {
           },
         };
       }
-      if (trajectory.short_term_goal || trajectory.current_state || trajectory.active_gap) {
+      const trajectoryLadder = trajectory.trajectory_ladder || {};
+      if (trajectory.long_term_goal || trajectoryLadder.hlt || trajectory.mid_level_goal || trajectoryLadder.mlg || trajectory.short_term_goal || trajectoryLadder.stg || trajectory.current_state || trajectory.active_gap) {
         S.lastTrajectoryClarity = {
           ...(S.lastTrajectoryClarity || {}),
+          reason: "trajectory_view_tool",
+          refreshed_at: Date.now(),
           status: String(body.intelligence_view?.clarity_gate?.status || trajectory.definition_status || body.status || "unknown"),
           recommended_action: String(body.intelligence_view?.clarity_gate?.recommended_action || body.intelligence_view?.context_sufficiency?.recommended_action || "unknown"),
+          canonical: body.canonical === true,
+          degraded: body.degraded === true,
           project_root: String(project.project_root || projectRoot),
+          continuity_id: String(p.continuity_id || S.continuityId || body.continuity_id || "") || null,
+          session_id: String(p.session_id || S.sessionFrameKey || body.session_id || "") || null,
+          project_identity_status: String(project.status || "unknown"),
           trajectory_id: trajectory.trajectory_id || null,
-          short_term_goal: trajectory.short_term_goal || null,
+          fallback_prior_project_trajectory: trajectory.fallback_prior_project_trajectory === true,
+          fallback_source_continuity_id: trajectory.fallback_source_continuity_id || null,
+          long_term_goal: trajectory.long_term_goal || trajectoryLadder.hlt || null,
+          desired_end_state: trajectory.desired_end_state || trajectoryLadder.desired_end_state || null,
+          mid_level_goal: trajectory.mid_level_goal || trajectoryLadder.mlg || null,
+          short_term_goal: trajectory.short_term_goal || trajectoryLadder.stg || null,
+          waypoints: trajectory.waypoints || trajectoryLadder.waypoints || [],
           current_state: trajectory.current_state || null,
           active_gap: trajectory.active_gap || null,
+          project_identity: project,
+          project_urls: project.project_urls || null,
           focus_trajectory_sync: body.intelligence_view?.focus_trajectory_sync || null,
         };
         persistState();

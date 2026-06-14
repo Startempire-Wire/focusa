@@ -50,7 +50,7 @@ It helps your agent keep the mission.
 **Runtime state:** Rust daemon, HTTP API, CLI, TUI, Pi extension, and menubar web/macOS package proof are implemented and live-tested. Context-authority CLI gates now protect risky mutations.
 **Development state:** Focusa is actively evolving. This README describes the current released snapshot, not a finished product.
 
-**Context Authority update:** Focusa now includes mutation-time context gates for the Phone Bridge incident class. See [`docs/current/CONTEXT_AUTHORITY_CURRENT.md`](docs/current/CONTEXT_AUTHORITY_CURRENT.md) for `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary preflight-install`, Phone Bridge preflight JSON, and HLT/TL degraded-placeholder behavior.
+**Context Authority update:** Focusa now includes mutation-time context gates for the Phone Bridge incident class. See [`docs/current/AUTHORITY_MODEL.md`](docs/current/AUTHORITY_MODEL.md) for the canonical authority table and [`docs/current/CONTEXT_AUTHORITY_CURRENT.md`](docs/current/CONTEXT_AUTHORITY_CURRENT.md) for `focusa action preflight`, `focusa action classify-intent`, `focusa env contract`, `focusa runtime inventory`, `focusa binary preflight-install`, Phone Bridge preflight JSON, and HLT/TL degraded-placeholder behavior.
 
 ## Why Focusa is amazing for developers
 
@@ -77,14 +77,14 @@ If you ship code with AI agents today, you already know these pain points. Focus
 - **Inspect any past work.** `focusa_traverse` walks the project graph, `focusa_hlt_history` shows the exact HLT ladder at any point in time, `focusa_metacog_recent_reflections` shows the agent's recent lessons.
 - **Stop off-context mutation.** `focusa action preflight` blocks task substitution such as installing a release asset during Phone Bridge pairing on a live build host; `focusa env contract`, `focusa runtime inventory`, and `focusa binary preflight-install` expose the facts behind that verdict.
 - **Ship a Tauri menubar app on macOS.** The bundled macOS app proof (`apps/menubar`) is built in CI on every push.
-- **Wire it into your CI.** GitHub Actions runs Rust tests, strict spec gates, and the macOS Tauri package proof; static audits verify all 79 tools stay in sync.
+- **Wire it into your CI.** GitHub Actions runs Rust tests, strict spec gates, and the macOS Tauri package proof; static audits verify the generated tool surface stays in sync.
 - **Stream public cards.** With `FOCUSA_PUBLIC_STREAM=1`, tool calls become typed public cards — perfect for showcasing live agent work.
 
 ---
 
 ## Recent additions in this snapshot
 
-- **79 Pi tools and contracts** are current, including project cards, project-card outcomes, session transfer (now with QR + PWA handoff, Telegram/Discord-style), browser diagnostics intake, predictions, reflex primitives, resource-mode controls, an HLT append-only ledger, and the new Spec 103 Call Stack Design tool.
+- **The generated Focusa tool surface is current.** See [docs/current/generated/tool-surface-summary.md](docs/current/generated/tool-surface-summary.md) for live counts across Pi tools, API parity, CLI parity, docs coverage, and families.
 - **Spec 103 — Call Stack Architecture Blueprint**: `focusa_call_stack_design` writes a typed, append-only call stack design (entry → handlers → services → adapters → storage → output) for a feature before implementation. The design is linkable as `focusa_evidence` to an active Workpoint and is the first-class artifact an agent consumes before writing code. See `docs/103-call-stack-architecture-blueprint-spec.md`.
 - **Spec 100 — Context Cognition (Phases 1–3)**: `focusa_context_cognition` builds the bounded, advisory `ContextCognitionPacket` (scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, route frame). `focusa_context_cognition_render` returns a compact text render; `focusa_context_cognition_proof` returns bounded proof commands; `focusa_context_cognition_curate` (Phase 3 — Context Curator) does token-budgeted context selection with labeled exclusions (`low_score` / `over_budget`). Never mutates state. The Cognition Optimizer (Phase 5) is the next slice. See `docs/100-context-cognition-spec.md`.
 - **Spec 100 — Context Cognition (Phases 4–5 — feedback loop, CQRS)**: `focusa_context_cognition_curate_eval` (Phase 4) runs a curator eval case, computes precision/recall/F1, appends to `data/curator-eval-ledger/{hash}/eval-runs.jsonl`. `focusa_context_cognition_curate_optimize` (Phase 5) submits a candidate artifact and gets the `promote | rollback` decision per §15 promotion rule, appends to `data/cognition-optimizer-artifacts/{hash}/artifacts.jsonl`. `focusa_context_cognition_optimizer_artifacts` lists the versioned artifact ledger. CQRS read/write split (GET = read, POST = write); see §15.1.

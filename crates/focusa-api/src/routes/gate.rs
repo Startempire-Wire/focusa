@@ -77,6 +77,16 @@ fn gate_dispatch_failed(error: impl std::fmt::Display) -> (StatusCode, Json<serd
     )
 }
 
+fn dispatch_gate_action(
+    state: &AppState,
+    action: Action,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    state
+        .command_tx
+        .try_send(action)
+        .map_err(gate_dispatch_failed)
+}
+
 async fn candidates(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -115,14 +125,13 @@ async fn suppress(
     if !permissions.allows("commands:submit") {
         return Err(gate_forbidden());
     }
-    state
-        .command_tx
-        .send(Action::SuppressCandidate {
+    dispatch_gate_action(
+        state.as_ref(),
+        Action::SuppressCandidate {
             candidate_id: body.candidate_id,
             scope: body.scope,
-        })
-        .await
-        .map_err(gate_dispatch_failed)?;
+        },
+    )?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -141,13 +150,12 @@ async fn pin(
     if !permissions.allows("commands:submit") {
         return Err(gate_forbidden());
     }
-    state
-        .command_tx
-        .send(Action::PinCandidate {
+    dispatch_gate_action(
+        state.as_ref(),
+        Action::PinCandidate {
             candidate_id: body.candidate_id,
-        })
-        .await
-        .map_err(gate_dispatch_failed)?;
+        },
+    )?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -171,14 +179,13 @@ async fn surface(
     if !permissions.allows("commands:submit") {
         return Err(gate_forbidden());
     }
-    state
-        .command_tx
-        .send(Action::SurfaceCandidate {
+    dispatch_gate_action(
+        state.as_ref(),
+        Action::SurfaceCandidate {
             candidate_id: body.candidate_id,
             boost: body.boost.unwrap_or(1.0),
-        })
-        .await
-        .map_err(gate_dispatch_failed)?;
+        },
+    )?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
@@ -278,11 +285,7 @@ async fn emit_signal(
         tags: vec![],
     };
 
-    state
-        .command_tx
-        .send(Action::IngestSignal { signal })
-        .await
-        .map_err(gate_dispatch_failed)?;
+    dispatch_gate_action(state.as_ref(), Action::IngestSignal { signal })?;
 
     Ok(Json(json!({"status": "accepted"})))
 }
