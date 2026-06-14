@@ -1251,10 +1251,17 @@ References:
 
 ### 23.19 Security / Trust Docs
 
-Status: partial; some API/security docs exist, but Spec106 trust-doc set is incomplete.
+Status: hardened in this slice; Spec106 trust-doc set exists and covers security model, device pairing threat model, token/secret handling, public stream redaction, local-first data model, and multi-agent scope model.
 
 References:
 
+- `docs/current/SECURITY_MODEL.md`
+- `docs/current/DEVICE_PAIRING_THREAT_MODEL.md`
+- `docs/current/TOKEN_AND_SECRET_HANDLING.md`
+- `docs/current/PUBLIC_STREAM_REDACTION_POLICY.md`
+- `docs/current/LOCAL_FIRST_DATA_MODEL.md`
+- `docs/current/MULTI_AGENT_SCOPE_MODEL.md`
+- `tests/security_trust_docs_static_test.sh`
 - `docs/current/API_ROUTE_PERMISSION_MATRIX.md`
 - `docs/current/API_RESOURCE_LIMITS.md`
 - `docs/current/DYNAMIC_API_SECURITY_SMOKE.md`
