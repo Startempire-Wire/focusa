@@ -60,6 +60,29 @@ fn scoped_workpoint<'a>(
     Some(active)
 }
 
+fn redacted_scope_id(project_root: &str, continuity_id: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    project_root.hash(&mut hasher);
+    continuity_id.hash(&mut hasher);
+    format!("scope:{:016x}", hasher.finish())
+}
+
+fn public_card_policy(project_root: &str, continuity_id: &str, canonical: bool) -> Value {
+    json!({
+        "schema": "focusa.public_card.v1",
+        "project_identity_display_name": "Focusa project",
+        "redacted_scope_id": redacted_scope_id(project_root, continuity_id),
+        "canonical_status": if canonical { "canonical" } else { "advisory" },
+        "tool_family": "awareness",
+        "evidence_refs_public_safe": [],
+        "redaction_status": "redacted_scope_only",
+        "secret_scan_status": "not_required_no_raw_payload",
+        "publish_allowed": false,
+    })
+}
+
 fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> String {
     let adapter = clean(query.adapter_id.as_deref()).unwrap_or_else(|| "non-pi-agent".to_string());
     let workspace =
@@ -107,6 +130,7 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
     } else {
         "Call /v1/trajectory/view, then checkpoint a project-bound Workpoint before risky continuation."
     };
+    let public_policy = public_card_policy(&project_root, &continuity, canonical);
     let reconciliation_envelope = if canonical {
         Vec::<String>::new()
     } else {
@@ -131,6 +155,16 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
         format!("Mission: {mission}"),
         format!("Next anchor: {next}"),
         format!("Project folder: project_root={project_root}; continuity_id={continuity}; session_id={session} (temporal metadata)"),
+        "PUBLIC_CARD:".to_string(),
+        "- schema=focusa.public_card.v1".to_string(),
+        format!("- project_identity_display_name={}", public_policy["project_identity_display_name"].as_str().unwrap_or("Focusa project")),
+        format!("- redacted_scope_id={}", public_policy["redacted_scope_id"].as_str().unwrap_or("scope:unknown")),
+        format!("- canonical_status={}", public_policy["canonical_status"].as_str().unwrap_or("advisory")),
+        "- tool_family=awareness".to_string(),
+        "- evidence_refs_public_safe=[]".to_string(),
+        "- redaction_status=redacted_scope_only".to_string(),
+        "- secret_scan_status=not_required_no_raw_payload".to_string(),
+        "- publish_allowed=false".to_string(),
         "NOW_CARD:".to_string(),
         format!("- authority={authority}; scope=project_root:{project_root} continuity_id:{continuity}"),
         format!("- readiness=scope:declared workpoint:{workpoint_status} trajectory:verify_first"),
@@ -169,6 +203,9 @@ async fn card(
     let focusa = state.focusa.read().await;
     let record = scoped_workpoint(&focusa, &query);
     let rendered_card = render_card(&query, record);
+    let project_root = query.project_root.as_deref().unwrap_or("unknown-project-root");
+    let continuity_id = query.continuity_id.as_deref().unwrap_or("unknown-continuity");
+    let public_policy = public_card_policy(project_root, continuity_id, record.map(|r| r.canonical).unwrap_or(false));
     Json(json!({
         "status": "completed",
         "canonical": true,
@@ -182,6 +219,7 @@ async fn card(
         "project_root": query.project_root,
         "workpoint_id": record.map(|r| r.workpoint_id),
         "workpoint_canonical": record.map(|r| r.canonical).unwrap_or(false),
+        "public_stream_policy": public_policy,
         "rendered_card": rendered_card,
         "next_step_hint": "inject rendered_card into the non-Pi agent system/developer prompt before reasoning"
     }))

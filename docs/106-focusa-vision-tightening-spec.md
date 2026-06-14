@@ -1186,13 +1186,26 @@ References:
 
 ### 23.17 Public Stream / Redaction
 
-Status: partial; public/awareness surfaces exist, but no canonical public stream redaction policy with required card fields exists.
+Status: hardened in this slice; `docs/current/PUBLIC_STREAM_REDACTION_POLICY.md` defines deny-by-default publication, required public card fields, redaction rules, and publish gates; `/v1/awareness/card` now includes `public_stream_policy` plus a rendered `PUBLIC_CARD` block.
+
+Required public-card fields:
+
+- `schema`
+- `project_identity_display_name`
+- `redacted_scope_id`
+- `canonical_status`
+- `tool_family`
+- `evidence_refs_public_safe`
+- `redaction_status`
+- `secret_scan_status`
+- `publish_allowed`
 
 References:
 
-- `apps/focusa-awareness/index.ts`
-- `docs/current/*PUBLIC*` if present in future revisions
-- `crates/focusa-api/src/routes/*stream*` if present in future revisions
+- `docs/current/PUBLIC_STREAM_REDACTION_POLICY.md`
+- `crates/focusa-api/src/routes/awareness.rs`
+- `tests/public_stream_redaction_policy_static_test.sh`
+- `tests/public_stream_redaction_policy_live_safe_test.sh`
 - `apps/menubar/src/lib/components/ProofPeek.svelte`
 
 ### 23.18 Release / Version / Proof Story
