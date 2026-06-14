@@ -63,6 +63,7 @@ function cliSourceFor(rootCommand) {
     clt: 'crates/focusa-cli/src/commands/clt.rs',
     state: 'crates/focusa-cli/src/commands/debug.rs',
     'context-cognition': 'crates/focusa-cli/src/commands/context_cognition.rs',
+    'call-stack': 'crates/focusa-cli/src/commands/call_stack.rs',
     device: 'crates/focusa-cli/src/commands/device_pairing.rs',
   };
   return map[rootCommand];

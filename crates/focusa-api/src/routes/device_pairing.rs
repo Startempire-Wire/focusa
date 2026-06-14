@@ -25,8 +25,10 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
 use focusa_core::types::{DevicePairCode, DevicePairCompletion, DeviceRecord, DeviceToken};
+use rand::{RngCore, rngs::OsRng};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -120,8 +122,75 @@ fn generate_code() -> String {
 }
 
 fn generate_token() -> String {
-    // 32-char hex token (UUID v7 stripped of dashes).
-    Uuid::now_v7().simple().to_string()
+    // 32-byte cryptographically random token, base64url-no-pad encoded.
+    let mut bytes = [0u8; 32];
+    OsRng.fill_bytes(&mut bytes);
+    URL_SAFE_NO_PAD.encode(bytes)
+}
+
+fn bounded_label(value: Option<String>, fallback: &str, max: usize) -> String {
+    let sanitized: String = value
+        .unwrap_or_else(|| fallback.to_string())
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | ' '))
+        .take(max)
+        .collect::<String>()
+        .trim()
+        .to_string();
+    if sanitized.is_empty() {
+        fallback.to_string()
+    } else {
+        sanitized
+    }
+}
+
+fn normalize_scopes(scopes: Option<Vec<String>>) -> Result<Vec<String>, (StatusCode, Json<Value>)> {
+    let raw = scopes.unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let mut out = Vec::new();
+    for scope in raw {
+        let scope = scope.trim().to_ascii_lowercase();
+        if scope.is_empty() {
+            continue;
+        }
+        if !matches!(scope.as_str(), "read" | "write") {
+            return Err(rejection(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                json!({
+                    "status": "validation_rejected",
+                    "failure_class": "scope_not_allowed",
+                    "field": "scopes",
+                    "allowed_scopes": ["read", "write"],
+                }),
+            ));
+        }
+        if !out.contains(&scope) {
+            out.push(scope);
+        }
+    }
+    if out.is_empty() {
+        out.push("read".to_string());
+    }
+    Ok(out)
+}
+
+fn validate_pairing_url(url: &str, field: &str) -> Result<String, (StatusCode, Json<Value>)> {
+    let trimmed = url.trim().trim_end_matches('/').to_string();
+    let allowed = trimmed.starts_with("https://")
+        || trimmed.starts_with("http://127.0.0.1")
+        || trimmed.starts_with("http://localhost");
+    if allowed && trimmed.len() <= 2048 && !trimmed.contains(char::is_whitespace) {
+        Ok(trimmed)
+    } else {
+        Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "pairing_url_invalid",
+                "field": field,
+                "message": "pairing URLs must be https:// or localhost/127.0.0.1 http:// during local development",
+            }),
+        ))
+    }
 }
 
 fn shared_state() -> SharedPairingState {
@@ -133,16 +202,22 @@ fn shared_state() -> SharedPairingState {
 }
 
 fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
+    let trimmed = path.trim();
+    if trimmed == "/" || trimmed == "/root" {
+        return true;
+    }
     const BLOCKED: &[&str] = &[
         "/root/pi-mono",
         "/root/.pi",
+        "/root/.cargo",
         "/root/.claude",
         "/root/.opencode",
         "/root/.letta",
+        "/home/wirebot/.cargo",
     ];
     BLOCKED
         .iter()
-        .any(|p| path == *p || path.starts_with(&format!("{}/", p)))
+        .any(|p| trimmed == *p || trimmed.starts_with(&format!("{}/", p)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -694,35 +769,24 @@ async fn connect_approve(
 async fn pair_start(
     Json(body): Json<PairStartRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let device_name = body
-        .device_name
-        .unwrap_or_else(|| "operator-device".to_string());
-    let platform = body.platform.unwrap_or_else(|| "macos".to_string());
-    let daemon_base_url = body
-        .daemon_base_url
-        .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
-    let scopes = body
-        .scopes
-        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
-
-    if device_name.trim().is_empty() {
-        return Err(rejection(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            json!({
-                "status": "validation_rejected",
-                "failure_class": "device_name_missing",
-                "field": "device_name",
-            }),
-        ));
-    }
+    let device_name = bounded_label(body.device_name, "operator-device", 128);
+    let platform = bounded_label(body.platform, "macos", 64).to_ascii_lowercase();
+    let daemon_base_url = validate_pairing_url(
+        &body
+            .daemon_base_url
+            .unwrap_or_else(|| "http://127.0.0.1:8787".to_string()),
+        "daemon_base_url",
+    )?;
+    let scopes = normalize_scopes(body.scopes)?;
     // Resolve pairing URL: FOCUSA_PAIRING_URL env > daemon_base_url
     // This is the public-facing URL the operator's phone will hit (e.g.
     // https://focusa-conn.verious.net) — needed for QR flows where the
     // Mac is on a different network than the VPS.
-    let pairing_url = std::env::var("FOCUSA_PAIRING_URL")
+    let pairing_url_raw = std::env::var("FOCUSA_PAIRING_URL")
         .ok()
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| daemon_base_url.clone());
+    let pairing_url = validate_pairing_url(&pairing_url_raw, "FOCUSA_PAIRING_URL")?;
 
     let now = Utc::now();
     let expires = now + Duration::seconds(CODE_TTL_SECS);
@@ -802,9 +866,22 @@ async fn pair_complete(
     }
 
     let now = Utc::now();
-    let completed_by = body.completed_by.unwrap_or_else(|| "vps-cli".to_string());
-    let operator_id = body.operator_id;
-    let host = body.host.unwrap_or_else(|| "operator-vps".to_string());
+    let completed_by = bounded_label(body.completed_by, "vps-cli", 128);
+    let operator_id = body.operator_id.map(|id| bounded_label(Some(id), "operator", 128));
+    let raw_host = body.host.unwrap_or_else(|| "operator-vps".to_string());
+    if is_unsafe_agent_runtime_path_inline(&raw_host) {
+        let rejected_value = raw_host;
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "scope_mismatch",
+                "field": "host",
+                "rejected_value": rejected_value,
+            }),
+        ));
+    }
+    let host = bounded_label(Some(raw_host), "operator-vps", 128);
     if is_unsafe_agent_runtime_path_inline(&host) {
         return Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,

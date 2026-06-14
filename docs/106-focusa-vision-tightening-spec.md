@@ -1104,12 +1104,18 @@ References:
 
 ### 23.11 Device Pairing
 
-Status: partial; pairing tools/routes/UI exist, but threat model and endpoint hardening are not consolidated.
+Status: hardened in this slice; pairing tools/routes/UI exist, threat model is consolidated in `docs/53-focusa-device-pairing-spec.md`, and endpoint hardening covers CSPRNG tokens, scope allowlist, URL validation, safe labels, unsafe host rejection, single-use codes, and append-only revoke/list audit behavior.
+
+Required hardening proof:
+
+- Static guard: `tests/device_pairing_threat_model_static_test.sh`
+- Live-safe guard: `tests/device_pairing_endpoint_hardening_live_safe_test.sh`
+- Compile guard: `cargo check -q -p focusa-api`
 
 References:
 
-- `crates/focusa-api/src/routes/device_pair.rs`
-- `crates/focusa-cli/src/commands/device.rs`
+- `crates/focusa-api/src/routes/device_pairing.rs`
+- `crates/focusa-cli/src/commands/device_pairing.rs`
 - `apps/pi-extension/src/tools.ts`
 - `apps/menubar/src/lib/components/PairingPanel.svelte`
 - `apps/menubar/src/lib/stores/pairing.svelte.ts`

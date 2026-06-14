@@ -21,14 +21,14 @@ In all three modes, the body of the call is identical — only the transport dif
 
 - The operator is on the VPS (or anywhere with daemon access) and has the `FOCUS-XXXX-XXXX` code from `focusa_device_pair_start`.
 - The Mac app should NOT be running this; the VPS runs it once and the Mac app polls `focusa_device_pair_status` to retrieve the token.
-- Idempotent: re-running with the same code returns the original token; the code is marked `Completed` after the first successful call.
+- Single-use: re-running with the same code returns `pair_code_already_used`; the daemon does not issue a second token.
 
 ## Parameters
 
 - `code` — the `FOCUS-XXXX-XXXX` code from `focusa_device_pair_start`. Required.
-- `host` — host label (e.g. `operator-vps`, `home-mac`). Default: `operator-vps`.
-- `operator_id` — operator id (e.g. `verious`). Optional.
-- `completed_by` — who/what completed the pairing. Default: `vps-cli`.
+- `host` — host label (e.g. `operator-vps`, `home-mac`). Default: `operator-vps`; sanitized to a bounded safe label and checked against unsafe agent runtime paths.
+- `operator_id` — operator id (e.g. `verious`). Optional; sanitized to a bounded safe label.
+- `completed_by` — who/what completed the pairing. Default: `vps-cli`; sanitized to a bounded safe label.
 
 ## Expected result
 
@@ -38,7 +38,7 @@ Returns `tool_result_v1` with `ok`, `advisory=true`, plus:
 - `device_name` — the human name from `focusa_device_pair_start`
 - `host` — host label
 - `scopes` — scopes granted
-- `token` — 32-char UUID-derived hex token (30-day TTL)
+- `token` — 32-byte CSPRNG token encoded as base64url-no-pad (30-day TTL)
 - `token_expires_at` — ISO 8601 timestamp
 - `next_tools`: `["focusa_device_pair_status", "focusa_device_pair_list"]`
 - `rehydrate_id` — the device_id
@@ -66,7 +66,7 @@ next: focusa_device_pair_status → focusa_device_pair_list
 
 - The `code` must be in `Pending` state and not expired (5-minute TTL from `pair-start`).
 - The `host` is recorded in the ledger and is used for the `pair-list` and `pair-revoke` filters; it must not be an agent runtime path.
-- The token is **long-lived** (30 days); `pair-revoke` is the only way to invalidate it before then.
+- The token is **long-lived** (30 days), generated from 32 bytes of CSPRNG entropy, and base64url-no-pad encoded; `pair-revoke` is the only way to invalidate it before then.
 
 ## Notes
 

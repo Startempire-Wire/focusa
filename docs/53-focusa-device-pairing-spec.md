@@ -244,6 +244,21 @@ The PWA can later be extended with `getUserMedia` to scan a **different** QR —
 | Attacker XSSes the helper page | Page is 200 LOC, no external assets, no third-party scripts |
 | Attacker MITM the phone → VPS connection | HTTPS at the public hostname; certificate pinning is operator's responsibility |
 | Operator scans a malicious QR | The code is server-generated and bound to a device_id; scanning a foreign code just opens a benign page |
+| Weak token entropy | Tokens are 32-byte CSPRNG values encoded as base64url-no-pad; UUID/time-derived tokens are invalid |
+| Over-broad OAuth scopes | Pairing accepts only normalized `read` / `write` scopes; unknown scopes reject with `failure_class=scope_not_allowed` |
+| Malicious pairing URL | `daemon_base_url` / `FOCUSA_PAIRING_URL` must be `https://` or local development `http://127.0.0.1` / `http://localhost`; whitespace and other schemes reject |
+| Label/log injection | Device, platform, host, operator, and completed_by labels are bounded and reduced to safe label characters before ledger/audit output |
+| Agent runtime path confusion | Host/scope values matching agent runtime paths (`/root`, `.cargo`, Pi/Claude/OpenCode/Letta dirs) reject with `failure_class=scope_mismatch` |
+
+### 5.3 Endpoint hardening requirements
+
+Every device pairing endpoint must preserve these invariants:
+
+- Pair start sanitizes `device_name` and `platform`, normalizes scopes, validates pairing URLs, and returns a five-minute code TTL.
+- Pair complete sanitizes `host`, `operator_id`, and `completed_by`, rejects unsafe agent runtime paths, enforces single-use codes, and mints a 32-byte random token.
+- Pair status returns tokens only for completed non-expired codes and preserves `expired` / `not_found` failure classes.
+- Pair list and revoke remain append-only audit surfaces; revocation records are new ledger entries, not destructive edits.
+- Static and live-safe tests cover invalid scope, invalid URL, unsafe host, single-use code, token length/charset, revoke/list audit shape, and doc threat-model markers.
 
 ## 6. Portability + Multi-Tenancy
 

@@ -17,10 +17,10 @@
 
 ## Parameters
 
-- `device_name` — human-readable device name (e.g. `operator-macbook-pro`). Default: `operator-device`.
-- `platform` — platform string. Default: `macos`.
-- `daemon_base_url` — daemon base URL the device will reconnect to. Default: `http://127.0.0.1:8787`.
-- `scopes` — OAuth-like scopes. Default: `["read", "write"]`.
+- `device_name` — human-readable device name (e.g. `operator-macbook-pro`). Default: `operator-device`; sanitized to a bounded safe label.
+- `platform` — platform string. Default: `macos`; sanitized/lowercased to a bounded safe label.
+- `daemon_base_url` — daemon base URL the device will reconnect to. Default: `http://127.0.0.1:8787`; must be `https://` or local-development `http://127.0.0.1` / `http://localhost`.
+- `scopes` — OAuth-like scopes. Default: `["read", "write"]`; only `read` and `write` are accepted.
 
 ## Expected result
 
@@ -57,7 +57,8 @@ next: focusa_device_pair_status → focusa_device_pair_list
 ## Scope rules
 
 - `code` expires in 5 minutes; after that the daemon rejects `pair-complete` with `pair_code_expired`.
-- `daemon_base_url` must be a valid http(s) URL; agent-runtime paths (e.g. `/root/pi-mono`) are rejected.
+- `daemon_base_url` / `FOCUSA_PAIRING_URL` must be `https://` or local-development `http://127.0.0.1` / `http://localhost`; other schemes, whitespace, and agent-runtime paths are rejected.
+- Unknown scopes reject with `failure_class=scope_not_allowed`; accepted scopes are normalized/deduplicated `read` and `write`.
 - The `device_id` is generated server-side; the mac app stores it alongside the token for subsequent re-pair/revoke flows.
 
 ## Notes
@@ -70,9 +71,10 @@ next: focusa_device_pair_status → focusa_device_pair_list
 
 `tool_result_v1.failure_class` is part of the recovery contract. Common values:
 
-- `device_name_missing` — provide `device_name` and retry.
+- `pairing_url_invalid` — provide an `https://` URL or local-development localhost/127.0.0.1 URL.
+- `scope_not_allowed` — use only `read` and/or `write` scopes.
 - `daemon_unavailable` — run `focusa_tool_doctor` and retry.
-- `scope_mismatch` — the `daemon_base_url` is an agent runtime path.
+- `scope_mismatch` — an unsafe agent runtime path was supplied.
 
 When `failure_class` is missing, treat the response as a successful pair-start; verify with `focusa_device_pair_status` after the operator runs the VPS command.
 

@@ -829,6 +829,7 @@ dependencies = [
  "focusa-core",
  "futures-core",
  "hex",
+ "rand 0.8.6",
  "reqwest",
  "rusqlite",
  "serde",
