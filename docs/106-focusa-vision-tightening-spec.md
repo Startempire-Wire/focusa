@@ -1149,15 +1149,18 @@ References:
 
 ### 23.14 Agent Intelligence Evals
 
-Status: partial; scattered eval scripts exist, but no unified agent-intelligence eval story and runner exist.
+Status: hardened in this slice; `docs/current/FOCUSA_AGENT_INTELLIGENCE_EVALS.md`, `tests/evals/agent_intelligence_cases.json`, and `scripts/run-agent-intelligence-evals.sh` define a bounded benchmark story and runner across continuity, scope, evidence, context, execution, learning, and safety.
 
 References:
 
+- `docs/current/FOCUSA_AGENT_INTELLIGENCE_EVALS.md`
+- `tests/evals/agent_intelligence_cases.json`
+- `scripts/run-agent-intelligence-evals.sh`
+- `tests/agent_intelligence_benchmark_static_test.sh`
 - `tests/golden_tasks_eval.sh`
 - `tests/golden_tasks_comparative_eval.sh`
 - `tests/scope_routing_regression_eval.sh`
 - `tests/save_point_function_evaluation_test.py`
-- `tests/eval*` when added
 
 ### 23.15 Menubar Operational Truth
 
