@@ -914,7 +914,7 @@ Focusa gives agents durable mission state, scoped context, proof, and mutation a
 21. Build polished first-run flow. Status: hardened in this slice via `docs/current/FIRST_RUN_FLOW.md`, `apps/menubar/src/lib/components/FirstRunConnect.svelte`, and `tests/first_run_flow_static_test.sh`.
 22. Build public demo around Golden Workflow. Status: hardened in this slice via `docs/current/GOLDEN_WORKFLOW_PUBLIC_DEMO.md` and `tests/golden_workflow_public_demo_static_test.sh`.
 23. Add adapter examples for non-Pi agents. Status: hardened in this slice via `docs/current/NON_PI_AGENT_ADAPTER_EXAMPLES.md` and `tests/non_pi_agent_adapter_examples_static_test.sh`.
-24. Add commercial packaging docs.
+24. Add commercial packaging docs. Status: hardened in this slice via `docs/current/COMMERCIAL_PACKAGING.md` and `tests/commercial_packaging_static_test.sh`.
 25. Add installer/update policy.
 26. Add migration and backup docs.
 27. Add team/multi-agent federation plan.
