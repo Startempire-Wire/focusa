@@ -4,10 +4,29 @@
 
 The Mac menubar app includes a **Mission** tab backed by live Focusa APIs.
 
+## Mission-centered main panel
+
+The primary Cockpit/Mission view must show the operator what matters first:
+
+- ProjectIdentity
+- Continuity ID
+- HLT
+- MLG
+- STG
+- Current Workpoint
+- Next action
+- Evidence count
+- Scope status
+- Context Authority status
+- Daemon/CLI version status
+- Pairing status
+- Warnings
+- Resume/copy button
+
 ## Cards
 
 - Daemon health — `/v1/health`
-- Workpoint — `/v1/workpoint/current`
+- Workpoint — `/v1/workpoint/current` and `/v1/workpoint/resume`
 - Work-loop — `/v1/work-loop/status?summary_only=true`
 - Tool contracts — `/v1/ontology/tool-contracts`
 - Token budget — `/v1/telemetry/token-budget/status?limit=5`

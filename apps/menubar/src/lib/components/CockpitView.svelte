@@ -13,6 +13,25 @@
   let token = $derived(s.tokenBudget ?? {});
   let cache = $derived(s.cacheMetadata ?? {});
   let release = $derived(s.releaseProof ?? {});
+  let pairing = $derived((s as any).pairing ?? (s as any).devicePairing ?? {});
+  let contextAuthority = $derived((s as any).contextAuthority ?? (s as any).gate ?? {});
+
+  let missionTitle = $derived(text(workpoint.mission ?? workpoint.resume_packet?.mission ?? trajectory.short_term_goal ?? trajectory.stg, 'No mission loaded'));
+  let hlt = $derived(text(trajectory.hlt ?? trajectory.long_term_goal ?? trajectory.intelligence_view?.long_term_goal, 'HLT unavailable'));
+  let mlg = $derived(text(trajectory.mlg ?? trajectory.mid_level_goal ?? trajectory.intelligence_view?.mid_level_goal, 'MLG unavailable'));
+  let stg = $derived(text(trajectory.stg ?? trajectory.short_term_goal ?? trajectory.intelligence_view?.short_term_goal, 'STG unavailable'));
+  let nextAction = $derived(text(workpoint.next_action ?? workpoint.next ?? trajectory.next_action ?? trajectory.gap, 'No next action'));
+  let scopeStatus = $derived(text(project.status ?? project.scope_status ?? workpoint.scope_status, 'unknown'));
+  let contextAuthorityStatus = $derived(text(contextAuthority.verdict ?? contextAuthority.status ?? contextAuthority.mode, 'unknown'));
+  let pairingStatus = $derived(text(pairing.status ?? pairing.paired ?? pairing.device_id, 'unknown'));
+  let daemonCliVersionStatus = $derived(`daemon=${text(s.health?.version, 'n/a')} cli=${text(release.cli_version ?? release.version, 'n/a')}`);
+  let warningItems = $derived([
+    !daemonOk ? 'Daemon unavailable' : null,
+    project.status !== 'verified' ? 'Project identity not verified' : null,
+    workpoint.canonical !== true ? 'Workpoint not canonical' : null,
+    workpoint.degraded === true ? 'Workpoint degraded' : null,
+    contextAuthorityStatus === 'unknown' ? 'Context Authority status unknown' : null,
+  ].filter(Boolean));
 
   function text(v: any, fallback = 'unknown') {
     if (v === null || v === undefined || v === '') return fallback;
@@ -40,7 +59,41 @@
     const refs = normalizeToolResult(payload).evidence_refs;
     return Array.isArray(refs) ? refs.length : 0;
   }
+
+  async function copyResumeCommand() {
+    const command = `focusa workpoint resume --project-root ${text(project.project_root ?? project.root, '/path/to/project')} --continuity-id ${text((s as any).session?.continuity_id ?? workpoint.continuity_id ?? trajectory.continuity_id, 'continuity-id')}`;
+    await navigator.clipboard?.writeText(command);
+  }
 </script>
+
+<section class="mission-brief" aria-label="Mission-centered Focusa status">
+  <div class="mission-head">
+    <div>
+      <div class="label">MISSION</div>
+      <h2>{missionTitle}</h2>
+      <p>{nextAction}</p>
+    </div>
+    <button class="copy-btn" type="button" onclick={copyResumeCommand}>Resume/copy</button>
+  </div>
+  <div class="mission-fields">
+    <div><span>ProjectIdentity</span><strong>{text(project.project_id ?? project.project?.id ?? project.canonical_name, 'unknown')}</strong></div>
+    <div><span>Continuity ID</span><strong>{text((s as any).session?.continuity_id ?? workpoint.continuity_id ?? trajectory.continuity_id, 'unbound')}</strong></div>
+    <div><span>HLT</span><strong>{hlt}</strong></div>
+    <div><span>MLG</span><strong>{mlg}</strong></div>
+    <div><span>STG</span><strong>{stg}</strong></div>
+    <div><span>Current Workpoint</span><strong>{text(workpoint.workpoint_id ?? workpoint.id, 'none')}</strong></div>
+    <div><span>Next action</span><strong>{nextAction}</strong></div>
+    <div><span>Evidence count</span><strong>{evidenceCount(workpoint)}</strong></div>
+    <div><span>Scope status</span><strong>{scopeStatus}</strong></div>
+    <div><span>Context Authority status</span><strong>{contextAuthorityStatus}</strong></div>
+    <div><span>Daemon/CLI version status</span><strong>{daemonCliVersionStatus}</strong></div>
+    <div><span>Pairing status</span><strong>{pairingStatus}</strong></div>
+  </div>
+  <div class="warnings" class:clear={warningItems.length === 0}>
+    <span>Warnings</span>
+    <strong>{warningItems.length ? warningItems.join(' · ') : 'none'}</strong>
+  </div>
+</section>
 
 <section class="cockpit-grid" aria-label="Focusa cockpit">
   <article class="card" class:ok={daemonOk} class:bad={!daemonOk}>
@@ -133,6 +186,84 @@
 </section>
 
 <style>
+  .mission-brief {
+    margin: var(--sp-3) var(--sp-3) 0;
+    padding: var(--sp-3);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-panel));
+  }
+  .mission-head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    align-items: flex-start;
+    margin-bottom: var(--sp-3);
+  }
+  .mission-head h2 {
+    margin: 0;
+    color: var(--fg);
+    font-size: var(--text-lg);
+    line-height: 1.2;
+  }
+  .mission-head p {
+    margin: var(--sp-1) 0 0;
+    color: var(--fg-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+  }
+  .copy-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    padding: 5px 9px;
+    color: var(--fg);
+    background: var(--bg-elevated);
+    font-size: 10px;
+    cursor: pointer;
+  }
+  .mission-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2);
+  }
+  .mission-fields div {
+    min-width: 0;
+    padding: var(--sp-2);
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--bg-elevated) 65%, transparent);
+  }
+  .mission-fields span,
+  .warnings span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--fg-tertiary);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .mission-fields strong,
+  .warnings strong {
+    display: block;
+    color: var(--fg);
+    font-size: 11px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .warnings {
+    margin-top: var(--sp-2);
+    padding: var(--sp-2);
+    border: 1px solid color-mix(in srgb, var(--orange) 45%, var(--border));
+    border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--orange) 8%, var(--bg-elevated));
+  }
+  .warnings.clear {
+    border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+    background: color-mix(in srgb, var(--green) 6%, var(--bg-elevated));
+  }
   .cockpit-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

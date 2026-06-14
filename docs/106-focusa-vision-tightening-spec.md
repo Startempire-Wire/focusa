@@ -1164,17 +1164,20 @@ References:
 
 ### 23.15 Menubar Operational Truth
 
-Status: partial; Menubar components exist for trajectory/workpoint/context/pairing/gate, but main panel needs mission-centered warning-driven shape.
+Status: hardened in this slice; the Mission-centered main panel in `CockpitView.svelte` now starts with a mission-centered panel showing ProjectIdentity, Continuity ID, HLT/MLG/STG, Current Workpoint, Next action, Evidence count, Scope status, Context Authority status, Daemon/CLI version status, Pairing status, Warnings, and a Resume/copy button.
 
 References:
 
 - `apps/menubar/src/routes/+page.svelte`
+- `apps/menubar/src/lib/components/CockpitView.svelte`
 - `apps/menubar/src/lib/components/TrajectoryPeek.svelte`
 - `apps/menubar/src/lib/components/WorkpointPeek.svelte`
 - `apps/menubar/src/lib/components/ContextCognitionPeek.svelte`
 - `apps/menubar/src/lib/components/PairingPanel.svelte`
 - `apps/menubar/src/lib/stores/gate.svelte.ts`
 - `apps/menubar/src/lib/stores/diagnostics.svelte.ts`
+- `docs/current/MAC_APP_MISSION_CONTROL.md`
+- `tests/menubar_mission_centered_static_test.sh`
 
 ### 23.16 Generic Agent Adapter Contract
 
