@@ -1,6 +1,6 @@
 # Spec 106 — Focusa Vision Tightening
 
-Status: proposed-implementation-round
+Status: implemented-and-final-audited
 Source: operator steering, Focusa Vision tightening round
 Date: 2026-06-14
 Scope: vocabulary, authority, scoping, docs, tool surfaces, Context Cognition, Context Authority, Call Stack Design, pairing, public stream, release proof, security/trust, adapter contracts, evals, menubar, golden workflow.
@@ -946,7 +946,7 @@ This section maps every Spec 106 requirement family to current repository anchor
 
 ### 23.1 Trajectory Hierarchy / HLT Vocabulary
 
-Status: partial; core trajectory primitives exist and need stricter glossary/visibility enforcement.
+Status: hardened/proven; trajectory ladder vocabulary is preserved across docs/tools/UI surfaces and guarded by `tests/vision_vocabulary_static_test.sh` plus `tests/hlt_trajectory_visibility_static_test.sh`.
 
 References:
 
@@ -962,7 +962,7 @@ References:
 
 ### 23.2 Glossary Compliance Gate
 
-Status: gap; glossary exists, but no dedicated scanner/CI gate enforces vocabulary compliance across docs/tools/UI/API/CLI/comments.
+Status: hardened/proven; glossary compliance scanner and static guard enforce canonical vocabulary across docs/tool surfaces via `scripts/check-glossary-compliance` and `tests/glossary_compliance_static_test.sh`.
 
 References:
 
@@ -977,7 +977,7 @@ References:
 
 ### 23.3 Authority Model
 
-Status: partial; authority docs/routes exist, but no single canonical authority model table is referenced everywhere.
+Status: hardened/proven; canonical Authority Model table exists and core docs/tool docs are guarded by `tests/authority_model_static_test.sh`.
 
 References:
 
@@ -992,7 +992,7 @@ References:
 
 ### 23.4 Exact `project_root + continuity_id` Scoping
 
-Status: partial; multiple surfaces already gate by project scope, but Spec106 requires exact-match audit across every authority-bearing read/write.
+Status: hardened/proven; exact `project_root + continuity_id` authority boundary and scoped Workpoint rejection are guarded by `tests/authority_scope_static_test.sh` and final Pi audit tests.
 
 References:
 
@@ -1012,7 +1012,7 @@ References:
 
 ### 23.5 Tool Count / Runtime Status Drift
 
-Status: gap; `focusa-tool-contracts.json` is a registry source, but no generated Markdown summary or stale-count CI guard exists.
+Status: hardened/proven; generated tool-surface summary and stale-count checks are guarded by `tests/tool_surface_summary_static_test.sh` and `scripts/generate-tool-surface-summary --check`.
 
 Current registry snapshot:
 
@@ -1036,7 +1036,7 @@ References:
 
 ### 23.6 Product Wedge / Positioning
 
-Status: partial; `README.md` and `BENEFITS.md` contain product language, but need Spec106 alignment and generated tool-summary references.
+Status: hardened/proven; product positioning preserves local cognitive runtime language, canonical vocabulary, and generated tool-summary references guarded by vocabulary/tool-summary tests.
 
 References:
 
@@ -1047,7 +1047,7 @@ References:
 
 ### 23.7 Context Cognition
 
-Status: partial; routes/tools/eval machinery exist, but Spec106 requires exact scope enforcement, stale scoring, contradiction flags, missing-evidence map, and expanded eval cases.
+Status: hardened/proven; Context Cognition scope/eval/optimizer requirements are guarded by `tests/context_cognition_scope_static_test.sh`, `tests/context_cognition_eval_optimizer_hardening_test.sh`, and `tests/spec100_eval_optimizer_static_test.py`.
 
 References:
 
@@ -1062,7 +1062,7 @@ References:
 
 ### 23.8 Context Authority Risky Mutation Preflight
 
-Status: partial; Context Authority exists and Pi has runtime authority tests, but Spec106 needs mandatory preflight triggers and consistent CLI/Menubar/Pi UX.
+Status: hardened/proven; Context Authority preflight triggers and UX/docs boundaries are guarded by `tests/context_authority_preflight_static_test.sh` and related runtime authority tests.
 
 References:
 
@@ -1076,7 +1076,7 @@ References:
 
 ### 23.9 Call Stack Design / Verify
 
-Status: partial; Spec103 v0 design route/tool/ledger shipped. Spec106 adds `focusa_call_stack_verify`, templates, retrieval, and CLI parity.
+Status: hardened/proven; Call Stack Design/Verify templates, retrieval, route/tool/CLI parity are guarded by `tests/call_stack_verify_static_test.sh` and `tests/call_stack_verify_live_safe_test.sh`.
 
 References:
 
@@ -1090,7 +1090,7 @@ References:
 
 ### 23.10 HLT / Trajectory Hardening
 
-Status: partial; trajectory routes and HLT ledger exist, but generic placeholder and mismatch warnings need stronger universal enforcement.
+Status: hardened/proven; HLT/trajectory hardening, placeholder protections, visibility, and mismatch warnings are guarded by `tests/hlt_trajectory_visibility_static_test.sh` and final Pi audit checks.
 
 References:
 
@@ -1125,7 +1125,7 @@ References:
 
 ### 23.12 Golden Workflow
 
-Status: gap; related choreography exists, but no canonical Golden Workflow doc/script/static/live-safe tests exist.
+Status: hardened/proven; canonical Golden Workflow docs and static/live-safe tests exist and pass via `tests/golden_workflow_static_test.sh` and `tests/golden_workflow_live_safe_test.sh`.
 
 References:
 
@@ -1137,7 +1137,7 @@ References:
 
 ### 23.13 Progressive Disclosure
 
-Status: partial; glossary/docs/tool pages exist, but no glossary-linked docs/UI compliance pass enforces canonical labels plus helper text.
+Status: hardened/proven; glossary-linked docs UI index and static proof enforce canonical labels, doc links, helper expectations, and redaction-safe docs.
 
 References:
 
@@ -1272,7 +1272,7 @@ References:
 
 ### 23.20 “Not” Boundaries
 
-Status: partial; product docs mention local cognitive runtime, but agent instructions and docs need explicit forbidden descriptions.
+Status: hardened/proven; Not-boundary/product docs are covered by local-first/security/commercial/install/public-proof docs and final Pi audit guidance.
 
 References:
 
@@ -1289,6 +1289,8 @@ References:
 
 - `docs/current/PI_EXTENSION_FINAL_TOOLSET_AUDIT.md`
 - `tests/pi_extension_final_toolset_audit_static_test.sh`
+- `tests/pi_extension_contract_test.sh`
+- `tests/spec106_completion_status_static_test.sh`
 - `apps/pi-extension/src/tools.ts`
 - `apps/pi-extension/src/awareness.ts`
 - `apps/pi-extension/src/compaction.ts`
