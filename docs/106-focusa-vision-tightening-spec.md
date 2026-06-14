@@ -1232,12 +1232,18 @@ References:
 
 ### 23.18 Release / Version / Proof Story
 
-Status: partial; some version/runtime parity scripts exist, but release stamp/tool summary/runtime status generation is incomplete.
+Status: hardened in this slice; release stamp, runtime status generation, tool-surface summary freshness, and version consistency checks are wired through scripts and static proof.
 
 References:
 
+- `scripts/stamp-release-version`
+- `scripts/generate-current-runtime-status`
+- `scripts/generate-tool-surface-summary`
+- `scripts/verify-doc-version-consistency`
+- `tests/release_version_proof_static_test.sh`
 - `scripts/stamp-menubar-version.py`
 - `scripts/validate-docs-runtime-parity.mjs`
+- `docs/current/.release-version-stamp`
 - `docs/current/CURRENT_RUNTIME_STATUS.md`
 - `docs/current/CLI_REFERENCE_CURRENT.md`
 - `docs/current/API_REFERENCE_CURRENT.md`

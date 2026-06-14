@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSION="${1:-}"
+if [[ -z "$VERSION" ]]; then
+  VERSION=$(grep -m1 '^version = ' "$ROOT_DIR/Cargo.toml" | sed -E 's/version = "([^"]+)"/\1/')
+fi
+if [[ -z "$VERSION" ]]; then
+  echo "version not found" >&2
+  exit 1
+fi
+printf '%s\n' "$VERSION" > "$ROOT_DIR/docs/current/.release-version-stamp"
+echo "stamped release version: $VERSION"

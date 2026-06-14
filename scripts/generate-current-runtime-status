@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="$ROOT_DIR/docs/current/CURRENT_RUNTIME_STATUS.md"
+VERSION=$(grep -m1 '^version = ' "$ROOT_DIR/Cargo.toml" | sed -E 's/version = "([^"]+)"/\1/')
+TOOL_COUNT=$(jq -r '.tool_count' "$ROOT_DIR/docs/current/focusa-tool-contracts.json")
+SUMMARY_REF='docs/current/generated/tool-surface-summary.md'
+STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+{
+  echo '# Current Runtime Status'
+  echo
+  echo '<!-- GENERATED: scripts/generate-current-runtime-status. Do not edit by hand. -->'
+  echo
+  echo "Generated: ${STAMP}"
+  echo "Version: ${VERSION}"
+  echo "Tool contracts: ${TOOL_COUNT}"
+  echo "Tool surface summary: [${SUMMARY_REF}](${SUMMARY_REF})"
+  echo
+  echo '## Release invariant inputs'
+  echo
+  echo '- release stamp: docs/current/.release-version-stamp'
+  echo '- version consistency: scripts/verify-doc-version-consistency'
+  echo '- tool contracts: docs/current/focusa-tool-contracts.json'
+  echo '- proof command: focusa release prove --tag <tag>'
+} > "$OUT"
+echo "wrote $OUT"
