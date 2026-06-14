@@ -919,7 +919,7 @@ Focusa gives agents durable mission state, scoped context, proof, and mutation a
 26. Add migration and backup docs. Status: hardened in this slice via `docs/current/MIGRATION_BACKUP_POLICY.md` and `tests/migration_backup_policy_static_test.sh`.
 27. Add team/multi-agent federation plan. Status: hardened in this slice via `docs/current/TEAM_MULTI_AGENT_FEDERATION_PLAN.md` and `tests/team_multi_agent_federation_static_test.sh`.
 28. Add public proof bundle viewer. Status: hardened in this slice via `docs/current/PUBLIC_PROOF_BUNDLE_VIEWER.md` and `tests/public_proof_bundle_viewer_static_test.sh`.
-29. Add glossary-linked docs UI.
+29. Add glossary-linked docs UI. Status: hardened in this slice via `docs/current/FOCUSA_GLOSSARY_LINKED_DOCS_UI.md` and `tests/glossary_linked_docs_ui_static_test.sh`.
 30. Add dashboard for eval metrics.
 
 ## 22. Final Updated Vision
