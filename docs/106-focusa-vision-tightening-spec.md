@@ -911,7 +911,7 @@ Focusa gives agents durable mission state, scoped context, proof, and mutation a
 
 ### 21.3 P2 — Productization
 
-21. Build polished first-run flow.
+21. Build polished first-run flow. Status: hardened in this slice via `docs/current/FIRST_RUN_FLOW.md`, `apps/menubar/src/lib/components/FirstRunConnect.svelte`, and `tests/first_run_flow_static_test.sh`.
 22. Build public demo around Golden Workflow.
 23. Add adapter examples for non-Pi agents.
 24. Add commercial packaging docs.
