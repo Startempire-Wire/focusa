@@ -1175,14 +1175,30 @@ References:
 
 ### 23.16 Generic Agent Adapter Contract
 
-Status: gap; Pi is deeply integrated, but harness-agnostic adapter contract doc does not exist.
+Status: hardened in this slice; `docs/current/AGENT_ADAPTER_CONTRACT.md` defines the harness-agnostic minimum adapter contract, target adapter classes, authority boundaries, risky mutation preflight, and failure behavior. `NON_PI_AGENT_FOCUSA_USAGE.md` now points non-Pi agents to this contract.
+
+Required adapter capabilities:
+
+- read awareness card
+- verify project identity
+- resume Workpoint
+- create Workpoint checkpoint
+- capture evidence
+- link evidence
+- run Context Authority preflight
+- render Context Cognition compact packet
+- surface `tool_result_v1` envelopes
+- respect canonical/advisory/degraded states
 
 References:
 
+- `docs/current/AGENT_ADAPTER_CONTRACT.md`
+- `docs/current/NON_PI_AGENT_FOCUSA_USAGE.md`
 - `apps/pi-extension/src/*`
 - `apps/pi-extension/skills/focusa/SKILL.md`
 - `docs/current/AGENT_AWARENESS_QUICKSTART.md`
 - `docs/current/AGENT_COMMAND_COOKBOOK.md`
+- `tests/agent_adapter_contract_static_test.sh`
 
 ### 23.17 Public Stream / Redaction
 

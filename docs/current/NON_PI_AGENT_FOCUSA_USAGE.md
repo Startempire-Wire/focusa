@@ -2,6 +2,8 @@
 
 Focusa awareness must include OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and any other agent harness that can read prompts, call HTTP APIs, or use CLI wrappers.
 
+This document is governed by [`AGENT_ADAPTER_CONTRACT.md`](AGENT_ADAPTER_CONTRACT.md): adapters stay thin, and Focusa daemon/core remains cognitive authority.
+
 ## Scope
 
 This document covers agents that do not run through the Pi extension and therefore do not automatically receive the Pi Focusa Utility Card.
@@ -18,6 +20,8 @@ Included explicitly:
 ## Requirement
 
 Every non-Pi agent entrypoint must receive a compact Focusa Utility Card or equivalent startup instruction before reasoning when Focusa is available.
+
+Every adapter must also support the minimum Agent Adapter Contract: read awareness card, verify project identity, resume/checkpoint Workpoint, capture/link evidence, run Context Authority preflight, render compact Context Cognition, surface `tool_result_v1`, and respect canonical/advisory/degraded states.
 
 Minimum card content:
 
