@@ -104,7 +104,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     "8. What can re-bootstrap? project card + learned signals can propose/refresh trajectory hierarchy when goals are stale or missing.",
   ];
   const routeHints = [
-    "Tool routes: Orient = focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume; Ontology = focusa_traverse(surface=ontology) to bind project/trajectory/workpoint/evidence/prediction/metacog objects; Execute = focusa_active_object_resolve → focusa_workpoint_checkpoint; Prove = focusa_evidence_capture / focusa_workpoint_link_evidence → focusa_trajectory_assess; Learn = focusa_predict_record → focusa_predict_evaluate → focusa_metacog_capture/retrieve; Re-bootstrap = metacog/prediction/project-card signals → focusa_trajectory_define_goal/assess; Recover = focusa_tool_doctor → focusa_resource_mode/focusa_traverse/focusa_workpoint_resume.",
+    "Golden route: Orient project/Trajectory/Workpoint; Execute active object + checkpoint; Prove with evidence; Learn via prediction/metacog; Recover with tool_doctor.",
     "Missing active Pi frame fallback: Attentive and awaiting operator direction; keep helping from operator/repo context, then checkpoint/resume once scope is safe.",
     "Focus State tools (scratch/decide/constraint/failure/etc.) are note/decision slots; use them with the project route, not instead of it.",
   ];

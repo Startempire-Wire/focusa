@@ -1280,3 +1280,18 @@ References:
 - `BENEFITS.md`
 - `apps/pi-extension/skills/focusa/SKILL.md`
 - `docs/current/AGENT_AWARENESS_QUICKSTART.md`
+
+### 23.21 Pi Extension Final Toolset Audit Gate
+
+Status: hardened in the final completion gate; Pi plugin tools, utility/agent cards, post-compaction recovery, auto-bootstrap, skills, and generated docs were re-audited after Spec106 implementation slices.
+
+References:
+
+- `docs/current/PI_EXTENSION_FINAL_TOOLSET_AUDIT.md`
+- `tests/pi_extension_final_toolset_audit_static_test.sh`
+- `apps/pi-extension/src/tools.ts`
+- `apps/pi-extension/src/awareness.ts`
+- `apps/pi-extension/src/compaction.ts`
+- `apps/pi-extension/src/session.ts`
+- `apps/pi-extension/src/state.ts`
+- `apps/pi-extension/skills/focusa/SKILL.md`

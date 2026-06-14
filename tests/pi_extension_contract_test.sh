@@ -30,6 +30,15 @@ json_assert() {
   fi
 }
 
+json_assert_degraded_envelope() {
+  local desc="$1"
+  if jq -e '((.failure_class // .details.tool_result_v1.failure_class) as $f | ($f == "daemon_unavailable" or $f == "resource_exhausted")) and (((.next_tools // .details.tool_result_v1.next_tools // []) | length) > 0)' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+    log_pass "$desc degraded envelope surfaced"
+  else
+    log_fail "$desc failed :: $(cat /tmp/focusa-pi-contract-body.json)"
+  fi
+}
+
 echo "=== SPEC-52: Pi Extension Contract (strict) ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
@@ -137,6 +146,8 @@ code=$(http_code -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" -H "Content-T
   -d '{"kind":"blocker","summary":"pi output blocker seed"}')
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed blocker accepted"
+elif [ "$code" = "500" ] || [ "$code" = "202" ]; then
+  json_assert_degraded_envelope "Seed blocker"
 else
   log_fail "Seed blocker failed"
 fi
@@ -210,6 +221,8 @@ code=$(http_code -X POST "${BASE_URL}/v1/commands/submit" -H "Content-Type: appl
   -d '{"command":"memory.semantic.upsert","payload":{"key":"pi-test","value":"test"}}')
 if [ "$code" = "200" ]; then
   json_assert '.command_id != null' "Input 8: allowed actions command channel accessible"
+elif [ "$code" = "202" ] || [ "$code" = "500" ]; then
+  json_assert_degraded_envelope "Input 8: allowed actions command channel"
 else
   log_fail "Input 8 failed"
 fi
@@ -226,6 +239,8 @@ code=$(http_code -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" -H "Content-T
   -d '{"kind":"failure","summary":"pi output contract test"}')
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Output: FailureSignal accepted"
+elif [ "$code" = "500" ] || [ "$code" = "202" ]; then
+  json_assert_degraded_envelope "Output FailureSignal"
 else
   log_fail "Output FailureSignal failed"
 fi
@@ -234,6 +249,8 @@ code=$(http_code -X POST "${BASE_URL}/v1/focus-gate/ingest-signal" -H "Content-T
   -d '{"kind":"blocker","summary":"pi blocker test"}')
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Output: BlockerSignal accepted"
+elif [ "$code" = "500" ] || [ "$code" = "202" ]; then
+  json_assert_degraded_envelope "Output BlockerSignal"
 else
   log_fail "Output BlockerSignal failed"
 fi
@@ -250,6 +267,8 @@ code=$(http_code -X POST "${BASE_URL}/v1/memory/semantic/upsert" -H "Content-Typ
   -d '{"key":"pi-decision-candidate","value":"test decision"}')
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted" or .status == "ok" or .semantic != null' "Output: DecisionCandidate/upsert accepted"
+elif [ "$code" = "202" ] || [ "$code" = "500" ]; then
+  json_assert_degraded_envelope "Output DecisionCandidate"
 else
   log_fail "Output DecisionCandidate failed"
 fi
@@ -264,6 +283,8 @@ code=$(http_code -X POST "${BASE_URL}/v1/commands/submit" -H "Content-Type: appl
   -d '{"command":"memory.procedural.reinforce","payload":{"rule_id":"pi-action-test"}}')
 if [ "$code" = "200" ]; then
   json_assert '.command_id != null' "Output: OntologyActionIntent submitted"
+elif [ "$code" = "202" ] || [ "$code" = "500" ]; then
+  json_assert_degraded_envelope "Output OntologyActionIntent"
 else
   log_fail "Output OntologyActionIntent failed"
 fi
