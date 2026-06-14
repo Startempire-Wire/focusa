@@ -71,7 +71,7 @@ next: focusa_call_stack_verify → focusa_workpoint_link_evidence → focusa_tra
 
 ## Notes
 
-- A call stack design is **not** a substitute for code review. Use `focusa_call_stack_verify` (next slice) for drift detection.
+- A call stack design is **not** a substitute for code review. Use `focusa_call_stack_verify` for drift detection.
 - The standard scaffold (handlers: validation, scope_binding, workpoint_link; services: spec80_envelope, trajectory_assess; adapters: focusa_fetch, persistence_jsonl; output: tool_result_v1) is the **standard Focusa call stack shape**; deviate only with reason.
 - The design is *advisory* — it never overrides canonical Workpoint or Trajectory envelopes.
 
@@ -91,7 +91,7 @@ next: focusa_call_stack_verify → focusa_workpoint_link_evidence → focusa_tra
 - `daemon_unavailable` — run `focusa_tool_doctor` and retry.
 - `storage_unwritable` — inspect daemon logs and retry.
 
-When `failure_class` is missing, treat the response as a successful design; verify with `focusa_traverse` on the `call_stack_designs` surface (planned v0.5).
+When `failure_class` is missing, treat the response as a successful design; verify with `focusa_call_stack_verify` using the returned `design_id`.
 
 ## Contract summary
 
@@ -109,5 +109,5 @@ When `failure_class` is missing, treat the response as a successful design; veri
 - `focusa_trajectory_assess` — check whether the design's mission aligns with the active STG.
 - `focusa_project_verify` — verify project identity before retrying on `project_root_unverified`.
 - `focusa_workpoint_resume` — rehydrate the active Workpoint when a `workpoint_id` is missing.
-- `focusa_call_stack_verify` — compare a design against the actual call surface (planned in a follow-up slice).
+- `focusa_call_stack_verify` — compare a design against the actual call surface and report drift.
 - `focusa_traverse` — walk the `call_stack_designs` surface (planned v0.5).

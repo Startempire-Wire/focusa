@@ -1215,6 +1215,28 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_call_stack_verify",
+    "label": "Call Stack Verify",
+    "purpose": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
+    "family": "workpoint",
+    "ontology_action": "workpoint.call_stack_verify",
+    "ontology_objects": [
+      "CallStackDesign",
+      "ProjectIdentity",
+      "WorkpointRecord"
+    ],
+    "api_routes": ["POST /v1/call-stack/verify"],
+    "cli_commands": [],
+    "core_surface": "Spec106/Spec103 advisory Call Stack drift checker",
+    "doc_path": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_call_stack_design_verify_drift",
+    "parity_status": "domain",
+    "exemptions": ["domain_cli_only"],
+    "live_check": "contract_static plus /v1/call-stack/verify safe probe and drift case"
+  },
+
+  {
     "name": "focusa_context_cognition_render",
     "label": "Context Cognition Render",
     "purpose": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar).",
@@ -1879,9 +1901,14 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_context_cognition_curate_optimize"
   ],
   "focusa_call_stack_design": [
+    "focusa_call_stack_verify",
     "focusa_workpoint_link_evidence",
-    "focusa_trajectory_assess",
-    "focusa_project_verify"
+    "focusa_trajectory_assess"
+  ],
+  "focusa_call_stack_verify": [
+    "focusa_call_stack_design",
+    "focusa_workpoint_link_evidence",
+    "focusa_trajectory_assess"
   ],
   "focusa_traverse": [
     "focusa_active_object_resolve",

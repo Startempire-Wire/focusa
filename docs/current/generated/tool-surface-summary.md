@@ -11,12 +11,12 @@
 
 | Metric | Count |
 | --- | ---: |
-| Tool contracts | 79 |
+| Tool contracts | 80 |
 | Tool families | 10 |
-| API parity | 75 |
+| API parity | 76 |
 | CLI parity | 63 |
-| Pi tools | 79 |
-| Docs coverage | 79 |
+| Pi tools | 80 |
+| Docs coverage | 80 |
 
 ## Families
 
@@ -31,7 +31,7 @@
 | traversal | 2 |
 | tree_lineage | 9 |
 | work_loop | 7 |
-| workpoint | 8 |
+| workpoint | 9 |
 
 ## Docs coverage
 

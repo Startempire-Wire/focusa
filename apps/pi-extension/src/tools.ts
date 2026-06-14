@@ -6134,6 +6134,93 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_call_stack_verify",
+    label: "Call Stack Verify",
+    description: "Verify a Call Stack Design against bounded implementation surfaces and report drift: entry surface, handlers, services, adapters, storage, output envelope, evidence, and Workpoint/STG alignment. Advisory only.",
+    promptSnippet: "Use after focusa_call_stack_design or before implementation review to detect design-vs-code drift without mutating Focus State.",
+    parameters: strictObject({
+      project_root: Type.Optional(Type.String({ maxLength: 4096, description: "Project root for the design. Defaults to Pi session cwd." })),
+      continuity_id: Type.Optional(Type.String({ maxLength: 256, description: "Optional continuity scope filter." })),
+      design_id: Type.Optional(Type.String({ maxLength: 256, description: "Specific Call Stack Design id to verify." })),
+      entry_name: Type.Optional(Type.String({ maxLength: 120, description: "Entry name to verify when design_id is omitted." })),
+    }),
+    async execute(_id, params) {
+      const keyCheck = validateNoExtraKeys("focusa_call_stack_verify", params, ["project_root", "continuity_id", "design_id", "entry_name"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_call_stack_verify", "/v1/call-stack/verify", params as Record<string, any>, "call stack verify", keyCheck.error);
+      }
+      const projectRoot = await resolveFocusaToolProjectRoot((keyCheck.value as any).project_root);
+      const projectRootGate = projectRootConfirmationGate(projectRoot, (keyCheck.value as any).project_root);
+      if (projectRootGate) return projectRootGate;
+      const raw: Record<string, any> = { ...(keyCheck.value as Record<string, any>), project_root: projectRoot };
+      const res = await focusaFetchDetailed("/call-stack/verify", { method: "POST", body: JSON.stringify(raw) });
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_call_stack_verify",
+          "workpoint",
+          `call stack verify blocked → ${explainWorkLoopResult(res, "verify unavailable")}`,
+          body.failure_class || "daemon_unavailable",
+          body,
+          ["focusa_call_stack_design", "focusa_project_verify", "focusa_tool_doctor"],
+        );
+      }
+      const designId = String(body.design_id || raw.design_id || "unknown");
+      const driftStatus = String(body.drift_status || "unknown");
+      const entryName = String(body.entry_name || raw.entry_name || "unknown");
+      const failures = String(body.failures ?? 0);
+      const warnings = String(body.warnings ?? 0);
+      const toolResult = body.details?.tool_result_v1 || focusaToolResult({
+        ok: true,
+        status: "completed",
+        summary: `call stack verify → ${driftStatus} design=${designId}`,
+        tool: "focusa_call_stack_verify",
+        family: "workpoint",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_call_stack_design", "focusa_workpoint_link_evidence", "focusa_trajectory_assess"],
+        raw: body,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: piToolText({
+            kind: "ok",
+            tool: "focusa_call_stack_verify",
+            summary: `call stack verify → ${driftStatus}`,
+            ids: [
+              { label: "design_id", value: designId },
+              { label: "entry_name", value: entryName },
+              { label: "rehydrate_id", value: String(body.rehydrate_id || designId) },
+            ],
+            fields: [
+              { label: "drift_status", value: driftStatus },
+              { label: "failures", value: failures },
+              { label: "warnings", value: warnings },
+              { label: "advisory", value: "true" },
+            ],
+            nextTools: ["focusa_call_stack_design", "focusa_workpoint_link_evidence", "focusa_trajectory_assess"],
+          }),
+        }],
+        details: {
+          ok: true,
+          status: "completed",
+          endpoint: "/v1/call-stack/verify",
+          canonical: false,
+          advisory: true,
+          design_id: designId,
+          drift_status: driftStatus,
+          failures: body.failures || 0,
+          warnings: body.warnings || 0,
+          checks: body.checks || [],
+          next_tools: body.next_tools || toolResult.next_tools,
+          tool_result_v1: toolResult,
+        } as any,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_tree_recent_snapshots",
     label: "Tree Recent Snapshots",
     description: "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",

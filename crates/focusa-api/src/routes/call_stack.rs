@@ -10,7 +10,7 @@ use axum::{Json, extract::State, http::StatusCode};
 use focusa_core::types::CallStackDesign;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::sync::Arc;
+use std::{fs, path::Path, sync::Arc};
 
 const MISSION_MAX_CHARS: usize = 200;
 const NOTES_MAX_CHARS: usize = 2048;
@@ -32,7 +32,9 @@ pub struct CallStackDesignRequest {
 }
 
 pub fn router() -> axum::Router<Arc<AppState>> {
-    axum::Router::new().route("/v1/call-stack/design", axum::routing::post(design))
+    axum::Router::new()
+        .route("/v1/call-stack/design", axum::routing::post(design))
+        .route("/v1/call-stack/verify", axum::routing::post(verify))
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -383,6 +385,253 @@ async fn design(
         "rehydrate_id": design_id,
         "ledger_file": ledger_path.to_string_lossy(),
         "evidence_refs": []
+    })))
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct CallStackVerifyRequest {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub design_id: Option<String>,
+    pub entry_name: Option<String>,
+}
+
+fn call_stack_check(id: &str, status: &str, message: impl Into<String>) -> Value {
+    json!({"id": id, "status": status, "message": message.into()})
+}
+
+fn source_contains(root: &str, rel_dir: &str, needle: &str, max_files: usize) -> bool {
+    if needle.trim().is_empty() {
+        return false;
+    }
+    let dir = Path::new(root).join(rel_dir);
+    if !dir.exists() {
+        return false;
+    }
+    let mut stack = vec![dir];
+    let mut checked = 0usize;
+    while let Some(path) = stack.pop() {
+        let Ok(meta) = fs::metadata(&path) else { continue };
+        if meta.is_dir() {
+            let Ok(entries) = fs::read_dir(&path) else { continue };
+            for entry in entries.flatten() {
+                let child = entry.path();
+                let name = child.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                if matches!(name, "target" | "node_modules" | ".git" | "data" | "ecs") {
+                    continue;
+                }
+                stack.push(child);
+            }
+        } else if meta.is_file() {
+            checked += 1;
+            if checked > max_files {
+                return false;
+            }
+            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+            if !matches!(ext, "rs" | "ts" | "tsx" | "js" | "md" | "toml" | "json") {
+                continue;
+            }
+            if let Ok(body) = fs::read_to_string(&path) {
+                if body.contains(needle) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn entry_surface_exists(project_root: &str, design: &CallStackDesign) -> bool {
+    match design.entry_surface.as_str() {
+        "pi_tool" => source_contains(
+            project_root,
+            "apps/pi-extension/src",
+            &format!("name: \"{}\"", design.entry_name),
+            350,
+        ),
+        "cli_command" => source_contains(project_root, "crates/focusa-cli", &design.entry_name, 350),
+        "http_route" => source_contains(project_root, "crates/focusa-api", &design.entry_name, 500),
+        _ => false,
+    }
+}
+
+async fn verify(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CallStackVerifyRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = body
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            rejection(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                json!({
+                    "status": "validation_rejected",
+                    "canonical": false,
+                    "advisory": true,
+                    "failure_class": "project_root_missing",
+                    "field": "project_root",
+                }),
+            )
+        })?;
+    if is_unsafe_agent_runtime_path_inline(project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "advisory": true,
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+
+    let designs = state
+        .persistence
+        .read_call_stack_designs(
+            project_root,
+            body.continuity_id.as_deref(),
+            body.entry_name.as_deref(),
+            100,
+        )
+        .map_err(|e| {
+            rejection(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                json!({
+                    "status": "blocked",
+                    "canonical": false,
+                    "advisory": true,
+                    "failure_class": "storage_unreadable",
+                    "message": format!("read failed: {}", e),
+                }),
+            )
+        })?;
+    let design = if let Some(design_id) = body.design_id.as_deref() {
+        designs.into_iter().find(|d| d.design_id == design_id)
+    } else {
+        designs.into_iter().last()
+    };
+    let Some(design) = design else {
+        return Err(rejection(
+            StatusCode::NOT_FOUND,
+            json!({
+                "status": "not_found",
+                "canonical": false,
+                "advisory": true,
+                "failure_class": "call_stack_design_not_found",
+                "design_id": body.design_id,
+                "entry_name": body.entry_name,
+            }),
+        ));
+    };
+
+    let mut checks: Vec<Value> = Vec::new();
+    let mut failures = 0usize;
+    let mut warnings = 0usize;
+
+    let scope_match = body
+        .continuity_id
+        .as_deref()
+        .map(|cid| design.continuity_id.as_deref() == Some(cid))
+        .unwrap_or(true);
+    if scope_match {
+        checks.push(call_stack_check("scope", "pass", "design scope matches requested project_root + continuity_id"));
+    } else {
+        failures += 1;
+        checks.push(call_stack_check("scope", "fail", "design continuity_id does not match requested scope"));
+    }
+
+    if ENTRY_SURFACE_ALLOWED.contains(&design.entry_surface.as_str()) {
+        checks.push(call_stack_check("entry_surface_allowed", "pass", "entry_surface is supported"));
+    } else {
+        failures += 1;
+        checks.push(call_stack_check("entry_surface_allowed", "fail", "entry_surface is not supported"));
+    }
+
+    if entry_surface_exists(project_root, &design) {
+        checks.push(call_stack_check("entry_surface_exists", "pass", "entry surface string found in bounded source search"));
+    } else {
+        failures += 1;
+        checks.push(call_stack_check("entry_surface_exists", "fail", "entry surface not found in bounded source search"));
+    }
+
+    if design.handlers.is_empty() {
+        failures += 1;
+        checks.push(call_stack_check("handlers", "fail", "no handlers declared"));
+    } else {
+        checks.push(call_stack_check("handlers", "pass", "handlers declared"));
+    }
+    if design.services.is_empty() {
+        failures += 1;
+        checks.push(call_stack_check("services", "fail", "no services declared"));
+    } else {
+        checks.push(call_stack_check("services", "pass", "services declared"));
+    }
+    if design.adapters.is_empty() {
+        failures += 1;
+        checks.push(call_stack_check("adapters", "fail", "no adapters declared"));
+    } else {
+        checks.push(call_stack_check("adapters", "pass", "adapters declared"));
+    }
+
+    match design.output_envelope.as_deref() {
+        Some("tool_result_v1") => checks.push(call_stack_check("output_envelope", "pass", "output envelope matches tool_result_v1")),
+        Some(other) => {
+            failures += 1;
+            checks.push(call_stack_check("output_envelope", "fail", format!("unexpected output envelope: {}", other)));
+        }
+        None => {
+            failures += 1;
+            checks.push(call_stack_check("output_envelope", "fail", "output envelope missing"));
+        }
+    }
+
+    if design.evidence_refs.is_empty() {
+        checks.push(call_stack_check("evidence_refs", "pass", "no claimed evidence refs to verify"));
+    } else {
+        warnings += 1;
+        checks.push(call_stack_check("evidence_refs", "warn", "claimed evidence refs require Workpoint/evidence verification"));
+    }
+
+    if design.workpoint_id.is_some() || design.attach_to_workpoint {
+        checks.push(call_stack_check("workpoint_alignment", "pass", "design carries Workpoint attachment intent"));
+    } else {
+        warnings += 1;
+        checks.push(call_stack_check("workpoint_alignment", "warn", "design is advisory and not attached to a Workpoint"));
+    }
+
+    let drift_status = if failures > 0 {
+        "drifted"
+    } else if warnings > 0 {
+        "needs_review"
+    } else {
+        "aligned"
+    };
+
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "failure_class": null,
+        "scope_status": "matched",
+        "drift_status": drift_status,
+        "failures": failures,
+        "warnings": warnings,
+        "design_id": design.design_id,
+        "entry_surface": design.entry_surface,
+        "entry_name": design.entry_name,
+        "checks": checks,
+        "next_tools": [
+            "focusa_call_stack_design",
+            "focusa_workpoint_link_evidence",
+            "focusa_trajectory_assess"
+        ],
+        "rehydrate_id": format!("call_stack_verify:{}", design.design_id),
     })))
 }
 
