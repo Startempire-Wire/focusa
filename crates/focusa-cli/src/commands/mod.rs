@@ -3,6 +3,7 @@ pub mod autonomy;
 pub mod awareness;
 pub mod binary;
 pub mod cache;
+pub mod call_stack;
 pub mod cleanup;
 pub mod clt;
 pub mod constitution;

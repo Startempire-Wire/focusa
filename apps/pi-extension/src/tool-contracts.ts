@@ -1204,7 +1204,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "WorkpointRecord"
     ],
     "api_routes": ["POST /v1/call-stack/design"],
-    "cli_commands": [],
+    "cli_commands": ["focusa call-stack design"],
     "core_surface": "Spec103 per-project append-only Call Stack Design ledger",
     "doc_path": "docs/focusa-tools/tools/focusa_call_stack_design.md",
     "result_envelope": "tool_result_v1",
@@ -1225,8 +1225,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "ProjectIdentity",
       "WorkpointRecord"
     ],
-    "api_routes": ["POST /v1/call-stack/verify"],
-    "cli_commands": [],
+    "api_routes": ["POST /v1/call-stack/verify", "GET /v1/call-stack/list", "GET /v1/call-stack/show"],
+    "cli_commands": ["focusa call-stack verify", "focusa call-stack list", "focusa call-stack show"],
     "core_surface": "Spec106/Spec103 advisory Call Stack drift checker",
     "doc_path": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
     "result_envelope": "tool_result_v1",

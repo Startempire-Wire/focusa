@@ -6,7 +6,7 @@
 
 use crate::routes::project::project_identity_payload_for_scope;
 use crate::server::AppState;
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::{Query, State}, http::StatusCode};
 use focusa_core::types::CallStackDesign;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -35,6 +35,8 @@ pub fn router() -> axum::Router<Arc<AppState>> {
     axum::Router::new()
         .route("/v1/call-stack/design", axum::routing::post(design))
         .route("/v1/call-stack/verify", axum::routing::post(verify))
+        .route("/v1/call-stack/list", axum::routing::get(list))
+        .route("/v1/call-stack/show", axum::routing::get(show))
 }
 
 fn rejection(status: StatusCode, body: Value) -> (StatusCode, Json<Value>) {
@@ -388,6 +390,140 @@ async fn design(
     })))
 }
 
+
+
+#[derive(Debug, Deserialize)]
+pub struct CallStackListQuery {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub entry_name: Option<String>,
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CallStackShowQuery {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub design_id: String,
+}
+
+fn require_project_root_param(value: Option<&str>) -> Result<String, (StatusCode, Json<Value>)> {
+    let project_root = value
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            rejection(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                json!({
+                    "status": "validation_rejected",
+                    "canonical": false,
+                    "advisory": true,
+                    "failure_class": "project_root_missing",
+                    "field": "project_root",
+                }),
+            )
+        })?;
+    if is_unsafe_agent_runtime_path_inline(project_root) {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "canonical": false,
+                "advisory": true,
+                "failure_class": "scope_mismatch",
+                "field": "project_root",
+                "rejected_value": project_root,
+            }),
+        ));
+    }
+    Ok(project_root.to_string())
+}
+
+async fn list(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<CallStackListQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = require_project_root_param(query.project_root.as_deref())?;
+    let limit = query.limit.unwrap_or(20).clamp(1, 100);
+    let designs = state
+        .persistence
+        .read_call_stack_designs(
+            &project_root,
+            query.continuity_id.as_deref(),
+            query.entry_name.as_deref(),
+            limit,
+        )
+        .map_err(|e| {
+            rejection(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                json!({
+                    "status": "blocked",
+                    "canonical": false,
+                    "advisory": true,
+                    "failure_class": "storage_unreadable",
+                    "message": format!("read failed: {}", e),
+                }),
+            )
+        })?;
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "project_root": project_root,
+        "continuity_id": query.continuity_id,
+        "entry_name": query.entry_name,
+        "limit": limit,
+        "count": designs.len(),
+        "designs": designs,
+        "next_tools": ["focusa_call_stack_verify", "focusa_call_stack_design"],
+        "rehydrate_id": "call_stack_list",
+    })))
+}
+
+async fn show(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<CallStackShowQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = require_project_root_param(query.project_root.as_deref())?;
+    let designs = state
+        .persistence
+        .read_call_stack_designs(&project_root, query.continuity_id.as_deref(), None, 100)
+        .map_err(|e| {
+            rejection(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                json!({
+                    "status": "blocked",
+                    "canonical": false,
+                    "advisory": true,
+                    "failure_class": "storage_unreadable",
+                    "message": format!("read failed: {}", e),
+                }),
+            )
+        })?;
+    let Some(design) = designs.into_iter().find(|d| d.design_id == query.design_id) else {
+        return Err(rejection(
+            StatusCode::NOT_FOUND,
+            json!({
+                "status": "not_found",
+                "canonical": false,
+                "advisory": true,
+                "failure_class": "call_stack_design_not_found",
+                "design_id": query.design_id,
+            }),
+        ));
+    };
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": false,
+        "advisory": true,
+        "scope_status": "matched",
+        "design_id": design.design_id,
+        "design": design,
+        "next_tools": ["focusa_call_stack_verify", "focusa_call_stack_design"],
+        "rehydrate_id": format!("call_stack_show:{}", query.design_id),
+    })))
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CallStackVerifyRequest {

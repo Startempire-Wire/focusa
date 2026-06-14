@@ -99,6 +99,7 @@ When `failure_class` is missing, treat the response as a successful design; veri
 - Side effects: `write_call_stack_design`
 - Result envelope: `tool_result_v1`
 - API routes: `POST /v1/call-stack/design`
+- CLI command: `focusa call-stack design`
 - Core surface: `Spec103 per-project append-only Call Stack Design ledger`
 - Spec: `docs/103-call-stack-architecture-blueprint-spec.md`
 - Contract source: `docs/current/focusa-tool-contracts.json`
@@ -110,4 +111,4 @@ When `failure_class` is missing, treat the response as a successful design; veri
 - `focusa_project_verify` — verify project identity before retrying on `project_root_unverified`.
 - `focusa_workpoint_resume` — rehydrate the active Workpoint when a `workpoint_id` is missing.
 - `focusa_call_stack_verify` — compare a design against the actual call surface and report drift.
-- `focusa_traverse` — walk the `call_stack_designs` surface (planned v0.5).
+- `focusa_traverse` — walk bounded supporting slices when additional lineage/context is needed.

@@ -61,7 +61,8 @@ The verifier checks:
 - Family: `workpoint`
 - Side effects: none
 - Result envelope: `tool_result_v1`
-- API route: `POST /v1/call-stack/verify`
+- API routes: `POST /v1/call-stack/verify`, `GET /v1/call-stack/list`, `GET /v1/call-stack/show`
+- CLI commands: `focusa call-stack verify`, `focusa call-stack list`, `focusa call-stack show`
 - Core surface: Spec106/Spec103 advisory Call Stack drift checker
 - Contract source: `docs/current/focusa-tool-contracts.json`
 

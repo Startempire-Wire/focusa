@@ -212,6 +212,10 @@ enum Commands {
     #[command(subcommand)]
     ContextCognition(commands::context_cognition::ContextCognitionCmd),
 
+    /// Spec 103/106 Call Stack design and drift verification.
+    #[command(subcommand)]
+    CallStack(commands::call_stack::CallStackCmd),
+
     /// Mac menubar OAuth-like device pairing for VPS connection (Spec focusa-ui0y).
     #[command(subcommand)]
     Device(commands::device_pairing::DeviceCmd),
@@ -639,6 +643,7 @@ async fn main() -> anyhow::Result<()> {
             let mut client = crate::api_client::ApiClient::new();
             commands::context_cognition::handle(&mut client, cmd).await
         }
+        Commands::CallStack(cmd) => commands::call_stack::run(cmd, cli.json).await,
         Commands::Device(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
             commands::device_pairing::handle(&mut client, cmd).await

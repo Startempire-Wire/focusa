@@ -14,7 +14,7 @@
 | Tool contracts | 80 |
 | Tool families | 10 |
 | API parity | 76 |
-| CLI parity | 63 |
+| CLI parity | 65 |
 | Pi tools | 80 |
 | Docs coverage | 80 |
 

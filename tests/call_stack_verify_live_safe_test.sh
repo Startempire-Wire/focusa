@@ -4,6 +4,7 @@ set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-/home/wirebot/focusa}"
 CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-focusa-cont-root-20b6704c-5a49-4d9d-a4b6-a30bf45bfc61}"
+FOCUSA_CLI="${FOCUSA_CLI:-$PWD/target/release/focusa}"
 
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
@@ -38,5 +39,14 @@ not_found=$(post_json '/v1/call-stack/verify' "$(jq -nc --arg root "$PROJECT_ROO
 grep -q 'HTTP_STATUS=404' /tmp/call_stack_verify_status || fail "missing design did not return 404"
 jq -e '.failure_class == "call_stack_design_not_found"' <<<"$not_found" >/dev/null || fail "missing design failure_class mismatch"
 pass "call stack verify reports missing design distinctly"
+
+[ -x "$FOCUSA_CLI" ] || fail "focusa CLI binary not executable at $FOCUSA_CLI"
+cli_design=$("$FOCUSA_CLI" --json call-stack design --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --mission "CLI parity call stack" --entry-surface http_route --entry-name /v1/call-stack/list)
+cli_design_id=$(jq -r '.design_id' <<<"$cli_design")
+[ -n "$cli_design_id" ] && [ "$cli_design_id" != "null" ] || fail "CLI design_id missing"
+"$FOCUSA_CLI" call-stack list --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --limit 5 | rg 'call-stack list: count=' >/dev/null || fail "CLI list output mismatch"
+"$FOCUSA_CLI" call-stack show --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --design-id "$cli_design_id" | rg 'call-stack show:' >/dev/null || fail "CLI show output mismatch"
+"$FOCUSA_CLI" call-stack verify --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --design-id "$cli_design_id" | rg 'call-stack verify:' >/dev/null || fail "CLI verify output mismatch"
+pass "CLI call-stack design/list/show/verify parity works"
 
 echo "call stack verify live-safe test: PASS"

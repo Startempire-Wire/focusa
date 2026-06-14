@@ -15,7 +15,11 @@ pass(){ echo "✓ PASS: $*"; }
 
 for needle in \
   '/v1/call-stack/verify' \
+  '/v1/call-stack/list' \
+  '/v1/call-stack/show' \
   'CallStackVerifyRequest' \
+  'CallStackListQuery' \
+  'CallStackShowQuery' \
   'read_call_stack_designs' \
   'drift_status' \
   'entry_surface_exists' \
@@ -23,7 +27,24 @@ for needle in \
   'call_stack_design_not_found'; do
   rg -n -F "$needle" "$ROUTE" >/dev/null || fail "call_stack.rs missing $needle"
 done
-pass "API call-stack verify route and drift checks present"
+pass "API call-stack verify/list/show routes and drift checks present"
+
+CLI="$ROOT_DIR/crates/focusa-cli/src/commands/call_stack.rs"
+MAIN="$ROOT_DIR/crates/focusa-cli/src/main.rs"
+for needle in \
+  'pub enum CallStackCmd' \
+  'Design {' \
+  'Verify {' \
+  'List {' \
+  'Show {' \
+  '/v1/call-stack/design' \
+  '/v1/call-stack/verify' \
+  '/v1/call-stack/list' \
+  '/v1/call-stack/show'; do
+  rg -n -F "$needle" "$CLI" >/dev/null || fail "CLI call_stack.rs missing $needle"
+done
+rg -n -F 'CallStack(commands::call_stack::CallStackCmd)' "$MAIN" >/dev/null || fail "main.rs missing CallStack command"
+pass "CLI call-stack design/verify/list/show commands present"
 
 for needle in \
   'name: "focusa_call_stack_verify"' \
