@@ -20,14 +20,14 @@ Do not use for production context selection; use `focusa_context_cognition_curat
 ## Parameters
 
 - `project_root` — project scope. Defaults to Pi session cwd.
-- `continuity_id` — optional workstream filter.
+- `continuity_id` — **required** workstream scope for eval-ledger writes; missing/blank rejects with `failure_class=continuity_id_missing`.
 - `case_id` — optional case id; defaults to a generated UUID v7.
 - `target` — curator target string. Defaults to the active workpoint's `next_slice` or `mission`.
-- `token_budget` — total tokens allowed. Default 2000, max 1,000,000.
+- `token_budget` — total tokens allowed. Default 2000, max 1,000,000; `0` rejects with `failure_class=token_budget_invalid`.
 - `candidates` — list of `{kind, path, body?, evidence_ref?, tokens?}` items.
 - `expected_selected_paths` — list of paths the operator expects the curator to keep.
-- `score_threshold` — F1 threshold for promotion. Default 0.5.
-- `baseline_f1` — baseline F1 to beat. Default 0.0.
+- `score_threshold` — F1 threshold for promotion. Default 0.5; must be finite `0.0..=1.0`.
+- `baseline_f1` — baseline F1 to beat. Default 0.0; must be finite `0.0..=1.0`.
 - `evidence_refs` — list of evidence refs that boost candidate ranking.
 
 ## Expected result
@@ -76,7 +76,8 @@ next: focusa_context_cognition_curate_optimize → focusa_metacog_capture → fo
 ## Scope rules
 
 - `project_root` is **required** — eval is scoped to project.
-- Agent runtime paths (e.g. `/root/pi-mono`) are rejected with `failure_class=scope_mismatch`.
+- `continuity_id` is **required** — eval writes are scoped by `project_root + continuity_id`.
+- Agent runtime paths (e.g. `/root/pi-mono`, `/home/wirebot/.cargo`) are rejected with `failure_class=scope_mismatch`.
 - The eval is **deterministic** for the same input (curator is deterministic; precision/recall/F1 are computed in-route).
 - The ledger is **append-only** — existing eval runs are never modified or deleted.
 
@@ -92,7 +93,10 @@ next: focusa_context_cognition_curate_optimize → focusa_metacog_capture → fo
 
 - `project_root_missing` — provide an explicit `project_root` and retry.
 - `project_root_unverified` — call `focusa_project_verify` first.
+- `continuity_id_missing` — provide the active continuity id from Workpoint/Trajectory scope.
 - `scope_mismatch` — the `project_root` is an agent runtime path; pick a real project folder.
+- `token_budget_invalid` — provide a token budget greater than zero.
+- `score_out_of_range` — keep `score_threshold` and `baseline_f1` finite and within `0.0..=1.0`.
 - `daemon_unavailable` — run `focusa_tool_doctor` and retry.
 - `storage_unwritable` — inspect daemon logs; the eval is not persisted and the route returns 500.
 

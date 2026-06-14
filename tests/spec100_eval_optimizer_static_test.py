@@ -51,10 +51,16 @@ def main() -> None:
         # Score helpers
         "compute_precision_recall",
         "compute_f1",
-        # Promotion rule
+        # Promotion and hardening rules
         "promoted",
         "decision",
         "rollback_ref",
+        "require_continuity_id",
+        "continuity_id_missing",
+        "require_unit_interval",
+        "score_out_of_range",
+        "token_budget_invalid",
+        "scope_mismatch",
     ]:
         if marker not in route_src:
             fail(f"context_cognition.rs missing marker: {marker}")

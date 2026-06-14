@@ -26,12 +26,12 @@ Do not use for trivial submissions; the optimize call is for the promotion gate.
 ## Parameters
 
 - `project_root` — project scope. Defaults to Pi session cwd.
-- `continuity_id` — optional workstream filter.
+- `continuity_id` — **required** workstream scope for optimizer-artifact writes; missing/blank rejects with `failure_class=continuity_id_missing`.
 - `module_name` — module name. Default `curator`.
 - `prompt_artifact_ref` — path or ref id of the candidate artifact (≤ 4096 chars).
-- `eval_score` — candidate artifact's eval F1 score (0.0–1.0).
-- `baseline_score` — baseline F1 to beat. Default 0.0.
-- `score_threshold` — F1 threshold for promotion. Default 0.5.
+- `eval_score` — candidate artifact's eval F1 score; must be finite `0.0..=1.0`.
+- `baseline_score` — baseline F1 to beat. Default 0.0; must be finite `0.0..=1.0`.
+- `score_threshold` — F1 threshold for promotion. Default 0.5; must be finite `0.0..=1.0`.
 - `eval_run_id` — optional CuratorEvalRun id that produced `eval_score`.
 - `rollback` — explicit rollback override. Default `false`.
 
@@ -74,6 +74,7 @@ next: focusa_context_cognition_optimizer_artifacts → focusa_predict_record →
 ## Scope rules
 
 - `project_root` is **required** — optimize is scoped to project.
+- `continuity_id` is **required** — optimizer writes are scoped by `project_root + continuity_id`.
 - `prompt_artifact_ref` is **required** — empty/missing is rejected with `failure_class=prompt_artifact_ref_missing`.
 - `eval_score` is **required** — missing is rejected with `failure_class=eval_score_missing`.
 - Agent runtime paths are rejected with `failure_class=scope_mismatch`.
@@ -92,8 +93,10 @@ next: focusa_context_cognition_optimizer_artifacts → focusa_predict_record →
 - `project_root_missing` — provide an explicit `project_root` and retry.
 - `prompt_artifact_ref_missing` — supply `prompt_artifact_ref`.
 - `eval_score_missing` — supply `eval_score`.
+- `continuity_id_missing` — provide the active continuity id from Workpoint/Trajectory scope.
 - `project_root_unverified` — call `focusa_project_verify` first.
 - `scope_mismatch` — the `project_root` is an agent runtime path.
+- `score_out_of_range` — keep `eval_score`, `baseline_score`, and `score_threshold` finite and within `0.0..=1.0`.
 - `daemon_unavailable` — run `focusa_tool_doctor` and retry.
 - `storage_unwritable` — inspect daemon logs; the artifact is not persisted and the route returns 500.
 

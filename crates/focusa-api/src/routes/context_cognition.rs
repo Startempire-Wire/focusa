@@ -315,16 +315,57 @@ pub struct ContextCognitionRequest {
 }
 
 fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
+    let trimmed = path.trim();
+    if trimmed == "/" || trimmed == "/root" {
+        return true;
+    }
     const BLOCKED: &[&str] = &[
         "/root/pi-mono",
         "/root/.pi",
+        "/root/.cargo",
         "/root/.claude",
         "/root/.opencode",
         "/root/.letta",
+        "/home/wirebot/.cargo",
     ];
     BLOCKED
         .iter()
-        .any(|p| path == *p || path.starts_with(&format!("{}/", p)))
+        .any(|p| trimmed == *p || trimmed.starts_with(&format!("{}/", p)))
+}
+
+fn require_continuity_id(continuity_id: &Option<String>) -> Result<String, (StatusCode, Json<Value>)> {
+    continuity_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            rejection(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                json!({
+                    "status": "validation_rejected",
+                    "failure_class": "continuity_id_missing",
+                    "field": "continuity_id",
+                    "message": "Context Cognition eval/optimizer writes require project_root + continuity_id scope",
+                }),
+            )
+        })
+}
+
+fn require_unit_interval(value: f64, field: &str) -> Result<(), (StatusCode, Json<Value>)> {
+    if value.is_finite() && (0.0..=1.0).contains(&value) {
+        Ok(())
+    } else {
+        Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "score_out_of_range",
+                "field": field,
+                "message": "score fields must be finite values between 0.0 and 1.0",
+            }),
+        ))
+    }
 }
 
 async fn render(
@@ -840,14 +881,27 @@ async fn curate_eval(
         ));
     }
 
+    let continuity_id = require_continuity_id(&body.continuity_id)?;
     let case_id = body
         .case_id
         .clone()
         .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
     let target = body.target.clone().unwrap_or_default();
     let token_budget = body.token_budget.unwrap_or(2000);
+    if token_budget == 0 {
+        return Err(rejection(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!({
+                "status": "validation_rejected",
+                "failure_class": "token_budget_invalid",
+                "field": "token_budget",
+            }),
+        ));
+    }
     let score_threshold = body.score_threshold.unwrap_or(0.5);
     let baseline_f1 = body.baseline_f1.unwrap_or(0.0);
+    require_unit_interval(score_threshold, "score_threshold")?;
+    require_unit_interval(baseline_f1, "baseline_f1")?;
     let expected = body.expected_selected_paths.clone().unwrap_or_default();
     let evidence_refs: Vec<String> = body.evidence_refs.clone().unwrap_or_default();
 
@@ -901,7 +955,7 @@ async fn curate_eval(
         run_id: uuid::Uuid::now_v7().to_string(),
         case_id: case_id.clone(),
         project_root: project_root.clone(),
-        continuity_id: body.continuity_id.clone(),
+        continuity_id: Some(continuity_id.clone()),
         target: target.clone(),
         selected_paths: selected_paths.clone(),
         expected_paths: expected.clone(),
@@ -931,6 +985,7 @@ async fn curate_eval(
         "canonical": false,
         "advisory": true,
         "scope_status": "matched",
+        "continuity_id": continuity_id,
         "run_id": run.run_id,
         "case_id": case_id,
         "selected_paths": selected_paths,
@@ -1154,6 +1209,7 @@ async fn curate_optimize(
         ));
     }
 
+    let continuity_id = require_continuity_id(&body.continuity_id)?;
     let module_name = body
         .module_name
         .clone()
@@ -1180,6 +1236,9 @@ async fn curate_optimize(
     })?;
     let baseline_score = body.baseline_score.unwrap_or(0.0);
     let score_threshold = body.score_threshold.unwrap_or(0.5);
+    require_unit_interval(eval_score, "eval_score")?;
+    require_unit_interval(baseline_score, "baseline_score")?;
+    require_unit_interval(score_threshold, "score_threshold")?;
     let explicit_rollback = body.rollback.unwrap_or(false);
 
     // Determine the latest promoted artifact to use as the rollback_ref
@@ -1240,6 +1299,7 @@ async fn curate_optimize(
         "canonical": false,
         "advisory": true,
         "scope_status": "matched",
+        "continuity_id": continuity_id,
         "artifact_id": artifact.artifact_id,
         "module_name": module_name,
         "decision": decision,
