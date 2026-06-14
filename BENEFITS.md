@@ -1,12 +1,12 @@
 # Why Focusa is amazing for developers
 
-> **TL;DR.** Focusa is the missing OS layer for long-running AI coding work. It gives your agent typed memory, evidence, recovery, predictions, and a public surface — all in one local-first toolchain.
+> **TL;DR.** Focusa is a local-first cognitive runtime for systematic AI execution. It gives AI coding agents durable mission state, scope, trajectory, Workpoints, Evidence Refs, Context Authority, recovery, predictions, and a public surface — all in one local-first toolchain.
 
 ---
 
 ## The pitch in one paragraph
 
-Modern coding agents fail the same way: context compacts, the thread is lost, drift accumulates, evidence disappears, and the next session has to re-derive everything. Focusa replaces that with a typed **Workpoint**, an append-only **HLT ledger**, a live **trajectory ladder**, **predictions** that can be evaluated, **metacognition** that compounds, and a public surface that makes the agent's work inspectable. Local-first, Rust-fast, audit-ready.
+Modern coding agents fail the same way: context compacts, the thread is lost, drift accumulates, evidence disappears, and the next session has to re-derive everything. Focusa replaces that with typed **ProjectIdentity**, **Continuity ID**, **Focus State**, **Focus Stack**, **HLT → MLG → STG → Waypoints → Workpoint**, **Evidence Refs**, **Context Cognition**, **Context Authority**, **predictions** that can be evaluated, **metacognition** that compounds, and a public surface that makes the agent's work inspectable. Local-first, Rust-fast, audit-ready.
 
 ---
 

@@ -28,6 +28,22 @@ Authority boundary: HLT/MLG/STG/Waypoints orient execution; Workpoint is immedia
 
 ## Expected result
 
+Every agent-facing trajectory render should expose:
+
+```text
+HLT:
+MLG:
+STG:
+Waypoints:
+Workpoint:
+Scope:
+Status:
+Canonical/advisory/degraded:
+Evidence refs:
+```
+
+Generic/bootstrap HLT is a degraded placeholder, not authority. Prior-project/foreign trajectory fallback is advisory only and must warn. Workpoint and Trajectory disagreement requires `verify_first` before action.
+
 Returns `tool_result_v1` details with `/v1/trajectory/view` response:
 
 - `project_identity.status`, `authority_boundary=project_root_plus_continuity_id`, `continuity_id`, temporal `session_id`, and fingerprint.

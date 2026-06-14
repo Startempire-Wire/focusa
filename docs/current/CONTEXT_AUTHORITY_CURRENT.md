@@ -15,6 +15,46 @@ The incident rule is:
 
 > A Focusa agent must not perform risky mutation until current ask, Workpoint, environment role, runtime inventory, binary compatibility, HLT/TL validity, and intent mode have been reconciled.
 
+## Mandatory risky-mutation preflight
+
+Before risky mutation, agents must:
+
+1. classify prompt mode;
+2. inspect environment contract;
+3. inspect runtime inventory;
+4. inspect binary compatibility when relevant;
+5. run action preflight;
+6. mutate only when the verdict allows.
+
+Preflight is mandatory before:
+
+- binary replacement
+- daemon restart
+- deploy
+- release publish
+- git push
+- destructive file operation
+- database migration
+- broad refactor
+- cross-project file edit
+- generated code overwrite
+- secret/config change
+- live service action
+- pairing/install/update ambiguity
+
+Valid verdicts:
+
+```text
+allow
+block
+ask_operator
+verify_first
+diagnosis_only
+planning_only
+```
+
+Tool/CLI/UI envelopes should return both machine-readable JSON and a human-readable summary with next safe tools.
+
 ## Implemented surfaces
 
 ### `focusa action preflight`

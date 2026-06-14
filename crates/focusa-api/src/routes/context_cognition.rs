@@ -204,28 +204,54 @@ async fn view(
         .filter(|s| !s.is_empty())
         .map(str::to_string);
 
-    let scope_status = match identity_status {
-        "verified" => "matched",
-        "unverified" => "partial",
+    let exact_scope_ready = identity_status == "verified" && continuity_id.is_some();
+    let scope_status = match (identity_status, continuity_id.as_deref()) {
+        ("verified", Some(_)) => "matched",
+        ("verified", None) => "missing_continuity_id",
+        ("unverified", _) => "partial",
         _ => "missing",
     };
 
     let mut packet = build_empty_packet(project_root, continuity_id.clone(), scope_status);
+    if !exact_scope_ready {
+        packet.status = "degraded".to_string();
+        packet.freshness.stale = true;
+        packet.selected_context.excluded_context.push("canonical Workpoint/Trajectory selection requires verified project_root + continuity_id".to_string());
+        packet.route_frame.do_not_use_by_default.push("Do not treat Context Cognition as canonical without exact scope".to_string());
+    }
 
     // Read FocusState (read-only).
     let focusa_state = state.focusa.read().await.clone();
 
-    // Wire active workpoint id from FocusState (read-only).
-    if let Some(wp) = focusa_state
-        .workpoint
-        .records
-        .iter()
-        .find(|r| r.project_root.as_deref() == Some(project_root))
-    {
+    // Wire active Workpoint/Trajectory only by exact project_root + continuity_id.
+    let scoped_workpoint = if exact_scope_ready {
+        focusa_state
+            .workpoint
+            .records
+            .iter()
+            .find(|r| {
+                r.project_root.as_deref() == Some(project_root)
+                    && r.continuity_id.as_deref() == continuity_id.as_deref()
+                    && r.canonical
+            })
+    } else {
+        None
+    };
+    if let Some(wp) = scoped_workpoint {
         packet.scope.workpoint_id = Some(wp.workpoint_id.to_string());
     }
-    if let Some(tid) = focusa_state.trajectory.active_trajectory_id.clone() {
-        packet.scope.trajectory_id = Some(tid);
+    if exact_scope_ready {
+        if let Some(active_id) = focusa_state.trajectory.active_trajectory_id.as_deref() {
+            if let Some(traj) = focusa_state.trajectory.records.iter().find(|record| {
+                record.trajectory_id == active_id
+                    && record.project_root.as_deref() == Some(project_root)
+                    && record.continuity_id.as_deref() == continuity_id.as_deref()
+            }) {
+                packet.scope.trajectory_id = Some(traj.trajectory_id.clone());
+            } else {
+                packet.selected_context.excluded_context.push("active trajectory omitted: scope mismatch or missing continuity_id".to_string());
+            }
+        }
     }
 
     // HLT freshness from HLT ledger (append-only, no mutation).
@@ -241,13 +267,8 @@ async fn view(
             .push(format!("hlt:{}", latest.event_id));
     }
 
-    // Evidence refs from existing workpoint verification_records (read-only).
-    if let Some(wp) = focusa_state
-        .workpoint
-        .records
-        .iter()
-        .find(|r| r.project_root.as_deref() == Some(project_root))
-    {
+    // Evidence refs from exact-scoped workpoint verification_records (read-only).
+    if let Some(wp) = scoped_workpoint {
         let handles: Vec<String> = wp
             .verification_records
             .iter()

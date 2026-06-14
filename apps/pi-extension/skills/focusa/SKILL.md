@@ -7,6 +7,10 @@ description: Use when preserving Focusa cognitive state, resuming after compacti
 
 Use this skill for any task where durable meaning matters more than transcript memory: multi-step implementation, compaction recovery, release proof, evidence capture, long-running work loops, reusable learning, or Focusa tool troubleshooting.
 
+## Context Authority mutation boundary
+
+Before risky mutation, run Context Authority preflight: classify prompt mode, inspect environment contract/runtime inventory/binary compatibility as relevant, run action preflight, then mutate only on an allowing verdict. Risky mutation includes binary replacement, daemon restart, deploy, release publish, git push, destructive file operation, database migration, broad refactor, cross-project edit, generated-code overwrite, secret/config change, live service action, and pairing/install/update ambiguity. Valid verdicts: `allow`, `block`, `ask_operator`, `verify_first`, `diagnosis_only`, `planning_only`.
+
 ## Skill loading rules
 
 Pi skills must start with YAML frontmatter. Required fields:

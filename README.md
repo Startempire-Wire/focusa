@@ -29,11 +29,11 @@
 
 ## Kill the chat. Keep the mission.
 
-**Focusa is the mission cohesion layer for AI coding agents.**
+**Focusa is a local-first mission cohesion layer for AI coding agents.**
 
 Claude, Codex, OpenCode, OpenClaw, Pi, and other coding agents can move fast — until the session gets long, context compacts, the mission drifts, proof gets buried, or the next agent has to start over.
 
-Focusa gives long-running AI work a durable mission layer: typed project memory, Workpoints, trajectory, evidence, recovery, session transfer, and governance outside the fragile chat window.
+Focusa is a local-first cognitive runtime for systematic AI execution. It gives long-running AI work a durable operating language for ProjectIdentity, Continuity ID, HLT, MLG, STG, Waypoints, Workpoints, Evidence Refs, Context Cognition, Context Authority, and proof-backed continuation outside the fragile chat window.
 
 It does not replace your agent.
 
