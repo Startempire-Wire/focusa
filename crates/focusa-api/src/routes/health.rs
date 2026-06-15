@@ -27,7 +27,12 @@ fn bundled_tool_contract_count() -> usize {
             .get("tool_count")
             .and_then(Value::as_u64)
             .map(|count| count as usize)
-            .or_else(|| registry.get("contracts").and_then(Value::as_array).map(Vec::len))
+            .or_else(|| {
+                registry
+                    .get("contracts")
+                    .and_then(Value::as_array)
+                    .map(Vec::len)
+            })
     })
     .unwrap_or(0)
 }
@@ -345,6 +350,6 @@ mod tests {
 
     #[test]
     fn doctor_contract_count_matches_bundled_registry() {
-        assert_eq!(bundled_tool_contract_count(), 80);
+        assert_eq!(bundled_tool_contract_count(), 82);
     }
 }
