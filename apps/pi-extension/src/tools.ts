@@ -4985,6 +4985,71 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_bloatgaurd_gate_modes",
+    label: "Bloatgaurd Gate Modes",
+    description: "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
+    promptSnippet: "Use before enabling warning/fail-candidate Bloatgaurd gates; this tool is read-only.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/bloatgaurd/gate-modes/report");
+      const body = result.body || {};
+      const modes = Array.isArray(body.modes) ? body.modes : [];
+      const ok = result.ok && body.status !== "blocked";
+      const toolResult = focusaToolResult({
+        ok,
+        status: ok ? "completed" : "blocked",
+        summary: `bloatgaurd gate modes → modes=${modes.length} status=${body.status || result.status}`,
+        tool: "focusa_bloatgaurd_gate_modes",
+        family: "diagnostics_hygiene",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_bloatgaurd_gate_mode", "focusa_bloatgaurd_report", "focusa_evidence_capture"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `bloatgaurd gate-modes ${body.status || result.status} | modes=${modes.length}\nnext_tools=focusa_bloatgaurd_gate_mode,focusa_bloatgaurd_report` }],
+        structuredContent: toolResult,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_gate_mode",
+    label: "Bloatgaurd Gate Mode",
+    description: "Spec 101 — read one Bloatgaurd gate mode by code/name.",
+    promptSnippet: "Use to inspect a gate mode such as A/advisory, B/warning, or C/fail-candidate before enforcing it.",
+    parameters: strictObject({
+      name: Type.String({ minLength: 1, maxLength: 120, description: "Gate mode code or name." }),
+    }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_gate_mode", params, ["name"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_bloatgaurd_gate_mode", "/v1/bloatgaurd/gate-modes/mode/{name}", params as Record<string, any>, "bloatgaurd gate mode", keyCheck.error);
+      }
+      const name = encodeURIComponent(String(params.name || ""));
+      const result = await focusaFetchDetailed(`/bloatgaurd/gate-modes/mode/${name}`);
+      const body = result.body || {};
+      const mode = body.mode || null;
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({
+        ok,
+        status: ok ? "completed" : "blocked",
+        summary: `bloatgaurd gate mode → ${mode?.code || params.name} status=${body.status || result.status}`,
+        tool: "focusa_bloatgaurd_gate_mode",
+        family: "diagnostics_hygiene",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_bloatgaurd_gate_modes", "focusa_traverse", "focusa_evidence_capture"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `bloatgaurd gate-mode ${body.status || result.status} | ${mode?.code || "?"} ${mode?.name || params.name}\nreport_schema_fields=${Array.isArray(mode?.report_schema_fields) ? mode.report_schema_fields.length : 0}` }],
+        structuredContent: toolResult,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_context_cognition",
     label: "Context Cognition",
     description: "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state.",

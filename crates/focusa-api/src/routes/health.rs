@@ -351,6 +351,6 @@ mod tests {
 
     #[test]
     fn doctor_contract_count_matches_bundled_registry() {
-        assert_eq!(bundled_tool_contract_count(), 84);
+        assert_eq!(bundled_tool_contract_count(), 86);
     }
 }

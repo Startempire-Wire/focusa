@@ -20,7 +20,10 @@
       ['5.7', 'dead-code-safety'],
       ['5.8', 'adaptive-router'],
       ['5.9', 'tokenbloat-control'],
-      ['5.10', 'tool-call-history-elision']
+      ['5.10', 'tool-call-history-elision'],
+      ['A', 'advisory'],
+      ['B', 'warning'],
+      ['C', 'fail-candidate']
     ]
   };
 </script>

@@ -325,6 +325,159 @@ fn token_control(
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdGateThresholds {
+    pub max_hot_response_bytes: u64,
+    pub max_hot_response_items: u64,
+    pub max_findings_before_warning: u64,
+    pub max_findings_before_fail_candidate: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdGateMode {
+    pub code: String,
+    pub name: String,
+    pub title: String,
+    pub status: String,
+    pub enforcement: String,
+    pub thresholds: BloatgaurdGateThresholds,
+    pub allowlist: Vec<String>,
+    pub report_schema_fields: Vec<String>,
+    pub allowed_actions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdGateModesReport {
+    pub schema: String,
+    pub status: String,
+    pub spec_ref: String,
+    pub summary: String,
+    pub modes: Vec<BloatgaurdGateMode>,
+}
+
+pub fn bloatgaurd_gate_modes_report() -> BloatgaurdGateModesReport {
+    let modes = bloatgaurd_gate_modes();
+    BloatgaurdGateModesReport {
+        schema: "focusa.bloatgaurd.gate_modes_report.v1".to_string(),
+        status: "completed".to_string(),
+        spec_ref: "docs/101-focusa-bloatgaurd-spec.md#58-adaptive-bloatgaurd-routerclassifier"
+            .to_string(),
+        summary: format!(
+            "Spec101 Bloatgaurd gate modes: {} deterministic modes (A advisory, B warning, C fail-candidate) with thresholds, allowlist, and report schema fields.",
+            modes.len()
+        ),
+        modes,
+    }
+}
+
+pub fn bloatgaurd_gate_mode(name: &str) -> Option<BloatgaurdGateMode> {
+    let key = normalize_domain_name(name);
+    bloatgaurd_gate_modes().into_iter().find(|mode| {
+        normalize_domain_name(&mode.code) == key
+            || normalize_domain_name(&mode.name) == key
+            || normalize_domain_name(&mode.title) == key
+    })
+}
+
+pub fn bloatgaurd_gate_modes() -> Vec<BloatgaurdGateMode> {
+    vec![
+        gate_mode(
+            "A",
+            "advisory",
+            "Mode A — advisory report",
+            "advisory_only",
+            BloatgaurdGateThresholds {
+                max_hot_response_bytes: 8_000,
+                max_hot_response_items: 50,
+                max_findings_before_warning: 999,
+                max_findings_before_fail_candidate: 999,
+            },
+            vec![
+                "all_existing_surfaces",
+                "baseline_collection",
+                "manual_review",
+            ],
+            vec!["report", "document"],
+        ),
+        gate_mode(
+            "B",
+            "warning",
+            "Mode B — warning gate",
+            "warning_nonblocking",
+            BloatgaurdGateThresholds {
+                max_hot_response_bytes: 8_000,
+                max_hot_response_items: 50,
+                max_findings_before_warning: 1,
+                max_findings_before_fail_candidate: 999,
+            },
+            vec![
+                "documented_exception",
+                "generated_surface",
+                "compatibility_surface",
+            ],
+            vec!["report", "document", "isolate", "migrate"],
+        ),
+        gate_mode(
+            "C",
+            "fail-candidate",
+            "Mode C — fail-candidate gate",
+            "fail_candidate_with_allowlist",
+            BloatgaurdGateThresholds {
+                max_hot_response_bytes: 12_000,
+                max_hot_response_items: 75,
+                max_findings_before_warning: 1,
+                max_findings_before_fail_candidate: 3,
+            },
+            vec![
+                "explicit_ci_allowlist",
+                "protected_public_surface",
+                "operator_approved_exception",
+            ],
+            vec![
+                "report",
+                "document",
+                "isolate",
+                "deprecate",
+                "split",
+                "migrate",
+                "delete_candidate",
+            ],
+        ),
+    ]
+}
+
+fn gate_mode(
+    code: &str,
+    name: &str,
+    title: &str,
+    enforcement: &str,
+    thresholds: BloatgaurdGateThresholds,
+    allowlist: Vec<&str>,
+    allowed_actions: Vec<&str>,
+) -> BloatgaurdGateMode {
+    BloatgaurdGateMode {
+        code: code.to_string(),
+        name: name.to_string(),
+        title: title.to_string(),
+        status: "ready".to_string(),
+        enforcement: enforcement.to_string(),
+        thresholds,
+        allowlist: allowlist.into_iter().map(str::to_string).collect(),
+        report_schema_fields: vec![
+            "schema".to_string(),
+            "status".to_string(),
+            "mode".to_string(),
+            "finding_count".to_string(),
+            "thresholds".to_string(),
+            "allowlist_matches".to_string(),
+            "recommended_gate_mode".to_string(),
+            "allowed_actions".to_string(),
+            "evidence_refs".to_string(),
+        ],
+        allowed_actions: allowed_actions.into_iter().map(str::to_string).collect(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -371,6 +524,28 @@ mod tests {
                 .unwrap()
                 .section,
             "5.10"
+        );
+    }
+
+    #[test]
+    fn gate_modes_report_has_modes_thresholds_and_schema_fields() {
+        let report = bloatgaurd_gate_modes_report();
+        assert_eq!(report.modes.len(), 3);
+        assert!(report.modes.iter().any(|mode| mode.code == "A"));
+        assert!(report.modes.iter().any(|mode| mode.code == "B"));
+        assert!(report.modes.iter().any(|mode| mode.code == "C"));
+        let mode_c = bloatgaurd_gate_mode("fail_candidate").unwrap();
+        assert_eq!(mode_c.code, "C");
+        assert!(mode_c.thresholds.max_findings_before_fail_candidate > 0);
+        assert!(
+            mode_c
+                .report_schema_fields
+                .contains(&"recommended_gate_mode".to_string())
+        );
+        assert!(
+            mode_c
+                .allowlist
+                .contains(&"explicit_ci_allowlist".to_string())
         );
     }
 }

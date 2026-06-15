@@ -1456,6 +1456,49 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_bloatgaurd_gate_modes",
+    "label": "Bloatgaurd Gate Modes",
+    "purpose": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.gate_modes",
+    "ontology_objects": [
+      "BloatgaurdGateModesReport",
+      "BloatgaurdGateMode",
+      "BloatgaurdGateThresholds"
+    ],
+    "api_routes": ["GET /v1/bloatgaurd/gate-modes/report"],
+    "cli_commands": ["focusa bloatgaurd gate-modes"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdGateModesReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/report safe probe"
+  },
+
+  {
+    "name": "focusa_bloatgaurd_gate_mode",
+    "label": "Bloatgaurd Gate Mode",
+    "purpose": "Spec 101 — read one Bloatgaurd gate mode by code/name.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.gate_mode",
+    "ontology_objects": [
+      "BloatgaurdGateMode",
+      "BloatgaurdGateThresholds"
+    ],
+    "api_routes": ["GET /v1/bloatgaurd/gate-modes/mode/{name}"],
+    "cli_commands": ["focusa bloatgaurd gate-mode <name>"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdGateMode",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/gate-modes/mode/A safe probe"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -2001,6 +2044,16 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   ],
   "focusa_bloatgaurd_tokenbloat_domain": [
     "focusa_bloatgaurd_tokenbloat_report",
+    "focusa_traverse",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_gate_modes": [
+    "focusa_bloatgaurd_gate_mode",
+    "focusa_bloatgaurd_report",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_gate_mode": [
+    "focusa_bloatgaurd_gate_modes",
     "focusa_traverse",
     "focusa_evidence_capture"
   ],

@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""Spec101 Bloatgaurd budgets + tokenbloat static audit."""
+"""Spec101 Bloatgaurd budgets, tokenbloat, and gate modes static audit."""
 import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOMAINS = [
-    "output-firewall", "tool-call-compression", "docs-diet", "test-diet",
-    "prompt-context-diet", "rust-first-core", "dead-code-safety", "adaptive-router",
-]
+DOMAINS = ["output-firewall", "tool-call-compression", "docs-diet", "test-diet", "prompt-context-diet", "rust-first-core", "dead-code-safety", "adaptive-router"]
 TOKENBLOAT = ["tokenbloat-control", "tool-call-history-elision"]
+GATE_MODES = ["advisory", "warning", "fail-candidate"]
 TOOLS = [
     "focusa_bloatgaurd_report", "focusa_bloatgaurd_domain",
     "focusa_bloatgaurd_tokenbloat_report", "focusa_bloatgaurd_tokenbloat_domain",
+    "focusa_bloatgaurd_gate_modes", "focusa_bloatgaurd_gate_mode",
 ]
 
 
@@ -30,13 +29,14 @@ def main() -> None:
     for token in [
         "BloatgaurdBudget", "BloatgaurdDomainState", "BloatgaurdReport",
         "TokenbloatControl", "TokenbloatReport", "tokenbloat_report", "tokenbloat_control",
-        "full_payload_requires_opt_in", "deletion_requires_human_review",
+        "BloatgaurdGateMode", "BloatgaurdGateModesReport", "BloatgaurdGateThresholds", "bloatgaurd_gate_modes_report", "bloatgaurd_gate_mode",
+        "full_payload_requires_opt_in", "deletion_requires_human_review", "recommended_gate_mode", "explicit_ci_allowlist",
     ]:
         if token not in core:
             fail(f"core missing {token}")
-    for domain in DOMAINS + TOKENBLOAT:
+    for domain in DOMAINS + TOKENBLOAT + GATE_MODES:
         if domain not in core:
-            fail(f"core missing domain {domain}")
+            fail(f"core missing domain/mode {domain}")
 
     api = read("crates/focusa-api/src/routes/bloatgaurd.rs")
     server = read("crates/focusa-api/src/server.rs")
@@ -44,7 +44,9 @@ def main() -> None:
     for token in [
         "/v1/bloatgaurd/report", "/v1/bloatgaurd/domain/{name}",
         "/v1/bloatgaurd/tokenbloat/report", "/v1/bloatgaurd/tokenbloat/domain/{name}",
+        "/v1/bloatgaurd/gate-modes/report", "/v1/bloatgaurd/gate-modes/mode/{name}",
         "bloatgaurd_report", "bloatgaurd_domain", "tokenbloat_report", "tokenbloat_control",
+        "bloatgaurd_gate_modes_report", "bloatgaurd_gate_mode",
     ]:
         if token not in api:
             fail(f"api missing {token}")
@@ -53,9 +55,10 @@ def main() -> None:
 
     cli = read("crates/focusa-cli/src/commands/bloatgaurd.rs") + read("crates/focusa-cli/src/main.rs") + read("crates/focusa-cli/src/commands/mod.rs")
     for token in [
-        "BloatgaurdCmd", "Report", "Domain", "Tokenbloat", "TokenDomain",
+        "BloatgaurdCmd", "Report", "Domain", "Tokenbloat", "TokenDomain", "GateModes", "GateMode",
         "focusa bloatgaurd", "/v1/bloatgaurd/report", "/v1/bloatgaurd/domain/{name}",
-        "/v1/bloatgaurd/tokenbloat/report", "/v1/bloatgaurd/tokenbloat/domain/{name}", "pub mod bloatgaurd",
+        "/v1/bloatgaurd/tokenbloat/report", "/v1/bloatgaurd/tokenbloat/domain/{name}",
+        "/v1/bloatgaurd/gate-modes/report", "/v1/bloatgaurd/gate-modes/mode/{name}", "pub mod bloatgaurd",
     ]:
         if token not in cli:
             fail(f"cli missing {token}")
@@ -75,7 +78,7 @@ def main() -> None:
             fail(f"choreography missing {name}")
 
     menubar = read("apps/menubar/src/lib/components/GatePanel.svelte")
-    for token in ["BLOATGAURD BUDGETS", "bloatgaurdReport", "budget-pill", "/v1/bloatgaurd/domain"] + DOMAINS + TOKENBLOAT:
+    for token in ["BLOATGAURD BUDGETS", "bloatgaurdReport", "budget-pill", "/v1/bloatgaurd/domain"] + DOMAINS + TOKENBLOAT + GATE_MODES:
         if token not in menubar:
             fail(f"menubar GatePanel missing {token}")
 
@@ -84,11 +87,13 @@ def main() -> None:
         "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
         "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md",
         "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md",
+        "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md",
+        "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md",
     ]:
         if not (ROOT / rel).exists():
             fail(f"missing doc {rel}")
 
-    print("✓ PASS: Spec101 Bloatgaurd domains 5.1-5.10 wired across core/api/cli/pi-contracts/choreography/menubar/docs")
+    print("✓ PASS: Spec101 Bloatgaurd domains 5.1-5.10 plus gate modes A/B/C wired across core/api/cli/pi-contracts/choreography/menubar/docs")
 
 
 if __name__ == "__main__":
