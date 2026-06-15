@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 86,
-  "edge_count": 252,
+  "tool_count": 91,
+  "edge_count": 267,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -215,6 +215,31 @@
     "focusa_bloatgaurd_gate_mode": [
       "focusa_bloatgaurd_gate_modes",
       "focusa_traverse",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_profiles": [
+      "focusa_bloatgaurd_profile",
+      "focusa_bloatgaurd_routines",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_profile": [
+      "focusa_bloatgaurd_profiles",
+      "focusa_bloatgaurd_routines",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_routines": [
+      "focusa_bloatgaurd_routine",
+      "focusa_bloatgaurd_profiles",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_routine": [
+      "focusa_bloatgaurd_routines",
+      "focusa_bloatgaurd_profiles",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_rollout": [
+      "focusa_bloatgaurd_profiles",
+      "focusa_bloatgaurd_routines",
       "focusa_evidence_capture"
     ],
     "focusa_call_stack_design": [
@@ -922,6 +947,81 @@
     },
     {
       "from": "focusa_bloatgaurd_gate_mode",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_profiles",
+      "to": "focusa_bloatgaurd_profile",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_profiles",
+      "to": "focusa_bloatgaurd_routines",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_profiles",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_profile",
+      "to": "focusa_bloatgaurd_profiles",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_profile",
+      "to": "focusa_bloatgaurd_routines",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_profile",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_routines",
+      "to": "focusa_bloatgaurd_routine",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_routines",
+      "to": "focusa_bloatgaurd_profiles",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_routines",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_routine",
+      "to": "focusa_bloatgaurd_routines",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_routine",
+      "to": "focusa_bloatgaurd_profiles",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_routine",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_rollout",
+      "to": "focusa_bloatgaurd_profiles",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_rollout",
+      "to": "focusa_bloatgaurd_routines",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_rollout",
       "to": "focusa_evidence_capture",
       "weight": 1
     },

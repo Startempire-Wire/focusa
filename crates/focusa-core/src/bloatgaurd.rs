@@ -478,6 +478,395 @@ fn gate_mode(
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdProfile {
+    pub name: String,
+    pub title: String,
+    pub mode: String,
+    pub output_firewall: bool,
+    pub tool_history_elision: String,
+    pub context_compiler: String,
+    pub semantic_cache: String,
+    pub full_payload_policy: String,
+    pub dynamic_slice_budget: String,
+    pub rehydration_bias: String,
+    pub toggles: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdProfilesReport {
+    pub schema: String,
+    pub status: String,
+    pub spec_ref: String,
+    pub safety_rules: Vec<String>,
+    pub operator_switches: Vec<String>,
+    pub profiles: Vec<BloatgaurdProfile>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdRoutine {
+    pub name: String,
+    pub title: String,
+    pub command: String,
+    pub manual: bool,
+    pub automatic_triggers: Vec<String>,
+    pub writes_code: bool,
+    pub can_fail_ci: String,
+    pub cold_payload_allowed: String,
+    pub safe_default: String,
+    pub recommended_profiles: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdRoutinesReport {
+    pub schema: String,
+    pub status: String,
+    pub spec_ref: String,
+    pub automation_rules: Vec<String>,
+    pub routines: Vec<BloatgaurdRoutine>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BloatgaurdRolloutReport {
+    pub schema: String,
+    pub status: String,
+    pub spec_ref: String,
+    pub phases: Vec<String>,
+    pub acceptance_checks: Vec<String>,
+    pub resolved_open_questions: Vec<String>,
+    pub proof_commands: Vec<String>,
+}
+
+pub fn bloatgaurd_profiles_report() -> BloatgaurdProfilesReport {
+    BloatgaurdProfilesReport {
+        schema: "focusa.bloatgaurd.profiles_report.v1".to_string(),
+        status: "completed".to_string(),
+        spec_ref: "docs/101-focusa-bloatgaurd-spec.md#16-preconfigured-profiles".to_string(),
+        safety_rules: vec![
+            "no automatic deletion".to_string(),
+            "no classifier-only enforcement".to_string(),
+            "no hidden full-payload default in hot paths".to_string(),
+            "no cross-project semantic cache without project_root + continuity_id".to_string(),
+            "no elision that drops active blocker evidence without a rehydrate ref".to_string(),
+        ],
+        operator_switches: vec![
+            "temporary_disable".to_string(),
+            "strict_mode".to_string(),
+            "advisory_mode".to_string(),
+            "cold_opt_in_exact_raw_payloads".to_string(),
+            "protected_surface_allowlist".to_string(),
+        ],
+        profiles: bloatgaurd_profiles(),
+    }
+}
+
+pub fn bloatgaurd_profile(name: &str) -> Option<BloatgaurdProfile> {
+    let key = normalize_domain_name(name);
+    bloatgaurd_profiles().into_iter().find(|profile| {
+        normalize_domain_name(&profile.name) == key || normalize_domain_name(&profile.title) == key
+    })
+}
+
+pub fn bloatgaurd_profiles() -> Vec<BloatgaurdProfile> {
+    vec![
+        profile(
+            "daily_driver",
+            "Daily Driver",
+            "advisory",
+            "after_checkpoint",
+            "advisory",
+            "scoped",
+            "cold_opt_in",
+            "medium",
+            "medium",
+            vec!["output_firewall", "semantic_cache", "context_compiler"],
+        ),
+        profile(
+            "beast_mode",
+            "Beast Mode",
+            "advisory",
+            "advisory",
+            "advisory",
+            "scoped",
+            "cold_opt_in",
+            "high",
+            "high",
+            vec!["output_firewall", "semantic_cache", "low_compression_bias"],
+        ),
+        profile(
+            "speedy",
+            "Speedy",
+            "warning",
+            "after_checkpoint",
+            "required_for_broad_reads",
+            "scoped",
+            "cold_opt_in",
+            "low",
+            "low",
+            vec!["output_firewall", "stable_prefix_churn_gate"],
+        ),
+        profile(
+            "neat_freak",
+            "Neat Freak",
+            "advisory",
+            "after_checkpoint",
+            "required_for_broad_reads",
+            "scoped",
+            "cold_opt_in",
+            "medium",
+            "medium",
+            vec![
+                "dead_code_inventory",
+                "duplicate_dedupe",
+                "docs_budget",
+                "shell_script_budget",
+            ],
+        ),
+        profile(
+            "tightwad",
+            "Tightwad",
+            "fail_closed",
+            "after_checkpoint",
+            "required_for_broad_reads",
+            "scoped",
+            "deny_hot_path",
+            "low",
+            "low",
+            vec![
+                "output_firewall",
+                "duplicate_dedupe",
+                "docs_budget",
+                "shell_script_budget",
+                "stable_prefix_churn_gate",
+                "adaptive_router",
+            ],
+        ),
+    ]
+}
+
+fn profile(
+    name: &str,
+    title: &str,
+    mode: &str,
+    tool_history_elision: &str,
+    context_compiler: &str,
+    semantic_cache: &str,
+    full_payload_policy: &str,
+    dynamic_slice_budget: &str,
+    rehydration_bias: &str,
+    toggles: Vec<&str>,
+) -> BloatgaurdProfile {
+    BloatgaurdProfile {
+        name: name.to_string(),
+        title: title.to_string(),
+        mode: mode.to_string(),
+        output_firewall: true,
+        tool_history_elision: tool_history_elision.to_string(),
+        context_compiler: context_compiler.to_string(),
+        semantic_cache: semantic_cache.to_string(),
+        full_payload_policy: full_payload_policy.to_string(),
+        dynamic_slice_budget: dynamic_slice_budget.to_string(),
+        rehydration_bias: rehydration_bias.to_string(),
+        toggles: toggles.into_iter().map(str::to_string).collect(),
+    }
+}
+
+pub fn bloatgaurd_routines_report() -> BloatgaurdRoutinesReport {
+    BloatgaurdRoutinesReport {
+        schema: "focusa.bloatgaurd.routines_report.v1".to_string(),
+        status: "completed".to_string(),
+        spec_ref: "docs/101-focusa-bloatgaurd-spec.md#17-named-routines-and-automation-policy".to_string(),
+        automation_rules: vec![
+            "automatic routines require verified project_root + continuity_id scope".to_string(),
+            "context routines consume Spec100 Context Cognition before separate context selection".to_string(),
+            "automatic routines emit report handles or evidence refs".to_string(),
+            "automatic routines do not delete, archive, rewrite, or disable code".to_string(),
+            "CI failure belongs to The Gatekeeper under Tightwad or explicitly selected strict modes".to_string(),
+        ],
+        routines: bloatgaurd_routines(),
+    }
+}
+
+pub fn bloatgaurd_routine(name: &str) -> Option<BloatgaurdRoutine> {
+    let key = normalize_domain_name(name);
+    bloatgaurd_routines().into_iter().find(|routine| {
+        normalize_domain_name(&routine.name) == key || normalize_domain_name(&routine.title) == key
+    })
+}
+
+pub fn bloatgaurd_routines() -> Vec<BloatgaurdRoutine> {
+    vec![
+        routine(
+            "patrol",
+            "The Patrol",
+            "bloatgaurd scan",
+            vec!["ci_advisory", "nightly", "pre_pr"],
+            "profile-dependent",
+            "no",
+            "report_only",
+            vec!["daily_driver", "neat_freak", "tightwad"],
+        ),
+        routine(
+            "brief",
+            "The Brief",
+            "bloatgaurd report",
+            vec!["after_scan", "daily", "weekly"],
+            "no",
+            "no",
+            "report_only",
+            vec!["daily_driver", "neat_freak"],
+        ),
+        routine(
+            "squeezer",
+            "The Squeezer",
+            "bloatgaurd squeeze",
+            vec![
+                "after_checkpoint",
+                "before_compaction",
+                "token_pressure_high",
+            ],
+            "no",
+            "no",
+            "no_raw_deletion",
+            vec!["daily_driver", "speedy", "tightwad"],
+        ),
+        routine(
+            "librarian",
+            "The Librarian",
+            "bloatgaurd context",
+            vec!["broad_read_trigger", "audit_start"],
+            "no",
+            "bounded context only",
+            "bounded_bundle_only",
+            vec!["beast_mode", "neat_freak"],
+        ),
+        routine(
+            "janitor",
+            "The Janitor",
+            "bloatgaurd dedupe",
+            vec!["ci_advisory", "docs_changed"],
+            "warning/fail candidate only",
+            "no",
+            "advisory_only",
+            vec!["neat_freak", "tightwad"],
+        ),
+        routine(
+            "pantry",
+            "The Pantry",
+            "bloatgaurd cache",
+            vec!["project_open", "docs_changed", "checkpoint"],
+            "no",
+            "no",
+            "scoped_cache_only",
+            vec!["daily_driver", "speedy"],
+        ),
+        routine(
+            "gatekeeper",
+            "The Gatekeeper",
+            "bloatgaurd check",
+            vec!["ci", "pre_commit", "release_gate"],
+            "yes",
+            "no",
+            "profile_controls_failure_mode",
+            vec!["tightwad"],
+        ),
+        routine(
+            "xray",
+            "The X-Ray",
+            "bloatgaurd explain",
+            vec![],
+            "no",
+            "no",
+            "read_only",
+            vec!["daily_driver", "beast_mode", "neat_freak"],
+        ),
+        routine(
+            "deep_dive",
+            "The Deep Dive",
+            "bloatgaurd rehydrate",
+            vec!["active_blocker_only"],
+            "no",
+            "yes, explicit handle only",
+            "explicit_handle_required",
+            vec!["beast_mode"],
+        ),
+        routine(
+            "scout",
+            "The Scout",
+            "bloatgaurd route",
+            vec!["before_broad_read", "before_audit", "token_pressure_high"],
+            "no",
+            "no",
+            "advisory_only",
+            vec!["daily_driver", "speedy", "neat_freak"],
+        ),
+    ]
+}
+
+fn routine(
+    name: &str,
+    title: &str,
+    command: &str,
+    automatic_triggers: Vec<&str>,
+    can_fail_ci: &str,
+    cold_payload_allowed: &str,
+    safe_default: &str,
+    recommended_profiles: Vec<&str>,
+) -> BloatgaurdRoutine {
+    BloatgaurdRoutine {
+        name: name.to_string(),
+        title: title.to_string(),
+        command: command.to_string(),
+        manual: true,
+        automatic_triggers: automatic_triggers.into_iter().map(str::to_string).collect(),
+        writes_code: false,
+        can_fail_ci: can_fail_ci.to_string(),
+        cold_payload_allowed: cold_payload_allowed.to_string(),
+        safe_default: safe_default.to_string(),
+        recommended_profiles: recommended_profiles
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+    }
+}
+
+pub fn bloatgaurd_rollout_report() -> BloatgaurdRolloutReport {
+    BloatgaurdRolloutReport {
+        schema: "focusa.bloatgaurd.rollout_report.v1".to_string(),
+        status: "completed".to_string(),
+        spec_ref: "docs/101-focusa-bloatgaurd-spec.md#10-rollout-plan".to_string(),
+        phases: vec![
+            "measure_repo_baseline_in_advisory_mode".to_string(),
+            "classify_false_positives_and_intentional_exceptions".to_string(),
+            "add_allowlist_with_review_dates".to_string(),
+            "turn_on_warning_gate_for_new_violations".to_string(),
+            "promote_high_confidence_checks_to_fail_closed".to_string(),
+            "periodically_reduce_allowlist_via_core_migrations".to_string(),
+        ],
+        acceptance_checks: vec![
+            "profiles_report_exposes_daily_driver_to_tightwad".to_string(),
+            "routines_report_exposes_patrol_to_scout".to_string(),
+            "gate_modes_report_exposes_A_B_C_thresholds_allowlist_schema".to_string(),
+            "tokenbloat_report_exposes_5_9_5_10_controls".to_string(),
+            "all_surfaces_have_api_cli_pi_docs_and_static_audit_coverage".to_string(),
+        ],
+        resolved_open_questions: vec![
+            "deletion remains out_of_scope_without_operator_review".to_string(),
+            "classifier_output_is_advisory_only".to_string(),
+            "strict CI failure is limited to Gatekeeper/Tightwad or selected strict mode"
+                .to_string(),
+            "full payload remains cold_opt_in with explicit handle".to_string(),
+        ],
+        proof_commands: vec![
+            "python3 tests/spec101_bloatgaurd_budgets_static_test.py".to_string(),
+            "node scripts/audit-focusa-bloatgaurd-budgets.mjs".to_string(),
+            "node scripts/validate-focusa-tool-contracts.mjs".to_string(),
+            "cargo test --workspace".to_string(),
+            "cargo clippy --workspace -- -D warnings".to_string(),
+        ],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -546,6 +935,48 @@ mod tests {
             mode_c
                 .allowlist
                 .contains(&"explicit_ci_allowlist".to_string())
+        );
+    }
+
+    #[test]
+    fn profiles_routines_and_rollout_are_complete() {
+        let profiles = bloatgaurd_profiles_report();
+        assert_eq!(profiles.profiles.len(), 5);
+        assert!(bloatgaurd_profile("daily-driver").is_some());
+        assert_eq!(bloatgaurd_profile("tightwad").unwrap().mode, "fail_closed");
+        assert!(
+            profiles
+                .operator_switches
+                .contains(&"strict_mode".to_string())
+        );
+
+        let routines = bloatgaurd_routines_report();
+        assert_eq!(routines.routines.len(), 10);
+        assert!(bloatgaurd_routine("patrol").is_some());
+        assert_eq!(
+            bloatgaurd_routine("scout").unwrap().safe_default,
+            "advisory_only"
+        );
+        assert!(
+            routines
+                .automation_rules
+                .iter()
+                .any(|rule| rule.contains("project_root"))
+        );
+
+        let rollout = bloatgaurd_rollout_report();
+        assert_eq!(rollout.phases.len(), 6);
+        assert!(
+            rollout
+                .acceptance_checks
+                .iter()
+                .any(|check| check.contains("profiles_report"))
+        );
+        assert!(
+            rollout
+                .resolved_open_questions
+                .iter()
+                .any(|q| q.contains("deletion"))
         );
     }
 }

@@ -1499,6 +1499,92 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_bloatgaurd_profiles",
+    "label": "Bloatgaurd Profiles",
+    "purpose": "Spec 101 — read profile presets and operator switches.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.profiles",
+    "ontology_objects": ["BloatgaurdProfilesReport", "BloatgaurdProfile"],
+    "api_routes": ["GET /v1/bloatgaurd/profiles/report"],
+    "cli_commands": ["focusa bloatgaurd profiles"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdProfilesReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/profiles/report safe probe"
+  },
+  {
+    "name": "focusa_bloatgaurd_profile",
+    "label": "Bloatgaurd Profile",
+    "purpose": "Spec 101 — read one profile preset by name.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.profile",
+    "ontology_objects": ["BloatgaurdProfile"],
+    "api_routes": ["GET /v1/bloatgaurd/profiles/profile/{name}"],
+    "cli_commands": ["focusa bloatgaurd profile <name>"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdProfile",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_profile.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/profiles/profile/daily_driver safe probe"
+  },
+  {
+    "name": "focusa_bloatgaurd_routines",
+    "label": "Bloatgaurd Routines",
+    "purpose": "Spec 101 — read named routines and automation matrix.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.routines",
+    "ontology_objects": ["BloatgaurdRoutinesReport", "BloatgaurdRoutine"],
+    "api_routes": ["GET /v1/bloatgaurd/routines/report"],
+    "cli_commands": ["focusa bloatgaurd routines"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdRoutinesReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_routines.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/routines/report safe probe"
+  },
+  {
+    "name": "focusa_bloatgaurd_routine",
+    "label": "Bloatgaurd Routine",
+    "purpose": "Spec 101 — read one named routine by name.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.routine",
+    "ontology_objects": ["BloatgaurdRoutine"],
+    "api_routes": ["GET /v1/bloatgaurd/routines/routine/{name}"],
+    "cli_commands": ["focusa bloatgaurd routine <name>"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdRoutine",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_routine.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/routines/routine/patrol safe probe"
+  },
+  {
+    "name": "focusa_bloatgaurd_rollout",
+    "label": "Bloatgaurd Rollout",
+    "purpose": "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.rollout",
+    "ontology_objects": ["BloatgaurdRolloutReport"],
+    "api_routes": ["GET /v1/bloatgaurd/rollout/report"],
+    "cli_commands": ["focusa bloatgaurd rollout"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdRolloutReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/rollout/report safe probe"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -2055,6 +2141,31 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_bloatgaurd_gate_mode": [
     "focusa_bloatgaurd_gate_modes",
     "focusa_traverse",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_profiles": [
+    "focusa_bloatgaurd_profile",
+    "focusa_bloatgaurd_routines",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_profile": [
+    "focusa_bloatgaurd_profiles",
+    "focusa_bloatgaurd_routines",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_routines": [
+    "focusa_bloatgaurd_routine",
+    "focusa_bloatgaurd_profiles",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_routine": [
+    "focusa_bloatgaurd_routines",
+    "focusa_bloatgaurd_profiles",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_rollout": [
+    "focusa_bloatgaurd_profiles",
+    "focusa_bloatgaurd_routines",
     "focusa_evidence_capture"
   ],
   "focusa_call_stack_design": [

@@ -2,7 +2,7 @@ use crate::api_client::ApiClient;
 use clap::Subcommand;
 use serde_json::Value;
 
-/// CLI surface: `focusa bloatgaurd report`, `focusa bloatgaurd domain <name>`, `focusa bloatgaurd tokenbloat`, `focusa bloatgaurd token-domain <name>`, `focusa bloatgaurd gate-modes`, and `focusa bloatgaurd gate-mode <name>`.
+/// CLI surface: report/domain, tokenbloat, gate modes, profiles, routines, and rollout read-only reports.
 #[derive(Subcommand)]
 pub enum BloatgaurdCmd {
     /// Read the Spec101 Bloatgaurd budget report.
@@ -17,6 +17,16 @@ pub enum BloatgaurdCmd {
     GateModes,
     /// Read one Spec101 Bloatgaurd gate mode by code/name.
     GateMode { name: String },
+    /// Read Spec101 profile presets and operator toggles.
+    Profiles,
+    /// Read one Spec101 profile preset by name.
+    Profile { name: String },
+    /// Read Spec101 named routines and automation matrix.
+    Routines,
+    /// Read one Spec101 named routine by name.
+    Routine { name: String },
+    /// Read Spec101 rollout phases, acceptance checks, and proof commands.
+    Rollout,
 }
 
 pub async fn handle(client: &mut ApiClient, cmd: BloatgaurdCmd) -> anyhow::Result<()> {
@@ -48,6 +58,30 @@ pub async fn handle(client: &mut ApiClient, cmd: BloatgaurdCmd) -> anyhow::Resul
                 .get(&format!("/v1/bloatgaurd/gate-modes/mode/{name}"))
                 .await?;
             print_gate_mode(&resp);
+        }
+        BloatgaurdCmd::Profiles => {
+            let resp = client.get("/v1/bloatgaurd/profiles/report").await?;
+            print_named_collection(&resp, "profiles", "profiles");
+        }
+        BloatgaurdCmd::Profile { name } => {
+            let resp = client
+                .get(&format!("/v1/bloatgaurd/profiles/profile/{name}"))
+                .await?;
+            print_named_item(&resp, "profile");
+        }
+        BloatgaurdCmd::Routines => {
+            let resp = client.get("/v1/bloatgaurd/routines/report").await?;
+            print_named_collection(&resp, "routines", "routines");
+        }
+        BloatgaurdCmd::Routine { name } => {
+            let resp = client
+                .get(&format!("/v1/bloatgaurd/routines/routine/{name}"))
+                .await?;
+            print_named_item(&resp, "routine");
+        }
+        BloatgaurdCmd::Rollout => {
+            let resp = client.get("/v1/bloatgaurd/rollout/report").await?;
+            print_rollout(&resp);
         }
     }
     Ok(())
@@ -178,6 +212,70 @@ fn print_gate_mode(payload: &Value) {
             .unwrap_or("unknown");
         println!("bloatgaurd gate-mode {status} | requested={requested}");
     }
+}
+
+fn print_named_collection(payload: &Value, label: &str, key: &str) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let count = payload
+        .get(key)
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or(0);
+    println!("bloatgaurd {label} {status} | count={count}");
+    if let Some(items) = payload.get(key).and_then(Value::as_array) {
+        for item in items.iter().take(12) {
+            let name = item
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let title = item
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            println!("  {name}: {title}");
+        }
+    }
+}
+
+fn print_named_item(payload: &Value, key: &str) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    if let Some(item) = payload.get(key) {
+        let name = item
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+        let title = item
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+        println!("bloatgaurd {key} {status} | {name}: {title}");
+    } else {
+        println!("bloatgaurd {key} {status}");
+    }
+}
+
+fn print_rollout(payload: &Value) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let phases = payload
+        .get("phases")
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or(0);
+    let checks = payload
+        .get("acceptance_checks")
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or(0);
+    println!("bloatgaurd rollout {status} | phases={phases} acceptance_checks={checks}");
 }
 
 fn print_domain(payload: &Value) {

@@ -5050,6 +5050,90 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_bloatgaurd_profiles",
+    label: "Bloatgaurd Profiles",
+    description: "Spec 101 — read profile presets and operator switches.",
+    promptSnippet: "Use to inspect Daily Driver, Beast Mode, Speedy, Neat Freak, and Tightwad profile settings.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/bloatgaurd/profiles/report");
+      const body = result.body || {};
+      const profiles = Array.isArray(body.profiles) ? body.profiles : [];
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd profiles → profiles=${profiles.length}`, tool: "focusa_bloatgaurd_profiles", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_profile", "focusa_bloatgaurd_routines", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `bloatgaurd profiles ${body.status || result.status} | profiles=${profiles.length}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_profile",
+    label: "Bloatgaurd Profile",
+    description: "Spec 101 — read one profile preset by name.",
+    promptSnippet: "Use to inspect a profile such as daily_driver or tightwad.",
+    parameters: strictObject({ name: Type.String({ minLength: 1, maxLength: 120, description: "Profile slug or title." }) }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_profile", params, ["name"]);
+      if (!keyCheck.ok) return spec80ValidationResult("focusa_bloatgaurd_profile", "/v1/bloatgaurd/profiles/profile/{name}", params as Record<string, any>, "bloatgaurd profile", keyCheck.error);
+      const result = await focusaFetchDetailed(`/bloatgaurd/profiles/profile/${encodeURIComponent(String(params.name || ""))}`);
+      const body = result.body || {};
+      const profile = body.profile || null;
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd profile → ${profile?.name || params.name}`, tool: "focusa_bloatgaurd_profile", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_profiles", "focusa_bloatgaurd_routines", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `bloatgaurd profile ${body.status || result.status} | ${profile?.name || params.name}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_routines",
+    label: "Bloatgaurd Routines",
+    description: "Spec 101 — read named routines and automation matrix.",
+    promptSnippet: "Use to inspect Patrol through Scout automation policy.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/bloatgaurd/routines/report");
+      const body = result.body || {};
+      const routines = Array.isArray(body.routines) ? body.routines : [];
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd routines → routines=${routines.length}`, tool: "focusa_bloatgaurd_routines", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_routine", "focusa_bloatgaurd_profiles", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `bloatgaurd routines ${body.status || result.status} | routines=${routines.length}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_routine",
+    label: "Bloatgaurd Routine",
+    description: "Spec 101 — read one named routine by name.",
+    promptSnippet: "Use to inspect a routine such as patrol, gatekeeper, or scout.",
+    parameters: strictObject({ name: Type.String({ minLength: 1, maxLength: 120, description: "Routine slug or title." }) }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_routine", params, ["name"]);
+      if (!keyCheck.ok) return spec80ValidationResult("focusa_bloatgaurd_routine", "/v1/bloatgaurd/routines/routine/{name}", params as Record<string, any>, "bloatgaurd routine", keyCheck.error);
+      const result = await focusaFetchDetailed(`/bloatgaurd/routines/routine/${encodeURIComponent(String(params.name || ""))}`);
+      const body = result.body || {};
+      const routine = body.routine || null;
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd routine → ${routine?.name || params.name}`, tool: "focusa_bloatgaurd_routine", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_routines", "focusa_bloatgaurd_profiles", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `bloatgaurd routine ${body.status || result.status} | ${routine?.name || params.name}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_rollout",
+    label: "Bloatgaurd Rollout",
+    description: "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
+    promptSnippet: "Use to verify rollout hardening acceptance/proof for Bloatgaurd MVP.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/bloatgaurd/rollout/report");
+      const body = result.body || {};
+      const phases = Array.isArray(body.phases) ? body.phases : [];
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd rollout → phases=${phases.length}`, tool: "focusa_bloatgaurd_rollout", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_profiles", "focusa_bloatgaurd_routines", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `bloatgaurd rollout ${body.status || result.status} | phases=${phases.length}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_context_cognition",
     label: "Context Cognition",
     description: "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state.",
