@@ -5,6 +5,7 @@
   import { gateStore } from '$lib/stores/gate.svelte';
 
   let candidates = $derived(gateStore.candidates);
+  let hiddenCandidateCount = $derived(gateStore.hiddenCandidateCount);
   let signals = $derived(gateStore.signals);
 </script>
 
@@ -21,14 +22,18 @@
       </div>
     </div>
   {:else}
-    {#if candidates.length > 0}
+    {#if candidates.length > 0 || hiddenCandidateCount > 0}
       <section class="section">
         <div class="section-label">SOFT CANDIDATES ({candidates.length})</div>
+        {#if hiddenCandidateCount > 0}
+          <div class="filter-note">Filtered {hiddenCandidateCount} stale low-confidence advisory candidates by default.</div>
+        {/if}
         {#each candidates as c}
           <div class="candidate" style="--pressure: {Math.max(0.3, c.pressure)}">
             <div class="candidate-top">
               <span class="candidate-kind">{c.kind}</span>
               <div class="candidate-right">
+                {#if c.stale_advisory}<span class="stale-chip" title="Older than the default recency window">stale/advisory</span>{/if}
                 {#if c.pinned}<span class="pin" title="Pinned">📌</span>{/if}
                 <span class="pressure-label">{Math.round(c.pressure * 100)}%</span>
               </div>
@@ -113,6 +118,13 @@
     margin-bottom: var(--sp-2);
   }
 
+  .filter-note {
+    font-size: var(--text-xs);
+    color: var(--fg-tertiary);
+    margin: calc(-1 * var(--sp-1)) 0 var(--sp-2);
+    line-height: 1.4;
+  }
+
   /* Candidates */
   .candidate {
     background: var(--bg-panel);
@@ -146,6 +158,15 @@
   }
 
   .pin { font-size: 11px; }
+
+  .stale-chip {
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--fg-tertiary);
+    font-size: 9px;
+    padding: 1px 4px;
+    text-transform: uppercase;
+  }
 
   .pressure-label {
     font-size: 10px;
