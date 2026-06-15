@@ -568,10 +568,10 @@ fn source_contains(root: &str, rel_dir: &str, needle: &str, max_files: usize) ->
             if !matches!(ext, "rs" | "ts" | "tsx" | "js" | "md" | "toml" | "json") {
                 continue;
             }
-            if let Ok(body) = fs::read_to_string(&path) {
-                if body.contains(needle) {
-                    return true;
-                }
+            if let Ok(body) = fs::read_to_string(&path)
+                && body.contains(needle)
+            {
+                return true;
             }
         }
     }

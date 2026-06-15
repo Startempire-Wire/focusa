@@ -240,17 +240,17 @@ async fn view(
     if let Some(wp) = scoped_workpoint {
         packet.scope.workpoint_id = Some(wp.workpoint_id.to_string());
     }
-    if exact_scope_ready {
-        if let Some(active_id) = focusa_state.trajectory.active_trajectory_id.as_deref() {
-            if let Some(traj) = focusa_state.trajectory.records.iter().find(|record| {
-                record.trajectory_id == active_id
-                    && record.project_root.as_deref() == Some(project_root)
-                    && record.continuity_id.as_deref() == continuity_id.as_deref()
-            }) {
-                packet.scope.trajectory_id = Some(traj.trajectory_id.clone());
-            } else {
-                packet.selected_context.excluded_context.push("active trajectory omitted: scope mismatch or missing continuity_id".to_string());
-            }
+    if exact_scope_ready
+        && let Some(active_id) = focusa_state.trajectory.active_trajectory_id.as_deref()
+    {
+        if let Some(traj) = focusa_state.trajectory.records.iter().find(|record| {
+            record.trajectory_id == active_id
+                && record.project_root.as_deref() == Some(project_root)
+                && record.continuity_id.as_deref() == continuity_id.as_deref()
+        }) {
+            packet.scope.trajectory_id = Some(traj.trajectory_id.clone());
+        } else {
+            packet.selected_context.excluded_context.push("active trajectory omitted: scope mismatch or missing continuity_id".to_string());
         }
     }
 

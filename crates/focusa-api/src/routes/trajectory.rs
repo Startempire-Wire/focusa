@@ -1196,17 +1196,16 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .as_deref()
         .map(is_generic_bootstrap_hlt)
         .unwrap_or(true)
-    {
-        if let Some(history_record) = latest_valid_historical_trajectory(
+        && let Some(history_record) = latest_valid_historical_trajectory(
             state.trajectory.records.as_slice(),
             Some(project_root.as_str()).filter(|root| *root != "unbound"),
             continuity_id.as_deref(),
-        ) {
-            long_term_goal = Some(history_record.long_term_goal.clone());
-            desired_end_state.get_or_insert_with(|| history_record.desired_end_state.clone());
-            hlt_source = "hlt_history_fallback";
-            hlt_degraded_placeholder = false;
-        }
+        )
+    {
+        long_term_goal = Some(history_record.long_term_goal.clone());
+        desired_end_state.get_or_insert_with(|| history_record.desired_end_state.clone());
+        hlt_source = "hlt_history_fallback";
+        hlt_degraded_placeholder = false;
     }
     let hlt_valid = long_term_goal
         .as_deref()

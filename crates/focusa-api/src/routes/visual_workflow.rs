@@ -150,7 +150,7 @@ async fn store_visual_evidence(
     })?;
     let mut handle = store
         .store(
-            body.kind.clone(),
+            body.kind,
             label.clone(),
             &content,
             session_id,

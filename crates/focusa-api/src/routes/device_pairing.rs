@@ -1012,7 +1012,7 @@ async fn pair_complete(
         "token_expires_at": now + Duration::seconds(TOKEN_TTL_SECS),
         "token_ttl_secs": TOKEN_TTL_SECS,
         "operator_handoff": {
-            "command": format!("# On your Mac app, store the token in Keychain and reconnect using the daemon URL"),
+            "command": "# On your Mac app, store the token in Keychain and reconnect using the daemon URL".to_string(),
             "next_step": "mac app should poll /v1/device/pair/status?code=... to retrieve the token"
         },
         "next_tools": ["focusa_device_pair_status", "focusa_device_pair_list"],
@@ -1256,7 +1256,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn code_format_is_FOCUS_DASH_8_DASH_4() {
+    fn code_format_is_focus_dash_8_dash_4() {
         let code = generate_code();
         assert!(code.starts_with("FOCUS-"));
         // 4 hex + dash + 4 hex after the FOCUS- prefix.

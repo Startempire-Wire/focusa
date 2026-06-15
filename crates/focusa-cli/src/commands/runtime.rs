@@ -109,12 +109,12 @@ pub async fn collect_inventory(expected_owner: Option<&str>) -> RuntimeInventory
     if daemon_running && pid.is_none() {
         warnings.push("daemon health endpoint responds but process PID was not found by pgrep".to_string());
     }
-    if let (Some(expected_owner), Some(actual_user)) = (expected_owner, user.as_deref()) {
-        if actual_user != expected_owner {
-            warnings.push(format!(
-                "daemon user {actual_user} differs from expected owner {expected_owner}"
-            ));
-        }
+    if let (Some(expected_owner), Some(actual_user)) = (expected_owner, user.as_deref())
+        && actual_user != expected_owner
+    {
+        warnings.push(format!(
+            "daemon user {actual_user} differs from expected owner {expected_owner}"
+        ));
     }
 
     let status = if warnings.is_empty() { "ok" } else { "degraded" };

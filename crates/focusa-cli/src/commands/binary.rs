@@ -125,18 +125,17 @@ pub fn preflight_install(args: BinaryPreflightInstallArgs) -> BinaryPreflightEnv
     if let (Some(required), Some(host)) = (
         asset.required_glibc.as_deref().and_then(parse_glibc_version),
         parse_glibc_version(&asset.host_glibc),
-    ) {
-        if required > host {
-            verdict = BinaryPreflightVerdict::Block;
-            conflicts.push(BinaryPreflightConflict {
-                class: "glibc_incompatible_asset",
-                why: format!(
-                    "asset requires GLIBC_{}.{} but host provides {}",
-                    required.0, required.1, asset.host_glibc
-                ),
-            });
-            safe_alternative.get_or_insert_with(|| "build from source on this host".to_string());
-        }
+    ) && required > host
+    {
+        verdict = BinaryPreflightVerdict::Block;
+        conflicts.push(BinaryPreflightConflict {
+            class: "glibc_incompatible_asset",
+            why: format!(
+                "asset requires GLIBC_{}.{} but host provides {}",
+                required.0, required.1, asset.host_glibc
+            ),
+        });
+        safe_alternative.get_or_insert_with(|| "build from source on this host".to_string());
     }
 
     if install_role == "unknown" && is_release_asset && verdict == BinaryPreflightVerdict::Allow {
