@@ -398,6 +398,8 @@ Health check:
 curl -sS http://127.0.0.1:8787/v1/health | jq .
 ```
 
+Production deployment checklist: `docs/production-deployment-guide.md`
+
 ### CLI examples
 
 Project-scoped commands should carry `--project-root` plus a stable `--continuity-id`. Use the repo folder (or `FOCUSA_PROJECT_ROOT`) for `--project-root`; use a repeatable workstream id such as `cont-1`, a ticket id, or your agent continuity id for `--continuity-id`.
@@ -574,6 +576,7 @@ These docs describe only the current present build/snapshot surfaces:
 - [`docs/current/PORTABILITY_AUDIT.md`](docs/current/PORTABILITY_AUDIT.md) — external tester portability matrix, fixed gaps, and remaining caveats.
 - [`docs/current/VALIDATION_AND_RELEASE_PROOF.md`](docs/current/VALIDATION_AND_RELEASE_PROOF.md) — current validation and real runtime proof expectations.
 - [`docs/current/PRODUCTION_RELEASE_COMMANDS.md`](docs/current/PRODUCTION_RELEASE_COMMANDS.md) — copy/paste commands for release, restart, GitHub proof, and cleanup.
+- [`docs/production-deployment-guide.md`](docs/production-deployment-guide.md) — production deployment reference for reverse proxy, TLS, pairing URL, rate limits, and logs.
 - [`templates/workpoint-session.md`](templates/workpoint-session.md), [`templates/evidence-checklist.md`](templates/evidence-checklist.md), [`templates/agentops-sop.md`](templates/agentops-sop.md) — buyer-ready Operator Preview session templates.
 - [`docs/92-agent-first-polish-hooks-efficiency-spec.md`](docs/92-agent-first-polish-hooks-efficiency-spec.md) — next polish spec for hooks, token/cache UX, agent command center, and predictive power.
 - [`docs/current/HOOK_COVERAGE.md`](docs/current/HOOK_COVERAGE.md) — current Pi hook coverage and Spec92 hook telemetry commands.
