@@ -644,6 +644,7 @@ pub fn bloatgaurd_profiles() -> Vec<BloatgaurdProfile> {
     ]
 }
 
+#[allow(clippy::too_many_arguments)]
 fn profile(
     name: &str,
     title: &str,
@@ -803,6 +804,7 @@ pub fn bloatgaurd_routines() -> Vec<BloatgaurdRoutine> {
     ]
 }
 
+#[allow(clippy::too_many_arguments)]
 fn routine(
     name: &str,
     title: &str,
