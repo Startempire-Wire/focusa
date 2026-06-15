@@ -1,5 +1,8 @@
 use axum::{Json, Router, routing::get};
-use focusa_core::utility_card::utility_card;
+use focusa_core::awareness::{
+    self, AwarenessInput, SURFACE_POST_COMPACTION,
+    SURFACE_RELOAD, SURFACE_TOOL_GUIDANCE, SURFACE_UIAI_BRIDGE, SURFACE_WARNING,
+};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -10,14 +13,18 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/utility/card", get(card))
         .route("/v1/utility/bootstrap", get(bootstrap))
         .route("/v1/utility/post-compaction", get(post_compaction))
+        .route("/v1/awareness/packet", get(awareness_packet))
+        .route("/v1/awareness/packet/{surface}", get(awareness_packet_by_surface))
 }
 
 async fn card() -> Json<serde_json::Value> {
-    Json(json!(utility_card()))
+    // Fallback to legacy static card for backward compat
+    let legacy = focusa_core::utility_card::utility_card();
+    Json(json!(legacy))
 }
 
 async fn bootstrap() -> Json<serde_json::Value> {
-    let card = utility_card();
+    let card = focusa_core::utility_card::utility_card();
     Json(json!({
         "schema": "focusa.utility_bootstrap.v1",
         "status": card.status,
@@ -32,7 +39,7 @@ async fn bootstrap() -> Json<serde_json::Value> {
 }
 
 async fn post_compaction() -> Json<serde_json::Value> {
-    let card = utility_card();
+    let card = focusa_core::utility_card::utility_card();
     Json(json!({
         "schema": "focusa.utility_post_compaction.v1",
         "status": card.status,
@@ -45,4 +52,36 @@ async fn post_compaction() -> Json<serde_json::Value> {
         "recovery_order": card.recovery_order,
         "next_tools": card.next_tools,
     }))
+}
+
+/// `GET /v1/awareness/packet` — surface-aware awareness packet with default surface.
+async fn awareness_packet() -> Json<serde_json::Value> {
+    let mut input = AwarenessInput::default();
+    input.surface = SURFACE_RELOAD.to_string();
+    let packet = awareness::render_packet(&input);
+    Json(json!(packet))
+}
+
+/// `GET /v1/awareness/packet/:surface` — surface-aware awareness packet.
+async fn awareness_packet_by_surface(
+    axum::extract::Path(surface): axum::extract::Path<String>,
+) -> Json<serde_json::Value> {
+    let surface: String = match surface.as_str() {
+        "reload" => SURFACE_RELOAD.to_string(),
+        "post_compaction" => SURFACE_POST_COMPACTION.to_string(),
+        "warning" => SURFACE_WARNING.to_string(),
+        "tool_guidance" => SURFACE_TOOL_GUIDANCE.to_string(),
+        "uiai_bridge" => SURFACE_UIAI_BRIDGE.to_string(),
+        _ => {
+            return Json(json!({
+                "error": "unknown_surface",
+                "allowed": ["reload", "post_compaction", "warning", "tool_guidance", "uiai_bridge"]
+            }));
+        }
+    };
+
+    let mut input = AwarenessInput::default();
+    input.surface = surface;
+    let packet = awareness::render_packet(&input);
+    Json(json!(packet))
 }
