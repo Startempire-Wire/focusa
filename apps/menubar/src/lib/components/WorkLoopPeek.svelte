@@ -22,13 +22,19 @@
     return [];
   }
 
-  let dispatchReady = $derived(health.dispatch_ready ?? health.ready);
-  let degraded = $derived(health.degraded ?? status.degraded);
-  let boundary = $derived(health.boundary_reason ?? status.boundary_reason);
+  let dispatchReady = $derived(health.dispatch_ready ?? health.ready ?? health.dispatch_readiness?.ready);
+  let transport = $derived(status.transport_health ?? health.transport_health ?? {});
+  let degraded = $derived(health.degraded ?? status.degraded ?? transport.status === 'degraded');
+  let boundary = $derived(health.boundary_reason ?? status.boundary_reason ?? transport.last_reason);
   let pauseFlags = $derived(records(health.pause_flags ?? status.pause_flags, ['flags', 'items']));
   let checkpoints = $derived(records(checkpointsPayload, ['checkpoints', 'items', 'records']));
   let activeTask = $derived(status.current_task ?? status.work_loop?.current_task ?? {});
-  let writer = $derived(health.writer_owner ?? status.writer_owner ?? status.writer?.owner);
+  let writer = $derived(health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
+  let projectRoot = $derived(s.projectIdentity?.project_root ?? s.workpointResume?.project_root ?? s.session?.project_root);
+  let loopWorkpoint = $derived(status.active_workpoint?.active ?? status.active_workpoint ?? {});
+  let loopProjectRoot = $derived(loopWorkpoint.project_root);
+  let loopTaskStale = $derived(Boolean(status.authority?.canonical === false || (loopProjectRoot && projectRoot && loopProjectRoot !== projectRoot)));
+  let currentWorkpoint = $derived(s.workpointResume ?? {});
 </script>
 
 <section class="workloop-peek" aria-label="Work Loop peek">
@@ -46,14 +52,27 @@
     <div class="chips">
       <span class="chip">writer {text(writer, 'unknown')}</span>
       <span class="chip">status {text(status.status ?? status.work_loop?.status, 'unknown')}</span>
+      <span class="chip">transport {text(transport.status, 'unknown')}</span>
     </div>
   </div>
 
   <div class="grid">
     <article class="panel">
       <div class="label">Active task</div>
-      <p>{text(activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
-      <p class="muted">{text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>
+      {#if loopTaskStale}
+        <p><span class="stale-chip">stale/unscoped</span> {text(activeTask.work_item_id ?? activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
+        <p class="muted">Hidden from current scope: {text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>
+        <p class="muted">Loop authority is advisory or out-of-scope; current project root {text(projectRoot, 'not surfaced')}.</p>
+      {:else}
+        <p>{text(activeTask.work_item_id ?? activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
+        <p class="muted">{text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>
+      {/if}
+    </article>
+
+    <article class="panel">
+      <div class="label">Current Workpoint</div>
+      <p>{text(currentWorkpoint.workpoint_id, 'no scoped Workpoint')}</p>
+      <p class="muted">{text(currentWorkpoint.mission ?? currentWorkpoint.resume_packet?.mission, 'no scoped mission')}</p>
     </article>
 
     <article class="panel">
@@ -84,6 +103,7 @@
   .status-chip, .chip { border: 1px solid var(--border); border-radius: var(--r-full); color: var(--fg-secondary); background: var(--bg-elevated); font-family: var(--font-mono); }
   .status-chip { flex-shrink: 0; padding: 2px 7px; font-size: 10px; }
   .chip { display: inline-flex; align-items: center; min-height: 16px; padding: 1px 6px; font-size: 9px; }
+  .stale-chip { display: inline-flex; align-items: center; border: 1px solid color-mix(in srgb, var(--orange) 45%, var(--border)); border-radius: var(--r-full); color: var(--orange); font-family: var(--font-mono); font-size: 9px; padding: 1px 6px; }
   .status-chip.ok, .summary-card.ok { border-color: color-mix(in srgb, var(--green) 40%, var(--border)); }
   .status-chip.ok { color: var(--green); }
   .status-chip.watch, .summary-card.watch { border-color: color-mix(in srgb, var(--orange) 45%, var(--border)); }
