@@ -17,6 +17,21 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     }))
 }
 
+fn bundled_tool_contract_count() -> usize {
+    serde_json::from_str::<Value>(include_str!(
+        "../../../../docs/current/focusa-tool-contracts.json"
+    ))
+    .ok()
+    .and_then(|registry| {
+        registry
+            .get("tool_count")
+            .and_then(Value::as_u64)
+            .map(|count| count as usize)
+            .or_else(|| registry.get("contracts").and_then(Value::as_array).map(Vec::len))
+    })
+    .unwrap_or(0)
+}
+
 fn path_has_command(command: &str) -> bool {
     let path_hit = std::env::var_os("PATH")
         .map(|paths| std::env::split_paths(&paths).any(|dir| command_exists_in_dir(&dir, command)))
@@ -297,7 +312,7 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
             "status_fields": ["status", "summary", "next_action", "why", "commands", "recovery", "details.checks"]
         },
         "checks_summary": {
-            "contracts_expected": 58,
+            "contracts_expected": bundled_tool_contract_count(),
             "scoped_hot_routes": ["/v1/health", "/v1/doctor", "/v1/workpoint/current", "/v1/work-loop/status?summary_only=true"],
             "docs": ["docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md", "docs/current/CLI_REFERENCE_CURRENT.md"]
         },
@@ -322,4 +337,14 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/health", get(health))
         .route("/v1/doctor", get(doctor))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn doctor_contract_count_matches_bundled_registry() {
+        assert_eq!(bundled_tool_contract_count(), 80);
+    }
 }
