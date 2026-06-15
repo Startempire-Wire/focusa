@@ -2,7 +2,7 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Subcommand)]
 pub enum CallStackCmd {
@@ -92,7 +92,12 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             let value = client.post("/v1/call-stack/design", &body).await?;
             print_design(value, json_out)
         }
-        CallStackCmd::Verify { project_root, continuity_id, design_id, entry_name } => {
+        CallStackCmd::Verify {
+            project_root,
+            continuity_id,
+            design_id,
+            entry_name,
+        } => {
             let body = json!({
                 "project_root": project_root,
                 "continuity_id": continuity_id,
@@ -102,8 +107,17 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             let value = client.post("/v1/call-stack/verify", &body).await?;
             print_verify(value, json_out)
         }
-        CallStackCmd::List { project_root, continuity_id, entry_name, limit } => {
-            let mut path = format!("/v1/call-stack/list?project_root={}&limit={}", urlencoding::encode(&project_root), limit);
+        CallStackCmd::List {
+            project_root,
+            continuity_id,
+            entry_name,
+            limit,
+        } => {
+            let mut path = format!(
+                "/v1/call-stack/list?project_root={}&limit={}",
+                urlencoding::encode(&project_root),
+                limit
+            );
             if let Some(cid) = continuity_id.as_deref() {
                 path.push_str(&format!("&continuity_id={}", urlencoding::encode(cid)));
             }
@@ -113,8 +127,16 @@ pub async fn run(cmd: CallStackCmd, json_out: bool) -> anyhow::Result<()> {
             let value = client.get(&path).await?;
             print_list(value, json_out)
         }
-        CallStackCmd::Show { project_root, continuity_id, design_id } => {
-            let mut path = format!("/v1/call-stack/show?project_root={}&design_id={}", urlencoding::encode(&project_root), urlencoding::encode(&design_id));
+        CallStackCmd::Show {
+            project_root,
+            continuity_id,
+            design_id,
+        } => {
+            let mut path = format!(
+                "/v1/call-stack/show?project_root={}&design_id={}",
+                urlencoding::encode(&project_root),
+                urlencoding::encode(&design_id)
+            );
             if let Some(cid) = continuity_id.as_deref() {
                 path.push_str(&format!("&continuity_id={}", urlencoding::encode(cid)));
             }
@@ -130,19 +152,25 @@ fn print_json(value: &Value) -> anyhow::Result<()> {
 }
 
 fn print_design(value: Value, json_out: bool) -> anyhow::Result<()> {
-    if json_out { return print_json(&value); }
+    if json_out {
+        return print_json(&value);
+    }
     println!(
         "call-stack design: status={} design_id={} entry={} surface={} advisory=true",
         value["status"].as_str().unwrap_or("unknown"),
         value["design_id"].as_str().unwrap_or("unknown"),
         value["design"]["entry_name"].as_str().unwrap_or("unknown"),
-        value["design"]["entry_surface"].as_str().unwrap_or("unknown"),
+        value["design"]["entry_surface"]
+            .as_str()
+            .unwrap_or("unknown"),
     );
     Ok(())
 }
 
 fn print_verify(value: Value, json_out: bool) -> anyhow::Result<()> {
-    if json_out { return print_json(&value); }
+    if json_out {
+        return print_json(&value);
+    }
     println!(
         "call-stack verify: status={} design_id={} drift_status={} failures={} warnings={} advisory=true",
         value["status"].as_str().unwrap_or("unknown"),
@@ -165,8 +193,13 @@ fn print_verify(value: Value, json_out: bool) -> anyhow::Result<()> {
 }
 
 fn print_list(value: Value, json_out: bool) -> anyhow::Result<()> {
-    if json_out { return print_json(&value); }
-    println!("call-stack list: count={} advisory=true", value["count"].as_u64().unwrap_or(0));
+    if json_out {
+        return print_json(&value);
+    }
+    println!(
+        "call-stack list: count={} advisory=true",
+        value["count"].as_u64().unwrap_or(0)
+    );
     if let Some(designs) = value["designs"].as_array() {
         for design in designs.iter().take(50) {
             println!(
@@ -182,7 +215,9 @@ fn print_list(value: Value, json_out: bool) -> anyhow::Result<()> {
 }
 
 fn print_show(value: Value, json_out: bool) -> anyhow::Result<()> {
-    if json_out { return print_json(&value); }
+    if json_out {
+        return print_json(&value);
+    }
     let design = &value["design"];
     println!(
         "call-stack show: design_id={} entry={} surface={} mission={} advisory=true",

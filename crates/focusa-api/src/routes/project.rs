@@ -197,7 +197,12 @@ fn normalize_identity_name(value: &str) -> String {
         .collect()
 }
 
-fn identity_name_matches(expected: &str, canonical_name: &str, project_id: &str, aliases: &[String]) -> bool {
+fn identity_name_matches(
+    expected: &str,
+    canonical_name: &str,
+    project_id: &str,
+    aliases: &[String],
+) -> bool {
     let expected = normalize_identity_name(expected);
     if expected.is_empty() {
         return false;
@@ -1518,7 +1523,12 @@ fn candidate_payload(
             mismatches.push(json!({"source":"operator_expected_project_id", "expected": project_id, "actual": candidate.project_id, "severity":"high"}));
         }
         if let Some(name) = clean(expected.canonical_name.as_deref())
-            && !identity_name_matches(&name, &candidate.canonical_name, &candidate.project_id, &candidate.aliases)
+            && !identity_name_matches(
+                &name,
+                &candidate.canonical_name,
+                &candidate.project_id,
+                &candidate.aliases,
+            )
         {
             mismatches.push(json!({"source":"operator_expected_canonical_name", "expected": name, "actual": candidate.canonical_name, "severity":"medium"}));
         }
@@ -2546,9 +2556,9 @@ fn scoped_trajectory_record<'a>(
             .iter()
             .rev()
             .find(|record| matches_scope(record) && record.trajectory_id == active_trajectory_id)
-        {
-            return Some(record);
-        }
+    {
+        return Some(record);
+    }
     records.iter().rev().find(matches_scope)
 }
 
@@ -2566,9 +2576,9 @@ fn scoped_workpoint_record<'a>(
             .iter()
             .rev()
             .find(|record| matches_scope(record) && record.workpoint_id == *active_workpoint_id)
-        {
-            return Some(record);
-        }
+    {
+        return Some(record);
+    }
     records.iter().rev().find(matches_scope)
 }
 
@@ -3075,9 +3085,21 @@ mod tests {
     #[test]
     fn identity_name_match_accepts_safe_case_and_aliases() {
         let aliases = vec!["focusa-daemon".to_string(), "focusa-cli".to_string()];
-        assert!(identity_name_matches("focusa", "Focusa", "focusa", &aliases));
-        assert!(identity_name_matches("FOCUSA DAEMON", "Focusa", "focusa", &aliases));
-        assert!(!identity_name_matches("uiai-engine", "Focusa", "focusa", &aliases));
+        assert!(identity_name_matches(
+            "focusa", "Focusa", "focusa", &aliases
+        ));
+        assert!(identity_name_matches(
+            "FOCUSA DAEMON",
+            "Focusa",
+            "focusa",
+            &aliases
+        ));
+        assert!(!identity_name_matches(
+            "uiai-engine",
+            "Focusa",
+            "focusa",
+            &aliases
+        ));
     }
 
     #[test]

@@ -759,15 +759,16 @@ async fn discover_agent_sessions(
                         if sub_path.extension().is_some_and(|e| e == "jsonl")
                             && let Some(session) =
                                 parse_generic_session(&sub_path, agent_type).await
-                            {
-                                sessions.push(session);
-                            }
+                        {
+                            sessions.push(session);
+                        }
                     }
                 }
             } else if path.extension().is_some_and(|e| e == "jsonl")
-                && let Some(session) = parse_generic_session(&path, agent_type).await {
-                    sessions.push(session);
-                }
+                && let Some(session) = parse_generic_session(&path, agent_type).await
+            {
+                sessions.push(session);
+            }
         }
     }
 
@@ -783,7 +784,12 @@ async fn parse_generic_session(path: &PathBuf, agent_type: &str) -> Option<Disco
     }
 
     // Extract session_id from filename as fallback
-    let fallback_session_id = path.file_stem()?.to_str()?.split('_').next_back()?.to_string();
+    let fallback_session_id = path
+        .file_stem()?
+        .to_str()?
+        .split('_')
+        .next_back()?
+        .to_string();
 
     // Find last non-empty line
     let last_line = content.lines().rfind(|l| !l.trim().is_empty())?;
@@ -941,9 +947,10 @@ async fn discover_claude_backups() -> Option<Vec<DiscoveredSession>> {
             if path
                 .extension()
                 .is_some_and(|e| e.to_str().unwrap_or("").contains("backup"))
-                && let Some(session) = parse_claude_backup(&path).await {
-                    sessions.push(session);
-                }
+                && let Some(session) = parse_claude_backup(&path).await
+            {
+                sessions.push(session);
+            }
         }
     }
 

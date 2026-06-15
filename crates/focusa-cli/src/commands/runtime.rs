@@ -58,10 +58,24 @@ pub async fn run(cmd: RuntimeCmd, json_mode: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&inventory)?);
             } else {
                 println!("runtime inventory");
-                println!("  cli: {} ({})", inventory.cli.path.as_deref().unwrap_or("unknown"), inventory.cli.version);
+                println!(
+                    "  cli: {} ({})",
+                    inventory.cli.path.as_deref().unwrap_or("unknown"),
+                    inventory.cli.version
+                );
                 println!("  daemon running: {}", inventory.daemon.running);
-                println!("  daemon version: {}", inventory.daemon.version.as_deref().unwrap_or("unknown"));
-                println!("  daemon pid: {}", inventory.daemon.pid.map(|pid| pid.to_string()).unwrap_or_else(|| "unknown".to_string()));
+                println!(
+                    "  daemon version: {}",
+                    inventory.daemon.version.as_deref().unwrap_or("unknown")
+                );
+                println!(
+                    "  daemon pid: {}",
+                    inventory
+                        .daemon
+                        .pid
+                        .map(|pid| pid.to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                );
                 println!("  hygiene: {}", inventory.hygiene.status);
                 for warning in &inventory.hygiene.warnings {
                     println!("  warning: {warning}");
@@ -107,7 +121,9 @@ pub async fn collect_inventory(expected_owner: Option<&str>) -> RuntimeInventory
         warnings.push("daemon lock PID does not match live focusa-daemon process".to_string());
     }
     if daemon_running && pid.is_none() {
-        warnings.push("daemon health endpoint responds but process PID was not found by pgrep".to_string());
+        warnings.push(
+            "daemon health endpoint responds but process PID was not found by pgrep".to_string(),
+        );
     }
     if let (Some(expected_owner), Some(actual_user)) = (expected_owner, user.as_deref())
         && actual_user != expected_owner
@@ -117,7 +133,11 @@ pub async fn collect_inventory(expected_owner: Option<&str>) -> RuntimeInventory
         ));
     }
 
-    let status = if warnings.is_empty() { "ok" } else { "degraded" };
+    let status = if warnings.is_empty() {
+        "ok"
+    } else {
+        "degraded"
+    };
     let recommended_action = if warnings.is_empty() {
         None
     } else {
@@ -137,7 +157,9 @@ pub async fn collect_inventory(expected_owner: Option<&str>) -> RuntimeInventory
             one_listener_per_bind: Some(true),
         },
         cli: CliInventory {
-            path: std::env::current_exe().ok().map(|path| path.display().to_string()),
+            path: std::env::current_exe()
+                .ok()
+                .map(|path| path.display().to_string()),
             version: env!("CARGO_PKG_VERSION"),
         },
         hygiene: RuntimeHygiene {

@@ -201,8 +201,14 @@ async fn card(
     let record = scoped_workpoint(&focusa, &query);
     let awareness_canonical = record.map(|r| r.canonical).unwrap_or(false);
     let rendered_card = render_card(&query, record);
-    let project_root = query.project_root.as_deref().unwrap_or("unknown-project-root");
-    let continuity_id = query.continuity_id.as_deref().unwrap_or("unknown-continuity");
+    let project_root = query
+        .project_root
+        .as_deref()
+        .unwrap_or("unknown-project-root");
+    let continuity_id = query
+        .continuity_id
+        .as_deref()
+        .unwrap_or("unknown-continuity");
     let public_policy = public_card_policy(project_root, continuity_id, awareness_canonical);
     Json(json!({
         "status": "completed",
@@ -251,21 +257,67 @@ mod tests {
     fn awareness_card_requires_explicit_project_root_and_continuity_for_workpoint() {
         let state = state_with_active_workpoint("/home/focusa/a", "cont-a");
         assert!(scoped_workpoint(&state, &AwarenessCardQuery::default()).is_none());
-        assert!(scoped_workpoint(&state, &AwarenessCardQuery { project_root: Some("/home/focusa/a".into()), ..Default::default() }).is_none());
-        assert!(scoped_workpoint(&state, &AwarenessCardQuery { continuity_id: Some("cont-a".into()), ..Default::default() }).is_none());
+        assert!(
+            scoped_workpoint(
+                &state,
+                &AwarenessCardQuery {
+                    project_root: Some("/home/focusa/a".into()),
+                    ..Default::default()
+                }
+            )
+            .is_none()
+        );
+        assert!(
+            scoped_workpoint(
+                &state,
+                &AwarenessCardQuery {
+                    continuity_id: Some("cont-a".into()),
+                    ..Default::default()
+                }
+            )
+            .is_none()
+        );
     }
 
     #[test]
     fn awareness_card_rejects_cross_project_workpoint() {
         let state = state_with_active_workpoint("/home/focusa/a", "cont-a");
-        assert!(scoped_workpoint(&state, &AwarenessCardQuery { project_root: Some("/home/focusa/b".into()), continuity_id: Some("cont-a".into()), ..Default::default() }).is_none());
-        assert!(scoped_workpoint(&state, &AwarenessCardQuery { project_root: Some("/home/focusa/a".into()), continuity_id: Some("cont-b".into()), ..Default::default() }).is_none());
+        assert!(
+            scoped_workpoint(
+                &state,
+                &AwarenessCardQuery {
+                    project_root: Some("/home/focusa/b".into()),
+                    continuity_id: Some("cont-a".into()),
+                    ..Default::default()
+                }
+            )
+            .is_none()
+        );
+        assert!(
+            scoped_workpoint(
+                &state,
+                &AwarenessCardQuery {
+                    project_root: Some("/home/focusa/a".into()),
+                    continuity_id: Some("cont-b".into()),
+                    ..Default::default()
+                }
+            )
+            .is_none()
+        );
     }
 
     #[test]
     fn awareness_card_accepts_exact_scope() {
         let state = state_with_active_workpoint("/home/focusa/a", "cont-a");
-        let record = scoped_workpoint(&state, &AwarenessCardQuery { project_root: Some("/home/focusa/a".into()), continuity_id: Some("cont-a".into()), ..Default::default() }).expect("exact scope should match");
+        let record = scoped_workpoint(
+            &state,
+            &AwarenessCardQuery {
+                project_root: Some("/home/focusa/a".into()),
+                continuity_id: Some("cont-a".into()),
+                ..Default::default()
+            },
+        )
+        .expect("exact scope should match");
         assert_eq!(record.mission.as_deref(), Some("Scoped mission"));
     }
 

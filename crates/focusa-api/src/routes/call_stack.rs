@@ -6,7 +6,11 @@
 
 use crate::routes::project::project_identity_payload_for_scope;
 use crate::server::AppState;
-use axum::{Json, extract::{Query, State}, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use focusa_core::types::CallStackDesign;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -390,8 +394,6 @@ async fn design(
     })))
 }
 
-
-
 #[derive(Debug, Deserialize)]
 pub struct CallStackListQuery {
     pub project_root: Option<String>,
@@ -548,9 +550,13 @@ fn source_contains(root: &str, rel_dir: &str, needle: &str, max_files: usize) ->
     let mut stack = vec![dir];
     let mut checked = 0usize;
     while let Some(path) = stack.pop() {
-        let Ok(meta) = fs::metadata(&path) else { continue };
+        let Ok(meta) = fs::metadata(&path) else {
+            continue;
+        };
         if meta.is_dir() {
-            let Ok(entries) = fs::read_dir(&path) else { continue };
+            let Ok(entries) = fs::read_dir(&path) else {
+                continue;
+            };
             for entry in entries.flatten() {
                 let child = entry.path();
                 let name = child.file_name().and_then(|s| s.to_str()).unwrap_or("");
@@ -586,7 +592,9 @@ fn entry_surface_exists(project_root: &str, design: &CallStackDesign) -> bool {
             &format!("name: \"{}\"", design.entry_name),
             350,
         ),
-        "cli_command" => source_contains(project_root, "crates/focusa-cli", &design.entry_name, 350),
+        "cli_command" => {
+            source_contains(project_root, "crates/focusa-cli", &design.entry_name, 350)
+        }
         "http_route" => source_contains(project_root, "crates/focusa-api", &design.entry_name, 500),
         _ => false,
     }
@@ -676,24 +684,48 @@ async fn verify(
         .map(|cid| design.continuity_id.as_deref() == Some(cid))
         .unwrap_or(true);
     if scope_match {
-        checks.push(call_stack_check("scope", "pass", "design scope matches requested project_root + continuity_id"));
+        checks.push(call_stack_check(
+            "scope",
+            "pass",
+            "design scope matches requested project_root + continuity_id",
+        ));
     } else {
         failures += 1;
-        checks.push(call_stack_check("scope", "fail", "design continuity_id does not match requested scope"));
+        checks.push(call_stack_check(
+            "scope",
+            "fail",
+            "design continuity_id does not match requested scope",
+        ));
     }
 
     if ENTRY_SURFACE_ALLOWED.contains(&design.entry_surface.as_str()) {
-        checks.push(call_stack_check("entry_surface_allowed", "pass", "entry_surface is supported"));
+        checks.push(call_stack_check(
+            "entry_surface_allowed",
+            "pass",
+            "entry_surface is supported",
+        ));
     } else {
         failures += 1;
-        checks.push(call_stack_check("entry_surface_allowed", "fail", "entry_surface is not supported"));
+        checks.push(call_stack_check(
+            "entry_surface_allowed",
+            "fail",
+            "entry_surface is not supported",
+        ));
     }
 
     if entry_surface_exists(project_root, &design) {
-        checks.push(call_stack_check("entry_surface_exists", "pass", "entry surface string found in bounded source search"));
+        checks.push(call_stack_check(
+            "entry_surface_exists",
+            "pass",
+            "entry surface string found in bounded source search",
+        ));
     } else {
         failures += 1;
-        checks.push(call_stack_check("entry_surface_exists", "fail", "entry surface not found in bounded source search"));
+        checks.push(call_stack_check(
+            "entry_surface_exists",
+            "fail",
+            "entry surface not found in bounded source search",
+        ));
     }
 
     if design.handlers.is_empty() {
@@ -716,29 +748,57 @@ async fn verify(
     }
 
     match design.output_envelope.as_deref() {
-        Some("tool_result_v1") => checks.push(call_stack_check("output_envelope", "pass", "output envelope matches tool_result_v1")),
+        Some("tool_result_v1") => checks.push(call_stack_check(
+            "output_envelope",
+            "pass",
+            "output envelope matches tool_result_v1",
+        )),
         Some(other) => {
             failures += 1;
-            checks.push(call_stack_check("output_envelope", "fail", format!("unexpected output envelope: {}", other)));
+            checks.push(call_stack_check(
+                "output_envelope",
+                "fail",
+                format!("unexpected output envelope: {}", other),
+            ));
         }
         None => {
             failures += 1;
-            checks.push(call_stack_check("output_envelope", "fail", "output envelope missing"));
+            checks.push(call_stack_check(
+                "output_envelope",
+                "fail",
+                "output envelope missing",
+            ));
         }
     }
 
     if design.evidence_refs.is_empty() {
-        checks.push(call_stack_check("evidence_refs", "pass", "no claimed evidence refs to verify"));
+        checks.push(call_stack_check(
+            "evidence_refs",
+            "pass",
+            "no claimed evidence refs to verify",
+        ));
     } else {
         warnings += 1;
-        checks.push(call_stack_check("evidence_refs", "warn", "claimed evidence refs require Workpoint/evidence verification"));
+        checks.push(call_stack_check(
+            "evidence_refs",
+            "warn",
+            "claimed evidence refs require Workpoint/evidence verification",
+        ));
     }
 
     if design.workpoint_id.is_some() || design.attach_to_workpoint {
-        checks.push(call_stack_check("workpoint_alignment", "pass", "design carries Workpoint attachment intent"));
+        checks.push(call_stack_check(
+            "workpoint_alignment",
+            "pass",
+            "design carries Workpoint attachment intent",
+        ));
     } else {
         warnings += 1;
-        checks.push(call_stack_check("workpoint_alignment", "warn", "design is advisory and not attached to a Workpoint"));
+        checks.push(call_stack_check(
+            "workpoint_alignment",
+            "warn",
+            "design is advisory and not attached to a Workpoint",
+        ));
     }
 
     let drift_status = if failures > 0 {

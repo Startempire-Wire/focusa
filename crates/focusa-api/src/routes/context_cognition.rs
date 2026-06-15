@@ -217,7 +217,10 @@ async fn view(
         packet.status = "degraded".to_string();
         packet.freshness.stale = true;
         packet.selected_context.excluded_context.push("canonical Workpoint/Trajectory selection requires verified project_root + continuity_id".to_string());
-        packet.route_frame.do_not_use_by_default.push("Do not treat Context Cognition as canonical without exact scope".to_string());
+        packet
+            .route_frame
+            .do_not_use_by_default
+            .push("Do not treat Context Cognition as canonical without exact scope".to_string());
     }
 
     // Read FocusState (read-only).
@@ -225,15 +228,11 @@ async fn view(
 
     // Wire active Workpoint/Trajectory only by exact project_root + continuity_id.
     let scoped_workpoint = if exact_scope_ready {
-        focusa_state
-            .workpoint
-            .records
-            .iter()
-            .find(|r| {
-                r.project_root.as_deref() == Some(project_root)
-                    && r.continuity_id.as_deref() == continuity_id.as_deref()
-                    && r.canonical
-            })
+        focusa_state.workpoint.records.iter().find(|r| {
+            r.project_root.as_deref() == Some(project_root)
+                && r.continuity_id.as_deref() == continuity_id.as_deref()
+                && r.canonical
+        })
     } else {
         None
     };
@@ -250,7 +249,9 @@ async fn view(
         }) {
             packet.scope.trajectory_id = Some(traj.trajectory_id.clone());
         } else {
-            packet.selected_context.excluded_context.push("active trajectory omitted: scope mismatch or missing continuity_id".to_string());
+            packet.selected_context.excluded_context.push(
+                "active trajectory omitted: scope mismatch or missing continuity_id".to_string(),
+            );
         }
     }
 
@@ -333,7 +334,9 @@ fn is_unsafe_agent_runtime_path_inline(path: &str) -> bool {
         .any(|p| trimmed == *p || trimmed.starts_with(&format!("{}/", p)))
 }
 
-fn require_continuity_id(continuity_id: &Option<String>) -> Result<String, (StatusCode, Json<Value>)> {
+fn require_continuity_id(
+    continuity_id: &Option<String>,
+) -> Result<String, (StatusCode, Json<Value>)> {
     continuity_id
         .as_deref()
         .map(str::trim)
@@ -735,9 +738,10 @@ async fn curate(
     let evidence_set: std::collections::HashSet<String> = evidence_refs.iter().cloned().collect();
     for (s, c) in scored.iter_mut() {
         if let Some(er) = c.evidence_ref.as_ref()
-            && evidence_set.contains(er) {
-                *s += 1.0;
-            }
+            && evidence_set.contains(er)
+        {
+            *s += 1.0;
+        }
     }
     // Re-sort after the boost
     scored.sort_by(|a, b| {
@@ -924,9 +928,10 @@ async fn curate_eval(
     let evidence_set: std::collections::HashSet<String> = evidence_refs.iter().cloned().collect();
     for (s, c) in scored.iter_mut() {
         if let Some(er) = c.evidence_ref.as_ref()
-            && evidence_set.contains(er) {
-                *s += 1.0;
-            }
+            && evidence_set.contains(er)
+        {
+            *s += 1.0;
+        }
     }
     scored.sort_by(|a, b| {
         b.0.partial_cmp(&a.0)

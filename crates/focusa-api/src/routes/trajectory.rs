@@ -2745,7 +2745,9 @@ mod tests {
             workpoint_id: scoped_id,
             work_item_id: Some("scoped-focusa-workpoint".to_string()),
             session_id: Some("session-focusa".to_string()),
-            continuity_id: Some("focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string()),
+            continuity_id: Some(
+                "focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string(),
+            ),
             project_root: Some("/home/wirebot/focusa".to_string()),
             status: WorkpointStatus::Active,
             checkpoint_reason: WorkpointCheckpointReason::Manual,
@@ -2759,7 +2761,9 @@ mod tests {
             &state,
             &TrajectoryViewQuery {
                 project_root: Some("/home/wirebot/focusa".to_string()),
-                continuity_id: Some("focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string()),
+                continuity_id: Some(
+                    "focusa-cont-focusa-841f88e0-79fc-4bc8-81ba-28a211a97818".to_string(),
+                ),
                 ..TrajectoryViewQuery::default()
             },
         );

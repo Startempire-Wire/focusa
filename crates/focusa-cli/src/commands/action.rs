@@ -107,13 +107,33 @@ pub struct IntentClassificationEnvelope {
 
 pub fn classify_intent(prompt: &str) -> IntentClassificationEnvelope {
     let lower = prompt.trim().to_ascii_lowercase();
-    let planning_markers = ["maybe", "what if", "could we", "can we", "discuss", "explore", "plan", "spec"];
-    let diagnosis_markers = ["read", "inspect", "investigate", "diagnose", "why", "what happened"];
-    let implementation_markers = ["implement", "build", "add", "fix", "patch", "change", "create"];
+    let planning_markers = [
+        "maybe", "what if", "could we", "can we", "discuss", "explore", "plan", "spec",
+    ];
+    let diagnosis_markers = [
+        "read",
+        "inspect",
+        "investigate",
+        "diagnose",
+        "why",
+        "what happened",
+    ];
+    let implementation_markers = [
+        "implement",
+        "build",
+        "add",
+        "fix",
+        "patch",
+        "change",
+        "create",
+    ];
     let runtime_markers = ["restart", "start daemon", "stop daemon", "pair", "deploy"];
     let destructive_markers = ["delete", "remove", "overwrite", "reset", "clean", "kill"];
 
-    if destructive_markers.iter().any(|marker| lower.contains(marker)) {
+    if destructive_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+    {
         return IntentClassificationEnvelope {
             schema: "focusa.intent_mode_gate.v1",
             mode: "destructive_or_high_risk_requires_confirmation",
@@ -140,7 +160,10 @@ pub fn classify_intent(prompt: &str) -> IntentClassificationEnvelope {
             recommended_action: "run operational context preflight before runtime mutation",
         };
     }
-    if implementation_markers.iter().any(|marker| lower.contains(marker)) {
+    if implementation_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+    {
         return IntentClassificationEnvelope {
             schema: "focusa.intent_mode_gate.v1",
             mode: "implementation_authorized",
@@ -149,7 +172,10 @@ pub fn classify_intent(prompt: &str) -> IntentClassificationEnvelope {
             recommended_action: "run repo/status and operational context preflight before implementation",
         };
     }
-    if diagnosis_markers.iter().any(|marker| lower.contains(marker)) {
+    if diagnosis_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+    {
         return IntentClassificationEnvelope {
             schema: "focusa.intent_mode_gate.v1",
             mode: "diagnosis",
@@ -199,7 +225,12 @@ pub async fn run(cmd: ActionCmd, json_mode: bool) -> anyhow::Result<()> {
 
 pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope {
     let kind = args.kind.trim().to_ascii_lowercase();
-    let source = args.source.as_deref().unwrap_or("").trim().to_ascii_lowercase();
+    let source = args
+        .source
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
     let install_role = args.install_role.trim().to_ascii_lowercase();
     let current_ask = args.current_ask.trim().to_ascii_lowercase();
 
@@ -231,23 +262,30 @@ pub fn evaluate_preflight(args: ActionPreflightArgs) -> ActionPreflightEnvelope 
             why: "The current ask is pairing initiation, but the proposed action is binary installation/replacement.",
         });
         safe_alternative.get_or_insert_with(|| {
-            "Inspect existing runtime, repair from local repo if needed, then run focusa pair.".to_string()
+            "Inspect existing runtime, repair from local repo if needed, then run focusa pair."
+                .to_string()
         });
     }
 
-    if install_role == "unknown" && is_release_binary_replace && verdict == PreflightVerdict::Allow {
+    if install_role == "unknown" && is_release_binary_replace && verdict == PreflightVerdict::Allow
+    {
         verdict = PreflightVerdict::AskOperator;
         conflicts.push(PreflightConflict {
             class: "environment_role_unknown_for_risky_mutation",
             why: "Binary replacement requires a verified install role before mutation.",
         });
-        safe_alternative = Some("Verify environment contract before replacing Focusa binaries.".to_string());
+        safe_alternative =
+            Some("Verify environment contract before replacing Focusa binaries.".to_string());
     }
 
     ActionPreflightEnvelope {
         schema: "focusa.operational_context_gate.v1",
         verdict,
-        risk_class: if kind == "binary_replace" { "high" } else { "medium" },
+        risk_class: if kind == "binary_replace" {
+            "high"
+        } else {
+            "medium"
+        },
         current_ask: args.current_ask,
         project_root: args.project_root,
         environment_role: args.install_role,
@@ -292,10 +330,12 @@ mod tests {
         assert!(envelope.conflicts.iter().any(|conflict| {
             conflict.class == "consumer_install_path_conflicts_with_live_build_host"
         }));
-        assert!(envelope
-            .safe_alternative
-            .as_deref()
-            .unwrap_or_default()
-            .contains("local Focusa repo"));
+        assert!(
+            envelope
+                .safe_alternative
+                .as_deref()
+                .unwrap_or_default()
+                .contains("local Focusa repo")
+        );
     }
 }

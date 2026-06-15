@@ -79,9 +79,15 @@ pub async fn run(cmd: BinaryCmd, json_mode: bool) -> anyhow::Result<()> {
             } else {
                 println!("binary: {}", inspection.path);
                 println!("exists: {}", inspection.exists);
-                println!("version: {}", inspection.version.as_deref().unwrap_or("unknown"));
+                println!(
+                    "version: {}",
+                    inspection.version.as_deref().unwrap_or("unknown")
+                );
                 println!("host_glibc: {}", inspection.host_glibc);
-                println!("required_glibc: {}", inspection.required_glibc.as_deref().unwrap_or("unknown"));
+                println!(
+                    "required_glibc: {}",
+                    inspection.required_glibc.as_deref().unwrap_or("unknown")
+                );
             }
         }
         BinaryCmd::PreflightInstall(args) => {
@@ -117,13 +123,19 @@ pub fn preflight_install(args: BinaryPreflightInstallArgs) -> BinaryPreflightEnv
         verdict = BinaryPreflightVerdict::Block;
         conflicts.push(BinaryPreflightConflict {
             class: "release_asset_blocked_by_environment_contract",
-            why: "live_build_host policy requires local repo build as the repair source".to_string(),
+            why: "live_build_host policy requires local repo build as the repair source"
+                .to_string(),
         });
-        safe_alternative = Some("build from the verified local repo and install paired CLI/daemon outputs".to_string());
+        safe_alternative = Some(
+            "build from the verified local repo and install paired CLI/daemon outputs".to_string(),
+        );
     }
 
     if let (Some(required), Some(host)) = (
-        asset.required_glibc.as_deref().and_then(parse_glibc_version),
+        asset
+            .required_glibc
+            .as_deref()
+            .and_then(parse_glibc_version),
         parse_glibc_version(&asset.host_glibc),
     ) && required > host
     {
@@ -144,7 +156,8 @@ pub fn preflight_install(args: BinaryPreflightInstallArgs) -> BinaryPreflightEnv
             class: "environment_role_unknown_for_binary_install",
             why: "release asset install requires a verified environment contract".to_string(),
         });
-        safe_alternative = Some("run focusa env contract show/init before binary replacement".to_string());
+        safe_alternative =
+            Some("run focusa env contract show/init before binary replacement".to_string());
     }
 
     BinaryPreflightEnvelope {
@@ -176,7 +189,10 @@ pub fn inspect_binary(path: &PathBuf) -> BinaryInspection {
 }
 
 fn binary_version(path: &PathBuf) -> Option<String> {
-    let output = std::process::Command::new(path).arg("--version").output().ok()?;
+    let output = std::process::Command::new(path)
+        .arg("--version")
+        .output()
+        .ok()?;
     if !output.status.success() {
         return None;
     }
@@ -187,7 +203,10 @@ fn binary_version(path: &PathBuf) -> Option<String> {
 }
 
 fn required_glibc(path: &PathBuf) -> Option<String> {
-    let output = std::process::Command::new("strings").arg(path).output().ok()?;
+    let output = std::process::Command::new("strings")
+        .arg(path)
+        .output()
+        .ok()?;
     if !output.status.success() {
         return None;
     }
@@ -195,7 +214,9 @@ fn required_glibc(path: &PathBuf) -> Option<String> {
     stdout
         .split(|ch: char| ch.is_whitespace() || ch == '\0')
         .filter_map(|token| token.strip_prefix("GLIBC_"))
-        .filter_map(|version| parse_glibc_version(version).map(|parsed| (parsed, version.to_string())))
+        .filter_map(|version| {
+            parse_glibc_version(version).map(|parsed| (parsed, version.to_string()))
+        })
         .max_by_key(|(parsed, _)| *parsed)
         .map(|(_, version)| version)
 }
@@ -212,7 +233,10 @@ fn detect_glibc() -> String {
 }
 
 fn parse_glibc_version(value: &str) -> Option<(u32, u32)> {
-    let clean = value.trim().trim_start_matches("GLIBC_").trim_start_matches("glibc ");
+    let clean = value
+        .trim()
+        .trim_start_matches("GLIBC_")
+        .trim_start_matches("glibc ");
     let mut parts = clean.split('.');
     let major = parts.next()?.parse::<u32>().ok()?;
     let minor = parts.next()?.parse::<u32>().ok()?;

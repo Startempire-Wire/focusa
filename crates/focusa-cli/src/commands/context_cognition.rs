@@ -231,8 +231,15 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             let project_root = project_root.ok_or_else(|| {
                 anyhow::anyhow!("--project-root is required for curate-eval-runs")
             })?;
-            let mut path = build_query("/v1/context-cognition/curate/eval/runs", Some(project_root), continuity_id);
-            path.push_str(&format!("{}limit={limit}", if path.contains('?') { "&" } else { "?" }));
+            let mut path = build_query(
+                "/v1/context-cognition/curate/eval/runs",
+                Some(project_root),
+                continuity_id,
+            );
+            path.push_str(&format!(
+                "{}limit={limit}",
+                if path.contains('?') { "&" } else { "?" }
+            ));
             let resp = client.get(&path).await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
             Ok(())
@@ -246,8 +253,15 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             let project_root = project_root.ok_or_else(|| {
                 anyhow::anyhow!("--project-root is required for optimizer-artifacts")
             })?;
-            let mut path = build_query("/v1/context-cognition/optimizer/artifacts", Some(project_root), continuity_id);
-            path.push_str(&format!("{}module_name={module_name}&limit={limit}", if path.contains('?') { "&" } else { "?" }));
+            let mut path = build_query(
+                "/v1/context-cognition/optimizer/artifacts",
+                Some(project_root),
+                continuity_id,
+            );
+            path.push_str(&format!(
+                "{}module_name={module_name}&limit={limit}",
+                if path.contains('?') { "&" } else { "?" }
+            ));
             let resp = client.get(&path).await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
             Ok(())

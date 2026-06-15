@@ -32,7 +32,6 @@ fn visual_ecs_root(data_dir: &str) -> PathBuf {
     expand_visual_data_path(data_dir).join("ecs")
 }
 
-
 fn visual_failure(
     http_status: StatusCode,
     error: impl Into<String>,

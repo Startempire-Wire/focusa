@@ -867,7 +867,9 @@ async fn pair_complete(
 
     let now = Utc::now();
     let completed_by = bounded_label(body.completed_by, "vps-cli", 128);
-    let operator_id = body.operator_id.map(|id| bounded_label(Some(id), "operator", 128));
+    let operator_id = body
+        .operator_id
+        .map(|id| bounded_label(Some(id), "operator", 128));
     let raw_host = body.host.unwrap_or_else(|| "operator-vps".to_string());
     if is_unsafe_agent_runtime_path_inline(&raw_host) {
         let rejected_value = raw_host;
@@ -1270,7 +1272,10 @@ mod tests {
     fn token_is_32_byte_base64url_no_pad() {
         let t = generate_token();
         assert_eq!(t.len(), 43);
-        assert!(t.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(
+            t.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        );
         assert!(!t.contains('='));
     }
 

@@ -155,8 +155,14 @@ async fn run_contract(cmd: EnvContractCmd, json: bool) -> anyhow::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&value)?);
             } else {
                 println!("environment contract: {}", path.display());
-                println!("install_role: {}", value["install_role"].as_str().unwrap_or("unknown"));
-                println!("project_root: {}", value["project_root"].as_str().unwrap_or("unknown"));
+                println!(
+                    "install_role: {}",
+                    value["install_role"].as_str().unwrap_or("unknown")
+                );
+                println!(
+                    "project_root: {}",
+                    value["project_root"].as_str().unwrap_or("unknown")
+                );
                 println!("owner: {}", value["owner"].as_str().unwrap_or("unknown"));
             }
         }
