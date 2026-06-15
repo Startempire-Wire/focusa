@@ -7041,6 +7041,49 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     },
   });
 
+  // ── Awareness packet (Spec108) ────────────────────────────────────────────
+
+  pi.registerTool({
+    name: "focusa_awareness_packet",
+    label: "Focusa Awareness Packet",
+    description: "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces.",
+    parameters: strictObject({
+      surface: Type.Optional(Type.Union([
+        Type.Literal("reload"),
+        Type.Literal("post_compaction"),
+        Type.Literal("warning"),
+        Type.Literal("tool_guidance"),
+        Type.Literal("uiai_bridge"),
+      ], { description: "Awareness surface (default: reload)." })),
+      mode: Type.Optional(Type.Union([
+        Type.Literal("minimal"),
+        Type.Literal("standard"),
+        Type.Literal("rich"),
+        Type.Literal("onboarding"),
+      ], { description: "Awareness rendering mode (default: standard)." })),
+    }),
+    async execute(_id, params) {
+      const { surface = "reload" } = (params as { surface?: string }) || {};
+      const route = surface === "reload" ? "/v1/awareness/packet" : `/v1/awareness/packet/${encodeURIComponent(surface)}`;
+      const result = await focusaFetch(route, { method: "GET" });
+      const body = result.value as any;
+      const packet = body || {};
+      const visibleCount = Array.isArray(packet.visibleLines) ? packet.visibleLines.length : 0;
+      const textLines = [`awareness_packet | surface=${packet.surface || surface} | mode=${packet.mode || "?"} | visible=${visibleCount}`];
+      if (Array.isArray(packet.visibleLines)) {
+        for (const line of packet.visibleLines.slice(0, 5)) {
+          textLines.push(`  ${line.layer || "?"} | ${line.category || "?"} | ${String(line.text || "").slice(0, 80)}`);
+        }
+        if (packet.visibleLines.length > 5) textLines.push(`  ... +${packet.visibleLines.length - 5} more`);
+      }
+      textLines.push(`schema=${packet.schema || "?"} confidence=${packet.metadata?.confidence || "?"}`);
+      return {
+        content: [{ type: "text" as const, text: textLines.join("\n") }],
+        details: { ok: result.ok, surface, schema: packet.schema, mode: packet.mode, visibleCount, suppressedCount: Array.isArray(packet.suppressedLines) ? packet.suppressedLines.length : 0, confidence: packet.metadata?.confidence, next_tools: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"] },
+      };
+    },
+  });
+
   // ── Lineage Intelligence (LI) /tree first-class tools ────────────────────
 
   pi.registerTool({

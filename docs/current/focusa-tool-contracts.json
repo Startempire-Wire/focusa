@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 96,
+  "tool_count": 97,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -460,7 +460,7 @@
     {
       "name": "focusa_scratch",
       "label": "Scratchpad",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
       "family": "focus_state",
       "ontology_action": "focus_state.scratch",
       "ontology_objects": [
@@ -481,7 +481,7 @@
     {
       "name": "focusa_decide",
       "label": "Record Decision",
-      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) — architectural choices only, not task lists.",
+      "purpose": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=280 chars) \u2014 architectural choices only, not task lists.",
       "family": "focus_state",
       "ontology_action": "focus_state.decide",
       "ontology_objects": [
@@ -504,7 +504,7 @@
     {
       "name": "focusa_constraint",
       "label": "Record Constraint",
-      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars.",
+      "purpose": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture \u2014 NOT self-imposed tasks. Max 200 chars.",
       "family": "focus_state",
       "ontology_action": "focus_state.constraint",
       "ontology_objects": [
@@ -550,7 +550,7 @@
     {
       "name": "focusa_intent",
       "label": "Set Intent",
-      "purpose": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars).",
+      "purpose": "Set the frame intent \u2014 what this session is trying to achieve (1-3 sentences, max 500 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.intent",
       "ontology_objects": [
@@ -573,7 +573,7 @@
     {
       "name": "focusa_current_focus",
       "label": "Set Current Focus",
-      "purpose": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars).",
+      "purpose": "Update current focus \u2014 what you are actively working on right now (1-3 sentences, max 300 chars).",
       "family": "focus_state",
       "ontology_action": "focus_state.current.focus",
       "ontology_objects": [
@@ -1426,7 +1426,7 @@
       "cli_commands": [
         "focusa context-cognition render"
       ],
-      "core_surface": "Spec100 §11 CLI contract + §13 tool wrapper",
+      "core_surface": "Spec100 \u00a711 CLI contract + \u00a713 tool wrapper",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
@@ -1451,7 +1451,7 @@
       "cli_commands": [
         "focusa context-cognition proof"
       ],
-      "core_surface": "Spec100 §10 API contract + §13 tool wrapper",
+      "core_surface": "Spec100 \u00a710 API contract + \u00a713 tool wrapper",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_proof.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
@@ -1462,7 +1462,7 @@
     {
       "name": "focusa_context_cognition_curate",
       "label": "Context Cognition Curate",
-      "purpose": "Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
+      "purpose": "Spec 100 Phase 3 \u2014 token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_curate",
       "ontology_objects": [
@@ -1477,7 +1477,7 @@
       "cli_commands": [
         "focusa context-cognition curate"
       ],
-      "core_surface": "Spec100 §14 Context Curator with token-budgeted selection",
+      "core_surface": "Spec100 \u00a714 Context Curator with token-budgeted selection",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
@@ -1488,7 +1488,7 @@
     {
       "name": "focusa_context_cognition_curate_eval",
       "label": "Context Cognition Curate Eval",
-      "purpose": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
+      "purpose": "Spec 100 Phase 4 \u2014 run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_curate_eval",
       "ontology_objects": [
@@ -1505,7 +1505,7 @@
         "focusa context-cognition curate-eval",
         "focusa context-cognition curate-eval-runs"
       ],
-      "core_surface": "Spec100 §15.1 CQRS write side (eval-ledger append-only JSONL)",
+      "core_surface": "Spec100 \u00a715.1 CQRS write side (eval-ledger append-only JSONL)",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "write_curator_eval",
@@ -1516,7 +1516,7 @@
     {
       "name": "focusa_context_cognition_curate_optimize",
       "label": "Context Cognition Curate Optimize",
-      "purpose": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule.",
+      "purpose": "Spec 100 Phase 5 \u2014 submit a Cognition Optimizer artifact and get the promote/rollback decision per \u00a715 promotion rule.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_curate_optimize",
       "ontology_objects": [
@@ -1531,7 +1531,7 @@
       "cli_commands": [
         "focusa context-cognition curate-optimize"
       ],
-      "core_surface": "Spec100 §15.1 CQRS write side (artifact ledger append + promotion gate)",
+      "core_surface": "Spec100 \u00a715.1 CQRS write side (artifact ledger append + promotion gate)",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "write_cognition_optimizer_artifact",
@@ -1542,7 +1542,7 @@
     {
       "name": "focusa_context_cognition_optimizer_artifacts",
       "label": "Context Cognition Optimizer Artifacts",
-      "purpose": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
+      "purpose": "Spec 100 Phase 5 \u2014 list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
       "family": "trajectory",
       "ontology_action": "trajectory.context_cognition_optimizer_artifacts",
       "ontology_objects": [
@@ -1556,7 +1556,7 @@
       "cli_commands": [
         "focusa context-cognition optimizer artifacts"
       ],
-      "core_surface": "Spec100 §15.1 CQRS read side (artifact ledger)",
+      "core_surface": "Spec100 \u00a715.1 CQRS read side (artifact ledger)",
       "doc_path": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
@@ -1567,7 +1567,7 @@
     {
       "name": "focusa_bloatgaurd_report",
       "label": "Bloatgaurd Report",
-      "purpose": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
+      "purpose": "Spec 101 \u2014 read the compact Bloatgaurd budget report for domains 5.1-5.8.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.report",
       "ontology_objects": [
@@ -1592,7 +1592,7 @@
     {
       "name": "focusa_bloatgaurd_domain",
       "label": "Bloatgaurd Domain",
-      "purpose": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
+      "purpose": "Spec 101 \u2014 read one Bloatgaurd budget domain and its checks/findings.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.domain",
       "ontology_objects": [
@@ -1616,7 +1616,7 @@
     {
       "name": "focusa_bloatgaurd_tokenbloat_report",
       "label": "Bloatgaurd Tokenbloat Report",
-      "purpose": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
+      "purpose": "Spec 101 \u2014 read Tokenbloat Control report for domains 5.9-5.10.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.tokenbloat_report",
       "ontology_objects": [
@@ -1640,7 +1640,7 @@
     {
       "name": "focusa_bloatgaurd_tokenbloat_domain",
       "label": "Bloatgaurd Tokenbloat Domain",
-      "purpose": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
+      "purpose": "Spec 101 \u2014 read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.tokenbloat_domain",
       "ontology_objects": [
@@ -1663,7 +1663,7 @@
     {
       "name": "focusa_bloatgaurd_gate_modes",
       "label": "Bloatgaurd Gate Modes",
-      "purpose": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
+      "purpose": "Spec 101 \u2014 read gate modes A/B/C thresholds, allowlist, and report schema.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.gate_modes",
       "ontology_objects": [
@@ -1688,7 +1688,7 @@
     {
       "name": "focusa_bloatgaurd_gate_mode",
       "label": "Bloatgaurd Gate Mode",
-      "purpose": "Spec 101 — read one Bloatgaurd gate mode by code/name.",
+      "purpose": "Spec 101 \u2014 read one Bloatgaurd gate mode by code/name.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.gate_mode",
       "ontology_objects": [
@@ -1712,7 +1712,7 @@
     {
       "name": "focusa_bloatgaurd_profiles",
       "label": "Bloatgaurd Profiles",
-      "purpose": "Spec 101 — read profile presets and operator switches.",
+      "purpose": "Spec 101 \u2014 read profile presets and operator switches.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.profiles",
       "ontology_objects": [
@@ -1736,7 +1736,7 @@
     {
       "name": "focusa_bloatgaurd_profile",
       "label": "Bloatgaurd Profile",
-      "purpose": "Spec 101 — read one profile preset by name.",
+      "purpose": "Spec 101 \u2014 read one profile preset by name.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.profile",
       "ontology_objects": [
@@ -1759,7 +1759,7 @@
     {
       "name": "focusa_bloatgaurd_routines",
       "label": "Bloatgaurd Routines",
-      "purpose": "Spec 101 — read named routines and automation matrix.",
+      "purpose": "Spec 101 \u2014 read named routines and automation matrix.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.routines",
       "ontology_objects": [
@@ -1783,7 +1783,7 @@
     {
       "name": "focusa_bloatgaurd_routine",
       "label": "Bloatgaurd Routine",
-      "purpose": "Spec 101 — read one named routine by name.",
+      "purpose": "Spec 101 \u2014 read one named routine by name.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.routine",
       "ontology_objects": [
@@ -1806,7 +1806,7 @@
     {
       "name": "focusa_bloatgaurd_rollout",
       "label": "Bloatgaurd Rollout",
-      "purpose": "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
+      "purpose": "Spec 101 \u2014 read rollout phases, acceptance checks, and proof commands.",
       "family": "diagnostics_hygiene",
       "ontology_action": "bloatgaurd.rollout",
       "ontology_objects": [
@@ -1857,7 +1857,7 @@
     {
       "name": "focusa_dxux_report",
       "label": "DX/UX Report",
-      "purpose": "Spec105 — read implementation report for DXUX-001..012.",
+      "purpose": "Spec105 \u2014 read implementation report for DXUX-001..012.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.report",
       "ontology_objects": [
@@ -1881,7 +1881,7 @@
     {
       "name": "focusa_dxux_requirement",
       "label": "DX/UX Requirement",
-      "purpose": "Spec105 — read one DXUX requirement by id.",
+      "purpose": "Spec105 \u2014 read one DXUX requirement by id.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.requirement",
       "ontology_objects": [
@@ -1904,7 +1904,7 @@
     {
       "name": "focusa_dxux_explain",
       "label": "DX/UX Explain",
-      "purpose": "Spec105 — explain a failure and return recovery commands.",
+      "purpose": "Spec105 \u2014 explain a failure and return recovery commands.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.explain",
       "ontology_objects": [
@@ -1927,7 +1927,7 @@
     {
       "name": "focusa_dxux_digest",
       "label": "DX/UX Digest",
-      "purpose": "Spec105 — read compact continuation/doability digest.",
+      "purpose": "Spec105 \u2014 read compact continuation/doability digest.",
       "family": "diagnostics_hygiene",
       "ontology_action": "dxux.digest",
       "ontology_objects": [
@@ -2377,6 +2377,33 @@
       "parity_status": "full",
       "exemptions": [],
       "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+    },
+    {
+      "name": "focusa_awareness_packet",
+      "label": "Awareness Packet",
+      "purpose": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces.",
+      "family": "awareness",
+      "ontology_action": "awareness.render_packet",
+      "ontology_objects": [
+        "AwarenessPacket",
+        "AwarenessCandidateLine",
+        "AwarenessMode",
+        "AwarenessSurface"
+      ],
+      "api_routes": [
+        "GET /v1/awareness/packet",
+        "GET /v1/awareness/packet/{surface}"
+      ],
+      "cli_commands": [],
+      "core_surface": "Spec108 awareness rendering substrate \u2014 DVS scoring, mode/surface selection, visible/suppressed line triage",
+      "doc_path": "docs/focusa-tools/tools/focusa_awareness_packet.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "domain",
+      "exemptions": [
+        "api_domain_only"
+      ],
+      "live_check": "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1"
     }
   ]
 }

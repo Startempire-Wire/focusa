@@ -13,6 +13,7 @@ Authority-bearing tool docs should align with the canonical [Authority Model](..
 - [Predictive Power](./predictive-power.md)
 - [Trajectory](./trajectory.md)
 - [Project Identity](./project-identity.md)
+- [Awareness](./tools/focusa_awareness_packet.md)
 - [Stability audit 2026-05-22](./stability-audit-2026-05-22.md)
 - [Context Authority Current Guide](../current/CONTEXT_AUTHORITY_CURRENT.md)
 
@@ -38,6 +39,7 @@ Authority-bearing tool docs should align with the canonical [Authority Model](..
 - [`focusa_trajectory_propose_workpoint`](tools/focusa_trajectory_propose_workpoint.md)
 - [`focusa_trajectory_assess`](tools/focusa_trajectory_assess.md)
 - [`focusa_trajectory_define_goal`](tools/focusa_trajectory_define_goal.md)
+- [`focusa_awareness_packet`](tools/focusa_awareness_packet.md)
 - [`focusa_scratch`](tools/focusa_scratch.md)
 - [`focusa_decide`](tools/focusa_decide.md)
 - [`focusa_constraint`](tools/focusa_constraint.md)

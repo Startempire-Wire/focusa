@@ -10,9 +10,10 @@ export type FocusaToolFamily =
   | "trajectory"
   | "project_identity"
   | "traversal"
-  | "session_transfer";
+  | "session_transfer"
+  | "awareness";
 
-export type FocusaToolParityStatus = "full" | "domain" | "pi_only" | "local_only" | "degraded_known";
+export type FocusaToolParityStatus = "full" | "domain" | "pi_only" | "local_only" | "degraded_known" | "api_only";
 
 export interface FocusaToolContract {
   name: string;
@@ -2052,6 +2053,33 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     "parity_status": "full",
     "exemptions": [],
     "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking"
+  },
+  {
+    "name": "focusa_awareness_packet",
+    "label": "Awareness Packet",
+    "purpose": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces.",
+    "family": "awareness",
+    "ontology_action": "awareness.render_packet",
+    "ontology_objects": [
+      "AwarenessPacket",
+      "AwarenessCandidateLine",
+      "AwarenessMode",
+      "AwarenessSurface"
+    ],
+    "api_routes": [
+      "GET /v1/awareness/packet",
+      "GET /v1/awareness/packet/{surface}"
+    ],
+    "cli_commands": [],
+    "core_surface": "Spec108 awareness rendering substrate — DVS scoring, mode/surface selection, visible/suppressed line triage",
+    "doc_path": "docs/focusa-tools/tools/focusa_awareness_packet.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "domain",
+    "exemptions": [
+      "api_domain_only"
+    ],
+    "live_check": "contract_static plus GET /v1/awareness/packet returns schema focusa.awareness_packet.v1"
   }
 ];
 
@@ -2079,6 +2107,7 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
   project_identity: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
   traversal: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_workpoint_resume"],
   session_transfer: ["focusa_workpoint_resume", "focusa_device_pair_status", "focusa_trajectory_view"],
+  awareness: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
 };
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
@@ -2556,6 +2585,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_metacog_capture",
     "focusa_metacog_reflect",
     "focusa_tree_snapshot_state"
+  ],
+  "focusa_awareness_packet": [
+    "focusa_workpoint_resume",
+    "focusa_trajectory_view",
+    "focusa_tool_doctor"
   ]
 };
 
@@ -2583,6 +2617,7 @@ const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
   project_identity: ["assuming unsafe broad cwd is canonical", "skipping verify after scope mismatch"],
   traversal: ["full payloads by default", "unbounded history/tree/ontology reads"],
   session_transfer: ["raw localStorage as canonical", "raw URL paste without a saved pair"],
+  awareness: ["treating awareness as canonical authority", "ignoring suppressed lines when debugging degraded awareness"],
 };
 
 function invocationFor(contract: FocusaToolContract): string {

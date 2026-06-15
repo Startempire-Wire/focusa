@@ -3,7 +3,7 @@
 <!-- GENERATED: scripts/generate-tool-surface-summary. Do not edit counts manually. -->
 
 **Source registry:** `docs/current/focusa-tool-contracts.json`
-**Generated:** `2026-06-14T20:18:53.523Z`
+**Generated:** `2026-06-15T21:08:06.778Z`
 **Source commit:** `cae911c`
 **Current version:** `0.9.25-dev`
 
@@ -11,12 +11,12 @@
 
 | Metric | Count |
 | --- | ---: |
-| Tool contracts | 96 |
-| Tool families | 10 |
-| API parity | 92 |
+| Tool contracts | 97 |
+| Tool families | 11 |
+| API parity | 93 |
 | CLI parity | 81 |
 | Pi tools | 96 |
-| Docs coverage | 96 |
+| Docs coverage | 97 |
 
 ## Families
 
