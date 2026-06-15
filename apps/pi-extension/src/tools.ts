@@ -4855,6 +4855,71 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_bloatgaurd_report",
+    label: "Bloatgaurd Report",
+    description: "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
+    promptSnippet: "Use before cleanup or context-budget work to inspect Bloatgaurd budget domains and full-payload/deletion gates.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/bloatgaurd/report");
+      const body = result.body || {};
+      const domains = Array.isArray(body.domains) ? body.domains : [];
+      const ok = result.ok && body.status !== "blocked";
+      const toolResult = focusaToolResult({
+        ok,
+        status: ok ? "completed" : "blocked",
+        summary: `bloatgaurd report → domains=${domains.length} status=${body.status || result.status}`,
+        tool: "focusa_bloatgaurd_report",
+        family: "diagnostics_hygiene",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_bloatgaurd_domain", "focusa_context_cognition_render", "focusa_evidence_capture"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `bloatgaurd report ${body.status || result.status} | domains=${domains.length}\nnext_tools=focusa_bloatgaurd_domain,focusa_context_cognition_render` }],
+        structuredContent: toolResult,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_domain",
+    label: "Bloatgaurd Domain",
+    description: "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
+    promptSnippet: "Use when a gap maps to one budget domain such as output-firewall, docs-diet, or dead-code-safety.",
+    parameters: strictObject({
+      name: Type.String({ minLength: 1, maxLength: 120, description: "Bloatgaurd domain slug or title." }),
+    }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_domain", params, ["name"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_bloatgaurd_domain", "/v1/bloatgaurd/domain/{name}", params as Record<string, any>, "bloatgaurd domain", keyCheck.error);
+      }
+      const name = encodeURIComponent(String(params.name || ""));
+      const result = await focusaFetchDetailed(`/bloatgaurd/domain/${name}`);
+      const body = result.body || {};
+      const domain = body.domain || null;
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({
+        ok,
+        status: ok ? "completed" : "blocked",
+        summary: `bloatgaurd domain → ${domain?.name || params.name} status=${body.status || result.status}`,
+        tool: "focusa_bloatgaurd_domain",
+        family: "diagnostics_hygiene",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_bloatgaurd_report", "focusa_traverse", "focusa_evidence_capture"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `bloatgaurd domain ${body.status || result.status} | ${domain?.section || "?"} ${domain?.name || params.name}\nchecks=${Array.isArray(domain?.checks) ? domain.checks.length : 0}` }],
+        structuredContent: toolResult,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_context_cognition",
     label: "Context Cognition",
     description: "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state.",

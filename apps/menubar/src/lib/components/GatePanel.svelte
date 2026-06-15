@@ -7,9 +7,35 @@
   let candidates = $derived(gateStore.candidates);
   let hiddenCandidateCount = $derived(gateStore.hiddenCandidateCount);
   let signals = $derived(gateStore.signals);
+
+  const bloatgaurdReport = {
+    status: 'ready',
+    domains: [
+      ['5.1', 'output-firewall'],
+      ['5.2', 'tool-call-compression'],
+      ['5.3', 'docs-diet'],
+      ['5.4', 'test-diet'],
+      ['5.5', 'prompt-context-diet'],
+      ['5.6', 'rust-first-core'],
+      ['5.7', 'dead-code-safety'],
+      ['5.8', 'adaptive-router']
+    ]
+  };
 </script>
 
 <div class="gate-view">
+  <section class="section bloatgaurd-card" aria-label="Bloatgaurd budget domains">
+    <div class="section-label">BLOATGAURD BUDGETS ({bloatgaurdReport.domains.length})</div>
+    <div class="budget-summary">Spec101 read-only budget report: {bloatgaurdReport.status}</div>
+    <div class="budget-pills">
+      {#each bloatgaurdReport.domains as domain}
+        <span class="budget-pill" title="{domain[0]} {domain[1]} is tracked by /v1/bloatgaurd/domain/{domain[1]}">
+          {domain[0]} · {domain[1]}
+        </span>
+      {/each}
+    </div>
+  </section>
+
   {#if candidates.length === 0 && signals.length === 0}
     <div class="empty-state">
       <div class="empty-icon">◇</div>
@@ -123,6 +149,34 @@
     color: var(--fg-tertiary);
     margin: calc(-1 * var(--sp-1)) 0 var(--sp-2);
     line-height: 1.4;
+  }
+
+  .bloatgaurd-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+  }
+
+  .budget-summary {
+    color: var(--fg-secondary);
+    font-size: var(--text-xs);
+    margin-bottom: var(--sp-2);
+  }
+
+  .budget-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+
+  .budget-pill {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--fg-secondary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
   }
 
   /* Candidates */

@@ -1372,6 +1372,49 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_bloatgaurd_report",
+    "label": "Bloatgaurd Report",
+    "purpose": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.report",
+    "ontology_objects": [
+      "BloatgaurdReport",
+      "BloatgaurdDomainState",
+      "BloatgaurdBudget"
+    ],
+    "api_routes": ["GET /v1/bloatgaurd/report"],
+    "cli_commands": ["focusa bloatgaurd report"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/report safe probe"
+  },
+
+  {
+    "name": "focusa_bloatgaurd_domain",
+    "label": "Bloatgaurd Domain",
+    "purpose": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.domain",
+    "ontology_objects": [
+      "BloatgaurdDomainState",
+      "BloatgaurdBudget"
+    ],
+    "api_routes": ["GET /v1/bloatgaurd/domain/{name}"],
+    "cli_commands": ["focusa bloatgaurd domain <name>"],
+    "core_surface": "focusa_core::bloatgaurd::BloatgaurdDomainState",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/domain/output-firewall safe probe"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -1899,6 +1942,16 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   ],
   "focusa_context_cognition_optimizer_artifacts": [
     "focusa_context_cognition_curate_optimize"
+  ],
+  "focusa_bloatgaurd_report": [
+    "focusa_bloatgaurd_domain",
+    "focusa_context_cognition_render",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_domain": [
+    "focusa_bloatgaurd_report",
+    "focusa_traverse",
+    "focusa_evidence_capture"
   ],
   "focusa_call_stack_design": [
     "focusa_call_stack_verify",

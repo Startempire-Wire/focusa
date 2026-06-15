@@ -212,6 +212,10 @@ enum Commands {
     #[command(subcommand)]
     ContextCognition(commands::context_cognition::ContextCognitionCmd),
 
+    /// Spec 101 Bloatgaurd budget domains (read-only).
+    #[command(subcommand)]
+    Bloatgaurd(commands::bloatgaurd::BloatgaurdCmd),
+
     /// Spec 103/106 Call Stack design and drift verification.
     #[command(subcommand)]
     CallStack(commands::call_stack::CallStackCmd),
@@ -642,6 +646,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::ContextCognition(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
             commands::context_cognition::handle(&mut client, cmd).await
+        }
+        Commands::Bloatgaurd(cmd) => {
+            let mut client = crate::api_client::ApiClient::new();
+            commands::bloatgaurd::handle(&mut client, cmd).await
         }
         Commands::CallStack(cmd) => commands::call_stack::run(cmd, cli.json).await,
         Commands::Device(cmd) => {

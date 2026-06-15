@@ -2,6 +2,7 @@ pub mod ascc;
 pub mod attachments;
 pub mod autonomy;
 pub mod awareness;
+pub mod bloatgaurd;
 pub mod bounded;
 pub mod call_stack;
 pub mod capabilities;

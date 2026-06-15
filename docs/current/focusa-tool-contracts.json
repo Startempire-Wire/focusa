@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 80,
+  "tool_count": 82,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -1563,6 +1563,55 @@
       "parity_status": "full",
       "exemptions": [],
       "live_check": "contract_static plus /v1/context-cognition/optimizer/artifacts safe probe and scope gate"
+    },
+    {
+      "name": "focusa_bloatgaurd_report",
+      "label": "Bloatgaurd Report",
+      "purpose": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
+      "family": "diagnostics_hygiene",
+      "ontology_action": "bloatgaurd.report",
+      "ontology_objects": [
+        "BloatgaurdReport",
+        "BloatgaurdDomainState",
+        "BloatgaurdBudget"
+      ],
+      "api_routes": [
+        "GET /v1/bloatgaurd/report"
+      ],
+      "cli_commands": [
+        "focusa bloatgaurd report"
+      ],
+      "core_surface": "focusa_core::bloatgaurd::BloatgaurdReport",
+      "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/bloatgaurd/report safe probe"
+    },
+    {
+      "name": "focusa_bloatgaurd_domain",
+      "label": "Bloatgaurd Domain",
+      "purpose": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings.",
+      "family": "diagnostics_hygiene",
+      "ontology_action": "bloatgaurd.domain",
+      "ontology_objects": [
+        "BloatgaurdDomainState",
+        "BloatgaurdBudget"
+      ],
+      "api_routes": [
+        "GET /v1/bloatgaurd/domain/{name}"
+      ],
+      "cli_commands": [
+        "focusa bloatgaurd domain <name>"
+      ],
+      "core_surface": "focusa_core::bloatgaurd::BloatgaurdDomainState",
+      "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus /v1/bloatgaurd/domain/output-firewall safe probe"
     },
     {
       "name": "focusa_tree_head",
