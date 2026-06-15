@@ -139,6 +139,7 @@
     everConnected = hasEverConnected();
     const onSaved = () => {
       everConnected = true;
+      focusStore.setConnecting();
       void poll();
       if (!pollTimer) pollTimer = setInterval(poll, 2000);
     };

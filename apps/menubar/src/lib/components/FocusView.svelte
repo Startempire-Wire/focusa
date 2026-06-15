@@ -34,7 +34,20 @@
   }
 </script>
 
-{#if conn === 'disconnected' || conn === 'connecting'}
+{#if conn === 'connecting'}
+  <!-- Deterministic post-connect loading state -->
+  <div class="empty-state">
+    <div class="empty-icon calm">◎</div>
+    <div class="empty-title">Connecting to Focusa</div>
+    <div class="empty-desc">
+      Connection saved. Loading daemon state and focus bubbles…
+    </div>
+    <div class="empty-help">
+      <p class="hint">If this stays here, check Settings (⚙) for the API URL or tunnel.</p>
+    </div>
+  </div>
+
+{:else if conn === 'disconnected'}
   <!-- Disconnected empty state -->
   <div class="empty-state">
     <div class="empty-icon">⊘</div>
