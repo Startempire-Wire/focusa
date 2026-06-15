@@ -47,6 +47,8 @@ pub enum ContextCognitionCmd {
         #[arg(long)]
         project_root: Option<String>,
         #[arg(long)]
+        continuity_id: Option<String>,
+        #[arg(long)]
         target: Option<String>,
         #[arg(long, default_value = "2000")]
         token_budget: usize,
@@ -63,6 +65,8 @@ pub enum ContextCognitionCmd {
     CurateEvalRuns {
         #[arg(long)]
         project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
         #[arg(long, default_value = "10")]
         limit: usize,
     },
@@ -70,6 +74,8 @@ pub enum ContextCognitionCmd {
     OptimizerArtifacts {
         #[arg(long)]
         project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
         #[arg(long, default_value = "curator")]
         module_name: String,
         #[arg(long, default_value = "10")]
@@ -79,6 +85,8 @@ pub enum ContextCognitionCmd {
     CurateOptimize {
         #[arg(long)]
         project_root: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
         #[arg(long)]
         prompt_artifact_ref: String,
         #[arg(long, default_value = "curator")]
@@ -179,6 +187,7 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
         }
         ContextCognitionCmd::CurateEval {
             project_root,
+            continuity_id,
             target,
             token_budget,
             candidates_json,
@@ -200,6 +209,7 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
             };
             let body = serde_json::json!({
                 "project_root": project_root,
+                "continuity_id": continuity_id,
                 "target": target,
                 "token_budget": token_budget,
                 "candidates": candidates,
@@ -215,29 +225,36 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
         }
         ContextCognitionCmd::CurateEvalRuns {
             project_root,
+            continuity_id,
             limit,
         } => {
             let project_root = project_root.ok_or_else(|| {
                 anyhow::anyhow!("--project-root is required for curate-eval-runs")
             })?;
-            let resp = client.get(&format!("/v1/context-cognition/curate/eval/runs?project_root={project_root}&limit={limit}")).await?;
+            let mut path = build_query("/v1/context-cognition/curate/eval/runs", Some(project_root), continuity_id);
+            path.push_str(&format!("{}limit={limit}", if path.contains('?') { "&" } else { "?" }));
+            let resp = client.get(&path).await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
             Ok(())
         }
         ContextCognitionCmd::OptimizerArtifacts {
             project_root,
+            continuity_id,
             module_name,
             limit,
         } => {
             let project_root = project_root.ok_or_else(|| {
                 anyhow::anyhow!("--project-root is required for optimizer-artifacts")
             })?;
-            let resp = client.get(&format!("/v1/context-cognition/optimizer/artifacts?project_root={project_root}&module_name={module_name}&limit={limit}")).await?;
+            let mut path = build_query("/v1/context-cognition/optimizer/artifacts", Some(project_root), continuity_id);
+            path.push_str(&format!("{}module_name={module_name}&limit={limit}", if path.contains('?') { "&" } else { "?" }));
+            let resp = client.get(&path).await?;
             println!("{}", serde_json::to_string_pretty(&resp)?);
             Ok(())
         }
         ContextCognitionCmd::CurateOptimize {
             project_root,
+            continuity_id,
             prompt_artifact_ref,
             module_name,
             eval_score,
@@ -250,6 +267,7 @@ pub async fn handle(client: &mut ApiClient, cmd: ContextCognitionCmd) -> anyhow:
                 .ok_or_else(|| anyhow::anyhow!("--project-root is required for curate-optimize"))?;
             let body = serde_json::json!({
                 "project_root": project_root,
+                "continuity_id": continuity_id,
                 "module_name": module_name,
                 "prompt_artifact_ref": prompt_artifact_ref,
                 "eval_score": eval_score,
