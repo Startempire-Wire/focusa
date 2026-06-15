@@ -41,3 +41,4 @@ Thumbs.db
 /.beads/daemon-*.log.gz
 ecs/handles/
 ecs/handles-index/
+ecs/objects/
