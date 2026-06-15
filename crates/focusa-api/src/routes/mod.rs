@@ -7,6 +7,7 @@ pub mod bounded;
 pub mod call_stack;
 pub mod capabilities;
 pub mod capabilities_extra;
+pub mod claim_gate;
 pub mod clt;
 pub mod commands;
 pub mod constitution;

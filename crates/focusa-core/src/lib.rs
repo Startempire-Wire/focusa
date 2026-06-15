@@ -29,6 +29,7 @@ pub mod ascc;
 pub mod autonomy;
 pub mod bloatgaurd;
 pub mod cache;
+pub mod claim_gate;
 pub mod clt;
 pub mod constitution;
 pub mod dxux;

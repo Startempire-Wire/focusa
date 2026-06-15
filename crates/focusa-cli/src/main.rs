@@ -75,6 +75,10 @@ enum Commands {
     #[command(subcommand)]
     Utility(commands::utility::UtilityCmd),
 
+    /// Gate completion claims before close/final report.
+    #[command(subcommand)]
+    Claim(commands::claim::ClaimCmd),
+
     /// Recoverable cleanup of generated residue.
     Cleanup(commands::cleanup::CleanupArgs),
 
@@ -598,6 +602,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Utility(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
             commands::utility::handle(&mut client, cmd).await
+        }
+        Commands::Claim(cmd) => {
+            let mut client = crate::api_client::ApiClient::new();
+            commands::claim::handle(&mut client, cmd).await
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,

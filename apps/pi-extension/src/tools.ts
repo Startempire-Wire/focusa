@@ -2849,6 +2849,38 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_claim_preclose_gate",
+    label: "Completion Claim Gate",
+    description: "Check completion claims against evidence to prevent partial/surrogate proof overclaims.",
+    promptSnippet: "Use before closing a bead or final report when evidence might be partial, local-only, or blocked.",
+    parameters: strictObject({
+      work_item_id: Type.Optional(Type.String({ maxLength: 120 })),
+      claim: Type.String({ minLength: 1, maxLength: 500 }),
+      acceptance_criteria: Type.Optional(Type.Array(Type.String({ maxLength: 500 }))),
+      evidence_refs: Type.Optional(Type.Array(Type.String({ maxLength: 240 }))),
+      evidence_summaries: Type.Optional(Type.Array(Type.String({ maxLength: 500 }))),
+    }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_claim_preclose_gate", params, ["work_item_id", "claim", "acceptance_criteria", "evidence_refs", "evidence_summaries"]);
+      if (!keyCheck.ok) return spec80ValidationResult("focusa_claim_preclose_gate", "/v1/claim/preclose", params as Record<string, any>, "completion claim gate", keyCheck.error);
+      const result = await focusaFetchDetailed("/claim/preclose", {
+        method: "POST",
+        body: JSON.stringify({
+          work_item_id: params.work_item_id || null,
+          claim: params.claim,
+          acceptance_criteria: Array.isArray(params.acceptance_criteria) ? params.acceptance_criteria : [],
+          evidence_refs: Array.isArray(params.evidence_refs) ? params.evidence_refs : [],
+          evidence_summaries: Array.isArray(params.evidence_summaries) ? params.evidence_summaries : [],
+        }),
+      });
+      const body = result.body || {};
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `claim gate → decision=${body.decision || "unknown"} evidence_class=${body.evidence_class || "unknown"}`, tool: "focusa_claim_preclose_gate", family: "diagnostics_hygiene", side_effects: [], evidence_refs: Array.isArray(params.evidence_refs) ? params.evidence_refs : [], next_tools: ["focusa_evidence_capture", "focusa_dxux_explain", "focusa_workpoint_checkpoint"], raw: body });
+      return { content: [{ type: "text", text: `claim gate ${body.decision || result.status} | evidence_class=${body.evidence_class || "unknown"}\nreason=${body.reason || "unknown"}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_utility_card",
     label: "Focusa Utility Card",
     description: "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",

@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 96,
+  "tool_count": 97,
   "contracts": [
     {
       "name": "focusa_project_identity",
@@ -1825,6 +1825,31 @@
       "parity_status": "full",
       "exemptions": [],
       "live_check": "contract_static plus /v1/bloatgaurd/rollout/report safe probe"
+    },
+    {
+      "name": "focusa_claim_preclose_gate",
+      "label": "Completion Claim Gate",
+      "purpose": "Check completion claims against evidence to prevent partial/surrogate proof overclaims.",
+      "family": "diagnostics_hygiene",
+      "ontology_action": "claim.preclose_gate",
+      "ontology_objects": [
+        "CompletionClaimGateReport",
+        "EvidenceRef",
+        "WorkItem"
+      ],
+      "api_routes": [
+        "POST /v1/claim/preclose"
+      ],
+      "cli_commands": [
+        "focusa claim preclose"
+      ],
+      "core_surface": "focusa_core::claim_gate::CompletionClaimGateReport",
+      "doc_path": "docs/focusa-tools/tools/focusa_claim_preclose_gate.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus Mac-pairing overclaim gate probe"
     },
     {
       "name": "focusa_utility_card",
