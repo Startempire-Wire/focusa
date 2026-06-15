@@ -39,3 +39,5 @@ Thumbs.db
 /focusa.sqlite-wal
 /focusa-daemon.lock
 /.beads/daemon-*.log.gz
+ecs/handles/
+ecs/handles-index/
