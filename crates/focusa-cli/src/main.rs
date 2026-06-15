@@ -601,7 +601,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Utility(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
-            commands::utility::handle(&mut client, cmd).await
+            commands::utility::handle(&mut client, cmd, cli.json).await
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
