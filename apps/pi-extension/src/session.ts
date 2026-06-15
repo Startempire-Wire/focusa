@@ -70,6 +70,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
       }
       S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(candidate);
       S.activeWorkpointSummary = packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "";
+      S.lastWorkpointUpdate = Date.now();
       focusaPost("/telemetry/trace", {
         event_type: "workpoint_resume_packet_loaded",
         payload: { reason, workpoint_id: packet.workpoint_id, canonical: packet.canonical },

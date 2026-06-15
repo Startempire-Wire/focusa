@@ -3964,6 +3964,7 @@ export function registerTools(pi: ExtensionAPI) {
         });
         S.activeWorkpointPacket = fallback;
         S.activeWorkpointSummary = `${payload.mission || "Workpoint checkpoint"} (noncanonical timeout fallback)`;
+        S.lastWorkpointUpdate = Date.now();
         try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
         return {
@@ -4082,6 +4083,7 @@ export function registerTools(pi: ExtensionAPI) {
         });
         S.activeWorkpointPacket = fallback;
         S.activeWorkpointSummary = `${String(fallback.mission || "Workpoint resume")} (noncanonical timeout fallback)`;
+        S.lastWorkpointUpdate = Date.now();
         try { S.pi?.appendEntry("focusa-workpoint-timeout-fallback", fallback); } catch { /* best effort */ }
         persistState();
         return {

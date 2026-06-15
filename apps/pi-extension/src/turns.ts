@@ -93,6 +93,7 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
       }
       S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(candidate);
       S.activeWorkpointSummary = packet.rendered_summary || packet.next_step_hint || "";
+      S.lastWorkpointUpdate = Date.now();
     }
   } catch { /* best effort */ }
 }

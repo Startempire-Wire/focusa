@@ -195,6 +195,7 @@ async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<an
       }
       S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(candidate);
       S.activeWorkpointSummary = packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || "";
+      S.lastWorkpointUpdate = Date.now();
       return packet;
     }
   } catch { /* best effort */ }
@@ -306,6 +307,7 @@ function recordLocalWorkpointFallback(reason: string): void {
   };
   S.activeWorkpointPacket = fallback;
   S.activeWorkpointSummary = `NON-CANONICAL WORKPOINT FALLBACK: ${fallback.next_slice}`;
+  S.lastWorkpointUpdate = Date.now();
   try { S.pi?.appendEntry("focusa-workpoint-fallback", fallback); } catch { /* best effort */ }
   persistState();
 }

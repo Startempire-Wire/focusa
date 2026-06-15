@@ -207,6 +207,17 @@ export const S = {
   activeContextWindow: 200_000,  // claude-opus-4-6 has 200K window; updated on model_select events
   currentTier: "" as "" | "warn" | "auto" | "hard", // §10.4 tier badge
   currentContextPct: null as number | null,
+  // Spec108 awareness substrate cadence state
+  awarenessCadenceState: null as null | {
+    lastShownAt: number;
+    lastPct: number;
+    lastTier: "low" | "medium" | "high" | "critical";
+    lastAnchorState: string;
+    compactionCountAtLastShown: number;
+    transitionCount: number;
+    suppressionCount: number;
+  },
+  lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
   // Streaming delta (§36.1)
   lastStreamLen: 0,
   // Auto-resume dedup: set when compaction fires, cleared after continuation sent
@@ -2256,6 +2267,7 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
   if (packet && isProjectRootAuthoritySafe(cwd) && isProjectRootAuthoritySafe(packetProjectRoot) && packetProjectRoot === normalizeProjectRoot(cwd) && packetContinuityId === persistedContinuityId && packet.canonical !== false && packet.status !== "partial" && packet.status !== "rejected_scope_mismatch") {
     S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(packet);
     S.activeWorkpointSummary = String(data?.activeWorkpointSummary || "");
+    S.lastWorkpointUpdate = Date.now();
   } else {
     S.activeWorkpointPacket = null;
     S.activeWorkpointSummary = "";
@@ -2332,6 +2344,7 @@ function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): strin
   if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
   S.continuityId = packetContinuityId;
   S.activeWorkpointPacket = stampWorkpointPacketForCurrentPiSession(workpoint);
+  S.lastWorkpointUpdate = Date.now();
   return packetProjectRoot;
 }
 
