@@ -7,6 +7,8 @@
 
   let active = $derived(focusStore.activeFrame);
   let paused = $derived(focusStore.pausedFrames);
+  let visiblePaused = $derived(paused.slice(0, 8));
+  let hiddenPausedCount = $derived(Math.max(0, paused.length - visiblePaused.length));
   let conn = $derived(focusStore.connected);
 
   function timeAgo(iso: string): string {
@@ -159,10 +161,13 @@
     {/if}
 
     {#if paused.length > 0}
-      <section>
-        <div class="section-label">BACKGROUND CLOUDS ({paused.length})</div>
-        {#each paused as frame}
-          <div class="frame-card paused">
+      <section aria-label="Bounded background clouds">
+        <div class="section-label">BACKGROUND CLOUDS ({visiblePaused.length} of {paused.length})</div>
+        {#if hiddenPausedCount > 0}
+          <div class="collapsed-note">Collapsed {hiddenPausedCount} older background clouds. Showing the most recent {visiblePaused.length}.</div>
+        {/if}
+        {#each visiblePaused as frame}
+          <div class="frame-card paused" aria-label={`Background cloud: ${frame.title}`}>
             <div class="frame-header">
               <span class="frame-status paused" title={frame.status}>{statusIcon(frame.status)}</span>
               <span class="frame-title">{frame.title}</span>
@@ -292,6 +297,13 @@
     color: var(--fg-tertiary);
     letter-spacing: 0.8px;
     margin-bottom: var(--sp-2);
+  }
+
+  .collapsed-note {
+    color: var(--fg-tertiary);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    margin: calc(-1 * var(--sp-1)) 0 var(--sp-2);
   }
 
   /* Frame cards */
