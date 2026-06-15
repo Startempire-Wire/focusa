@@ -11,18 +11,18 @@
 
 | Metric | Count |
 | --- | ---: |
-| Tool contracts | 80 |
+| Tool contracts | 96 |
 | Tool families | 10 |
-| API parity | 76 |
-| CLI parity | 65 |
-| Pi tools | 80 |
-| Docs coverage | 80 |
+| API parity | 92 |
+| CLI parity | 81 |
+| Pi tools | 96 |
+| Docs coverage | 96 |
 
 ## Families
 
 | Family | Tools |
 | --- | ---: |
-| diagnostics_hygiene | 5 |
+| diagnostics_hygiene | 21 |
 | focus_state | 11 |
 | metacognition | 13 |
 | project_identity | 4 |

@@ -1,9 +1,10 @@
 # Spec 106 — Focusa Vision Tightening
 
-Status: implemented-and-final-audited
+Status: implemented static/architecture pass; product QA hardening in progress
 Source: operator steering, Focusa Vision tightening round
 Date: 2026-06-14
 Scope: vocabulary, authority, scoping, docs, tool surfaces, Context Cognition, Context Authority, Call Stack Design, pairing, public stream, release proof, security/trust, adapter contracts, evals, menubar, golden workflow.
+Testing boundary: Spec106 tightened the model and docs, but real browser/product QA remains active in `focusa-qasy`; native menubar proof is still in testing, not final release evidence.
 
 ## 0. Core Directive
 

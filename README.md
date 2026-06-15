@@ -76,8 +76,8 @@ If you ship code with AI agents today, you already know these pain points. Focus
 - **Run a long Pi session and keep it.** Start a real AI coding session, create a Workpoint, attach evidence, recover after compaction/session drift, and continue without losing the thread.
 - **Inspect any past work.** `focusa_traverse` walks the project graph, `focusa_hlt_history` shows the exact HLT ladder at any point in time, `focusa_metacog_recent_reflections` shows the agent's recent lessons.
 - **Stop off-context mutation.** `focusa action preflight` blocks task substitution such as installing a release asset during Phone Bridge pairing on a live build host; `focusa env contract`, `focusa runtime inventory`, and `focusa binary preflight-install` expose the facts behind that verdict.
-- **Ship a Tauri menubar app on macOS.** The bundled macOS app proof (`apps/menubar`) is built in CI on every push.
-- **Wire it into your CI.** GitHub Actions runs Rust tests, strict spec gates, and the macOS Tauri package proof; static audits verify the generated tool surface stays in sync.
+- **Test the Tauri menubar cockpit.** `apps/menubar` is in active testing: Svelte/web checks and pairing flows are proven locally, while native macOS `.app`, Keychain, restart, and OS lifecycle proof remain tracked testing work.
+- **Wire it into your CI.** GitHub Actions runs Rust tests, strict spec gates, static audits, and packaging/release checks; native menubar runtime evidence is reported separately from CI/static proof.
 - **Stream public cards.** With `FOCUSA_PUBLIC_STREAM=1`, tool calls become typed public cards — perfect for showcasing live agent work.
 
 ---
@@ -87,6 +87,7 @@ If you ship code with AI agents today, you already know these pain points. Focus
 - **The generated Focusa tool surface is current.** See [docs/current/generated/tool-surface-summary.md](docs/current/generated/tool-surface-summary.md) for live counts across Pi tools, API parity, CLI parity, docs coverage, and families.
 - **Spec 103 — Call Stack Architecture Blueprint**: `focusa_call_stack_design` writes a typed, append-only call stack design (entry → handlers → services → adapters → storage → output) for a feature before implementation; `focusa_call_stack_verify` checks the saved design for implementation drift. The design is linkable as `focusa_evidence` to an active Workpoint and is the first-class artifact an agent consumes before writing code. See `docs/103-call-stack-architecture-blueprint-spec.md`, `docs/focusa-tools/tools/focusa_call_stack_design.md`, and `docs/focusa-tools/tools/focusa_call_stack_verify.md`.
 - **Spec 105 — Agent DX/UX**: `focusa_dxux_report`, `focusa_dxux_requirement`, `focusa_dxux_explain`, `focusa_dxux_digest`, `focusa preflight`, and `focusa explain <failure>` expose real reliability/authority, doability, recovery, evidence, drift, and compact-resume UX surfaces. See `docs/105-agent-dx-ux-merged-scope-spec.md`, `docs/focusa-tools/tools/focusa_dxux_report.md`, `docs/focusa-tools/tools/focusa_dxux_requirement.md`, `docs/focusa-tools/tools/focusa_dxux_explain.md`, and `docs/focusa-tools/tools/focusa_dxux_digest.md`.
+- **Spec 106 — Vision Tightening**: Focusa's vocabulary and product identity are now tighter without flattening the cognitive model: ProjectIdentity, Continuity ID, HLT/MLG/STG, Workpoints, Evidence, Context Cognition, Context Authority, public stream redaction, UIAI diagnostics, Golden Workflow, and glossary surfaces are canonical. See `docs/106-focusa-vision-tightening-spec.md`, `docs/current/AUTHORITY_MODEL.md`, `docs/current/GOLDEN_WORKFLOW.md`, and `docs/current/FOCUSA_GLOSSARY_LINKED_DOCS_UI.md`.
 - **Utility card / bootstrap card**: `focusa_utility_card` and `focusa utility card` expose compact startup, post-compaction, recovery, and tool-brevity guidance from current core surfaces. See `docs/focusa-tools/tools/focusa_utility_card.md`.
 - **Spec 107 — Spec-first feature lifecycle and claim discipline**: new Focusa features must follow Idea → New Spec → bd/task decomposition → Implementation → tests/proofs → bd/task closure, and partial/surrogate evidence must not be claimed as completion. See `docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`.
 - **Spec 101 — Bloatgaurd budgets**: `focusa_bloatgaurd_report`, `focusa_bloatgaurd_domain`, `focusa_bloatgaurd_tokenbloat_report`, `focusa_bloatgaurd_tokenbloat_domain`, `focusa_bloatgaurd_gate_modes`, `focusa_bloatgaurd_gate_mode`, `focusa_bloatgaurd_profiles`, `focusa_bloatgaurd_profile`, `focusa_bloatgaurd_routines`, `focusa_bloatgaurd_routine`, and `focusa_bloatgaurd_rollout` expose read-only budget domains 5.1–5.10, gate modes A/B/C, profile presets, routines, and rollout proof across Rust/API/CLI/Pi/menubar surfaces. See `docs/101-focusa-bloatgaurd-spec.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_report.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_domain.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md`, and `docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_profile.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_routines.md`, `docs/focusa-tools/tools/focusa_bloatgaurd_routine.md`, and `docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md`.
@@ -97,10 +98,9 @@ If you ship code with AI agents today, you already know these pain points. Focus
 - **Session transfer**: `focusa_session_transfer` provides save/continue semantics for long Pi/Focusa work without forking continuity.
 - **UIAI browser diagnostics integration**: scoped UIAI browser sessions and reliability reports emit Focusa-ready `focusa_evidence` handles; `focusa_browser_diagnostics_intake` turns diagnostics into evidence, active-object hints, predictions, and optional metacog signals.
 - **Doctor browser awareness**: `focusa_tool_doctor` surfaces UIAI browser health/pressure so browser failures are visible during Focusa troubleshooting.
-- **Menubar cockpit proof**: the Svelte/Tauri menubar app has a passing web build and GitHub macOS Tauri package proof on every push.
+- **Menubar cockpit testing**: the Svelte/Tauri menubar app has passing web build/check proof and pairing API/web proof; native macOS `.app`, Keychain, restart persistence, screenshots/logs, and OS lifecycle validation remain testing work, tracked by `focusa-ui0y.15`, `focusa-qasy.25`, and native artifact beads.
 - **Mac menubar OAuth-like device pairing with QR + PWA (focusa-ui0y)**: pair a Mac to a Focusa VPS via three handoff modes — CLI (SSH), QR + phone (Telegram/Discord-style), or QR + VPS browser. Set `FOCUSA_PAIRING_URL` on the daemon to your public VPS hostname; the Mac menubar renders a QR encoding the PWA helper page at `/pair/{device_id}`. Architecture: [`docs/53-focusa-device-pairing-spec.md`](docs/53-focusa-device-pairing-spec.md). Each Focusa install is its own trust root — multi-tenant safe, no shared registry.
-- **Strict CI proof**: GitHub CI passes Rust tests/clippy, strict spec gates, and the macOS Tauri package proof on every push to `main`.
-- **Strict CI proof**: GitHub CI passes Rust tests/clippy, strict spec gates, and the macOS Tauri package proof on every push to `main`.
+- **Strict CI proof**: GitHub CI passes Rust tests/clippy and strict spec/static gates on every push to `main`; native menubar runtime proof is not treated as complete until actual macOS evidence exists.
 
 ---
 
@@ -184,9 +184,17 @@ When Focusa is working well, an agent should:
 | Work-loop | Implemented but advanced | Preview/advanced |
 | Metacognition | Implemented, bounded | Preview/advanced |
 | Ontology governance | Partial/design-forward | Experimental unless marked current in `docs/current/` |
-| GUI/menubar | Implemented preview cockpit | Web build and GitHub macOS Tauri package proof pass; still not primary Operator Preview surface |
-| Mac device pairing (focusa-ui0y) | Implemented (CLI / QR+phone / QR+browser) | `focusa device pair-qr` + menubar QR render + PWA helper page at `/pair/{device_id}` |
+| GUI/menubar | Testing preview cockpit | Web build/checks and local pairing flows pass; native macOS `.app`, Keychain, restart, screenshots/logs, and OS lifecycle proof remain open |
+| Mac device pairing (focusa-ui0y) | Implemented surfaces; E2E testing open | `focusa device pair-qr` + menubar QR render + PWA helper page at `/pair/{device_id}` exist; actual Mac E2E proof remains tracked by `focusa-ui0y.15` |
 | Team/multi-user/cloud sync | Future | Not in preview |
+
+---
+
+## Current testing boundaries
+
+- **Menubar is in testing**, not release-final native proof. Web/Svelte checks, local pairing API/web flows, QR/PWA paths, and static audits are good evidence; actual macOS `.app` launch, Keychain persistence, restart persistence, screenshots/logs, and native Tauri window/menu/invoke lifecycle remain open.
+- **Spec106 product QA hardening remains active.** `docs/evidence/REAL_BROWSER_PRODUCT_QA_2026-06-14.md` records real browser/product findings after the static/architecture pass; open beads track native blockers and deeper product QA.
+- **Completion claims are now spec-disciplined.** Spec107 requires Idea → New Spec → bd/task decomposition → Implementation → tests/proofs → bd/task closure and forbids partial/surrogate evidence as completion proof.
 
 ---
 

@@ -1,6 +1,6 @@
-# Pi Extension Final Toolset Audit
+# Pi Extension Toolset Audit Snapshot
 
-Final gate for Spec106 Vision Tightening: reevaluate Pi plugin tools, cards, post-compaction recovery, and auto-bootstrap after the implementation beads.
+Static/tooling gate for Spec106 Vision Tightening: reevaluate Pi plugin tools, cards, post-compaction recovery, and auto-bootstrap after the implementation beads. This is not native menubar or real browser/product QA final signoff.
 
 ## Surfaces reviewed
 
@@ -51,4 +51,4 @@ scripts/verify-doc-version-consistency
 
 ## Completion rule
 
-Spec106 is complete only after this audit passes, `focusa-husq.59` closes with evidence, and the parent bead closes after final proof.
+This audit can satisfy the Pi-extension/tooling slice of Spec106 only. Overall product readiness still depends on real browser/product QA evidence, including the open menubar/native validation boundaries tracked by `focusa-qasy`, `focusa-qasy.25`, and `focusa-ui0y.15`.
