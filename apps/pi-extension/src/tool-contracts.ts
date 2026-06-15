@@ -1585,24 +1585,6 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
-    "name": "focusa_claim_preclose_gate",
-    "label": "Completion Claim Gate",
-    "purpose": "Check completion claims against evidence to prevent partial/surrogate proof overclaims.",
-    "family": "diagnostics_hygiene",
-    "ontology_action": "claim.preclose_gate",
-    "ontology_objects": ["CompletionClaimGateReport", "EvidenceRef", "WorkItem"],
-    "api_routes": ["POST /v1/claim/preclose"],
-    "cli_commands": ["focusa claim preclose"],
-    "core_surface": "focusa_core::claim_gate::CompletionClaimGateReport",
-    "doc_path": "docs/focusa-tools/tools/focusa_claim_preclose_gate.md",
-    "result_envelope": "tool_result_v1",
-    "side_effect_profile": "read_state",
-    "parity_status": "full",
-    "exemptions": [],
-    "live_check": "contract_static plus Mac-pairing overclaim gate probe"
-  },
-
-  {
     "name": "focusa_utility_card",
     "label": "Focusa Utility Card",
     "purpose": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
@@ -2272,11 +2254,6 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_bloatgaurd_profiles",
     "focusa_bloatgaurd_routines",
     "focusa_evidence_capture"
-  ],
-  "focusa_claim_preclose_gate": [
-    "focusa_evidence_capture",
-    "focusa_dxux_explain",
-    "focusa_workpoint_checkpoint"
   ],
   "focusa_utility_card": [
     "focusa_agent_prompt",
