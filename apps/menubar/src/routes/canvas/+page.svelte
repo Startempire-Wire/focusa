@@ -42,6 +42,8 @@
       <button 
         class="toggle-btn" 
         class:active={showAscc}
+        aria-label={showAscc ? 'Hide ASCC panel' : 'Show ASCC panel'}
+        aria-pressed={showAscc}
         on:click={() => showAscc = !showAscc}
       >
         ASCC
@@ -49,6 +51,8 @@
       <button 
         class="toggle-btn" 
         class:active={showTimeline}
+        aria-label={showTimeline ? 'Hide Timeline panel' : 'Show Timeline panel'}
+        aria-pressed={showTimeline}
         on:click={() => showTimeline = !showTimeline}
       >
         Timeline
@@ -56,8 +60,19 @@
     </div>
   </header>
   
+  <section class="canvas-summary" aria-label="Canvas text summary">
+    <strong>Canvas summary:</strong>
+    {$focusCanvasStore.stack.frames.length} focus frames loaded;
+    active frame {$focusCanvasStore.activeFrame?.title || 'none'};
+    {$focusCanvasStore.events.length} timeline events available.
+    Controls: ASCC panel {showAscc ? 'shown' : 'hidden'}, Timeline panel {showTimeline ? 'shown' : 'hidden'}.
+  </section>
+
   <div class="canvas-layout">
-    <main class="canvas-main">
+    <main class="canvas-main" aria-label="Focus frame graph">
+      <div class="canvas-main-summary" aria-label="Focus frame graph summary">
+        Focus frame graph: {$focusCanvasStore.stack.frames.length} frames; active {$focusCanvasStore.activeFrame?.title || 'none'}; {$focusCanvasStore.events.length} timeline events.
+      </div>
       <FocusCanvas 
         frames={$focusCanvasStore.stack.frames}
         activeFrameId={$focusCanvasStore.stack.active_id}
@@ -150,6 +165,19 @@
     color: white;
   }
   
+  .canvas-summary {
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--header-border, #2d3a4a);
+    color: var(--text-secondary, #9ca3af);
+    background: var(--header-bg, rgba(15, 15, 26, 0.88));
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .canvas-summary strong {
+    color: var(--text-primary, #eaeaea);
+  }
+
   .canvas-layout {
     flex: 1;
     display: grid;
@@ -161,6 +189,22 @@
   .canvas-main {
     overflow: hidden;
     position: relative;
+  }
+
+  .canvas-main-summary {
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    left: 12px;
+    max-width: min(520px, calc(100% - 24px));
+    padding: 6px 8px;
+    border: 1px solid var(--header-border, #2d3a4a);
+    border-radius: 6px;
+    color: var(--text-secondary, #9ca3af);
+    background: rgba(10, 10, 15, 0.76);
+    font-size: 11px;
+    line-height: 1.35;
+    pointer-events: none;
   }
   
   .panel-sidebar {

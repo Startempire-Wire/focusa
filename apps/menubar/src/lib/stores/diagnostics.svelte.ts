@@ -86,7 +86,16 @@ function createDiagnosticsStore() {
     };
     entries = [...entries, full].slice(-MAX_ENTRIES);
     persist(entries);
-    console.error('[focusa-menubar-diagnostic]', full);
+    const parts = [
+      `area=${full.area}`,
+      `phase=${full.phase}`,
+      `class=${full.error_class}`,
+      full.status ? `status=${full.status}` : '',
+      full.failure_class ? `failure_class=${full.failure_class}` : '',
+      full.url ? `url=${full.url}` : '',
+      `message=${full.message}`,
+    ].filter(Boolean);
+    console.error(`[focusa-menubar-diagnostic] ${parts.join(' ')}`);
     return full;
   }
 

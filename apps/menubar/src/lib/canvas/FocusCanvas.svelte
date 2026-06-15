@@ -115,7 +115,11 @@
     class="focus-canvas"
     viewBox="0 0 1000 800"
     preserveAspectRatio="xMidYMid meet"
+    role="img"
+    aria-labelledby="focus-canvas-title focus-canvas-desc"
   >
+    <title id="focus-canvas-title">Focus Canvas frame graph</title>
+    <desc id="focus-canvas-desc">Interactive SVG map of {frames.length} focus frames. Use Tab to focus a frame and Enter to select it.</desc>
     <defs>
       <!-- Gradients -->
       <linearGradient id="frameGradient" x1="0%" y1="0%" x2="0%" y2="100%">
