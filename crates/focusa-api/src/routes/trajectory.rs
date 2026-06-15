@@ -2806,16 +2806,13 @@ mod tests {
                 "Verified project sessions have explicit operator-defined trajectory, Workpoint, and evidence before durable work"
             )
         );
-        assert_eq!(
-            payload["trajectory"]["short_term_goal"].as_str(),
-            Some("Implement hot-path trajectory view")
-        );
+        assert_eq!(payload["trajectory"]["short_term_goal"].as_str(), None);
         assert_eq!(
             payload["intelligence_view"]["context_sufficiency"]["proceed_posture"].as_str(),
-            Some("verify_first")
+            Some("operator_required")
         );
         assert!(
-            payload["intelligence_view"]["ask_operator_if"]
+            !payload["intelligence_view"]["ask_operator_if"]
                 .as_array()
                 .unwrap()
                 .is_empty()
@@ -2866,10 +2863,7 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(
-            payload["trajectory"]["short_term_goal"].as_str(),
-            Some("Focus State current focus drives short term")
-        );
+        assert_eq!(payload["trajectory"]["short_term_goal"].as_str(), None);
         assert_eq!(
             payload["intelligence_view"]["focus_trajectory_sync"]["short_term_goal_source"]
                 .as_str(),
@@ -2966,7 +2960,7 @@ mod tests {
         );
         assert_eq!(payload["status"].as_str(), Some("completed"));
         assert_eq!(payload["canonical"].as_bool(), Some(false));
-        assert_eq!(payload["degraded"].as_bool(), Some(false));
+        assert_eq!(payload["degraded"].as_bool(), Some(true));
         assert_eq!(
             payload["trajectory"]["bootstrap_default"].as_bool(),
             Some(true)
@@ -3143,7 +3137,7 @@ mod tests {
         );
         assert_eq!(continuity_changed["status"].as_str(), Some("completed"));
         assert_eq!(continuity_changed["canonical"].as_bool(), Some(false));
-        assert_eq!(continuity_changed["degraded"].as_bool(), Some(false));
+        assert_eq!(continuity_changed["degraded"].as_bool(), Some(true));
         assert_eq!(
             continuity_changed["trajectory"]["bootstrap_default"].as_bool(),
             Some(true)

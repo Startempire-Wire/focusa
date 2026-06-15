@@ -1267,10 +1267,11 @@ mod tests {
     }
 
     #[test]
-    fn token_is_32_hex() {
+    fn token_is_32_byte_base64url_no_pad() {
         let t = generate_token();
-        assert_eq!(t.len(), 32);
-        assert!(t.chars().all(|c| c.is_ascii_hexdigit()));
+        assert_eq!(t.len(), 43);
+        assert!(t.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(!t.contains('='));
     }
 
     #[test]
