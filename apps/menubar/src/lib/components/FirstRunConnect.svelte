@@ -87,6 +87,10 @@
     await applyCompletionPayloadText(completionPayload);
   }
 
+  function bridgeUnavailableMessage(): string {
+    return 'Automatic Mac callback is only available in the native menubar app. In this browser preview, use Advanced paste fallback.';
+  }
+
   async function startBridgeCallback(nextNonce: string) {
     callbackUrl = '';
     callbackStatus = 'Starting automatic Mac callback…';
@@ -103,12 +107,12 @@
             callbackStatus = 'Phone Bridge completion received automatically.';
             await applyCompletionPayloadText(payload);
           }
-        } catch (err) {
-          callbackStatus = `Callback poll unavailable: ${err instanceof Error ? err.message : String(err)}`;
+        } catch {
+          callbackStatus = bridgeUnavailableMessage();
         }
       }, 1500);
-    } catch (err) {
-      callbackStatus = `Automatic callback unavailable; use Advanced paste fallback. ${err instanceof Error ? err.message : String(err)}`;
+    } catch {
+      callbackStatus = bridgeUnavailableMessage();
     }
   }
 
