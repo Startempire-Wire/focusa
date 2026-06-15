@@ -6,6 +6,7 @@ export interface RuntimeSnapshot {
   trajectory: any | null;
   workpoint: any | null;
   workpointResume: any | null;
+  session: any | null;
   workLoop: any | null;
   workLoopHealth: any | null;
   workLoopCheckpoints: any | null;
@@ -33,6 +34,7 @@ function createRuntimeStore() {
     trajectory: null,
     workpoint: null,
     workpointResume: null,
+    session: null,
     workLoop: null,
     workLoopHealth: null,
     workLoopCheckpoints: null,

@@ -36,9 +36,18 @@
     try {
       const state = await fetchJson('/v1/state/dump', 5000);
       everConnected = true;
-      const projectIdentity = await safe(() => fetchJson('/v1/project/identity'));
-      const projectRoot = projectIdentity?.project_root || projectIdentity?.project_identity?.project_root || null;
-      const continuityId = projectIdentity?.continuity_id || state?.session?.continuity_id || state?.workpoint?.active?.continuity_id || null;
+      const projectIdentityRaw = await safe(() => fetchJson('/v1/project/identity'));
+      const activeWorkpointId = state?.workpoint?.active_workpoint_id;
+      const activeWorkpointRecord = state?.workpoint?.active ?? state?.workpoint?.records?.find?.((record: any) => record?.workpoint_id === activeWorkpointId) ?? null;
+      const projectIdentityRecord = projectIdentityRaw?.project_identity ?? projectIdentityRaw ?? {};
+      const projectRoot = projectIdentityRecord?.project_root || projectIdentityRaw?.project_root || activeWorkpointRecord?.project_root || state?.session?.project_root || null;
+      const continuityId = projectIdentityRecord?.continuity_id || projectIdentityRaw?.continuity_id || activeWorkpointRecord?.continuity_id || state?.session?.continuity_id || null;
+      const projectIdentity = {
+        ...projectIdentityRecord,
+        project_root: projectRoot,
+        continuity_id: continuityId,
+        raw: projectIdentityRaw,
+      };
       const scopedParams = new URLSearchParams();
       if (projectRoot) scopedParams.set('project_root', projectRoot);
       if (continuityId) scopedParams.set('continuity_id', continuityId);
@@ -68,6 +77,26 @@
         safe(() => fetchJson('/v1/lineage/head')),
         safe(() => fetchJson('/v1/release/proof/status')),
       ]);
+      const workpointPacket = workpointResume?.resume_packet ?? workpointResume?.packet ?? null;
+      const normalizedWorkpointResume = workpointPacket
+        ? { ...workpointResume, ...workpointPacket, resume_packet: workpointPacket }
+        : workpointResume;
+      const trajectoryRecord = trajectory?.trajectory ?? trajectory ?? {};
+      const trajectoryLadder = trajectoryRecord?.trajectory_ladder ?? {};
+      const normalizedTrajectory = {
+        ...trajectory,
+        ...trajectoryRecord,
+        hlt: trajectory?.hlt ?? trajectoryRecord?.hlt ?? trajectoryRecord?.long_term_goal ?? trajectoryLadder?.hlt,
+        mlg: trajectory?.mlg ?? trajectoryRecord?.mlg ?? trajectoryRecord?.mid_level_goal ?? trajectoryLadder?.mlg,
+        stg: trajectory?.stg ?? trajectoryRecord?.stg ?? trajectoryRecord?.short_term_goal ?? trajectoryLadder?.stg,
+        continuity_id: trajectory?.continuity_id ?? continuityId,
+        project_identity: trajectory?.project_identity ?? { project_root: projectRoot },
+      };
+      const normalizedSession = {
+        ...state?.session,
+        project_root: projectRoot,
+        continuity_id: continuityId,
+      };
       focusStore.update(state);
       gateStore.update(state.focus_gate);
       runtimeStore.update({
@@ -75,9 +104,10 @@
         doctor,
         projectIdentity,
         focusFrame,
-        trajectory,
+        trajectory: normalizedTrajectory,
         workpoint,
-        workpointResume,
+        workpointResume: normalizedWorkpointResume,
+        session: normalizedSession,
         workLoop,
         workLoopHealth,
         workLoopCheckpoints,
