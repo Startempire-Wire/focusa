@@ -229,23 +229,29 @@
       <p class="empty">No paired devices yet.</p>
     {:else}
       <ul class="dev-list">
-        {#each activeDevices as d (d.device_id + '-active')}
-          <li class="dev active">
-            <div class="dev-main">
-              <div class="dev-name">{d.name}</div>
-              <div class="dev-meta">{d.device_id.slice(0, 8)}… · paired {d.paired_at}</div>
-            </div>
-            <button class="ghost small" onclick={() => revokeAndClear(d.device_id)}>Revoke</button>
-          </li>
-        {/each}
-        {#each revokedDevices as d (d.device_id + '-revoked')}
-          <li class="dev revoked">
-            <div class="dev-main">
-              <div class="dev-name">{d.name} <span class="badge">revoked</span></div>
-              <div class="dev-meta">{d.device_id.slice(0, 8)}… · revoked {d.revoked_at}</div>
-            </div>
-          </li>
-        {/each}
+        {#if activeDevices.length > 0}
+          <li class="dev-group">Active devices ({activeDevices.length})</li>
+          {#each activeDevices as d (d.device_id + '-active')}
+            <li class="dev active">
+              <div class="dev-main">
+                <div class="dev-name">{d.name}</div>
+                <div class="dev-meta">{d.device_id.slice(0, 8)}… · paired {d.paired_at}</div>
+              </div>
+              <button class="ghost small" onclick={() => revokeAndClear(d.device_id)}>Revoke</button>
+            </li>
+          {/each}
+        {/if}
+        {#if revokedDevices.length > 0}
+          <li class="dev-group muted">Revoked history ({revokedDevices.length})</li>
+          {#each revokedDevices as d (d.device_id + '-revoked')}
+            <li class="dev revoked">
+              <div class="dev-main">
+                <div class="dev-name">{d.name} <span class="badge">revoked</span></div>
+                <div class="dev-meta">{d.device_id.slice(0, 8)}… · revoked {d.revoked_at}</div>
+              </div>
+            </li>
+          {/each}
+        {/if}
       </ul>
     {/if}
     <button class="ghost small" onclick={() => pairingStore.list(host)}>Refresh list</button>
@@ -451,6 +457,15 @@
     flex-direction: column;
     gap: 4px;
   }
+  .dev-group {
+    margin: var(--sp-2) 0 2px;
+    color: var(--fg-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .dev-group.muted { color: var(--fg-tertiary); }
   .dev {
     display: flex;
     align-items: center;

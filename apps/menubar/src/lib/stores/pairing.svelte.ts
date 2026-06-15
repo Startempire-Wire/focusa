@@ -130,6 +130,31 @@ function clearStoredDeviceMeta(): void {
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
 }
 
+function deviceTime(device: PairedDevice): number {
+  const raw = device.last_seen_at || device.paired_at || device.revoked_at || '';
+  const time = raw ? Date.parse(raw) : Number.NaN;
+  return Number.isFinite(time) ? time : 0;
+}
+
+function dedupeDevices(devices: PairedDevice[]): PairedDevice[] {
+  const activeByIdentity = new Map<string, PairedDevice>();
+  const revokedById = new Map<string, PairedDevice>();
+  for (const device of devices) {
+    if (device.revoked) {
+      revokedById.set(device.device_id, device);
+      continue;
+    }
+    const key = [device.name.trim().toLowerCase(), device.platform.trim().toLowerCase(), device.host.trim().toLowerCase()].join('|');
+    const existing = activeByIdentity.get(key);
+    if (!existing || deviceTime(device) >= deviceTime(existing)) {
+      activeByIdentity.set(key, device);
+    }
+  }
+  const active = [...activeByIdentity.values()].sort((a, b) => deviceTime(b) - deviceTime(a));
+  const revoked = [...revokedById.values()].sort((a, b) => deviceTime(b) - deviceTime(a));
+  return [...active, ...revoked];
+}
+
 async function savePairingToken(deviceId: string, token: string): Promise<void> {
   await invoke('focusa_save_pairing_token', { deviceId, token });
 }
@@ -173,6 +198,9 @@ function createPairingStore() {
     polling = true;
     pollHandle = setInterval(async () => {
       if (!polling) return;
+      if (state.kind === 'waiting_vps' && state.code === code) {
+        state = { ...state, attempt: state.attempt + 1 };
+      }
       try {
         const result = await fetchJson<any>(`/device/pair/status?code=${encodeURIComponent(code)}`);
         const status = String(result.status || '').toLowerCase();
@@ -254,7 +282,7 @@ function createPairingStore() {
         onYourVpsRun,
         startedAt: Date.now(),
         expiresAt,
-        attempt: Date.now(),
+        attempt: 0,
       };
       startPolling(code, deviceId);
     } catch (err) {
@@ -266,7 +294,7 @@ function createPairingStore() {
     try {
       const result = await fetchJson<any>(`/device/pair/list?host=${encodeURIComponent(host)}&limit=50`);
       const devices = Array.isArray(result.devices) ? result.devices : [];
-      paired = devices.map((d: any) => ({
+      paired = dedupeDevices(devices.map((d: any) => ({
         device_id: String(d.device_id || ''),
         name: String(d.name || d.device_name || 'device'),
         platform: String(d.platform || 'unknown'),
@@ -276,7 +304,7 @@ function createPairingStore() {
         last_seen_at: String(d.last_seen_at || ''),
         revoked: d.revoked === true,
         revoked_at: d.revoked_at ?? null,
-      })).filter((d: PairedDevice) => d.device_id);
+      })).filter((d: PairedDevice) => d.device_id));
     } catch (err) {
       diagnosticsStore.record({ area: 'pairing', phase: 'list_devices', error: err, context: { host, api_base: apiBase() } });
       console.debug('focusa device list failed', err);
