@@ -207,11 +207,7 @@ fn domain(
 }
 
 fn normalize_domain_name(value: &str) -> String {
-    value
-        .trim()
-        .to_ascii_lowercase()
-        .replace('_', "-")
-        .replace(' ', "-")
+    value.trim().to_ascii_lowercase().replace(['_', ' '], "-")
 }
 
 #[cfg(test)]
