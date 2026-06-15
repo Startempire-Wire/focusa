@@ -2829,8 +2829,8 @@ export function registerTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_agent_prompt",
     label: "Focusa Agent Prompt",
-    description: "Retrieve canonical Pi-aware daemon guidance and project-level reminder text.",
-    promptSnippet: "Use first when reminder visibility is needed or tool usage drifts back to raw daemon calls.",
+    description: "Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls.",
+    promptSnippet: "Use at session start or when tool routing drifts.",
     parameters: Type.Object({}),
     async execute(_id, _params) {
       const prompt = await focusaFetchDetailed("/agent/prompt", { method: "GET" });
@@ -2842,9 +2842,24 @@ export function registerTools(pi: ExtensionAPI) {
           status: prompt.ok ? "completed" : "blocked",
           endpoint: "/v1/agent/prompt",
           agent_prompt: body,
-          next_tools: ["focusa_tool_doctor", "focusa_trajectory_view", "focusa_project_identity"],
+          next_tools: ["focusa_utility_card", "focusa_tool_doctor", "focusa_trajectory_view", "focusa_project_identity"],
         },
       } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_utility_card",
+    label: "Focusa Utility Card",
+    description: "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
+    promptSnippet: "Use at startup/resume for exact Focusa scope, recovery, and brevity rules.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/utility/card");
+      const body = result.body || {};
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `utility card → bootstrap=${Array.isArray(body.bootstrap_card) ? body.bootstrap_card.length : 0} compaction=${Array.isArray(body.post_compaction_card) ? body.post_compaction_card.length : 0}`, tool: "focusa_utility_card", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_agent_prompt", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `utility card ${body.status || result.status}\nnext=${Array.isArray(body.next_tools) ? body.next_tools.join(", ") : "unknown"}` }], structuredContent: toolResult };
     },
   });
 

@@ -71,6 +71,10 @@ enum Commands {
     #[command(subcommand)]
     Dxux(commands::dxux::DxuxCmd),
 
+    /// Utility, bootstrap, and post-compaction cards.
+    #[command(subcommand)]
+    Utility(commands::utility::UtilityCmd),
+
     /// Recoverable cleanup of generated residue.
     Cleanup(commands::cleanup::CleanupArgs),
 
@@ -590,6 +594,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Dxux(cmd) => {
             let mut client = crate::api_client::ApiClient::new();
             commands::dxux::handle(&mut client, cmd).await
+        }
+        Commands::Utility(cmd) => {
+            let mut client = crate::api_client::ApiClient::new();
+            commands::utility::handle(&mut client, cmd).await
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,

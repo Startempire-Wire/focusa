@@ -331,6 +331,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::context_cognition::router())
         .merge(routes::device_pairing::router())
         .merge(routes::dxux::router())
+        .merge(routes::utility::router())
         .merge(routes::traverse::router())
         .merge(routes::visual_workflow::router())
         .merge(routes::work_loop::router())

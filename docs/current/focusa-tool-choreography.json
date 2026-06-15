@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 95,
-  "edge_count": 279,
+  "tool_count": 96,
+  "edge_count": 283,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -240,6 +240,12 @@
     "focusa_bloatgaurd_rollout": [
       "focusa_bloatgaurd_profiles",
       "focusa_bloatgaurd_routines",
+      "focusa_evidence_capture"
+    ],
+    "focusa_utility_card": [
+      "focusa_agent_prompt",
+      "focusa_workpoint_resume",
+      "focusa_trajectory_view",
       "focusa_evidence_capture"
     ],
     "focusa_dxux_report": [
@@ -1042,6 +1048,26 @@
     },
     {
       "from": "focusa_bloatgaurd_rollout",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_utility_card",
+      "to": "focusa_agent_prompt",
+      "weight": 1
+    },
+    {
+      "from": "focusa_utility_card",
+      "to": "focusa_workpoint_resume",
+      "weight": 1
+    },
+    {
+      "from": "focusa_utility_card",
+      "to": "focusa_trajectory_view",
+      "weight": 1
+    },
+    {
+      "from": "focusa_utility_card",
       "to": "focusa_evidence_capture",
       "weight": 1
     },

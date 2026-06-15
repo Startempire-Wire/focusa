@@ -44,5 +44,6 @@ pub mod tokens;
 pub mod trajectory;
 pub mod traverse;
 pub mod turns;
+pub mod utility;
 pub mod workpoint;
 pub mod wrap;

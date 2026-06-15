@@ -52,6 +52,7 @@ pub mod trajectory;
 pub mod traverse;
 pub mod trust;
 pub mod turn;
+pub mod utility;
 pub mod uxp;
 pub mod visual_workflow;
 pub mod work_loop;

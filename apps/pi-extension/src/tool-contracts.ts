@@ -1585,6 +1585,24 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_utility_card",
+    "label": "Focusa Utility Card",
+    "purpose": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "utility.card",
+    "ontology_objects": ["UtilityCard", "WorkpointResumePacket"],
+    "api_routes": ["GET /v1/utility/card", "GET /v1/utility/bootstrap", "GET /v1/utility/post-compaction"],
+    "cli_commands": ["focusa utility card", "focusa utility bootstrap", "focusa utility post-compaction"],
+    "core_surface": "focusa_core::utility_card::UtilityCard",
+    "doc_path": "docs/focusa-tools/tools/focusa_utility_card.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/utility/card safe probe"
+  },
+
+  {
     "name": "focusa_dxux_report",
     "label": "DX/UX Report",
     "purpose": "Spec105 — read implementation report for DXUX-001..012.",
@@ -2235,6 +2253,12 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_bloatgaurd_rollout": [
     "focusa_bloatgaurd_profiles",
     "focusa_bloatgaurd_routines",
+    "focusa_evidence_capture"
+  ],
+  "focusa_utility_card": [
+    "focusa_agent_prompt",
+    "focusa_workpoint_resume",
+    "focusa_trajectory_view",
     "focusa_evidence_capture"
   ],
   "focusa_dxux_report": [

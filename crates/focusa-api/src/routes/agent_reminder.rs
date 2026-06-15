@@ -24,6 +24,7 @@ use axum::{
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use focusa_core::utility_card::utility_card;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -95,6 +96,7 @@ pub fn detect_pi_agent(headers: &HeaderMap) -> bool {
 
 /// Build the structured prompt body for a detected Pi agent.
 fn build_prompt() -> Value {
+    let utility_card = utility_card();
     json!({
         "is_agent": true,
         "client": DETECTED_CLIENT,
@@ -115,6 +117,7 @@ fn build_prompt() -> Value {
         ],
         "operator_reminder": "Decide MVP UI scope (menubar / PWA / TUI in-MVP or v0.2) so the next workpoint can lock it in.",
         "active_trajectory_hint": "HLT = Build Focusa and go to market soon with an MVP; menubar is an MLG subordinate, not the HLT.",
+        "utility_card": utility_card,
         "rule": "every daemon interaction -> focusa_* tool. UIAI pretest is a separate verification surface and remains raw."
     })
 }
