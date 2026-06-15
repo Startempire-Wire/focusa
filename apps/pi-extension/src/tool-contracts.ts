@@ -1585,6 +1585,75 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_dxux_report",
+    "label": "DX/UX Report",
+    "purpose": "Spec105 — read implementation report for DXUX-001..012.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "dxux.report",
+    "ontology_objects": ["DxuxReport", "DxuxRequirement"],
+    "api_routes": ["GET /v1/dxux/report"],
+    "cli_commands": ["focusa dxux report"],
+    "core_surface": "focusa_core::dxux::DxuxReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_dxux_report.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/dxux/report safe probe"
+  },
+  {
+    "name": "focusa_dxux_requirement",
+    "label": "DX/UX Requirement",
+    "purpose": "Spec105 — read one DXUX requirement by id.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "dxux.requirement",
+    "ontology_objects": ["DxuxRequirement"],
+    "api_routes": ["GET /v1/dxux/requirement/{id}"],
+    "cli_commands": ["focusa dxux requirement <id>"],
+    "core_surface": "focusa_core::dxux::DxuxRequirement",
+    "doc_path": "docs/focusa-tools/tools/focusa_dxux_requirement.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/dxux/requirement/DXUX-004 safe probe"
+  },
+  {
+    "name": "focusa_dxux_explain",
+    "label": "DX/UX Explain",
+    "purpose": "Spec105 — explain a failure and return recovery commands.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "dxux.explain",
+    "ontology_objects": ["DxuxExplain"],
+    "api_routes": ["GET /v1/dxux/explain/{failure}"],
+    "cli_commands": ["focusa explain <failure>"],
+    "core_surface": "focusa_core::dxux::DxuxExplain",
+    "doc_path": "docs/focusa-tools/tools/focusa_dxux_explain.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/dxux/explain/ci-failed safe probe"
+  },
+  {
+    "name": "focusa_dxux_digest",
+    "label": "DX/UX Digest",
+    "purpose": "Spec105 — read compact continuation/doability digest.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "dxux.digest",
+    "ontology_objects": ["DxuxReport", "WorkpointResumePacket"],
+    "api_routes": ["GET /v1/dxux/digest"],
+    "cli_commands": ["focusa dxux digest"],
+    "core_surface": "focusa_core::dxux::DxuxReport digest fields",
+    "doc_path": "docs/focusa-tools/tools/focusa_dxux_digest.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/dxux/digest safe probe"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -2166,6 +2235,26 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   "focusa_bloatgaurd_rollout": [
     "focusa_bloatgaurd_profiles",
     "focusa_bloatgaurd_routines",
+    "focusa_evidence_capture"
+  ],
+  "focusa_dxux_report": [
+    "focusa_dxux_requirement",
+    "focusa_dxux_digest",
+    "focusa_evidence_capture"
+  ],
+  "focusa_dxux_requirement": [
+    "focusa_dxux_report",
+    "focusa_dxux_digest",
+    "focusa_evidence_capture"
+  ],
+  "focusa_dxux_explain": [
+    "focusa_dxux_report",
+    "focusa_tool_doctor",
+    "focusa_evidence_capture"
+  ],
+  "focusa_dxux_digest": [
+    "focusa_workpoint_resume",
+    "focusa_dxux_report",
     "focusa_evidence_capture"
   ],
   "focusa_call_stack_design": [

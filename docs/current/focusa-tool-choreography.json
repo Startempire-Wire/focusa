@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 91,
-  "edge_count": 267,
+  "tool_count": 95,
+  "edge_count": 279,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -240,6 +240,26 @@
     "focusa_bloatgaurd_rollout": [
       "focusa_bloatgaurd_profiles",
       "focusa_bloatgaurd_routines",
+      "focusa_evidence_capture"
+    ],
+    "focusa_dxux_report": [
+      "focusa_dxux_requirement",
+      "focusa_dxux_digest",
+      "focusa_evidence_capture"
+    ],
+    "focusa_dxux_requirement": [
+      "focusa_dxux_report",
+      "focusa_dxux_digest",
+      "focusa_evidence_capture"
+    ],
+    "focusa_dxux_explain": [
+      "focusa_dxux_report",
+      "focusa_tool_doctor",
+      "focusa_evidence_capture"
+    ],
+    "focusa_dxux_digest": [
+      "focusa_workpoint_resume",
+      "focusa_dxux_report",
       "focusa_evidence_capture"
     ],
     "focusa_call_stack_design": [
@@ -1022,6 +1042,66 @@
     },
     {
       "from": "focusa_bloatgaurd_rollout",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_report",
+      "to": "focusa_dxux_requirement",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_report",
+      "to": "focusa_dxux_digest",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_report",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_requirement",
+      "to": "focusa_dxux_report",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_requirement",
+      "to": "focusa_dxux_digest",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_requirement",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_explain",
+      "to": "focusa_dxux_report",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_explain",
+      "to": "focusa_tool_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_explain",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_digest",
+      "to": "focusa_workpoint_resume",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_digest",
+      "to": "focusa_dxux_report",
+      "weight": 1
+    },
+    {
+      "from": "focusa_dxux_digest",
       "to": "focusa_evidence_capture",
       "weight": 1
     },

@@ -15,6 +15,7 @@ pub mod daemon;
 pub mod debug;
 pub mod device_pairing;
 pub mod doctor;
+pub mod dxux;
 pub mod ecs;
 pub mod env;
 pub mod export;

@@ -12,6 +12,7 @@ pub mod commands;
 pub mod constitution;
 pub mod context_cognition;
 pub mod device_pairing;
+pub mod dxux;
 pub mod ecs;
 pub mod env;
 pub mod sync;

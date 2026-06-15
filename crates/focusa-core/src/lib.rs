@@ -31,6 +31,7 @@ pub mod bloatgaurd;
 pub mod cache;
 pub mod clt;
 pub mod constitution;
+pub mod dxux;
 pub mod expression;
 pub mod focus;
 pub mod gate;

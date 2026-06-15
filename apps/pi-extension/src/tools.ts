@@ -5134,6 +5134,72 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_dxux_report",
+    label: "DX/UX Report",
+    description: "Spec105 — read implementation report for DXUX-001..012.",
+    promptSnippet: "Use to verify Spec105 reliability, continuation, recovery, evidence, and drift UX surfaces.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/dxux/report");
+      const body = result.body || {};
+      const requirements = Array.isArray(body.requirements) ? body.requirements : [];
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux report → requirements=${requirements.length}`, tool: "focusa_dxux_report", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_dxux_requirement", "focusa_dxux_digest", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `dxux report ${body.status || result.status} | requirements=${requirements.length}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_dxux_requirement",
+    label: "DX/UX Requirement",
+    description: "Spec105 — read one DXUX requirement by id.",
+    promptSnippet: "Use to inspect a requirement such as DXUX-004 or DXUX-012.",
+    parameters: strictObject({ id: Type.String({ minLength: 1, maxLength: 40, description: "Requirement id, e.g. DXUX-004." }) }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_dxux_requirement", params, ["id"]);
+      if (!keyCheck.ok) return spec80ValidationResult("focusa_dxux_requirement", "/v1/dxux/requirement/{id}", params as Record<string, any>, "dxux requirement", keyCheck.error);
+      const result = await focusaFetchDetailed(`/dxux/requirement/${encodeURIComponent(String(params.id || ""))}`);
+      const body = result.body || {};
+      const req = body.requirement || null;
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux requirement → ${req?.id || params.id}`, tool: "focusa_dxux_requirement", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_dxux_report", "focusa_dxux_digest", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `dxux requirement ${body.status || result.status} | ${req?.id || params.id}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_dxux_explain",
+    label: "DX/UX Explain",
+    description: "Spec105 — explain a failure and return recovery commands.",
+    promptSnippet: "Use after CI, scope, daemon, or stale-state failures to get recovery commands.",
+    parameters: strictObject({ failure: Type.String({ minLength: 1, maxLength: 240, description: "Failure text to classify." }) }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_dxux_explain", params, ["failure"]);
+      if (!keyCheck.ok) return spec80ValidationResult("focusa_dxux_explain", "/v1/dxux/explain/{failure}", params as Record<string, any>, "dxux explain", keyCheck.error);
+      const result = await focusaFetchDetailed(`/dxux/explain/${encodeURIComponent(String(params.failure || ""))}`);
+      const body = result.body || {};
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux explain → confidence=${body.confidence || "unknown"}`, tool: "focusa_dxux_explain", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_dxux_report", "focusa_tool_doctor", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `dxux explain ${body.status || result.status} | confidence=${body.confidence || "unknown"}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_dxux_digest",
+    label: "DX/UX Digest",
+    description: "Spec105 — read compact continuation/doability digest.",
+    promptSnippet: "Use before compaction/resume handoff to get status, authority, why, exact next action, evidence refs, and rehydrate refs.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/dxux/digest");
+      const body = result.body || {};
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux digest → can_continue=${body.can_continue === true}`, tool: "focusa_dxux_digest", family: "diagnostics_hygiene", side_effects: [], evidence_refs: Array.isArray(body.evidence_refs) ? body.evidence_refs : [], next_tools: ["focusa_workpoint_resume", "focusa_dxux_report", "focusa_evidence_capture"], raw: body });
+      return { content: [{ type: "text", text: `dxux digest ${body.status || result.status} | can_continue=${body.can_continue === true}\nnext=${body.exact_next_action || "unknown"}` }], structuredContent: toolResult };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_context_cognition",
     label: "Context Cognition",
     description: "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state.",
