@@ -17,6 +17,7 @@ interface FocusaAwarenessConfig {
   agentId?: string;
   operatorId?: string;
   projectRoot?: string;
+  continuityId?: string;
   timeoutMs?: number;
   enabled?: boolean;
 }
@@ -30,6 +31,7 @@ function cfg(api: OpenClawPluginApi): Required<FocusaAwarenessConfig> {
     agentId: raw.agentId || "wirebot",
     operatorId: raw.operatorId || "verious.smith",
     projectRoot: raw.projectRoot || "/data/wirebot/users/verious",
+    continuityId: raw.continuityId || process.env.FOCUSA_CONTINUITY_ID || "",
     timeoutMs: Number(raw.timeoutMs || 1500),
     enabled: raw.enabled !== false,
   };
@@ -46,7 +48,7 @@ function fallbackCard(c: Required<FocusaAwarenessConfig>, reason: string): strin
     `Agent: adapter=${c.adapterId} workspace=${c.workspaceId} agent=${c.agentId} operator=${c.operatorId}`,
     "Mission: use latest operator instruction and OpenClaw/Wirebot workspace context.",
     "Next anchor: Focusa unavailable; mark cognition_degraded=true and use explicit fallback context.",
-    `Project folder: project_root=${c.projectRoot}`,
+    `Project folder: project_root=${c.projectRoot}; continuity_id=${c.continuityId || "unbound"}`,
     "",
     "Use Focusa as agent working memory and governance when available:",
     "- First when uncertain/degraded: call /v1/doctor or run `focusa doctor --json`.",
@@ -68,6 +70,7 @@ async function fetchCard(c: Required<FocusaAwarenessConfig>, sessionId: string):
     session_id: sessionId,
     project_root: c.projectRoot,
   });
+  if (c.continuityId) qs.set("continuity_id", c.continuityId);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), c.timeoutMs);
   try {

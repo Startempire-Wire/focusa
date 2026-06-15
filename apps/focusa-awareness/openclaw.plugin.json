@@ -12,7 +12,8 @@
       "workspaceId": { "type": "string", "default": "wirebot" },
       "agentId": { "type": "string", "default": "wirebot" },
       "operatorId": { "type": "string", "default": "verious.smith" },
-      "projectRoot": { "type": "string", "default": "/data/wirebot/users/verious" },
+      "projectRoot": { "type": "string", "default": "/data/wirebot/users/verious", "description": "Verified project root to pass through as project_root scope." },
+      "continuityId": { "type": "string", "default": "", "description": "Stable logical workstream id passed through as continuity_id; required for canonical Workpoint binding." },
       "timeoutMs": { "type": "number", "default": 1500 },
       "enabled": { "type": "boolean", "default": true }
     }
