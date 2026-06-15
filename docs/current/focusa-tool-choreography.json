@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 82,
-  "edge_count": 240,
+  "tool_count": 84,
+  "edge_count": 246,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -194,6 +194,16 @@
     ],
     "focusa_bloatgaurd_domain": [
       "focusa_bloatgaurd_report",
+      "focusa_traverse",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_tokenbloat_report": [
+      "focusa_bloatgaurd_tokenbloat_domain",
+      "focusa_bloatgaurd_report",
+      "focusa_evidence_capture"
+    ],
+    "focusa_bloatgaurd_tokenbloat_domain": [
+      "focusa_bloatgaurd_tokenbloat_report",
       "focusa_traverse",
       "focusa_evidence_capture"
     ],
@@ -842,6 +852,36 @@
     },
     {
       "from": "focusa_bloatgaurd_domain",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_tokenbloat_report",
+      "to": "focusa_bloatgaurd_tokenbloat_domain",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_tokenbloat_report",
+      "to": "focusa_bloatgaurd_report",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_tokenbloat_report",
+      "to": "focusa_evidence_capture",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_tokenbloat_domain",
+      "to": "focusa_bloatgaurd_tokenbloat_report",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_tokenbloat_domain",
+      "to": "focusa_traverse",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bloatgaurd_tokenbloat_domain",
       "to": "focusa_evidence_capture",
       "weight": 1
     },

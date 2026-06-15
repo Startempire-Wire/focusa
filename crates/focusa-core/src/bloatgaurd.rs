@@ -210,6 +210,121 @@ fn normalize_domain_name(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace(['_', ' '], "-")
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TokenbloatControl {
+    pub name: String,
+    pub title: String,
+    pub section: String,
+    pub status: String,
+    pub prompt_visible_fields: Vec<String>,
+    pub required_boundaries: Vec<String>,
+    pub potential_findings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TokenbloatReport {
+    pub schema: String,
+    pub status: String,
+    pub spec_ref: String,
+    pub summary: String,
+    pub controls: Vec<TokenbloatControl>,
+}
+
+pub fn tokenbloat_report() -> TokenbloatReport {
+    let controls = tokenbloat_controls();
+    TokenbloatReport {
+        schema: "focusa.bloatgaurd.tokenbloat_report.v1".to_string(),
+        status: "completed".to_string(),
+        spec_ref: "docs/101-focusa-bloatgaurd-spec.md#59-tokenbloat-control-domain".to_string(),
+        summary: format!(
+            "Spec101 Tokenbloat Control report: {} controls covering stable-prefix compression and tool-call history elision.",
+            controls.len()
+        ),
+        controls,
+    }
+}
+
+pub fn tokenbloat_control(name: &str) -> Option<TokenbloatControl> {
+    let key = normalize_domain_name(name);
+    tokenbloat_controls().into_iter().find(|control| {
+        normalize_domain_name(&control.name) == key || normalize_domain_name(&control.title) == key
+    })
+}
+
+pub fn tokenbloat_controls() -> Vec<TokenbloatControl> {
+    vec![
+        token_control(
+            "tokenbloat-control",
+            "5.9 Tokenbloat Control Domain",
+            "5.9",
+            vec![
+                "tool or route name",
+                "target object/path/endpoint",
+                "compact result and evidence handle",
+                "rehydrate route for exact raw output",
+            ],
+            vec![
+                "safety and authority boundaries are not compressed without allowlist",
+                "full payload exposure remains cold opt-in",
+                "classifier output is advisory; deterministic checks enforce",
+            ],
+            vec![
+                "stable_prefix_churn",
+                "raw_transcript_leakage",
+                "duplicate_block_repeated",
+                "full_payload_recommended_without_cold_opt_in",
+            ],
+        ),
+        token_control(
+            "tool-call-history-elision",
+            "5.10 Tool-call history elision and structured rehydration",
+            "5.10",
+            vec![
+                "tool or route name",
+                "action type",
+                "omitted byte/line count",
+                "linked decision/constraint/failure/workpoint",
+            ],
+            vec![
+                "lossless raw output lives outside the hot prompt",
+                "lossy prompt summary is compact and rehydratable",
+                "evidence handles replace transcript blobs",
+            ],
+            vec![
+                "tool_output_flood",
+                "missing_rehydrate_ref",
+                "raw_tool_history_in_focus_slice",
+                "omitted_count_missing",
+            ],
+        ),
+    ]
+}
+
+fn token_control(
+    name: &str,
+    title: &str,
+    section: &str,
+    prompt_visible_fields: Vec<&str>,
+    required_boundaries: Vec<&str>,
+    potential_findings: Vec<&str>,
+) -> TokenbloatControl {
+    TokenbloatControl {
+        name: name.to_string(),
+        title: title.to_string(),
+        section: section.to_string(),
+        status: "ready".to_string(),
+        prompt_visible_fields: prompt_visible_fields
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        required_boundaries: required_boundaries
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        potential_findings: potential_findings.into_iter().map(str::to_string).collect(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,5 +358,19 @@ mod tests {
             "adaptive-router"
         );
         assert!(bloatgaurd_domain("missing").is_none());
+    }
+
+    #[test]
+    fn tokenbloat_report_has_control_and_elision_domains() {
+        let report = tokenbloat_report();
+        assert_eq!(report.controls.len(), 2);
+        assert!(report.controls.iter().any(|d| d.section == "5.9"));
+        assert!(report.controls.iter().any(|d| d.section == "5.10"));
+        assert_eq!(
+            tokenbloat_control("tool_call_history_elision")
+                .unwrap()
+                .section,
+            "5.10"
+        );
     }
 }

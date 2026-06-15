@@ -4920,6 +4920,71 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_bloatgaurd_tokenbloat_report",
+    label: "Bloatgaurd Tokenbloat Report",
+    description: "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
+    promptSnippet: "Use to inspect prompt/runtime tokenbloat controls before reducing context or eliding tool history.",
+    parameters: strictObject({}),
+    execute: async () => {
+      const result = await focusaFetchDetailed("/bloatgaurd/tokenbloat/report");
+      const body = result.body || {};
+      const controls = Array.isArray(body.controls) ? body.controls : [];
+      const ok = result.ok && body.status !== "blocked";
+      const toolResult = focusaToolResult({
+        ok,
+        status: ok ? "completed" : "blocked",
+        summary: `bloatgaurd tokenbloat report → controls=${controls.length} status=${body.status || result.status}`,
+        tool: "focusa_bloatgaurd_tokenbloat_report",
+        family: "diagnostics_hygiene",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_bloatgaurd_tokenbloat_domain", "focusa_bloatgaurd_report", "focusa_evidence_capture"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `bloatgaurd tokenbloat ${body.status || result.status} | controls=${controls.length}\nnext_tools=focusa_bloatgaurd_tokenbloat_domain,focusa_bloatgaurd_report` }],
+        structuredContent: toolResult,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_bloatgaurd_tokenbloat_domain",
+    label: "Bloatgaurd Tokenbloat Domain",
+    description: "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
+    promptSnippet: "Use when a gap maps to tokenbloat-control or tool-call-history-elision.",
+    parameters: strictObject({
+      name: Type.String({ minLength: 1, maxLength: 120, description: "Tokenbloat domain slug or title." }),
+    }),
+    execute: async (params: any) => {
+      const keyCheck = validateNoExtraKeys("focusa_bloatgaurd_tokenbloat_domain", params, ["name"]);
+      if (!keyCheck.ok) {
+        return spec80ValidationResult("focusa_bloatgaurd_tokenbloat_domain", "/v1/bloatgaurd/tokenbloat/domain/{name}", params as Record<string, any>, "bloatgaurd tokenbloat domain", keyCheck.error);
+      }
+      const name = encodeURIComponent(String(params.name || ""));
+      const result = await focusaFetchDetailed(`/bloatgaurd/tokenbloat/domain/${name}`);
+      const body = result.body || {};
+      const domain = body.domain || null;
+      const ok = result.ok && body.status === "completed";
+      const toolResult = focusaToolResult({
+        ok,
+        status: ok ? "completed" : "blocked",
+        summary: `bloatgaurd tokenbloat domain → ${domain?.name || params.name} status=${body.status || result.status}`,
+        tool: "focusa_bloatgaurd_tokenbloat_domain",
+        family: "diagnostics_hygiene",
+        side_effects: [],
+        evidence_refs: [],
+        next_tools: ["focusa_bloatgaurd_tokenbloat_report", "focusa_traverse", "focusa_evidence_capture"],
+        raw: body,
+      });
+      return {
+        content: [{ type: "text", text: `bloatgaurd tokenbloat domain ${body.status || result.status} | ${domain?.section || "?"} ${domain?.name || params.name}\nfields=${Array.isArray(domain?.prompt_visible_fields) ? domain.prompt_visible_fields.length : 0}` }],
+        structuredContent: toolResult,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_context_cognition",
     label: "Context Cognition",
     description: "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state.",

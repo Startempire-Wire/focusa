@@ -2,13 +2,17 @@ use crate::api_client::ApiClient;
 use clap::Subcommand;
 use serde_json::Value;
 
-/// CLI surface: `focusa bloatgaurd report` and `focusa bloatgaurd domain <name>`.
+/// CLI surface: `focusa bloatgaurd report`, `focusa bloatgaurd domain <name>`, `focusa bloatgaurd tokenbloat`, and `focusa bloatgaurd token-domain <name>`.
 #[derive(Subcommand)]
 pub enum BloatgaurdCmd {
     /// Read the Spec101 Bloatgaurd budget report.
     Report,
     /// Read one Spec101 Bloatgaurd budget domain by slug/name.
     Domain { name: String },
+    /// Read Spec101 Tokenbloat Control report for domains 5.9-5.10.
+    Tokenbloat,
+    /// Read one Spec101 Tokenbloat Control domain by slug/name.
+    TokenDomain { name: String },
 }
 
 pub async fn handle(client: &mut ApiClient, cmd: BloatgaurdCmd) -> anyhow::Result<()> {
@@ -19,6 +23,16 @@ pub async fn handle(client: &mut ApiClient, cmd: BloatgaurdCmd) -> anyhow::Resul
         }
         BloatgaurdCmd::Domain { name } => {
             let resp = client.get(&format!("/v1/bloatgaurd/domain/{name}")).await?;
+            print_domain(&resp);
+        }
+        BloatgaurdCmd::Tokenbloat => {
+            let resp = client.get("/v1/bloatgaurd/tokenbloat/report").await?;
+            print_token_report(&resp);
+        }
+        BloatgaurdCmd::TokenDomain { name } => {
+            let resp = client
+                .get(&format!("/v1/bloatgaurd/tokenbloat/domain/{name}"))
+                .await?;
             print_domain(&resp);
         }
     }
@@ -43,6 +57,38 @@ fn print_report(payload: &Value) {
     println!("summary: {summary}");
     if let Some(items) = payload.get("domains").and_then(Value::as_array) {
         for domain in items.iter().take(8) {
+            let name = domain
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let section = domain.get("section").and_then(Value::as_str).unwrap_or("?");
+            let title = domain
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            println!("  {section} {name}: {title}");
+        }
+    }
+}
+
+fn print_token_report(payload: &Value) {
+    let status = payload
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let summary = payload
+        .get("summary")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let controls = payload
+        .get("controls")
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or(0);
+    println!("bloatgaurd tokenbloat {status} | controls={controls}");
+    println!("summary: {summary}");
+    if let Some(items) = payload.get("controls").and_then(Value::as_array) {
+        for domain in items.iter().take(4) {
             let name = domain
                 .get("name")
                 .and_then(Value::as_str)

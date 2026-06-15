@@ -1415,6 +1415,47 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
   },
 
   {
+    "name": "focusa_bloatgaurd_tokenbloat_report",
+    "label": "Bloatgaurd Tokenbloat Report",
+    "purpose": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.tokenbloat_report",
+    "ontology_objects": [
+      "TokenbloatReport",
+      "TokenbloatControl"
+    ],
+    "api_routes": ["GET /v1/bloatgaurd/tokenbloat/report"],
+    "cli_commands": ["focusa bloatgaurd tokenbloat"],
+    "core_surface": "focusa_core::bloatgaurd::TokenbloatReport",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/report safe probe"
+  },
+
+  {
+    "name": "focusa_bloatgaurd_tokenbloat_domain",
+    "label": "Bloatgaurd Tokenbloat Domain",
+    "purpose": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries.",
+    "family": "diagnostics_hygiene",
+    "ontology_action": "bloatgaurd.tokenbloat_domain",
+    "ontology_objects": [
+      "TokenbloatControl"
+    ],
+    "api_routes": ["GET /v1/bloatgaurd/tokenbloat/domain/{name}"],
+    "cli_commands": ["focusa bloatgaurd token-domain <name>"],
+    "core_surface": "focusa_core::bloatgaurd::TokenbloatControl",
+    "doc_path": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md",
+    "result_envelope": "tool_result_v1",
+    "side_effect_profile": "read_state",
+    "parity_status": "full",
+    "exemptions": [],
+    "live_check": "contract_static plus /v1/bloatgaurd/tokenbloat/domain/tokenbloat-control safe probe"
+  },
+
+  {
     "name": "focusa_tree_head",
     "label": "Tree Head",
     "purpose": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
@@ -1950,6 +1991,16 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   ],
   "focusa_bloatgaurd_domain": [
     "focusa_bloatgaurd_report",
+    "focusa_traverse",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_tokenbloat_report": [
+    "focusa_bloatgaurd_tokenbloat_domain",
+    "focusa_bloatgaurd_report",
+    "focusa_evidence_capture"
+  ],
+  "focusa_bloatgaurd_tokenbloat_domain": [
+    "focusa_bloatgaurd_tokenbloat_report",
     "focusa_traverse",
     "focusa_evidence_capture"
   ],

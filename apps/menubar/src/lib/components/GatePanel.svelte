@@ -18,7 +18,9 @@
       ['5.5', 'prompt-context-diet'],
       ['5.6', 'rust-first-core'],
       ['5.7', 'dead-code-safety'],
-      ['5.8', 'adaptive-router']
+      ['5.8', 'adaptive-router'],
+      ['5.9', 'tokenbloat-control'],
+      ['5.10', 'tool-call-history-elision']
     ]
   };
 </script>
