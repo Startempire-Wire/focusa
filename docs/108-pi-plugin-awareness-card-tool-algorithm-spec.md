@@ -111,7 +111,21 @@ Required fields:
 - exact continuation action
 - do-not-drift list
 
-### 5.4 Tool Description / Prompt Snippet
+### 5.4 Context-Pressure Warning
+
+Shown only when context pressure or compaction risk changes enough to require operator/model awareness.
+
+Required fields:
+
+- context percentage/tier
+- Workpoint anchor state
+- exact action
+- compaction/handoff behavior
+- cadence state (first notice, escalation, repeated compaction)
+
+Warnings must be transition-aware and deduped. Persistent pressure belongs in the status bar; visible warnings are for transitions/escalations.
+
+### 5.5 Tool Description / Prompt Snippet
 
 Each `focusa_*` tool should have:
 
@@ -223,6 +237,7 @@ A static audit must detect stale labels and mismatched tool counts.
 - Hiding exact next action behind general philosophy.
 - Claiming completion from partial/surrogate evidence.
 - Keeping stale terms such as `MISSION_PACKET` if the current algorithm uses a different schema.
+- Repeating context-pressure/compaction warnings every turn while state has not changed.
 
 ## 10. Acceptance Criteria
 
@@ -237,19 +252,20 @@ Spec108 implementation is accepted when:
 7. Static test fails if stale labels (`MISSION_PACKET`, `NOW_CARD`, `WHY_CARD`, `HEALTH_CARD`, `DO_CARD`, `RECONCILIATION_ENVELOPE`, `Friendly Focusa Q`) reappear in default reload output.
 8. Static test proves tool count/contract count/card tool-family count stay synchronized.
 9. Runtime or renderer test proves `/root` unsafe case and `/home/wirebot/focusa` verified case produce distinct, correct cards.
-10. Jiti/runtime cache refresh or reload proof shows Pi uses the new source.
+10. Context-pressure warning test proves hard/handoff warnings dedupe and escalate only on state/risk change.
+11. Jiti/runtime cache refresh or reload proof shows Pi uses the new source.
 
 ## 11. Implementation Sequence
 
-1. Inventory current Pi plugin card/tool/prompt surfaces.
-2. Design the line-scoring and mode-selection data model.
-3. Refactor `buildFocusaUtilityCard` into candidate-line selection.
-4. Update `turns.ts` injection policy if needed.
-5. Audit and update `focusa_*` tool descriptions/prompt snippets.
-6. Add static and renderer tests.
-7. Rebuild/reload Pi plugin and prove generated card output.
-8. Rebuild/restart Focusa daemon only for surfaces that depend on daemon changes.
-9. Push with evidence citations.
+1. Inventory current Pi plugin card/tool/prompt/handoff surfaces.
+2. Map findings to Spec106 Vision Tightening so canonical vocabulary and cognitive architecture are preserved.
+3. Finalize this Spec108 algorithm spec from the inventory.
+4. Design the unified line-scoring, source-precedence, handoff-layer, and verbosity-mode algorithm.
+5. Decompose implementation beads from the accepted spec/design.
+6. Refactor `buildFocusaUtilityCard`, post-compaction, handoff, and tool-description surfaces.
+7. Add static, renderer, reload, post-compaction, and tool-freshness tests/proofs.
+8. Rebuild/reload Pi plugin and prove generated card output; rebuild/restart Focusa daemon only for daemon-dependent surfaces.
+9. Push with evidence citations and close beads only after actual proof.
 
 ## 12. Closure Policy
 
