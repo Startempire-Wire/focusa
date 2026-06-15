@@ -12,6 +12,7 @@ use std::sync::atomic::Ordering;
 async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(json!({
         "ok": true,
+        "status": "ok",
         "version": env!("CARGO_PKG_VERSION"),
         "uptime_ms": state.started_at.elapsed().as_millis() as u64,
     }))
