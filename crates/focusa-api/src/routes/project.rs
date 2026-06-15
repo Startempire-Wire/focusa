@@ -188,6 +188,26 @@ fn clean(value: Option<&str>) -> Option<String> {
         .map(str::to_string)
 }
 
+fn normalize_identity_name(value: &str) -> String {
+    value
+        .trim()
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn identity_name_matches(expected: &str, canonical_name: &str, project_id: &str, aliases: &[String]) -> bool {
+    let expected = normalize_identity_name(expected);
+    if expected.is_empty() {
+        return false;
+    }
+    std::iter::once(canonical_name)
+        .chain(std::iter::once(project_id))
+        .chain(aliases.iter().map(String::as_str))
+        .any(|candidate| normalize_identity_name(candidate) == expected)
+}
+
 fn unsafe_project_root_reason(value: &str) -> Option<&'static str> {
     let root = value.trim().trim_end_matches('/');
     if root.is_empty() {
@@ -1422,7 +1442,7 @@ fn discover_identity(
         }));
     }
     if let Some(persisted_name) = clean(remote_hint.persisted_canonical_name.as_deref())
-        && persisted_name != canonical_name
+        && !identity_name_matches(&persisted_name, &canonical_name, &project_id, &aliases)
     {
         mismatches.push(json!({
             "source": "persisted_session_identity_canonical_name",
@@ -1498,7 +1518,7 @@ fn candidate_payload(
             mismatches.push(json!({"source":"operator_expected_project_id", "expected": project_id, "actual": candidate.project_id, "severity":"high"}));
         }
         if let Some(name) = clean(expected.canonical_name.as_deref())
-            && name != candidate.canonical_name
+            && !identity_name_matches(&name, &candidate.canonical_name, &candidate.project_id, &candidate.aliases)
         {
             mismatches.push(json!({"source":"operator_expected_canonical_name", "expected": name, "actual": candidate.canonical_name, "severity":"medium"}));
         }
@@ -3050,6 +3070,14 @@ mod tests {
         ));
         fs::create_dir_all(&root).expect("create temp project");
         root
+    }
+
+    #[test]
+    fn identity_name_match_accepts_safe_case_and_aliases() {
+        let aliases = vec!["focusa-daemon".to_string(), "focusa-cli".to_string()];
+        assert!(identity_name_matches("focusa", "Focusa", "focusa", &aliases));
+        assert!(identity_name_matches("FOCUSA DAEMON", "Focusa", "focusa", &aliases));
+        assert!(!identity_name_matches("uiai-engine", "Focusa", "focusa", &aliases));
     }
 
     #[test]
