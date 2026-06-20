@@ -1,6 +1,7 @@
 //! Binary provenance and compatibility preflight commands.
 
 use clap::{Args, Subcommand};
+use focusa_core::license::require_feature;
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -71,6 +72,12 @@ pub struct BinaryPreflightConflict {
 }
 
 pub async fn run(cmd: BinaryCmd, json_mode: bool) -> anyhow::Result<()> {
+    // Spec §5.4 + §5.5: PreflightInstall is a packaged-installer-gated feature.
+    if matches!(cmd, BinaryCmd::PreflightInstall(_)) {
+        if let Err(e) = require_feature("packaged_installer") {
+            anyhow::bail!("{e}");
+        }
+    }
     match cmd {
         BinaryCmd::Inspect(args) => {
             let inspection = inspect_binary(&args.path);

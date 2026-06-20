@@ -1,6 +1,7 @@
 //! Release proof orchestration — Spec92 §9.
 
 use clap::Subcommand;
+use focusa_core::license::require_feature;
 use focusa_core::types::default_focusa_data_dir;
 use serde_json::{Value, json};
 use std::fs;
@@ -106,6 +107,10 @@ fn run_gate(name: &str, command: &str) -> Value {
 }
 
 pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
+    // Spec §5.4: official_release_bundle is a license-gated feature.
+    if let Err(e) = require_feature("official_release_bundle") {
+        anyhow::bail!("{e}");
+    }
     match cmd {
         ReleaseCmd::Prove { tag, github, fast } => {
             let mut gates = vec![

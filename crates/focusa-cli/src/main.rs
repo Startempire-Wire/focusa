@@ -61,6 +61,9 @@ enum Commands {
     /// Run full agent-first doctor checks.
     Doctor(commands::doctor::DoctorArgs),
 
+    /// License activation and entitlement operations (Spec92 §5.2).
+    License(commands::license::LicenseArgs),
+
     /// Run Spec105 local CI/spec/evidence preflight.
     Preflight,
 
@@ -593,6 +596,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Onboard(args) => commands::onboard::run(args, cli.json).await,
         Commands::Pair(args) => commands::pair::run(args, cli.json).await,
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
+        Commands::License(args) => commands::license::run(cli.json, args).await,
         Commands::Preflight => commands::dxux::preflight().await,
         Commands::Explain { failure } => commands::dxux::explain(failure).await,
         Commands::Dxux(cmd) => {

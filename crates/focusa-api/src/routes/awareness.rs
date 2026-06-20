@@ -3,6 +3,7 @@
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::{Json, Router, routing::get};
+use focusa_core::license::feature_enabled;
 use focusa_core::types::{FocusaState, WorkpointRecord};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -67,6 +68,8 @@ fn redacted_scope_id(project_root: &str, continuity_id: &str) -> String {
 }
 
 fn public_card_policy(project_root: &str, continuity_id: &str, canonical: bool) -> Value {
+    // Spec §5.4 + §5.5: publish_allowed is gated on the public_stream feature.
+    let publish_allowed = feature_enabled("public_stream");
     json!({
         "schema": "focusa.public_card.v1",
         "project_identity_display_name": "Focusa project",
@@ -76,7 +79,7 @@ fn public_card_policy(project_root: &str, continuity_id: &str, canonical: bool) 
         "evidence_refs_public_safe": [],
         "redaction_status": "redacted_scope_only",
         "secret_scan_status": "not_required_no_raw_payload",
-        "publish_allowed": false,
+        "publish_allowed": publish_allowed,
     })
 }
 
