@@ -104,11 +104,17 @@ function queueProjectIdentityBootstrapTurn(pi: ExtensionAPI, ctx: any, proposedR
     "If multiple plausible project folders remain after inference, ask the operator directly in chat which project folder to bind.",
     "Do not show modal/select/input UI. Do not perform durable project-aware writes until identity is verified.",
   ].join("\n");
+  const hasInteractiveUi = Boolean(ctx?.hasUI);
+  if (!hasInteractiveUi) {
+    focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_send_user_message_skipped_headless", payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey } });
+    return;
+  }
   focusaPost("/telemetry/trace", { event_type: "pi_vital_project_root_send_user_message", payload: { reason, project_root: proposedRoot, session_id: S.sessionFrameKey } });
   try {
-    pi.sendUserMessage(prompt);
+    const sender = (ctx && typeof ctx.sendUserMessage === "function") ? ctx : pi;
+    void sender.sendUserMessage(prompt, { deliverAs: "followUp" } as any);
   } catch {
-    try { pi.sendUserMessage(prompt, { deliverAs: "followUp" } as any); } catch { /* best effort */ }
+    /* best effort */
   }
 }
 

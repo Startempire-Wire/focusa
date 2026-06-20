@@ -2604,6 +2604,7 @@ const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
   project_identity: ["cwd", "project_root", "expected project id when verifying"],
   traversal: ["surface", "selector", "limit", "fields", "tags"],
   session_transfer: ["project_root", "continuity_id", "operator_mission when known"],
+  awareness: ["surface=reload|post_compaction|warning|tool_guidance|uiai_bridge", "mode=minimal|standard|rich|onboarding"],
 };
 
 const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {

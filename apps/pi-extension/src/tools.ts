@@ -2859,7 +2859,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `utility card → bootstrap=${Array.isArray(body.bootstrap_card) ? body.bootstrap_card.length : 0} compaction=${Array.isArray(body.post_compaction_card) ? body.post_compaction_card.length : 0}`, tool: "focusa_utility_card", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_agent_prompt", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `utility card ${body.status || result.status}\nnext=${Array.isArray(body.next_tools) ? body.next_tools.join(", ") : "unknown"}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `utility card ${body.status || result.status}\nnext=${Array.isArray(body.next_tools) ? body.next_tools.join(", ") : "unknown"}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -4895,7 +4895,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `bloatgaurd report ${body.status || result.status} | domains=${domains.length}\nnext_tools=focusa_bloatgaurd_domain,focusa_context_cognition_render` }],
-        structuredContent: toolResult,
+        details: { tool_result_v1: toolResult },
       };
     },
   });
@@ -4931,7 +4931,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `bloatgaurd domain ${body.status || result.status} | ${domain?.section || "?"} ${domain?.name || params.name}\nchecks=${Array.isArray(domain?.checks) ? domain.checks.length : 0}` }],
-        structuredContent: toolResult,
+        details: { tool_result_v1: toolResult },
       };
     },
   });
@@ -4960,7 +4960,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `bloatgaurd tokenbloat ${body.status || result.status} | controls=${controls.length}\nnext_tools=focusa_bloatgaurd_tokenbloat_domain,focusa_bloatgaurd_report` }],
-        structuredContent: toolResult,
+        details: { tool_result_v1: toolResult },
       };
     },
   });
@@ -4996,7 +4996,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `bloatgaurd tokenbloat domain ${body.status || result.status} | ${domain?.section || "?"} ${domain?.name || params.name}\nfields=${Array.isArray(domain?.prompt_visible_fields) ? domain.prompt_visible_fields.length : 0}` }],
-        structuredContent: toolResult,
+        details: { tool_result_v1: toolResult },
       };
     },
   });
@@ -5025,7 +5025,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `bloatgaurd gate-modes ${body.status || result.status} | modes=${modes.length}\nnext_tools=focusa_bloatgaurd_gate_mode,focusa_bloatgaurd_report` }],
-        structuredContent: toolResult,
+        details: { tool_result_v1: toolResult },
       };
     },
   });
@@ -5061,7 +5061,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       return {
         content: [{ type: "text", text: `bloatgaurd gate-mode ${body.status || result.status} | ${mode?.code || "?"} ${mode?.name || params.name}\nreport_schema_fields=${Array.isArray(mode?.report_schema_fields) ? mode.report_schema_fields.length : 0}` }],
-        structuredContent: toolResult,
+        details: { tool_result_v1: toolResult },
       };
     },
   });
@@ -5078,7 +5078,7 @@ export function registerTools(pi: ExtensionAPI) {
       const profiles = Array.isArray(body.profiles) ? body.profiles : [];
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd profiles → profiles=${profiles.length}`, tool: "focusa_bloatgaurd_profiles", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_profile", "focusa_bloatgaurd_routines", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `bloatgaurd profiles ${body.status || result.status} | profiles=${profiles.length}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `bloatgaurd profiles ${body.status || result.status} | profiles=${profiles.length}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5096,7 +5096,7 @@ export function registerTools(pi: ExtensionAPI) {
       const profile = body.profile || null;
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd profile → ${profile?.name || params.name}`, tool: "focusa_bloatgaurd_profile", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_profiles", "focusa_bloatgaurd_routines", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `bloatgaurd profile ${body.status || result.status} | ${profile?.name || params.name}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `bloatgaurd profile ${body.status || result.status} | ${profile?.name || params.name}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5112,7 +5112,7 @@ export function registerTools(pi: ExtensionAPI) {
       const routines = Array.isArray(body.routines) ? body.routines : [];
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd routines → routines=${routines.length}`, tool: "focusa_bloatgaurd_routines", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_routine", "focusa_bloatgaurd_profiles", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `bloatgaurd routines ${body.status || result.status} | routines=${routines.length}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `bloatgaurd routines ${body.status || result.status} | routines=${routines.length}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5130,7 +5130,7 @@ export function registerTools(pi: ExtensionAPI) {
       const routine = body.routine || null;
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd routine → ${routine?.name || params.name}`, tool: "focusa_bloatgaurd_routine", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_routines", "focusa_bloatgaurd_profiles", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `bloatgaurd routine ${body.status || result.status} | ${routine?.name || params.name}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `bloatgaurd routine ${body.status || result.status} | ${routine?.name || params.name}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5146,7 +5146,7 @@ export function registerTools(pi: ExtensionAPI) {
       const phases = Array.isArray(body.phases) ? body.phases : [];
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `bloatgaurd rollout → phases=${phases.length}`, tool: "focusa_bloatgaurd_rollout", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_bloatgaurd_profiles", "focusa_bloatgaurd_routines", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `bloatgaurd rollout ${body.status || result.status} | phases=${phases.length}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `bloatgaurd rollout ${body.status || result.status} | phases=${phases.length}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5162,7 +5162,7 @@ export function registerTools(pi: ExtensionAPI) {
       const requirements = Array.isArray(body.requirements) ? body.requirements : [];
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux report → requirements=${requirements.length}`, tool: "focusa_dxux_report", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_dxux_requirement", "focusa_dxux_digest", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `dxux report ${body.status || result.status} | requirements=${requirements.length}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `dxux report ${body.status || result.status} | requirements=${requirements.length}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5180,7 +5180,7 @@ export function registerTools(pi: ExtensionAPI) {
       const req = body.requirement || null;
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux requirement → ${req?.id || params.id}`, tool: "focusa_dxux_requirement", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_dxux_report", "focusa_dxux_digest", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `dxux requirement ${body.status || result.status} | ${req?.id || params.id}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `dxux requirement ${body.status || result.status} | ${req?.id || params.id}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5197,7 +5197,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux explain → confidence=${body.confidence || "unknown"}`, tool: "focusa_dxux_explain", family: "diagnostics_hygiene", side_effects: [], evidence_refs: [], next_tools: ["focusa_dxux_report", "focusa_tool_doctor", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `dxux explain ${body.status || result.status} | confidence=${body.confidence || "unknown"}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `dxux explain ${body.status || result.status} | confidence=${body.confidence || "unknown"}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
@@ -5212,7 +5212,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({ ok, status: ok ? "completed" : "blocked", summary: `dxux digest → can_continue=${body.can_continue === true}`, tool: "focusa_dxux_digest", family: "diagnostics_hygiene", side_effects: [], evidence_refs: Array.isArray(body.evidence_refs) ? body.evidence_refs : [], next_tools: ["focusa_workpoint_resume", "focusa_dxux_report", "focusa_evidence_capture"], raw: body });
-      return { content: [{ type: "text", text: `dxux digest ${body.status || result.status} | can_continue=${body.can_continue === true}\nnext=${body.exact_next_action || "unknown"}` }], structuredContent: toolResult };
+      return { content: [{ type: "text", text: `dxux digest ${body.status || result.status} | can_continue=${body.can_continue === true}\nnext=${body.exact_next_action || "unknown"}` }], details: { tool_result_v1: toolResult } };
     },
   });
 
