@@ -201,6 +201,7 @@ type FocusaToolStatus = "accepted" | "completed" | "no_op" | "blocked" | "valida
 type FocusaRetryPosture = "safe_retry" | "retry_with_idempotency_key" | "check_side_effects_first" | "do_not_retry_unchanged" | "operator_required";
 type FocusaFailureClass =
   | "validation_rejected"
+  | "schema_invalid"
   | "not_found"
   | "frame_unavailable"
   | "daemon_unavailable"
@@ -298,6 +299,7 @@ function inferFailureClass(status: FocusaToolStatus, summary: string, message?: 
   if (text.includes("oom") || text.includes("out of memory") || text.includes("resource exhausted") || text.includes("killed process")) return "resource_exhausted";
   if (text.includes("null response") || text.includes("response=null") || text.includes("body=null")) return "null_response";
   if (status === "validation_rejected" || text.includes("validation_rejected") || text.includes("rejected")) return "validation_rejected";
+  if (text.includes("schema_invalid") || text.includes("must be an object") || text.includes("expected_schema") || text.includes("invalid request body") || text.includes("missing required")) return "schema_invalid";
   if (text.includes("not_found") || text.includes("not found") || text.includes("missing prediction") || text.includes("no such")) return "not_found";
   if (status === "offline" || text.includes("daemon unavailable") || text.includes("focusa offline") || text.includes("connection refused")) return "daemon_unavailable";
   if (text.includes("timeout") || text.includes("timed out") || text.includes("abort")) {
@@ -324,6 +326,12 @@ function recoveryHintForFailure(failureClass: FocusaFailureClass | null, status:
       return { recovery_hint: "Stay attentive to operator direction, continue from repo/operator context, then create/resume a scoped Workpoint before durable Focus State writes.", misuse_hint: "Focus State note tools were used without an active Pi frame; this is recoverable, not a dead end.", next_tools: ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume", "focusa_tool_doctor"] };
     case "validation_rejected":
       return { recovery_hint: "Rewrite the durable slot as one compact declarative sentence, or put verbose/debug/task content in focusa_scratch.", misuse_hint: "Durable Focus State slots reject task lists, verbose reasoning, and non-declarative wording.", next_tools: ["focusa_scratch", "focusa_decide"] };
+    case "schema_invalid":
+      return {
+        recovery_hint: "Inspect the tool's expected_schema (returned with this error) and provide the required fields. Run focusa_traverse surface=tool_registry to see the full parameter schema for this tool.",
+        misuse_hint: "Tool parameter shape mismatch. The error envelope includes expected_schema with required fields and types — fix the input shape, do not retry unchanged.",
+        next_tools: ["focusa_traverse", "focusa_tool_doctor", "focusa_tool_requirement"]
+      };
     case "not_found":
       return { recovery_hint: "Use the relevant recent/list/read tool or create the missing record before retrying the mutation.", misuse_hint: "Likely stale id, missing record, wrong project scope, or evaluating/linking before the source object exists.", next_tools: ["focusa_project_identity", "focusa_workpoint_resume", "focusa_predict_recent", "focusa_tool_doctor"] };
     case "read_model_lag":
@@ -4284,15 +4292,28 @@ export function registerTools(pi: ExtensionAPI) {
     fallbackText: string,
     error: string,
     code = "SCHEMA_INVALID",
+    expectedSchema?: { required_fields: string[]; field_types?: Record<string, string>; example?: Record<string, any> },
   ) {
-    return spec80Result(
+    const body: any = { code, error };
+    if (expectedSchema) body.expected_schema = expectedSchema;
+    const result = spec80Result(
       tool,
       endpoint,
       request,
-      { ok: false, status: 422, body: { code, error } },
+      { ok: false, status: 422, body },
       `${fallbackText}: ok`,
       fallbackText,
     );
+    // Auto-inject recovery_hint + misuse_hint when not already present
+    if (result?.details?.tool_result_v1) {
+      const tr = result.details.tool_result_v1;
+      if (!tr.recovery_hint) tr.recovery_hint = `Inspect the tool's expected_schema (returned with this error). Run focusa_traverse surface=tool_registry to see the full parameter schema for ${tool}.`;
+      if (!tr.misuse_hint) tr.misuse_hint = `Tool parameter shape mismatch. The error includes expected_schema with required fields and types — fix the input shape, do not retry unchanged.`;
+      if (!tr.next_tools || tr.next_tools.length === 0) tr.next_tools = ["focusa_traverse", "focusa_tool_doctor"];
+      if (!tr.failure_class) tr.failure_class = "schema_invalid";
+      if (!tr.retry) tr.retry = { posture: "do_not_retry_unchanged", safe: false };
+    }
+    return result;
   }
 
   function validateRequiredString(
@@ -4348,12 +4369,12 @@ export function registerTools(pi: ExtensionAPI) {
     allowedKeys: string[],
   ): { ok: true; value: Record<string, any> } | { ok: false; error: string } {
     if (!params || typeof params !== "object" || Array.isArray(params)) {
-      return { ok: false, error: `${tool} params must be an object` };
+      return { ok: false, error: `${tool} params must be an object with required keys: ${allowedKeys.join(", ")}. Example: { ${allowedKeys.map((k) => `"${k}": "..."`).join(", ")} }` };
     }
     const record = params as Record<string, any>;
     const extras = Object.keys(record).filter((key) => !allowedKeys.includes(key));
     if (extras.length > 0) {
-      return { ok: false, error: `unexpected parameter(s): ${extras.join(", ")}` };
+      return { ok: false, error: `unexpected parameter(s): ${extras.join(", ")}. Allowed: ${allowedKeys.join(", ")}` };
     }
     return { ok: true, value: record };
   }
