@@ -1063,7 +1063,12 @@ export function buildAttentionRecallVerdict(options: {
       must_not_forget: mustNotForget.slice(0, 8),
       latest_report_summary_ref: latestReportSummaryRefFromFocusState(options.focusState),
       evidence_refs: evidenceRefs.slice(0, 5),
-      next_action: boundedAttentionText(nextAction, 180),
+      // FOCUSA_FIX-r4n9: Cut next_action when authority suppressed (scope conflict)
+      // When conflictReason is truthy, action_authority_for_current_ask=false
+      // In this case, do NOT provide a next_action — force verification before continuing
+      next_action: conflictReason
+        ? "BLOCKED: scope conflict — verify project scope with focusa_project_identity before continuing"
+        : boundedAttentionText(nextAction, 180),
       action_authority_for_current_ask: !conflictReason,
     },
   };
@@ -1071,16 +1076,21 @@ export function buildAttentionRecallVerdict(options: {
 
 export function formatAttentionRecallFocusSliceLines(verdict: PiAttentionRecallVerdict): string[] {
   const anchor = verdict.memory_anchor;
-  return [
+  const authorityBlocked = anchor.action_authority_for_current_ask === false;
+  const lines: string[] = [
     "MEMORY_ANCHOR:",
     `  task=${anchor.task}`,
     `  must_not_forget=${anchor.must_not_forget.join(" | ") || "none"}`,
     `  latest_report_summary_ref=${anchor.latest_report_summary_ref}`,
-    `  next_action=${anchor.next_action}`,
+    // FOCUSA_FIX-r4n9: Show blocked indicator when authority is suppressed
+    authorityBlocked
+      ? `  ⛔ next_action=${anchor.next_action}  ← EXECUTION BLOCKED`
+      : `  next_action=${anchor.next_action}`,
     `  action_authority_for_current_ask=${anchor.action_authority_for_current_ask}`,
     `ATTENTION_RECALL_VERDICT: schema=${verdict.schema} status=${verdict.status} visible_recap_required=${verdict.visible_recap_required} visible_recap_reason=${boundedAttentionText(verdict.visible_recap_reason || "none", 140)} attention_risks=${(verdict.attention_risks || []).join(",") || "none"} required_next=${(verdict.required_next || []).join(",") || "none"} current_ask_scope=${verdict.current_ask_scope_status} scope_conflict_reason=${boundedAttentionText(verdict.scope_conflict_reason, 140)}`,
     "END_ATTENTION_RECALL",
   ];
+  return lines;
 }
 
 function assistantOutputLooksLikeReport(text: string): boolean {

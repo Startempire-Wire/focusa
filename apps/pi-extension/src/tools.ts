@@ -4101,6 +4101,8 @@ export function registerTools(pi: ExtensionAPI) {
       const actionAuthority = res.body?.action_authority_for_current_ask !== false && v2?.action_authority_for_current_ask !== false;
       const matchesCurrentAskScope = res.body?.matches_current_ask_scope !== false && v2?.matches_current_ask_scope !== false;
       const scopeConflictReason = String(res.body?.scope_conflict_reason || v2?.scope_conflict_reason || "none");
+      // FOCUSA_FIX-r4n9: When authority is suppressed, recoveryPacket blocks execution
+      // and the Focus Slice in state.ts cuts next_action to force verification
       const authoritySuppressed = canonical && !actionAuthority;
       const recoveryPacket = authoritySuppressed ? {
         status: "action_authority_suppressed",
