@@ -972,11 +972,12 @@ function formatNonCriticalWriteFailure(slotLabel: string, reason: PushDeltaFailu
   const base = formatPushDeltaFailure(reason);
   const detail = apiReason ? ` Detail: ${apiReason}` : "";
   const recovery = pushDeltaFailureRecovery(reason, apiReason);
-  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${base} — ${slotLabel} NOT recorded. Frame recovery was attempted; scratchpad fallback is safest until a project-bound frame exists.${detail} Next: ${recovery.recovery_hint}`;
-  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${base} — ${slotLabel} NOT recorded. Project-bound frame/continuity is stale; use latest operator instruction, checkpoint a fresh Workpoint, and do not retry unchanged.${detail} Next: ${recovery.recovery_hint}`;
-  if (reason === "offline") return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
-  if (reason === "validation_rejected") return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
-  return `⚠️ ${base} — ${slotLabel} NOT recorded.${detail} Next: ${recovery.recovery_hint}`;
+  // BAD-006 fix: Keep messages concise to avoid context pollution
+  if (reason === "no_active_frame" || reason === "frame_unavailable") return `⚠️ ${slotLabel} not recorded: ${base}. Use scratchpad until project-bound frame exists. Next: ${recovery.recovery_hint}`;
+  if (reason === "scope_mismatch" || reason === "read_model_lag") return `⚠️ ${slotLabel} not recorded: ${base}. Checkpoint fresh Workpoint. Next: ${recovery.recovery_hint}`;
+  if (reason === "offline") return `⚠️ ${slotLabel} not recorded: ${base}. Next: ${recovery.recovery_hint}`;
+  if (reason === "validation_rejected") return `⚠️ ${slotLabel} not recorded: ${base}. Next: ${recovery.recovery_hint}`;
+  return `⚠️ ${slotLabel} not recorded: ${base}. Next: ${recovery.recovery_hint}`;
 }
 
 function namedSlotFallback(slotLabel: string, kind: string, reason: PushDeltaFailureReason, payload: string, apiReason?: string): { text: string; saved: boolean; turn: number; recovery: ReturnType<typeof pushDeltaFailureRecovery> } {
