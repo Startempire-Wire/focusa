@@ -318,7 +318,7 @@ tool-surface-summary.md → 97 tool contracts
 2. **BAD-003:** Add drift explanation to tool doctor
 
 ### P1 (Should Fix Before MVP)
-3. **[focusa-r4n9]** **ARCHITECTURAL FIX:** Cut `next_action` fallback when `action_authority_for_current_ask=false`
+3. ~~**[focusa-r4n9]** **ARCHITECTURAL FIX:** Cut `next_action` fallback when `action_authority_for_current_ask=false`~~ ✅ **IMPLEMENTED**
 4. **BAD-001:** Add mismatch_reason to identity response
 5. **BAD-005:** Add field-level validation errors to bad_request responses
 6. **BAD-002:** Add trajectory/Workpoint reconciliation guidance
@@ -435,6 +435,7 @@ const driftError = {
 
 - [x] Review this audit with Focusa team
 - [x] File issue for P1 fix (focusa-r4n9: scope authority enforcement)
+- [x] **IMPLEMENTED** focusa-r4n9: cut next_action fallback in state.ts
 - [ ] Implement enhanced errors per section 8
 - [ ] Schedule P0 fixes for MVP Sprint
 - [ ] Re-audit after fixes applied
