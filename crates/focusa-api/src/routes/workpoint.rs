@@ -1466,6 +1466,95 @@ async fn dispatch_event(
     }
 }
 
+// BAD-005 fix: Field-level validation with detailed errors
+// Returns Err with field-level validation_errors if request is malformed
+fn validate_workpoint_checkpoint_request(
+    req: &WorkpointCheckpointRequest,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let mut validation_errors: Vec<Value> = Vec::new();
+
+    // Validate mission and next_slice (at least one must be present)
+    if req.mission.as_deref().unwrap_or("").trim().is_empty()
+        && req.next_slice.as_deref().unwrap_or("").trim().is_empty()
+    {
+        validation_errors.push(json!({
+            "field": "mission",
+            "error": "required when next_slice is missing",
+            "value": req.mission,
+            "severity": "error"
+        }));
+        validation_errors.push(json!({
+            "field": "next_slice",
+            "error": "required when mission is missing",
+            "value": req.next_slice,
+            "severity": "error"
+        }));
+    }
+
+    // Validate project_root format (must be absolute path if provided)
+    if let Some(root) = req.project_root.as_deref() {
+        if !root.trim().is_empty() && !root.starts_with('/') {
+            validation_errors.push(json!({
+                "field": "project_root",
+                "error": "must be an absolute path starting with '/'",
+                "value": root,
+                "severity": "error"
+            }));
+        }
+    }
+
+    // Validate mission length (max 500 chars)
+    if let Some(mission) = req.mission.as_deref() {
+        if mission.len() > 500 {
+            validation_errors.push(json!({
+                "field": "mission",
+                "error": "must be <= 500 characters",
+                "value_length": mission.len(),
+                "severity": "error"
+            }));
+        }
+    }
+
+    // Validate next_slice length (max 2000 chars)
+    if let Some(next) = req.next_slice.as_deref() {
+        if next.len() > 2000 {
+            validation_errors.push(json!({
+                "field": "next_slice",
+                "error": "must be <= 2000 characters",
+                "value_length": next.len(),
+                "severity": "error"
+            }));
+        }
+    }
+
+    // Validate continuity_id format if provided
+    if let Some(cont_id) = req.continuity_id.as_deref() {
+        if !cont_id.trim().is_empty() && cont_id.len() > 256 {
+            validation_errors.push(json!({
+                "field": "continuity_id",
+                "error": "must be <= 256 characters",
+                "value_length": cont_id.len(),
+                "severity": "error"
+            }));
+        }
+    }
+
+    if validation_errors.is_empty() {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({
+                "status": "validation_error",
+                "canonical": false,
+                "error": "request validation failed",
+                "validation_errors": validation_errors,
+                "next_step_hint": "fix validation_errors and retry"
+            })),
+        ))
+    }
+}
+
 async fn checkpoint(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1475,6 +1564,8 @@ async fn checkpoint(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    // BAD-005 fix: Run field-level validation before legacy checks
+    validate_workpoint_checkpoint_request(&req)?;
     if req.mission.as_deref().unwrap_or("").trim().is_empty()
         && req.next_slice.as_deref().unwrap_or("").trim().is_empty()
     {

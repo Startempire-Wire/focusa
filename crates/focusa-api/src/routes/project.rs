@@ -1511,6 +1511,56 @@ fn discover_identity(
     }
 }
 
+// BAD-001 fix: Build a human-readable mismatch reason summary
+// When project_identity returns mismatch, this provides a single sentence explaining WHY
+fn build_mismatch_reason(
+    candidate: &IdentityCandidate,
+    mismatches: &[Value],
+    verified: bool,
+) -> String {
+    if unsafe_root_reason(&candidate.project_root).is_some() {
+        return format!(
+            "unsafe project_root: {} (no .git or project markers detected)",
+            candidate.project_root
+        );
+    }
+    if !mismatches.is_empty() {
+        let sources: Vec<&str> = mismatches
+            .iter()
+            .filter_map(|m| m.get("source").and_then(Value::as_str))
+            .collect();
+        if !sources.is_empty() {
+            return format!(
+                "project identity mismatch: expected={} actual={} (signals: {})",
+                candidate.project_id,
+                candidate.canonical_name,
+                sources.join(", ")
+            );
+        }
+    }
+    if candidate.status == "cwd_only" {
+        return format!(
+            "cwd-only identity (no project markers at {}); confidence={:?}",
+            candidate.project_root, candidate.confidence
+        );
+    }
+    if !verified {
+        return format!(
+            "verification failed for {} (status={}, confidence={:?})",
+            candidate.project_id, candidate.status, candidate.confidence
+        );
+    }
+    "project identity verified".to_string()
+}
+
+// Helper to check if a path is unsafe (no markers)
+fn unsafe_root_reason(root: &str) -> Option<&'static str> {
+    if root.is_empty() {
+        return Some("empty path");
+    }
+    None
+}
+
 fn candidate_payload(
     candidate: IdentityCandidate,
     expected: Option<&ProjectVerifyRequest>,
@@ -1604,6 +1654,13 @@ fn candidate_payload(
         "status": if !verified && !mismatches.is_empty() { "mismatch" } else { status },
         "canonical": canonical,
         "degraded": !canonical,
+        // BAD-001 fix: Top-level mismatch_reason for agent clarity
+        // When mismatches exist or project_root is unsafe, provide a single human-readable summary
+        "mismatch_reason": if !verified {
+            Some(build_mismatch_reason(&candidate, &mismatches, verified))
+        } else {
+            None
+        },
         "project_summary": project_summary.clone(),
         "summary_lines": project_summary.get("summary_lines").cloned().unwrap_or_else(|| json!([])),
         "project_identity": {

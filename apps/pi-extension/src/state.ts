@@ -841,7 +841,57 @@ function rememberedProjectRootForAlias(alias: string): string {
     }
   }
   scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.root || "";
+  if (scored[0]?.root) return scored[0].root;
+
+  // GitHub #4 fix: When no project_root is stored for this alias,
+  // search known project directories for a .focusa-project.json marker
+  // matching the alias name (e.g., 'perpetua' should resolve to /home/focusadev/perpetua)
+  return searchProjectMarkerForAlias(lower);
+}
+
+// FOCUSA_FIX-GitHub#4: Search filesystem for a project's canonical root
+// When a project alias is mentioned but no project_root is in the ledger,
+// look in known project directories for a matching .focusa-project.json
+function searchProjectMarkerForAlias(alias: string): string {
+  // Known candidate directories where sub-projects live
+  const candidateDirs = [
+    "/home/focusadev",
+    "/home/wirebot",
+    process.env.HOME || "",
+  ].filter(Boolean);
+
+  for (const dir of candidateDirs) {
+    try {
+      // Read directory entries - synchronous fs would be better but use execSync
+      const entries = require("child_process").execSync(
+        `ls -1 ${dir} 2>/dev/null`,
+        { stdio: ["pipe", "pipe", "pipe"] }
+      ).toString().trim().split("\n");
+
+      for (const entry of entries) {
+        if (!entry) continue;
+        const markerPath = `${dir}/${entry}/.focusa-project.json`;
+        try {
+          const markerContent = require("fs").readFileSync(markerPath, "utf-8");
+          const marker = JSON.parse(markerContent);
+          const markerId = String(marker.project_id || "").toLowerCase();
+          const markerName = String(marker.canonical_name || "").toLowerCase();
+          const markerAliases = Array.isArray(marker.aliases) ? marker.aliases.map((a: string) => a.toLowerCase()) : [];
+          if (markerId === alias || markerName === alias || markerAliases.includes(alias)) {
+            const root = String(marker.project_root || `${dir}/${entry}`);
+            try {
+              require("child_process").execSync(
+                `mkdir -p /tmp/pi-scratch && echo '[alias-resolution] searchProjectMarkerForAlias: resolved alias ${alias} to ${root} via marker at ${markerPath}' >> /tmp/pi-scratch/alias-resolution.log`,
+                { stdio: "pipe" }
+              );
+            } catch { /* best effort */ }
+            return normalizeProjectRoot(root);
+          }
+        } catch { /* not a marker file or unreadable */ }
+      }
+    } catch { /* directory unreadable */ }
+  }
+  return "";
 }
 
 export function observeProjectThreadHintsFromText(text: string, turnId: string, source: PiProjectThreadObservation["source"], action?: string): PiProjectThreadObservation[] {
