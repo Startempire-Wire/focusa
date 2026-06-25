@@ -292,6 +292,23 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
                 "risk": churn_risk,
                 "reason": if churn_risk { "pi-rpc supervisor driver counters changed while work-loop is idle with no current task" } else { "no idle/no-task driver churn detected" },
                 "recommended_action": if churn_risk { "inspect /v1/work-loop/status?summary_only=true, stop stale driver if present, and verify idle start gate" } else { "continue normally" },
+            },
+            // BAD-003 fix: Expose top drift causes when drift is detected
+            "drift": {
+                "status": if s.workpoint.drift_events.is_empty() { "ok" } else { "warn" },
+                "recent_count": s.workpoint.drift_events.len(),
+                "top_causes": s.workpoint.drift_events.iter().rev().take(3).map(|event| {
+                    json!({
+                        "reason": event.reason,
+                        "severity": format!("{:?}", event.severity),
+                        "recovery_hint": event.recovery_hint.clone().unwrap_or_default(),
+                    })
+                }).collect::<Vec<_>>(),
+                "next_action": if s.workpoint.drift_events.is_empty() {
+                    "no drift events recorded"
+                } else {
+                    "inspect top drift causes and apply recovery_hint; if persistent, run focusa_workpoint_resume to re-align canonical packet"
+                },
             }
         },
         "portability": portability,
