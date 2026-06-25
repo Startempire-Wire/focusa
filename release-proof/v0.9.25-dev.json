@@ -1,0 +1,79 @@
+{
+  "commands": [
+    "focusa release prove --tag <tag>",
+    "focusa release prove --tag <tag> --github",
+    "gh release view <tag> --json name,tagName,isDraft,isPrerelease,url,assets"
+  ],
+  "details": {
+    "gates": [
+      {
+        "command": "git status --short",
+        "exit_code": 0,
+        "name": "git status",
+        "output_tail": "d4c75b800a86ad5915bab370d603f9c924f\n?? ecs/objects/c86f46e74bcc35dafdf5901b9daf2b8b30ee137bd295c31f8905665070acdf91\n?? ecs/objects/c9da27035fdb0aee741a3b0c61e02bcbe040bf193893a77a968ed7d7818a414f\n?? ecs/objects/cb5567a6457eb420ce293325f6855acae73b78cd04f58503859b90d0f21065e9\n?? ecs/objects/cb82861421b5860d69610f534521e883749e03fc7622810ddcafcfc1ef1ab5e3\n?? ecs/objects/cbee494eb33f21fedee46ec5c18085f040f328f87a53d322ff78de351adfcb26\n?? ecs/objects/cc4bd9a564ee01b03b86e94de45413b76de4a036bcbd49635149ae7bb131ae2c\n?? ecs/objects/cd1e12666940a44bbe43bf313f3cbd3d45940868c124655617c205f2429f14b4\n?? ecs/objects/d01bb0bf6229281afd9f1eed3e528c9858584ffed92c116068004e70bb148c95\n?? ecs/objects/d09ccfcb34e7cea80881da053fa674a5d29b16503b225fcbd758fd151c406b0a\n?? ecs/objects/d282e380851bfd554453be87ef36dabfbab963411bc5618e44ba2360369c531f\n?? ecs/objects/d29de7ff891703da9d70908bf8d633aa52044fe26ac420294080bbfca4b095e7\n?? ecs/objects/d2c4080ff7abb9e41d8da8d661d409d3dc440344199e55a79c2ad4c90eafdae3\n?? ecs/objects/d3ad74f256a679aa28f93d7df56a37fdd0b7c32b60ed58dc112706be91ac7e46\n?? ecs/objects/d66a96e608adaa9759d0aecb9b8b0ef1da556c70887ab6dac18e29bb1207e510\n?? ecs/objects/d6a286bd66e7cb88cdc6bc4a86ee576d8890e85fe581bc90493719b201a8d95a\n?? ecs/objects/d7bc92198883000ccc584e93785c343b6674448e9bb8e70d5750d7cc2e18d4be\n?? ecs/objects/d8cfbc942346f2167d2e3d5efdfe5de5288d9197e362893ac2d12273a1fb0056\n?? ecs/objects/d9720a91059eb28dae90aa2e36a176eab0098736753841f61c4b48d0db575988\n?? ecs/objects/dc19c5f090cf9327930fa0b647c994a1d33455c998c0e5a874b105a383a3c87c\n?? ecs/objects/dcca00ee81d8e1b301e8375e3c3d6899c59e33aefd6975b011070ddd735b3a71\n?? ecs/objects/dcf6b98f5025e547c4a52231448cd36e10aec63395d2e8195cd20fd027bc94d3\n?? ecs/objects/de9bd606b7039f4adf37ee72f12d8b5b7fd1c96a1abff2c3d3721829122f7b87\n?? ecs/objects/e2cbe1cbff0f8b8c2ebf64221e7d64515fbba1dc2407b6e4e548e2ee81706d61\n?? ecs/objects/e2cfdf916c1b2717627d818069b98f5b4bbbc6ccfe58bc7d1e794bda49615bf4\n?? ecs/objects/e36c560aef0821bbd99a23df9b0a5d9614d3a976db049ca4bba0d8b8f8f0afcd\n?? ecs/objects/e38d40316b8e6e6b7f70e6e90c2e04c472a7273a110f192111fb71935df204bb\n?? ecs/objects/e456a8927522dc7ca4362b7a588cf047945ee9a5d500071df0d4d104453abaa1\n?? ecs/objects/e5747ac827af71863d8998ff50ac8bfc04716735acd81efb5eca276f0db575ca\n?? ecs/objects/e5d62447faa1ba85f7ab5a7583f6076713024aeb24bff4239dc6b0e43f589826\n?? ecs/objects/ec8e76b225012120a24e2709ed92970dce7c2a5e9e9a2f67de96b22e65071510\n?? ecs/objects/ed523b8e05cf2918827d5d6743f8504f2b3b73cf75f63d76d2c8fdc3919192fb\n?? ecs/objects/ee34b7e89e8e6c9e07dc0c4328755a00d566115127d965748597d0ff86066294\n?? ecs/objects/efa9378f90a81e8b8d05dbd65f039c1b7fe3411db2f52ea5524afc789c137ba9\n?? ecs/objects/efe75b400f540f481e08d0d493c527e214e5ea10e1a19e073272f31b2a3bbf99\n?? ecs/objects/f05bc125b6fe96536188d427ac99bc1645a7c05e81666c280e6d54e3cdf43038\n?? ecs/objects/f083a223c81fca2115cf0f45e6bb6715ff9d81db73573a9ffed0b259d351f347\n?? ecs/objects/f1d030777370a793386bbffa472fb59116ed7a80adcd414d94148c5ba7a0bcae\n?? ecs/objects/f1fa7aee6d5855c3aca534d8407fecf45006983487be857b4fc58985d4f63cdb\n?? ecs/objects/f4721d93cc712fd942e78b8e23a6774cd156e701543dc88f0365e18e3379ef37\n?? ecs/objects/f5521b9c72403231375dbee7f2abcfd6eabf174036dbb8e0545ae5dbaa755df5\n?? ecs/objects/f593fb17708fd6c201f72b5f6e7e981ec39dde5042e9d122df0b358bac94e5d4\n?? ecs/objects/f715d0f3690db2d29b96a20afd5dfdc9d29a9a3495c620cec02f47ea08d24b47\n?? ecs/objects/f750a57e3614a67b7b84b56c06180565eaee7c6827d707f3c742d5ceebc19333\n?? ecs/objects/f75a4924a8753b247fac0f5dddfc75f465721c7ff59fab5bf403a8fa7056f7d2\n?? ecs/objects/fb9dcae4e95802d964e5c379d35ca09fcb1b06b0b75a162bdc67642d0d74cc3f\n?? ecs/objects/feb6418bdced38813622c9636923c9d8fe171f3cd2131e2b90e3a12fb05eafe0\n?? ecs/objects/ff74b5299720b58a561d8ab07f50c64e7142a7dfb6243cc758c0b7f10b614486\n?? release-proof/\n?? runtime/\n/home/wirebot/.bashrc: line 22: /home/wirebot/.cargo/env: No such file or directory\n/home/wirebot/.bash_profile: line 13: /home/wirebot/.cargo/env: No such file or directory\n",
+        "status": "completed"
+      },
+      {
+        "command": "node scripts/validate-focusa-tool-contracts.mjs",
+        "exit_code": 0,
+        "name": "Spec90 contract validation",
+        "output_tail": "Spec90 tool contracts: passed\ntools=80 contracts=80\nby_family={\"project_identity\":4,\"workpoint\":9,\"trajectory\":14,\"traversal\":2,\"metacognition\":13,\"focus_state\":11,\"work_loop\":7,\"diagnostics_hygiene\":5,\"session_transfer\":6,\"tree_lineage\":9}\n/home/wirebot/.bashrc: line 22: /home/wirebot/.cargo/env: No such file or directory\n/home/wirebot/.bash_profile: line 13: /home/wirebot/.cargo/env: No such file or directory\n",
+        "status": "completed"
+      },
+      {
+        "command": "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures",
+        "exit_code": 0,
+        "name": "Spec91 live safe fixtures",
+        "output_tail": "Spec91 live tool contract proof: passed\nhealth=ok version=0.9.25-dev\nstatic=spec90.tool_contracts.v1 count=80\nlive=spec90.tool_contracts.v1 count=80\npayload_equal=true\nchecked_endpoints=/v1/health,/v1/ontology/tool-contracts,/v1/workpoint/current,/v1/work-loop/status?summary_only=true,/v1/lineage/head,/v1/metacognition/reflections/recent,/v1/focus/frame/current\nfixture_checks=workpoint:passed,work_loop:passed,tree_lineage:passed,metacognition:passed,focus_state:passed\n/home/wirebot/.bashrc: line 22: /home/wirebot/.cargo/env: No such file or directory\n/home/wirebot/.bash_profile: line 13: /home/wirebot/.cargo/env: No such file or directory\n",
+        "status": "completed"
+      },
+      {
+        "command": "./tests/work_loop_autocontinue_wiring_test.sh",
+        "exit_code": 0,
+        "name": "work-loop auto-continue wiring",
+        "output_tail": "\u001b[0;32m✓ PASS\u001b[0m: continuous-turn prompt dispatch helper exists\n\u001b[0;32m✓ PASS\u001b[0m: stale awaiting-harness turns can be auto-reprompted\n\u001b[0;32m✓ PASS\u001b[0m: blocked loop state can auto-advance to alternate ready work\n\u001b[0;32m✓ PASS\u001b[0m: unassigned loop state can re-select from global ready queue\n\u001b[0;32m✓ PASS\u001b[0m: enable route can seed initial ready-work selection and dispatch\n\u001b[0;32m✓ PASS\u001b[0m: select_next route triggers next-turn dispatch helper\n\u001b[0;32m✓ PASS\u001b[0m: turn_complete triggers next-turn dispatch helper after outcome evaluation\n\u001b[0;32m✓ PASS\u001b[0m: Pi RPC stream events feed continuation outcome observation and follow-on dispatch\n\u001b[0;32m✓ PASS\u001b[0m: empty-output turn_end events retry automatically\n\u001b[0;32m✓ PASS\u001b[0m: Pi RPC empty-output retry path no longer has a hard cap marker\n\u001b[0;32m✓ PASS\u001b[0m: compaction auto-resume retries are pending-gated and no longer hard-capped\n\u001b[0;32m✓ PASS\u001b[0m: compaction-resume no longer emits artificial exhaustion warning\n\u001b[0;32m✓ PASS\u001b[0m: compaction retries remain bounded by lifecycle/governance reset gates\n\u001b[0;32m✓ PASS\u001b[0m: daemon heartbeat supervisor actively self-dispatches prompts\n\u001b[0;32m✓ PASS\u001b[0m: daemon rejects null-task turn requests to prevent fake awaiting-harness stalls\n=== WORK-LOOP AUTO-CONTINUE WIRING RESULTS ===\nTests passed: 15\nTests failed: 0\n/home/wirebot/.bashrc: line 22: /home/wirebot/.cargo/env: No such file or directory\n/home/wirebot/.bash_profile: line 13: /home/wirebot/.cargo/env: No such file or directory\n",
+        "status": "completed"
+      },
+      {
+        "command": "curl -fsS http://127.0.0.1:8787/v1/health | jq .ok",
+        "exit_code": 0,
+        "name": "daemon health",
+        "output_tail": "true\n/home/wirebot/.bashrc: line 22: /home/wirebot/.cargo/env: No such file or directory\n/home/wirebot/.bash_profile: line 13: /home/wirebot/.cargo/env: No such file or directory\n",
+        "status": "completed"
+      },
+      {
+        "command": "guardian scan docs/current && guardian scan README.md && guardian scan CHANGELOG.md",
+        "exit_code": 2,
+        "name": "Guardian docs scan",
+        "output_tail": "🔴 2 secret(s) found in docs/current:\n  ⚠️  SECRET_FILENAME: docs/current/FOCUSA_AUTH_TOKEN_BOUNDARY.md\n  ⚠️  SECRET_FILENAME: docs/current/TOKEN_AND_SECRET_HANDLING.md\n/home/wirebot/.bashrc: line 22: /home/wirebot/.cargo/env: No such file or directory\n/home/wirebot/.bash_profile: line 13: /home/wirebot/.cargo/env: No such file or directory\n",
+        "status": "blocked"
+      }
+    ],
+    "tag": "v0.9.25-dev"
+  },
+  "docs": [
+    "docs/92-agent-first-polish-hooks-efficiency-spec.md",
+    "docs/current/DOCTOR_CONTINUE_RELEASE_PROVE.md"
+  ],
+  "evidence_refs": [
+    "docs/current/VALIDATION_AND_RELEASE_PROOF.md",
+    "docs/current/PRODUCTION_RELEASE_COMMANDS.md"
+  ],
+  "next_action": "Fix the first blocked gate, then rerun focusa release prove --tag <tag>",
+  "proof_artifact": {
+    "latest_path": "/home/wirebot/focusa/release-proof/latest.json",
+    "tag_path": "/home/wirebot/focusa/release-proof/v0.9.25-dev.json"
+  },
+  "recovery": [
+    "focusa doctor",
+    "focusa start",
+    "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures",
+    "journalctl -u focusa-daemon -n 80 --no-pager (Linux service installs)"
+  ],
+  "status": "blocked",
+  "summary": "Release proof blocked for v0.9.25-dev: 1 gate(s) failed",
+  "warnings": [
+    "fast mode skipped cargo check/clippy/test"
+  ],
+  "why": "Spec92 requires one command that orchestrates validation, live safe proof, Guardian scan, and release evidence before publication."
+}

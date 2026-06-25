@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781308284190817582",
+  "confidence": 0.91,
+  "content": "For LaunchOS landing pages, combine DOM metric gates with UIAI viewport runs at 375/768/1024/1440; cache-busted plugin asset version bumps are required after CSS fixes or stale CSS hides outcomes.",
+  "created_at": "2026-06-12T23:51:24.190826587Z",
+  "kind": "responsive_qa_lesson",
+  "rationale": "Breakpoint fixes initially appeared ineffective until PV_LAUNCH_PAGES_VERSION was bumped; metric audits caught table overflow, small tap targets, and tablet CTA drift.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781308284190817582.json",
+  "strategy_class": "responsive_visual_qa",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

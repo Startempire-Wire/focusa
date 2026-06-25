@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781315543704333897",
+  "confidence": 0.9,
+  "content": "For agent 2FA integrations, prefer native TOTP plus optional CLI adapters to avoid licensing/runtime lock-in and keep real secrets outside code/tests.",
+  "created_at": "2026-06-13T01:52:23.760085917Z",
+  "kind": "portability_secret_integration_lesson",
+  "rationale": "UIAI can support Aegis vaults through aegis-rs without linking GPL code or requiring Aegis in CI; fake command tests verify adapter behavior.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781315543704333897.json",
+  "strategy_class": "portable_secret_integration",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

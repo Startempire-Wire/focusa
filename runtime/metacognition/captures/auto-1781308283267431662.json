@@ -1,0 +1,22 @@
+{
+  "capture_id": "auto-1781308283267431662",
+  "confidence": 1.0,
+  "content": "Prediction 019ebe1f-2833-7733-8045-a45a6dd130ca scored 1. Expected: Starter Gravity forms can now be created and wired into LaunchOS configs without changing core render architecture.. Actual: Starter Gravity forms were created and wired through LaunchOS settings without changing the core render architecture; submissions increment LaunchOS stats.. Recommended action was: Create one starter Gravity form per site, update page configs with forms/form sections or CTA anchors, then verify submissions increment LaunchOS stats.. Ontology: none",
+  "created_at": "2026-06-12T23:51:23.267442059Z",
+  "kind": "prediction_outcome",
+  "rationale": "Prediction evaluation fed the metacognition retrieval loop.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/auto-1781308283267431662.json",
+  "strategy_class": "prediction_metacog_flywheel",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

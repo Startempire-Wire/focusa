@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781300272378022852",
+  "confidence": 0.96,
+  "content": "UIAI public docs should lead with 'proof browser for Focusa-powered agents' and explain the authority split: UIAI executes browser/search/session/diagnostics and emits evidence; Focusa owns continuity, Workpoints, Trajectory, prediction, metacog, and recovery.",
+  "created_at": "2026-06-12T21:37:52.472643810Z",
+  "kind": "branding_positioning_lesson",
+  "rationale": "The phrase was integrated into four public docs and passed docs/packet/parity gates plus Browser Reliability CI.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781300272378022852.json",
+  "strategy_class": "product-positioning",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

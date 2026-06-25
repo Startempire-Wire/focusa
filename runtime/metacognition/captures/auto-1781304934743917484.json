@@ -1,0 +1,22 @@
+{
+  "capture_id": "auto-1781304934743917484",
+  "confidence": 0.5,
+  "content": "Prediction 019ebdc5-0760-7890-81a6-57ddaa3c589b scored 0.5. Expected: Adding live Stripe webhook sales tracking will integrate cleanly on top of the new admin stats model if product price IDs are finalized first.. Actual: Live Stripe webhook work was deferred; instead UIAI-audited landing UI polish was completed. Prediction not directly exercised yet.. Recommended action was: Finalize Stripe products/price IDs, then add Checkout Session/webhook handling to update pv_launch_sales_totals_json automatically.. Ontology: none",
+  "created_at": "2026-06-12T22:55:34.791801639Z",
+  "kind": "prediction_outcome",
+  "rationale": "Prediction evaluation fed the metacognition retrieval loop.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/auto-1781304934743917484.json",
+  "strategy_class": "prediction_metacog_flywheel",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

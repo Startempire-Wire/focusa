@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781301363474685379",
+  "confidence": 0.94,
+  "content": "For commercially valuable source-available agent infrastructure, add explicit LICENSE plus readable docs; keep BSL controlling text in LICENSE and put commercial summary/contact language in docs/LICENSING.md and README.",
+  "created_at": "2026-06-12T21:56:03.474698085Z",
+  "kind": "licensing_docs_lesson",
+  "rationale": "UIAI Engine had no license file; commit 1cd50aa added BSL 1.1 and summary docs while preserving CI/doc gates.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781301363474685379.json",
+  "strategy_class": "repo-licensing",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

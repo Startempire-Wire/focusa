@@ -1,0 +1,22 @@
+{
+  "capture_id": "auto-1781311076082919189",
+  "confidence": 1.0,
+  "content": "Prediction 019ebe59-5035-7621-b046-93ba3bb054a1 scored 1. Expected: Implementing reusable positioning/offer/proof/FAQ/trust sections before copy rewrites will reduce drift and keep all three landing pages consistent.. Actual: Reusable configurable sections were implemented and all three configs updated; UIAI 12-view matrix remained clean.. Recommended action was: Add LaunchOS section renderers/settings for positioning, offer_details, proof, faq, legal_trust, and success_state, then update configs page-by-page.. Ontology: none",
+  "created_at": "2026-06-13T00:37:56.082928412Z",
+  "kind": "prediction_outcome",
+  "rationale": "Prediction evaluation fed the metacognition retrieval loop.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/auto-1781311076082919189.json",
+  "strategy_class": "prediction_metacog_flywheel",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

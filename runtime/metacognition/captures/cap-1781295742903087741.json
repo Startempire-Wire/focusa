@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781295742903087741",
+  "confidence": 0.93,
+  "content": "When generating PHP files through nested as-user shell heredocs, write quoted content to temp files first and copy them into place to avoid shell quote stripping.",
+  "created_at": "2026-06-12T20:22:22.903097012Z",
+  "kind": "workflow_signal",
+  "rationale": "Initial child theme functions.php files lost PHP string quotes and caused WordPress parse errors; temp-file copy preserved syntax.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781295742903087741.json",
+  "strategy_class": "wordpress_scaffold",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

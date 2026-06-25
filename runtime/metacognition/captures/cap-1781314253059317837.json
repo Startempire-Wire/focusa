@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781314253059317837",
+  "confidence": 0.95,
+  "content": "Portable secret integrations should be optional config adapters: env vars remain default, vault tools run only on explicit refs, tests use fake binaries, and docs warn against host-specific assumptions.",
+  "created_at": "2026-06-13T01:30:53.059337514Z",
+  "kind": "portability_secret_integration_lesson",
+  "rationale": "UIAI rbw integration commit 74d6931 kept rbw optional and portable while adding generic config references and CI-covered tests.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781314253059317837.json",
+  "strategy_class": "portable-integration",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

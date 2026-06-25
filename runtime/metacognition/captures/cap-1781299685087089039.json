@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1781299685087089039",
+  "confidence": 0.94,
+  "content": "When updating public UIAI browser docs from planning specs, explicitly separate current shipped browser/proof surfaces from roadmap FPV/PWA/share-link features to avoid overclaiming.",
+  "created_at": "2026-06-12T21:28:05.087104148Z",
+  "kind": "docs_positioning_lesson",
+  "rationale": "Recent FPV/PWA docs describe planned live oversight; README/quickstart were updated to label it roadmap while emphasizing current Focusa+UIAI proof value.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1781299685087089039.json",
+  "strategy_class": "docs-positioning",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}

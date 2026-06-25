@@ -318,9 +318,10 @@ tool-surface-summary.md → 97 tool contracts
 2. **BAD-003:** Add drift explanation to tool doctor
 
 ### P1 (Should Fix Before MVP)
-3. **BAD-001:** Add mismatch_reason to identity response
-4. **BAD-005:** Add field-level validation errors to bad_request responses
-5. **BAD-002:** Add trajectory/Workpoint reconciliation guidance
+3. **[focusa-r4n9]** **ARCHITECTURAL FIX:** Cut `next_action` fallback when `action_authority_for_current_ask=false`
+4. **BAD-001:** Add mismatch_reason to identity response
+5. **BAD-005:** Add field-level validation errors to bad_request responses
+6. **BAD-002:** Add trajectory/Workpoint reconciliation guidance
 
 ### P2 (Nice to Have)
 6. **BAD-006:** Reduce Focus State rejection noise
@@ -351,13 +352,170 @@ These practices are working well and should be preserved:
 
 ---
 
-## 8. Next Steps
+## 8. Better Errors — Enhanced Error Design
 
-- [ ] Review this audit with Focusa team
-- [ ] File issues for P0 fixes (BAD-008, BAD-003)
-- [ ] Schedule P1 fixes for MVP Sprint
+The current errors are comprehensive (9/10) but need enforcement alignment. Here's the enhanced error design:
+
+### 8.1 Enhanced Scope Conflict Error
+
+```typescript
+// When action_authority_for_current_ask === false
+const blockedError = {
+  status: "blocked",
+  code: "SCOPE_CONFLICT_AUTHORITY_SUPPRESSED",
+  what_failed: "Scope conflict detected — action authority suppressed",
+  likely_why: "Current ask project differs from Workpoint project scope",
+  safe_recovery: "focusa_project_verify project_root=<explicit> && focusa_workpoint_checkpoint",
+  recovery_hint: "Verify project identity, then checkpoint with correct scope before continuing",
+  misuse_hint: "Usually caused by stale Focusa carryover from different project",
+  next_tools: ["focusa_project_verify", "focusa_workpoint_checkpoint"],
+  severity: "blocked",
+  // NEW: Enforcement fields
+  executable_next_action: null,  // ← No escape hatch
+  requires_operator_confirmation: true,
+  authority_status: {
+    current_ask_scope: "<current>",
+    workpoint_scope: "<saved>",
+    conflict_reason: "<specific reason>",
+    suppression_reason: "scope mismatch"
+  }
+};
+```
+
+### 8.2 Enhanced Validation Error with Field Details
+
+```typescript
+// When bad_request with field-level errors
+const validationError = {
+  status: "blocked",
+  code: "VALIDATION_ERROR",
+  what_failed: "Request validation failed",
+  likely_why: "One or more required fields are missing or invalid",
+  validation_errors: [
+    { field: "project_root", error: "must be absolute path", value: "<given>" },
+    { field: "mission", error: "required, max 500 chars", value: null }
+  ],
+  safe_recovery: "Fix validation_errors and retry",
+  next_tools: ["focusa_project_identity"],
+  severity: "blocked"
+};
+```
+
+### 8.3 Enhanced Drift Error with Explanation
+
+```typescript
+// When tool doctor reports drift=yes
+const driftError = {
+  status: "degraded",
+  code: "DRIFT_DETECTED",
+  what_failed: "Live tool contracts differ from registered contracts",
+  likely_why: "Runtime state diverged from registered state",
+  drift_causes: [
+    { cause: "route_count_mismatch", live: 80, registered: 97 },
+    { cause: "parity_diverged", live_api: 93, registered_api: 97 }
+  ],
+  safe_recovery: "Run: focusa registry sync && focusa daemon restart",
+  next_tools: ["focusa_tool_doctor", "focusa_traverse surface=tool_registry"],
+  severity: "degraded"
+};
+```
+
+### 8.4 Error Enforcement Rule
+
+| Error Type | Current | Required |
+|------------|---------|----------|
+| Scope conflict | `next_tools` suggestion | `executable_next_action: null` |
+| Validation error | Generic message | Field-level errors array |
+| Drift detected | Just flag | Top 3 drift causes |
+| Authority suppressed | Returns packet anyway | Returns blocked envelope only |
+
+---
+
+## 9. Next Steps
+
+- [x] Review this audit with Focusa team
+- [x] File issue for P1 fix (focusa-r4n9: scope authority enforcement)
+- [ ] Implement enhanced errors per section 8
+- [ ] Schedule P0 fixes for MVP Sprint
 - [ ] Re-audit after fixes applied
 - [ ] Add AX regression tests
+
+---
+
+## 9. Architectural Root Cause (Deep Dive)
+
+After tracing through the code, the root cause is **multi-layer fallback chain**, not just surface-level "advisory enforcement":
+
+### Layer 1: Reducer (Rust — Structural Invariant)
+```rust
+// crates/focusa-core/src/reducer.rs lines 19-20
+//!   5. Focus Gate is advisory only (structural — gate events don't touch stack)
+```
+**Impact:** The reducer architecturally CANNOT enforce scope gates. This is a structural invariant.
+
+### Layer 2: PI Extension Detection (TypeScript)
+```typescript
+// apps/pi-extension/src/tools.ts lines 4104-4132
+const authoritySuppressed = canonical && !actionAuthority;
+const toolResult = authoritySuppressed ? {
+  ok: false, 
+  degraded: true,
+  action_authority_for_current_ask: false,
+  ...block fields
+} : baseToolResult;
+```
+**Impact:** Detects conflict and marks `ok: false`, but allows continuation.
+
+### Layer 3: State Fallback Chain (THE PROBLEM)
+```typescript
+// apps/pi-extension/src/state.ts line 1026
+const nextAction = workpointValue(packet, "next_slice") 
+  || S.lastCompactDecision    // ← Falls through here when workpoint suppressed
+  || askText 
+  || S.lastFocusSnapshot.currentFocus 
+  || "continue bounded current task";  // ← Or this
+```
+**Impact:** Even when `getScopedWorkpacketPacket()` returns `null`, `next_action` falls back to last compaction decision or hardcoded default.
+
+### Layer 4: Focus Slice Rendering
+```
+MEMORY_ANCHOR:
+  next_action=continue bounded current task
+  action_authority_for_current_ask=false    ← Flag says BLOCKED
+                                       ↑ But this still says CONTINUE
+```
+**Impact:** Agent sees both `next_action` AND `action_authority=false`. Can choose to follow `next_action`.
+
+### Root Cause Summary
+
+| Layer | Architecture | Gap |
+|-------|-------------|-----|
+| Reducer | Advisory only invariant | Cannot enforce architecturally |
+| PI Extension | Detects + marks `ok: false` | Doesn't stop `next_action` |
+| State | Fallback chain | Authority suppressed but action still offered |
+| Focus Slice | Renders both | Agent ignores flag, follows action |
+
+### Required Fix
+
+**Cut the `next_action` fallback when `action_authority_for_current_ask === false`:**
+
+```typescript
+// In state.ts — buildAttentionRecallVerdict()
+const effectiveNextAction = actionAuthority === false 
+  ? null  // ← BLOCKED, no action available
+  : fallbackChain;
+
+// In awareness.ts — buildFocusaUtilityCard()
+next_action=${effectiveNextAction || "BLOCKED: authority suppressed — verify project scope"}
+```
+
+**This breaks the chain at the point where the agent receives guidance.**
+
+### Bead for Fix
+- **ID:** `focusa-r4n9`
+- **Title:** Fix Focusa scope authority enforcement - cut next_action fallback when action_authority_for_current_ask=false
+- **Priority:** P1
+- **Status:** Open
 
 ---
 
