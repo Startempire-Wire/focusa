@@ -1786,6 +1786,18 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         } else {
             json!(["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_active_object_resolve"])
         },
+        // BAD-007 fix: Provide clear next_step_hint for empty/degraded trajectory states
+        "next_step_hint": if bootstrap_default_trajectory {
+            "Trajectory is in bootstrap default state. Define a real goal with focusa_trajectory_define_goal (project_root, continuity_id, long_term_goal, desired_end_state) or pass a workpoint via focusa_workpoint_checkpoint to anchor the scope."
+        } else if status == "not_found" {
+            "No trajectory exists for this project. Run focusa_trajectory_define_goal to set the long-term goal and desired end state."
+        } else if using_prior_project_trajectory {
+            "Using prior project trajectory as fallback. Refresh with focusa_trajectory_define_goal to confirm the goal applies to this project."
+        } else if !canonical {
+            "Trajectory is provisional or degraded. Verify project identity and refresh trajectory definition before treating as canonical."
+        } else {
+            "Trajectory is canonical. Continue with focusa_workpoint_resume or focusa_workpoint_checkpoint."
+        },
         "warnings": if canonical {
             Vec::<String>::new()
         } else if bootstrap_default_trajectory {
