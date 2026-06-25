@@ -1511,6 +1511,75 @@ fn discover_identity(
     }
 }
 
+// FOCUSA-zsld fix: Build degraded_reasons array matching focusa doctor --json
+// Returns array of {code, severity, reason, fix, evidence_ref} cards
+fn build_degraded_reasons(
+    candidate: &IdentityCandidate,
+    mismatches: &[Value],
+    verified: bool,
+    canonical: bool,
+) -> Value {
+    let mut reasons: Vec<Value> = Vec::new();
+
+    // Unsafe root reason
+    if candidate.status == "unsafe_project_root" {
+        reasons.push(json!({
+            "code": "UNSAFE_PROJECT_ROOT",
+            "severity": "error",
+            "reason": format!("project_root {} is unsafe (no .git or project markers)", candidate.project_root),
+            "fix": "verify cwd is a valid project root with .git or .focusa-project.json",
+            "evidence_ref": format!("project_root:{}", candidate.project_root),
+        }));
+    }
+
+    // Confidence reasons
+    if candidate.confidence == "low" {
+        reasons.push(json!({
+            "code": "LOW_CONFIDENCE",
+            "severity": "warn",
+            "reason": format!("project identity confidence is low (status={}, only cwd signal)", candidate.status),
+            "fix": "provide explicit project_root or run focusa_project_verify",
+            "evidence_ref": format!("confidence:{}", candidate.confidence),
+        }));
+    }
+
+    // Mismatch reasons
+    for m in mismatches {
+        let source = m.get("source").and_then(Value::as_str).unwrap_or("unknown");
+        reasons.push(json!({
+            "code": format!("MISMATCH_{}", source.to_uppercase()),
+            "severity": "error",
+            "reason": format!("project identity signal mismatch: {}", source),
+            "fix": "match expected vs actual and re-run focusa_project_verify",
+            "evidence_ref": m.get("expected").map(|e| format!("expected:{}", e)).unwrap_or_else(|| format!("signal:{}", source)),
+        }));
+    }
+
+    // Non-canonical verified
+    if !canonical && verified {
+        reasons.push(json!({
+            "code": "NON_CANONICAL",
+            "severity": "warn",
+            "reason": "project verified but not canonical (confidence != high)",
+            "fix": "add explicit project_root or .focusa-project.json to make canonical",
+            "evidence_ref": format!("confidence:{}", candidate.confidence),
+        }));
+    }
+
+    // Generic not verified
+    if !verified && reasons.is_empty() {
+        reasons.push(json!({
+            "code": "VERIFICATION_FAILED",
+            "severity": "error",
+            "reason": format!("project verification failed for {} (status={})", candidate.project_id, candidate.status),
+            "fix": "inspect signals and run focusa_project_verify with explicit inputs",
+            "evidence_ref": format!("status:{}", candidate.status),
+        }));
+    }
+
+    json!(reasons)
+}
+
 // BAD-001 fix: Build a human-readable mismatch reason summary
 // When project_identity returns mismatch, this provides a single sentence explaining WHY
 fn build_mismatch_reason(
@@ -1661,6 +1730,8 @@ fn candidate_payload(
         } else {
             None
         },
+        // FOCUSA-zsld: degraded_reasons array for MCP parity with focusa doctor
+        "degraded_reasons": build_degraded_reasons(&candidate, &mismatches, verified, canonical),
         "project_summary": project_summary.clone(),
         "summary_lines": project_summary.get("summary_lines").cloned().unwrap_or_else(|| json!([])),
         "project_identity": {
