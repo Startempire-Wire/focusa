@@ -100,6 +100,16 @@ export interface PiProjectThreadObservation {
   confidence: number;
   source: "current_ask" | "tool_evidence" | "project_identity" | "session_entry";
   updatedAt: number;
+  // FOCUSA-GitHub#3: Relationship kind for multi-repo agent work
+  // - active_scope: current operator-approved primary work
+  // - supporting_work: related action in another repo that supports active scope
+  // - artifact_link: issue/PR/evidence/ticket created while pursuing active scope
+  // - scope_switch: only when operator-confirmed
+  relationship_kind?: "active_scope" | "supporting_work" | "artifact_link" | "scope_switch";
+  primary_scope_ref?: string;
+  supporting_scope_ref?: string;
+  operator_confirmed_scope_switch?: boolean;
+  action_authority_transfers?: boolean;
 }
 
 export interface PiCurrentAskScopeVerdict {
@@ -822,6 +832,60 @@ export function observeProjectThreadEvidence(input: {
   try { S.pi?.appendEntry("focusa-project-switch-ledger", { observations: S.projectSwitchLedger.slice(0, 6) }); } catch { /* best effort */ }
   persistState();
   return observation;
+}
+
+// FOCUSA-GitHub#3: Mark a project observation as supporting work
+// Use this when the agent filed a ticket/PR/evidence in another repo
+// while pursuing the primary active scope. Does NOT transfer action authority.
+export function markObservationAsSupportingWork(
+  alias: string,
+  primaryScopeRef: string,
+  whyRelated: string,
+): boolean {
+  const lower = alias.toLowerCase().trim();
+  const entry = S.projectSwitchLedger.find(
+    (e) => e.project_alias.toLowerCase() === lower || e.project_root.toLowerCase().includes(lower)
+  );
+  if (!entry) return false;
+  entry.relationship_kind = "supporting_work";
+  entry.primary_scope_ref = primaryScopeRef;
+  entry.supporting_scope_ref = entry.project_root;
+  entry.action_authority_transfers = false;
+  entry.recent_actions = [
+    `supporting_for=${primaryScopeRef}`,
+    `why=${whyRelated.slice(0, 80)}`,
+    ...entry.recent_actions,
+  ].slice(0, PROJECT_SWITCH_LEDGER_MAX_ACTIONS);
+  try { S.pi?.appendEntry("focusa-project-switch-ledger", { observations: S.projectSwitchLedger.slice(0, 6) }); } catch { /* best effort */ }
+  persistState();
+  return true;
+}
+
+// FOCUSA-GitHub#3: Get all observations grouped by relationship kind
+export function groupObservationsByRelationship(): {
+  active_scope: PiProjectThreadObservation[];
+  supporting_work: PiProjectThreadObservation[];
+  artifact_link: PiProjectThreadObservation[];
+  scope_switch: PiProjectThreadObservation[];
+  uncategorized: PiProjectThreadObservation[];
+} {
+  const result = {
+    active_scope: [] as PiProjectThreadObservation[],
+    supporting_work: [] as PiProjectThreadObservation[],
+    artifact_link: [] as PiProjectThreadObservation[],
+    scope_switch: [] as PiProjectThreadObservation[],
+    uncategorized: [] as PiProjectThreadObservation[],
+  };
+  for (const entry of S.projectSwitchLedger) {
+    switch (entry.relationship_kind) {
+      case "active_scope": result.active_scope.push(entry); break;
+      case "supporting_work": result.supporting_work.push(entry); break;
+      case "artifact_link": result.artifact_link.push(entry); break;
+      case "scope_switch": result.scope_switch.push(entry); break;
+      default: result.uncategorized.push(entry);
+    }
+  }
+  return result;
 }
 
 function rememberedProjectRootForAlias(alias: string): string {
