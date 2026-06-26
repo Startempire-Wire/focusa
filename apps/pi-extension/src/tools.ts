@@ -2185,7 +2185,18 @@ export function registerTools(pi: ExtensionAPI) {
     const id = String(body?.workpoint_id || body?.active_workpoint_id || body?.requested_workpoint_id || "none");
     const canonical = typeof body?.canonical === "boolean" ? String(body.canonical) : "unknown";
     const next = String(body?.next_step_hint || body?.resume_packet?.next_slice || body?.workpoint?.next_slice || "resume from typed workpoint packet");
-    return `status=${status} id=${id} canonical=${canonical} next=${next}`;
+    // FOCUSA_FIX-nzru: Annotate freshness when workpoint packet has age metadata
+    const updatedAt = String(body?.resume_packet?.updated_at || body?.workpoint?.updated_at || body?.updated_at || "");
+    let freshnessMarker = "";
+    if (updatedAt) {
+      const updatedMs = Date.parse(updatedAt);
+      if (!Number.isNaN(updatedMs)) {
+        const ageMin = Math.round((Date.now() - updatedMs) / 60000);
+        if (ageMin > 60) freshnessMarker = ` packet_age=${ageMin}min (consider re-checkpointing if next_action refers to closed items)`;
+        else if (ageMin > 0) freshnessMarker = ` packet_age=${ageMin}min`;
+      }
+    }
+    return `status=${status} id=${id} canonical=${canonical}${freshnessMarker} next=${next}`;
   }
 
   function buildStateHygieneReport(stackBody: any): any {
