@@ -398,18 +398,20 @@ fn active_persisted_trajectory<'a>(
         return None;
     }
 
-    // Prefer records matching the requested continuity_id if any
+    // Prefer records matching the requested continuity_id if any.
+    // If an explicit continuity_id was requested, absence is not canonical:
+    // callers may opt into prior-project fallback separately.
     if let Some(expected_continuity_id) = clean(continuity_id) {
-        if let Some(record) = scoped_records
+        return scoped_records
             .iter()
             .rev()
-            .find(|r| r.continuity_id.as_deref() == Some(expected_continuity_id.as_str()) && r.canonical)
-        {
-            return Some(record);
-        }
+            .find(|r| {
+                r.continuity_id.as_deref() == Some(expected_continuity_id.as_str()) && r.canonical
+            })
+            .copied();
     }
 
-    // Fall back to latest canonical record in project_root-scoped set
+    // Fall back to latest canonical record only when no continuity_id was requested.
     scoped_records
         .iter()
         .rev()
