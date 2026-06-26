@@ -2802,6 +2802,12 @@ export function registerTools(pi: ExtensionAPI) {
       if (projectRootNeedsConfirmation) recommendations.push("REQUIRED FIRST: project root confidence is below 90%; use interview/menu to ask the operator which candidate root is correct before Focusa writes.");
       if (sessionScopeSafe && !projectRootNeedsConfirmation) recommendations.push("REQUIRED NEXT: run focusa_trajectory_view to confirm current functional state, destination, and waypoints before Workpoint/evidence progress tracking.");
       if (String(resourceMode.mode || "") === "emergency") recommendations.push("Resource mode is emergency; avoid cold/full-payload routes and use focusa_resource_mode for recovery posture.");
+      // Token budget remediation: spec105 DXUX-008 promises recovery explainability
+      if (latestTokenBudgetClass === "critical" || latestTokenBudgetClass === "high") {
+        recommendations.push(`Token budget is ${latestTokenBudgetClass}. Run focusa_resource_mode activate_lowmem to reduce daemon pressure, then focusa_tool_doctor to confirm recovery.`);
+      } else if (latestTokenBudgetClass === "elevated") {
+        recommendations.push(`Token budget is elevated. Prefer summary/bounded tool calls (focusa_trajectory_view, focusa_tool_doctor) and avoid full-payload routes (focusa_traverse with include_payload=true).`);
+      }
       if (!uiaiBrowser.ok) recommendations.push("UIAI browser health/metrics unavailable; browser diagnostics may be stale or unreachable.");
       if (uiaiBrowser.pressure === "high") recommendations.push("UIAI browser queue pressure is high; narrow browser workload, close stale sessions, or retry after queue drains.");
       if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
