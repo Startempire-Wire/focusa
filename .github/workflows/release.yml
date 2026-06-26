@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   # Gate: tests + clippy must pass
@@ -240,6 +241,9 @@ jobs:
       - name: Install GitHub CLI
         run: gh --version
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
       - name: Download release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -249,10 +253,17 @@ jobs:
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
           find dist -maxdepth 1 -type f ! -name 'SHA256SUMS*' -print0 | sort -z | xargs -0 sha256sum | sed 's#  dist/#  #' > SHA256SUMS.txt
           cat SHA256SUMS.txt
+          cosign sign-blob --yes \
+            --output-signature SHA256SUMS.txt.sig \
+            --output-certificate SHA256SUMS.txt.pem \
+            SHA256SUMS.txt
 
-      - name: Upload checksum manifest
+      - name: Upload checksum manifest and signature
         uses: softprops/action-gh-release@v2
         with:
-          files: SHA256SUMS.txt
+          files: |
+            SHA256SUMS.txt
+            SHA256SUMS.txt.sig
+            SHA256SUMS.txt.pem
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

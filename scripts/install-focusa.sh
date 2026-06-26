@@ -121,6 +121,27 @@ sha256_string() {
   die "sha256sum or shasum is required for local license hashing."
 }
 
+verify_checksum_manifest_signature() {
+  manifest="$1"
+  sig="$tmp/SHA256SUMS.txt.sig"
+  cert="$tmp/SHA256SUMS.txt.pem"
+  if fetch "$ASSET_BASE/SHA256SUMS.txt.sig" "$sig" >/dev/null 2>&1 \
+    && fetch "$ASSET_BASE/SHA256SUMS.txt.pem" "$cert" >/dev/null 2>&1; then
+    if ! have cosign; then
+      die "Signed checksum manifest found but cosign is not installed. recovery_hint: install cosign or use an older unsigned release only for evaluation."
+    fi
+    cosign verify-blob \
+      --certificate "$cert" \
+      --signature "$sig" \
+      --certificate-identity-regexp "https://github.com/Startempire-Wire/focusa/.github/workflows/release.yml@refs/tags/v.*" \
+      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+      "$manifest" >/dev/null
+    log "Verified signed checksum manifest with cosign."
+  else
+    warn "No cosign signature found for SHA256SUMS.txt; checksum verification is unsigned for $TAG."
+  fi
+}
+
 json_get() {
   key="$1"
   if have python3; then
@@ -228,6 +249,7 @@ else
   checksums="$tmp/SHA256SUMS.txt"
   if fetch "$ASSET_BASE/SHA256SUMS.txt" "$checksums" >/dev/null 2>&1 || fetch "$ASSET_BASE/SHA256SUMS" "$checksums" >/dev/null 2>&1; then
     log "Downloaded checksum manifest."
+    verify_checksum_manifest_signature "$checksums"
   else
     checksums=""
     warn "No SHA256SUMS asset found for $TAG; digest verification is incomplete until release signing lands."
