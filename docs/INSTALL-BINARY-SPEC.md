@@ -224,6 +224,85 @@ The license.json MAY be signed by WP for tamper detection. Daemon validates sign
 
 ---
 
+## 5A. Platform-Specific Detection (Mac / Windows)
+
+### 5A.1 macOS Detection Specification
+
+When `uname -s` returns `Darwin`, the installer MUST:
+
+1. **Architecture detection:**
+   - `uname -m` returns `arm64` on Apple Silicon
+   - `uname -m` returns `x86_64` on Intel
+   - Map to `aarch64-apple-darwin` or `x86_64-apple-darwin`
+
+2. **macOS version detection:**
+   - `sw_vers -productVersion` → e.g., `14.5`
+   - Reject if macOS < 11.0 (Big Sur) — focusa requires Apple Silicon or Intel macOS 11+
+
+3. **Code signing verification:**
+   - Run `codesign -dv <binary>` on downloaded assets
+   - Verify `Developer ID Application: Startempire Wire Inc.` (must be issued by Apple)
+   - If unsigned or wrong identity: warn with `recovery_hint: 'Contact support@focusa.dev for signed binaries'`
+
+4. **Gatekeeper / Notarization:**
+   - `xattr -p com.apple.quarantine <binary>` must be empty (notarized)
+   - If quarantined: `xattr -d com.apple.quarantine <binary>`
+   - If notarization missing: warn (not blocking for CLI)
+
+5. **LaunchAgent deployment (currently DEFERRED):**
+   - Service file: `~/Library/LaunchAgents/com.startempire.focusa-daemon.plist`
+   - Load: `launchctl load -w ~/Library/LaunchAgents/com.startempire.focusa-daemon.plist`
+   - The current installer at install.focusa.dev/focusa says: "macOS detected; skipping launchd plist for now (Phase 2)" — this MUST be fixed
+
+6. **Path differences:**
+   - `~/.local/bin/` (XDG, but macOS doesn't auto-add to PATH)
+   - `/usr/local/bin/` (requires sudo on Apple Silicon due to SIP)
+   - Symlink path: `/opt/homebrew/bin/` (Apple Silicon) or `/usr/local/bin/` (Intel)
+
+### 5A.2 Windows Detection Specification
+
+When the installer detects Windows (NOT bash on WSL — that's Linux), the installer MUST:
+
+1. **Detection path:**
+   - The bash installer at install.focusa.dev/focusa is POSIX-only
+   - Windows users currently get 404 for `/install.ps1` and `/install.cmd`
+   - Need SEPARATE installer at install.focusa.dev/install.ps1
+
+2. **Windows PowerShell installer MUST:**
+   - Detect PowerShell version: `$PSVersionTable.PSVersion`
+   - Require PowerShell 5.1+ (Windows 10 1809+) or PowerShell Core 7+
+   - Detect architecture: `[System.Environment]::Is64BitOperatingSystem`
+   - Map to `x86_64-pc-windows-msvc`
+
+3. **Windows SCM service deployment:**
+   - `sc.exe create focusa-daemon binPath= "C:\Program Files\Focusa\focusa-daemon.exe"`
+   - `sc.exe start focusa-daemon`
+   - Requires admin (UAC) — use `Start-Process -Verb RunAs`
+
+4. **Path differences:**
+   - `%LOCALAPPDATA%\Programs\Focusa\` (user install, no admin)
+   - `%ProgramFiles%\Focusa\` (system install, requires admin)
+   - Add to PATH: `[Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\Program Files\Focusa', 'User')`
+
+5. **WSL / Git Bash fallback:**
+   - If bash is available but Windows native: warn "Running on Windows via bash. Consider installing PowerShell version for native SCM support."
+   - Still allow install via bash — daemon will run as foreground process
+
+### 5A.3 Cross-Platform Verification Matrix
+
+| Platform | Architecture | Asset | Service | Path | Code Sign |
+|----------|--------------|-------|---------|------|-----------|
+| Linux x86_64 | glibc | focusa-x86_64-unknown-linux-gnu | systemd | /usr/local/bin | GPG |
+| Linux x86_64 | musl | focusa-x86_64-unknown-linux-musl | systemd | /usr/local/bin | GPG |
+| Linux aarch64 | glibc | focusa-aarch64-unknown-linux-gnu | systemd | /usr/local/bin | GPG |
+| macOS Intel | x86_64 | focusa-x86_64-apple-darwin | launchd | /usr/local/bin | Apple Developer ID |
+| macOS Apple Silicon | arm64 | focusa-aarch64-apple-darwin | launchd | /opt/homebrew/bin | Apple Developer ID |
+| Windows x86_64 | x86_64 | focusa-x86_64-pc-windows-msvc | SCM | C:\Program Files | Authenticode |
+
+**Current status:** Only Linux x86_64 + macOS DMG + Windows .app archives exist as GitHub release assets. The Windows .exe/.msi installer is MISSING. The PowerShell installer at install.focusa.dev/install.ps1 is MISSING.
+
+---
+
 ## 6. Atomicity & Rollback Specification
 
 ### 6.1 Stash Strategy
@@ -371,6 +450,15 @@ The installer is ready for MVP Cohort when:
 - WP REST endpoint `/wp-json/wpuiai-ai-cloud/v1/license/validate` exists
 - GitHub releases publish 13 assets per version (3 binaries × 4 platforms + 2 DMGs + 2 .app archives)
 
+### Verified Gaps (Live HTTP Probes)
+- ❌ `https://install.focusa.dev/install.ps1` → 404 (no PowerShell installer)
+- ❌ `https://install.focusa.dev/install.cmd` → 404 (no Windows cmd installer)
+- ❌ `https://install.focusa.dev/install/windows` → 404
+- ⚠️ macOS branch in installer says: `"macOS detected; skipping launchd plist for now (Phase 2)"` — macOS daemon install is explicitly deferred
+- ⚠️ Spec mentions Windows `x86_64-pc-windows-msvc` asset but no native Windows installer exists
+- ⚠️ No macOS code signing requirement specified (Apple requires `codesign` for binaries)
+- ⚠️ No Windows Service Control Manager (SCM) detection specified
+
 ### Not Yet Verified (Gaps)
 - No SHA256SUMS.txt in any release
 - No GPG signatures
@@ -381,6 +469,23 @@ The installer is ready for MVP Cohort when:
 - No rollback on failure
 - No `--channel preview` actually queries WP
 
+### DOES the spec grant detection for local Mac or Windows systems?
+
+**Honest answer: PARTIAL.** 
+
+- ✅ **Spec mentions Mac/Windows** in §2.1 OS Detection, §2.2 Architecture Mapping, §2.3 Init System
+- ❌ **No PowerShell installer exists** at install.focusa.dev
+- ❌ **macOS daemon install deferred** ("skipping launchd plist for now (Phase 2)")
+- ❌ **No code signing requirement** specified for macOS
+- ❌ **No Windows SCM detection** specified
+- ⚠️ **Windows users would need WSL or git-bash** to run the bash installer
+
+For TRUE Mac/Windows support, the spec needs:
+1. PowerShell installer (`install.ps1`) with Windows SCM detection
+2. macOS codesign requirement in release.yml
+3. LaunchAgent plist template for macOS daemon
+4. Path differences: `/usr/local/bin/` (Unix) vs `%ProgramFiles%` (Windows)
+
 ---
 
 ## 11. Implementation Roadmap
@@ -390,9 +495,14 @@ The installer is ready for MVP Cohort when:
 - Add SHA256SUMS verification
 - Add daemon systemd unit deployment
 - Add post-install `focusa doctor` smoke test
+- **macOS:** Implement LaunchAgent plist deployment (currently deferred)
+- **macOS:** Add `codesign` requirement to release.yml (Apple requires signed binaries)
+- **Windows:** Create `install.ps1` PowerShell installer (currently 404 at install.focusa.dev/install.ps1)
+- **Windows:** Add Windows SCM `sc.exe` service deployment
+- **Windows:** Detect if running under WSL/git-bash and fall back to bash installer
 
 ### Phase 2.0 — Update + Rollback (P1)
-- Implement `focusa update` command
+- Implement `focusa update` command (Linux + Mac + Windows)
 - Add atomic swap with rollback
 - Add `--channel preview` support
 
@@ -400,11 +510,13 @@ The installer is ready for MVP Cohort when:
 - Add cosign signing to release.yml
 - Verify signatures on install
 - Publish `SHA256SUMS.txt.sig`
+- **macOS:** Verify Developer ID signature (Apple Gatekeeper)
 
 ### Phase 3.0 — Package Managers (P2)
-- Build `.deb` and `.rpm` packages in CI
+- Build `.deb` and `.rpm` packages in CI (Linux)
+- Build `.pkg` installer for macOS (Homebrew Cask)
+- Build `.msi` for Windows (winget)
 - Publish to apt/winget/brew repositories
-- Maintain parallel install paths
 
 ---
 
