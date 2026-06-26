@@ -128,7 +128,11 @@ verify_checksum_manifest_signature() {
   if fetch "$ASSET_BASE/SHA256SUMS.txt.sig" "$sig" >/dev/null 2>&1 \
     && fetch "$ASSET_BASE/SHA256SUMS.txt.pem" "$cert" >/dev/null 2>&1; then
     if ! have cosign; then
-      die "Signed checksum manifest found but cosign is not installed. recovery_hint: install cosign or use an older unsigned release only for evaluation."
+      if [ "${FOCUSA_REQUIRE_COSIGN:-0}" = "1" ]; then
+        die "Signed checksum manifest found but cosign is not installed. recovery_hint: install cosign or unset FOCUSA_REQUIRE_COSIGN."
+      fi
+      warn "Signed checksum manifest found but cosign is not installed; continuing with SHA256 verification only. Set FOCUSA_REQUIRE_COSIGN=1 to fail closed."
+      return
     fi
     cosign verify-blob \
       --certificate "$cert" \
