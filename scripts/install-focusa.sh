@@ -239,7 +239,7 @@ else
     log "Downloading $asset"
     fetch "$ASSET_BASE/$asset" "$out" || die "Missing release asset: $asset. recovery_hint: choose a supported platform/version or wait for matching release asset."
     if [ -n "$checksums" ]; then
-      expected="$(awk -v a="$asset" '$2==a {print $1}' "$checksums" | head -1)"
+      expected="$(awk -v a="$asset" '$2==a || $2=="dist/" a {print $1}' "$checksums" | head -1)"
       [ -n "$expected" ] || die "Checksum missing for $asset in SHA256SUMS."
       actual="$(sha256_file "$out")"
       [ "$expected" = "$actual" ] || die "Checksum mismatch for $asset. recovery_hint: re-download from https://install.focusa.dev/help/security"
@@ -263,7 +263,7 @@ else
           break
         fi
         if [ -n "$checksums" ]; then
-          expected="$(awk -v a="$asset" '$2==a {print $1}' "$checksums" | head -1)"
+          expected="$(awk -v a="$asset" '$2==a || $2=="dist/" a {print $1}' "$checksums" | head -1)"
           [ -n "$expected" ] || die "Checksum missing for $asset in SHA256SUMS."
           actual="$(sha256_file "$out")"
           [ "$expected" = "$actual" ] || die "Checksum mismatch for $asset. recovery_hint: re-download from https://install.focusa.dev/help/security"
