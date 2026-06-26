@@ -1,7 +1,10 @@
-# Focusa Agent Performance Benchmark
+# Spec 113 — Agent Performance Benchmark
 
+**Spec number:** 113
 **Status:** Specification
 **Purpose:** Standardized benchmark for measuring before/after agent performance on metrics that matter, reproducible over time.
+**Industry sources:** SWE-bench, AgentBench, METR, τ-bench, τ²-bench, WebArena, TheAgentCompany, xLAM, Gorilla, Anthropic
+**Last updated:** 2026-06-26
 
 ---
 
