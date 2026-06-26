@@ -70,6 +70,9 @@ jobs:
           | Linux x64 glibc | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI |
           | Linux x64 glibc | \`focusa-daemon-${TAG}-x86_64-unknown-linux-gnu\` | API daemon |
           | Linux x64 glibc | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
+          | Linux x64 musl/static | \`focusa-${TAG}-x86_64-unknown-linux-musl\` | CLI compatible with older glibc hosts |
+          | Linux x64 musl/static | \`focusa-daemon-${TAG}-x86_64-unknown-linux-musl\` | API daemon compatible with older glibc hosts |
+          | Linux x64 musl/static | \`focusa-tui-${TAG}-x86_64-unknown-linux-musl\` | TUI dashboard compatible with older glibc hosts |
 
           ### Quick Start (macOS/Linux)
           \`\`\`bash
@@ -183,6 +186,9 @@ jobs:
             os: macos-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            musl: true
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -191,6 +197,10 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           targets: ${{ matrix.target }}
+
+      - name: Install musl toolchain deps
+        if: ${{ matrix.musl == true }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Build release binaries
         run: cargo build --release --target ${{ matrix.target }}
@@ -211,5 +221,30 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  checksums:
+    name: Publish SHA256SUMS
+    needs: [tauri-build, rust-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install GitHub CLI
+        run: gh --version
+
+      - name: Download release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          mkdir -p dist
+          gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
+          find dist -maxdepth 1 -type f ! -name 'SHA256SUMS*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload checksum manifest
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
