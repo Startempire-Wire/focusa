@@ -1,6 +1,6 @@
 {
   "name": "focusa-menubar",
-  "version": "0.9.26-dev",
+  "version": "0.9.27-dev",
   "private": true,
   "engines": {
     "node": ">=20"
