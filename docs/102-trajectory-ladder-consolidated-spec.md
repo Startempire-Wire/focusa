@@ -41,13 +41,21 @@ The Phone Bridge context-authority incident proved that a generic projected HLT 
 
 ## 4) Persistence policy (must be scoped)
 
-### 4.1 HLT persistence
+### 4.1 HLT persistence — **project_root is the primary scope**
 
-- HLT is durable per `(project_root, continuity_id)`.
+**CRITICAL DISTINCTION:** HLT is scoped per **project_root**, NOT per continuity_id. This is consistent with all other Focusa surfaces (Workpoint, ProjectIdentity, TrajectoryView, TrajectoryWorkpointReconciliation) which are project-root-scoped.
+
+- **Primary key:** `project_root` (the verified, safe project folder).
+- **Secondary key:** `continuity_id` identifies a logical workstream within the project, but HLT is NOT regenerated when continuity_id changes.
+- HLT falls back to the project's most recent HLT when continuity_id changes within the same project.
+- continuity_id is for workgroup/workstream identity (which conversation, which agent session), not for HLT scoping.
+- **Why:** The HLT (long-term goal) "does not change often" — regenerating it on every continuity change would violate stability and agent context.
 - Changed only by:
   - explicit operator steering, or
   - durable supersession evidence path.
 - Scope mismatch must not allow canonical HLT writes.
+
+**Example:** If project=`/home/firebot/focusa` has HLT=`"Prepare Focusa for MVP Launch"`, and a new Pi session starts with the SAME project_root but a DIFFERENT continuity_id, the HLT must resolve to `"Prepare Focusa for MVP Launch"`, NOT fall back to bootstrap default.
 
 ### 4.2 HLT Ledger (append-only, scope-bounded)
 
@@ -121,6 +129,8 @@ From the projection contract:
 4. Tests prove scoped trajectory/workpoint selection prefers matching `project_root` over stale/foreign active IDs.
 5. Trajectory route context remains separate from execution authority in docs and code comments/roles.
 6. Critical HLT continuity changes emit visible agent alerts and keep manual HLT history retrieval opt-in.
+7. **HLT lookup MUST fall back to project_root-scoped trajectory when continuity_id changes within the same project.** New Pi session in same project must see same HLT, not bootstrap default.
+8. **HLT is NOT regenerated on continuity_id change.** The most recent canonical HLT for the project_root is returned, with `trajectory_ladder.source_metadata.hlt_source` set to `"project_root_fallback"` or `"trajectory_record"`.
 
 ## 12) QN Addendum: Non-Lazy HLT Inference (2026-06-08)
 

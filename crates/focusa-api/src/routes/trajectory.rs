@@ -380,18 +380,17 @@ fn active_persisted_trajectory<'a>(
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
+    // Per Spec102 §4.1: HLT is scoped per project_root, NOT per continuity_id.
+    // continuity_id change MUST NOT regenerate HLT — agent context stability.
     let expected_project_root = clean(project_root)?;
-    let expected_continuity_id = clean(continuity_id)?;
 
-    // Per Spec98: FIRST filter by scope, THEN select active from that set.
-    // Global active_trajectory_id is NOT authoritative for scoped queries.
+    // PRIMARY SCOPE: project_root only (continuity_id is informational for this lookup)
     let scoped_records: Vec<&TrajectoryProjectionRecord> = state
         .trajectory
         .records
         .iter()
         .filter(|record| {
             record.project_root.as_deref() == Some(expected_project_root.as_str())
-                && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
         })
         .collect();
 
@@ -399,16 +398,18 @@ fn active_persisted_trajectory<'a>(
         return None;
     }
 
-    // Check if the global active_trajectory_id is in our scoped set
-    if let Some(global_id) = state.trajectory.active_trajectory_id.as_ref()
-        && let Some(record) = scoped_records
+    // Prefer records matching the requested continuity_id if any
+    if let Some(expected_continuity_id) = clean(continuity_id) {
+        if let Some(record) = scoped_records
             .iter()
-            .find(|r| &r.trajectory_id == global_id)
-    {
-        return Some(record);
+            .rev()
+            .find(|r| r.continuity_id.as_deref() == Some(expected_continuity_id.as_str()) && r.canonical)
+        {
+            return Some(record);
+        }
     }
 
-    // Fall back to latest canonical record in scoped set
+    // Fall back to latest canonical record in project_root-scoped set
     scoped_records
         .iter()
         .rev()
