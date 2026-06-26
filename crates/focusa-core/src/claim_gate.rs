@@ -141,6 +141,7 @@ impl EvidenceCitation {
 
 /// Input to the claim gate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct ClaimGateInput {
     /// The bead/work item being claimed as complete.
     pub work_item_id: String,
@@ -160,18 +161,6 @@ pub struct ClaimGateInput {
     pub operator_deferred: bool,
 }
 
-impl Default for ClaimGateInput {
-    fn default() -> Self {
-        Self {
-            work_item_id: String::new(),
-            claim_text: String::new(),
-            acceptance_criteria: Vec::new(),
-            evidence_policy: None,
-            surfaces_required: Vec::new(),
-            operator_deferred: false,
-        }
-    }
-}
 
 /// Evidence policy declared by a bead.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -253,14 +242,13 @@ impl ClaimGateOutput {
             overclaim_risks.push("No valid evidence citations found in close reason".to_string());
         }
         for citation in &citations {
-            if let Some(cls) = citation.class {
-                if cls.is_overclaim() {
+            if let Some(cls) = citation.class
+                && cls.is_overclaim() {
                     overclaim_risks.push(format!(
                         "Citation '{}' is {} evidence",
                         citation.reference, cls
                     ));
                 }
-            }
         }
 
         // Build recovery commands
@@ -335,13 +323,13 @@ impl ClaimGateOutput {
             ));
         }
         if !self.overclaim_risks.is_empty() {
-            lines.push(format!("⚠ overclaim_risks:"));
+            lines.push("⚠ overclaim_risks:".to_string());
             for risk in &self.overclaim_risks {
                 lines.push(format!("  - {}", risk));
             }
         }
         if !self.recovery_commands.is_empty() {
-            lines.push(format!("recovery_commands:"));
+            lines.push("recovery_commands:".to_string());
             for cmd in &self.recovery_commands {
                 lines.push(format!("  - {}", cmd));
             }
@@ -402,13 +390,7 @@ fn parse_evidence_citations(text: &str) -> Vec<EvidenceCitation> {
         // Parse inline class annotation
         let class = annotation
             .as_ref()
-            .and_then(|a| {
-                if a.starts_with("(class:") {
-                    EvidenceClass::parse(&a["(class:".len()..])
-                } else {
-                    None
-                }
-            });
+            .and_then(|a| a.strip_prefix("(class:").and_then(EvidenceClass::parse));
 
         citations.push(EvidenceCitation {
             reference,

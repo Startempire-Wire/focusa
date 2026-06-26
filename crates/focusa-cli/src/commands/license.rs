@@ -19,7 +19,7 @@ use focusa_core::license::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Args, Debug)]
 pub struct LicenseArgs {
@@ -171,7 +171,7 @@ fn print_human_activate(status: &LicenseStatus, key_prefix: &str) {
     }
 }
 
-fn print_human_status(status: &LicenseStatus, license_file: &PathBuf) {
+fn print_human_status(status: &LicenseStatus, license_file: &Path) {
     println!("Focusa License Status\n");
     println!("License file:   {}", license_file.display());
     println!("Mode:           {:?}", status.mode);

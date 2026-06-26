@@ -119,7 +119,7 @@ impl LocalLicense {
 
     /// The mode derived from this license. Evaluation if `eval` is true or features are empty.
     pub fn mode(&self) -> LicenseMode {
-        if self.eval || (self.commercial_use == false && self.features.is_empty()) {
+        if self.eval || (!self.commercial_use && self.features.is_empty()) {
             LicenseMode::Evaluation
         } else {
             match self.tier.as_str() {
@@ -183,6 +183,7 @@ pub enum LicenseError {
 
 /// Doctor report for `focusa license doctor` per spec §5.2.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct DoctorReport {
     pub license_file: String,
     pub file_exists: bool,
@@ -195,21 +196,6 @@ pub struct DoctorReport {
     pub failures: Vec<String>,
 }
 
-impl Default for DoctorReport {
-    fn default() -> Self {
-        Self {
-            license_file: String::new(),
-            file_exists: false,
-            file_readable: false,
-            not_expired: false,
-            registry_reachable: false,
-            features_loaded: false,
-            eval_mode: false,
-            warnings: Vec::new(),
-            failures: Vec::new(),
-        }
-    }
-}
 
 /// Path to the local license file. Resolves to `~/.config/focusa/license.json`.
 pub fn license_file_path() -> PathBuf {

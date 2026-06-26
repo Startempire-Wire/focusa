@@ -56,8 +56,10 @@ async fn post_compaction() -> Json<serde_json::Value> {
 
 /// `GET /v1/awareness/packet` — surface-aware awareness packet with default surface.
 async fn awareness_packet() -> Json<serde_json::Value> {
-    let mut input = AwarenessInput::default();
-    input.surface = SURFACE_RELOAD.to_string();
+    let input = AwarenessInput {
+        surface: SURFACE_RELOAD.to_string(),
+        ..Default::default()
+    };
     let packet = awareness::render_packet(&input);
     Json(json!(packet))
 }
@@ -80,8 +82,10 @@ async fn awareness_packet_by_surface(
         }
     };
 
-    let mut input = AwarenessInput::default();
-    input.surface = surface;
+    let input = AwarenessInput {
+        surface,
+        ..Default::default()
+    };
     let packet = awareness::render_packet(&input);
     Json(json!(packet))
 }

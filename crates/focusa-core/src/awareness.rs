@@ -368,11 +368,10 @@ pub fn select_mode(input: &AwarenessInput) -> String {
     if !input.project_root_safety.safe {
         return MODE_STANDARD.to_string();
     }
-    if let Some(ref wp) = input.workpoint_resume {
-        if !wp.action_authority {
+    if let Some(ref wp) = input.workpoint_resume
+        && !wp.action_authority {
             return MODE_STANDARD.to_string();
         }
-    }
 
     // Priority 2: post-compaction always gets standard
     if input.surface == SURFACE_POST_COMPACTION {
@@ -385,14 +384,13 @@ pub fn select_mode(input: &AwarenessInput) -> String {
     }
 
     // Priority 4: operator asks for architecture/design
-    if let Some(ref steer) = input.operator_steering.explicit_steer {
-        if steer.contains("architecture")
+    if let Some(ref steer) = input.operator_steering.explicit_steer
+        && (steer.contains("architecture")
             || steer.contains("design")
-            || steer.contains("explain")
+            || steer.contains("explain"))
         {
             return MODE_RICH.to_string();
         }
-    }
 
     // Priority 5: first-ever project onboarding
     if input.session_transfer.action == "continue" && !input.session_transfer.resume_found {
@@ -890,8 +888,8 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
     }
 
     // --- DXUX digest ---
-    if let Some(ref dx) = input.dxux_digest {
-        if dx.status != "ok" || dx.canonical {
+    if let Some(ref dx) = input.dxux_digest
+        && (dx.status != "ok" || dx.canonical) {
             push!(
                 "recovery",
                 "dxux_digest",
@@ -906,7 +904,6 @@ pub fn generate_candidates(input: &AwarenessInput) -> Vec<AwarenessCandidateLine
                 "dxux_digest"
             );
         }
-    }
 
     lines
 }
@@ -951,15 +948,14 @@ pub fn should_show_pressure_warning(
     let comp_count = input.context_pressure.compaction_count;
 
     // Never show within 30 seconds
-    if let Some(last) = state.last_shown_at_ms {
-        if now_ms.saturating_sub(last) < 30_000 {
+    if let Some(last) = state.last_shown_at_ms
+        && now_ms.saturating_sub(last) < 30_000 {
             return PressureWarning {
                 show: false,
                 reason: "within_30s_dedupe".to_string(),
                 escalation: "none".to_string(),
             };
         }
-    }
 
     let tier_order = |t: &str| match t {
         "low" => 0u8,
@@ -1006,15 +1002,14 @@ pub fn should_show_pressure_warning(
     }
 
     // After 5 minutes, re-show if still pressure
-    if let Some(last) = state.last_shown_at_ms {
-        if now_ms.saturating_sub(last) > 300_000 && pct > 50 {
+    if let Some(last) = state.last_shown_at_ms
+        && now_ms.saturating_sub(last) > 300_000 && pct > 50 {
             return PressureWarning {
                 show: true,
                 reason: "stale_reminder".to_string(),
                 escalation: "soft".to_string(),
             };
         }
-    }
 
     PressureWarning {
         show: false,
@@ -1047,15 +1042,24 @@ pub fn select_top_tools(input: &AwarenessInput, count: usize) -> Vec<ToolGuidanc
         .top_next_tools
         .iter()
         .take(count * 2)
-        .filter_map(|tool| {
+        .map(|tool| {
             // families maps tool → count; use tool itself as family identifier
             let family = tool.clone();
-            let side_effect = input.tool_graph.side_effect_profiles.get(tool).cloned().unwrap_or_default();
-            let blocker_relevant = blockers.iter().any(|b| {
-                b.to_lowercase().contains(&tool.to_lowercase())
-            });
+            let side_effect = input
+                .tool_graph
+                .side_effect_profiles
+                .get(tool)
+                .cloned()
+                .unwrap_or_default();
+            let blocker_relevant = blockers
+                .iter()
+                .any(|b| b.to_lowercase().contains(&tool.to_lowercase()));
 
-            let (av, ac) = if blocker_relevant { (8.0, 9.0) } else { (5.0, 6.0) };
+            let (av, ac) = if blocker_relevant {
+                (8.0, 9.0)
+            } else {
+                (5.0, 6.0)
+            };
             let risk = if side_effect.contains("write_state") || side_effect.contains("control_state") {
                 "risky"
             } else if side_effect.contains("write_") {
@@ -1064,7 +1068,7 @@ pub fn select_top_tools(input: &AwarenessInput, count: usize) -> Vec<ToolGuidanc
                 "safe"
             };
 
-            Some(ToolGuidance {
+            ToolGuidance {
                 tool_name: tool.clone(),
                 family: family.clone(),
                 why_included: if blocker_relevant {
@@ -1081,7 +1085,7 @@ pub fn select_top_tools(input: &AwarenessInput, count: usize) -> Vec<ToolGuidanc
                     .get(tool)
                     .cloned()
                     .unwrap_or_default(),
-            })
+            }
         })
         .collect();
 
@@ -1176,9 +1180,9 @@ pub fn render_packet(input: &AwarenessInput) -> AwarenessPacket {
         .top_recovery_tools
         .iter()
         .take(3)
-        .filter_map(|tool| {
+        .map(|tool| {
             let family = tool.clone();
-            Some(ToolGuidance {
+            ToolGuidance {
                 tool_name: tool.clone(),
                 family,
                 why_included: "recovery tool from choreography graph".to_string(),
@@ -1186,7 +1190,7 @@ pub fn render_packet(input: &AwarenessInput) -> AwarenessPacket {
                 actionability: 7.0,
                 side_effect_risk: "moderate".to_string(),
                 next_tools: vec![],
-            })
+            }
         })
         .collect();
 
@@ -1311,11 +1315,10 @@ fn mode_selected_reason(input: &AwarenessInput, mode: &str) -> String {
     if input.context_pressure.tier == "critical" || input.context_pressure.tier == "high" {
         return "high_critical_pressure → minimal".to_string();
     }
-    if let Some(ref steer) = input.operator_steering.explicit_steer {
-        if steer.contains("architecture") || steer.contains("design") {
+    if let Some(ref steer) = input.operator_steering.explicit_steer
+        && (steer.contains("architecture") || steer.contains("design")) {
             return "explicit_steer=architecture/design → rich".to_string();
         }
-    }
     format!("surface={} → {}", input.surface, mode)
 }
 
@@ -1368,7 +1371,7 @@ pub fn awareness_as_utility_card(input: &AwarenessInput) -> UtilityCard {
         scope_gate: vec![],
         bootstrap_card: vec![],
         post_compaction_card: visible.clone(),
-        exact_next_actions: visible.iter().filter(|l| l.contains("next:") || l.contains("next_action")).cloned().take(3).collect(),
+        exact_next_actions: visible.iter().filter(|l| l.contains("next:") || l.contains("next_action")).take(3).cloned().collect(),
         do_not_drift: packet.visible_lines.iter().filter(|l| l.layer == "authority" && l.category == "do_not_drift").map(|l| l.text.clone()).collect(),
         evidence_policy: vec![],
         brevity_rules: vec![],
