@@ -110,6 +110,24 @@ Required scopes:
 
 ---
 
-## 9. Canonical Rule
+## 9. Eval Ledger Boundary
 
-> **Telemetry is queryable, never mutable.**
+Benchmark/eval harnesses may write append-only eval events, but only through the separate Eval Ledger surface:
+
+```http
+POST /v1/evals/runs
+POST /v1/evals/runs/{run_id}/events
+POST /v1/evals/runs/{run_id}/complete
+GET  /v1/evals/runs/{run_id}
+GET  /v1/evals/compare?baseline=<run_id>&candidate=<run_id>
+```
+
+Rules:
+- `/v1/telemetry/*` remains read/export only.
+- `/v1/evals/*` is append-only, idempotent, eval-mode scoped, and non-cognitive.
+- CTL may observe/index eval events for metrics, but eval writes do not mutate prompts, gates, Workpoints, Trajectory, Focus State, or ontology.
+- Eval exports must redact secrets/PII and include run metadata: `suite_id`, `run_id`, `task_id`, `scenario_id`, `arm`, `model_provider`, `model_id`, `model_version`, `model_class`, `environment_id`, `prompt_hash`, `pricing_snapshot`, `schema_version`.
+
+## 10. Canonical Rule
+
+> **Telemetry is queryable, never mutable; eval harnesses write only to the append-only `/v1/evals/*` ledger.**

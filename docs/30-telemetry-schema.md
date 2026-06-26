@@ -142,14 +142,51 @@ This document defines the **canonical schema** for all telemetry events.
 
 ---
 
-## 9. Schema Versioning
+## 9. Eval Ledger Event Envelope
+
+Eval events are first-class facts, but they are written through `/v1/evals/*`, not `/v1/telemetry/*`. CTL may observe/index these events after append.
+
+```json
+{
+  "event_id": "uuid",
+  "event_type": "eval.task_started | eval.tool_call | eval.drift | eval.judge_result | eval.task_completed | eval.run_completed",
+  "timestamp": "iso8601",
+  "suite_id": "focusa-agent-bench-v1",
+  "run_id": "run-2026-06-25-001",
+  "task_id": "L1.001",
+  "scenario_id": "L1_setup",
+  "arm": "no_focusa | passive_focusa | tool_only_focusa | full_focusa",
+  "agent_id": "string",
+  "model_provider": "string",
+  "model_id": "string",
+  "model_version": "string",
+  "model_class": "frontier_generalist | budget_generalist | coding_specialized | open_weight_hosted | local_constrained",
+  "environment_id": "string",
+  "prompt_hash": "sha256:...",
+  "pricing_snapshot": "date|string",
+  "payload": { },
+  "schema_version": "focusa.eval_event.v1",
+  "eval_mode": true
+}
+```
+
+Required guarantees:
+- append-only and idempotent by `event_id`
+- no prompt/gate/workpoint/trajectory/focus-state mutation
+- secrets and PII redacted before write/export
+- scoring code version, environment digest, scenario id, pinned model version/class, and pricing snapshot captured for reproducibility
+
+---
+
+## 10. Schema Versioning
 
 - Every event includes `schema_version`
 - New fields are additive only
 - No breaking changes in minor versions
+- Eval schemas use `focusa.eval_event.v*` and are versioned independently from CTL event schemas
 
 ---
 
-## 10. Canonical Rule
+## 11. Canonical Rule
 
-> **Events are facts. Metrics are interpretations.**
+> **Events are facts. Metrics are interpretations; eval facts are written through the append-only Eval Ledger and observed by CTL.**

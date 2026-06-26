@@ -1,8 +1,8 @@
-# Spec 113 — Agent Performance Benchmark
+# Spec 113 — Focusa Agent Performance Benchmark
 
 **Spec number:** 113
 **Status:** Specification
-**Purpose:** Standardized benchmark for measuring before/after agent performance on metrics that matter, reproducible over time.
+**Purpose:** Standardized benchmark for measuring Focusa-vs-No-Focusa agent performance on metrics that matter, reproducible over time.
 **Industry sources:** SWE-bench, AgentBench, METR, τ-bench, τ²-bench, WebArena, TheAgentCompany, xLAM, Gorilla, Anthropic
 **Last updated:** 2026-06-26
 
@@ -65,16 +65,21 @@ The benchmark MUST have a curated task suite that:
 
 ### 3.1 Task Categories
 
-| Category | Count | Difficulty | Tests |
-|----------|-------|------------|-------|
-| **L1: Setup** | 10 | Trivial | Install, identify project, define trajectory |
-| **L2: Read** | 20 | Easy | View trajectory, workpoint, evidence, doctor |
-| **L3: Write** | 20 | Medium | Checkpoint workpoint, link evidence, define goal |
-| **L4: Recover** | 10 | Hard | Handle scope conflict, license expired, daemon down |
-| **L5: Multi-step** | 15 | Hard | Define trajectory → checkpoint → work → evidence → resume |
-| **L6: Cross-session** | 10 | Expert | Compactions, model switches, fork continuations |
-| **L7: Adversarial** | 5 | Expert | Conflicting scopes, stale packets, malicious inputs |
-| **Total** | **90 tasks** | | |
+| Category | Count | Difficulty | Tests | Industry analogue |
+|----------|-------|------------|-------|-------------------|
+| **L1: Setup / activation** | 10 | Trivial | Install, identify project, define trajectory | Product activation / time-to-value |
+| **L2: Read / orientation** | 20 | Easy | View trajectory, workpoint, evidence, doctor | AgentBench environment orientation |
+| **L3: Write / tool use** | 20 | Medium | Checkpoint workpoint, link evidence, define goal | xLAM/Gorilla function calling |
+| **L4: Recover / resilience** | 10 | Hard | Handle scope conflict, license expired, daemon down | τ-bench fault recovery |
+| **L5: Multi-step workflow** | 15 | Hard | Define trajectory → checkpoint → work → evidence → resume | τ-bench Pass^N |
+| **L6: Cross-session continuity** | 10 | Expert | Compactions, model switches, fork continuations | METR long-horizon retention |
+| **L7: Adversarial state** | 10 | Expert | Conflicting scopes, stale packets, malicious inputs, prompt leakage | Benchmark anti-gaming / safety |
+| **L8: Real coding tasks** | 20 | Hard | Bugfix/refactor/doc/test tasks with pass/fail tests | SWE-bench / Verified |
+| **L9: Dual-control operator tasks** | 10 | Expert | Agent must guide an operator/user who can also mutate state | τ²-bench dual-control |
+| **L10: Company workflow tasks** | 10 | Expert | Issue tracker + docs + repo + handoff workflow | TheAgentCompany / enterprise work |
+| **L11: Web/computer-use tasks** | 10 | Expert | Browser docs, UI evidence capture, visual diagnostics | WebArena / VisualWebArena |
+| **L12: Grounded claims tasks** | 5 | Expert | Evidence-backed answer; penalize unsupported claims | Focusa native + research QA |
+| **Total** | **150 tasks** | | | |
 
 ### 3.2 Task Snapshot Format
 
@@ -129,12 +134,24 @@ crates/focusa-bench/
     L5_multi/
     L6_cross_session/
     L7_adversarial/
+    L8_real_coding/
+    L9_dual_control/
+    L10_company_workflow/
+    L11_web_computer_use/
+    L12_grounded_claims/
+  models/
+    model_matrix.json   # pinned model/provider/version/class/pricing plan for each run
+  splits/
+    public.json          # 70% public regression set
+    private_holdout.json # 30% release-evidence set; never exposed to agents
   runners/
     bench.sh           # POSIX runner
     bench.ps1          # Windows runner
     bench.py           # Cross-platform Python runner (recommended)
+    ablate.py          # Runs no-Focusa / passive / tool-only / full Focusa arms
   scoring/
     score.py           # Aggregates results
+    market_score.py    # Agent Power Index + Focusa Uplift Score
   reports/
     2026-06-25-v0.9.25-dev.json
     2026-06-30-v0.9.26-dev.json
@@ -174,6 +191,8 @@ For each task, measure:
 
 ### 4.2 Per-Suite Aggregation
 
+Example schema only; numeric values below are placeholders until produced by completed `/v1/evals/*` runs.
+
 ```json
 {
   "suite_id": "v0.9.25-dev-2026-06-25",
@@ -183,24 +202,31 @@ For each task, measure:
     "spec_111": "proposed",
     "spec_112": "spec_no_impl"
   },
-  "tasks_total": 90,
-  "tasks_passed": 67,
-  "tasks_failed": 23,
-  "pass_rate": 0.744,
+  "tasks_total": 150,
+  "tasks_passed": 112,
+  "tasks_failed": 38,
+  "pass_rate": 0.747,
   "mean_time_seconds": 45,
   "p95_time_seconds": 180,
   "mean_tokens": 8000,
   "recovery_rate": 0.78,
   "tool_selection_accuracy": 0.65,
   "drift_incidents_per_task": 0.4,
+  "agent_power_index": 0.71,
+  "focusa_uplift_score_vs_no_focusa": 1.42,
   "by_category": {
-    "L1_setup": {"pass_rate": 1.0, "mean_time": 28, "mean_tokens": 3000},
-    "L2_read": {"pass_rate": 0.95, "mean_time": 35, "mean_tokens": 5000},
-    "L3_write": {"pass_rate": 0.85, "mean_time": 50, "mean_tokens": 8000},
-    "L4_recover": {"pass_rate": 0.55, "mean_time": 90, "mean_tokens": 12000},
-    "L5_multi": {"pass_rate": 0.65, "mean_time": 120, "mean_tokens": 15000},
-    "L6_cross_session": {"pass_rate": 0.40, "mean_time": 180, "mean_tokens": 20000},
-    "L7_adversarial": {"pass_rate": 0.20, "mean_time": 300, "mean_tokens": 30000}
+    "L1_setup": {"tasks": 10, "pass_rate": 1.0, "mean_time": 28, "mean_tokens": 3000},
+    "L2_read": {"tasks": 20, "pass_rate": 0.95, "mean_time": 35, "mean_tokens": 5000},
+    "L3_write": {"tasks": 20, "pass_rate": 0.85, "mean_time": 50, "mean_tokens": 8000},
+    "L4_recover": {"tasks": 10, "pass_rate": 0.55, "mean_time": 90, "mean_tokens": 12000},
+    "L5_multi": {"tasks": 15, "pass_rate": 0.65, "mean_time": 120, "mean_tokens": 15000},
+    "L6_cross_session": {"tasks": 10, "pass_rate": 0.40, "mean_time": 180, "mean_tokens": 20000},
+    "L7_adversarial": {"tasks": 10, "pass_rate": 0.20, "mean_time": 300, "mean_tokens": 30000},
+    "L8_real_coding": {"tasks": 20, "pass_rate": 0.50, "mean_time": 600, "mean_tokens": 40000},
+    "L9_dual_control": {"tasks": 10, "pass_rate": 0.45, "mean_time": 420, "mean_tokens": 28000},
+    "L10_company_workflow": {"tasks": 10, "pass_rate": 0.40, "mean_time": 900, "mean_tokens": 60000},
+    "L11_web_computer_use": {"tasks": 10, "pass_rate": 0.35, "mean_time": 480, "mean_tokens": 30000},
+    "L12_grounded_claims": {"tasks": 5, "pass_rate": 0.80, "mean_time": 240, "mean_tokens": 12000}
   }
 }
 ```
@@ -231,178 +257,236 @@ For each task, measure:
 
 ---
 
-## 5. Telemetry Hooks (Data Collection)
+## 5. Data Collection Architecture (Codebase-Aligned)
 
-The benchmark uses Focusa's existing telemetry. We need to add:
+**Adversarial correction:** the first draft proposed `POST /v1/telemetry/agent/*` endpoints. That conflicts with `docs/31-telemetry-api.md`, which declares telemetry queryable and never mutable, and with `docs/29-telemetry-spec.md`, which describes CTL as passive observability.
 
-### 5.1 Agent Task Lifecycle Events
+**Approved exception:** evals need first-class durable run capture, but the exception belongs to a separate Eval Ledger, not to general telemetry. Telemetry remains read-only for agents and normal clients. Eval harnesses write append-only eval events through `/v1/evals/*`; CTL observes and aggregates those events.
+
+### 5.1 Authority Boundary
+
+| Surface | Role | Mutation? |
+|---------|------|-----------|
+| `crates/focusa-bench/` | Runner, task suite, scoring logic, local replay artifacts | YES, benchmark-local files |
+| `/v1/evals/runs` | Creates a scoped eval run record | YES, append-only eval ledger |
+| `/v1/evals/runs/{run_id}/events` | Appends task/tool/drift/judge events | YES, append-only eval ledger |
+| `/v1/evals/runs/{run_id}/complete` | Closes a run with immutable summary | YES, terminal append event only |
+| `/v1/evals/runs/{run_id}` | Reads one run and its artifacts | NO |
+| `/v1/evals/compare` | Compares baseline/candidate/arm results | NO |
+| `/v1/telemetry/events` | Reads CTL-observed events with bounded cursor | NO |
+| `/v1/telemetry/tokens` | Reads token aggregates | NO |
+| `/v1/telemetry/productivity` | Reads completion/correction/rework/time-to-resolution | NO |
+| `/v1/telemetry/autonomy` | Reads autonomy score/timeline/reversions | NO |
+| `/v1/telemetry/export` | Starts read/export job per docs | YES, export job only; no event mutation |
+| `focusa_evidence_capture` | Captures benchmark report/evidence refs | YES, evidence surface, not CTL |
+
+### 5.2 Eval Ledger API
+
+```http
+POST /v1/evals/runs
+POST /v1/evals/runs/{run_id}/events
+POST /v1/evals/runs/{run_id}/complete
+GET  /v1/evals/runs/{run_id}
+GET  /v1/evals/compare?baseline=<run_id>&candidate=<run_id>
+```
+
+Required write-scope fields:
 
 ```json
-// POST /v1/telemetry/agent/task-started
 {
+  "suite_id": "focusa-agent-bench-v1",
+  "run_id": "run-2026-06-25-001",
   "task_id": "L1.001",
-  "agent_id": "...",
-  "focusa_version": "0.9.25-dev",
-  "spec_versions": {...}
-}
-
-// POST /v1/telemetry/agent/task-completed
-{
-  "task_id": "L1.001",
-  "duration_seconds": 30,
-  "tokens_used": 4500,
-  "task_completed": true,
-  "tool_calls": [...],
-  "errors_encountered": 0,
-  "recoveries": 0
-}
-
-// POST /v1/telemetry/agent/tool-called
-{
-  "task_id": "L1.001",
-  "tool": "focusa_workpoint_resume",
-  "was_canonical": true,  // vs raw shell
-  "result_status": "ok"
+  "scenario_id": "L1_setup",
+  "arm": "no_focusa | passive_focusa | tool_only_focusa | full_focusa",
+  "agent_id": "claude-sonnet-4.5",
+  "model_provider": "anthropic",
+  "model_id": "claude-sonnet-4.5",
+  "model_version": "2026-06-25",
+  "model_class": "frontier_generalist",
+  "environment_id": "clean-linux-x86_64-glibc",
+  "prompt_hash": "sha256:...",
+  "task_seed": 12345,
+  "pricing_snapshot": "2026-06-25",
+  "eval_mode": true,
+  "schema_version": "focusa.eval_event.v1"
 }
 ```
 
-### 5.2 Drift Detection Events
+### 5.3 Eval Event Types
 
 ```json
-// POST /v1/telemetry/agent/drift
+{"event":"task_started","task_id":"L1.001","arm":"full_focusa","agent_id":"claude-sonnet-4.5","started_at":"2026-06-25T14:00:00Z"}
+{"event":"tool_call","task_id":"L1.001","tool":"focusa_project_identity","canonical":true,"latency_ms":180,"result_status":"ok"}
+{"event":"drift","task_id":"L1.001","drift_type":"raw_shell_for_focusa_api","expected_tool":"focusa_project_identity","actual_tool":"bash"}
+{"event":"judge_result","task_id":"L1.001","resolved":true,"judge":"deterministic_test","evidence_refs":["pytest::tests/test_health.py"]}
+{"event":"task_completed","task_id":"L1.001","resolved":true,"duration_seconds":30,"tokens_used":4500,"cost_usd":0.09}
+```
+
+### 5.4 Guardrails for Eval Writes
+
+1. Eval writes are namespaced under `/v1/evals/*`, never `/v1/telemetry/*`.
+2. Eval events are append-only, idempotent by `event_id`, and immutable after write.
+3. Eval events cannot mutate Focus State, Workpoints, Trajectory, ontology, prompts, gates, or agent behavior.
+4. Every write requires `eval_mode=true`, `suite_id`, `run_id`, `task_id`, `scenario_id`, `arm`, `model_provider`, `model_id`, `model_version`, `model_class`, `environment_id`, `prompt_hash`, `pricing_snapshot`, and `schema_version`.
+5. Secrets, API keys, PII, and raw private operator text are redacted before persistence.
+6. CTL may read/index eval events for reports, but CTL remains passive and non-authoritative.
+7. Production telemetry and eval runs have separate retention, export, and privacy policy.
+8. Public evidence reports must include raw JSONL, scoring code version, environment digest, prompt hashes, and confidence intervals.
+
+### 5.5 CTL Join Step
+
+After each task, the runner queries Focusa CTL read surfaces and joins results into the eval ledger/report:
+
+```bash
+curl -fsS 'http://127.0.0.1:8787/v1/telemetry/events?session_id=<sid>&limit=200'
+curl -fsS 'http://127.0.0.1:8787/v1/telemetry/tokens?group_by=session&window=7d'
+curl -fsS 'http://127.0.0.1:8787/v1/telemetry/productivity'
+curl -fsS 'http://127.0.0.1:8787/v1/telemetry/autonomy'
+```
+
+### 5.6 Evidence Capture
+
+Only final benchmark artifacts are linked into Focusa evidence:
+
+```json
 {
-  "task_id": "L1.001",
-  "drift_type": "raw_shell_used",
-  "expected_tool": "focusa_workpoint_resume",
-  "actual_tool": "bash"
+  "target_ref": "benchmark:spec-113:run-2026-06-25-001",
+  "evidence_ref": "crates/focusa-bench/runs/run-2026-06-25-001/report.json",
+  "result": "Full Focusa arm beat no-Focusa arm on Agent Power Index with 95% CI"
 }
 ```
 
-### 5.3 Recovery Events
-
-```json
-// POST /v1/telemetry/agent/recovery
-{
-  "task_id": "L4.001",
-  "error_type": "scope_mismatch",
-  "recovery_hint_used": "verify project identity then checkpoint",
-  "recovered": true,
-  "retries": 1
-}
-```
+This preserves CTL's read-only contract while giving evals first-class durable evidence.
 
 ---
 
 ## 6. Baseline Measurements (What We Need First)
 
-Before we can measure "before/after", we need the **current state baseline**:
+Before we can measure before/after, we need a **Focusa-vs-No-Focusa baseline** across the full 150-task suite.
 
-### 6.1 Baseline Run (2026-06-26)
+### 6.1 Required Baseline Run
 
-**Task:** Run the full 90-task suite against `v0.9.25-dev` (current state with all gaps documented in INSTALL-GAP-AUDIT.md).
+**Task:** Run `focusa-agent-bench-v1` against the current release candidate with all four arms:
 
-**Expected results (prediction, not measurement):**
+```text
+no_focusa
+passive_focusa
+tool_only_focusa
+full_focusa
+```
 
-| Category | Predicted Pass Rate | Why |
-|----------|---------------------|-----|
-| L1_setup | 0.30 | Real installer drops Python stub (A1) |
-| L2_read | 0.85 | Read tools work, wrapper caches sometimes wrong |
-| L3_write | 0.75 | Write tools work, schema validation added |
-| L4_recover | 0.50 | Recovery hints exist but wrapper drops them |
-| L5_multi | 0.60 | Multi-step works, scope issues |
-| L6_cross_session | 0.30 | HLT not scoped to project_root (just fixed) |
-| L7_adversarial | 0.10 | Spec compliance gaps |
-| **Overall** | **~0.55** | Current state has gaps |
+The baseline report must include:
+- `full_focusa` vs `no_focusa` primary comparison
+- ablation comparisons for `passive_focusa` and `tool_only_focusa`
+- public/private split results
+- per-category results (L1-L12)
+- confidence intervals and run counts
+- evidence refs for every deterministic judge result
+- raw Eval Ledger JSONL and scoring code commit
 
-### 6.2 Post-Spec 112 Implementation (After Install Fix)
+### 6.2 Baseline Is Measurement, Not Prediction
 
-| Category | Predicted Pass Rate | Why |
-|----------|---------------------|-----|
-| L1_setup | 0.95 | Real installer ships binaries |
-| L2_read | 0.90 | Read tools work, daemon running |
-| L3_write | 0.80 | Write tools work |
-| L4_recover | 0.65 | Recovery hints work |
-| L5_multi | 0.70 | Multi-step works |
-| L6_cross_session | 0.50 | HLT project_root-scoped |
-| L7_adversarial | 0.25 | Spec compliance |
-| **Overall** | **~0.75** | Foundation fixed |
+Predicted pass rates may be used for planning and power analysis, but they are not benchmark evidence.
 
-### 6.3 Post-Spec 110+111+112 (All Three Shipped)
+Invalid public wording:
+> "Focusa is 2x better" based on expected results.
 
-| Category | Predicted Pass Rate | Why |
-|----------|---------------------|-----|
-| L1_setup | 0.98 | Real installer + AX |
-| L2_read | 0.95 | Bootstrap packet + structured |
-| L3_write | 0.90 | Tool nudge to canonical |
-| L4_recover | 0.80 | Recovery hints + nudges |
-| L5_multi | 0.85 | Multi-step with context |
-| L6_cross_session | 0.70 | Bootstrap + persistence |
-| L7_adversarial | 0.50 | All guards active |
-| **Overall** | **~0.85** | Full stack works |
+Valid public wording:
+> "On run `<run_id>`, Focusa `full_focusa` improved resolved rate from `<no_focusa>` to `<full_focusa>` with 95% CI `<ci>` and raw artifacts `<evidence_ref>`."
+
+### 6.3 Minimum Baseline Slices
+
+| Slice | Purpose | Minimum Evidence |
+|-------|---------|------------------|
+| L1 setup | Prove Focusa activation and installer value | clean-machine run on each supported OS family |
+| L2/L3 tool use | Prove Focusa tool layer improves orientation/actions | tool-call accuracy + drift events |
+| L4 recovery | Prove Focusa recovery hints reduce dead ends | error attribution + recovery success |
+| L5/L6 long horizon | Prove Focusa continuity across work and compaction | METR-style time horizon + Workpoint resume evidence |
+| L8 coding | Prove Focusa helps real software work | tests, patch size, fail-to-pass/pass-to-pass |
+| L9 dual-control | Prove Focusa helps agents guide operators | reasoning-vs-communication attribution |
+| L12 grounded claims | Prove Focusa reduces unsupported claims | claim/evidence coverage ratio |
+
+### 6.4 Release Regression Baseline
+
+Every future Focusa release compares against:
+1. previous Focusa release (`full_focusa` vs prior `full_focusa`)
+2. current No-Focusa baseline (`full_focusa` vs `no_focusa`)
+3. current ablations (`full_focusa` vs `passive_focusa` and `tool_only_focusa`)
+
+This preserves the market story while also showing where Focusa improvements come from.
 
 ---
 
 ## 7. Reporting & Visualization
 
-### 7.1 Per-Release Report
+### 7.1 Focusa-vs-No-Focusa Release Report
 
-```
+```text
 ================================================================================
-FOCUSA BENCHMARK REPORT — v0.9.25-dev
-Run date: 2026-06-26
-Spec versions: 110=draft, 111=proposed, 112=spec_no_impl
+FOCUSA AGENT PERFORMANCE BENCHMARK — v0.9.X
+Run date: <date>
+Suite: focusa-agent-bench-vX
+Primary comparison: full_focusa vs no_focusa
+Spec versions: 110=<status>, 111=<status>, 112=<status>, 113=<status>
 ================================================================================
 
-TASK COMPLETION
-  Pass rate:     74.4%  (67/90)
-  Mean time:     45.0s
-  P95 time:      180.0s
-  Mean tokens:   8,000
+FOCUSA VS NO-FOCUSA HEADLINE
+  Resolved %:                 <full_focusa> vs <no_focusa>   Δ=<delta>, 95% CI=<ci>
+  Agent Power Index:          <full_focusa> vs <no_focusa>   FUS=<ratio>, 95% CI=<ci>
+  Cost per resolved task:     <full_focusa> vs <no_focusa>   Δ=<delta>
+  Time horizon @ 50%:         <full_focusa> vs <no_focusa>   Δ=<delta>
+  Pass^N:                     <full_focusa> vs <no_focusa>   Δ=<delta>
+  Groundedness:               <full_focusa> vs <no_focusa>   Δ=<delta>
+  Operator burden:            <full_focusa> vs <no_focusa>   OBR=<ratio>
 
-BY CATEGORY
-  L1 setup           10/10  100%   28s   3,000 tok
-  L2 read            19/20   95%   35s   5,000 tok
-  L3 write           17/20   85%   50s   8,000 tok
-  L4 recover          5/10   50%   90s  12,000 tok
-  L5 multi           10/15   67%  120s  15,000 tok
-  L6 cross-session     4/10   40%  180s  20,000 tok
-  L7 adversarial       1/5    20%  300s  30,000 tok
+ABLATIONS (DIAGNOSTIC ONLY)
+  passive_focusa vs no_focusa:       <delta summary>
+  tool_only_focusa vs no_focusa:     <delta summary>
+  full_focusa vs tool_only_focusa:   <bootstrap/reminder/workpoint uplift>
 
-BEHAVIOR METRICS
-  Tool selection accuracy:  65%  (canonical focusa_* vs raw shell)
-  Drift incidents/task:    0.4
-  Recovery rate:            78%  (errors → recovered)
-  Backtracks/task:         1.2
+BY CATEGORY (L1-L12)
+  L1 setup/activation:        <full_focusa> vs <no_focusa>
+  L2 read/orientation:        <full_focusa> vs <no_focusa>
+  L3 write/tool-use:          <full_focusa> vs <no_focusa>
+  L4 recovery/resilience:     <full_focusa> vs <no_focusa>
+  L5 multi-step workflow:     <full_focusa> vs <no_focusa>
+  L6 cross-session:           <full_focusa> vs <no_focusa>
+  L7 adversarial state:       <full_focusa> vs <no_focusa>
+  L8 real coding:             <full_focusa> vs <no_focusa>
+  L9 dual-control:            <full_focusa> vs <no_focusa>
+  L10 company workflow:       <full_focusa> vs <no_focusa>
+  L11 web/computer-use:       <full_focusa> vs <no_focusa>
+  L12 grounded claims:        <full_focusa> vs <no_focusa>
 
-EXPERIENCE METRICS
-  AX score (self-rated):   3.2 / 5
-  Recovery hint useful:    45%
-  Bootstrap freshness:     23%  stale (older than 1 hour)
+FAILURE ATTRIBUTION
+  reasoning:                  <count>
+  communication/coordination: <count>
+  tool selection:             <count>
+  tool arguments:             <count>
+  environment:                <count>
+  Focusa runtime:             <count>
+  user/operator:              <count>
 
-COMPARISON TO BASELINE (v0.9.24-dev)
-  Pass rate:    +9.4%  (74.4% vs 65.0%)  ✓
-  Token use:   -15.8%  (8,000 vs 9,500)  ✓
-  Recovery:    +8.0%  (78% vs 70%)       ✓
+EVIDENCE
+  Eval run:                   <run_id>
+  Raw ledger:                 <events.jsonl>
+  Report JSON:                <report.json>
+  Scoring commit:             <git_sha>
+  Environment digest:         <digest>
 
-REGRESSION ALERTS
-  ⚠ L1 setup mean time up 30% (install becoming slower)
-  ⚠ L6 cross-session recovery rate down 20%
-  ⚠ L7 adversarial pass rate down 5% (regressions in adversarial handling)
-
-VERDICT: IMPROVED — Spec 110/111/112 measurable improvements
+VERDICT: <MEASURED_IMPROVED | MIXED | REGRESSED | INCONCLUSIVE>
 ```
 
-### 7.2 Comparison Chart (Over Time)
+### 7.2 Trend Chart (Over Time)
 
-```
-Pass Rate Over Time
-v0.9.20 ───── 0.50
-v0.9.21 ───── 0.55
-v0.9.22 ───── 0.58
-v0.9.23 ───── 0.62
-v0.9.24 ───── 0.65
-v0.9.25 ───── 0.744  ← +9.4% (specs 110/111/112 baseline)
-v0.9.26 ───── ? (next)
+Trend charts must plot **Focusa Uplift Score** and raw metrics, not just pass rate:
+
+```text
+Focusa Uplift Score (full_focusa / no_focusa)
+v0.9.25 ───── <measured>
+v0.9.26 ───── <measured>
+v0.10.0 ───── <measured>
 ```
 
 ---
@@ -413,7 +497,7 @@ The benchmark is "real" when:
 
 1. **Reproducible:** Two runs on same version produce same pass rate ±2%
 2. **Sensitive:** A 10% improvement in any metric is detectable
-3. **Fast:** Full 90-task suite runs in <2 hours
+3. **Fast:** Public smoke slice runs in <30 minutes; full 150-task suite runs in <4 hours or publishes cost/time budget
 4. **Documented:** Each task has clear expected outcomes
 5. **Versioned:** Task suite has versions matching Focusa versions
 6. **Honest:** No cherry-picking, no agent-specific tuning
@@ -425,11 +509,12 @@ The benchmark is "real" when:
 ## 9. Implementation Roadmap
 
 ### Phase 1 (Before MVP Cohort)
-- [ ] Create `crates/focusa-bench/` with 90 tasks
-- [ ] Implement Python runner (`bench.py`)
-- [ ] Add telemetry endpoints (`/v1/telemetry/agent/*`)
-- [ ] Run baseline against v0.9.25-dev
-- [ ] Publish report
+- [ ] Create `crates/focusa-bench/` with the 150-task suite and public/private split
+- [ ] Implement Python runner (`bench.py`) plus `ablate.py` for matched benchmark arms
+- [ ] Implement append-only Eval Ledger endpoints (`/v1/evals/*`)
+- [ ] Join existing read-only CTL surfaces (`/v1/telemetry/events|tokens|productivity|autonomy`) into reports
+- [ ] Run baseline against v0.9.25-dev using `no_focusa`, `passive_focusa`, `tool_only_focusa`, and `full_focusa` arms
+- [ ] Publish report only with measured values and confidence intervals
 
 ### Phase 2 (During MVP Cohort)
 - [ ] Add regression alerts
@@ -467,60 +552,50 @@ The benchmark is "real" when:
 
 ---
 
-## 12. Example Benchmark Run (Predicted)
+## 12. Example Benchmark Run (Illustrative — Not Evidence)
 
 ```bash
 $ cd /home/wirebot/focusa
-$ bench/run.sh --version v0.9.25-dev --agent focusa-mvp-eval-v1
+$ bench/run.sh --suite focusa-agent-bench-v1 --version v0.9.25-dev --agent claude-sonnet-4.5 --arms no_focusa,passive_focusa,tool_only_focusa,full_focusa
 
-[INFO] Loading task suite: 90 tasks across 7 categories
+[INFO] Loading task suite: 150 tasks across 12 categories (public=105, private_holdout=45)
+[INFO] Creating eval run: POST /v1/evals/runs
 [INFO] Starting daemon health check... ok
 [INFO] Running L1 setup (10 tasks)...
-  L1.001 install... PASS (28s, 3,000 tok)
-  L1.002 identify... PASS (15s, 2,000 tok)
-  ...
 [INFO] Running L2 read (20 tasks)...
-  ...
 [INFO] Running L3 write (20 tasks)...
-  ...
 [INFO] Running L4 recover (10 tasks)...
-  ...
 [INFO] Running L5 multi (15 tasks)...
-  ...
 [INFO] Running L6 cross-session (10 tasks)...
-  ...
-[INFO] Running L7 adversarial (5 tasks)...
-  ...
+[INFO] Running L7 adversarial (10 tasks)...
+[INFO] Running L8 real-coding (20 tasks)...
+[INFO] Running L9 dual-control (10 tasks)...
+[INFO] Running L10 company-workflow (10 tasks)...
+[INFO] Running L11 web-computer-use (10 tasks)...
+[INFO] Running L12 grounded-claims (5 tasks)...
+[INFO] Completing eval run: POST /v1/evals/runs/{run_id}/complete
 
-[REPORT] v0.9.25-dev pass rate: 74.4% (67/90)
-[REPORT] Mean time: 45.0s
-[REPORT] Mean tokens: 8,000
-[REPORT] Tool selection accuracy: 65%
-[REPORT] Saved: reports/2026-06-26-v0.9.25-dev.json
+[REPORT] pass_rate, time_horizon, cost, Pass^N, recovery_rate, and Agent Power Index emitted with 95% CI
+[REPORT] Saved: crates/focusa-bench/runs/run-2026-06-26-001/report.json
 ```
+
+All values in public reports must come from completed Eval Ledger runs, not from predicted examples.
 
 ---
 
-## 13. Comparison to v0.9.25 (After Spec 110+111+112 Ship)
+## 13. Pre-Registered Hypotheses for Specs 110+111+112
 
-When all 3 specs are implemented, expected results:
+These are hypotheses, not evidence. They become claims only after a completed `/v1/evals/*` run with raw artifacts, confidence intervals, and public scoring code.
 
-| Category | Pre-Specs | Post-Specs | Δ |
-|----------|-----------|------------|---|
-| L1 setup | 0.30 | 0.98 | +0.68 |
-| L2 read | 0.85 | 0.95 | +0.10 |
-| L3 write | 0.75 | 0.90 | +0.15 |
-| L4 recover | 0.50 | 0.80 | +0.30 |
-| L5 multi | 0.60 | 0.85 | +0.25 |
-| L6 cross-session | 0.30 | 0.70 | +0.40 |
-| L7 adversarial | 0.10 | 0.50 | +0.40 |
-| **Overall** | **0.55** | **0.85** | **+0.30** |
+| Hypothesis | Expected Direction | Evidence Required |
+|------------|--------------------|-------------------|
+| Spec 112 improves L1 setup/activation | full_focusa > no_focusa on install/health/license tasks | Clean-machine eval run across Linux/macOS/Windows |
+| Spec 111 improves orientation and context efficiency | fewer tokens, lower time-to-first-correct-action | Bootstrap packet ablation: passive_focusa vs full_focusa |
+| Spec 110 improves tool selection | fewer raw-shell-for-Focusa-API drifts | tool_only_focusa vs full_focusa arm comparison |
+| Combined specs improve long-horizon completion | higher METR-style 50% time horizon | L5/L6/L10 completed runs with matched models |
+| Focusa improves market-relevant agent power | higher Agent Power Index at lower cost | 150-task suite, no_focusa baseline, 95% CI |
 
-**Token reduction: 30%** (from 9,500 → 6,500 mean tokens)
-**Time reduction: 40%** (from 75s → 45s mean time)
-**Recovery rate up: 50% → 80%**
-
-This is the honest bet. Measure first, then verify.
+Rule: publish the measured deltas, not the predicted deltas.
 
 ---
 
@@ -628,107 +703,95 @@ Researched via UIAI browser (2026-06-26): SWE-bench, AgentBench, METR, τ-bench,
 
 ### 15.3 What This Means
 
-The industry-standard additions transform our benchmark from:
-- **Before:** "Does Focusa help Pi agents?" (60 metrics, mostly Focusa-specific)
-- **After:** "Does Focusa help agents **at industry scale**?" (78 metrics, comparable to METR/SWE-bench/τ-bench)
+The industry-standard additions transform the benchmark from an internal Focusa tool check into a 150-task market evidence suite across 12 categories.
 
-Now we can credibly say "Focusa improves agent performance by X% on tasks similar to SWE-bench" and "Focusa enables multi-turn Pass^4 success of Y%, comparable to τ-bench" — those are claims the industry recognizes.
+The central question becomes: **How much does Focusa improve the same agent versus No-Focusa, under industry-recognized metrics?**
+
+Now we can credibly report measured Focusa uplift on SWE-bench-like real coding tasks, METR-style time horizons, τ-bench-style multi-turn success, τ²-style dual-control coordination, and xLAM/Gorilla-style tool accuracy — but only when those values come from completed Eval Ledger runs.
 
 ---
 
 ## 16. The Comparison That Matters Most: Focusa vs No-Focusa
 
-The biggest gap in the original benchmark (§2) is the **no-Focusa baseline**. We need to measure:
+**Primary market comparison: `full_focusa` vs `no_focusa`.** This is not optional and must appear in every public report.
 
-### 16.1 What "No Focusa" Means
+The additional arms (`passive_focusa`, `tool_only_focusa`) are diagnostic ablations only. They explain *why* Focusa helps; they do not replace the core Focusa-vs-No-Focusa claim.
 
-An agent running **without Focusa** has:
+### 16.1 Benchmark Arms
+
+| Arm | What the agent has | Why it exists |
+|-----|---------------------|---------------|
+| `no_focusa` | Raw harness only: shell, files, browser, model memory | Measures market baseline without Focusa |
+| `passive_focusa` | Docs/prompts only; no Focusa tools | Separates documentation benefit from runtime benefit |
+| `tool_only_focusa` | `focusa_*` tools available; no bootstrap/reminder automation | Measures tool-layer value |
+| `full_focusa` | Installer + daemon + bootstrap + reminders + Workpoints + eval ledger | Measures complete product value |
+
+### 16.2 What "No Focusa" Means
+
+An agent running `no_focusa` has:
 - No `focusa_*` tools
 - No structured Workpoint checkpointing
 - No bootstrap packet
 - No trajectory intelligence
 - No recovery hints
 - No canonical state enforcement
-- **Still has:** raw shell, raw HTTP, raw JSON, agent memory, retries
+- **Still has:** raw shell, raw HTTP, raw JSON, model memory, retries, and any non-Focusa harness tools
 
-### 16.2 Baseline Comparison Methodology
+### 16.3 Matched-Arm Methodology
 
-For each of the 90 tasks, run **TWO agents** in parallel:
+For each of the 150 tasks, run matched trials:
 
-```
+```text
 Task: L1.001 install
-  ├── Agent A: With Focusa (uses focusa_project_identity, focusa_tool_doctor)
-  └── Agent B: No Focusa (uses bash + curl to localhost:8787 if daemon exists, else pure shell)
+  ├── no_focusa          same model, same prompt, raw harness
+  ├── passive_focusa     same model, same prompt, Focusa docs/prompt only
+  ├── tool_only_focusa   same model, same prompt, focusa_* tools only
+  └── full_focusa        same model, same prompt, complete Focusa runtime
 ```
 
-**Key constraint:** Both agents run **the same model** (e.g., Claude Sonnet 4.5) on **the same hardware** with **the same prompt**. Only difference: Focusa presence.
+Required controls:
+1. Same model, model version, temperature, max tokens, and provider routing.
+2. Same machine class, OS, network policy, repo snapshot, and seed.
+3. Same task prompt except capability disclosure for available tools.
+4. Same timeout and cost budget.
+5. Same deterministic judge or blind external judge.
+6. At least 5 runs per task for variance-sensitive claims, or documented statistical power analysis.
+7. Private holdout tasks excluded from agent-visible docs/prompts.
 
-### 16.3 Metrics to Compare
+### 16.4 Metrics to Compare
 
-| Metric | With Focusa | No Focusa | Delta |
-|--------|-------------|-----------|-------|
-| Pass rate (Resolved %) | 0.85 (predicted) | ~0.40 (predicted) | **+0.45** |
-| Mean time | 45s | 120s | **-62.5%** |
-| Mean tokens | 8,000 | 22,000 | **-63.6%** |
-| Time horizon @ 50% | 8 hours | 1 hour | **+8x** |
-| Pass^4 (multi-turn) | 0.50 | 0.10 | **+5x** |
-| Recovery rate | 0.80 | 0.30 | **+0.50** |
-| Tool selection accuracy | 0.95 | 0.30 | **+0.65** |
-| Hallucination rate | 0.02 | 0.15 | **-0.13** |
-| Cost per task | $0.20 | $0.55 | **-63.6%** |
+| Metric | Required Report |
+|--------|-----------------|
+| Pass rate / Resolved % | arm mean, 95% CI, p-value vs `no_focusa` |
+| METR-style time horizon @ 50% | estimated task-duration threshold and CI |
+| Cost per resolved task | tokens + wall-clock + infrastructure cost |
+| Pass^N | success by turn count / interaction count |
+| Pass@k | independent attempt success rate |
+| Recovery rate | error → corrected path rate |
+| Tool-call accuracy | expected vs actual tool call / argument match |
+| Hallucination rate | nonexistent tool/API/file/reference calls |
+| Groundedness | claims with evidence refs / total substantive claims |
+| Operator burden | number of clarifications, manual interventions, and steering turns |
 
-### 16.4 Why No-Focusa is Worse
+### 16.5 Market Uplift Metrics
 
-Without Focusa, the agent must:
-- **Discover** the daemon endpoint (no canonical URL)
-- **Read** the API spec (no schema hint)
-- **Reformat** responses (no structured output)
-- **Retry** on errors (no recovery hint)
-- **Forget** state between compactions (no Workpoint)
-- **Pick** tools blindly (no bootstrap)
-- **Drift** into bad paths (no enforcement)
+The public evidence should report three aggregate scores:
 
-The compounding effect: each Focusa feature saves 30-60% of work. Stack them = 60-90% improvement.
-
-### 16.5 What "Without Focusa" Looks Like in Practice
-
-**Task L2.001: "View current trajectory"**
-
-**With Focusa:**
-```
-Agent: focusa_trajectory_view
-Daemon: { hlt, mlg, stg, desired_end_state, current_state, gap }
-Result: Structured WorkpointResumePacket in 3 seconds, 200 tokens
+```text
+Agent Power Index (APIx) = weighted score over resolved%, time_horizon, Pass^N, groundedness, recovery, and cost.
+Focusa Uplift Score (FUS) = APIx(full_focusa) / APIx(no_focusa).
+Operator Burden Reduction (OBR) = 1 - interventions(full_focusa) / interventions(no_focusa).
 ```
 
-**Without Focusa:**
-```
-Agent: curl http://127.0.0.1:8787/v1/trajectory
-Daemon: Raw JSON, undocumented fields
-Agent: "What's HLT? What's MLG? What's a workpoint?"
-Agent: reads docs, retries, parses, asks for help
-Result: 60 seconds, 8,000 tokens, still confused
-```
+Weights must be pre-registered in the suite manifest before runs. Publish raw per-metric values so readers can recompute scores with different weights.
 
-**This is the 30x improvement.**
+### 16.6 Publishable Claim Rule
 
-### 16.6 Validation Methodology
+Predicted values are internal hypotheses only. Public claims must use the template:
 
-To prove the comparison is honest:
+> "On `focusa-agent-bench-vX`, using `<model/version>` across `<n>` matched trials, `full_focusa` improved `<metric>` from `<baseline>` to `<candidate>` versus `no_focusa` (`Δ=<delta>`, 95% CI `<ci>`, p=`<p>`), with raw artifacts at `<evidence_ref>`."
 
-1. **Same model**: Both agents use identical model (e.g., Claude Sonnet 4.5)
-2. **Same task**: Same prompt, same constraints, same environment
-3. **Different tools**: A has focusa_*, B has bash+curl
-4. **Blind scoring**: External grader scores both, doesn't know which is which
-5. **Statistical test**: T-test for pass rate difference, p < 0.05
-6. **Multi-run**: Run 5x, report mean ± std
-7. **Public**: Methodology published, anyone can replicate
-
-### 16.7 Predicted Headline Number
-
-> **"Focusa enables agents to complete 0.85 of industry-standard agent benchmark tasks at 60% lower cost, compared to 0.40 without Focusa — a 2.1x improvement in success rate."**
-
-This is the kind of claim the market will respect.
+No headline such as "2.1x better" is valid until backed by completed Eval Ledger runs.
 
 ---
 
@@ -764,69 +827,233 @@ How Focusa's metrics map to industry standards (so we can publish comparably):
 
 ---
 
-## 18. What to Publish as Evidence
-
-When we run the benchmark, the published evidence should include:
-
-### 18.1 Headline Numbers (1 slide)
-
-```
-FOCUSA BENCHMARK HEADLINE — v0.9.X
-
-Total tasks:                    90 (industry-aligned)
-Overall pass rate:              0.85 (vs 0.40 no-Focusa = 2.1x)
-Mean time horizon:              8 hours (vs 1 hour no-Focusa = 8x)
-Mean cost per task:             $0.20 (vs $0.55 no-Focusa = 63% less)
-Multi-turn success (Pass^4):    0.50 (vs 0.10 no-Focusa = 5x)
-Tool call accuracy:             0.95 (vs 0.30 no-Focusa = 3.2x)
-Recovery rate:                  0.80 (vs 0.30 no-Focusa = 2.7x)
-
-Comparable to: SWE-bench, METR, τ-bench, xLAM, AgentBench
-```
-
-### 18.2 Detailed Report (10 pages)
-
-- Per-category breakdown
-- Per-task success rate
-- Per-metric distribution
-- Time/cost histograms
-- Failure mode analysis
-- Comparison to v0.9.X-1, v0.9.X-2, etc.
-- Comparison to no-Focusa baseline
-
-### 18.3 Methodology Doc (5 pages)
-
-- How tasks are generated
-- How agents are run
-- How results are graded
-- Statistical methods
-- Reproducibility instructions
-
-### 18.4 Raw Data (open)
-
-- 90 task JSON files
-- Per-task results JSONL
-- Aggregated results JSON
-- Telemetry events JSONL
-
-### 18.5 Leaderboard (live)
-
-- Public URL: focusa.dev/bench
-- Per-version scores
-- Per-category drill-down
-- Per-task inspection
-- Methodology link
 
 ---
 
-## 19. Conclusion
+## 18. Multi-Model Scenario Uplift Report
 
-The benchmark evolved from:
-- **Original §1-§14:** "Does Focusa help Pi agents?" (60 metrics, mostly Focusa-specific)
-- **After UIAI research:** "Does Focusa help agents **at industry scale**?" (78 metrics, comparable to METR/SWE-bench/τ-bench)
-- **With no-Focusa baseline:** "How much does Focusa help vs doing nothing?" (8x time horizon, 2.1x pass rate, 63% cost reduction)
+Focusa's market evidence must show not only whether Focusa helps one model, but **which LLM models benefit, in which scenarios, by how much, and at what cost**.
 
-The headline claim:
-> **"Focusa enables agents to complete 2.1x more tasks at 63% lower cost than without Focusa, validated against industry-standard benchmarks (SWE-bench, METR, τ-bench, AgentBench, xLAM)."**
+### 18.1 Model Coverage
 
-This is the evidence we publish. This is what proves Focusa works.
+Every benchmark release SHOULD include at least one model from each class where access is available:
+
+| Model Class | Purpose | Examples (pin exact version at run time) |
+|-------------|---------|-------------------------------------------|
+| Frontier generalist | Measures best-case agent performance | Claude Sonnet/Opus, GPT-5-class, Gemini-class |
+| Budget/fast generalist | Measures cost-sensitive production value | mini/haiku/flash class models |
+| Coding-specialized | Measures SWE-bench-like tasks | coding-tuned models |
+| Open-weight hosted | Measures portability and buyer independence | Llama/Qwen/DeepSeek-class hosted models |
+| Local/constrained | Measures Focusa value under weak-model or edge conditions | local quantized or smaller OSS models |
+
+Required metadata per run:
+
+```json
+{
+  "model_provider": "anthropic",
+  "model_id": "claude-sonnet-4.5",
+  "model_version": "2026-06-25",
+  "model_class": "frontier_generalist",
+  "temperature": 0.2,
+  "max_tokens": 16000,
+  "context_window": 200000,
+  "pricing_snapshot": "2026-06-25",
+  "provider_routing_locked": true
+}
+```
+
+No result may be generalized to "LLMs" unless at least three model classes are represented.
+
+### 18.2 Scenario Matrix
+
+Reports must include a model × scenario matrix for the primary comparison `full_focusa` vs `no_focusa`.
+
+| Scenario | Metric Focus | Why It Matters |
+|----------|--------------|----------------|
+| L1 setup/activation | time-to-value, install success | product adoption |
+| L2 orientation | time-to-first-correct-action, token use | agent onboarding |
+| L3 tool use | tool accuracy, wrong-argument rate | Focusa tool-layer value |
+| L4 recovery | recovery rate, dead-end rate | resilience |
+| L5/L6 long horizon | METR-style time horizon, continuity | compaction/session value |
+| L8 coding | resolved %, patch quality, tests | software market proof |
+| L9 dual-control | coordination success | operator/customer support value |
+| L10 company workflow | dependency handling | enterprise realism |
+| L11 web/computer-use | grounded browser actions | UIAI/browser value |
+| L12 grounded claims | evidence coverage, unsupported-claim rate | trustworthiness |
+
+### 18.3 Focusa Model Uplift Matrix
+
+For each model and scenario, report:
+
+```text
+Focusa Uplift Score = AgentPowerIndex(full_focusa) / AgentPowerIndex(no_focusa)
+Resolved Delta      = Resolved%(full_focusa) - Resolved%(no_focusa)
+Cost Delta          = CostPerResolved(full_focusa) - CostPerResolved(no_focusa)
+Time Delta          = TimeToResolution(full_focusa) - TimeToResolution(no_focusa)
+Grounding Delta     = GroundedClaims%(full_focusa) - GroundedClaims%(no_focusa)
+```
+
+Example report table format:
+
+| Model | Class | L1 Setup | L4 Recovery | L6 Continuity | L8 Coding | L12 Grounded Claims | Overall FUS |
+|-------|-------|----------|-------------|---------------|-----------|---------------------|-------------|
+| `<model A>` | frontier | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` |
+| `<model B>` | budget | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` |
+| `<model C>` | open-weight | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` | `<FUS>` |
+
+Heatmap colors must be based on measured confidence intervals, not raw point estimates alone.
+
+### 18.4 Before/After Across Focusa Releases
+
+For each model, report both:
+
+1. **Focusa-vs-No-Focusa uplift** within a release.
+2. **Focusa release-over-release improvement** for the same model.
+
+```text
+model=<model_id>
+scenario=L6_cross_session
+no_focusa_v0.9.25=<score>
+full_focusa_v0.9.25=<score>
+full_focusa_v0.9.26=<score>
+focusa_uplift_v0.9.25=<ratio>
+focusa_release_delta=<full_focusa_v0.9.26 - full_focusa_v0.9.25>
+```
+
+This separates "Focusa beats no Focusa" from "Focusa itself improved since the last release."
+
+### 18.5 Weak-Model Amplification
+
+One of Focusa's strongest possible market claims is that it makes weaker/cheaper models more capable.
+
+Report:
+
+```text
+Weak Model Close Rate = APIx(cheap_model + full_focusa) / APIx(frontier_model + no_focusa)
+```
+
+This answers:
+- Can Focusa make cheaper models viable?
+- Can Focusa reduce model spend while preserving success?
+- Which scenarios benefit most from structure, memory, Workpoints, and recovery hints?
+
+### 18.6 Model Interaction Warnings
+
+Model comparisons are invalid unless:
+
+1. model versions are pinned;
+2. provider routing is locked or recorded;
+3. prices are snapshotted at run time;
+4. context windows are recorded;
+5. temperature/sampling settings match;
+6. retry policies match;
+7. safety refusals are classified separately from task failures;
+8. public claims name exact model/version and run date.
+
+### 18.7 Multi-Model Public Claim Template
+
+Valid claim:
+
+> "Across `<n>` pinned LLM models and `<m>` scenarios, Focusa improved Agent Power Index versus No-Focusa in `<k>/<n*m>` model-scenario cells, with median Focusa Uplift Score `<median>` and cost-normalized uplift `<cost_uplift>`. Raw artifacts: `<evidence_ref>`."
+
+Invalid claim:
+
+> "Focusa makes all LLMs better."
+
+## 19. What to Publish as Evidence
+
+Every public artifact should make the product name and claim unmistakable: **Focusa improves agent performance compared with No-Focusa baselines.**
+
+### 19.1 Focusa-vs-No-Focusa Headline Card
+
+Use measured values only:
+
+```text
+FOCUSA AGENT PERFORMANCE BENCHMARK — v0.9.X
+
+Suite:                         focusa-agent-bench-vX
+Total tasks:                   150 (public + private holdout)
+Models / scaffolds:            <model_matrix_summary>, <agent harness>, <versions>
+Primary comparison:            full_focusa vs no_focusa
+Multi-model report:            model × scenario Focusa uplift matrix
+
+Resolved %:                    <full_focusa> vs <no_focusa>   Δ=<delta>, 95% CI=<ci>
+Agent Power Index:             <full_focusa> vs <no_focusa>   FUS=<ratio>, 95% CI=<ci>
+METR-style time horizon @50%:  <full_focusa> vs <no_focusa>   Δ=<delta>
+Cost per resolved task:        <full_focusa> vs <no_focusa>   Δ=<delta>
+Pass^N / multi-turn success:   <full_focusa> vs <no_focusa>   Δ=<delta>
+Groundedness:                  <full_focusa> vs <no_focusa>   Δ=<delta>
+Operator burden:               <full_focusa> vs <no_focusa>   OBR=<ratio>
+
+LLM MODEL UPLIFT
+  Models tested:               <n_models> across <model_classes>
+  Median Focusa Uplift Score:  <median_fus>
+  Best uplift scenario:        <scenario_id> / <model_class>
+  Weak-model close rate:       <cheap_full_focusa>/<frontier_no_focusa>
+
+Ablations: passive_focusa, tool_only_focusa
+Evidence: <run_id>, <raw_jsonl>, <scoring_commit>, <environment_digest>
+Comparable framing: SWE-bench, METR, τ-bench/τ²-bench, xLAM/Gorilla, AgentBench/WebArena
+```
+
+### 19.2 Detailed Focusa Benchmark Report
+
+- Focusa-vs-No-Focusa primary comparison on every metric
+- Multi-model scenario uplift matrix (model × scenario × arm)
+- Weak-model amplification and cost-normalized model comparisons
+- Ablation analysis (`passive_focusa`, `tool_only_focusa`) after the primary comparison
+- Per-category breakdown (L1-L12)
+- Per-task success rate and confidence interval
+- Time/cost/token distributions
+- Groundedness and unsupported-claim analysis
+- Failure mode attribution: reasoning, communication, tool selection, tool arguments, environment, user/operator, Focusa runtime
+- Regression comparison to previous Focusa releases
+- Private-holdout vs public-regression split
+
+### 19.3 Methodology Doc
+
+- Task generation and holdout policy
+- Agent harness and model configuration
+- Focusa and No-Focusa environment setup
+- Judge implementation and blind-scoring policy
+- Statistical methods and minimum run counts
+- Cost accounting formula
+- Reproducibility instructions
+- Known limitations and invalid claim examples
+
+### 19.4 Raw Evidence Bundle
+
+- 150 task JSON files for public split
+- Private holdout manifest hash
+- Per-task Eval Ledger JSONL
+- Aggregated report JSON
+- CTL export refs used for token/cost/time joins
+- Scoring code version and commit
+- Model matrix: provider, model id, exact version/date, model class, pricing snapshot, context window, sampling settings
+- Environment digest: OS, arch, Focusa version, daemon version, installer channel, license mode
+
+### 19.5 Focusa Benchmark Leaderboard
+
+- Public URL: `focusa.dev/bench`
+- Default view: **Focusa vs No-Focusa**
+- Secondary views: by model, by Focusa version, by category, by cost, by time horizon
+- Drill-down: task, event timeline, evidence refs, judge output, failure attribution
+- Clear labels for measured values vs hypotheses
+
+---
+
+## 20. Conclusion
+
+Spec 113 now defines a market-grade **Focusa Agent Performance Benchmark**.
+
+The benchmark is not just a Focusa internal eval. It is a public evidence system built around the question buyers and builders care about:
+
+> **How much more powerful, grounded, cost-effective, and operator-friendly is an agent with Focusa than the same agent without Focusa?**
+
+The required headline is always **Focusa vs No-Focusa**. Ablations explain the uplift, but they never replace the primary market comparison.
+
+Valid public claim template:
+
+> **"On `focusa-agent-bench-vX`, Focusa improved `<metric>` from `<no_focusa>` to `<full_focusa>` versus the No-Focusa baseline (`Δ=<delta>`, 95% CI `<ci>`), using `<model/version>` across `<n>` matched trials. Raw artifacts: `<evidence_ref>`."**
+
+This is what makes Focusa grounded: measured claims, raw artifacts, replayable evals, and explicit No-Focusa baselines.

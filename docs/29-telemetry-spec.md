@@ -31,16 +31,39 @@ CTL observes:
 - cache behavior
 - human interaction signals
 - autonomy evolution
+- append-only eval ledger events emitted by `/v1/evals/*`
 
 CTL explicitly does **not**:
 - modify prompts
 - influence gates
 - enforce policy
 - control agents
+- accept arbitrary agent writes through `/v1/telemetry/*`
+- treat eval results as cognition authority
 
 ---
 
-## 2. Telemetry Design Constraints
+## 2. Eval Ledger Exception
+
+Evaluation harnesses need durable run evidence. That write path is not CTL mutation; it is a separate append-only Eval Ledger:
+
+```http
+POST /v1/evals/runs
+POST /v1/evals/runs/{run_id}/events
+POST /v1/evals/runs/{run_id}/complete
+GET  /v1/evals/runs/{run_id}
+GET  /v1/evals/compare?baseline=<run_id>&candidate=<run_id>
+```
+
+Eval Ledger constraints:
+1. Namespaced under `/v1/evals/*`, never `/v1/telemetry/*`.
+2. Append-only and idempotent by `event_id`.
+3. Requires `eval_mode=true`, `suite_id`, `run_id`, `task_id`, `scenario_id`, `arm`, `model_provider`, `model_id`, `model_version`, `model_class`, `environment_id`, `prompt_hash`, `pricing_snapshot`, and `schema_version`.
+4. Cannot mutate Workpoints, Trajectory, Focus State, ontology, prompts, gates, or agent routing.
+5. CTL reads/indexes eval events for reports; CTL remains passive and non-authoritative.
+6. Secrets/PII are redacted before persistence or export.
+
+## 3. Telemetry Design Constraints
 
 1. **Low overhead**
    - async write path
@@ -70,7 +93,7 @@ CTL explicitly does **not**:
 
 ---
 
-## 3. Telemetry Event Classes
+## 4. Telemetry Event Classes
 
 ### 3.1 Model & Token Telemetry
 Tracks:
@@ -110,7 +133,7 @@ Tracks:
 
 ---
 
-## 4. Telemetry Invariants
+## 5. Telemetry Invariants
 
 - Every event MUST be timestamped
 - Every event MUST be attributable
@@ -120,7 +143,7 @@ Tracks:
 
 ---
 
-## 5. CTL Integration Points
+## 6. CTL Integration Points
 
 | Subsystem        | Telemetry Hook |
 |------------------|----------------|
@@ -135,7 +158,7 @@ Tracks:
 
 ---
 
-## 6. Canonical Rule
+## 7. Canonical Rule
 
 > **If it cannot be measured, it cannot be trusted.**
 

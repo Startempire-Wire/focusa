@@ -49,7 +49,26 @@ Focusa succeeds only if:
 3. Separate infrastructure compliance from behavioral alignment.
 4. Preserve replay artifacts for auditability.
 5. Track both quality and operational cost.
+6. Run matched arms for market evidence: `no_focusa`, `passive_focusa`, `tool_only_focusa`, `full_focusa`.
+7. Use blind or deterministic judges where possible; store judge version and evidence refs.
+8. Record eval runs through the append-only Eval Ledger (`/v1/evals/*`), not mutable telemetry endpoints.
+9. Include multi-model scenario reporting: `model_provider`, `model_id`, `model_version`, `model_class`, `scenario_id`, and pricing snapshot.
+10. Public reports must lead with Focusa-vs-No-Focusa, then show model-by-scenario uplift and diagnostic ablations.
+
+## Eval Ledger Requirement
+
+Golden evals write first-class run evidence through:
+
+```http
+POST /v1/evals/runs
+POST /v1/evals/runs/{run_id}/events
+POST /v1/evals/runs/{run_id}/complete
+GET  /v1/evals/runs/{run_id}
+GET  /v1/evals/compare?baseline=<run_id>&candidate=<run_id>
+```
+
+The Eval Ledger is append-only, idempotent, eval-mode scoped, and non-cognitive. CTL may observe/index eval events for aggregate reports, but `/v1/telemetry/*` remains read/export only.
 
 ## Success Condition
 
-This document is satisfied when evals show that ontology-backed, behavior-enforced Focusa materially improves continuity, correctness, and action quality over a raw harness or passive-integration baseline.
+This document is satisfied when evals show that ontology-backed, behavior-enforced Focusa materially improves continuity, correctness, action quality, time horizon, and cost over raw harness and passive-integration baselines.
