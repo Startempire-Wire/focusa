@@ -1735,7 +1735,11 @@ export function registerTools(pi: ExtensionAPI) {
     if (msg.includes("worktree is not clean")) return "blocked: worktree has uncommitted changes";
     if (msg.includes("missing required header")) return "blocked: controller identity header missing";
     if (result.body?.failure_class === "cold_path_timeout") return "blocked: cold route timed out; hot tools may still be healthy";
-    if (result.body?.failure_class === "hot_path_timeout") return "blocked: hot route timed out";
+    if (result.body?.failure_class === "hot_path_timeout") {
+      const timeoutMs = String(result.body?.resource_mode?.budget?.hot_route_timeout_ms || result.body?.hot_route_timeout_ms || "250");
+      const mode = String(result.body?.resource_mode?.mode || "unknown");
+      return `blocked: hot route timed out (limit=${timeoutMs}ms, mode=${mode}); retry after brief backoff or run focusa_resource_mode activate_lowmem to extend budget`;
+    }
     if (result.body?.failure_class === "scope_mismatch" || result.body?.status === "rejected_scope_mismatch" || result.status === 409) {
       const field = String(result.body?.field || "scope");
       const expected = String(result.body?.expected_project_root || result.body?.expected_continuity_id || "unknown");
@@ -2810,7 +2814,16 @@ export function registerTools(pi: ExtensionAPI) {
       }
       if (!uiaiBrowser.ok) recommendations.push("UIAI browser health/metrics unavailable; browser diagnostics may be stale or unreachable.");
       if (uiaiBrowser.pressure === "high") recommendations.push("UIAI browser queue pressure is high; narrow browser workload, close stale sessions, or retry after queue drains.");
-      if (!workpoint.ok || !workpointCanonical) recommendations.push("No canonical active Workpoint is visible; run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.");
+      if (!workpoint.ok || !workpointCanonical) {
+        const reason = workpoint.body?.reason || workpoint.body?.status || "no_canonical";
+        if (workpointStatus === "not_found") {
+          recommendations.push(`Workpoint not_found (reason=${reason}). Run focusa_workpoint_checkpoint with project_root=<current> and continuity_id=<current> to create one before evidence or Focus State writes.`);
+        } else if (workpointStatus === "blocked" || workpointStatus === "rejected_scope_mismatch") {
+          recommendations.push(`Workpoint ${workpointStatus} (reason=${reason}). Verify project scope with focusa_project_identity, then focusa_workpoint_checkpoint in the current scope before continuing.`);
+        } else {
+          recommendations.push(`No canonical active Workpoint (status=${workpointStatus}, reason=${reason}); run focusa_project_identity then focusa_workpoint_checkpoint/resume before evidence or Focus State writes.`);
+        }
+      }
       if (missingDocs.length) recommendations.push("Some project-aware tool contracts lack docs; run docs maintenance before release proof.");
       if (contractDrift.drift_detected) recommendations.push("Tool contract drift detected between Pi static registry and live daemon; rebuild/restart focusa-daemon, then run live contract proof.");
       const nextTools = Array.from(new Set([
@@ -3033,7 +3046,12 @@ export function registerTools(pi: ExtensionAPI) {
           ? identity.project_summary.summary_lines.map((line: any) => String(line)).filter(Boolean)
           : [];
       const text = result.ok
-        ? [`project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`, ...summaryLines.slice(0, 4)].join("\n")
+        ? [
+            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`,
+            body.mismatch_reason ? `mismatch_reason=${body.mismatch_reason}` : null,
+            Array.isArray(body.degraded_reasons) && body.degraded_reasons.length > 0 ? `degraded_reasons=${body.degraded_reasons.map((r: any) => `${r.code}:${r.severity}`).join(", ")}` : null,
+            ...summaryLines.slice(0, 4),
+          ].filter(Boolean).join("\n")
         : `project identity blocked → ${explainWorkLoopResult(result, "project identity unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || { ok: result.ok, status: result.ok ? String(body.status || "completed") : "blocked", canonical: body.canonical === true, degraded: body.degraded !== false, failure_class: body.failure_class || null, retry: { safe: result.ok, posture: result.ok ? "safe_retry" : "check_side_effects_first" }, side_effects: [], evidence_refs: [], next_tools: body.next_tools || ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"] };
       return {
@@ -4109,7 +4127,12 @@ export function registerTools(pi: ExtensionAPI) {
       const text = res.ok && !rejected
         ? [`workpoint resume → ${summarizeWorkpointResponse(res.body)}\n${String(res.body?.rendered_summary || "")}`.trim(), recovery?.text].filter(Boolean).join("\n")
         : rejected
-          ? [`workpoint resume rejected: project_root mismatch. Ignore packet; follow latest operator instruction and current repo.`, recovery?.text].filter(Boolean).join("\n")
+          ? [
+              `workpoint resume rejected: project_root mismatch (saved scope ≠ current scope).`,
+              `safe_recovery: run focusa_project_verify project_root=<current> then focusa_workpoint_checkpoint in the current project; do NOT retry unchanged.`,
+              `action_authority_for_current_ask=false; no executable next step until scope verified.`,
+              recovery?.text || "",
+            ].filter(Boolean).join("\n")
           : [`workpoint resume unavailable → ${explainWorkLoopResult(res, "resume failed")}`, recovery?.text].filter(Boolean).join("\n");
       const v2 = res.body?.resume_packet_v2 || null;
       const canonical = res.body?.canonical === true;
