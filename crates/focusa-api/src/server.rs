@@ -28,7 +28,7 @@ use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
 unsafe extern "C" {
     fn malloc_trim(pad: usize) -> std::os::raw::c_int;
 }
@@ -41,13 +41,13 @@ fn allocator_trim_interval_secs() -> u64 {
 }
 
 fn trim_allocator_once() -> bool {
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
     {
         // SAFETY: malloc_trim is a process-local glibc allocator maintenance call.
         // It does not touch Rust-owned references; glibc serializes allocator internals.
         unsafe { malloc_trim(0) != 0 }
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(all(target_os = "linux", target_env = "gnu")))]
     {
         false
     }
