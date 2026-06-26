@@ -1,9 +1,11 @@
-# Install Binary Architecture Spec
+# Spec 112 — Install Binary Architecture
 
+**Spec number:** 112
 **Status:** Specification (no implementation yet)
 **Operator ask:** Smart, system-detecting installer that installs proper binary and weaves into license authority (WordPress website).
 **Source URL:** https://install.focusa.dev/focusa
 **Last verified:** 2026-06-26
+**Related docs:** `docs/INSTALL-GAP-AUDIT.md` (41 gaps identified)
 
 ---
 
@@ -1049,3 +1051,370 @@ The installer is ready for MVP Cohort when ALL of these are ✅:
 - `focusa-cqhi` — Menubar Tauri local artifact
 - `focusa-cme3` — Tauri release artifacts
 - All MVP-launch blockers until installer variants shipped
+
+---
+
+## 18. Reconciliation: Authoritative Acceptance Criteria (Replaces §9 and §15)
+
+**Section 9 and §15 contradicted each other. This section is the SINGLE authoritative list.**
+
+### 18.1 Detection (P0 — blocks MVP Cohort)
+
+- [ ] **Linux x86_64 glibc** → detects via `uname -m` + `ldd --version`, installs `focusa-x86_64-unknown-linux-gnu`
+- [ ] **Linux x86_64 musl** → detects musl libc, installs `focusa-x86_64-unknown-linux-musl` (**ASSET MISSING — see §19 Phase 1.5 P0**)
+- [ ] **Linux aarch64 glibc** → detects via `uname -m`, installs `focusa-aarch64-unknown-linux-gnu`
+- [ ] **Linux aarch64 musl** → detects musl libc, installs `focusa-aarch64-unknown-linux-musl` (**ASSET MISSING — see §19 Phase 1.5 P0**)
+- [ ] **macOS Intel** → detects `uname -s=Darwin` + `uname -m=x86_64`, installs `focusa-x86_64-apple-darwin`
+- [ ] **macOS Apple Silicon** → detects `uname -m=arm64`, installs `focusa-aarch64-apple-darwin`
+- [ ] **macOS < 11** → rejected with version requirement message
+- [ ] **Windows x86_64** → installs `focusa-x86_64-pc-windows-msvc` via `focusa.ps1` (**INSTALLER MISSING — see §19 Phase 1.5 P0**)
+- [ ] **Windows ARM64** → installs `focusa-aarch64-pc-windows-msvc` (**ASSET MISSING — see §19 Phase 1.5 P0**)
+- [ ] **WSL** → falls back to bash installer with explicit warning
+- [ ] **Linux without systemd** → `--no-service` flag works
+- [ ] **macOS without launchd** → daemon still installs (not blocked)
+
+### 18.2 Binary Download (P0)
+
+- [ ] Installer queries GitHub API for latest stable release: `https://api.github.com/repos/Startempire-Wire/focusa/releases/latest`
+- [ ] **CRITICAL FIX (A1):** Installer downloads `focusa`, `focusa-daemon`, `focusa-tui` from release (NOT Python stub)
+- [ ] Detects user's OS+arch+libc and picks correct asset
+
+### 18.3 Verification (P0)
+
+- [ ] **CRITICAL FIX (A7):** `SHA256SUMS.txt` published in every release
+- [ ] Installer verifies each downloaded asset: `sha256sum -c --ignore-missing SHA256SUMS.txt`
+- [ ] **CRITICAL FIX (A6):** macOS binaries verified via `codesign -dv` (Developer ID Application: Startempire Wire Inc.)
+- [ ] **CRITICAL FIX (A6):** macOS Gatekeeper quarantine removed: `xattr -d com.apple.quarantine`
+- [ ] **CRITICAL FIX (A8):** GPG/cosign signature verification for Linux
+- [ ] **CRITICAL FIX (A8):** Authenticode verification for Windows: `Get-AuthenticodeSignature`
+
+### 18.4 Service Deployment (P0)
+
+- [ ] **CRITICAL FIX (A10):** Linux systemd unit installed: `/etc/systemd/system/focusa-daemon.service`
+- [ ] **CRITICAL FIX (A5):** macOS LaunchAgent deployed: `~/Library/LaunchAgents/com.startempire.focusa-daemon.plist` (NO deferral)
+- [ ] **CRITICAL FIX (A9):** Windows SCM service: `New-Service focusa-daemon -BinaryPathName ...`
+
+### 18.5 License Authority (P0)
+
+- [ ] **CRITICAL FIX (A4):** License info actually written AND consumed by daemon
+- [ ] License endpoint validated: `POST /wp-json/wpuiai-ai-cloud/v1/license/validate` (returns 200 with `valid: bool`)
+- [ ] Tier read correctly from response (Python `json.load` has fallback to `operator` default)
+- [ ] Eval mode: `--eval` sets `eval: true` in license.json
+- [ ] License re-validation every 24h via daemon scheduler
+- [ ] License revocation → daemon enters `license_expired` mode (reads refuse, mutations refuse)
+- [ ] License path: Linux/macOS `$HOME/.config/focusa/license.json`, Windows `%APPDATA%\Focusa\license.json`
+
+### 18.6 AX / Recovery Hints (Spec92)
+
+- [ ] All 8 failure modes from §7 have `recovery_hint`
+- [ ] `--dry-run` works on all platforms
+- [ ] Color codes disabled when stdout is not a TTY (`[ -t 1 ]` check)
+- [ ] Cleanup trap set for `/tmp/*.sh` temporary files
+
+### 18.7 Tiers and Features (Resolves B18/B19)
+
+| Tier | Features | Daemon Behavior |
+|------|----------|-----------------|
+| `evaluation` (eval mode) | daemon, tui (rate limited 100 req/min) | daemon starts with `tier: "evaluation"` in /v1/health |
+| `operator` | daemon, tui | daemon starts normally |
+| `enterprise` | daemon, tui, menubar | all surfaces available |
+
+If a tier is missing a feature in `features[]` array:
+- Daemon refuses to start that feature
+- `/v1/doctor` reports `feature_disabled: <feature>`
+- Daemon runs in degraded mode (other features work)
+
+### 18.8 Update Mechanism (P1 — not blocking MVP)
+
+- [ ] `focusa update` command works on Linux/macOS/Windows
+- [ ] Channel selection: `stable | preview | nightly`
+- [ ] Atomic swap with rollback
+- [ ] Re-verifies SHA256SUMS on update
+
+### 18.9 Package Managers (P2 — post-MVP)
+
+- [ ] Linux: apt (Debian/Ubuntu), dnf (Fedora/RHEL)
+- [ ] macOS: Homebrew Cask
+- [ ] Windows: winget, Chocolatey
+
+---
+
+## 19. Phase 1.5 Mandatory Items (MVP Cohort Blocker)
+
+**Per operator rule: "If the system is compatible, we cannot defer support."**
+
+These items MUST ship before MVP Cohort. None may be deferred:
+
+### 19.1 Real Installer Fixes (CRITICAL)
+
+| # | Item | File/Action |
+|---|------|-------------|
+| 1 | A1: Replace Python stub with real Rust binary download | `install.focusa.dev/focusa` line ~167 |
+| 2 | A2: Publish Linux musl assets to release | Add `--target x86_64-unknown-linux-musl` to `release.yml` |
+| 3 | A3: Publish Windows ARM64 asset | Add `--target aarch64-pc-windows-msvc` to `release.yml` |
+| 4 | A5: Implement macOS LaunchAgent (NO deferral) | Add plist generation + `launchctl load` to bash installer |
+| 5 | A6: Add Apple Developer ID signing + Gatekeeper handling | `release.yml` codesign step + installer `codesign -dv` |
+| 6 | A7: Publish `SHA256SUMS.txt` | Add sha256sum step to `release.yml` |
+| 7 | A8: Add GPG/cosign signing | Add signing step to `release.yml` |
+| 8 | A9: Create `install.focusa.dev/install.ps1` | New PowerShell installer file |
+| 9 | A10: Add daemon systemd unit deployment | Install `/etc/systemd/system/focusa-daemon.service` |
+| 10 | A11: Fix `--with-pi` silent failure | Check Pi presence, error if missing |
+| 11 | A12: Implement OpenClaw bridges OR remove `--with-openclaw` flag | Pick one — either ship or remove |
+| 12 | A13: Handle all license response codes | Add network error, format error, expired license cases |
+
+### 19.2 Release Pipeline Updates (`release.yml`)
+
+```yaml
+# Required new steps in release.yml:
+- name: Generate SHA256SUMS
+  run: |
+    cd release-artifacts
+    sha256sum *.exe *.tar.gz *.dmg *.app.tar.gz focusa-* focusa-daemon-* focusa-tui-* > SHA256SUMS.txt
+
+- name: Sign artifacts with cosign
+  run: |
+    for f in focusa-* focusa-daemon-* focusa-tui-* SHA256SUMS.txt; do
+      cosign sign-blob --yes "$f"
+    done
+
+- name: Code sign macOS binaries
+  if: matrix.platform == 'macos-latest'
+  run: |
+    for f in focusa-* focusa-daemon-* focusa-tui-*; do
+      codesign --sign "Developer ID Application: Startempire Wire Inc." --options runtime "$f"
+      codesign --verify --deep --strict "$f"
+    done
+    # Submit for notarization
+    xcrun altool --notarize-app --file "$f" --primary-bundle-id "com.startempire.focusa"
+
+- name: Authenticode sign Windows binaries
+  if: matrix.platform == 'windows-latest'
+  run: |
+    for f in focusa-* focusa-daemon-* focusa-tui-*; do
+      signtool sign /fd SHA256 /a /tr http://timestamp.digicert.com "$f"
+    done
+
+- name: Add musl targets
+  strategy:
+    matrix:
+      include:
+        - target: x86_64-unknown-linux-gnu
+        - target: x86_64-unknown-linux-musl    # NEW
+        - target: aarch64-unknown-linux-gnu
+        - target: aarch64-unknown-linux-musl   # NEW
+        - target: x86_64-pc-windows-msvc
+        - target: aarch64-pc-windows-msvc       # NEW (Windows on ARM)
+```
+
+### 19.3 Daemon Install Locations (Service Files)
+
+**Linux systemd unit** (`/etc/systemd/system/focusa-daemon.service`):
+```ini
+[Unit]
+Description=Focusa Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+ExecStart=/usr/local/bin/focusa-daemon
+Restart=on-failure
+RestartSec=5
+Environment=FOCUSA_DATA_DIR=/var/lib/focusa
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**macOS LaunchAgent** (`~/Library/LaunchAgents/com.startempire.focusa-daemon.plist`):
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.startempire.focusa-daemon</string>
+  <key>ProgramArguments</key><array><string>/usr/local/bin/focusa-daemon</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/focusa-daemon.out</string>
+  <key>StandardErrorPath</key><string>/tmp/focusa-daemon.err</string>
+</dict>
+</plist>
+```
+
+**Windows SCM service** (via PowerShell):
+```powershell
+New-Service -Name "focusa-daemon" `
+  -BinaryPathName "C:\Program Files\Focusa\focusa-daemon.exe" `
+  -DisplayName "Focusa Daemon" `
+  -StartupType Automatic
+Start-Service "focusa-daemon"
+```
+
+### 19.4 PowerShell Installer Outline (`focusa.ps1`)
+
+Required to ship to install.focusa.dev/install.ps1:
+
+```powershell
+# Detection
+$OS = [System.Environment]::OSVersion
+$Arch = [System.Environment]::Is64BitOperatingSystem ? "x86_64" : "x86"
+$PSVer = $PSVersionTable.PSVersion.Major
+
+# Channel/version discovery (from WP REST API)
+$Latest = Invoke-RestMethod "https://install.focusa.dev/wp-json/wpuiai-ai-cloud/v1/releases/latest"
+
+# Asset selection
+$AssetSuffix = "x86_64-pc-windows-msvc"
+$Assets = @{
+    "focusa"       = "focusa-v$($Latest.version)-$AssetSuffix.exe"
+    "focusa-daemon" = "focusa-daemon-v$($Latest.version)-$AssetSuffix.exe"
+    "focusa-tui"    = "focusa-tui-v$($Latest.version)-$AssetSuffix.exe"
+}
+
+# Download + verify
+foreach ($name in $Assets.Keys) {
+    $url = "https://github.com/Startempire-Wire/focusa/releases/download/v$($Latest.version)/$($Assets[$name])"
+    $path = "$Prefix\bin\$name.exe"
+    Invoke-WebRequest -Uri $url -OutFile $path
+
+    # Verify SHA256
+    $expected = (Get-Content "$tmp\SHA256SUMS.txt" | Where { $_ -match $name }).Split()[0]
+    $actual = (Get-FileHash $path -Algorithm SHA256).Hash
+    if ($expected -ne $actual) { throw "Checksum mismatch: $name" }
+
+    # Verify Authenticode
+    $sig = Get-AuthenticodeSignature $path
+    if ($sig.SignerCertificate.Subject -notmatch "Startempire Wire") {
+        throw "Authenticode signature invalid: $name"
+    }
+}
+
+# SCM service
+New-Service -Name "focusa-daemon" -BinaryPathName "$Prefix\bin\focusa-daemon.exe" -StartupType Automatic
+Start-Service "focusa-daemon"
+
+# PATH
+[Environment]::SetEnvironmentVariable("PATH", "$env:PATH;$Prefix\bin", "User")
+
+# Smoke test
+& "$Prefix\bin\focusa.exe" doctor --json | ConvertFrom-Json | ForEach-Object {
+    if ($_.status -ne "ok") { throw "Smoke test failed" }
+}
+```
+
+---
+
+## 20. Phase 2+ Items (Post-MVP, NOT blocking)
+
+These are explicitly POST-MVP and will NOT block MVP Cohort. Listed here for future planning:
+
+- `focusa update` command (P1)
+- Atomic swap with rollback (P1)
+- Channel selection `stable | preview | nightly` (P1)
+- GPG signing automation (P1)
+- Homebrew Cask (P2)
+- winget (P2)
+- apt/dnf packages (P2)
+- Docker images (P2)
+
+---
+
+## 21. Open Questions with Owners and Deadlines
+
+Resolves gap B6 (open questions had no owners/deadlines):
+
+| # | Question | Owner | Deadline |
+|---|----------|-------|----------|
+| 1 | License revocation latency: 24h acceptable? | TBD | Before MVP Cohort |
+| 2 | Does `--eval` allow multiple users on same machine? | TBD | Before MVP Cohort |
+| 3 | Daemon refuses to start with invalid license OR just warns? | TBD | Before MVP Cohort |
+| 4 | What happens if upgrade is interrupted mid-install? | TBD | Before MVP Cohort |
+| 5 | Does `preview` channel break API stability guarantees (Spec92)? | TBD | Before MVP Cohort |
+| 6 | What is the Linux aarch64 musl performance vs glibc? | TBD | Phase 2 |
+| 7 | Should `--eval` rate limit apply per-user or per-machine? | TBD | Before MVP Cohort |
+| 8 | macOS: full path sign or just daemon binary? | TBD | Phase 1.5 |
+
+---
+
+## 22. Bead Cross-Reference (Authoritative — Replaces §13 and §17)
+
+### 22.1 Phase 1.5 P0 Beads (Blocking MVP Cohort)
+
+| Bead ID | Gap | Description |
+|---------|-----|-------------|
+| focusa-xxx1 | A1 | Real installer drops Python stub |
+| focusa-xxx2 | A5 | macOS LaunchAgent deferred (violates rule) |
+| focusa-xxx3 | A9 | No Windows PowerShell installer (404) |
+| focusa-xxx4 | A7-A8 | No SHA256SUMS / signing |
+| focusa-xxx5 | A2 | Linux musl asset missing |
+| focusa-xxx6 | A3 | Windows ARM64 asset missing |
+| focusa-xxx7 | A6 | No macOS code signing |
+| focusa-xxx8 | A10 | No daemon systemd unit installed |
+
+### 22.2 Related Beads (Existing)
+
+| Bead ID | Title | Status |
+|---------|-------|--------|
+| `focusa-iqqi` | PORTABILITY: install binary architecture (this spec) | Open |
+| `focusa-cqhi` | Menubar Tauri local artifact | Open |
+| `focusa-cme3` | Tauri release artifacts in release.yml | Open |
+| `focusa-7wgk` | Fresh-operator dry-run on clean VPS | Open |
+
+### 22.3 Beads to Create (Not Yet Tracked)
+
+- Real installer fix (A1)
+- macOS LaunchAgent (A5)
+- Windows PowerShell installer (A9)
+- SHA256SUMS signing (A7-A8)
+- macOS code signing (A6)
+- Daemon systemd unit (A10)
+- 9 total P0 beads must close before MVP Cohort
+
+---
+
+## 23. Verification Status (Live — 2026-06-26)
+
+### Verified Working
+- `curl -fsSL https://install.focusa.dev/focusa` returns 234-line installer
+- `--eval`, `--license-key`, `--dry-run`, `--uninstall` flags present
+- WP REST endpoint `POST /license/validate` returns 200 with `valid: false` for test key
+- GitHub release v0.9.25-dev publishes 13 assets: 3 binaries × 4 platforms (Linux gnu x86_64/arm64, Mac x86_64/arm64) + DMG + .app archives
+
+### Verified NOT Working (Live HTTP Probes)
+- `https://install.focusa.dev/install.ps1` → 404
+- `https://install.focusa.dev/install.cmd` → 404
+- `https://install.focusa.dev/install/windows` → 404
+- No `SHA256SUMS.txt` in any release asset (verified: `gh release view v0.9.25-dev`)
+- No musl assets in release
+- No Windows ARM64 asset in release
+- macOS daemon install deferred in real installer (`"skipping launchd plist for now (Phase 2)"`)
+
+### Verified Spec Gaps
+- §9 and §15 contradicted each other (now reconciled in §18)
+- §10 said "Phase 1.4 stub" (now corrected throughout)
+- Spec §5.2 marked signature as (P1) but Apple requires it (P0)
+- 41 total gaps identified in `docs/INSTALL-GAP-AUDIT.md`
+
+---
+
+## 24. Spec Metadata
+
+- **Spec number:** 112
+- **Authoritative version:** This document supersedes all prior sections §9, §15 (contradictory)
+- **Status:** Specification, awaiting Phase 1.5 implementation
+- **Owner:** TBD (spec author)
+- **Last verified:** 2026-06-26
+- **Next review:** After Phase 1.5 P0 beads complete
+
+---
+
+## 25. Cross-References
+
+- `docs/INSTALL-BINARY-SPEC.md` — This spec (Spec 112)
+- `docs/INSTALL-GAP-AUDIT.md` — 41-gap audit (process + spec)
+- `docs/MVP-AX-AUDIT.md` — AX audit (related to installer AX)
+- `docs/current/ERROR_EMPTY_STATES.md` — Error envelope spec
+- `docs/105-agent-dx-ux-merged-scope-spec.md` — DX/UX spec (Spec105)
+- `docs/102-trajectory-ladder-consolidated-spec.md` — Trajectory spec (Spec102)
+- `docs/92-agent-first-polish-hooks-efficiency-spec.md` — Polish spec (Spec92)
+- `.github/workflows/release.yml` — Release pipeline (needs Phase 1.5 updates per §19.2)
