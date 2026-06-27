@@ -36,6 +36,7 @@ pub mod pairing_doctor;
 pub mod pairing_wizard;
 pub mod pairing_cycle_test;
 pub mod pairing_dashboard;
+pub mod pairing_email_link;
 pub mod predict;
 pub mod project;
 pub mod proposals;

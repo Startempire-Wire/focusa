@@ -29,6 +29,8 @@ enum PairingCmd {
     Status(commands::pairing_dashboard::StatusArgs),
     /// Audit log of past pairings (G12).
     History(commands::pairing_dashboard::HistoryArgs),
+    /// One-shot email-link for phone-camera-broken scenarios (G13).
+    EmailLink(commands::pairing_email_link::EmailLinkArgs),
 }
 
 async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
@@ -45,6 +47,7 @@ async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
         PairingCmd::CycleTest(args) => commands::pairing_cycle_test::run(args).await,
         PairingCmd::Status(args) => commands::pairing_dashboard::run_status(args).await,
         PairingCmd::History(args) => commands::pairing_dashboard::run_history(args).await,
+        PairingCmd::EmailLink(args) => commands::pairing_email_link::run(args).await,
     }
 }
 

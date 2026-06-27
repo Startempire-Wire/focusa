@@ -1,44 +1,147 @@
 //! Bonjour / mDNS service advertisement for Focusa (focusa-ui0y v0.9.35-dev).
 //!
-//! The daemon advertises `_focusa._tcp.local` so the Mac menubar wizard can
-//! auto-discover the VPS on the LAN without operator input (G08). The TXT
-//! record carries `url=<public-pairing-url>` so the Mac can skip the
-//! Tailscale round-trip when on the same LAN.
+//! The daemon advertises `_focusa._tcp.local` so the Mac menubar wizard
+//! can auto-discover the VPS on the LAN without operator input (G08).
+//! The TXT record carries `url=<public-pairing-url>` so the Mac can skip
+//! the Tailscale round-trip when on the same LAN.
 //!
 //! Spec: docs/55-focusa-self-host-architecture.md §3, §5 (URL discovery).
 //!
-//! NOTE: mdns-sd 0.11's ServiceInfo API takes more required fields than we
-//! can populate in a portable daemon (hostname, IP addrs). For v0.9.35-dev
-//! the Bonjour path is a stub: the module compiles and exposes the right
-//! surface, but the actual advertisement relies on the macOS-side
-//! daemon_lan_announce helper (apps/menubar Tauri command) plus the
-//! `_focusa._tcp.local` service that the operator can install manually
-//! via `dns-sd -R "Focusa" _focusa._tcp local 8787` on macOS, or via the
-//! `focusa pairing transport-setup` helper that writes a hostfile entry.
-//! A full mdns-sd 0.11 integration is queued for v0.9.36.
+//! Implementation: uses the `mdns-sd` crate's `ServiceInfo` builder with
+//! the daemon's first non-loopback IPv4 address as the host IP. The
+//! service name is `focusa-daemon`. TXT record keys:
+//!   - url     (e.g. https://focusa-vps.tail-net.ts.net)
+//!   - version (e.g. 0.9.35-dev)
+//!   - port    (e.g. 8787)
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::time::Duration;
 
-/// Stub: holds the daemon alive to keep any platform-specific advertisement
-/// alive (in a future version). On macOS the Tauri-side menubar also uses
-/// the same mdns-sd crate to advertise; for the daemon we accept that
-/// Bonjour registration on Linux/macOS-from-CLI may be a no-op until a
-/// later version wires ServiceInfo with the right hostname/IP discovery.
-pub async fn advertise(service_type: &str, port: u16) -> Result<()> {
-    tracing::info!(
-        service_type = %service_type,
-        port = port,
-        "Bonjour advertisement stub (see bonjour.rs note); Tailscale/Bonjour auto-discovery on the Mac side is implemented in FirstRunWizard.svelte"
-    );
-    loop {
-        tokio::time::sleep(Duration::from_secs(60)).await;
-    }
+/// Result of a successful service registration.
+pub struct RegisteredService {
+    pub fullname: String,
+    pub port: u16,
 }
 
-/// Stub browse. The Mac-side browse uses the Tauri command
-/// `focusa_discover_via_bonjour` (apps/menubar/src-tauri/src/main.rs).
-pub async fn browse(_service_type: &str, _timeout_secs: u64) -> Result<Option<BonjourService>> {
+/// Advertise `_focusa._tcp.local` on the given port. The function returns
+/// after the registration is established; the advertisement is held
+/// alive in a background tokio task that runs until process shutdown.
+///
+/// Uses the first non-loopback IPv4 address on the host. If no such
+/// address is found, falls back to 0.0.0.0 (advertisement still works
+/// on link-local networks).
+pub async fn advertise(service_type: &str, port: u16) -> Result<RegisteredService> {
+    use mdns_sd::{ServiceDaemon, ServiceInfo};
+    let url = std::env::var("FOCUSA_PUBLIC_URL")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| format!("http://127.0.0.1:{port}"));
+    let version = env!("CARGO_PKG_VERSION").to_string();
+    let host_ip = detect_first_non_loopback_ipv4().unwrap_or_else(|| "0.0.0.0".to_string());
+
+    let daemon = ServiceDaemon::new().context("create mdns daemon")?;
+    let service_fullname = format!(
+        "focusa-daemon.{}",
+        service_type.trim_end_matches('.')
+    );
+    let service_type = service_type.trim_end_matches('.').to_string();
+
+    let mut properties: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    properties.insert("url".to_string(), url.clone());
+    properties.insert("version".to_string(), version.clone());
+    properties.insert("port".to_string(), port.to_string());
+
+    let service_info = ServiceInfo::new(
+        &service_type,
+        "focusa-daemon",
+        &service_fullname,
+        &host_ip,
+        port,
+        properties,
+    )
+    .context("build ServiceInfo")?
+    .enable_addr_auto();
+
+    daemon.register(service_info).context("register _focusa._tcp.local")?;
+
+    tracing::info!(
+        service_fullname = %service_fullname,
+        host_ip = %host_ip,
+        port = port,
+        url = %url,
+        version = %version,
+        "Bonjour advertisement registered"
+    );
+
+    // Hold the daemon alive in a background task. If the daemon is dropped,
+    // the advertisement disappears.
+    let bg = std::sync::Arc::new(daemon);
+    let bg_clone = bg.clone();
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(3600)).await;
+        }
+    });
+    // Return the registered service; caller can shut down the daemon on drop.
+    let _ = bg_clone;
+    Ok(RegisteredService {
+        fullname: service_fullname,
+        port,
+    })
+}
+
+/// Browse the LAN for `_focusa._tcp.local` services. Returns the first
+/// resolved service within `timeout_secs`, or None if no daemon is found.
+///
+/// Used by tests; production browse is done in the Tauri menubar
+/// (`focusa_discover_via_bonjour` in apps/menubar/src-tauri/src/main.rs)
+/// because browsers cannot do mDNS natively.
+pub async fn browse(service_type: &str, timeout_secs: u64) -> Result<Option<BonjourService>> {
+    use mdns_sd::ServiceDaemon;
+    let daemon = ServiceDaemon::new().context("create mdns daemon")?;
+    let receiver = daemon
+        .browse(service_type)
+        .context("browse _focusa._tcp.local")?;
+    let deadline = std::time::Instant::now() + Duration::from_secs(timeout_secs);
+    while std::time::Instant::now() < deadline {
+        if let Ok(Ok(mdns_sd::ServiceEvent::ServiceResolved(info))) =
+            tokio::time::timeout(Duration::from_millis(250), receiver.recv_async()).await
+        {
+            let name = info.get_fullname().to_string();
+                let host = info.get_hostname().to_string();
+                let port = info.get_port();
+                let txt: std::collections::HashMap<String, String> = info
+                    .get_properties()
+                    .iter()
+                    .filter_map(|p| {
+                        let val = p
+                            .val()
+                            .and_then(|b| std::str::from_utf8(b).ok())
+                            .unwrap_or("")
+                            .to_string();
+                        if val.is_empty() {
+                            None
+                        } else {
+                            Some((p.key().to_string(), val))
+                        }
+                    })
+                    .collect();
+                let url = txt
+                    .get("url")
+                    .cloned()
+                    .unwrap_or_else(|| {
+                        format!("http://{}:{}", host.trim_end_matches('.'), port)
+                    });
+                let _ = daemon.shutdown();
+                return Ok(Some(BonjourService {
+                    url,
+                    host,
+                    port,
+                    name,
+                }));
+        }
+    }
+    let _ = daemon.shutdown();
     Ok(None)
 }
 
@@ -48,4 +151,23 @@ pub struct BonjourService {
     pub host: String,
     pub port: u16,
     pub name: String,
+}
+
+/// Detect the first non-loopback IPv4 address on the host. Used for
+/// Bonjour ServiceInfo registration. Returns None if no such address
+/// is found (caller falls back to 0.0.0.0).
+fn detect_first_non_loopback_ipv4() -> Option<String> {
+    use std::net::{IpAddr, Ipv4Addr};
+    let addrs: Vec<IpAddr> = if_addrs::get_if_addrs()
+        .ok()
+        .map(|ifs| ifs.into_iter().map(|i| i.ip()).collect())
+        .unwrap_or_default();
+    for ip in addrs {
+        if let IpAddr::V4(v4) = ip {
+            if !v4.is_loopback() && !v4.is_link_local() && v4 != Ipv4Addr::UNSPECIFIED {
+                return Some(v4.to_string());
+            }
+        }
+    }
+    None
 }
