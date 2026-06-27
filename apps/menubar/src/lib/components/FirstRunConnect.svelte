@@ -7,6 +7,7 @@
   import Settings from './Settings.svelte';
 
   const OFFER_TTL_MS = 5 * 60_000;
+  const POLL_INTERVAL_MS = 1500;
 
   let nonce = $state('');
   let createdAt = $state(Date.now());
@@ -17,6 +18,11 @@
   let completionStatus = $state('');
   let callbackUrl = $state('');
   let callbackStatus = $state('');
+  let pairUrl = $state('');
+  let serverUrl = $state('');
+  let connectId = $state('');
+  let macName = $state('');
+  let firstrunError = $state('');
   let tickHandle: ReturnType<typeof setInterval> | null = null;
   let callbackPollHandle: ReturnType<typeof setInterval> | null = null;
 
@@ -34,11 +40,88 @@
     }
   }
 
-  function refreshOffer() {
-    nonce = randomNonce();
+  async function refreshOffer() {
     createdAt = Date.now();
+    nonce = randomNonce();
     now = createdAt;
+    macName = deviceName();
+    callbackUrl = '';
+    pairUrl = '';
+    connectId = '';
+    firstrunError = '';
+    callbackStatus = 'Creating room…';
+    try {
+      const stored = localStorage.getItem(PUBLIC_PAIRING_URL_KEY);
+      const hint = stored && stored.trim().length > 0 ? stored : undefined;
+      const resp = await fetch(new URL('/v1/connect/room/firstrun', getApiUrl()), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mac_name: macName,
+          mac_nonce: nonce,
+          server_url: hint,
+        }),
+      });
+      if (!resp.ok) throw new Error(`firstrun HTTP ${resp.status}`);
+      const body = await resp.json();
+      pairUrl = body.pair_url || body.pair_url_qr_payload || '';
+      connectId = body.room_id || body.connect_id || '';
+      serverUrl = body.server_url || getApiUrl();
+      callbackStatus = pairUrl
+        ? 'Scan the QR with your phone camera.'
+        : 'Server returned no pair URL.';
+      if (callbackPollHandle) clearInterval(callbackPollHandle);
+      callbackPollHandle = setInterval(() => pollRoomStatus(), POLL_INTERVAL_MS);
+      pollRoomStatus();
+    } catch (err) {
+      firstrunError = err instanceof Error ? err.message : String(err);
+      callbackStatus = `Could not create room: ${firstrunError}`;
+    }
     void startBridgeCallback(nonce);
+  }
+
+  async function pollRoomStatus() {
+    if (!connectId) return;
+    const pollUrl = serverUrl
+      ? new URL(`/v1/connect/room/${encodeURIComponent(connectId)}/status`, serverUrl)
+      : new URL(`/v1/connect/room/${encodeURIComponent(connectId)}/status`, getApiUrl());
+    try {
+      const resp = await fetch(pollUrl, { headers: { accept: 'application/json' } });
+      if (!resp.ok) return;
+      const body = await resp.json();
+      if (body.status === 'completed' && body.token) {
+        if (callbackPollHandle) {
+          clearInterval(callbackPollHandle);
+          callbackPollHandle = null;
+        }
+        await completePairingFromRoom(body);
+      }
+    } catch {
+      /* keep polling until TTL */
+    }
+  }
+
+  async function completePairingFromRoom(body: {
+    device_id?: string;
+    device_name?: string;
+    token: string;
+    server_url?: string;
+  }) {
+    const token = body.token;
+    const deviceId = body.device_id || connectId;
+    const server = body.server_url || serverUrl || getApiUrl();
+    setApiUrl(server);
+    saveConnection(server, body.device_name || 'Focusa Mac');
+    try {
+      await invoke('focusa_save_pairing_token', { deviceId, token });
+      completionStatus = 'Connected. Token stored in Keychain.';
+    } catch (err) {
+      localStorage.setItem('focusa_pairing_token_preview', String(token).slice(0, 6) + '…');
+      completionStatus = `Connected locally; Keychain unavailable: ${err instanceof Error ? err.message : String(err)}`;
+    }
+    localStorage.setItem('focusa_device_id', deviceId);
+    localStorage.setItem('focusa_has_connected_successfully', 'true');
+    callbackStatus = 'Pairing complete. You can close the phone browser.';
   }
 
   const remainingLabel = $derived.by(() => {
@@ -49,15 +132,7 @@
     return `${mm}:${ss.toString().padStart(2, '0')}`;
   });
 
-  const offerPayload = $derived.by(() => JSON.stringify({
-    protocol: 'focusa-connect-v1',
-    role: 'mac_handoff_offer',
-    mac_name: deviceName(),
-    nonce,
-    mac_callback: callbackUrl || undefined,
-    created_at: new Date(createdAt).toISOString(),
-    expires_in_secs: Math.floor(OFFER_TTL_MS / 1000),
-  }));
+  const offerPayload = $derived.by(() => pairUrl);
 
   async function applyCompletionPayloadText(raw: string) {
     try {
@@ -88,32 +163,14 @@
     await applyCompletionPayloadText(completionPayload);
   }
 
-  function bridgeUnavailableMessage(): string {
-    return 'Automatic Mac callback is only available in the native menubar app. In this browser preview, use Advanced paste fallback.';
-  }
-
-  async function startBridgeCallback(nextNonce: string) {
-    callbackUrl = '';
-    callbackStatus = 'Starting automatic Mac callback…';
-    if (callbackPollHandle) clearInterval(callbackPollHandle);
+  async function startBridgeCallback(_nextNonce: string) {
+    // Fast-path callback kept as a UX nicety; the URL-QR poll loop is the
+    // canonical completion path. If the bridge is unavailable we silently
+    // rely on the poll loop, so this must not throw or replace callbackStatus.
     try {
-      callbackUrl = await invoke<string>('focusa_start_bridge_callback', { nonce: nextNonce });
-      callbackStatus = 'Automatic Mac callback ready.';
-      callbackPollHandle = setInterval(async () => {
-        try {
-          const payload = await invoke<string | null>('focusa_take_bridge_completion', { nonce: nextNonce });
-          if (payload) {
-            if (callbackPollHandle) clearInterval(callbackPollHandle);
-            completionPayload = payload;
-            callbackStatus = 'Phone Bridge completion received automatically.';
-            await applyCompletionPayloadText(payload);
-          }
-        } catch {
-          callbackStatus = bridgeUnavailableMessage();
-        }
-      }, 1500);
+      callbackUrl = await invoke<string>('focusa_start_bridge_callback', { nonce: _nextNonce });
     } catch {
-      callbackStatus = bridgeUnavailableMessage();
+      callbackUrl = '';
     }
   }
 
@@ -158,11 +215,11 @@
   <h2>Connect to Focusa</h2>
   <div class="qr-card">
     {#if nonce}
-      <QRCode payload={offerPayload} size={260} />
+      <QRCode payload={pairUrl || ''} size={260} />
     {/if}
   </div>
-  <p class="primary-copy">Open Focusa Connect first, then scan this QR.</p>
-  <p class="secondary-copy">If your phone camera shows raw JSON, that is expected — this QR is for the Focusa Connect Page scanner, not the camera app · {remainingLabel}</p>
+  <p class="primary-copy">Scan this QR with your phone camera.</p>
+  <p class="secondary-copy">Your browser will open a Focusa Connect page; tap Approve there. No app install required. · {remainingLabel}</p>
   <p class="advanced-copy">{callbackStatus}</p>
 
   <div class="utility-row">

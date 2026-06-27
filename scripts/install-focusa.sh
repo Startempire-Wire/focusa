@@ -436,5 +436,34 @@ else
   cat /tmp/focusa-install-version.out
 fi
 log "Done."
+
+# Auto-discover a phone-reachable URL for QR-first self-host pairing.
+# Operator can override with --public-url or by editing ~/.config/focusa/public-url.
+PUBLIC_URL_FILE="$HOME/.config/focusa/public-url"
+if [ "$DRY_RUN" -eq 1 ]; then
+  log "DRY RUN: would run '$PREFIX/bin/focusa pairing transport-setup' to discover phone-reachable URL."
+elif [ -n "${FOCUSA_PUBLIC_URL:-}" ]; then
+  log "Using FOCUSA_PUBLIC_URL=$FOCUSA_PUBLIC_URL (from environment)."
+  mkdir -p "$(dirname "$PUBLIC_URL_FILE")"
+  printf '%s\n' "$FOCUSA_PUBLIC_URL" > "$PUBLIC_URL_FILE"
+elif [ -s "$PUBLIC_URL_FILE" ]; then
+  log "Using existing public URL from $PUBLIC_URL_FILE: $(cat "$PUBLIC_URL_FILE")"
+elif have cloudflared && ! [ "${SKIP_CLOUDFLARED:-0}" = "1" ]; then
+  log "Discovering phone-reachable URL via cloudflared quick tunnel…"
+  if "$PREFIX/bin/focusa" pairing transport-setup --provider cloudflared --write "$PUBLIC_URL_FILE" \
+      >>"$PREFIX/state/focusa-install.out.log" 2>>"$PREFIX/state/focusa-install.err.log"; then
+    PUBLIC_URL="$(cat "$PUBLIC_URL_FILE" 2>/dev/null || echo)"
+    if [ -n "$PUBLIC_URL" ]; then
+      log "Public pairing URL written to $PUBLIC_URL_FILE"
+      log "Mac app: open Settings, paste this URL into 'Public pairing URL', then rescan."
+    fi
+  else
+    warn "cloudflared transport-setup failed. recovery_hint: run '$PREFIX/bin/focusa pairing transport-setup' or set FOCUSA_PUBLIC_URL."
+  fi
+else
+  log "No public pairing URL configured. The Mac app will use http://127.0.0.1:8787 (requires LAN/Tailscale to phone)."
+  log "To make this server phone-reachable: '$PREFIX/bin/focusa pairing transport-setup' (or set FOCUSA_PUBLIC_URL)."
+fi
+
 log "Run: $PREFIX/bin/focusa license status"
 log "Docs: https://install.focusa.dev"

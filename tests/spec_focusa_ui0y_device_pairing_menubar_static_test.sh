@@ -120,5 +120,23 @@ else
   echo "ⓘ  daemon not running locally; skipping live CORS check"
 fi
 
+# 18. FirstRunConnect renders a URL-shaped QR (WhatsApp-like), not a JSON blob.
+FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
+[ -f "$FIRST_RUN" ] || fail "FirstRunConnect.svelte missing"
+rg -n 'QRCode payload=' "$FIRST_RUN" >/dev/null || fail "FirstRunConnect.svelte missing QRCode usage"
+if ! rg -q 'payload=\{pairUrl' "$FIRST_RUN"; then
+  fail "FirstRunConnect.svelte QR payload is not the URL-shaped pairUrl"
+fi
+if rg -q "JSON.stringify\(\{\s*protocol" "$FIRST_RUN"; then
+  fail "FirstRunConnect.svelte still embeds a JSON QR blob (must be URL-shaped)"
+fi
+pass "FirstRunConnect.svelte QR is URL-shaped (WhatsApp-like), not a JSON blob"
+
+# 19. FirstRunConnect polls the URL-QR room status endpoint
+if ! rg -q '/v1/connect/room/firstrun|/v1/connect/room/.*status|pollRoomStatus' "$FIRST_RUN"; then
+  fail "FirstRunConnect.svelte missing firstrun / pollRoomStatus / status URL"
+fi
+pass "FirstRunConnect.svelte polls /v1/connect/room/{room_id}/status after firstrun"
+
 echo ""
 echo "ALL focusa-ui0y menubar static checks passed."
