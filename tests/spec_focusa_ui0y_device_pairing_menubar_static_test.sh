@@ -38,6 +38,15 @@ rg -n 'revoke|Revoke|paired_devices|pairedDevices' "$PANEL" >/dev/null \
   || fail "PairingPanel missing revoke flow"
 pass "PairingPanel supports per-device revoke"
 
+# 3b. Release-grade pairing debug bundle support
+DIAG="$ROOT_DIR/apps/menubar/src/lib/stores/diagnostics.svelte.ts"
+FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
+rg -n 'renderRedactedDebugBundle|Focusa Mac pairing debug bundle|app_version|latest_failure|diagnostics_jsonl|redaction' "$DIAG" >/dev/null   || fail "diagnostics store missing redacted debug bundle fields"
+rg -n "lower\.includes\('token'\)|\[REDACTED\]|long_strings" "$DIAG" >/dev/null   || fail "debug bundle missing token/secret redaction"
+rg -n 'Copy debug bundle|copyDebugBundle|first_run_connect|callback_status|completion_status|public_pairing_url' "$FIRST_RUN" >/dev/null   || fail "FirstRunConnect missing Copy debug bundle with callback/completion context"
+rg -n 'Copy debug bundle|copyDebugBundle|pairing_panel|pairing_state_kind|pairing_state' "$PANEL" >/dev/null   || fail "PairingPanel missing Copy debug bundle with pairing state"
+pass "release-grade redacted debug bundle wired into first-run + pairing failure UI"
+
 # 6. +page.svelte has the pair tab
 PAGE="$ROOT_DIR/apps/menubar/src/routes/+page.svelte"
 rg -n 'PairingPanel|\"pair\"|activeTab === .pair.' "$PAGE" >/dev/null \

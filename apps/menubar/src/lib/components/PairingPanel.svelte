@@ -13,8 +13,9 @@
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { PUBLIC_PAIRING_URL_KEY } from '$lib/api';
+  import { PUBLIC_PAIRING_URL_KEY, getApiUrl } from '$lib/api';
   import { pairingStore } from '$lib/stores/pairing.svelte';
+  import { renderRedactedDebugBundle } from '$lib/stores/diagnostics.svelte';
   import QRCode from './QRCode.svelte';
 
   let { host = 'operator-vps' }: { host?: string } = $props();
@@ -22,6 +23,7 @@
   let deviceNameInput = $state(localStorage.getItem('focusa_device_name') || 'operator-mac');
   let copied = $state(false);
   let copiedErrorLog = $state(false);
+  let copiedDebugBundle = $state(false);
   let now = $state(Date.now());
   // Apple-like default: QR scan first; manual CLI/code is fallback only.
   let handoffMode = $state<'A' | 'B' | 'C'>('B');
@@ -67,6 +69,25 @@
     await copyToClipboard(text || 'No pairing diagnostic log available');
     copiedErrorLog = true;
     setTimeout(() => (copiedErrorLog = false), 1_500);
+  }
+
+  async function copyDebugBundle() {
+    const s = pairingStore.state;
+    const payload = renderRedactedDebugBundle({
+      surface: 'pairing_panel',
+      daemon_url: getApiUrl(),
+      public_pairing_url: localStorage.getItem(PUBLIC_PAIRING_URL_KEY) || '(unset)',
+      host,
+      pairing_state_kind: s.kind,
+      pairing_state: s,
+      extra: {
+        active_devices: activeDevices.length,
+        revoked_devices: revokedDevices.length,
+      },
+    });
+    await copyToClipboard(payload);
+    copiedDebugBundle = true;
+    setTimeout(() => (copiedDebugBundle = false), 1_500);
   }
 
   function saveDeviceName() {
@@ -217,6 +238,7 @@
       {/if}
       <div class="row-actions">
         <button class="secondary" onclick={() => copyErrorLog(s.diagnosticText)}>Copy error log</button>
+        <button class="secondary" onclick={copyDebugBundle}>{copiedDebugBundle ? 'Copied bundle' : 'Copy debug bundle'}</button>
         <button class="primary" onclick={() => pairingStore.reset()}>Try again</button>
       </div>
       {#if copiedErrorLog}<p class="copied">Error log copied.</p>{/if}

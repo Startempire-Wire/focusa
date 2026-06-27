@@ -1,5 +1,7 @@
 // Menubar diagnostics — timestamped local error ledger for operator troubleshooting.
 
+import pkg from '../../../package.json';
+
 export type MenubarErrorClass =
   | 'network'
   | 'timeout'
@@ -14,6 +16,49 @@ export type MenubarErrorClass =
   | 'pairing_revoke'
   | 'pairing_bootstrap'
   | 'unknown';
+
+
+export interface DebugBundleContext {
+  surface: string;
+  daemon_url?: string;
+  public_pairing_url?: string;
+  pairing_state_kind?: string;
+  pairing_state?: unknown;
+  callback_status?: string;
+  completion_status?: string;
+  mac_callback?: string;
+  offer_nonce?: string;
+  offer_age_ms?: number;
+  host?: string;
+  extra?: Record<string, unknown>;
+}
+
+function redact(value: unknown): unknown {
+  if (value == null) return value;
+  if (typeof value === 'string') return value.length > 160 ? `${value.slice(0, 80)}…[redacted-length=${value.length}]` : value;
+  if (typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.slice(0, 50).map(redact);
+  const out: Record<string, unknown> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    const lower = key.toLowerCase();
+    if (lower.includes('token') || lower.includes('authorization') || lower.includes('secret') || lower.includes('password') || lower.includes('credential')) {
+      out[key] = '[REDACTED]';
+    } else {
+      out[key] = redact(raw);
+    }
+  }
+  return out;
+}
+
+function runtimeInfo(): Record<string, unknown> {
+  const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+  return {
+    app_version: (pkg as { version?: string }).version || 'unknown',
+    user_agent: nav?.userAgent || 'unknown',
+    platform: nav?.platform || 'unknown',
+    language: nav?.language || 'unknown',
+  };
+}
 
 export interface DiagnosticEntry {
   ts: string;
@@ -148,4 +193,26 @@ export function installGlobalDiagnostics(): void {
       error: event.reason,
     });
   });
+}
+
+
+export function renderRedactedDebugBundle(context: DebugBundleContext): string {
+  const latest = diagnosticsStore.latest();
+  const bundle = {
+    title: 'Focusa Mac pairing debug bundle',
+    schema: 'focusa.menubar.debug_bundle.v1',
+    generated_at: new Date().toISOString(),
+    runtime: runtimeInfo(),
+    context: redact(context),
+    latest_failure: redact(latest),
+    diagnostics_jsonl: diagnosticsStore.render({ limit: 50 }).split('\n').filter(Boolean).map((line) => {
+      try { return redact(JSON.parse(line)); } catch { return line; }
+    }),
+    redaction: {
+      tokens: 'redacted by key name',
+      long_strings: 'truncated',
+      note: 'Paste this whole bundle into the dev thread; it should not contain bearer tokens or keychain secrets.',
+    },
+  };
+  return JSON.stringify(bundle, null, 2);
 }

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { saveConnection, setApiUrl } from '$lib/api';
+  import { PUBLIC_PAIRING_URL_KEY, getApiUrl, saveConnection, setApiUrl } from '$lib/api';
+  import { renderRedactedDebugBundle } from '$lib/stores/diagnostics.svelte';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
 
@@ -11,7 +12,7 @@
   let createdAt = $state(Date.now());
   let now = $state(Date.now());
   let showAdvanced = $state(false);
-  let copiedErrors = $state(false);
+  let copiedDebugBundle = $state(false);
   let completionPayload = $state('');
   let completionStatus = $state('');
   let callbackUrl = $state('');
@@ -116,22 +117,27 @@
     }
   }
 
-  async function copyErrors() {
-    const payload = [
-      'Focusa first-run connect diagnostics',
-      'note=Run focusa pair on the server first; scan this Mac code inside the Focusa Connect Page.',
-      `offer_nonce=${nonce || '(none)'}`,
-      `mac_callback=${callbackUrl || '(unavailable)'}`,
-      `offer_age_ms=${Date.now() - createdAt}`,
-      `stored_server=${localStorage.getItem('focusa_api_url') || '(unset)'}`,
-      `stored_public_pairing_url=${localStorage.getItem('focusa_public_pairing_url') || '(unset)'}`,
-    ].join('\n');
+  async function copyDebugBundle() {
+    const payload = renderRedactedDebugBundle({
+      surface: 'first_run_connect',
+      daemon_url: getApiUrl(),
+      public_pairing_url: localStorage.getItem(PUBLIC_PAIRING_URL_KEY) || '(unset)',
+      callback_status: callbackStatus,
+      completion_status: completionStatus,
+      mac_callback: callbackUrl || '(unavailable)',
+      offer_nonce: nonce || '(none)',
+      offer_age_ms: Date.now() - createdAt,
+      extra: {
+        has_completion_payload: Boolean(completionPayload),
+        stored_server: localStorage.getItem('focusa_api_url') || '(unset)',
+      },
+    });
     try {
       await navigator.clipboard.writeText(payload);
-      copiedErrors = true;
-      setTimeout(() => copiedErrors = false, 1500);
+      copiedDebugBundle = true;
+      setTimeout(() => copiedDebugBundle = false, 1500);
     } catch {
-      window.prompt('Copy Focusa diagnostics:', payload);
+      window.prompt('Copy Focusa debug bundle:', payload);
     }
   }
 
@@ -160,7 +166,7 @@
   <p class="advanced-copy">{callbackStatus}</p>
 
   <div class="utility-row">
-    <button class="utility" onclick={copyErrors}>{copiedErrors ? 'Copied errors' : 'Copy errors'}</button>
+    <button class="utility" onclick={copyDebugBundle}>{copiedDebugBundle ? 'Copied bundle' : 'Copy debug bundle'}</button>
     <details bind:open={showAdvanced}>
       <summary>Advanced</summary>
       {#if showAdvanced}
