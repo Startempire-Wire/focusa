@@ -47,6 +47,11 @@ pub struct CycleTestArgs {
     /// Stop on the first failure (default: collect all failures).
     #[arg(long)]
     pub fail_fast: bool,
+    /// Also verify that the /connect/room/{id}/scan PWA page renders correctly
+    /// (HTTP 200 + contains expected DOM/JS fragments). Drives the headless
+    /// plumbing end-to-end without needing a real phone.
+    #[arg(long)]
+    pub with_pwa_verify: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -56,6 +61,17 @@ pub struct CycleTestReport {
     pub rounds_failed: usize,
     pub failures: Vec<CycleFailure>,
     pub total_duration_ms: u128,
+    pub pwa_verify: Option<PwaVerifyReport>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PwaVerifyReport {
+    pub scanned_url: String,
+    pub http_status: u16,
+    pub page_bytes: usize,
+    pub fragments_found: Vec<String>,
+    pub fragments_missing: Vec<String>,
+    pub passed: bool,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -109,6 +125,7 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
 
     let mut failures: Vec<CycleFailure> = Vec::new();
     let mut passed = 0usize;
+    let mut pwa_verify: Option<PwaVerifyReport> = None;
 
     for round in 1..=args.rounds {
         if !args.json {
@@ -231,12 +248,64 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
         }
     }
 
+    // PWA headless verification: opens /connect/room/{id}/scan and asserts
+    // all expected DOM/JS fragments are present. Proves the phone-side
+    // entry point renders without needing a real phone.
+    if args.with_pwa_verify && passed > 0 {
+        if !args.json {
+            println!();
+            println!("=== PWA scan page verify (headless plumbing) ===");
+        }
+        match verify_pwa_scan(&client, &base).await {
+            Ok(report) => {
+                if !args.json {
+                    println!("  scanned: {}", report.scanned_url);
+                    println!(
+                        "  http_status: {} | page_bytes: {}",
+                        report.http_status, report.page_bytes
+                    );
+                    println!("  fragments_found:   {}", report.fragments_found.join(", "));
+                    if !report.fragments_missing.is_empty() {
+                        println!("  fragments_missing: {}", report.fragments_missing.join(", "));
+                    }
+                    if report.passed {
+                        println!("  ✓ PWA scan page verify PASS");
+                    } else {
+                        println!("  ✗ PWA scan page verify FAIL");
+                        failures.push(CycleFailure {
+                            round: 0,
+                            step: "pwa_verify".to_string(),
+                            error: format!(
+                                "missing fragments: {}",
+                                report.fragments_missing.join(", ")
+                            ),
+                        });
+                    }
+                }
+                pwa_verify = Some(report);
+            }
+            Err(e) => {
+                let msg = format!("pwa_verify failed: {e}");
+                error!(error = %e, "PWA scan page verify failed");
+                if !args.json {
+                    println!("  ✗ {msg}");
+                }
+                failures.push(CycleFailure {
+                    round: 0,
+                    step: "pwa_verify".to_string(),
+                    error: msg,
+                });
+            }
+        }
+    }
+
     let report = CycleTestReport {
         rounds_attempted: args.rounds,
         rounds_passed: passed,
         rounds_failed: args.rounds - passed,
         failures: failures.clone(),
         total_duration_ms: started.elapsed().as_millis(),
+        pwa_verify: pwa_verify.clone(),
     };
 
     if args.json {
@@ -475,4 +544,75 @@ async fn list_shows_revoked(
     }
     debug!(device_id = %device_id, "list reflects revoked=true");
     Ok(())
+}
+async fn verify_pwa_scan(client: &reqwest::Client, base: &str) -> Result<PwaVerifyReport> {
+    // Create a fresh room to scan against
+    let create_resp = client
+        .post(format!("{base}/v1/connect/room/create"))
+        .json(&serde_json::json!({}))
+        .send()
+        .await
+        .context("POST /v1/connect/room/create for pwa-verify")?;
+    if !create_resp.status().is_success() {
+        bail!("create-room for pwa-verify returned HTTP {}", create_resp.status());
+    }
+    let v: serde_json::Value = create_resp.json().await?;
+    let room_id = v
+        .get("room_id")
+        .and_then(|x| x.as_str())
+        .context("pwa-verify: missing room_id")?
+        .to_string();
+    let scanned_url = format!("{base}/connect/room/{room_id}/scan");
+
+    // Fetch the page
+    let page_resp = client
+        .get(&scanned_url)
+        .send()
+        .await
+        .context("GET /connect/room/{id}/scan")?;
+    let http_status = page_resp.status().as_u16();
+    if !page_resp.status().is_success() {
+        bail!("scan page returned HTTP {http_status}");
+    }
+    let page = page_resp.text().await.context("decode scan page")?;
+    let page_bytes = page.len();
+
+    // Required fragments (proves the page rendered correctly with all the
+    // glue that the phone browser will execute)
+    const REQUIRED: &[&str] = &[
+        "<title>Focusa — Pair Mac</title>",
+        "navigator.mediaDevices.getUserMedia",
+        "jsQR",
+        "approveBtn",
+        "Pair this Mac",
+        "/v1/connect/room/",
+        "mac_handoff_offer",
+    ];
+    let mut found: Vec<String> = Vec::new();
+    let mut missing: Vec<String> = Vec::new();
+    for f in REQUIRED {
+        if page.contains(f) {
+            found.push((*f).to_string());
+        } else {
+            missing.push((*f).to_string());
+        }
+    }
+    let passed = missing.is_empty();
+    info!(
+        scanned_url = %scanned_url,
+        http_status = http_status,
+        page_bytes = page_bytes,
+        fragments_found = found.len(),
+        fragments_missing = missing.len(),
+        pwa_passed = passed,
+        "PWA scan page verify complete"
+    );
+    Ok(PwaVerifyReport {
+        scanned_url,
+        http_status,
+        page_bytes,
+        fragments_found: found,
+        fragments_missing: missing,
+        passed,
+    })
 }

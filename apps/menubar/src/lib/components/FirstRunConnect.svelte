@@ -1,6 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
+  // Tauri invoke is only available inside the Tauri runtime; in headless
+  // browser mode (vite preview + chromium) we fall back to a no-op stub
+  // so the menubar can be e2e-tested without a real Mac.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type InvokeFn = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const headlessStub: InvokeFn = async <T>(_cmd: string, _args?: Record<string, unknown>): Promise<T> => {
+    console.warn('[focusa-headless] invoke stub called:', _cmd, _args);
+    return undefined as unknown as T;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let invoke: InvokeFn = headlessStub;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let invokeLoadError: any = null;
   import { PUBLIC_PAIRING_URL_KEY, getApiUrl, saveConnection, setApiUrl } from '$lib/api';
   import { diagnosticsStore, installGlobalDiagnostics, renderRedactedDebugBundle } from '$lib/stores/diagnostics.svelte';
   import QRCode from './QRCode.svelte';
@@ -207,6 +220,18 @@
 
   onMount(() => {
     installGlobalDiagnostics();
+    // Tauri runtime load: only when not in headless browser mode. The dynamic
+    // import prevents Vite from bundling Tauri internals into headless builds.
+    if (typeof window !== 'undefined' && !(window as { __FOCUSA_HEADLESS__?: boolean }).__FOCUSA_HEADLESS__) {
+      void import('@tauri-apps/api/core')
+        .then((mod) => {
+          invoke = mod.invoke as InvokeFn;
+        })
+        .catch((e) => {
+          invokeLoadError = e;
+          console.warn('[focusa] Tauri runtime not available; using stub.', e);
+        });
+    }
     refreshOffer();
     tickHandle = setInterval(() => {
       now = Date.now();

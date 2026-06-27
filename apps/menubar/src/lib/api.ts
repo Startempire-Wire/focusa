@@ -93,6 +93,14 @@ export interface NormalizedToolResult {
 
 export function getApiUrl(): string {
   try {
+    // Headless browser mode: the e2e harness injects a daemon URL via
+    // window.__FOCUSA_DAEMON_URL__ before app boot. Allows headless tests
+    // to point at a test daemon without touching localStorage.
+    const w =
+      typeof window !== 'undefined'
+        ? (window as { __FOCUSA_DAEMON_URL__?: string }).__FOCUSA_DAEMON_URL__
+        : undefined;
+    if (w && w.length > 0) return w;
     return localStorage.getItem('focusa_api_url') || DEFAULT_API_URL;
   } catch {
     return DEFAULT_API_URL;

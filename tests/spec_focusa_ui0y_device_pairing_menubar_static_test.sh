@@ -106,7 +106,25 @@ pass "menubar svelte-check passes (0 errors)"
   || fail "menubar vite build failed"
 pass "menubar vite build succeeds"
 
-# 17. Server CORS check against the live daemon (if running)
+# 17. menubar headless e2e Rust integration test exists
+HEADLESS="$ROOT_DIR/crates/focusa-cli/tests/menubar_headless_e2e.rs"
+[ -f "$HEADLESS" ] || fail "menubar headless e2e test missing: $HEADLESS"
+rg -qn 'chromium_dump_dom|build_menubar|spawn_static_server' "$HEADLESS" \
+  || fail "menubar headless e2e missing required helpers (chromium_dump_dom, build_menubar, spawn_static_server)"
+pass "menubar headless e2e Rust test present (builds SPA + headless chromium dump-dom)"
+
+# 18. menubar FirstRunConnect.svelte has headless Tauri stub
+rg -qn '__FOCUSA_HEADLESS__|__FOCUSA_DAEMON_URL__' "$FIRST_RUN" \
+  || fail "FirstRunConnect.svelte missing headless Tauri stub globals"
+pass "FirstRunConnect.svelte honors __FOCUSA_HEADLESS__ + __FOCUSA_DAEMON_URL__ globals"
+
+# 19. pairing cycle-test Rust subcommand has --with-pwa-verify flag
+CYCLE_TEST="$ROOT_DIR/crates/focusa-cli/src/commands/pairing_cycle_test.rs"
+rg -qn 'with_pwa_verify|verify_pwa_scan' "$CYCLE_TEST" \
+  || fail "pairing_cycle_test.rs missing --with-pwa-verify flag"
+pass "focusa pairing cycle-test --with-pwa-verify present"
+
+# 20. Server CORS check against the live daemon (if running)
 if curl -s -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/v1/health 2>/dev/null | grep -q '^200$'; then
   # Preflight from tauri origin should echo allow-origin
   preflight=$(curl -s -i -m 3 -X OPTIONS http://127.0.0.1:8787/v1/device/pair/start \
