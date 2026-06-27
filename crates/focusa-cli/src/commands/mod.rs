@@ -33,6 +33,7 @@ pub mod ontology;
 pub mod pair;
 pub mod pairing_transport;
 pub mod pairing_doctor;
+pub mod pairing_wizard;
 pub mod predict;
 pub mod project;
 pub mod proposals;

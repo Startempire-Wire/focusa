@@ -10,6 +10,35 @@ use clap::{Parser, Subcommand};
 mod api_client;
 mod commands;
 
+/// Pairing umbrella (focusa-ui0y v0.9.35-dev). Aggregates the pairing
+/// subcommands under a single `focusa pairing ...` namespace.
+#[derive(Subcommand, Debug)]
+enum PairingCmd {
+    /// Interactive pairing wizard (Tailscale detect, room create, terminal QR, poll).
+    Wizard(commands::pairing_wizard::WizardArgs),
+    /// Non-interactive: create a room and print JSON with room_id + pair_url.
+    CreateRoom(commands::pairing_wizard::CreateRoomArgs),
+    /// Discover and write the best phone-reachable Focusa transport.
+    #[command(subcommand)]
+    Transport(commands::pairing_transport::TransportCmd),
+    /// Single-command pairing root-cause report.
+    Doctor(commands::pairing_doctor::DoctorArgs),
+}
+
+async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
+    match cmd {
+        PairingCmd::Wizard(args) => {
+            commands::pairing_wizard::run(commands::pairing_wizard::WizardCmd::Wizard(args)).await
+        }
+        PairingCmd::CreateRoom(args) => {
+            commands::pairing_wizard::run(commands::pairing_wizard::WizardCmd::CreateRoom(args))
+                .await
+        }
+        PairingCmd::Transport(sub) => commands::pairing_transport::run(sub).await,
+        PairingCmd::Doctor(args) => commands::pairing_doctor::run(args).await,
+    }
+}
+
 #[derive(Parser)]
 #[command(name = "focusa", about = "Focusa cognitive governance CLI")]
 #[command(version, propagate_version = true)]
@@ -64,12 +93,20 @@ enum Commands {
     /// Open a Mac Pairing Room and print a phone-scannable QR.
     Pair(commands::pair::PairArgs),
 
+    /// Pairing umbrella (focusa-ui0y v0.9.35-dev): wizard, transport, doctor.
+    #[command(subcommand)]
+    Pairing(PairingCmd),
+
     /// Discover and write the best phone-reachable Focusa transport (multi-transport bundle, focusa-ifc3).
     #[command(subcommand)]
     PairingTransport(commands::pairing_transport::TransportCmd),
 
     /// Single-command pairing root-cause report (focusa-gkrj).
     PairingDoctor(commands::pairing_doctor::DoctorArgs),
+
+    /// Interactive pairing wizard + non-interactive room creation (focusa-ui0y v0.9.35-dev).
+    #[command(subcommand)]
+    PairingWizard(commands::pairing_wizard::WizardCmd),
 
     /// Run full agent-first doctor checks.
     Doctor(commands::doctor::DoctorArgs),
@@ -611,6 +648,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Onboard(args) => commands::onboard::run(args, cli.json).await,
         Commands::Pair(args) => commands::pair::run(args, cli.json).await,
         Commands::PairingDoctor(args) => commands::pairing_doctor::run(args).await,
+        Commands::PairingWizard(cmd) => commands::pairing_wizard::run(cmd).await,
+        Commands::Pairing(cmd) => run_pairing(cmd).await,
         Commands::PairingTransport(cmd) => commands::pairing_transport::run(cmd).await,
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::License(args) => commands::license::run(cli.json, args).await,

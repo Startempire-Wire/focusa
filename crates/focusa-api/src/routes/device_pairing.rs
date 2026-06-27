@@ -83,6 +83,11 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             "/v1/connect/room/start",
             axum::routing::post(connect_room_start),
         )
+        // focusa-ui0y v0.9.35-dev: VPS-initiated room creation.
+        .route(
+            "/v1/connect/room/create",
+            axum::routing::post(connect_room_create),
+        )
         .route(
             "/v1/connect/room/{room_id}/status",
             axum::routing::get(connect_room_status),
@@ -90,6 +95,11 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route(
             "/v1/connect/room/{room_id}/mac-offer",
             axum::routing::post(connect_room_mac_offer),
+        )
+        // v0.9.35-dev: Mac joins a VPS-created room
+        .route(
+            "/v1/connect/room/{room_id}/join",
+            axum::routing::post(connect_room_join),
         )
         .route(
             "/v1/connect/room/{room_id}/approve",
@@ -264,6 +274,26 @@ pub struct ConnectApproveRequest {
 pub struct ConnectRoomStartRequest {
     pub server_url: Option<String>,
     pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectRoomCreateRequest {
+    /// Optional operator-supplied public VPS URL hint. Falls back to FOCUSA_PAIRING_URL env.
+    pub server_url: Option<String>,
+    /// Optional scopes (defaults to read+write).
+    pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectRoomJoinRequest {
+    /// Mac device name (operator-readable).
+    pub mac_name: Option<String>,
+    /// Random nonce the Mac generated (used to bind the mac_offer).
+    pub mac_nonce: Option<String>,
+    /// Optional base64url public key.
+    pub mac_pubkey: Option<String>,
+    /// Optional ephemeral callback URL on the Mac.
+    pub mac_callback: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2001,5 +2031,210 @@ async fn connect_room_firstrun(
             "next_step_hint": "Mac: render pair_url as QR. Phone: scan with camera; browser opens Connect Page with mac_offer. Tap Approve. Mac polls poll_url for token."
         },
         "rehydrate_id": room_id,
+    })))
+}
+
+// ---------- focusa-ui0y v0.9.35-dev: VPS-initiated room model ----------
+
+async fn connect_room_create(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<ConnectRoomCreateRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let now = Utc::now();
+    let expires = now + Duration::seconds(CODE_TTL_SECS);
+    let room_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let scopes = body
+        .scopes
+        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let server_url_raw = body
+        .server_url
+        .clone()
+        .or_else(|| std::env::var("FOCUSA_PAIRING_URL").ok().filter(|s| !s.trim().is_empty()))
+        .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
+    let server_url = match validate_pairing_url(&server_url_raw, "server_url") {
+        Ok(u) => u,
+        Err(rej) => return Err(rej),
+    };
+
+    let session = ConnectSession {
+        connect_id: room_id.clone(),
+        device_id: device_id.clone(),
+        mac_name: String::new(),
+        mac_nonce: String::new(),
+        mac_pubkey: None,
+        mac_callback: None,
+        server_url: server_url.clone(),
+        scopes: scopes.clone(),
+        created_at: now,
+        expires_at: expires,
+        status: "waiting_for_mac".to_string(),
+        token: None,
+    };
+    {
+        let state_ref = shared_state();
+        let mut s = state_ref.write().await;
+        s.connect_sessions
+            .insert(room_id.clone(), session.clone());
+    }
+    let _ = pairing_store::put_session(
+        &state,
+        &room_id,
+        Some(&device_id),
+        None,
+        None,
+        None,
+        &server_url,
+        Some(&scopes),
+        &now.to_rfc3339(),
+        &expires.to_rfc3339(),
+    );
+
+    // pair_url points to the PWA scan page, NOT to firstrun (which was Mac-creates).
+    let pair_url = format!(
+        "{}/connect/room/{}/scan",
+        server_url.trim_end_matches('/'),
+        room_id
+    );
+
+    tracing::info!(
+        room_id = %room_id,
+        device_id = %device_id,
+        server_url = %server_url,
+        "VPS-initiated pairing room created (v0.9.35-dev)"
+    );
+
+    Ok(Json(json!({
+        "status": "waiting_for_mac",
+        "canonical": false,
+        "advisory": true,
+        "room_id": room_id,
+        "connect_id": room_id,
+        "device_id": device_id,
+        "server_url": server_url,
+        "pair_url": pair_url,
+        "pair_url_qr_payload": pair_url,
+        "scan_url": pair_url,
+        "scopes": scopes,
+        "expires_at": expires,
+        "expires_in_secs": CODE_TTL_SECS,
+        "poll_url": format!(
+            "{}/v1/connect/room/{}/status",
+            server_url.trim_end_matches('/'),
+            room_id
+        ),
+        "join_url": format!(
+            "{}/v1/connect/room/{}/join",
+            server_url.trim_end_matches('/'),
+            room_id
+        ),
+        "approve_url": format!(
+            "{}/v1/connect/room/{}/approve",
+            server_url.trim_end_matches('/'),
+            room_id
+        ),
+        "next_tools": [
+            "focusa_connect_room_join",
+            "focusa_connect_room_approve",
+            "focusa_connect_room_status"
+        ],
+        "diagnostics": {
+            "surface": "phone_bridge_flow",
+            "event": "room_created",
+            "room_state": "waiting_for_mac",
+            "next_step_hint": "Phone scans pair_url QR (terminal). PWA loads. PWA camera scans Mac static mac_offer QR. Mac joins via /join. Phone taps Approve."
+        },
+        "rehydrate_id": room_id,
+    })))
+}
+
+async fn connect_room_join(
+    State(state): State<Arc<AppState>>,
+    Path(room_id): Path<String>,
+    Json(body): Json<ConnectRoomJoinRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let rid = room_id.trim().to_string();
+    let now = Utc::now();
+    let mac_name = bounded_label(body.mac_name.clone(), "operator-mac", 128);
+    let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
+    let mac_pubkey = body.mac_pubkey.clone();
+    let mac_callback = body.mac_callback.clone();
+    if let Some(cb) = &mac_callback {
+        if let Err(rej) = validate_pairing_url(cb, "mac_callback") {
+            return Err(rej);
+        }
+    }
+
+    let updated_session = {
+        let state_ref = shared_state();
+        let mut s = state_ref.write().await;
+        let Some(session) = s.connect_sessions.get_mut(&rid) else {
+            return Err(rejection(
+                StatusCode::NOT_FOUND,
+                json!({
+                    "status": "not_found",
+                    "error": "room_not_found",
+                    "room_id": rid,
+                    "recovery_hint": "Re-run focusa pairing wizard on the VPS to create a fresh room."
+                }),
+            ));
+        };
+        if session.expires_at < now {
+            return Err(rejection(
+                StatusCode::GONE,
+                json!({
+                    "status": "expired",
+                    "error": "room_expired",
+                    "room_id": rid,
+                    "recovery_hint": "Re-run focusa pairing wizard on the VPS."
+                }),
+            ));
+        }
+        session.mac_name = mac_name.clone();
+        session.mac_nonce = mac_nonce.clone();
+        session.mac_pubkey = mac_pubkey.clone();
+        session.mac_callback = mac_callback.clone();
+        if session.status == "waiting_for_mac" {
+            session.status = "mac_seen".to_string();
+        }
+        session.clone()
+    };
+    let _ = pairing_store::put_session(
+        &state,
+        &rid,
+        Some(&updated_session.device_id),
+        Some(&mac_nonce),
+        mac_pubkey.as_deref(),
+        mac_callback.as_deref(),
+        &updated_session.server_url,
+        Some(&updated_session.scopes),
+        &updated_session.created_at.to_rfc3339(),
+        &updated_session.expires_at.to_rfc3339(),
+    );
+
+    tracing::info!(
+        room_id = %rid,
+        mac_name = %mac_name,
+        "Mac joined pairing room (v0.9.35-dev /join)"
+    );
+
+    Ok(Json(json!({
+        "status": updated_session.status,
+        "canonical": false,
+        "advisory": true,
+        "room_id": rid,
+        "connect_id": rid,
+        "device_id": updated_session.device_id,
+        "server_url": updated_session.server_url,
+        "scopes": updated_session.scopes,
+        "expires_at": updated_session.expires_at,
+        "next_tools": ["focusa_connect_room_status", "focusa_connect_room_approve"],
+        "diagnostics": {
+            "surface": "phone_bridge_flow",
+            "event": "room_joined",
+            "room_state": updated_session.status,
+            "next_step_hint": "Phone taps Approve on the Connect Page. Mac polls status to receive token."
+        },
+        "rehydrate_id": rid,
     })))
 }
