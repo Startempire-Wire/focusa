@@ -122,7 +122,7 @@ If anything fails: `focusa pairing doctor` returns a single root-cause report.
 6. Private/Tailscale IPv4
 7. `http://127.0.0.1:8787` (same-machine only)
 
-If nothing is reachable and the host is a VPS, the resolver installs `cloudflared`, runs a quick tunnel, captures the `*.trycloudflare.com` URL, and writes it to `/etc/focusa/public-url`. On a Mac operator laptop, it prefers Tailscale IP; otherwise serves localhost with a clear same-machine notice.
+If nothing is reachable and the host is a VPS, the resolver tries a **neutral multi-transport bundle** in order: (1) `cloudflared` quick tunnel (`*.trycloudflare.com`) if installed, (2) Tailscale Funnel if `tailscaled` is up, (3) `bore.pub` (Rust static), (4) `localhost.run` SSH, (5) `ssh -R` reverse tunnel if a jump host is configured, (6) operator-supplied `/etc/focusa/public-url`. The chosen URL is verified by the resolver before being written to `/etc/focusa/public-url`. Single-vendor lock-in is rejected by `tests/spec_pairing_portable_architecture_static_test.sh`.
 
 ### A.4 Service install defaults
 
