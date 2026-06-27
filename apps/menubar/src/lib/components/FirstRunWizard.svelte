@@ -19,6 +19,7 @@
   // Spec: docs/55-focusa-self-host-architecture.md §6.2, doc 53 §2.0.
 
   import { onMount } from 'svelte';
+  import { getApiUrl } from '$lib/api';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
   import {
@@ -95,19 +96,6 @@
   function advanceTo(next: WizardStep) {
     step = next;
     persistState(next);
-  }
-
-  function getApiUrl(): string {
-    try {
-      const w =
-        typeof window !== 'undefined'
-          ? (window as { __FOCUSA_DAEMON_URL__?: string }).__FOCUSA_DAEMON_URL__
-          : undefined;
-      if (w && w.length > 0) return w;
-      return localStorage.getItem('focusa_api_url') || 'http://127.0.0.1:8787';
-    } catch {
-      return 'http://127.0.0.1:8787';
-    }
   }
 
   function macDeviceName(): string {
