@@ -10,6 +10,8 @@ FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
 
 rg -n 'Localhost-only pairing room selected|NOT phone-scannable|focusa pair --url https://YOUR-FOCUSA-HOST|FOCUSA_PAIRING_URL|manual completion payload fallback|localhost_not_phone_scannable|just_works_recovery' "$PAIR_RS" >/dev/null \
   || fail "focusa pair missing localhost cross-device recovery guidance"
+rg -n 'daemon version .* does not match CLI version|daemon repair/start failed|do not continue with a stale daemon' "$PAIR_RS" >/dev/null \
+  || fail "focusa pair missing fail-closed daemon version guard"
 pass "focusa pair warns/recovers on localhost-only cross-device rooms"
 
 rg -n 'phone camera shows raw JSON|Focusa Connect Page scanner|Paste completion payload fallback|Apply completion payload|mac_completion_payload' "$FIRST_RUN" >/dev/null \

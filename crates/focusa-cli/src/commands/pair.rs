@@ -424,7 +424,19 @@ async fn start_room(server_url: &str) -> (Value, Option<String>) {
 }
 
 pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
-    let daemon_started = daemon::start().await.unwrap_or(false);
+    let daemon_started = daemon::start().await.map_err(|err| {
+        anyhow::anyhow!(
+            "Focusa pairing requires a current daemon, but daemon repair/start failed: {err}. recovery_hint: stop stale focusa-daemon processes, install the current release, then run `focusa start` or use a managed service."
+        )
+    })?;
+    let health = ApiClient::new().get("/v1/health").await?;
+    let daemon_version = health.get("version").and_then(Value::as_str).unwrap_or("unknown");
+    if daemon_version != env!("CARGO_PKG_VERSION") {
+        anyhow::bail!(
+            "Focusa pairing blocked: daemon version {daemon_version} does not match CLI version {}. recovery_hint: replace/restart the daemon from the same release before pairing; do not continue with a stale daemon.",
+            env!("CARGO_PKG_VERSION")
+        );
+    }
     let choice = resolve_server_url(args.url).await;
     let server_url = choice.url.clone();
     let source = choice.source;
