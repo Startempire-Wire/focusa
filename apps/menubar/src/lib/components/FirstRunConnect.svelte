@@ -38,6 +38,7 @@
   let firstrunError = $state('');
   let tickHandle: ReturnType<typeof setInterval> | null = null;
   let callbackPollHandle: ReturnType<typeof setInterval> | null = null;
+  let bridgePollHandle: ReturnType<typeof setInterval> | null = null;
 
   function randomNonce(): string {
     const bytes = new Uint8Array(16);
@@ -176,15 +177,50 @@
     await applyCompletionPayloadText(completionPayload);
   }
 
-  async function startBridgeCallback(_nextNonce: string) {
+  async function startBridgeCallback(nextNonce: string) {
     // Fast-path callback kept as a UX nicety; the URL-QR poll loop is the
     // canonical completion path. If the bridge is unavailable we silently
     // rely on the poll loop, so this must not throw or replace callbackStatus.
     try {
-      callbackUrl = await invoke<string>('focusa_start_bridge_callback', { nonce: _nextNonce });
-    } catch {
+      callbackUrl = await invoke<string>('focusa_start_bridge_callback', { nonce: nextNonce });
+    } catch (err) {
+      diagnosticsStore.record({
+        area: 'first_run_connect',
+        phase: 'start_bridge_callback',
+        error_class: 'pairing_bootstrap',
+        error: err,
+        message: err instanceof Error ? err.message : String(err),
+        context: { nonce: nextNonce.slice(0, 8) },
+      });
       callbackUrl = '';
+      return;
     }
+
+    // Poll the bridge for completion. When the phone PWA approves via the
+    // TCP callback, take_bridge_completion returns the completion payload
+    // and we short-circuit the room-status poll. Latency: ~1.5s vs 1.5s+TTL.
+    if (!callbackUrl) return;
+    bridgePollHandle = setInterval(async () => {
+      try {
+        const payload = await invoke<string | null>('focusa_take_bridge_completion', { nonce: nextNonce });
+        if (payload) {
+          if (bridgePollHandle) clearInterval(bridgePollHandle);
+          bridgePollHandle = null;
+          completionPayload = payload;
+          callbackStatus = 'Phone Bridge completion received automatically.';
+          await applyCompletionPayloadText(payload);
+        }
+      } catch (err) {
+        diagnosticsStore.record({
+          area: 'first_run_connect',
+          phase: 'take_bridge_completion',
+          error_class: 'pairing_bootstrap',
+          error: err,
+          message: err instanceof Error ? err.message : String(err),
+          context: { nonce: nextNonce.slice(0, 8) },
+        });
+      }
+    }, 1500);
   }
 
   async function copyDebugBundle() {
@@ -240,6 +276,7 @@
     return () => {
       if (tickHandle) clearInterval(tickHandle);
       if (callbackPollHandle) clearInterval(callbackPollHandle);
+      if (bridgePollHandle) clearInterval(bridgePollHandle);
     };
   });
 </script>
