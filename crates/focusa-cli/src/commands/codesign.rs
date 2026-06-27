@@ -30,15 +30,15 @@ pub enum CodesignCmd {
     /// Sign + (optionally) notarize + staple a `.app` (macOS only).
     ///
     /// Three modes:
-    ///   1. Ad-hoc (free, no Apple ID):       `--developer-id -`
+    ///   1. Ad-hoc (free, no Apple ID): `--developer-id -`
     ///      Signs with the local ad-hoc identity; Gatekeeper requires
-    ///      right-click → Open on first launch. No notarization.
-    ///   2. Personal Team (free, Apple ID):   `--developer-id 'Apple Development: <name>' --apple-id <email>`
+    ///      right-click -> Open on first launch. No notarization.
+    ///   2. Personal Team (free, Apple ID): `--developer-id 'Apple Development: <name>' --apple-id <email>`
     ///      Signs with the user's free Apple Developer Program identity;
-    ///      Gatekeeper requires right-click → Open on first launch. No
+    ///      Gatekeeper requires right-click -> Open on first launch. No
     ///      notarization (notarization is paid-Apple-Developer-only).
-    ///   3. Full Developer ID (paid program):  `--developer-id 'Developer ID Application: <team>'`
-    ///      + team_id + apple_id + app-specific_password → full sign +
+    ///   3. Full Developer ID (paid program): `--developer-id 'Developer ID Application: <team>'`
+    ///      plus team_id + apple_id + app-specific_password -> full sign +
     ///      notarize + staple. Gatekeeper accepts without user action.
     Sign {
         /// Path to the `.app` bundle.
