@@ -40,6 +40,7 @@
 
   const PUBLIC_PAIRING_URL_KEY = 'focusa_public_pairing_url';
   const WIZARD_STATE_KEY = 'focusa_wizard_state_v1';
+  const BRIDGE_POLL_INTERVAL_MS = 1500;
 
   type WizardStep =
     | 'welcome'
@@ -324,12 +325,62 @@
     stopPolling();
     pollHandle = setInterval(pollRoomStatus, 1500);
     pollRoomStatus();
+    // Also start the bridge callback TCP fast-path (low-latency alternative
+    // to room-status polling). When the phone PWA approves via the TCP
+    // callback, the bridge delivers the completion payload within ~1.5s
+    // instead of waiting for the next room-status poll.
+    void startBridgeCallback();
+  }
+
+  let bridgePollHandle: ReturnType<typeof setInterval> | null = null;
+
+  async function startBridgeCallback(): Promise<void> {
+    try {
+      await invoke('focusa_start_bridge_callback', { nonce: macName });
+    } catch (err) {
+      diagnosticsStore.record({
+        area: 'first_run_wizard',
+        phase: 'start_bridge_callback',
+        error_class: 'pairing_bootstrap',
+        error: err,
+        message: err instanceof Error ? err.message : String(err),
+        context: { mac_name: macName },
+      });
+      return;
+    }
+    bridgePollHandle = setInterval(async () => {
+      try {
+        const payload = await invoke<string | null>('focusa_take_bridge_completion', { nonce: macName });
+        if (payload) {
+          if (bridgePollHandle) clearInterval(bridgePollHandle);
+          bridgePollHandle = null;
+          completionPayload = payload;
+          const parsed = JSON.parse(payload) as { device_id?: string; token?: string; server_url?: string };
+          if (parsed.token) {
+            await completePairing(parsed.token, parsed.device_id || roomId, parsed.server_url || discoveredUrl);
+          }
+        }
+      } catch (err) {
+        diagnosticsStore.record({
+          area: 'first_run_wizard',
+          phase: 'take_bridge_completion',
+          error_class: 'pairing_bootstrap',
+          error: err,
+          message: err instanceof Error ? err.message : String(err),
+          context: { mac_name: macName },
+        });
+      }
+    }, 1500);
   }
 
   function stopPolling() {
     if (pollHandle) {
       clearInterval(pollHandle);
       pollHandle = null;
+    }
+    if (bridgePollHandle) {
+      clearInterval(bridgePollHandle);
+      bridgePollHandle = null;
     }
   }
 
