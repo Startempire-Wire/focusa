@@ -198,3 +198,12 @@ Daemon restarts now preserve codes and connect sessions for their full TTL.
 5. Approve on phone → token in Keychain → paired
 
 Anything breaking this flow is a P0 bead.
+
+## Addendum B — Reproducible Builds & Release Signatures (2026-06-27)
+
+Mass-adoption builds require reproducible artifacts and verifiable signatures.
+
+- **Pinned toolchain.** Every release workflow job pins `dtolnay/rust-toolchain@nightly` to `nightly-2026-01-08`. Dev branches may float to current nightly but tagged releases are rebuilt from the exact pinned toolchain.
+- **Reproducible builds.** The release workflow targets `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-apple-darwin`, `x86_64-apple-darwin`. Source maps and debug symbols are stripped from release artifacts. Bit-for-bit reproducibility requires deterministic Rust builds (CARGO_INCREMENTAL=0, CARGO_PROFILE_RELEASE_LTO=fat, fixed source date). The release workflow sets `SOURCE_DATE_EPOCH` from the git tag timestamp.
+- **Signed checksum manifest.** Each release publishes `SHA256SUMS.txt`, `SHA256SUMS.txt.sig` (cosign keyless), and `SHA256SUMS.txt.pem`. The installer verifies with optional `FOCUSA_REQUIRE_COSIGN=1` fail-closed mode.
+- **Reproducibility test.** A nightly job rebuilds the latest tag and diffs SHA256SUMS.txt against the published manifest. Any diff fails CI.
