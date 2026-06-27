@@ -203,6 +203,12 @@ fn validate_pairing_url(url: &str, field: &str) -> Result<String, (StatusCode, J
     if allowed && trimmed.len() <= 2048 && !trimmed.contains(char::is_whitespace) {
         Ok(trimmed)
     } else {
+        tracing::warn!(
+            field = %field,
+            url = %url,
+            url_len = url.len(),
+            "phone bridge pairing URL validation rejected"
+        );
         Err(rejection(
             StatusCode::UNPROCESSABLE_ENTITY,
             json!({
@@ -1941,7 +1947,13 @@ async fn connect_room_firstrun(
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
     let server_url = match validate_pairing_url(&server_url_raw, "server_url") {
         Ok(u) => u,
-        Err(rej) => return Err(rej),
+        Err(rej) => {
+            tracing::warn!(
+                server_url_raw = %server_url_raw,
+                "phone bridge firstrun rejected: invalid server_url"
+            );
+            return Err(rej);
+        }
     };
     let mac_name = bounded_label(body.mac_name.clone(), "operator-mac", 128);
     let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
@@ -2057,7 +2069,13 @@ async fn connect_room_create(
         .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
     let server_url = match validate_pairing_url(&server_url_raw, "server_url") {
         Ok(u) => u,
-        Err(rej) => return Err(rej),
+        Err(rej) => {
+            tracing::warn!(
+                server_url_raw = %server_url_raw,
+                "phone bridge create-room rejected: invalid server_url"
+            );
+            return Err(rej);
+        }
     };
 
     let session = ConnectSession {
@@ -2172,6 +2190,11 @@ async fn connect_room_join(
         let state_ref = shared_state();
         let mut s = state_ref.write().await;
         let Some(session) = s.connect_sessions.get_mut(&rid) else {
+            tracing::warn!(
+                room_id = %rid,
+                mac_name = %mac_name,
+                "phone bridge join rejected: room not found"
+            );
             return Err(rejection(
                 StatusCode::NOT_FOUND,
                 json!({
@@ -2183,6 +2206,12 @@ async fn connect_room_join(
             ));
         };
         if session.expires_at < now {
+            tracing::warn!(
+                room_id = %rid,
+                mac_name = %mac_name,
+                expired_at = %session.expires_at,
+                "phone bridge join rejected: room expired"
+            );
             return Err(rejection(
                 StatusCode::GONE,
                 json!({

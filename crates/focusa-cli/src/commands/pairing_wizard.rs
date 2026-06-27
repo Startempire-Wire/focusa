@@ -24,6 +24,7 @@ use qrcode::QrCode;
 use serde::Serialize;
 use std::io::{IsTerminal, Write};
 use std::time::Duration;
+use tracing::{debug, error, info, warn};
 
 #[derive(Subcommand, Debug)]
 pub enum WizardCmd {
@@ -87,14 +88,31 @@ fn daemon_url() -> String {
 }
 
 fn detect_tailscale_hostname() -> Option<(String, String)> {
-    let out = std::process::Command::new("tailscale")
+    let out = match std::process::Command::new("tailscale")
         .args(["status", "--json"])
         .output()
-        .ok()?;
+    {
+        Ok(o) => o,
+        Err(e) => {
+            debug!(error = %e, "tailscale CLI not found; skipping MagicDNS detection");
+            return None;
+        }
+    };
     if !out.status.success() {
+        warn!(
+            status = ?out.status.code(),
+            stderr = %String::from_utf8_lossy(&out.stderr).trim(),
+            "tailscale status exited non-zero; skipping MagicDNS detection"
+        );
         return None;
     }
-    let v: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    let v: serde_json::Value = match serde_json::from_slice(&out.stdout) {
+        Ok(v) => v,
+        Err(e) => {
+            warn!(error = %e, "tailscale status JSON parse failed; skipping MagicDNS detection");
+            return None;
+        }
+    };
     let name = v.get("Self")?.get("DNSName")?.as_str()?.trim_end_matches('.').to_string();
     let ip = v
         .get("TailscaleIPs")?
@@ -103,6 +121,7 @@ fn detect_tailscale_hostname() -> Option<(String, String)> {
         .as_str()?
         .to_string();
     if name.is_empty() {
+        warn!("tailscale status returned empty DNSName; skipping MagicDNS detection");
         return None;
     }
     Some((name, ip))
@@ -137,6 +156,7 @@ async fn daemon_health(url: &str) -> Result<serde_json::Value> {
         .await
         .with_context(|| format!("GET {url}/v1/health"))?;
     if !resp.status().is_success() {
+        error!(daemon_url = %url, http_status = %resp.status(), "daemon health check failed");
         bail!("daemon health returned HTTP {}", resp.status());
     }
     Ok(resp.json().await?)
@@ -152,6 +172,7 @@ async fn create_room(server_url: &str) -> Result<CreatedRoom> {
         .await
         .with_context(|| format!("POST {url}"))?;
     if !resp.status().is_success() {
+        error!(server_url = %server_url, http_status = %resp.status(), "create-room request failed");
         bail!("create-room returned HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await?;
@@ -184,8 +205,9 @@ async fn poll_room(poll_url: &str, timeout_secs: u64) -> Result<(String, Option<
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
-    bail!("timeout waiting for phone approval ({}s)", timeout_secs)
-}
+    warn!(timeout_secs, "wizard timed out waiting for phone approval");
+        bail!("timeout waiting for phone approval ({}s)", timeout_secs)
+    }
 
 fn render_terminal_qr(data: &str) -> Result<String> {
     let code = QrCode::new(data.as_bytes()).context("QR encode failed")?;
@@ -241,6 +263,7 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
             base_url
         ),
         Err(e) => {
+            error!(daemon_url = %base_url, error = %e, "cannot reach Focusa daemon");
             eprintln!("✗  Cannot reach Focusa daemon at {base_url}: {e}");
             eprintln!("   recovery_hint: systemctl --user restart focusa-daemon");
             std::process::exit(2);
@@ -288,7 +311,10 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
                 println!("  {line}");
             }
         }
-        Err(e) => eprintln!("✗  QR render failed: {e}"),
+        Err(e) => {
+            warn!(error = %e, pair_url = %room.pair_url, "QR render failed; URL still printed below for manual paste");
+            eprintln!("✗  QR render failed: {e}");
+        }
     }
     println!();
     println!("  URL: {}", room.pair_url);
@@ -321,8 +347,15 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
     let poll_result = poll_room(&room.poll_url, args.timeout).await;
     match poll_result {
         Ok((status, token)) => {
+            let token_chars = token.as_deref().unwrap_or("").len();
             println!();
-            println!("✓  Pairing complete (status={status}, token {} chars).", token.unwrap_or_default().len());
+            println!("✓  Pairing complete (status={status}, token {token_chars} chars).");
+            info!(
+                room_id = %room.room_id,
+                status = %status,
+                token_chars = token_chars,
+                "wizard pairing completed"
+            );
             println!();
             println!("  Next:");
             println!("    1. On your Mac: open /Applications/Focusa.app");
@@ -331,6 +364,7 @@ async fn run_wizard(args: WizardArgs) -> Result<()> {
             Ok(())
         }
         Err(e) => {
+            error!(error = %e, "wizard polling failed");
             eprintln!("✗  {e}");
             eprintln!("   recovery_hint: re-run 'focusa pairing wizard' to create a fresh room.");
             std::process::exit(1);

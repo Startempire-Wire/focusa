@@ -18,6 +18,7 @@ use anyhow::{bail, Context, Result};
 use clap::Parser;
 use serde::Serialize;
 use std::time::Duration;
+use tracing::{debug, error, info, warn};
 
 const DEFAULT_ROUNDS: usize = 10;
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
@@ -91,6 +92,7 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
         .await
         .with_context(|| format!("GET {base}/v1/health"))?;
     if !health.status().is_success() {
+        error!(daemon_url = %base, http_status = %health.status(), "daemon health check failed");
         bail!("daemon health check returned HTTP {}", health.status());
     }
     let health_json: serde_json::Value = health.json().await.context("decode health")?;
@@ -114,6 +116,12 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
         }
         let mut round_failed = false;
         let mut macro_err = |step: &str, e: String| {
+            error!(
+                round = round,
+                step = %step,
+                error = %e,
+                "cycle-test round failure"
+            );
             failures.push(CycleFailure {
                 round,
                 step: step.to_string(),
@@ -250,8 +258,21 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
     }
 
     if report.rounds_failed > 0 {
+        error!(
+            rounds_attempted = report.rounds_attempted,
+            rounds_passed = report.rounds_passed,
+            rounds_failed = report.rounds_failed,
+            duration_ms = report.total_duration_ms,
+            "cycle-test completed with failures"
+        );
         std::process::exit(1);
     }
+    info!(
+        rounds_attempted = report.rounds_attempted,
+        rounds_passed = report.rounds_passed,
+        duration_ms = report.total_duration_ms,
+        "cycle-test all rounds passed"
+    );
     Ok(())
 }
 
@@ -267,6 +288,7 @@ async fn create_room(client: &reqwest::Client, base: &str) -> Result<String> {
         .await
         .context("POST /v1/connect/room/create")?;
     if !resp.status().is_success() {
+        error!(http_status = %resp.status(), "create_room returned non-success");
         bail!("HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await.context("decode create_room response")?;
@@ -275,6 +297,7 @@ async fn create_room(client: &reqwest::Client, base: &str) -> Result<String> {
         .and_then(|x| x.as_str())
         .context("missing room_id")?
         .to_string();
+    debug!(room_id = %room_id, "room created");
     Ok(room_id)
 }
 
@@ -295,6 +318,7 @@ async fn mac_join(
         .await
         .context("POST /v1/connect/room/{id}/join")?;
     if !resp.status().is_success() {
+        error!(room_id = %room_id, mac_name = %mac_name, http_status = %resp.status(), "mac_join returned non-success");
         bail!("HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await.context("decode mac_join response")?;
@@ -303,8 +327,10 @@ async fn mac_join(
         .and_then(|x| x.as_str())
         .context("missing status")?;
     if status != "mac_seen" {
+        warn!(room_id = %room_id, mac_name = %mac_name, status = %status, "mac_join unexpected status");
         bail!("expected mac_seen, got {status}");
     }
+    debug!(room_id = %room_id, mac_name = %mac_name, "mac joined room");
     Ok(())
 }
 
@@ -325,6 +351,7 @@ async fn phone_approve(
         .await
         .context("POST /v1/connect/room/{id}/approve")?;
     if !resp.status().is_success() {
+        error!(room_id = %room_id, http_status = %resp.status(), "phone_approve returned non-success");
         bail!("HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await.context("decode approve response")?;
@@ -333,6 +360,7 @@ async fn phone_approve(
         .and_then(|x| x.as_str())
         .context("missing status")?;
     if status != "completed" {
+        warn!(room_id = %room_id, status = %status, "phone_approve unexpected status");
         bail!("expected completed, got {status}");
     }
     let device_id = v
@@ -340,6 +368,7 @@ async fn phone_approve(
         .and_then(|x| x.as_str())
         .context("missing device_id")?
         .to_string();
+    debug!(room_id = %room_id, device_id = %device_id, "phone approved, token minted");
     Ok(device_id)
 }
 
@@ -351,6 +380,7 @@ async fn verify_completed(
     let url = format!("{base}/v1/connect/room/{room_id}/status");
     let resp = client.get(&url).send().await.context("GET status")?;
     if !resp.status().is_success() {
+        error!(room_id = %room_id, http_status = %resp.status(), "verify_completed status GET returned non-success");
         bail!("HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await.context("decode status")?;
@@ -359,6 +389,7 @@ async fn verify_completed(
         .and_then(|x| x.as_str())
         .context("missing status")?;
     if status != "completed" {
+        warn!(room_id = %room_id, status = %status, "verify_completed unexpected status");
         bail!("expected completed, got {status}");
     }
     let has_token = v
@@ -366,8 +397,10 @@ async fn verify_completed(
         .map(|x| x.is_string() && !x.as_str().unwrap_or("").is_empty())
         .unwrap_or(false);
     if !has_token {
+        error!(room_id = %room_id, "token missing or empty after approve");
         bail!("token missing or empty");
     }
+    debug!(room_id = %room_id, "verified status=completed + token present");
     Ok(())
 }
 
@@ -389,6 +422,7 @@ async fn revoke(
         .await
         .context("POST /v1/device/pair/revoke")?;
     if !resp.status().is_success() {
+        error!(device_id = %device_id, host = %host, http_status = %resp.status(), "revoke returned non-success");
         bail!("HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await.context("decode revoke response")?;
@@ -419,6 +453,7 @@ async fn list_shows_revoked(
     let url = format!("{base}/v1/device/pair/list?host={host}");
     let resp = client.get(&url).send().await.context("GET list")?;
     if !resp.status().is_success() {
+        error!(device_id = %device_id, host = %host, http_status = %resp.status(), "pair_list returned non-success");
         bail!("HTTP {}", resp.status());
     }
     let v: serde_json::Value = resp.json().await.context("decode list")?;
@@ -435,7 +470,9 @@ async fn list_shows_revoked(
         .and_then(|x| x.as_bool())
         .unwrap_or(false);
     if !revoked {
+        warn!(device_id = %device_id, "list entry present but revoked=false");
         bail!("list shows device but revoked=false");
     }
+    debug!(device_id = %device_id, "list reflects revoked=true");
     Ok(())
 }
