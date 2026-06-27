@@ -161,8 +161,8 @@
       <QRCode payload={offerPayload} size={260} />
     {/if}
   </div>
-  <p class="primary-copy">Scan from Focusa Connect.</p>
-  <p class="secondary-copy">Run focusa pair on the server, then scan here from the Focusa Connect Page · {remainingLabel}</p>
+  <p class="primary-copy">Open Focusa Connect first, then scan this QR.</p>
+  <p class="secondary-copy">If your phone camera shows raw JSON, that is expected — this QR is for the Focusa Connect Page scanner, not the camera app · {remainingLabel}</p>
   <p class="advanced-copy">{callbackStatus}</p>
 
   <div class="utility-row">
@@ -170,6 +170,17 @@
     <details bind:open={showAdvanced}>
       <summary>Advanced</summary>
       {#if showAdvanced}
+        <div class="manual-completion">
+          <label for="completion-payload">Paste completion payload fallback</label>
+          <textarea
+            id="completion-payload"
+            bind:value={completionPayload}
+            placeholder='Paste mac_completion_payload JSON here if the automatic callback cannot reach this Mac'
+            rows="5"
+          ></textarea>
+          <button class="utility" onclick={applyCompletionPayload}>Apply completion payload</button>
+          {#if completionStatus}<p class="advanced-copy">{completionStatus}</p>{/if}
+        </div>
         <Settings />
       {/if}
     </details>
@@ -243,6 +254,26 @@
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     background: var(--bg-panel);
+    padding: var(--sp-2);
+  }
+  .manual-completion {
+    display: grid;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-2);
+  }
+  .manual-completion label {
+    color: var(--fg-secondary);
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  .manual-completion textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    color: var(--fg);
+    font: var(--text-xs) ui-monospace, SFMono-Regular, Menlo, monospace;
     padding: var(--sp-2);
   }
 </style>

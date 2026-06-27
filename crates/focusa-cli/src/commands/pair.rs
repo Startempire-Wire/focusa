@@ -325,7 +325,7 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
         }));
         if connect_ok && bridge_api_ok {
             let warning = (source == "local_default").then(|| {
-                "Auto-detected local daemon URL. This works for same-machine/dev use; phones on another device need a shared network, tunnel, or public URL.".to_string()
+                "Localhost-only pairing room selected. This is NOT phone-scannable from another device. For cross-device pairing run: focusa pair --url https://YOUR-FOCUSA-HOST or set FOCUSA_PAIRING_URL to a public/LAN/Tailscale/tunnel URL. Same-machine only: open this URL in a browser on the daemon host.".to_string()
             });
             return UrlChoice {
                 url,
@@ -340,7 +340,7 @@ async fn resolve_server_url(explicit: Option<String>) -> UrlChoice {
         url: "http://127.0.0.1:8787".to_string(),
         source: "local_default_unverified",
         warning: Some(
-            "Focusa could not auto-detect a phone-reachable transport. Ensure the daemon is running and that the phone shares a reachable network, tunnel, or public URL."
+            "No phone-reachable Focusa Connect URL found. Cross-device pairing needs a public/LAN/Tailscale/tunnel URL. Run: focusa pair --url https://YOUR-FOCUSA-HOST, set FOCUSA_PAIRING_URL, or use the Mac Advanced manual completion payload fallback."
                 .to_string(),
         ),
         checked_candidates: checked,
@@ -515,6 +515,12 @@ pub async fn run(args: PairArgs, json_mode: bool) -> anyhow::Result<()> {
                 "connect_url": connect_url,
                 "daemon": if daemon_started { "started" } else { "already_running_or_external" },
                 "warning": warning,
+                "just_works_recovery": {
+                    "localhost_not_phone_scannable": is_local_url(&server_url),
+                    "cross_device_command": "focusa pair --url https://YOUR-FOCUSA-HOST",
+                    "env_var": "FOCUSA_PAIRING_URL=https://YOUR-FOCUSA-HOST",
+                    "manual_mac_fallback": "Use Advanced → Paste completion payload in the Mac app when callback/public Connect is unavailable."
+                },
                 "room": room_payload,
                 "next_steps": [
                     "Scan connect_url with your phone to open Focusa Connect.",
