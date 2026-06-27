@@ -112,17 +112,36 @@ If anything fails: `focusa pairing doctor` returns a single root-cause report.
 | Phone camera raw JSON outcome is explained | `apps/menubar/.../FirstRunConnect.svelte` copy |
 | Mac receives bridge callback even across NAT | `focusa://` deep-link fallback in Tauri `Info.plist` |
 
-### A.3 Transport options (auto-detected order)
+### A.3 Transport options (auto-detected order, commercialization-safe defaults)
 
-1. `FOCUSA_PAIRING_URL` env var
-2. `/etc/focusa/public-url` file
+Mass-adoption / long-term policy: **default transports must be open-source-reusable-licensed, self-hostable, and require no third-party account**. Vendor coordination-server tunnels are **opt-in interop only**, never defaults. Single-vendor lock-in is rejected by `tests/spec_pairing_portable_architecture_static_test.sh`.
+
+**Default order (all permissive-licensed, self-hostable, no third-party account):**
+
+1. `FOCUSA_PAIRING_URL` env var (operator-supplied)
+2. `/etc/focusa/public-url` file (operator-supplied)
 3. `FOCUSA_API_URL` / `FOCUSA_BASE_URL` (non-local only)
 4. Hostname `https://<host>`, `http://<host>`, `http://<host>:8787`
 5. Public IPv4 variants
-6. Private/Tailscale IPv4
-7. `http://127.0.0.1:8787` (same-machine only)
+6. Private IPv4 (LAN / `ssh`-reachable only)
+7. **`ssh -R` reverse tunnel** to an operator-controlled jump host (OpenSSH, BSD-style)
+8. **`frp`** (Apache 2.0, self-hostable Fast Reverse Proxy)
+9. **`bore`** (MIT, self-hostable TCP tunnel)
+10. `http://127.0.0.1:8787` (same-machine only)
 
-If nothing is reachable and the host is a VPS, the resolver tries a **neutral multi-transport bundle** in order: (1) `cloudflared` quick tunnel (`*.trycloudflare.com`) if installed, (2) Tailscale Funnel if `tailscaled` is up, (3) `bore.pub` (Rust static), (4) `localhost.run` SSH, (5) `ssh -R` reverse tunnel if a jump host is configured, (6) operator-supplied `/etc/focusa/public-url`. The chosen URL is verified by the resolver before being written to `/etc/focusa/public-url`. Single-vendor lock-in is rejected by `tests/spec_pairing_portable_architecture_static_test.sh`.
+**Vendor interop (opt-in only — never default, never bundled):**
+
+| Tunnel | License | Why opt-in | Enable flag |
+|---|---|---|---|
+| `cloudflared` quick tunnel | Apache 2.0 | requires Cloudflare coordination server; account-less quick tunnels have no SLA and may be investigated for TOS | `FOCUSA_TUNNEL_CLOUDFLARED=1` |
+| Tailscale Funnel | BSD-3 (client) | requires Tailscale account + coordination server; pricing/terms change unilaterally | `FOCUSA_TUNNEL_TAILSCALE=1` |
+| `ngrok` quick tunnel | BSD-3 (client) | requires ngrok account; service-side TOS | `FOCUSA_TUNNEL_NGROK=1` |
+
+`localhost.run` is **not supported** (unclear license, single-operator SSH relay).
+
+**Bundling policy.** The Focusa installer **never bundles vendor binaries**. If an operator opts into a vendor transport, the installer downloads the binary at runtime from the vendor's official release, and the install step records that vendor's `LICENSE` and `NOTICE` files under `/usr/local/share/focusa/licenses/<vendor>/` so attribution is preserved. Self-hostable transports (`frp`, `bore`) are also not bundled by default — the installer records the operator-chosen mode and downloads only what the operator enabled.
+
+**Service-dependency risk.** Vendor coordination servers are single points of failure and can change pricing, terms, or shut down. For mass adoption we want every operator able to run with **zero third-party coordination server** — that's the explicit motivation for the self-hostable default order.
 
 ### A.4 Service install defaults
 
