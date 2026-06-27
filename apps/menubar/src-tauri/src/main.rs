@@ -260,20 +260,23 @@ struct BonjourDiscovery {
 }
 
 /// Browse the LAN for `_focusa._tcp.local` services and return the first
-/// reachable Focusa daemon. Resolves in <=2 seconds; returns Err if no
-/// daemon is found. Used by FirstRunWizard.svelte as the Bonjour discovery
-/// step (G07).
+/// reachable Focusa daemon. Resolves in <=2 seconds; returns Ok(None) if
+/// no daemon is found. Used by FirstRunWizard.svelte as the Bonjour
+/// discovery step (G07).
 #[tauri::command]
-async fn focusa_discover_via_bonjour(timeout_secs: Option<u64>) -> Result<BonjourDiscovery, String> {
+async fn focusa_discover_via_bonjour(
+    timeout_secs: Option<u64>,
+) -> Result<Option<BonjourDiscovery>, String> {
     let timeout_secs = timeout_secs.unwrap_or(2);
     use mdns_sd::ServiceDaemon;
     let daemon = ServiceDaemon::new().map_err(|e| format!("mdns daemon: {e}"))?;
     let receiver = daemon
         .browse("_focusa._tcp.local")
         .map_err(|e| format!("mdns browse: {e}"))?;
-    // Collect events for `timeout_secs`.
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     while std::time::Instant::now() < deadline {
+        // mdns-sd's recv_async returns a ServiceEvent; the daemon auto-shards
+        // the channel so we don't get a Result wrapper here.
         if let Ok(event) = tokio::time::timeout(
             std::time::Duration::from_millis(250),
             receiver.recv_async(),
@@ -288,22 +291,32 @@ async fn focusa_discover_via_bonjour(timeout_secs: Option<u64>) -> Result<Bonjou
                     .get_properties()
                     .iter()
                     .filter_map(|p| {
-                        let val = p.val().to_string();
-                        if val.is_empty() { None } else { Some((p.key().to_string(), val)) }
+                        // p.val() returns Option<&[u8]>; convert to String.
+                        let val = p
+                            .val()
+                            .and_then(|b| std::str::from_utf8(b).ok())
+                            .unwrap_or("")
+                            .to_string();
+                        if val.is_empty() {
+                            None
+                        } else {
+                            Some((p.key().to_string(), val))
+                        }
                     })
                     .collect();
-                // Prefer the TXT record's `url` if present; fall back to http://host:port
                 let url = txt
                     .get("url")
                     .cloned()
-                    .unwrap_or_else(|| format!("http://{}:{}", host.trim_end_matches('.'), port));
+                    .unwrap_or_else(|| {
+                        format!("http://{}:{}", host.trim_end_matches('.'), port)
+                    });
                 let _ = daemon.shutdown();
-                return Ok(BonjourDiscovery { url, host, port });
+                return Ok(Some(BonjourDiscovery { url, host, port }));
             }
         }
     }
     let _ = daemon.shutdown();
-    Err("no _focusa._tcp.local services found within timeout".to_string())
+    Ok(None)
 }
 
 fn main() {
