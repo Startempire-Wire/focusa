@@ -1959,9 +1959,7 @@ async fn connect_room_firstrun(
     let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
     let mac_callback = body.mac_callback.clone();
     if let Some(cb) = &mac_callback {
-        if let Err(rej) = validate_pairing_url(cb, "mac_callback") {
-            return Err(rej);
-        }
+        validate_pairing_url(cb, "mac_callback")?;
     }
     let session = ConnectSession {
         connect_id: room_id.clone(),
@@ -2181,9 +2179,7 @@ async fn connect_room_join(
     let mac_pubkey = body.mac_pubkey.clone();
     let mac_callback = body.mac_callback.clone();
     if let Some(cb) = &mac_callback {
-        if let Err(rej) = validate_pairing_url(cb, "mac_callback") {
-            return Err(rej);
-        }
+        validate_pairing_url(cb, "mac_callback")?;
     }
 
     let updated_session = {

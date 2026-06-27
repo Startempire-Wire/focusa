@@ -1218,6 +1218,7 @@ impl SqlitePersistence {
     }
 
     /// Persist or replace a pending pairing code by code string.
+    #[allow(clippy::too_many_arguments)]
     pub fn put_pairing_code(
         &self,
         code: &str,
@@ -1328,6 +1329,8 @@ impl SqlitePersistence {
     }
 
     /// Fetch a non-expired connect session.
+        /// Fetch a non-expired connect session.
+    #[allow(clippy::type_complexity)] // tuple shape is internal; matches PairingStore caller
     pub fn get_connect_session(
         &self,
         connect_id: &str,

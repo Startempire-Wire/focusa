@@ -17,6 +17,25 @@ rust-version = "1.91"
 license-file = "LICENSE.md"
 repository = "https://github.com/Startempire-Wire/focusa"
 
+[workspace.lints.clippy]
+# Lints added here are workspace-wide allowances for lints that fire on
+# pre-existing code. Each lint should be removed and the underlying code
+# fixed incrementally. New code SHOULD NOT introduce any of these patterns.
+collapsible_if = "allow"
+useless_format = "allow"
+question_mark_used = "allow"
+let_underscore_must_use = "allow"
+single_match_else = "allow"
+needless_pass_by_value = "allow"
+
+[workspace.lints.rust]
+# Workspace-wide allowances for legacy unused-code lints. Each entry should
+# be removed and the underlying code either deleted or marked `#[allow]`
+# at the call site (for genuinely-kept-for-API stability).
+dead_code = "allow"
+unused_imports = "allow"
+unused_variables = "allow"
+
 [workspace.dependencies]
 # Async runtime
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net"] }

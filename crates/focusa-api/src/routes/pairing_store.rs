@@ -24,6 +24,7 @@ pub struct PersistedSession {
     pub status: String,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn put_code(
     state: &AppState,
     code: &str,
@@ -70,6 +71,7 @@ pub fn consume_code(state: &AppState, code: &str) -> Result<()> {
     state.persistence.consume_pairing_code(code)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn put_session(
     state: &AppState,
     connect_id: &str,

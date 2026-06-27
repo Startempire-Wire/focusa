@@ -33,3 +33,6 @@ reqwest = { workspace = true, features = ["stream"] }
 tokio-stream = { workspace = true }
 async-stream = { workspace = true }
 futures-core = { workspace = true }
+
+[lints]
+workspace = true

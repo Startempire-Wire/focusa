@@ -23,3 +23,6 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true
