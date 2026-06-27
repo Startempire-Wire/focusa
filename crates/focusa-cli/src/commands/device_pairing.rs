@@ -8,7 +8,6 @@
 
 use crate::api_client::ApiClient;
 use clap::Subcommand;
-use focusa_core::license::require_feature;
 use serde_json::Value;
 
 #[derive(Subcommand)]
@@ -80,10 +79,6 @@ pub enum DeviceCmd {
 }
 
 pub async fn handle(client: &mut ApiClient, cmd: DeviceCmd) -> anyhow::Result<()> {
-    // Spec §5.5: device pairing QR/PWA requires a licensed feature.
-    if let Err(e) = require_feature("qr_pwa_handoff") {
-        anyhow::bail!("{e}");
-    }
     match cmd {
         DeviceCmd::PairStart {
             device_name,
@@ -107,6 +102,10 @@ pub async fn handle(client: &mut ApiClient, cmd: DeviceCmd) -> anyhow::Result<()
             daemon_base_url,
             scopes,
         } => {
+            // QR/PWA handoff is licensed; CLI code fallback remains available so operators can pair without blocking on QR entitlement.
+            if let Err(e) = focusa_core::license::require_feature("qr_pwa_handoff") {
+                anyhow::bail!("{e}");
+            }
             let body = serde_json::json!({
                 "device_name": device_name.unwrap_or_else(|| "operator-device".to_string()),
                 "platform": platform,
