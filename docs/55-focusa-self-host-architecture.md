@@ -299,3 +299,54 @@ This doc describes **v0.9.35-dev**. Predecessors are documented for context but 
 - `docs/54-focusa-pairing-room-plan.md` — room state machine + storage
 - `docs/56-focusa-pairing-wizard-spec.md` — wizard command contract
 - `docs/57-focusa-pairing-revoke-and-repair.md` — revoke + re-pair cycle
+
+---
+
+## 16. Known Gaps (v0.9.35-dev → v0.9.35 GA)
+
+These are the explicit gaps between v0.9.35-dev and a fully smooth, signed, notarized, distribution-ready Intel-Mac test. Each gap has a bead, an owner surface, and a test that proves it's closed. **None of these gaps is a blocker for shipping the daemon + CLI + headless-test stack** — the gaps block a smooth Intel-Mac operator experience only.
+
+| # | Gap | Owner surface | Bead | Test that proves closure |
+|---|---|---|---|---|
+| **G01** | `tauri.conf.json` version stamp stuck at `0.9.33-dev` | `apps/menubar/src-tauri/tauri.conf.json` | `focusa-7lqf` (P0) | tauri.conf.json reads `0.9.35-dev` |
+| **G02** | No v0.9.35-dev Intel-Mac `.app` bundle (latest release is v0.9.33-dev) | release.yml + Tauri build | `focusa-2mzd` (P1) | release asset exists for `v0.9.35-dev-x86_64-apple-darwin` |
+| **G03** | `FirstRunConnect.svelte` uses v0.9.34-dev model (URL-shaped QR, Mac-creates-room) instead of v0.9.35-dev (static mac_offer, VPS-creates, Mac-joins) | `apps/menubar/src/lib/components/FirstRunConnect.svelte` | `focusa-73qu` (P1) | menubar_headless_e2e renders VPS-initiated flow |
+| **G04** | No `FirstRunWizard.svelte` (6-step wizard component: welcome → vps_install → vps_discover → show_qr → waiting_phone → connected) | `apps/menubar/src/lib/components/` | `focusa-73qu` (P1) | wizard renders all 6 steps with state persistence |
+| **G05** | Mac does not display a STATIC `mac_offer` QR (idle state); instead it embeds VPS URL in the QR | `FirstRunConnect.svelte` | `focusa-wb65` (P1) | QR payload contains only `mac_offer`, no `server_url` |
+| **G06** | Mac has no Tailscale MagicDNS auto-discovery (relies on operator-pasted URL) | `FirstRunConnect.svelte` + daemon helper | `focusa-59kh` (P1) | Mac auto-finds VPS when on Tailscale network |
+| **G07** | Mac has no Bonjour/mDNS auto-discovery (LAN-only fallback) | `FirstRunConnect.svelte` + Tauri command | `focusa-rnva` (P1) | Mac finds VPS via `_focusa._tcp.local` on LAN |
+| **G08** | VPS daemon does not advertise `_focusa._tcp.local` Bonjour service | `focusa-daemon` + `mdns-sd` crate | `focusa-9sjk` (P1) | `dns-sd -B _focusa._tcp local.` shows the daemon |
+| **G09** | Mac has no handler for `401 token_expired` (30-day TTL) → no re-pair prompt | `FirstRunConnect.svelte` | `focusa-1vmn` (P1) | expiry response triggers FirstRunWizard |
+| **G10** | Mac has no handler for `401 pairing_revoked` (admin-side revoke) → no re-pair prompt | `FirstRunConnect.svelte` | `focusa-1vmn` (P1) | revoke response triggers FirstRunWizard |
+| **G11** | `focusa pairing status` subcommand missing (dashboard view) | `crates/focusa-cli/src/commands/` | `focusa-2bgr` (P2) | subcommand reports daemon + URL + active rooms + N paired devices |
+| **G12** | `focusa pairing history` subcommand missing (audit log) | `crates/focusa-cli/src/commands/` | `focusa-6xjl` (P2) | subcommand lists recent pairings from PairingStore |
+| **G13** | `focusa pairing email-link` subcommand missing (phone-camera-broken fallback) | `crates/focusa-cli/src/commands/` | `focusa-4fqp` (P2) | subcommand sends a one-time URL to operator email |
+| **G14** | No Intel-Mac-specific operator runbook (build, install, Gatekeeper workaround, Quarantine attribute) | `docs/` | `focusa-3hkj` (P2) | doc covers x86_64 build, right-click → Open, xattr -dr com.apple.quarantine |
+| **G15** | No per-platform failure-mode docs (Intel vs ARM, macOS 10.15+, Gatekeeper, codesign) | `docs/` | `focusa-3hkj` (P2) | doc lists failure mode + recovery per platform |
+| **G16** | No Apple Developer ID codesign in release pipeline (Gatekeeper blocks unsigned apps) | `.github/workflows/release.yml` + `focusa codesign sign` | `focusa-csg1` (P3, deferrable) | signed `.dmg` uploaded to release |
+| **G17** | No notarization step in release pipeline (unsigned DMG shows warning) | `.github/workflows/release.yml` | `focusa-ntr1` (P3, deferrable) | notarized `.dmg` uploaded to release |
+| **G18** | Apple Developer ID credentials not stored in repo secrets | GitHub Actions secrets | `focusa-csg1` (P3, deferrable) | secrets configured + workflow uses them |
+
+### 16.1 Why G01–G15 are NOT blocked by G16–G18
+
+**Codesign + notarize (G16, G17, G18) are independent of all other gaps.** An unsigned `.app` builds and runs fine on Intel Mac after the user right-clicks → Open → confirm. The cost is two extra dialogs per first launch, which is acceptable for a `dev` release tagged as `0.9.35-dev`.
+
+The Mac UI half (G03–G10) is testable on Intel Mac **without codesign** by:
+1. Building the `.app` via `npm run tauri build` from this branch
+2. `xattr -dr com.apple.quarantine Focusa.app` (removes quarantine)
+3. Right-click → Open → confirm
+4. The `.app` will report `v0.9.35-dev` and use the v0.9.35-dev model
+
+Codesign becomes mandatory only at the GA tag (no `-dev` suffix). Until then, the operator accepts the right-click → Open dance.
+
+### 16.2 Acceptance criteria for closing the gap map
+
+All P0 + P1 gaps (G01–G10) must close before a smooth Intel-Mac test. Specifically:
+- `svelte-check` passes
+- `cargo clippy --workspace -- -D warnings` passes
+- `bash tests/spec_focusa_ui0y_device_pairing_menubar_static_test.sh` passes (all 28+ checks)
+- `focusa pairing cycle-test --with-pwa-verify --rounds 10` passes
+- `cargo test --package focusa-cli --test menubar_headless_e2e -- --ignored --nocapture` passes
+- All three GitHub Actions jobs (Rust, Menubar, Spec Gates) pass
+
+When all those gates pass, the operator can build `Focusa.app` for Intel Mac via `npm run tauri build`, `xattr -dr com.apple.quarantine`, and have a fully working self-host pairing flow.

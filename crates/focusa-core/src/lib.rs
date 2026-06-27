@@ -54,5 +54,6 @@ pub mod threads;
 pub mod training;
 pub mod types;
 pub mod utility_card;
+pub mod bonjour;
 pub mod uxp;
 pub mod workers;

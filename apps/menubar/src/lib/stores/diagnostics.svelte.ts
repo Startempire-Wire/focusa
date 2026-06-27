@@ -31,10 +31,17 @@ export interface DebugBundleContext {
   offer_age_ms?: number;
   host?: string;
   // v0.9.35-dev: VPS-initiated room context
+  step?: string;
   connect_id?: string;
   pair_url?: string;
   firstrun_error?: string;
   server_url?: string;
+  discovered_url?: string;
+  discovery_source?: string;
+  discovery_attempts?: string[];
+  mac_name?: string;
+  mac_offer_preview?: string;
+  error?: string;
   extra?: Record<string, unknown>;
 }
 

@@ -27,21 +27,37 @@ pub enum CodesignCmd {
         #[arg(long)]
         json: bool,
     },
-    /// Sign + notarize + staple a `.app` (macOS only; requires Apple Developer credentials).
+    /// Sign + (optionally) notarize + staple a `.app` (macOS only).
+    ///
+    /// Three modes:
+    ///   1. Ad-hoc (free, no Apple ID):       `--developer-id -`
+    ///      Signs with the local ad-hoc identity; Gatekeeper requires
+    ///      right-click → Open on first launch. No notarization.
+    ///   2. Personal Team (free, Apple ID):   `--developer-id 'Apple Development: <name>' --apple-id <email>`
+    ///      Signs with the user's free Apple Developer Program identity;
+    ///      Gatekeeper requires right-click → Open on first launch. No
+    ///      notarization (notarization is paid-Apple-Developer-only).
+    ///   3. Full Developer ID (paid program):  `--developer-id 'Developer ID Application: <team>'`
+    ///      + team_id + apple_id + app-specific_password → full sign +
+    ///      notarize + staple. Gatekeeper accepts without user action.
     Sign {
         /// Path to the `.app` bundle.
         #[arg(long)]
         app_path: PathBuf,
-        /// Developer ID Application identity, e.g. "Developer ID Application: ACME Inc (TEAMID)".
+        /// Developer identity. Use "-" for ad-hoc, "Apple Development: <name>"
+        /// for Personal Team, or "Developer ID Application: <team>" for the
+        /// paid program. Stored in FOCUSA_DEVELOPER_ID env var.
         #[arg(long, env = "FOCUSA_DEVELOPER_ID")]
         developer_id: String,
-        /// Apple Developer Team ID (10 chars).
+        /// Apple Developer Team ID (10 chars; required for Personal Team +
+        /// full Developer ID, ignored for ad-hoc).
         #[arg(long, env = "FOCUSA_APPLE_TEAM_ID")]
         team_id: String,
-        /// Apple ID email for notarytool.
+        /// Apple ID email (required for notarization, ignored for ad-hoc
+        /// and Personal Team).
         #[arg(long, env = "FOCUSA_APPLE_ID")]
         apple_id: String,
-        /// App-specific password for notarytool.
+        /// App-specific password for notarytool (required for notarization).
         #[arg(long, env = "FOCUSA_APP_SPECIFIC_PASSWORD")]
         app_specific_password: String,
         /// Optional output zip path (defaults to <app>.zip alongside).
@@ -210,14 +226,29 @@ async fn sign(
         }
     }
 
+    // Auto-detect mode:
+    //   developer_id == "-"    → ad-hoc signing (no Apple ID)
+    //   team_id     == ""      → Personal Team (free Apple Developer Program)
+    //   otherwise              → full Developer ID Application (paid program)
+    let is_ad_hoc = developer_id == "-";
+    let is_personal_team = developer_id.starts_with("Developer ID Application:")
+        && team_id.len() == 10
+        && apple_id.is_empty();
+
+    if is_ad_hoc {
+        tracing::info!("signing mode: ad-hoc (no Apple ID; Gatekeeper will require manual Open)");
+    } else if is_personal_team {
+        tracing::info!("signing mode: Apple Developer Program free tier (Personal Team; Gatekeeper will require manual Open)");
+    } else {
+        tracing::info!("signing mode: full Developer ID + notarization");
+    }
+
     let zip = zip_path
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| format!("{}.zip", canonical_app.trim_end_matches('/')));
 
     let password_ref = format!("@keychain:FOCUSA_NOTARY_PASSWORD");
     let mut steps = Vec::new();
-
-    // Step 1: codesign --deep --force --options runtime --sign "$DEVELOPER_ID" <app>
     let cmd1 = format!(
         "codesign --deep --force --options runtime --sign \"{}\" \"{}\"",
         developer_id, canonical_app
@@ -236,6 +267,27 @@ async fn sign(
     let s2 = run_step("zip", &cmd2).await?;
     steps.push(s2.clone());
     if !s2.ok {
+        return finish_sign(steps, canonical_app, json);
+    }
+
+    // Step 3-4-5: notarize + staple + spctl — only for the full Developer ID path.
+    // For ad-hoc (--identity "-") or Personal Team (no apple_id), skip
+    // notarization entirely: it's a paid-Apple-Developer-Program-only API.
+    if is_ad_hoc || is_personal_team {
+        // Skip notarization + spctl. The operator can still install the
+        // .app after right-click → Open (one-time per machine).
+        tracing::info!(
+            "skipping notarize + staple + spctl_assess (ad-hoc / Personal Team mode)"
+        );
+        // Re-run codesign after the zip step (stapling may modify the bundle
+        // in the full path; skip that here since we didn't staple).
+        let cmd_re = format!(
+            "codesign --deep --force --options runtime --sign \"{}\" \"{}\"",
+            if is_ad_hoc { "-" } else { &developer_id },
+            canonical_app
+        );
+        let s_re = run_step("codesign_resign", &cmd_re).await?;
+        steps.push(s_re);
         return finish_sign(steps, canonical_app, json);
     }
 

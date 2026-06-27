@@ -25,6 +25,10 @@ enum PairingCmd {
     Doctor(commands::pairing_doctor::DoctorArgs),
     /// Revoke + re-pair cycle harness (v0.9.35-dev core test).
     CycleTest(commands::pairing_cycle_test::CycleTestArgs),
+    /// One-shot operator dashboard view (G11).
+    Status(commands::pairing_dashboard::StatusArgs),
+    /// Audit log of past pairings (G12).
+    History(commands::pairing_dashboard::HistoryArgs),
 }
 
 async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
@@ -39,6 +43,8 @@ async fn run_pairing(cmd: PairingCmd) -> anyhow::Result<()> {
         PairingCmd::Transport(sub) => commands::pairing_transport::run(sub).await,
         PairingCmd::Doctor(args) => commands::pairing_doctor::run(args).await,
         PairingCmd::CycleTest(args) => commands::pairing_cycle_test::run(args).await,
+        PairingCmd::Status(args) => commands::pairing_dashboard::run_status(args).await,
+        PairingCmd::History(args) => commands::pairing_dashboard::run_history(args).await,
     }
 }
 

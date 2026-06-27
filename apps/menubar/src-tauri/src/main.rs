@@ -249,6 +249,63 @@ use tauri::{
     Manager, WindowEvent,
 };
 
+/// Result of a Bonjour / mDNS browse for `_focusa._tcp.local` services.
+/// `url` is the daemon's public URL (read from the service TXT record);
+/// `host` is the discovered hostname; `port` is the daemon port.
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+struct BonjourDiscovery {
+    url: String,
+    host: String,
+    port: u16,
+}
+
+/// Browse the LAN for `_focusa._tcp.local` services and return the first
+/// reachable Focusa daemon. Resolves in <=2 seconds; returns Err if no
+/// daemon is found. Used by FirstRunWizard.svelte as the Bonjour discovery
+/// step (G07).
+#[tauri::command]
+async fn focusa_discover_via_bonjour(timeout_secs: Option<u64>) -> Result<BonjourDiscovery, String> {
+    let timeout_secs = timeout_secs.unwrap_or(2);
+    use mdns_sd::ServiceDaemon;
+    let daemon = ServiceDaemon::new().map_err(|e| format!("mdns daemon: {e}"))?;
+    let receiver = daemon
+        .browse("_focusa._tcp.local")
+        .map_err(|e| format!("mdns browse: {e}"))?;
+    // Collect events for `timeout_secs`.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
+    while std::time::Instant::now() < deadline {
+        if let Ok(event) = tokio::time::timeout(
+            std::time::Duration::from_millis(250),
+            receiver.recv_async(),
+        )
+        .await
+        {
+            if let mdns_sd::ServiceEvent::ServiceResolved(info) = event {
+                let name = info.get_fullname().to_string();
+                let host = info.get_hostname().to_string();
+                let port = info.get_port();
+                let txt: std::collections::HashMap<String, String> = info
+                    .get_properties()
+                    .iter()
+                    .filter_map(|p| {
+                        let val = p.val().to_string();
+                        if val.is_empty() { None } else { Some((p.key().to_string(), val)) }
+                    })
+                    .collect();
+                // Prefer the TXT record's `url` if present; fall back to http://host:port
+                let url = txt
+                    .get("url")
+                    .cloned()
+                    .unwrap_or_else(|| format!("http://{}:{}", host.trim_end_matches('.'), port));
+                let _ = daemon.shutdown();
+                return Ok(BonjourDiscovery { url, host, port });
+            }
+        }
+    }
+    let _ = daemon.shutdown();
+    Err("no _focusa._tcp.local services found within timeout".to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
@@ -258,6 +315,7 @@ fn main() {
             focusa_clear_pairing_token,
             focusa_start_bridge_callback,
             focusa_take_bridge_completion,
+            focusa_discover_via_bonjour,
         ])
         .setup(|app| {
             // macOS: hide dock icon — menubar-only app

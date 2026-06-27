@@ -6,7 +6,7 @@
   import FocusView from '$lib/components/FocusView.svelte';
   import GatePanel from '$lib/components/GatePanel.svelte';
   import Settings from '$lib/components/Settings.svelte';
-  import FirstRunConnect from '$lib/components/FirstRunConnect.svelte';
+  import FirstRunWizard from '$lib/components/FirstRunWizard.svelte';
   import CockpitView from '$lib/components/CockpitView.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
@@ -204,7 +204,7 @@
 <!-- Content -->
 <main class="content">
   {#if !everConnected && focusStore.connected !== 'connected'}
-    <FirstRunConnect />
+    <FirstRunWizard />
   {:else if activeTab === 'focus'}
     <FocusView />
   {:else if activeTab === 'cockpit'}

@@ -40,10 +40,10 @@ pass "PairingPanel supports per-device revoke"
 
 # 3b. Release-grade pairing debug bundle support
 DIAG="$ROOT_DIR/apps/menubar/src/lib/stores/diagnostics.svelte.ts"
-FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
+FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunWizard.svelte"
 rg -n 'renderRedactedDebugBundle|Focusa Mac pairing debug bundle|app_version|latest_failure|diagnostics_jsonl|redaction' "$DIAG" >/dev/null   || fail "diagnostics store missing redacted debug bundle fields"
 rg -n "lower\.includes\('token'\)|\[REDACTED\]|long_strings" "$DIAG" >/dev/null   || fail "debug bundle missing token/secret redaction"
-rg -n 'Copy debug bundle|copyDebugBundle|first_run_connect|callback_status|completion_status|public_pairing_url' "$FIRST_RUN" >/dev/null   || fail "FirstRunConnect missing Copy debug bundle with callback/completion context"
+rg -n 'Copy debug bundle|copyDebugBundle|first_run_wizard|callback_status|completion_status|discovered_url' "$FIRST_RUN" >/dev/null   || fail "FirstRunWizard missing Copy debug bundle with callback/completion context"
 rg -n 'Copy debug bundle|copyDebugBundle|pairing_panel|pairing_state_kind|pairing_state' "$PANEL" >/dev/null   || fail "PairingPanel missing Copy debug bundle with pairing state"
 pass "release-grade redacted debug bundle wired into first-run + pairing failure UI"
 
@@ -113,10 +113,10 @@ rg -qn 'chromium_dump_dom|build_menubar|spawn_static_server' "$HEADLESS" \
   || fail "menubar headless e2e missing required helpers (chromium_dump_dom, build_menubar, spawn_static_server)"
 pass "menubar headless e2e Rust test present (builds SPA + headless chromium dump-dom)"
 
-# 18. menubar FirstRunConnect.svelte has headless Tauri stub
+# 18. menubar FirstRunWizard.svelte has headless Tauri stub
 rg -qn '__FOCUSA_HEADLESS__|__FOCUSA_DAEMON_URL__' "$FIRST_RUN" \
-  || fail "FirstRunConnect.svelte missing headless Tauri stub globals"
-pass "FirstRunConnect.svelte honors __FOCUSA_HEADLESS__ + __FOCUSA_DAEMON_URL__ globals"
+  || fail "FirstRunWizard.svelte missing headless Tauri stub globals"
+pass "FirstRunWizard.svelte honors __FOCUSA_HEADLESS__ + __FOCUSA_DAEMON_URL__ globals"
 
 # 19. pairing cycle-test Rust subcommand has --with-pwa-verify flag
 CYCLE_TEST="$ROOT_DIR/crates/focusa-cli/src/commands/pairing_cycle_test.rs"
@@ -138,29 +138,32 @@ else
   echo "ⓘ  daemon not running locally; skipping live CORS check"
 fi
 
-# 18. FirstRunConnect renders a URL-shaped QR (WhatsApp-like), not a JSON blob.
-FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
-[ -f "$FIRST_RUN" ] || fail "FirstRunConnect.svelte missing"
-rg -n 'QRCode payload=' "$FIRST_RUN" >/dev/null || fail "FirstRunConnect.svelte missing QRCode usage"
+# 18. FirstRunWizard renders a URL-shaped QR (WhatsApp-like), not a JSON blob.
+FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunWizard.svelte"
+[ -f "$FIRST_RUN" ] || fail "FirstRunWizard.svelte missing"
+rg -n 'QRCode payload=' "$FIRST_RUN" >/dev/null || fail "FirstRunWizard.svelte missing QRCode usage"
 if ! rg -q 'payload=\{pairUrl' "$FIRST_RUN"; then
-  fail "FirstRunConnect.svelte QR payload is not the URL-shaped pairUrl"
+  fail "FirstRunWizard.svelte QR payload is not the URL-shaped pairUrl"
 fi
-if rg -q "JSON.stringify\(\{\s*protocol" "$FIRST_RUN"; then
-  fail "FirstRunConnect.svelte still embeds a JSON QR blob (must be URL-shaped)"
+# The QR payload must be the URL (pairUrl), not a JSON blob. We allow
+# JSON.stringify elsewhere in the file (macOffer logging, completion
+# payload), so we narrow the check to the actual QRCode usage line.
+if rg -q "QRCode payload=\{[^p]" "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte QR payload is not the URL-shaped pairUrl"
 fi
-pass "FirstRunConnect.svelte QR is URL-shaped (WhatsApp-like), not a JSON blob"
+pass "FirstRunWizard.svelte QR is URL-shaped (WhatsApp-like), not a JSON blob"
 
-# 19. FirstRunConnect polls the URL-QR room status endpoint
+# 19. FirstRunWizard polls the URL-QR room status endpoint
 if ! rg -q '/v1/connect/room/firstrun|/v1/connect/room/.*status|pollRoomStatus' "$FIRST_RUN"; then
-  fail "FirstRunConnect.svelte missing firstrun / pollRoomStatus / status URL"
+  fail "FirstRunWizard.svelte missing firstrun / pollRoomStatus / status URL"
 fi
-pass "FirstRunConnect.svelte polls /v1/connect/room/{room_id}/status after firstrun"
+pass "FirstRunWizard.svelte polls /v1/connect/room/{room_id}/status after firstrun"
 
-# 20. FirstRunConnect wires the diagnostics store so errors are recorded + copiable (v0.9.35-dev)
+# 20. FirstRunWizard wires the diagnostics store so errors are recorded + copiable (v0.9.35-dev)
 if ! rg -q 'installGlobalDiagnostics|diagnosticsStore\.record' "$FIRST_RUN"; then
-  fail "FirstRunConnect.svelte missing diagnostics wiring (installGlobalDiagnostics or diagnosticsStore.record)"
+  fail "FirstRunWizard.svelte missing diagnostics wiring (installGlobalDiagnostics or diagnosticsStore.record)"
 fi
-pass "FirstRunConnect.svelte wires diagnostics store (errors recorded + bundle copiable)"
+pass "FirstRunWizard.svelte wires diagnostics store (errors recorded + bundle copiable)"
 
 # 21. DebugBundleContext includes v0.9.35-dev fields
 DIAG="$ROOT_DIR/apps/menubar/src/lib/stores/diagnostics.svelte.ts"

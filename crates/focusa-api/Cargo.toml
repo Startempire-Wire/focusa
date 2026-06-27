@@ -33,6 +33,7 @@ reqwest = { workspace = true, features = ["stream"] }
 tokio-stream = { workspace = true }
 async-stream = { workspace = true }
 futures-core = { workspace = true }
+mdns-sd = "0.11"
 
 [lints]
 workspace = true

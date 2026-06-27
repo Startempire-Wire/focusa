@@ -188,6 +188,14 @@ async fn main() -> anyhow::Result<()> {
     // Clone persistence for API server (sync routes need direct DB access).
     let persistence = daemon.persistence();
 
+    // Bonjour / mDNS advertise port (read before config is moved below).
+    let bonjour_port = config
+        .api_bind
+        .rsplit(':')
+        .next()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(8787);
+
     // Spawn daemon event loop.
     let daemon_handle = tokio::spawn(async move {
         if let Err(e) = daemon.run().await {
@@ -209,6 +217,16 @@ async fn main() -> anyhow::Result<()> {
         .await
         {
             tracing::error!("API server error: {}", e);
+        }
+    });
+
+    // Advertise _focusa._tcp.local via Bonjour / mDNS so the Mac menubar
+    // wizard can auto-discover this daemon on the LAN without operator input.
+    // The TXT record carries the `url` so the Mac can skip the Tailscale
+    // round-trip when on the same LAN. (G08)
+    let _bonjour_handle = tokio::spawn(async move {
+        if let Err(e) = focusa_core::bonjour::advertise("_focusa._tcp.local.", bonjour_port).await {
+            tracing::warn!(error = %e, "Bonjour advertisement ended (non-fatal)");
         }
     });
 
