@@ -98,7 +98,10 @@ WorkingDirectory={}
 WantedBy=default.target
 ",
         binary.display(),
-        binary.parent().and_then(|p| p.to_str()).unwrap_or("/usr/local/bin")
+        binary
+            .parent()
+            .and_then(|p| p.to_str())
+            .unwrap_or("/usr/local/bin")
     )
 }
 
@@ -121,11 +124,16 @@ fn render_launchd_plist(binary: &Path, log_dir: &Path) -> String {
     )
 }
 
-fn run_systemd_user(unit_path: &Path, dry_run: bool, no_enable: bool) -> Result<(bool, Vec<String>)> {
+fn run_systemd_user(
+    unit_path: &Path,
+    dry_run: bool,
+    no_enable: bool,
+) -> Result<(bool, Vec<String>)> {
     let mut notes = Vec::new();
     if let Some(parent) = unit_path.parent() {
         if !dry_run {
-            std::fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("create {}", parent.display()))?;
         }
     }
     let _ = unit_path; // unit content rendered by caller
@@ -138,7 +146,12 @@ fn run_systemd_user(unit_path: &Path, dry_run: bool, no_enable: bool) -> Result<
         .status();
     match status {
         Ok(s) if s.success() => {}
-        Ok(s) => return Err(anyhow!("systemctl --user daemon-reload failed: exit={}", s.code().unwrap_or(-1))),
+        Ok(s) => {
+            return Err(anyhow!(
+                "systemctl --user daemon-reload failed: exit={}",
+                s.code().unwrap_or(-1)
+            ));
+        }
         Err(e) => return Err(anyhow!("systemctl --user daemon-reload not runnable: {e}")),
     }
     let status = std::process::Command::new("systemctl")
@@ -146,12 +159,21 @@ fn run_systemd_user(unit_path: &Path, dry_run: bool, no_enable: bool) -> Result<
         .status();
     match status {
         Ok(s) if s.success() => Ok((true, notes)),
-        Ok(s) => Err(anyhow!("systemctl --user enable --now focusa-daemon failed: exit={}", s.code().unwrap_or(-1))),
-        Err(e) => Err(anyhow!("systemctl --user enable --now focusa-daemon not runnable: {e}")),
+        Ok(s) => Err(anyhow!(
+            "systemctl --user enable --now focusa-daemon failed: exit={}",
+            s.code().unwrap_or(-1)
+        )),
+        Err(e) => Err(anyhow!(
+            "systemctl --user enable --now focusa-daemon not runnable: {e}"
+        )),
     }
 }
 
-fn run_launchd_user(plist_path: &Path, dry_run: bool, no_enable: bool) -> Result<(bool, Vec<String>)> {
+fn run_launchd_user(
+    plist_path: &Path,
+    dry_run: bool,
+    no_enable: bool,
+) -> Result<(bool, Vec<String>)> {
     let mut notes = Vec::new();
     if !dry_run {
         let _ = std::process::Command::new("launchctl")
@@ -167,7 +189,10 @@ fn run_launchd_user(plist_path: &Path, dry_run: bool, no_enable: bool) -> Result
         .status();
     match status {
         Ok(s) if s.success() => Ok((true, notes)),
-        Ok(s) => Err(anyhow!("launchctl load -w failed: exit={}", s.code().unwrap_or(-1))),
+        Ok(s) => Err(anyhow!(
+            "launchctl load -w failed: exit={}",
+            s.code().unwrap_or(-1)
+        )),
         Err(e) => Err(anyhow!("launchctl load -w not runnable: {e}")),
     }
 }
@@ -187,7 +212,8 @@ pub async fn run(args: InstallServiceArgs, dry_run: bool) -> Result<()> {
                 .join(format!("{SERVICE_NAME}.service"));
             let unit = render_systemd_unit(&binary);
             if !dry_run {
-                std::fs::write(&path, &unit).with_context(|| format!("write {}", path.display()))?;
+                std::fs::write(&path, &unit)
+                    .with_context(|| format!("write {}", path.display()))?;
             }
             unit_path = Some(path.display().to_string());
             let (ok, extra) = run_systemd_user(&path, dry_run, args.no_enable)?;
@@ -218,7 +244,8 @@ pub async fn run(args: InstallServiceArgs, dry_run: bool) -> Result<()> {
             let plist = agents.join(format!("{LAUNCHD_LABEL}.plist"));
             let body = render_launchd_plist(&binary, &log_dir);
             if !dry_run {
-                std::fs::write(&plist, &body).with_context(|| format!("write {}", plist.display()))?;
+                std::fs::write(&plist, &body)
+                    .with_context(|| format!("write {}", plist.display()))?;
             }
             unit_path = Some(plist.display().to_string());
             let (ok, extra) = run_launchd_user(&plist, dry_run, args.no_enable)?;
@@ -250,7 +277,10 @@ pub async fn run(args: InstallServiceArgs, dry_run: bool) -> Result<()> {
                 "no supported service manager detected on this host".into(),
                 format!("binary: {}", binary.display()),
             ],
-            recovery_hint: Some("install systemd (Linux) or launchd (macOS) and rerun focusa install-service".into()),
+            recovery_hint: Some(
+                "install systemd (Linux) or launchd (macOS) and rerun focusa install-service"
+                    .into(),
+            ),
         },
     };
 
@@ -289,7 +319,10 @@ mod tests {
 
     #[test]
     fn render_launchd_plist_mentions_binary() {
-        let body = render_launchd_plist(Path::new("/opt/focusa/bin/focusa-daemon"), Path::new("/tmp/logs"));
+        let body = render_launchd_plist(
+            Path::new("/opt/focusa/bin/focusa-daemon"),
+            Path::new("/tmp/logs"),
+        );
         assert!(body.contains("/opt/focusa/bin/focusa-daemon"));
         assert!(body.contains(LAUNCHD_LABEL));
         assert!(body.contains("/tmp/logs/focusa-daemon.out.log"));
