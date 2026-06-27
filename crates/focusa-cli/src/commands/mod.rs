@@ -34,6 +34,7 @@ pub mod pair;
 pub mod pairing_transport;
 pub mod pairing_doctor;
 pub mod pairing_wizard;
+pub mod pairing_cycle_test;
 pub mod predict;
 pub mod project;
 pub mod proposals;

@@ -133,58 +133,59 @@ There is no silent auto-re-pair. The operator must explicitly run the wizard.
 
 ## 6. Revoke + re-pair test cycle
 
-The test cycle runs the full flow N times to verify idempotency and persistence:
+The test cycle runs the full flow N times to verify idempotency and persistence. It is built into the **Rust core** (not a bash script) so it can run from CI, from a fresh operator install, or after any daemon change.
 
-```bash
-# tests/spec_focusa_ui0y_pairing_revoke_repair_test.sh
-#!/usr/bin/env bash
-set -euo pipefail
+### 6.1 Operator CLI: `focusa pairing cycle-test`
 
-ROUNDS="${ROUNDS:-10}"
-DAEMON_URL="${FOCUSA_DAEMON_URL:-http://127.0.0.1:8787}"
+```
+$ focusa pairing cycle-test --rounds 10
 
-for i in $(seq 1 "$ROUNDS"); do
-    echo "=== round $i of $ROUNDS ==="
+=== round 1 of 10 ===
+  ✓ room created: 019f09f6
+  ✓ mac joined
+  ✓ phone approved; device_id=019f09f6
+  ✓ status=completed, token present
+  ✓ revoked
+  ✓ re-revoke idempotent
+  ✓ list shows revoked=true
+  round 1: PASS
 
-    # 1. Create room via wizard (demo mode auto-approves)
-    ROOM_JSON="$(FOCUSA_WIZARD_DEMO=1 focusa pairing create-room)"
+…
 
-    # 2. Verify room exists
-    ROOM_ID="$(echo "$ROOM_JSON" | jq -r .room_id)"
-    STATUS="$(curl -fsS "$DAEMON_URL/v1/connect/room/$ROOM_ID/status" | jq -r .status)"
-    [[ "$STATUS" == "completed" ]] || { echo "FAIL: round $i: expected completed, got $STATUS"; exit 1; }
-
-    # 3. Extract device_id from completed room
-    DEVICE_ID="$(curl -fsS "$DAEMON_URL/v1/connect/room/$ROOM_ID/status" | jq -r .device_id)"
-    [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || { echo "FAIL: round $i: no device_id"; exit 1; }
-
-    # 4. Revoke
-    REVOKE_RESP="$(curl -fsS -X POST "$DAEMON_URL/v1/device/pair/revoke" \
-        -H 'content-type: application/json' \
-        -d "$(jq -nc --arg d "$DEVICE_ID" '{device_id: $d, host: "test-host", reason: "test cycle"}')")"
-    REVOKED="$(echo "$REVOKE_RESP" | jq -r .revoked)"
-    [[ "$REVOKED" == "true" ]] || { echo "FAIL: round $i: revoke did not return revoked=true"; exit 1; }
-
-    # 5. Verify idempotency — second revoke returns same ledger entry
-    REVOKE_RESP2="$(curl -fsS -X POST "$DAEMON_URL/v1/device/pair/revoke" \
-        -H 'content-type: application/json' \
-        -d "$(jq -nc --arg d "$DEVICE_ID" '{device_id: $d, host: "test-host"}')")"
-    REVOKED2="$(echo "$REVOKE_RESP2" | jq -r .revoked)"
-    [[ "$REVOKED2" == "true" ]] || { echo "FAIL: round $i: second revoke not idempotent"; exit 1; }
-
-    # 6. Verify list shows the revoked device
-    LIST="$(curl -fsS "$DAEMON_URL/v1/device/pair/list?host=test-host")"
-    FOUND="$(echo "$LIST" | jq -r --arg d "$DEVICE_ID" '.devices[] | select(.device_id == $d) | .revoked')"
-    [[ "$FOUND" == "true" ]] || { echo "FAIL: round $i: list did not show device_id as revoked"; exit 1; }
-
-    echo "round $i: PASS"
-done
-
-echo ""
-echo "ALL $ROUNDS rounds passed."
+=== cycle-test summary ===
+rounds attempted: 10
+rounds passed:    10
+rounds failed:    0
+duration:         710 ms
 ```
 
-This test exercises the full cycle: create room → phone approves → token minted → revoke → idempotent re-revoke → list reflects revoked state. Running it after every daemon change catches regressions.
+Exits with code 0 on success, 1 on any failure. Supports `--json` for machine-readable output, `--fail-fast` to stop on first failure, `--base-url <url>` for non-default daemons.
+
+### 6.2 CI integration test
+
+`crates/focusa-cli/tests/revoke_repair_cycle.rs` runs the same cycle under `cargo test`. Marked `#[ignore]` so it doesn't run when the daemon is unavailable.
+
+```bash
+# Run locally against a live daemon:
+FOCUSA_CYCLE_TEST_URL=http://127.0.0.1:8787 \
+  cargo test --package focusa-cli --test revoke_repair_cycle -- --ignored --nocapture
+```
+
+### 6.3 What it exercises
+
+| Step | API | Assertion |
+|---|---|---|
+| 1. Create room | `POST /v1/connect/room/create` | Returns `room_id` |
+| 2. Mac joins | `POST /v1/connect/room/{id}/join` | `status == "mac_seen"` |
+| 3. Phone approves | `POST /v1/connect/room/{id}/approve` | `status == "completed"` |
+| 4. Verify completed | `GET /v1/connect/room/{id}/status` | `status == "completed"` + token present |
+| 5. Revoke | `POST /v1/device/pair/revoke` | `ledger_appended == true` OR `status == "completed"` |
+| 6. Idempotent re-revoke | `POST /v1/device/pair/revoke` | Same response shape (no duplicate ledger entry) |
+| 7. List reflects revoked | `GET /v1/device/pair/list?host=…` | `revoked == true` for the device_id |
+
+### 6.4 Bug surfacing
+
+The Rust cycle test surfaced a real response-shape drift between v0.9.34-dev and v0.9.35-dev: the revoke endpoint returns `{ledger_appended: true}` for fresh revokes and `{status: "completed"}` for idempotent re-revokes — not the `{revoked: true}` field the original bash test assumed. The Rust test asserts on either accepted shape and passes; the bash test would have hard-failed. **The Rust version is the source of truth** going forward.
 
 ## 7. What gets persisted
 
