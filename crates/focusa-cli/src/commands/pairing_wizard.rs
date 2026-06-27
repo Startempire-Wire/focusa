@@ -110,11 +110,7 @@ fn detect_tailscale_hostname() -> Option<(String, String)> {
 
 fn resolve_public_url(no_tailnet: bool) -> (String, String) {
     // (url, source) — source for diagnostics
-    if !no_tailnet {
-        if let Some((name, ip)) = detect_tailscale_hostname() {
-            return (format!("https://{name}"), format!("tailscale MagicDNS {name} → {ip}"));
-        }
-    }
+    // Env vars beat auto-discovery; explicit operator intent > heuristic.
     if let Ok(u) = std::env::var("FOCUSA_PUBLIC_URL") {
         if !u.trim().is_empty() {
             return (u, "FOCUSA_PUBLIC_URL env".to_string());
@@ -123,6 +119,11 @@ fn resolve_public_url(no_tailnet: bool) -> (String, String) {
     if let Ok(u) = std::env::var("FOCUSA_PAIRING_URL") {
         if !u.trim().is_empty() {
             return (u, "FOCUSA_PAIRING_URL env".to_string());
+        }
+    }
+    if !no_tailnet {
+        if let Some((name, ip)) = detect_tailscale_hostname() {
+            return (format!("https://{name}"), format!("tailscale MagicDNS {name} → {ip}"));
         }
     }
     (daemon_url(), "daemon URL fallback".to_string())

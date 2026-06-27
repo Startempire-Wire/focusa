@@ -107,6 +107,9 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         )
         .route("/connect", axum::routing::get(connect_mediator_page))
         .route("/connect/firstrun", axum::routing::get(connect_firstrun_page))
+        // v0.9.35-dev: PWA /scan page with getUserMedia camera. Replaces
+        // /firstrun as the canonical phone-side entry point.
+        .route("/connect/room/{room_id}/scan", axum::routing::get(connect_room_scan_page))
         .route("/connect/{room_id}", axum::routing::get(connect_room_page))
         // focusa-ui0y WhatsApp-like first-run: Mac creates a rendezvous and
         // receives the public server_url to embed in the URL-QR.
@@ -2237,4 +2240,186 @@ async fn connect_room_join(
         },
         "rehydrate_id": rid,
     })))
+}
+
+// ---------- focusa-ui0y v0.9.35-dev: PWA /connect/room/<id>/scan ----------
+
+async fn connect_room_scan_page(
+    axum::extract::Path(room_id): axum::extract::Path<String>,
+) -> (StatusCode, [(String, String); 2], String) {
+    let rid_json = serde_json::to_string(&room_id).unwrap_or_else(|_| "\"\"".into());
+    let body = format!(
+        r##"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <title>Focusa — Pair Mac</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {{ color-scheme: dark; }}
+    body {{ margin: 0; min-height: 100vh; background: #0f1115; color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif;
+      display: grid; place-items: center; padding: 24px; }}
+    .card {{ width: min(100%, 420px); background: #1a1d24; border: 1px solid #2b303b;
+      border-radius: 22px; padding: 24px; text-align: center; }}
+    h1 {{ margin: 0 0 8px; font-size: 20px; }}
+    p {{ margin: 0 0 14px; color: #b6bdc9; line-height: 1.4; }}
+    video {{ width: 100%; max-width: 360px; border-radius: 14px; background: #000;
+      aspect-ratio: 4/3; object-fit: cover; }}
+    button {{ width: 100%; padding: 14px 18px; border-radius: 14px; border: 0;
+      background: #5b8cff; color: #0f1115; font-weight: 700; font-size: 16px; cursor: pointer;
+      margin-top: 12px; }}
+    button[disabled] {{ opacity: .5; cursor: default; }}
+    .ok {{ background: #1e6f3a; color: #fff; }}
+    .err {{ background: #6b1f1f; color: #fff; }}
+    .mac-name {{ color: #fff; font-weight: 700; }}
+    .scanner-wrap {{ position: relative; }}
+    .scanner-overlay {{ position: absolute; inset: 0; pointer-events: none;
+      border: 2px dashed rgba(91,140,255,.55); border-radius: 14px; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Pair this Mac</h1>
+    <p>Point your camera at the <strong>Mac menubar QR</strong>.</p>
+    <div class="scanner-wrap">
+      <video id="video" playsinline muted></video>
+      <div class="scanner-overlay"></div>
+    </div>
+    <p id="mac-name"></p>
+    <button id="approve" type="button" disabled>Approve</button>
+    <p id="status" style="margin-top:14px;color:#b6bdc9;font-size:13px;"></p>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script>
+    const ROOM_ID = {rid_json};
+    const video = document.getElementById('video');
+    const approveBtn = document.getElementById('approve');
+    const statusEl = document.getElementById('status');
+    const macNameEl = document.getElementById('mac-name');
+    let stream = null;
+    let scanHandle = null;
+    let macOffer = null;
+
+    function setStatus(msg, cls) {{
+      statusEl.textContent = msg;
+      statusEl.className = cls || '';
+    }}
+
+    function parseMacOffer(text) {{
+      // Mac app encodes mac_offer as JSON; the menubar QR is the raw JSON.
+      try {{
+        const v = JSON.parse(text);
+        if (v && v.role === 'mac_handoff_offer') return v;
+      }} catch (_) {{}}
+      return null;
+    }}
+
+    function postJoin(offer) {{
+      return fetch('/v1/connect/room/' + encodeURIComponent(ROOM_ID) + '/join', {{
+        method: 'POST',
+        headers: {{'content-type': 'application/json'}},
+        body: JSON.stringify({{
+          mac_name: offer.mac_name || 'mac',
+          mac_nonce: offer.nonce || offer.mac_nonce || '',
+          mac_pubkey: offer.mac_pubkey || null,
+          mac_callback: offer.mac_callback || null,
+        }})
+      }});
+    }}
+
+    function postApprove() {{
+      return fetch('/v1/connect/room/' + encodeURIComponent(ROOM_ID) + '/approve', {{
+        method: 'POST',
+        headers: {{'content-type': 'application/json'}},
+        body: JSON.stringify({{
+          host: location.host,
+          operator_id: 'phone-approve',
+          completed_by: 'phone',
+        }})
+      }});
+    }}
+
+    async function startCamera() {{
+      try {{
+        stream = await navigator.mediaDevices.getUserMedia({{
+          video: {{ facingMode: 'environment' }}, audio: false
+        }});
+        video.srcObject = stream;
+        await video.play();
+        setStatus('Point the camera at the Mac menubar QR.');
+        scanHandle = requestAnimationFrame(tick);
+      }} catch (e) {{
+        setStatus('Camera unavailable: ' + e.message, 'err');
+      }}
+    }}
+
+    function tick() {{
+      if (!stream) return;
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {{
+        scanHandle = requestAnimationFrame(tick); return;
+      }}
+      const w = video.videoWidth, h = video.videoHeight;
+      if (w && h && window.jsQR) {{
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h);
+        const code = jsQR(data.data, w, h);
+        if (code && code.data) {{
+          const offer = parseMacOffer(code.data);
+          if (offer) {{
+            macOffer = offer;
+            macNameEl.innerHTML = 'Mac: <span class="mac-name">' +
+              (offer.mac_name || 'unknown') + '</span>';
+            approveBtn.disabled = false;
+            setStatus('Mac detected. Tap Approve.');
+            if (stream) {{ stream.getTracks().forEach(t => t.stop()); stream = null; }}
+            return;
+          }}
+        }}
+      }}
+      scanHandle = requestAnimationFrame(tick);
+    }}
+
+    approveBtn.addEventListener('click', async () => {{
+      if (!macOffer) return;
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Joining room…';
+      try {{
+        const j = await postJoin(macOffer);
+        if (!j.ok) throw new Error('join HTTP ' + j.status);
+        approveBtn.textContent = 'Approving…';
+        const a = await postApprove();
+        if (!a.ok) throw new Error('approve HTTP ' + a.status);
+        approveBtn.classList.add('ok');
+        approveBtn.textContent = 'Paired';
+        setStatus('Pairing complete. You can close this page.');
+      }} catch (e) {{
+        approveBtn.disabled = false;
+        approveBtn.classList.add('err');
+        approveBtn.textContent = 'Approve';
+        setStatus('Failed: ' + e.message);
+      }}
+    }});
+
+    startCamera();
+  </script>
+</body>
+</html>"##
+    );
+    (
+        StatusCode::OK,
+        [
+            (
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            ),
+            ("cache-control".to_string(), "no-store".to_string()),
+        ],
+        body,
+    )
 }
