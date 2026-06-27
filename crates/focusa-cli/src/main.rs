@@ -45,6 +45,9 @@ enum Commands {
     /// Install and enable the Focusa daemon service (Linux systemd user / macOS LaunchAgent).
     InstallService(commands::service::InstallServiceArgs),
 
+    /// macOS code signing + notarization inspection helper (focusa-covz).
+    Codesign(commands::codesign::CodesignArgs),
+
     /// Show daemon status.
     Status {
         /// Agent-first status envelope with Workpoint, Work-loop, token, and cache details.
@@ -60,6 +63,13 @@ enum Commands {
 
     /// Open a Mac Pairing Room and print a phone-scannable QR.
     Pair(commands::pair::PairArgs),
+
+    /// Discover and write the best phone-reachable Focusa transport (multi-transport bundle, focusa-ifc3).
+    #[command(subcommand)]
+    PairingTransport(commands::pairing_transport::TransportCmd),
+
+    /// Single-command pairing root-cause report (focusa-gkrj).
+    PairingDoctor(commands::pairing_doctor::DoctorArgs),
 
     /// Run full agent-first doctor checks.
     Doctor(commands::doctor::DoctorArgs),
@@ -371,6 +381,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::InstallService(args) => commands::service::run(args, false).await,
+        Commands::Codesign(args) => commands::codesign::run(args).await,
         Commands::Status { agent, operator } => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/status").await?;
@@ -599,6 +610,8 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Onboard(args) => commands::onboard::run(args, cli.json).await,
         Commands::Pair(args) => commands::pair::run(args, cli.json).await,
+        Commands::PairingDoctor(args) => commands::pairing_doctor::run(args).await,
+        Commands::PairingTransport(cmd) => commands::pairing_transport::run(cmd).await,
         Commands::Doctor(args) => commands::doctor::run(cli.json, args).await,
         Commands::License(args) => commands::license::run(cli.json, args).await,
         Commands::Preflight => commands::dxux::preflight().await,

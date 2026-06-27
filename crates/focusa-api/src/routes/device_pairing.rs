@@ -28,6 +28,8 @@ use axum::{
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
 use focusa_core::types::{DevicePairCode, DevicePairCompletion, DeviceRecord, DeviceToken};
+
+use super::pairing_store;
 use rand::{RngCore, rngs::OsRng};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -94,7 +96,14 @@ pub fn router() -> axum::Router<Arc<AppState>> {
             axum::routing::post(connect_room_approve),
         )
         .route("/connect", axum::routing::get(connect_mediator_page))
+        .route("/connect/firstrun", axum::routing::get(connect_firstrun_page))
         .route("/connect/{room_id}", axum::routing::get(connect_room_page))
+        // focusa-ui0y WhatsApp-like first-run: Mac creates a rendezvous and
+        // receives the public server_url to embed in the URL-QR.
+        .route(
+            "/v1/connect/room/firstrun",
+            axum::routing::post(connect_room_firstrun),
+        )
         // focusa-ui0y.8: PWA helper page for QR/PWA handoff
         .route("/pair/{device_id}", axum::routing::get(pwa_helper_page))
         .route(
@@ -254,6 +263,21 @@ pub struct ConnectApproveRequest {
 #[derive(Debug, Deserialize)]
 pub struct ConnectRoomStartRequest {
     pub server_url: Option<String>,
+    pub scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectRoomFirstrunRequest {
+    /// Mac device name (operator-readable).
+    pub mac_name: Option<String>,
+    /// Operator-supplied hint for the public Connect origin; the daemon
+    /// verifies it before returning.
+    pub server_url: Option<String>,
+    /// Optional ephemeral TCP callback URL on the Mac (fast-path optimization).
+    pub mac_callback: Option<String>,
+    /// Optional random nonce the Mac generated.
+    pub mac_nonce: Option<String>,
+    /// Optional scopes; defaults to read+write.
     pub scopes: Option<Vec<String>>,
 }
 
@@ -1750,4 +1774,232 @@ fn pwa_helper_html(device_id: &str) -> String {
         device_id = device_id,
         device_id_quoted = serde_json::to_string(device_id).unwrap_or_else(|_| "\"\"".to_string()),
     )
+}
+
+// ---------- focusa-ui0y WhatsApp-like first-run (URL-shaped QR + small Approve page) ----------
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ConnectFirstrunQuery {
+    #[serde(default)]
+    pub mac_offer: Option<String>,
+}
+
+async fn connect_firstrun_page(
+    axum::extract::Query(q): axum::extract::Query<ConnectFirstrunQuery>,
+) -> (StatusCode, [(String, String); 2], String) {
+    let mac_offer_b64 = q.mac_offer.unwrap_or_default();
+    let (mac_name, room_id) = decode_mac_offer(&mac_offer_b64);
+    let mac_name_json = serde_json::to_string(&mac_name).unwrap_or_else(|_| "\"Mac\"".into());
+    let room_id_json = serde_json::to_string(&room_id).unwrap_or_else(|_| "\"\"".into());
+    let body = format!(
+        r##"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <title>Approve Focusa Mac</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {{ color-scheme: dark; }}
+    body {{ margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #0f1115; color: #e8e8e8; font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif; }}
+    .card {{ width: min(100%, 420px); background: #1a1d24; border: 1px solid #2b303b; border-radius: 22px; padding: 28px; text-align: center; }}
+    h1 {{ margin: 0 0 12px; font-size: 22px; }}
+    p {{ margin: 0 0 20px; color: #b6bdc9; }}
+    button {{ width: 100%; padding: 14px 18px; border-radius: 14px; border: 0; background: #5b8cff; color: #0f1115; font-weight: 700; font-size: 16px; cursor: pointer; }}
+    button[disabled] {{ opacity: .5; cursor: default; }}
+    .ok {{ background: #1e6f3a; color: #fff; }}
+    .err {{ background: #6b1f1f; color: #fff; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Approve this Mac?</h1>
+    <p id="mac-name">Mac</p>
+    <button id="approve" type="button">Approve</button>
+    <p id="status" style="margin-top:18px;color:#b6bdc9;"></p>
+  </div>
+  <script>
+    const MAC_NAME = {mac_name_json};
+    const ROOM_ID = {room_id_json};
+    document.getElementById('mac-name').textContent = MAC_NAME;
+    const btn = document.getElementById('approve');
+    const statusEl = document.getElementById('status');
+    btn.addEventListener('click', async () => {{
+      btn.disabled = true; btn.textContent = 'Approving...';
+      try {{
+        const r = await fetch('/v1/connect/room/' + encodeURIComponent(ROOM_ID) + '/mac-offer', {{
+          method: 'POST', headers: {{'content-type': 'application/json'}},
+          body: JSON.stringify({{ mac_name: MAC_NAME }})
+        }});
+        if (!r.ok) throw new Error('offer HTTP ' + r.status);
+        const a = await fetch('/v1/connect/room/' + encodeURIComponent(ROOM_ID) + '/approve', {{
+          method: 'POST', headers: {{'content-type': 'application/json'}},
+          body: JSON.stringify({{ host: location.host, operator_id: 'phone-approve', completed_by: 'phone' }})
+        }});
+        if (!a.ok) throw new Error('approve HTTP ' + a.status);
+        btn.classList.add('ok'); btn.textContent = 'Approved';
+        statusEl.textContent = 'Pairing complete. You can close this page.';
+      }} catch (e) {{
+        btn.disabled = false; btn.textContent = 'Approve';
+        btn.classList.add('err');
+        statusEl.textContent = 'Failed: ' + e.message;
+      }}
+    }});
+  </script>
+</body>
+</html>"##
+    );
+    (
+        StatusCode::OK,
+        [
+            (
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            ),
+            ("cache-control".to_string(), "no-store".to_string()),
+        ],
+        body,
+    )
+}
+
+fn decode_mac_offer(b64: &str) -> (String, String) {
+    if b64.is_empty() {
+        return ("this Mac".to_string(), String::new());
+    }
+    use base64::Engine as _;
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64;
+    match B64.decode(b64.as_bytes()) {
+        Ok(bytes) => match serde_json::from_slice::<serde_json::Value>(&bytes) {
+            Ok(v) => {
+                let name = v
+                    .get("mac_name")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("this Mac")
+                    .to_string();
+                let rid = v
+                    .get("room_id")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                (name, rid)
+            }
+            Err(_) => ("this Mac".to_string(), String::new()),
+        },
+        Err(_) => ("this Mac".to_string(), String::new()),
+    }
+}
+
+async fn connect_room_firstrun(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<ConnectRoomFirstrunRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let now = Utc::now();
+    let expires = now + Duration::seconds(CODE_TTL_SECS);
+    let room_id = Uuid::now_v7().to_string();
+    let device_id = Uuid::now_v7().to_string();
+    let scopes = body
+        .scopes
+        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let server_url_raw = body
+        .server_url
+        .clone()
+        .or_else(|| std::env::var("FOCUSA_PAIRING_URL").ok().filter(|s| !s.trim().is_empty()))
+        .unwrap_or_else(|| "http://127.0.0.1:8787".to_string());
+    let server_url = match validate_pairing_url(&server_url_raw, "server_url") {
+        Ok(u) => u,
+        Err(rej) => return Err(rej),
+    };
+    let mac_name = bounded_label(body.mac_name.clone(), "operator-mac", 128);
+    let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
+    let mac_callback = body.mac_callback.clone();
+    if let Some(cb) = &mac_callback {
+        if let Err(rej) = validate_pairing_url(cb, "mac_callback") {
+            return Err(rej);
+        }
+    }
+    let session = ConnectSession {
+        connect_id: room_id.clone(),
+        device_id: device_id.clone(),
+        mac_name: mac_name.clone(),
+        mac_nonce: mac_nonce.clone(),
+        mac_pubkey: None,
+        mac_callback: mac_callback.clone(),
+        server_url: server_url.clone(),
+        scopes: scopes.clone(),
+        created_at: now,
+        expires_at: expires,
+        status: "waiting_for_phone".to_string(),
+        token: None,
+    };
+    {
+        let state_ref = shared_state();
+        let mut s = state_ref.write().await;
+        s.connect_sessions
+            .insert(room_id.clone(), session.clone());
+    }
+    let _ = pairing_store::put_session(
+        &state,
+        &room_id,
+        Some(&device_id),
+        Some(&mac_nonce),
+        None,
+        mac_callback.as_deref(),
+        &server_url,
+        Some(&scopes),
+        &now.to_rfc3339(),
+        &expires.to_rfc3339(),
+    );
+    let mac_offer = serde_json::json!({
+        "protocol": "focusa-connect-v1",
+        "role": "mac_handoff_offer",
+        "mac_name": mac_name,
+        "mac_nonce": mac_nonce,
+        "mac_callback": mac_callback,
+        "room_id": room_id,
+        "created_at": now,
+        "expires_in_secs": CODE_TTL_SECS,
+    });
+    use base64::Engine as _;
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64;
+    let mac_offer_b64 = B64.encode(serde_json::to_vec(&mac_offer).unwrap_or_default());
+    let qr_url = format!(
+        "{}/connect/firstrun?mac_offer={}",
+        server_url.trim_end_matches('/'),
+        mac_offer_b64
+    );
+    Ok(Json(json!({
+        "status": "waiting_for_phone",
+        "canonical": false,
+        "advisory": true,
+        "room_id": room_id,
+        "connect_id": room_id,
+        "device_id": device_id,
+        "server_url": server_url,
+        "connect_url": qr_url,
+        "pair_url": qr_url,
+        "pair_url_qr_payload": qr_url,
+        "mac_offer": mac_offer,
+        "mac_offer_b64": mac_offer_b64,
+        "scopes": scopes,
+        "expires_at": expires,
+        "expires_in_secs": CODE_TTL_SECS,
+        "poll_url": format!(
+            "{}/v1/connect/room/{}/status",
+            server_url.trim_end_matches('/'),
+            room_id
+        ),
+        "next_tools": [
+            "focusa_connect_room_status",
+            "focusa_connect_room_mac_offer",
+            "focusa_connect_room_approve"
+        ],
+        "diagnostics": {
+            "surface": "phone_bridge_flow",
+            "event": "room_firstrun",
+            "room_state": "waiting_for_phone",
+            "next_step_hint": "Mac: render pair_url as QR. Phone: scan with camera; browser opens Connect Page with mac_offer. Tap Approve. Mac polls poll_url for token."
+        },
+        "rehydrate_id": room_id,
+    })))
 }

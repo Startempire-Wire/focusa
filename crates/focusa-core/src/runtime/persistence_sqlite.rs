@@ -167,6 +167,34 @@ impl SqlitePersistence {
             );
 
             CREATE INDEX IF NOT EXISTS idx_crdt_events_scope ON crdt_events(project_root_key, workstream_key, lamport_ts, event_id);
+
+            CREATE TABLE IF NOT EXISTS pairing_codes (
+              code TEXT PRIMARY KEY,
+              device_id TEXT NOT NULL,
+              device_name TEXT,
+              platform TEXT,
+              scopes_json TEXT,
+              daemon_base_url TEXT,
+              created_at TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              consumed INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS idx_pairing_codes_expires ON pairing_codes(expires_at);
+
+            CREATE TABLE IF NOT EXISTS connect_sessions (
+              connect_id TEXT PRIMARY KEY,
+              device_id TEXT,
+              mac_nonce TEXT,
+              mac_pubkey TEXT,
+              mac_callback TEXT,
+              server_url TEXT NOT NULL,
+              scopes_json TEXT,
+              status TEXT NOT NULL DEFAULT 'waiting_for_mac',
+              created_at TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              completed_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_connect_sessions_expires ON connect_sessions(expires_at);
             CREATE INDEX IF NOT EXISTS idx_crdt_events_machine ON crdt_events(machine_id);
 
             CREATE TABLE IF NOT EXISTS peers (
@@ -1187,6 +1215,155 @@ impl SqlitePersistence {
         let start = entries.len().saturating_sub(limit);
         entries = entries[start..].to_vec();
         Ok(entries)
+    }
+
+    /// Persist or replace a pending pairing code by code string.
+    pub fn put_pairing_code(
+        &self,
+        code: &str,
+        device_id: &str,
+        device_name: Option<&str>,
+        platform: Option<&str>,
+        scopes_json: Option<&str>,
+        daemon_base_url: Option<&str>,
+        created_at: &str,
+        expires_at: &str,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        conn.execute(
+            r#"INSERT INTO pairing_codes
+               (code, device_id, device_name, platform, scopes_json, daemon_base_url, created_at, expires_at, consumed)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)
+               ON CONFLICT(code) DO UPDATE SET
+                 device_id=excluded.device_id,
+                 device_name=excluded.device_name,
+                 platform=excluded.platform,
+                 scopes_json=excluded.scopes_json,
+                 daemon_base_url=excluded.daemon_base_url,
+                 created_at=excluded.created_at,
+                 expires_at=excluded.expires_at,
+                 consumed=0"#,
+            params![
+                code, device_id, device_name, platform, scopes_json, daemon_base_url,
+                created_at, expires_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Fetch a non-expired, non-consumed pairing code.
+    pub fn get_pairing_code(&self, code: &str) -> anyhow::Result<Option<(String, String, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT device_id, expires_at, scopes_json FROM pairing_codes
+             WHERE code = ?1 AND consumed = 0 AND expires_at > ?2",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut rows = stmt.query(params![code, now])?;
+        if let Some(row) = rows.next()? {
+            let device_id: String = row.get(0)?;
+            let expires_at: String = row.get(1)?;
+            let scopes: String = row.get(2).unwrap_or_else(|_| "[]".to_string());
+            return Ok(Some((device_id, expires_at, scopes)));
+        }
+        Ok(None)
+    }
+
+    /// Mark a pairing code as consumed (idempotent).
+    pub fn consume_pairing_code(&self, code: &str) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        conn.execute(
+            "UPDATE pairing_codes SET consumed = 1 WHERE code = ?1",
+            params![code],
+        )?;
+        Ok(())
+    }
+
+    /// Persist a connect session (rendezvous).
+    #[allow(clippy::too_many_arguments)]
+    pub fn put_connect_session(
+        &self,
+        connect_id: &str,
+        device_id: Option<&str>,
+        mac_nonce: Option<&str>,
+        mac_pubkey: Option<&str>,
+        mac_callback: Option<&str>,
+        server_url: &str,
+        scopes_json: Option<&str>,
+        created_at: &str,
+        expires_at: &str,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        conn.execute(
+            r#"INSERT INTO connect_sessions
+               (connect_id, device_id, mac_nonce, mac_pubkey, mac_callback, server_url,
+                scopes_json, status, created_at, expires_at, completed_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'waiting_for_mac', ?8, ?9, NULL)
+               ON CONFLICT(connect_id) DO UPDATE SET
+                 device_id=COALESCE(excluded.device_id, connect_sessions.device_id),
+                 mac_nonce=COALESCE(excluded.mac_nonce, connect_sessions.mac_nonce),
+                 mac_pubkey=COALESCE(excluded.mac_pubkey, connect_sessions.mac_pubkey),
+                 mac_callback=COALESCE(excluded.mac_callback, connect_sessions.mac_callback),
+                 server_url=excluded.server_url,
+                 scopes_json=excluded.scopes_json,
+                 expires_at=excluded.expires_at"#,
+            params![
+                connect_id, device_id, mac_nonce, mac_pubkey, mac_callback, server_url,
+                scopes_json, created_at, expires_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Fetch a non-expired connect session.
+    pub fn get_connect_session(
+        &self,
+        connect_id: &str,
+    ) -> anyhow::Result<Option<(String, String, Option<String>, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut stmt = conn.prepare(
+            "SELECT server_url, expires_at, mac_callback, status FROM connect_sessions
+             WHERE connect_id = ?1 AND expires_at > ?2",
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut rows = stmt.query(params![connect_id, now])?;
+        if let Some(row) = rows.next()? {
+            let server_url: String = row.get(0)?;
+            let expires_at: String = row.get(1)?;
+            let mac_callback: Option<String> = row.get(2).ok();
+            let status: String = row.get(3)?;
+            return Ok(Some((server_url, expires_at, mac_callback, status)));
+        }
+        Ok(None)
+    }
+
+    /// Mark a connect session as completed.
+    pub fn complete_connect_session(&self, connect_id: &str) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        conn.execute(
+            "UPDATE connect_sessions SET status = 'completed', completed_at = ?1
+             WHERE connect_id = ?2",
+            params![chrono::Utc::now().to_rfc3339(), connect_id],
+        )?;
+        Ok(())
     }
 
     /// Get the device pairing ledger file path for a host (for API exposure).

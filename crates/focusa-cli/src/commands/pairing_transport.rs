@@ -191,10 +191,7 @@ fn operator_url() -> Option<String> {
             }
         }
     }
-    let candidates = [
-        PUBLIC_URL_FILE.to_string(),
-        user_public_url_path(),
-    ];
+    let candidates = [PUBLIC_URL_FILE.to_string(), user_public_url_path()];
     for path in &candidates {
         if let Ok(content) = std::fs::read_to_string(path) {
             let trimmed = content.trim().trim_end_matches('/').to_string();
@@ -223,8 +220,7 @@ fn write_public_url(url: &str) -> Result<()> {
     if let Some(parent) = Path::new(&user_path).parent() {
         std::fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
     }
-    std::fs::write(&user_path, format!("{url}\n"))
-        .with_context(|| format!("write {user_path}"))?;
+    std::fs::write(&user_path, format!("{url}\n")).with_context(|| format!("write {user_path}"))?;
     Ok(())
 }
 
@@ -252,12 +248,11 @@ fn hostname_best_effort() -> Option<String> {
     if !out.status.success() {
         return None;
     }
-    let s = String::from_utf8_lossy(&out.stdout).trim().trim_end_matches('.').to_string();
-    if s.is_empty() {
-        None
-    } else {
-        Some(s)
-    }
+    let s = String::from_utf8_lossy(&out.stdout)
+        .trim()
+        .trim_end_matches('.')
+        .to_string();
+    if s.is_empty() { None } else { Some(s) }
 }
 
 fn ssh_reverse_candidate() -> Candidate {
@@ -276,8 +271,7 @@ fn ssh_reverse_candidate() -> Candidate {
             url: None,
             status: "skipped",
             note: Some(
-                "set FOCUSA_TUNNEL_SSH_JUMP=user@jump-host to enable self-hostable ssh -R"
-                    .into(),
+                "set FOCUSA_TUNNEL_SSH_JUMP=user@jump-host to enable self-hostable ssh -R".into(),
             ),
         },
     }
@@ -376,8 +370,7 @@ fn ngrok_candidate() -> Candidate {
         url: None,
         status: "skipped",
         note: Some(
-            "VENDOR INTEROP (opt-in): requires ngrok account + auth token; not auto-enabled"
-                .into(),
+            "VENDOR INTEROP (opt-in): requires ngrok account + auth token; not auto-enabled".into(),
         ),
     }
 }
