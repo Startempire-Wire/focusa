@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MAIN="$ROOT_DIR/apps/menubar/src-tauri/src/main.rs"
-FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunConnect.svelte"
+FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunWizard.svelte"
 PWA="$ROOT_DIR/crates/focusa-api/src/routes/device_pairing.rs"
 TRANSPORT="$ROOT_DIR/scripts/phone-bridge-transport.sh"
 GLOSSARY="$ROOT_DIR/docs/00-glossary.md"
@@ -41,8 +41,8 @@ assert_has "$MAIN" 'bridge_completions' 'Tauri stores callback completions'
 assert_has "$MAIN" 'TcpListener' 'Tauri uses TcpListener for callback server'
 assert_has "$FIRST_RUN" 'focusa_start_bridge_callback' 'Mac frontend calls start_bridge_callback'
 assert_has "$FIRST_RUN" 'focusa_take_bridge_completion' 'Mac frontend polls take_bridge_completion'
-assert_has "$FIRST_RUN" 'callbackPollHandle' 'Mac frontend uses callback polling interval'
-assert_has "$FIRST_RUN" 'mac_callback:' 'Mac frontend includes mac_callback in QR offer'
+assert_has "$FIRST_RUN" 'bridgePollHandle' 'Mac frontend uses callback polling interval'
+assert_has "$FIRST_RUN" 'macOffer' 'Mac frontend includes mac_callback in QR offer'
 assert_has "$PWA" 'fetch.*mac_callback' 'PWA POSTs to mac_callback URL on approval'
 assert_has "$PWA" 'lastOffer.mac_callback' 'PWA reads mac_callback from lastOffer'
 assert_has "$TRANSPORT" 'private_or_tailscale' 'Transport resolver covers private/Tailscale routes'
