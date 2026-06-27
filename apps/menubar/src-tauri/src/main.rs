@@ -277,7 +277,10 @@ async fn focusa_discover_via_bonjour(
     while std::time::Instant::now() < deadline {
         // mdns-sd's recv_async returns a ServiceEvent; the daemon auto-shards
         // the channel so we don't get a Result wrapper here.
-        if let Ok(event) = tokio::time::timeout(
+        // tokio::time::timeout produces a Result<_, Elapsed>. recv_async
+        // itself returns Result<ServiceEvent, flume::RecvError>. So we
+        // need double-Result matching: timeout OK + recv OK.
+        if let Ok(Ok(event)) = tokio::time::timeout(
             std::time::Duration::from_millis(250),
             receiver.recv_async(),
         )
