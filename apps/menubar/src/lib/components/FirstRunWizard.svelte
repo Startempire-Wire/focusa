@@ -164,7 +164,10 @@
 
     // 2. Bonjour / mDNS via Tauri command (best-effort; no-op in headless)
     try {
-      const mdns = await invoke<{ url?: string } | null>('focusa_discover_via_bonjour', {});
+      const mdns = await invoke<{ url?: string } | null>(
+        'focusa_discover_via_bonjour',
+        {},
+      );
       if (mdns?.url) {
         discoveryAttempts.push(`bonjour: ${mdns.url}`);
         if (await probeUrl(mdns.url)) {
