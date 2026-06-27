@@ -30,6 +30,11 @@ export interface DebugBundleContext {
   offer_nonce?: string;
   offer_age_ms?: number;
   host?: string;
+  // v0.9.35-dev: VPS-initiated room context
+  connect_id?: string;
+  pair_url?: string;
+  firstrun_error?: string;
+  server_url?: string;
   extra?: Record<string, unknown>;
 }
 

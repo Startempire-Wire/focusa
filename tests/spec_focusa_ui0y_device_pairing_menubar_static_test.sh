@@ -138,5 +138,30 @@ if ! rg -q '/v1/connect/room/firstrun|/v1/connect/room/.*status|pollRoomStatus' 
 fi
 pass "FirstRunConnect.svelte polls /v1/connect/room/{room_id}/status after firstrun"
 
+# 20. FirstRunConnect wires the diagnostics store so errors are recorded + copiable (v0.9.35-dev)
+if ! rg -q 'installGlobalDiagnostics|diagnosticsStore\.record' "$FIRST_RUN"; then
+  fail "FirstRunConnect.svelte missing diagnostics wiring (installGlobalDiagnostics or diagnosticsStore.record)"
+fi
+pass "FirstRunConnect.svelte wires diagnostics store (errors recorded + bundle copiable)"
+
+# 21. DebugBundleContext includes v0.9.35-dev fields
+DIAG="$ROOT_DIR/apps/menubar/src/lib/stores/diagnostics.svelte.ts"
+if ! rg -q 'connect_id|pair_url|firstrun_error|server_url' "$DIAG"; then
+  fail "diagnostics.svelte.ts DebugBundleContext missing v0.9.35-dev fields (connect_id, pair_url, firstrun_error, server_url)"
+fi
+pass "diagnostics.svelte.ts DebugBundleContext includes v0.9.35-dev fields"
+
+# 22. Diagnostics store persists to localStorage + caps entries + installs global handlers
+if ! rg -q 'STORAGE_KEY|MAX_ENTRIES|window\.addEventListener.*error|window\.addEventListener.*unhandledrejection' "$DIAG"; then
+  fail "diagnostics.svelte.ts missing storage key, entry cap, or global error handlers"
+fi
+pass "diagnostics.svelte.ts persists + caps + installs global error/unhandledrejection handlers"
+
+# 23. PairingPanel exposes Copy debug bundle button
+if ! rg -q 'Copy debug bundle|copyDebugBundle' "$PANEL"; then
+  fail "PairingPanel.svelte missing Copy debug bundle button"
+fi
+pass "PairingPanel.svelte exposes Copy debug bundle button (post-pair errors copyable)"
+
 echo ""
 echo "ALL focusa-ui0y menubar static checks passed."

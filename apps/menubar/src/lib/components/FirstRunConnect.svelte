@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { PUBLIC_PAIRING_URL_KEY, getApiUrl, saveConnection, setApiUrl } from '$lib/api';
-  import { renderRedactedDebugBundle } from '$lib/stores/diagnostics.svelte';
+  import { diagnosticsStore, installGlobalDiagnostics, renderRedactedDebugBundle } from '$lib/stores/diagnostics.svelte';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
 
@@ -184,9 +184,16 @@
       mac_callback: callbackUrl || '(unavailable)',
       offer_nonce: nonce || '(none)',
       offer_age_ms: Date.now() - createdAt,
+      // v0.9.35-dev context: VPS-initiated room, Mac joining
+      connect_id: connectId || '(none)',
+      pair_url: pairUrl ? `${pairUrl.slice(0, 64)}...` : '(none)',
+      firstrun_error: firstrunError || '(none)',
+      server_url: serverUrl || getApiUrl(),
       extra: {
         has_completion_payload: Boolean(completionPayload),
         stored_server: localStorage.getItem('focusa_api_url') || '(unset)',
+        diagnostics_entry_count: diagnosticsStore.entries.length,
+        latest_failure_class: diagnosticsStore.latest()?.error_class || '(none)',
       },
     });
     try {
@@ -199,6 +206,7 @@
   }
 
   onMount(() => {
+    installGlobalDiagnostics();
     refreshOffer();
     tickHandle = setInterval(() => {
       now = Date.now();
