@@ -1,6 +1,9 @@
 # Focusa Device Pairing Spec (focusa-ui0y)
 
-**Status:** Draft (operator + agent collaboration)
+**Status:** Canonical. v0.9.35-dev replaces v0.9.34-dev.
+**Architecture overview:** `docs/55-focusa-self-host-architecture.md`
+**Wizard spec:** `docs/56-focusa-pairing-wizard-spec.md`
+**Revoke + re-pair spec:** `docs/57-focusa-pairing-repair.md`
 **Date:** 2026-06-10
 **Owns:** Mac menubar ⇄ Focusa Connect Page ⇄ VPS daemon OAuth-like device pairing
 **Beads:** `focusa-ui0y.1`–`.13`, `focusa-8oc0` and children
@@ -26,64 +29,69 @@ Context Authority addendum: Phone Bridge pairing is guarded by `focusa pair --js
 
 ## 2. Pairing Model (operator-facing)
 
-### 2.0 Primary model — three-party portable phone-PWA mediation (URL-shaped QR)
+### 2.0 Primary model — VPS-initiated room, phone-as-bridge (v0.9.35-dev)
 
-Focusa pairing is a three-party protocol:
+Focusa pairing is a three-party protocol with a strict ownership model:
 
-| Party | Role | Must know initially | Learns during flow |
+| Party | Role | Owns | Lifetime |
 |---|---|---|---|
-| Mac menubar app | joining device | VPS public URL (from operator or installer) | connect session, token |
-| Focusa Connect Page (`/connect/firstrun?mac_offer=…`) | operator mediator/control surface | VPS origin from `window.location.origin` | Mac handoff offer |
-| VPS Focusa daemon | authority/token issuer | its own configured/public origin | Mac device record + token |
+| **Focusa daemon** (VPS) | authority / token issuer | The room, the PWA source, the token | 5-min room TTL, 30-day token TTL |
+| **Mac menubar app** | joining device | The `mac_offer`, the token (after pairing) | Token until revoked or expired |
+| **Phone browser** | scanner + approver | Nothing — stateless renderer | Per visit, no persistence |
 
-The portable first-run flow is:
+The phone is **not** a participant with persistent state. No app install, no localStorage, no service worker, no cached manifest. The phone opens the URL once, the VPS serves the page, the operator taps Approve, the phone forgets everything.
+
+The canonical flow is:
 
 ```text
-Mac menubar calls POST /v1/connect/room/firstrun with {mac_name, mac_nonce, server_url}.
-Daemon returns a URL-shaped QR payload: https://<server_url>/connect/firstrun?mac_offer=<base64url(handshake)>.
-Mac renders that URL as a QR; the phone's native camera opens the URL in the browser.
-Focusa Connect Page (loaded from the URL) decodes the mac_offer and POSTs to /v1/connect/room/{room_id}/mac-offer and /v1/connect/room/{room_id}/approve.
-VPS mints a token; Mac polls GET /v1/connect/room/{room_id}/status and stores server+token.
+1. Mac displays a STATIC mac_offer QR in the menubar (idle state).
+   Contents: {mac_name, mac_nonce, mac_pubkey, [mac_callback]}.
+   Mac does not know the VPS URL.
+
+2. Operator runs `focusa pairing wizard` on the VPS terminal.
+   Wizard detects Tailscale MagicDNS, creates a room via
+   POST /v1/connect/room/create, and prints a terminal QR for the pair_url.
+
+3. Operator picks up phone; native camera scans the terminal QR.
+   Phone browser opens https://<vps>/connect/room/<room_id>/scan.
+   The PWA loads from the VPS.
+
+4. PWA requests browser-camera permission (getUserMedia).
+   Operator points phone at the Mac menubar.
+   PWA camera reads mac_offer from the Mac's static QR.
+
+5. PWA POSTs {mac_name, mac_nonce, mac_pubkey} to
+   /v1/connect/room/{room_id}/join. Room status → mac_seen.
+   PWA renders "Tap Approve to pair this Mac."
+   Operator taps Approve. PWA POSTs to /v1/connect/room/{room_id}/approve.
+   VPS mints token. Room status → completed.
+
+6. Mac, which discovered the VPS via Tailscale MagicDNS (or Bonjour fallback)
+   in the background, polls /v1/connect/room/<room_id>/status.
+   Polls return status=completed, token=… . Mac stores token in Keychain.
+   FirstRunWizard flips to connected. Done.
 ```
 
-The Mac QR **is** a real URL the generic phone camera can open — WhatsApp-like. There is no separate scanner app or deep link required. The phone camera opens the browser; the Focusa Connect Page is the mediator.
+The room is **VPS-owned**. No room is ever created client-side. The Mac only joins rooms the VPS has created.
 
-The URL embeds a base64url-encoded mac_handoff_offer:
+The QR displayed by the Mac is the **mac_offer** (just Mac identity), not a URL. The QR displayed by the VPS terminal is the **pair_url** (just the room URL). The phone is the bridge that connects them via two camera uses: native for terminal, browser (via PWA) for Mac.
 
-```json
-{
-  "protocol": "focusa-connect-v1",
-  "role": "mac_handoff_offer",
-  "mac_name": "Verious MacBook",
-  "mac_nonce": "base64url...",
-  "mac_callback": "http://127.0.0.1:<ephemeral>/handoff/<nonce>",
-  "room_id": "01H..."
-}
-```
+URL discovery on the Mac side follows strict priority:
+1. Tailscale MagicDNS (recommended self-host topology)
+2. Bonjour/mDNS (`_focusa._tcp.local` on port 8787)
+3. One-shot CLI handoff (`focusa pairing show --mac`) — only fallback that involves paste, used only when discovery fails
 
-The Focusa Connect Page derives the VPS identity from its own origin, not from the QR:
+There is **no permanent "Server URL" field** in the Mac app. There is no `PUBLIC_PAIRING_URL_KEY` localStorage key. The first-run wizard auto-discovers and forgets any URL it was given after first successful connection.
 
-```js
-const server_url = window.location.origin;
-```
+Apple-like fallbacks, in strict order:
 
-Then the Focusa Connect Page POSTs the mac-offer and approval to the VPS:
+1. **Tailscale MagicDNS auto-discovery** (zero paste).
+2. **Bonjour/mDNS** (zero paste, LAN only).
+3. **One-shot CLI handoff** (`focusa pairing show --mac` → paste once).
+4. **Operator-CLI pairing** (`focusa device pair-complete <code>`) for headless / server-to-server / no-Mac scenarios.
+5. **Phone magic link** (`focusa pairing email-link <email>`) for phone-camera-broken scenarios.
 
-```
-POST /v1/connect/room/{room_id}/mac-offer   {mac_name}
-POST /v1/connect/room/{room_id}/approve      {host, operator_id, completed_by}
-GET  /v1/connect/room/{room_id}/status       (Mac polls every 1.5s)
-```
-
-Apple-like fallbacks, in order:
-
-1. **URL-shaped QR + phone camera** (default, primary).
-2. **Apple-like Shortcut / focusa:// deep link** to the same URL.
-3. **Share/AirDrop** the same URL.
-4. **Copy link**, paste into phone browser.
-5. **Advanced manual server URL/code** (CLI `focusa device pair-complete` for ops).
-
-Manual URL fields, device names, CLI commands, and diagnostics are always Advanced/fallback UI, never the first-run primary screen.
+Manual URL paste into the Mac UI is **forbidden in operator-facing flows**. It appears only as a one-shot CLI output that the operator can choose to use.
 
 ### 2.0.1 Connect-session API contract
 

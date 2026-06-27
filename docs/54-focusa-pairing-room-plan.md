@@ -4,6 +4,8 @@
 **Scope:** Phone Bridge Flow across three parties: VPS/server, phone running the Focusa Connect Page, and Mac Menubar App.
 **Primary command:** `focusa pair`
 
+> **v0.9.35-dev addendum:** The room model changed from **Mac-initiated** (this plan) to **VPS-initiated** (see `docs/55-focusa-self-host-architecture.md`). The flow below remains accurate as the *historical* implementation and as the *fallback* (operator-CLI / headless pairing). The canonical new architecture is in doc 55. Two new commands replace `focusa pair` as the operator-facing entry point: `focusa pairing wizard` (interactive) and `focusa pairing create-room` (non-interactive). See `docs/56-focusa-pairing-wizard-spec.md` for the wizard contract.
+
 **Context Authority:** `focusa pair --json` includes `environment_contract`, `runtime_inventory`, and `action_preflight` so pairing initiation remains pairing initiation and cannot silently become a release-asset install workflow.
 
 ## 1. Goal
