@@ -1,79 +1,37 @@
-# Security Policy
-
-This document explains how to report security vulnerabilities in Focusa and how we handle them.
-
-## Supported versions
-
-The `main` branch of the Focusa repository receives security updates. Released
-versions of Focusa Operator, Focusa CLI, Focusa Core, and the Focusa TUI receive
-security updates for the duration of their commercial support window as documented
-in the relevant license agreement.
-
-Source builds from `main` outside the commercial support window are not eligible
-for backported fixes. Customers with an active commercial license are covered per
-their license terms.
+# Security
 
 ## Reporting a vulnerability
 
-**Do not open a public GitHub issue for security vulnerabilities.**
+Please report security issues **privately** to `security@focusa.dev` (placeholder until public launch). Do **not** open a public GitHub issue for suspected vulnerabilities.
 
-Email security reports to:
+## Disclosure window
 
-`security@startempirewire.com`
+Focusa follows a **90-day coordinated disclosure** policy. We aim to acknowledge within 3 business days and ship a fix within 90 days, depending on severity.
 
-Use the PGP key published at `https://startempirewire.com/.well-known/security.asc`
-when sending sensitive material. The PGP fingerprint is also pinned at the same
-URL.
+## Supported versions
 
-Include the following in your report:
+| Version | Supported |
+|---|---|
+| Latest dev tag (e.g. `v0.9.x-dev`) | yes |
+| Latest tagged release | yes |
+| Older releases | best-effort |
 
-- A clear description of the vulnerability and its impact.
-- The exact version, commit SHA, or build artifact affected.
-- Reproduction steps, proof-of-concept code, or a recorded run that triggers the
-  issue. Run the repro against a local evaluation build, not a production
-  deployment.
-- The environment you observed the issue in: OS, runtime version, deployment
-  topology (loopback, remote, hosted).
-- Whether you intend to disclose publicly and on what timeline.
-- Your contact details and, if you want one, an acknowledgement preference.
+## Severity scale
 
-We aim to acknowledge new reports within two business days. We do not commit to a
-hard patch SLA during the public report phase.
+- **Critical** — unauthenticated RCE, daemon takeover, keychain exfiltration.
+- **High** — privilege escalation, signed-binary bypass, persistent pairing bypass.
+- **Medium** — local DoS, info disclosure of non-secret debug data, daemon repair-loop bypass.
+- **Low** — UI glitches, non-security warnings.
 
-## What we will do
+## Hardening checklist (for operators)
 
-1. Triage the report and assign an internal owner.
-2. Reproduce the issue in a private build.
-3. Decide on a fix and coordinate disclosure timing with the reporter.
-4. Release a fix on `main` and, if the issue affects a commercially licensed
-   release, ship a patched build to the license registry.
-5. Publish a security advisory in `docs/SECURITY_ADVISORIES/` once the fix ships,
-   or sooner if the issue is being actively exploited.
+- Run `focusa codesign inspect` on macOS; do not ship unsigned `.app` to Apple Silicon users.
+- Run `focusa pairing transport setup` only with verified phone-reachable transports; do not rely on account-less quick tunnels for production.
+- Use `FOCUSA_REQUIRE_COSIGN=1` when installing from release assets.
+- Verify the daemon version matches the CLI version before pairing (`focusa pair` blocks mismatched versions).
 
-## Scope
+## Hardening checklist (for contributors)
 
-This policy covers Focusa itself: the Focusa CLI, the Focusa Core runtime, the
-Focusa TUI, the Focusa Workloop, the Focusa Trajectory, the Focusa Workpoint
-format, and the related schemas and protocol files.
-
-The policy does **not** cover:
-
-- UIAI Engine — see `WPUIAI/uiai-engine/SECURITY.md`.
-- Focusa Arena proof stage — see `arena.focusa.dev/security.txt`.
-- Focusa install gateway — see `install.focusa.dev/security.txt`.
-- Third-party dependencies. Report upstream first and let us know so we can
-  track the patch.
-
-## Out of scope
-
-- Best-practice recommendations without a concrete exploit.
-- Findings on forks, unofficial builds, or unmaintained branches.
-- Findings that require the operator to disable the source-available license
-  enforcement.
-- Social engineering, phishing, or physical attacks.
-
-## Recognition
-
-We maintain a public acknowledgement list at
-`docs/SECURITY_CONTRIBUTORS.md` for reporters who ask to be credited. We do not
-operate a paid bug bounty program at this time.
+- Run `cargo deny check licenses` before submitting PRs.
+- Do not introduce GPL/AGPL/LGPL dependencies (see `deny.toml`).
+- Pairing/transport code changes must pass `tests/spec_pairing_*_static_test.sh`.
