@@ -233,3 +233,17 @@ On hover:
 The menubar UI is **a window into cognition**, not a control surface.
 
 It makes the invisible visible — gently.
+
+## Addendum B — Menubar First-Run + Pairing UX (2026-06-27)
+
+- **Raw-JSON guidance.** First-run copy clarifies that the Mac QR is a `focusa-connect-v1 mac_handoff_offer` for the Focusa Connect Page scanner, not a generic phone-camera URL.
+- **Manual paste fallback.** Advanced section exposes a paste-textarea for `mac_completion_payload` JSON; completion stores server URL + device_id + token in Keychain via `focusa_save_pairing_token`.
+- **Copy debug bundle.** Every first-run and pairing-failure surface exposes a redacted debug bundle (app version, OS/arch, daemon URL, public pairing URL, callback/completion status, pairing state, recent diagnostics). Tokens/secrets redacted by key name; long strings truncated.
+- **Test guard.** `tests/spec_focusa_ui0y_device_pairing_menubar_static_test.sh` enforces the UI wiring and the bundle fields.
+
+## Addendum B — Menubar First-Run + Pairing UX (2026-06-27)
+
+- **Raw-JSON guidance.** First-run copy clarifies that the Mac QR is a `focusa-connect-v1 mac_handoff_offer` for the Focusa Connect Page scanner, not a generic phone-camera URL.
+- **Manual paste fallback.** Advanced section exposes a paste-textarea for `mac_completion_payload` JSON; completion stores server URL + device_id + token in Keychain via `focusa_save_pairing_token`.
+- **Copy debug bundle.** Every first-run and pairing-failure surface exposes a redacted debug bundle (app version, OS/arch, daemon URL, public pairing URL, callback/completion status, pairing state, recent diagnostics). Tokens/secrets redacted by key name; long strings truncated.
+- **Test guard.** `tests/spec_focusa_ui0y_device_pairing_menubar_static_test.sh` enforces the UI wiring and the bundle fields.

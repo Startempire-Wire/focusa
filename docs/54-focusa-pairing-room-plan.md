@@ -285,3 +285,13 @@ Focusa Connect Page:
 - UIAI Focusa Connect Page QA.
 - Menubar first-run QA.
 - Release asset tag/version proof.
+
+## Addendum B — Pairing Room: Persistent + Tunnel-Bundled (2026-06-27)
+
+Pairing rooms are now restart-safe and not dependent on operator pre-configured transports.
+
+- **Persistent sessions.** ConnectSession + DevicePairCode live in `focusa-core` SQLite (`connect_sessions`, `pairing_codes`, `device_tokens` tables). Daemon restarts preserve codes/connect_ids for their full TTL.
+- **Tunnel bundling.** When `focusa pair` cannot find any verified phone-reachable transport, it (a) downloads `cloudflared` to a user-local dir, (b) starts a `cloudflared tunnel --url http://127.0.0.1:8787` quick tunnel, (c) captures the `*.trycloudflare.com` URL, (d) writes it to `/etc/focusa/public-url`, (e) retries the resolver. The shell installer offers `--bundle-tunnel` for the same flow at install time.
+- **Phone bridge fallback.** When the Mac TCP bridge listener cannot be reached from the phone (NAT, firewall), the Focusa Connect Page uses a `focusa://` deep link carrying a base64-encoded `mac_completion_payload` so the Mac completes pairing without a direct callback. Tauri `Info.plist` registers the scheme.
+- **First-run copy.** FirstRunConnect explains the raw-JSON outcome from a generic phone camera and exposes a paste-textarea fallback for `mac_completion_payload`.
+- **Test guard.** `tests/spec_pairing_portable_architecture_static_test.sh` enforces no environment-specific domains and verifies transport authority.

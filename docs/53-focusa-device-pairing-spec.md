@@ -362,3 +362,21 @@ The audit must additionally cover:
 - Should `pair_url` ever be a `focusa://` deep link (opens the menubar app) instead of HTTPS? Trade-off: more seamless, but only works when the Mac is the scanning device, not the phone.
 - Should the PWA helper page have a "complete on this device" button when the phone is on the same LAN as the daemon? Adds getUserMedia + LAN discovery.
 - Should the audit be a static test (`tests/device_pairing_static_test.py`) or a full e2e (`scripts/pair-e2e.sh`)? My recommendation: both.
+
+## Addendum B — Portable Pairing Hardening (2026-06-27)
+
+- **Localhost cross-device warning.** When `focusa pair` selects `http://127.0.0.1:8787`, it now adds a clear `just_works_recovery` JSON field recommending `--url https://<host>` or `FOCUSA_PAIRING_URL`. PairingPanel error surfaces and FirstRunConnect copy make the same warning visible to operators.
+- **Daemon version fail-closed.** `focusa pair` blocks any pairing when `daemon::start` repair fails or when `/v1/health` version ≠ CLI `CARGO_PKG_VERSION`. Recovery hint points at `focusa stop && focusa start` and a fresh release install.
+- **Connect Page / Bridge API must be verified.** The resolver probes both `/connect` and `/v1/connect/room/start` before adopting a candidate URL. Hosts that fail are recorded in `checked_candidates`.
+- **Manual paste fallback.** FirstRunConnect Advanced area accepts a pasted `mac_completion_payload` JSON and stores server_url + device_id + token in Keychain.
+- **Redacted debug bundle.** FirstRunConnect + PairingPanel expose `Copy debug bundle` for copy/paste into dev threads (tokens redacted by key name; long strings truncated).
+- **Test guard.** `tests/spec_pairing_just_works_static_test.sh` enforces no localhost cross-device rooms, raw-JSON guidance, paste fallback, and version guard.
+
+## Addendum B — Portable Pairing Hardening (2026-06-27)
+
+- **Localhost cross-device warning.** When `focusa pair` selects `http://127.0.0.1:8787`, it now adds a clear `just_works_recovery` JSON field recommending `--url https://<host>` or `FOCUSA_PAIRING_URL`. PairingPanel error surfaces and FirstRunConnect copy make the same warning visible to operators.
+- **Daemon version fail-closed.** `focusa pair` blocks any pairing when `daemon::start` repair fails or when `/v1/health` version ≠ CLI `CARGO_PKG_VERSION`. Recovery hint points at `focusa stop && focusa start` and a fresh release install.
+- **Connect Page / Bridge API must be verified.** The resolver probes both `/connect` and `/v1/connect/room/start` before adopting a candidate URL. Hosts that fail are recorded in `checked_candidates`.
+- **Manual paste fallback.** FirstRunConnect Advanced area accepts a pasted `mac_completion_payload` JSON and stores server_url + device_id + token in Keychain.
+- **Redacted debug bundle.** FirstRunConnect + PairingPanel expose `Copy debug bundle` for copy/paste into dev threads (tokens redacted by key name; long strings truncated).
+- **Test guard.** `tests/spec_pairing_just_works_static_test.sh` enforces no localhost cross-device rooms, raw-JSON guidance, paste fallback, and version guard.
