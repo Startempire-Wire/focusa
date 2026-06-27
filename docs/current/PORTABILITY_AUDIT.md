@@ -207,3 +207,26 @@ Mass-adoption builds require reproducible artifacts and verifiable signatures.
 - **Reproducible builds.** The release workflow targets `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-apple-darwin`, `x86_64-apple-darwin`. Source maps and debug symbols are stripped from release artifacts. Bit-for-bit reproducibility requires deterministic Rust builds (CARGO_INCREMENTAL=0, CARGO_PROFILE_RELEASE_LTO=fat, fixed source date). The release workflow sets `SOURCE_DATE_EPOCH` from the git tag timestamp.
 - **Signed checksum manifest.** Each release publishes `SHA256SUMS.txt`, `SHA256SUMS.txt.sig` (cosign keyless), and `SHA256SUMS.txt.pem`. The installer verifies with optional `FOCUSA_REQUIRE_COSIGN=1` fail-closed mode.
 - **Reproducibility test.** A nightly job rebuilds the latest tag and diffs SHA256SUMS.txt against the published manifest. Any diff fails CI.
+
+## Addendum C — Unsigned-Mac Placeholder Until First Revenues (2026-06-27)
+
+Operator decision: the $99 Apple Developer Program enrollment is **deferred until Focusa makes its first revenues**. Until then, `Focusa.app` ships **unsigned** and Apple Silicon users see Gatekeeper’s “developer cannot be verified” warning. This addendum documents the supported path so users aren’t surprised and so the operator knows exactly what is missing.
+
+### C.1 What still works (no Apple Developer credentials required)
+
+- Full Mac pairing flow: `Open Focusa.app → first-run Mac QR → Focusa Connect Page → token stored in Keychain → authenticated API calls → restart preserves token → revoke/re-pair`.
+- All `focusa install-service`, `focusa pairing transport setup`, `focusa codesign inspect`, `focusa pair` commands.
+- `focusa codesign sign` is built and ready; only the credentials and a Mac are missing.
+
+### C.2 What requires operator action today
+
+- **First-launch override.** Apple Silicon users must right-click → Open → confirm Open in the dialog. Subsequent launches may still prompt; users can allow once via “Open Anyway” in System Settings → Privacy & Security.
+- **Notarized download.** Operators should NOT advertise `Focusa.app` as “verified” or “safe to install without warnings” while unsigned.
+
+### C.3 What unlocks when first revenue hits
+
+- Purchase Apple Developer Program enrollment.
+- Acquire Team ID, Developer ID Application certificate, app-specific password.
+- Run: `focusa codesign sign --app-path dist/macos/Focusa.app --developer-id "Developer ID Application: <Team>" --team-id <id> --apple-id <email> --app-specific-password <pwd> --json`.
+- Re-tag Mac release and replace artifacts in `release/v0.9.34-dev` and later with signed+notarized+stapled bundles.
+- Close `focusa-covz` with proof: `release:v0.9.x-dev ; spctl --assess passes ; gate:mac`.
