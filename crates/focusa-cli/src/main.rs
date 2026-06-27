@@ -42,6 +42,9 @@ enum Commands {
     /// Stop the Focusa daemon.
     Stop,
 
+    /// Install and enable the Focusa daemon service (Linux systemd user / macOS LaunchAgent).
+    InstallService(commands::service::InstallServiceArgs),
+
     /// Show daemon status.
     Status {
         /// Agent-first status envelope with Workpoint, Work-loop, token, and cache details.
@@ -367,6 +370,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Ok(())
         }
+        Commands::InstallService(args) => commands::service::run(args, false).await,
         Commands::Status { agent, operator } => {
             let api = api_client::ApiClient::new();
             let resp = api.get("/v1/status").await?;
