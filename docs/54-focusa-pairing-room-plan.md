@@ -10,6 +10,8 @@
 
 Make first-time Mac pairing feel like an Apple handoff with no manual server URL typing.
 
+Pairing must be fully portable and host-neutral. The architecture cannot assume this VPS, cPanel, LiteSpeed, Cloudflare, Tailscale, localhost, or any single domain. It must first resolve a verified phone-reachable transport from the operator's actual environment: same-machine localhost, LAN/private IP, Tailscale/Funnel, Cloudflare Tunnel/ngrok, reverse proxy, direct VPS public URL, or future hosted Focusa. Any URL shown to an operator must be probed and reachable for both `/connect` and `/v1/connect/room/*`; otherwise the flow must offer a clear portable fallback.
+
 Pairing must not perform or imply Focusa installation. If runtime binaries are stale on a live build host, the safe repair path is local repo build/restart, not GitHub release asset replacement.
 
 ```text
@@ -159,6 +161,8 @@ Current transitional routes already exist:
 ## 7. Phone Bridge Transport Resolver
 
 The Phone Bridge Flow needs a phone-reachable transport. That transport may be a public URL, non-local daemon URL, private/Tailscale URL, temporary tunnel, or optional reverse proxy.
+
+The resolver is the pairing authority boundary: it must verify transport capability before any room URL is advertised. A local `127.0.0.1` URL is valid only for same-machine testing; it is never a portable cross-device URL. Host-specific integrations are optional adapters, not architecture.
 
 `focusa pair` runs the resolver automatically. Operators should not need to run setup steps first for normal use.
 

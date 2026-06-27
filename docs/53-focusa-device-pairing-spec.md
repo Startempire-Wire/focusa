@@ -19,8 +19,9 @@ Context Authority addendum: Phone Bridge pairing is guarded by `focusa pair --js
 - **Mac-like + dumb simple** — first-run Mac UI shows a clean QR offer; the Focusa Connect Page scans/mediates; manual typing is Advanced fallback only. No accounts, no passwords, no OAuth flows.
 - **Three-party by default** — pairing is Mac (joining device) + Focusa Connect Page (operator mediator) + VPS daemon (authority/token issuer), not a two-device flow.
 - **Depth optional** — Pi/CLI agents can drive the same flow programmatically; the Mac UI is sugar.
-- **Portability** — any operator with Focusa installed on their VPS (AlmaLinux, Ubuntu, macOS, containers) can pair any Mac with one URL.
-- **Public-VPS safe** — the pairing endpoint can be exposed behind a public hostname (e.g. `https://focusa-conn.verious.net`) without leaking the daemon's bind address.
+- **Portability** — any operator with Focusa installed on any local machine, VPS, container, private network, tunnel, reverse proxy, or future hosted Focusa service can pair any Mac through a verified reachable transport.
+- **Host-neutral** — pairing cannot depend on Verious' VPS, cPanel, LiteSpeed, Cloudflare, Tailscale, localhost, or any single domain. Those are adapters; the protocol is transport-agnostic.
+- **Public-VPS safe** — the pairing endpoint can be exposed behind a public hostname without leaking the daemon's bind address.
 - **Forward-compatible** — the design leaves room for deep links, AirDrop/universal-clipboard handoff, camera-based local-network discovery, and CLI fallback without breaking the primary three-party model.
 
 ## 2. Pairing Model (operator-facing)
@@ -40,7 +41,8 @@ The portable first-run flow is:
 ```text
 Mac menubar shows a short-lived QR handoff offer.
 The generic phone camera is not the scanner for this QR; it will show raw JSON.
-Focusa Connect Page, already loaded from the operator's VPS, scans the Mac QR inside `/connect`.
+Focusa first resolves and verifies a phone-reachable Connect origin for the current environment.
+Focusa Connect Page, loaded from that verified origin, scans the Mac QR inside `/connect`.
 Focusa Connect Page sends the VPS origin + connect session to the Mac handoff endpoint/deep link.
 Mac joins that VPS connect session and polls for completion.
 Focusa Connect Page shows the Mac identity and operator taps Approve.
@@ -201,15 +203,15 @@ Same as Mode B but the operator's Mac or a kiosk scans the QR and the VPS browse
 ```json
 {
   ...existing fields...,
-  "pair_url": "https://focusa-conn.verious.net/pair/019ea...",
-  "pair_url_qr_payload": "https://focusa-conn.verious.net/pair/019ea..."
+  "pair_url": "https://focusa.example.com/pair/019ea...",
+  "pair_url_qr_payload": "https://focusa.example.com/pair/019ea..."
 }
 ```
 
 The URL is built from `FOCUSA_PAIRING_URL` env var if set, else from `daemon_base_url`. This lets an operator with a public VPS host run:
 
 ```bash
-FOCUSA_PAIRING_URL=https://focusa-conn.verious.net focusa-daemon
+FOCUSA_PAIRING_URL=https://focusa.example.com focusa-daemon
 ```
 
 …and every `pair_start` will return a URL the phone can hit even if the Mac would otherwise see `http://127.0.0.1:8787` (which it can't, from the phone's network).
