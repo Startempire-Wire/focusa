@@ -341,6 +341,15 @@ function createPairingStore() {
     try {
       const token = await loadPairingToken(stored.deviceId);
       currentAuthToken = token;
+      // V2: mirror to localStorage so api.requestJson() attaches the Bearer
+      // header on the very first API call after app launch. Without this
+      // mirror, the API client wouldn't see the Keychain-backed token until
+      // the user re-pairs.
+      try {
+        localStorage.setItem('focusa_device_token', token);
+      } catch {
+        /* ignore quota errors */
+      }
       state = {
         kind: 'completed',
         deviceId: stored.deviceId,

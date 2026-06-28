@@ -1369,6 +1369,18 @@ impl SqlitePersistence {
         Ok(())
     }
 
+    /// V2: Force a WAL checkpoint so a SIGKILL of the daemon immediately
+    /// after the transaction does not lose the row. Used by PairingStore
+    /// after every put/complete to ensure the room survives a kill -9.
+    pub fn checkpoint_wal(&self) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        conn.execute_batch("PRAGMA wal_checkpoint(PASSIVE);")?;
+        Ok(())
+    }
+
     /// Get the device pairing ledger file path for a host (for API exposure).
     pub fn device_pairing_path_for_host(&self, host: &str) -> PathBuf {
         device_pairing_dir_for_project(self.data_dir.as_path(), host).join("devices.jsonl")

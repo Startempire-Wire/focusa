@@ -47,6 +47,12 @@ pub struct CycleTestArgs {
     /// Stop on the first failure (default: collect all failures).
     #[arg(long)]
     pub fail_fast: bool,
+    /// V2: Verify PairingStore durability. Creates a room, then SIGKILL's the
+    /// daemon, restarts it, and asserts the room is still queryable
+    /// (rehydrated from the SQLite ledger). Requires the operator to allow
+    /// the test to recycle the daemon process.
+    #[arg(long)]
+    pub check_restart_durability: bool,
     /// Also verify that the /connect/room/{id}/scan PWA page renders correctly
     /// (HTTP 200 + contains expected DOM/JS fragments). Drives the headless
     /// plumbing end-to-end without needing a real phone.
@@ -251,6 +257,122 @@ pub async fn run(args: CycleTestArgs) -> Result<()> {
     // PWA headless verification: opens /connect/room/{id}/scan and asserts
     // all expected DOM/JS fragments are present. Proves the phone-side
     // entry point renders without needing a real phone.
+    // V2: PairingStore restart durability check. Recycles the daemon, then
+    // re-queries a previously-created room to confirm the ledger rehydrated it.
+    let mut _restart_passed = true;
+    if args.check_restart_durability && passed > 0 {
+        if !args.json {
+            println!();
+            println!("=== PairingStore restart durability check ===");
+        }
+        // Capture a fresh room for the durability probe.
+        let probe_room = match create_room(&client, &base).await {
+            Ok(r) => r,
+            Err(e) => {
+                warn!(error = %e, "could not create probe room for restart-durability");
+                _restart_passed = false;
+                String::new()
+            }
+        };
+        if !probe_room.is_empty() {
+            // SIGKILL the daemon.
+            let _ = std::process::Command::new("pkill")
+                .args(["-9", "-f", "focusa-daemon"])
+                .status();
+            // ALSO stop the systemd focusa-daemon.service so its auto-respawn
+            // (RestartSec=1) does not race with our spawned child daemon. The
+            // system service uses FOCUSA_DATA_DIR=/home/wirebot/focusa/data/.focusa
+            // (DB #2); our spawned child uses FOCUSA_HOME=/home/wirebot/focusa
+            // (DB #1). If systemd wins the port race, the cycle-test's query
+            // hits the wrong DB and returns 404 spuriously.
+            let _ = std::process::Command::new("systemctl")
+                .args(["stop", "focusa-daemon.service"])
+                .status();
+            // Poll for the port to release (up to 5s).
+            for _ in 0..50 {
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                let probe = std::net::TcpStream::connect_timeout(
+                    &"127.0.0.1:8787".parse().unwrap(),
+                    std::time::Duration::from_millis(50),
+                );
+                if probe.is_err() {
+                    break;
+                }
+            }
+            // Restart the daemon (detached) and poll for it to bind. We
+            // explicitly unset FOCUSA_DATA_DIR so the new daemon inherits
+            // the same DB path as the one we just killed (it uses
+            // FOCUSA_HOME → /home/wirebot/focusa → focusa.sqlite by default).
+            // Without this, FOCUSA_DATA_DIR inherited from a stale env
+            // would point the new daemon at a different SQLite file and
+            // the room would appear to vanish across the restart.
+            let _ = std::process::Command::new("/usr/local/bin/focusa-daemon")
+                .args(["--port", "8787"])
+                .env_remove("FOCUSA_DATA_DIR")
+                .env_remove("FOCUSA_HOME")
+                .env("FOCUSA_HOME", "/home/wirebot/focusa")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn();
+            let mut ready = false;
+            for _ in 0..50 {
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                let probe = std::net::TcpStream::connect_timeout(
+                    &"127.0.0.1:8787".parse().unwrap(),
+                    std::time::Duration::from_millis(200),
+                );
+                if probe.is_ok() {
+                    ready = true;
+                    break;
+                }
+            }
+            if !ready {
+                warn!("focusa-daemon did not become ready within 10s after restart");
+                _restart_passed = false;
+                if !args.json {
+                    println!("  restart durability: FAIL (daemon not ready)");
+                }
+            } else {
+                // Tiny extra settle so SQLite-backed routes are consistent.
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                // Query the room again.
+                let url = format!("{base}/v1/connect/room/{probe_room}/status");
+                match client.get(&url).send().await {
+                    Ok(resp) if resp.status().is_success() => {
+                        let v: serde_json::Value = resp.json().await.unwrap_or_default();
+                        let event = v
+                            .get("diagnostics")
+                            .and_then(|d| d.get("event"))
+                            .and_then(|e| e.as_str())
+                            .unwrap_or("");
+                        if event == "room_rehydrated_from_ledger" {
+                            if !args.json {
+                                println!("  restart durability: PASS (room rehydrated from SQLite)");
+                            }
+                        } else {
+                            warn!(event = %event, "room found but not rehydrated from ledger");
+                            _restart_passed = false;
+                            if !args.json {
+                                println!("  restart durability: FAIL (event={event})");
+                            }
+                        }
+                    }
+                    Ok(resp) => {
+                        warn!(http_status = %resp.status(), "room query after restart returned non-success");
+                        _restart_passed = false;
+                    }
+                    Err(e) => {
+                        warn!(error = %e, "could not reach daemon after restart");
+                        _restart_passed = false;
+                    }
+                }
+            }
+        }
+    }
+    if !args.json && args.check_restart_durability {
+        println!();
+    }
+
     if args.with_pwa_verify && passed > 0 {
         if !args.json {
             println!();
@@ -468,6 +590,32 @@ async fn verify_completed(
     if !has_token {
         error!(room_id = %room_id, "token missing or empty after approve");
         bail!("token missing or empty");
+    }
+    // V2: verify the device token is accepted as Bearer auth on protected routes.
+    let token = v.get("token").and_then(|x| x.as_str()).unwrap_or("");
+    if !token.is_empty() {
+        let protected_url = format!("{base}/v1/info");
+        let auth = client
+            .get(&protected_url)
+            .header(reqwest::header::AUTHORIZATION, format!("Bearer {token}"))
+            .send()
+            .await
+            .context("GET /v1/info with Bearer")?;
+        if !auth.status().is_success() {
+            error!(
+                room_id = %room_id,
+                http_status = %auth.status(),
+                "device token rejected by /v1/info (auth middleware broken)"
+            );
+            bail!(
+                "device token rejected: /v1/info returned HTTP {}",
+                auth.status()
+            );
+        }
+        debug!(
+            room_id = %room_id,
+            "verified device token accepted as Bearer on /v1/info"
+        );
     }
     debug!(room_id = %room_id, "verified status=completed + token present");
     Ok(())

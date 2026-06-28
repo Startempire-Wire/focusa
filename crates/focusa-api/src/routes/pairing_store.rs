@@ -97,7 +97,13 @@ pub fn put_session(
         Some(&scopes_json),
         created_at,
         expires_at,
-    )
+    )?;
+    // V2: PairingStore durability — force a WAL checkpoint so a SIGKILL
+    // of the daemon immediately after put does not lose the row. Without
+    // this, the implicit transaction may sit in the WAL buffer and be
+    // discarded when the process dies before commit.
+    let _ = state.persistence.checkpoint_wal();
+    Ok(())
 }
 
 pub fn get_session(state: &AppState, connect_id: &str) -> Result<Option<PersistedSession>> {
@@ -113,7 +119,10 @@ pub fn get_session(state: &AppState, connect_id: &str) -> Result<Option<Persiste
 }
 
 pub fn complete_session(state: &AppState, connect_id: &str) -> Result<()> {
-    state.persistence.complete_connect_session(connect_id)
+    state.persistence.complete_connect_session(connect_id)?;
+    // Same WAL-checkpoint rationale as put_session above.
+    let _ = state.persistence.checkpoint_wal();
+    Ok(())
 }
 
 /// Helper: parse `scopes` array from a Value, returning an empty Vec on error.
