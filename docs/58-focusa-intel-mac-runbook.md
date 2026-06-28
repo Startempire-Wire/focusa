@@ -120,6 +120,9 @@ The menubar icon appears in the macOS menu bar (top right). Click it.
 
 After scanning the Mac's QR with the phone camera:
 
+> **Offline / Tailscale-only:** The PWA loads jsQR from `/static/jsqr/jsQR.js` (vendored locally by the Focusa daemon). It will fall back to `cdn.jsdelivr.net` ONLY if the local copy is missing. If the phone is on a Tailscale-only network, the local copy works automatically — no public internet required.
+>
+
 1. Phone browser opens (Safari on iOS, Chrome on Android)
 2. Browser shows the Focusa Connect Page
 3. Page asks camera permission ("Focusa wants to access camera")
