@@ -12,7 +12,11 @@ use crate::routes::bounded::{observe_resource_mode_transition, resource_mode_sta
 use crate::routes::sse::EventBroadcaster;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
+use tower_http::services::ServeDir;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
+
+/// Vendored static files directory (e.g. jsQR for offline PWA /scan pages).
+const STATIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/static");
 use focusa_core::types::{
     Action, FocusaConfig, FocusaState, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
     WorkLoopStatus,
@@ -330,6 +334,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::call_stack::router())
         .merge(routes::context_cognition::router())
         .merge(routes::device_pairing::router())
+        .nest_service("/static", ServeDir::new(STATIC_DIR))
         .merge(routes::dxux::router())
         .merge(routes::utility::router())
         .merge(routes::traverse::router())

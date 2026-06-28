@@ -2317,8 +2317,14 @@ async fn connect_room_scan_page(
     <button id="approve" type="button" disabled>Approve</button>
     <p id="status" style="margin-top:14px;color:#b6bdc9;font-size:13px;"></p>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="/static/jsqr/jsQR.js"></script>
   <script>
+    // Fallback to CDN only if local copy is missing (e.g. Tailscale-only operators)
+    if (!window.jsQR) {{
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+      document.head.appendChild(s);
+    }}
     const ROOM_ID = {rid_json};
     const video = document.getElementById('video');
     const approveBtn = document.getElementById('approve');

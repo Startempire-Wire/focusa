@@ -95,9 +95,9 @@ pub async fn run(args: EmailLinkArgs) -> Result<()> {
     // 2. Append a source tag for analytics.
     let deliverable_url = format!("{}&source=email", pair_url);
     let body = format!(
-        "Open this link on your phone to pair it with your Focusa VPS:\n\n{}\n\n\
-         This link expires in 5 minutes.\n\
-         Room ID: {}\n\n\
+        "Open this link on your phone to pair it with your Focusa VPS:\r\n\r\n{}\r\n\r\n\
+         This link expires in 5 minutes.\r\n\
+         Room ID: {}\r\n\r\n\
          — Focusa pairing",
         deliverable_url, room_id
     );

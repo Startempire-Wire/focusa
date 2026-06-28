@@ -121,7 +121,13 @@
         // mode 'no-cors' would hide status; use default so we see real responses
         signal: AbortSignal.timeout(2000),
       });
-      return r.ok;
+      if (!r.ok) return false;
+      // Strengthen: confirm this is a Focusa daemon, not just any 200 OK.
+      const body = await r.json().catch(() => null);
+      if (!body || typeof body !== 'object') return false;
+      if (body.status !== 'ok') return false;
+      if (typeof body.version !== 'string' || !body.version.startsWith('0.9.')) return false;
+      return true;
     } catch {
       return false;
     }
@@ -217,6 +223,9 @@
   // the operator telling it the room_id via the wizard output.
   //
   // For v0.9.35-dev the simplest flow is: the Mac creates a fresh room
+  // Track in-flight room creation so rapid double-clicks don't create duplicates.
+  let roomCreationInFlight = $state(false);
+
   // via the daemon's /v1/connect/room/create endpoint (this is acceptable
   // because the VPS daemon owns the room state, just like the wizard does
   // in terminal mode). The phone's PWA is the bridge.
@@ -225,6 +234,8 @@
       error = 'No VPS URL discovered — go back to vps_discover step';
       return;
     }
+    if (roomCreationInFlight) return; // debounce rapid double-clicks
+    roomCreationInFlight = true;
     error = '';
     try {
       macName = macDeviceName();
@@ -255,6 +266,7 @@
         context: { room_id: roomId.slice(0, 8) },
       });
       advanceTo('show_qr');
+      roomCreationInFlight = false;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       error = `Could not create room: ${msg}`;
@@ -267,6 +279,7 @@
         url: discoveredUrl,
         method: 'POST',
       });
+      roomCreationInFlight = false;
     }
   }
 
@@ -295,6 +308,11 @@
         if (errorCode === 'token_expired' || errorCode === 'pairing_revoked') {
           // Reset wizard to vps_discover so operator can re-pair
           stopPolling();
+          // Clear stale state so the next createRoomAndShowQr starts fresh.
+          roomId = '';
+          pairUrl = '';
+          macOffer = '';
+          completionPayload = '';
           advanceTo('vps_discover');
           error =
             'Pairing expired or revoked. Re-discover your VPS and tap Approve again.';
@@ -478,12 +496,12 @@
   {#if step === 'welcome'}
     <div class="card">
       <h3>Welcome</h3>
-      <p>Focusa connects this Mac to a Focusa daemon running on your VPS.</p>
+      <p>Focusa connects this Mac — <strong>{macDeviceName()}</strong> — to a Focusa daemon running on your VPS.</p>
       <ol class="how-it-works">
         <li>Install Focusa on your VPS (<code>curl install.focusa.dev/focusa | bash</code>).</li>
-        <li>Run <code>focusa pairing wizard</code> on the VPS to start a pairing room.</li>
-        <li>This app will auto-discover the VPS and show a QR.</li>
-        <li>Scan with your phone camera; tap Approve in the browser.</li>
+        <li>This app auto-discovers the VPS via Tailscale, Bonjour, or your saved URL.</li>
+        <li>Show a QR on screen, scan with your phone, tap Approve.</li>
+        <li>Token lands in macOS Keychain. You're paired.</li>
       </ol>
       <button class="primary" onclick={() => advanceTo('vps_install')}>Get started</button>
       <details bind:open={showAdvanced}>

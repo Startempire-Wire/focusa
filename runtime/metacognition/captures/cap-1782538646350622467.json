@@ -1,0 +1,22 @@
+{
+  "capture_id": "cap-1782538646350622467",
+  "confidence": 0.85,
+  "content": "When a UI panel embeds a structured JSON blob as a QR payload, the phone camera cannot drive a URL handler. Always prefer URL-shaped QR (`https://server/path?offer=<base64url(handshake)>`) over JSON blobs so the OS camera opens the URL natively. The `focusa-ui0y` Connect Page then becomes the entry point and renders Approve.",
+  "created_at": "2026-06-27T05:37:26.350631766Z",
+  "kind": "workflow_signal",
+  "rationale": "Observed in spec drift: spec said \"generic camera scanning is not a success path\" but the operator + self-host use case demands exactly that. Room state and security model are unchanged; only the QR shape changes.",
+  "storage_path": "/home/wirebot/focusa/runtime/metacognition/captures/cap-1782538646350622467.json",
+  "strategy_class": "architecture_choice",
+  "trajectory": {
+    "active_workpoint_id": null,
+    "continuity_id": "session-1",
+    "hlt": "Maintain and improve Focusa within verified project scope",
+    "mlg": null,
+    "project_root": "/home/wirebot/focusa",
+    "stg": null,
+    "trajectory_id": "trajectory:project-fnv1a64:2c9d33181fe505e8:defined-goal",
+    "waypoints": [
+      "Test waypoint via CLI"
+    ]
+  }
+}
