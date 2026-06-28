@@ -98,9 +98,8 @@ pub async fn run_status(args: StatusArgs) -> Result<()> {
         }
         return Ok(());
     }
-
     // Count active rooms (status=waiting_for_phone or mac_seen) via /v1/connect/room/create (no list endpoint yet, so we approximate)
-    if let Ok(r) = client.get(format!("{}/v1/device/pair/list?host=default", args.base_url)).send().await {
+    if let Ok(r) = client.get(format!("{}/v1/device/pair/list", args.base_url)).send().await {
         if r.status().is_success() {
             if let Ok(v) = r.json::<Value>().await {
                 let devices = v.get("devices").and_then(|x| x.as_array()).cloned().unwrap_or_default();

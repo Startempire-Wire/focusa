@@ -227,13 +227,13 @@ async fn sign(
     }
 
     // Auto-detect mode:
-    //   developer_id == "-"    → ad-hoc signing (no Apple ID)
-    //   team_id     == ""      → Personal Team (free Apple Developer Program)
-    //   otherwise              → full Developer ID Application (paid program)
+    //   developer_id == "-"                          → ad-hoc (no Apple ID)
+    //   developer_id.starts_with("Apple Development:") → Personal Team (free)
+    //   developer_id.starts_with("Developer ID Application:")
+    //      + apple_id provided                          → full Developer ID (paid)
     let is_ad_hoc = developer_id == "-";
-    let is_personal_team = developer_id.starts_with("Developer ID Application:")
-        && team_id.len() == 10
-        && apple_id.is_empty();
+    let is_personal_team = developer_id.starts_with("Apple Development:")
+        && team_id.len() == 10;
 
     if is_ad_hoc {
         tracing::info!("signing mode: ad-hoc (no Apple ID; Gatekeeper will require manual Open)");

@@ -142,8 +142,10 @@ jobs:
         if: contains(matrix.platform, 'macos')
         env:
           TARGET: ${{ matrix.rust_target }}
-          # Set these as GitHub Actions secrets when ready.
-          # Until then, this step is a no-op (skipping codesign/notarize/staple).
+          # Three modes (any of which produce a working .app + .dmg):
+          # 1. No APPLE_SIGNING_IDENTITY -> ad-hoc signing (free, no Apple ID)
+          # 2. APPLE_SIGNING_IDENTITY=Apple Development: <name> -> Personal Team
+          # 3. Full Developer ID + notarization secrets -> paid program, notarized
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_IDENTITY_NAME: ${{ secrets.APPLE_IDENTITY_NAME }}
@@ -153,25 +155,22 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         working-directory: apps/menubar
         run: |
-          # Only attempt codesign if APPLE_SIGNING_IDENTITY is configured.
-          # Until then, this is a no-op so the GA pipeline still produces
-          # unsigned-but-functional .app + .dmg for `dev` releases.
-          if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "::warning::APPLE_SIGNING_IDENTITY not configured; skipping codesign + notarize + staple."
-            echo "Add Apple Developer ID secrets to enable signed GA releases."
-            exit 0
-          fi
-          # Sign .app
-          ls -la src-tauri/target/${TARGET}/release/bundle/macos/
-          find src-tauri/target/${TARGET}/release/bundle/macos -name "*.app" -maxdepth 1 -print0 | while IFS= read -r -d '' app; do
-            echo "::group::codesign --deep --force --options runtime --sign ${APPLE_SIGNING_IDENTITY} ${app}"
+          for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
+            if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+              echo "::notice::No Apple signing identity configured; using ad-hoc signing (free, no Apple ID needed)"
+              codesign --deep --force --sign - "${app}"
+              codesign --verify --deep --strict "${app}"
+              continue
+            fi
+            if [[ "${APPLE_SIGNING_IDENTITY}" == "Apple Development:"* ]] && [ -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
+              echo "::notice::Personal Team signing identity detected; signing without notarization (Gatekeeper will require right-click -> Open)"
+              codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
+              codesign --verify --deep --strict "${app}"
+              continue
+            fi
+            # Mode 3: full Developer ID + notarization
             codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
             codesign --verify --deep --strict --verbose=2 "${app}"
-            echo "::endgroup::"
-          done
-          # Notarize via notarytool (App Store Connect API key path)
-          for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
-            echo "::group::notarytool submit --wait ${app}"
             ditto -c -k --keepParent "${app}" "${app}.zip"
             xcrun notarytool submit "${app}.zip" \
               --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
@@ -179,22 +178,12 @@ jobs:
               --issuer "${APPLE_API_ISSUER_ID}" \
               --team-id "${APPLE_TEAM_ID}" \
               --wait
-            xcrun notarytool history --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
-              --key-id "${APPLE_API_KEY_ID}" \
-              --issuer "${APPLE_API_ISSUER_ID}" \
-              --team-id "${APPLE_TEAM_ID}"
-            echo "::endgroup::"
-            # Staple the notarization ticket
             xcrun stapler staple "${app}"
             xcrun stapler validate "${app}"
-          done
-          # Re-sign after staple (stapling modifies the .app bundle)
-          find src-tauri/target/${TARGET}/release/bundle/macos -name "*.app" -maxdepth 1 -print0 | while IFS= read -r -d '' app; do
             codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
           done
-          echo "codesign + notarize + staple complete"
+          echo "codesign complete (mode: ad-hoc if no identity, else ${APPLE_SIGNING_IDENTITY%%:*})"
 
-      - name: Install frontend deps
         working-directory: apps/menubar
         run: bun install
 
