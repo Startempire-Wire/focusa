@@ -21,6 +21,9 @@ use std::time::Duration;
 pub struct RegisteredService {
     pub fullname: String,
     pub port: u16,
+    /// Optional kept-alive handle to the underlying mDNS ServiceDaemon.
+    /// Holding this prevents the advertisement from being torn down.
+    pub daemon: Option<std::sync::Arc<mdns_sd::ServiceDaemon>>,
 }
 
 /// Advertise `_focusa._tcp.local` on the given port. The function returns
@@ -32,12 +35,12 @@ pub struct RegisteredService {
 /// on link-local networks).
 pub async fn advertise(service_type: &str, port: u16) -> Result<RegisteredService> {
     use mdns_sd::{ServiceDaemon, ServiceInfo};
+    let host_ip = detect_first_non_loopback_ipv4().unwrap_or_else(|| "0.0.0.0".to_string());
     let url = std::env::var("FOCUSA_PUBLIC_URL")
         .ok()
         .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| format!("http://127.0.0.1:{port}"));
+        .unwrap_or_else(|| format!("http://{host_ip}:{port}"));
     let version = env!("CARGO_PKG_VERSION").to_string();
-    let host_ip = detect_first_non_loopback_ipv4().unwrap_or_else(|| "0.0.0.0".to_string());
 
     let daemon = ServiceDaemon::new().context("create mdns daemon")?;
     let service_fullname = format!(
@@ -74,19 +77,22 @@ pub async fn advertise(service_type: &str, port: u16) -> Result<RegisteredServic
     );
 
     // Hold the daemon alive in a background task. If the daemon is dropped,
-    // the advertisement disappears.
+    // the advertisement disappears. Move the Arc INTO the spawned task
+    // (and keep a clone outside so we can return it for shutdown control).
     let bg = std::sync::Arc::new(daemon);
-    let bg_clone = bg.clone();
+    let bg_inside = bg.clone();
     tokio::spawn(async move {
+        // Keep the ServiceDaemon alive for the life of this task. We never
+        // exit because the advertisement is what makes the VPS discoverable.
+        let _held = bg_inside;
         loop {
             tokio::time::sleep(Duration::from_secs(3600)).await;
         }
     });
-    // Return the registered service; caller can shut down the daemon on drop.
-    let _ = bg_clone;
     Ok(RegisteredService {
         fullname: service_fullname,
         port,
+        daemon: Some(bg),
     })
 }
 

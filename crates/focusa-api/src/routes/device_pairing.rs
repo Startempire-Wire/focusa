@@ -58,10 +58,11 @@ struct ConnectSession {
 }
 
 #[derive(Default)]
-struct PairingState {
+pub struct PairingState {
     pending: HashMap<String, DevicePairCode>, // code -> pair
-    tokens: HashMap<String, DeviceToken>,     // token -> token
-    connect_sessions: HashMap<String, ConnectSession>, // connect_id -> rendezvous
+    pub tokens: HashMap<String, DeviceToken>,     // token -> token (public for auth middleware)
+    #[allow(private_interfaces)]
+    pub connect_sessions: HashMap<String, ConnectSession>, // connect_id -> rendezvous (public for /v1/connect/rooms)
 }
 
 type SharedPairingState = Arc<RwLock<PairingState>>;
@@ -91,6 +92,12 @@ pub fn router() -> axum::Router<Arc<AppState>> {
         .route(
             "/v1/connect/room/{room_id}/status",
             axum::routing::get(connect_room_status),
+        )
+        // v0.9.35-dev: list rooms so the Mac can discover VPS-created rooms
+        // and POST its static mac_offer to /join. Canonical V2 flow.
+        .route(
+            "/v1/connect/rooms",
+            axum::routing::get(connect_rooms_list),
         )
         .route(
             "/v1/connect/room/{room_id}/mac-offer",
@@ -221,7 +228,7 @@ fn validate_pairing_url(url: &str, field: &str) -> Result<String, (StatusCode, J
     }
 }
 
-fn shared_state() -> SharedPairingState {
+pub fn shared_state() -> SharedPairingState {
     use std::sync::OnceLock;
     static STATE: OnceLock<SharedPairingState> = OnceLock::new();
     STATE
@@ -299,8 +306,14 @@ pub struct ConnectRoomJoinRequest {
     pub mac_name: Option<String>,
     /// Random nonce the Mac generated (used to bind the mac_offer).
     pub mac_nonce: Option<String>,
+    /// Alias for mac_nonce (canonical V2 mac_offer JSON uses "nonce").
+    #[serde(alias = "nonce")]
+    pub mac_nonce_v2: Option<String>,
     /// Optional base64url public key.
     pub mac_pubkey: Option<String>,
+    /// Alias for mac_pubkey (canonical V2 uses "pubkey").
+    #[serde(alias = "pubkey")]
+    pub mac_pubkey_v2: Option<String>,
     /// Optional ephemeral callback URL on the Mac.
     pub mac_callback: Option<String>,
 }
@@ -316,6 +329,14 @@ pub struct ConnectRoomFirstrunRequest {
     pub mac_callback: Option<String>,
     /// Optional random nonce the Mac generated.
     pub mac_nonce: Option<String>,
+    /// Alias for mac_nonce (canonical V2 mac_offer uses "nonce").
+    #[serde(alias = "nonce")]
+    pub mac_nonce_v2: Option<String>,
+    /// Optional base64url public key.
+    pub mac_pubkey: Option<String>,
+    /// Alias for mac_pubkey (canonical V2 uses "pubkey").
+    #[serde(alias = "pubkey")]
+    pub mac_pubkey_v2: Option<String>,
     /// Optional scopes; defaults to read+write.
     pub scopes: Option<Vec<String>>,
 }
@@ -474,6 +495,42 @@ async fn connect_room_status(
     Ok(Json(connect_status_payload(session, status)))
 }
 
+// GET /v1/connect/rooms[?status=waiting_for_mac]
+// Canonical V2 surface: Mac polls this to discover VPS-created rooms, then
+// POSTs its static mac_offer to /v1/connect/room/{room_id}/join.
+async fn connect_rooms_list(
+    axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let filter = q.get("status").cloned().unwrap_or_default();
+    let pairing_state = shared_state();
+    let s = pairing_state.read().await;
+    let now = Utc::now();
+    let mut rooms: Vec<Value> = Vec::new();
+    for (room_id, session) in s.connect_sessions.iter() {
+        let status = if session.expires_at < now && session.token.is_none() {
+            "expired".to_string()
+        } else {
+            session.status.clone()
+        };
+        if !filter.is_empty() && filter != status {
+            continue;
+        }
+        rooms.push(json!({
+            "room_id": room_id,
+            "status": status,
+            "mac_name": session.mac_name,
+            "expires_at": session.expires_at,
+            "server_url": session.server_url,
+        }));
+    }
+    Ok(Json(json!({
+        "status": "ok",
+        "rooms": rooms,
+        "filter": filter,
+        "count": rooms.len(),
+    })))
+}
+
 async fn connect_room_mac_offer(
     Path(room_id): Path<String>,
     Json(body): Json<ConnectRoomMacOfferRequest>,
@@ -525,7 +582,11 @@ async fn connect_room_mac_offer(
     updated.mac_name = mac_name;
     updated.mac_nonce = mac_nonce;
     updated.mac_pubkey = body.mac_pubkey;
-    updated.mac_callback = body.mac_callback;
+    // Empty-string callback is treated as "not provided" (Mac may emit "" when
+    // bridge startup failed). The bridge is optional in V2 anyway.
+    updated.mac_callback = body.mac_callback.and_then(|s| {
+        if s.trim().is_empty() { None } else { Some(s) }
+    });
     if let Some(scopes) = body.scopes {
         updated.scopes = scopes;
     }
@@ -768,6 +829,16 @@ async fn connect_approve(
             updated.token = Some(token);
             s.connect_sessions
                 .insert(connect_id.clone(), updated.clone());
+            // V2: Persist status flip to SQLite so a daemon restart mid-approval
+            // still sees the room as completed. The in-memory map is the hot
+            // path; the ledger is the source of truth on restart.
+            if let Err(e) = state.persistence.complete_connect_session(&connect_id) {
+                tracing::warn!(
+                    connect_id = %connect_id,
+                    error = %e,
+                    "complete_connect_session failed (continuing with in-memory state)"
+                );
+            }
             updated
         }
     };
@@ -814,9 +885,12 @@ async fn connect_approve(
         "completed_by": body.completed_by.unwrap_or_else(|| "phone-pwa".to_string()),
         "server_url": completed.server_url,
         "scopes": completed.scopes,
-        "token": completed.token,
-        "token_expires_at": now + Duration::seconds(TOKEN_TTL_SECS),
-        "token_ttl_secs": TOKEN_TTL_SECS,
+        // Token NOT returned to PWA (canonical V2 model): phone is a
+        // renderer, not a participant with persistent state. The Mac
+        // receives the token via GET /status (which is the canonical
+        // Phase-1 channel) or via the mac_callback TCP bridge.
+        "token_present": completed.token.is_some(),
+        "mac_receives_token_via": "room_status_poll",
         "next_tools": ["focusa_connect_status", "focusa_device_pair_list"],
         "diagnostics": {
             "surface": "phone_bridge_flow",
@@ -1956,8 +2030,15 @@ async fn connect_room_firstrun(
         }
     };
     let mac_name = bounded_label(body.mac_name.clone(), "operator-mac", 128);
+    // Accept canonical mac_offer field names ("nonce", "pubkey") AND
+    // the daemon's own field names ("mac_nonce", "mac_pubkey") so the
+    // V2 mac_offer JSON (from docs/55) is accepted without translation.
     let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
-    let mac_callback = body.mac_callback.clone();
+    let mac_pubkey = body.mac_pubkey.clone();
+    let mac_callback = body
+        .mac_callback
+        .clone()
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
     if let Some(cb) = &mac_callback {
         validate_pairing_url(cb, "mac_callback")?;
     }
@@ -2175,9 +2256,16 @@ async fn connect_room_join(
     let rid = room_id.trim().to_string();
     let now = Utc::now();
     let mac_name = bounded_label(body.mac_name.clone(), "operator-mac", 128);
-    let mac_nonce = body.mac_nonce.clone().unwrap_or_default();
-    let mac_pubkey = body.mac_pubkey.clone();
-    let mac_callback = body.mac_callback.clone();
+    let mac_nonce = body
+        .mac_nonce
+        .clone()
+        .or(body.mac_nonce_v2.clone())
+        .unwrap_or_default();
+    let mac_pubkey = body.mac_pubkey.clone().or(body.mac_pubkey_v2.clone());
+    let mac_callback = body
+        .mac_callback
+        .clone()
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
     if let Some(cb) = &mac_callback {
         validate_pairing_url(cb, "mac_callback")?;
     }

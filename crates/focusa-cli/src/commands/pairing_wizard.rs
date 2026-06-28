@@ -220,7 +220,13 @@ fn render_terminal_qr(data: &str) -> Result<String> {
 }
 
 async fn run_create_room(args: CreateRoomArgs) -> Result<()> {
-    let (public_url, _source) = resolve_public_url(false);
+    // Honor operator-supplied --server-url; otherwise auto-detect from Tailscale / env.
+    let public_url = args
+        .server_url
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| resolve_public_url(false).0);
     let room = create_room(&public_url).await?;
     if args.json {
         println!("{}", serde_json::to_string_pretty(&room)?);

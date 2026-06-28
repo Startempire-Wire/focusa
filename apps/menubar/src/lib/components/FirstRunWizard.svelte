@@ -46,17 +46,19 @@
     | 'welcome'
     | 'vps_install'
     | 'vps_discover'
-    | 'show_qr'
+    | 'idle'
     | 'waiting_phone'
-    | 'connected';
+    | 'connected'
+    | 'connected_degraded';
 
   const STEP_ORDER: WizardStep[] = [
     'welcome',
     'vps_install',
     'vps_discover',
-    'show_qr',
+    'idle',
     'waiting_phone',
     'connected',
+    'connected_degraded',
   ];
 
   function loadPersistedState(): WizardStep | null {
@@ -148,7 +150,9 @@
       (localStorage.getItem('focusa_tailscale_host') || '').trim(),
     ].filter((h) => h.length > 0);
     for (const host of tailscaleHosts) {
-      const url = `https://${host}`;
+      // Tailscale MagicDNS discovery targets the daemon API URL
+      // (HTTP on port 8787), NOT an HTTPS public origin.
+      const url = `http://${host}:8787`;
       discoveryAttempts.push(`tailscale: ${url}`);
       if (await probeUrl(url)) {
         discoveredUrl = url;
@@ -219,67 +223,120 @@
   // The Mac generates a mac_offer (name + nonce + pubkey) and POSTs to the
   // VPS /v1/connect/room/{id}/join endpoint. The VPS already created the
   // room via `focusa pairing wizard` on the VPS terminal. The Mac discovers
-  // the room by polling /v1/connect/rooms?status=waiting_for_mac OR by
-  // the operator telling it the room_id via the wizard output.
-  //
-  // For v0.9.35-dev the simplest flow is: the Mac creates a fresh room
-  // Track in-flight room creation so rapid double-clicks don't create duplicates.
-  let roomCreationInFlight = $state(false);
+  // ---------- Step: vps_discover -> idle (static mac_offer QR) ----------
+  // Canonical v0.9.35 flow: the Mac does NOT create the room.
+  // The VPS-side `focusa pairing wizard` creates the room and prints a QR
+  // for the phone to scan. The Mac idles showing a STATIC mac_offer QR
+  // (mac_name + nonce + pubkey + callback). The phone's PWA scans the
+  // Mac's mac_offer QR, POSTs it to /join, then operator taps Approve.
+  // The Mac polls /v1/connect/rooms?status=waiting_for_mac to discover
+  // rooms and POSTs its mac_offer to /join, then polls /status for token.
+  let idleStartInFlight = $state(false);
+  let macNonce = $state('');
+  let macCallback = $state('');
 
-  // via the daemon's /v1/connect/room/create endpoint (this is acceptable
-  // because the VPS daemon owns the room state, just like the wizard does
-  // in terminal mode). The phone's PWA is the bridge.
-  async function createRoomAndShowQr(): Promise<void> {
+  async function startIdleQr(): Promise<void> {
     if (!discoveredUrl) {
       error = 'No VPS URL discovered — go back to vps_discover step';
       return;
     }
-    if (roomCreationInFlight) return; // debounce rapid double-clicks
-    roomCreationInFlight = true;
+    if (idleStartInFlight) return;
+    idleStartInFlight = true;
     error = '';
     try {
       macName = macDeviceName();
+      macNonce = generateNonce();
+      // Try to bind a Tauri-side TCP bridge for low-latency completion delivery.
+      try {
+        const cb = await invoke<string | null>('focusa_start_bridge_callback', { nonce: macNonce });
+        if (cb) macCallback = cb;
+      } catch {
+        // Bridge is optional; the Mac polls /status as fallback.
+        macCallback = '';
+      }
+      // Build the canonical mac_offer payload. The phone PWA parses this from
+      // the QR and POSTs it to /join. mac_callback is optional per spec but
+      // included when the bridge is available.
       macOffer = JSON.stringify({
         protocol: 'focusa-connect-v1',
         role: 'mac_handoff_offer',
         mac_name: macName,
-        nonce: generateNonce(),
+        nonce: macNonce,
+        mac_callback: macCallback || undefined,
       });
-      // The Mac creates a room via the daemon (single round-trip).
-      const resp = await fetch(new URL('/v1/connect/room/create', discoveredUrl), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const body = await resp.json();
-      roomId = body.room_id || body.connect_id || '';
-      pairUrl = body.pair_url || body.pair_url_qr_payload || '';
-      if (!roomId || !pairUrl) throw new Error('server returned no room_id / pair_url');
       diagnosticsStore.record({
         area: 'first_run_wizard',
-        phase: 'room_created',
+        phase: 'idle_qr_ready',
         error_class: 'network',
-        message: `room created: ${roomId}`,
+        message: `static mac_offer QR ready for mac=${macName}`,
         url: discoveredUrl,
-        method: 'POST',
+        context: { mac_nonce: macNonce.slice(0, 8), has_callback: !!macCallback },
+      });
+      advanceTo('idle');
+      startRoomDiscovery();
+    } finally {
+      idleStartInFlight = false;
+    }
+  }
+
+  // Poll /v1/connect/rooms?status=waiting_for_mac every 1.5s.
+  // When a room appears, POST our mac_offer to /join, then transition to
+  // waiting_phone and start polling that room's /status.
+  async function pollRoomsList(): Promise<void> {
+    if (!discoveredUrl || !macOffer) return;
+    try {
+      const resp = await fetch(
+        new URL('/v1/connect/rooms?status=waiting_for_mac', discoveredUrl),
+        { headers: { accept: 'application/json' } },
+      );
+      if (!resp.ok) return;
+      const body = (await resp.json()) as { rooms?: Array<{ room_id: string }> };
+      const rooms = body.rooms || [];
+      if (rooms.length === 0) return;
+      const candidate = rooms[0];
+      // POST our mac_offer to /join on the first waiting room.
+      const joinResp = await fetch(
+        new URL(`/v1/connect/room/${encodeURIComponent(candidate.room_id)}/join`, discoveredUrl),
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(JSON.parse(macOffer)),
+        },
+      );
+      if (!joinResp.ok) return;
+      roomId = candidate.room_id;
+      diagnosticsStore.record({
+        area: 'first_run_wizard',
+        phase: 'mac_offer_posted',
+        error_class: 'network',
+        message: `mac_offer posted to room ${roomId}`,
+        url: discoveredUrl,
         context: { room_id: roomId.slice(0, 8) },
       });
-      advanceTo('show_qr');
-      roomCreationInFlight = false;
+      stopRoomDiscovery();
+      advanceTo('waiting_phone');
+      startPolling();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      error = `Could not create room: ${msg}`;
       diagnosticsStore.record({
         area: 'first_run_wizard',
-        phase: 'room_create',
-        error_class: 'http',
+        phase: 'room_discovery',
+        error_class: 'network',
         error: err,
-        message: msg,
+        message: err instanceof Error ? err.message : String(err),
         url: discoveredUrl,
-        method: 'POST',
       });
-      roomCreationInFlight = false;
+    }
+  }
+
+  function startRoomDiscovery() {
+    stopRoomDiscovery();
+    pollHandle = setInterval(pollRoomsList, 1500);
+    pollRoomsList();
+  }
+  function stopRoomDiscovery() {
+    if (pollHandle) {
+      clearInterval(pollHandle);
+      pollHandle = null;
     }
   }
 
@@ -353,22 +410,18 @@
   let bridgePollHandle: ReturnType<typeof setInterval> | null = null;
 
   async function startBridgeCallback(): Promise<void> {
+    if (!macNonce) return;
     try {
-      await invoke('focusa_start_bridge_callback', { nonce: macName });
-    } catch (err) {
-      diagnosticsStore.record({
-        area: 'first_run_wizard',
-        phase: 'start_bridge_callback',
-        error_class: 'pairing_bootstrap',
-        error: err,
-        message: err instanceof Error ? err.message : String(err),
-        context: { mac_name: macName },
-      });
-      return;
+      // The bridge listener is already started by startIdleQr (with the
+      // canonical nonce from macOffer). This second call would create a
+      // duplicate listener for the same nonce; instead, just poll the
+      // completion queue keyed on the nonce.
+    } catch (_) {
+      // unreachable
     }
     bridgePollHandle = setInterval(async () => {
       try {
-        const payload = await invoke<string | null>('focusa_take_bridge_completion', { nonce: macName });
+        const payload = await invoke<string | null>('focusa_take_bridge_completion', { nonce: macNonce });
         if (payload) {
           if (bridgePollHandle) clearInterval(bridgePollHandle);
           bridgePollHandle = null;
@@ -419,8 +472,10 @@
       localStorage.setItem('focusa_has_connected_successfully', 'true');
       advanceTo('connected');
     } catch (err) {
-      // Keychain unavailable — still mark connected so the operator can use
-      // the daemon via the token in the debug bundle.
+      // Keychain unavailable — surface as a DEGRADED state so the operator
+      // knows the daemon does NOT durably trust this Mac (token not in
+      // Keychain, only in process memory). They can re-pair or repair
+      // Keychain to reach the normal 'connected' state.
       diagnosticsStore.record({
         area: 'first_run_wizard',
         phase: 'save_pairing_token',
@@ -430,8 +485,9 @@
         context: { device_id: deviceId.slice(0, 8) },
       });
       localStorage.setItem('focusa_pairing_token_preview', String(token).slice(0, 6) + '…');
+      localStorage.setItem('focusa_keychain_failed', 'true');
       completionPayload = JSON.stringify({ protocol: 'focusa-connect-v1', server_url: server, device_id: deviceId, token });
-      advanceTo('connected');
+      advanceTo('connected_degraded');
     }
   }
 
@@ -499,8 +555,9 @@
       <p>Focusa connects this Mac — <strong>{macDeviceName()}</strong> — to a Focusa daemon running on your VPS.</p>
       <ol class="how-it-works">
         <li>Install Focusa on your VPS (<code>curl install.focusa.dev/focusa | bash</code>).</li>
-        <li>This app auto-discovers the VPS via Tailscale, Bonjour, or your saved URL.</li>
-        <li>Show a QR on screen, scan with your phone, tap Approve.</li>
+        <li>On the VPS, run <code>focusa pairing wizard</code> — it prints a QR for your phone.</li>
+        <li>This Mac auto-discovers the VPS via Tailscale, Bonjour, or your saved URL.</li>
+        <li>Scan the Mac's static QR with the phone's Focusa Connect page, then tap Approve.</li>
         <li>Token lands in macOS Keychain. You're paired.</li>
       </ol>
       <button class="primary" onclick={() => advanceTo('vps_install')}>Get started</button>
@@ -546,27 +603,30 @@
       <details bind:open={showAdvanced}>
         <summary>Advanced — paste URL manually</summary>
         <label for="paste-url">Focusa daemon URL</label>
-        <input id="paste-url" bind:value={pasteUrl} placeholder="https://focusa-vps.tail-net.ts.net" />
+        <input id="paste-url" bind:value={pasteUrl} placeholder="http://focusa-vps.tail-net.ts.net:8787" />
         <button class="utility" onclick={usePastedUrl}>Use this URL</button>
         <p class="dim">Save location: <code>~/.config/focusa/public-url</code> on macOS.</p>
       </details>
       <div class="row">
-        <button class="primary" disabled={!discoveredUrl} onclick={createRoomAndShowQr}>Continue</button>
+        <button class="primary" disabled={!discoveredUrl} onclick={startIdleQr}>Continue</button>
         <button class="utility" onclick={() => advanceTo('vps_install')}>Back</button>
       </div>
     </div>
-  {:else if step === 'show_qr'}
+  {:else if step === 'idle'}
     <div class="card">
-      <h3>Scan with your phone</h3>
-      <p>Open your iPhone or Android camera and point it at this QR.</p>
+      <h3>Scan this Mac with your phone</h3>
+      <p>On your VPS run <code>focusa pairing wizard</code>, then scan the
+      <strong>VPS terminal QR</strong> with your phone camera. After the Focusa
+      Connect page loads, point the phone at <strong>this QR</strong> below.</p>
       <div class="qr-card">
-        <QRCode payload={pairUrl} size={260} />
+        <QRCode payload={macOffer} size={260} />
       </div>
-      <p class="dim">URL: <code>{pairUrl}</code></p>
-      <p class="dim">Mac: <code>{macName}</code> · Room: <code>{roomId.slice(0, 8)}…</code></p>
-      <button class="primary" onclick={() => { advanceTo('waiting_phone'); startPolling(); }}>I've scanned — start polling</button>
-      <button class="utility" onclick={() => { stopPolling(); createRoomAndShowQr(); }}>Re-create room</button>
-      <button class="utility" onclick={() => advanceTo('vps_discover')}>Back</button>
+      <p class="dim">Mac: <code>{macName}</code> · Nonce: <code>{macNonce.slice(0, 8)}…</code></p>
+      {#if macCallback}
+        <p class="dim">Bridge: <code>{macCallback}</code></p>
+      {/if}
+      <p class="dim">Mac is watching for new pairing rooms every 1.5s.</p>
+      <button class="utility" onclick={() => { stopRoomDiscovery(); advanceTo('vps_discover'); }}>Cancel</button>
     </div>
   {:else if step === 'waiting_phone'}
     <div class="card">
@@ -588,6 +648,34 @@
       <button class="primary" onclick={copyDebugBundle}>
         {copiedDebugBundle ? 'Copied bundle' : 'Copy debug bundle'}
       </button>
+    </div>
+  {:else if step === 'connected_degraded'}
+    <div class="card" style="border-color:#a0651f;background:#2a1f10;">
+      <h3 style="color:#f0a050;">Paired (degraded)</h3>
+      <p>macOS Keychain refused to save the token. The Focusa daemon has not
+      been told this Mac is trusted beyond this process.</p>
+      <p>Repair options:</p>
+      <ol class="how-it-works">
+        <li>Open <strong>Keychain Access</strong> → unlock the login keychain.</li>
+        <li>Click <strong>Restart</strong> below to retry pairing.</li>
+        <li>If this keeps happening, your keychain may be corrupted; reset with <code>security delete-generic-password -s focusa</code>.</li>
+      </ol>
+      <p class="dim">token preview: <code>{localStorage.getItem('focusa_pairing_token_preview') || '(unset)'}</code></p>
+      <details>
+        <summary>Connection details</summary>
+        <p>device_id: <code>{(localStorage.getItem('focusa_device_id') || '(unset)').slice(0, 8)}…</code></p>
+        <p>server: <code>{discoveredUrl}</code></p>
+      </details>
+      <div class="row">
+        <button class="primary" onclick={() => {
+          localStorage.removeItem('focusa_keychain_failed');
+          localStorage.removeItem('focusa_has_connected_successfully');
+          advanceTo('welcome');
+        }}>Restart pairing</button>
+        <button class="utility" onclick={copyDebugBundle}>
+          {copiedDebugBundle ? 'Copied bundle' : 'Copy debug bundle'}
+        </button>
+      </div>
     </div>
   {/if}
 

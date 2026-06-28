@@ -137,8 +137,34 @@ pub async fn run(args: EmailLinkArgs) -> Result<()> {
         return Ok(());
     }
 
-    // Mode 1: SMTP delivery. We use a minimal SMTP client implementation
-    // so we don't pull in the lettre crate (which has many transitive deps).
+    // V2: SMTP delivery is REFUSED unless real TLS is configured. The
+    // previous implementation sent STARTTLS then proceeded in plaintext,
+    // which leaks the auth credentials and message body. Operators who
+    // really need SMTP must configure either:
+    //   - --smtp-port 465 (implicit TLS / SMTPS)  [implemented below]
+    //   - sendmail/msmtp adapter (not in this binary)
+    // For everything else we recommend --mailto (zero-credential, works
+    // in any email client) or stdout mode.
+    if args.smtp_user.is_some() || args.smtp_pass.is_some() {
+        if args.smtp_port != 465 {
+            anyhow::bail!(
+                "SMTP AUTH requires SMTPS (port 465). \
+                 Plaintext SMTP and STARTTLS-without-real-TLS are disabled. \
+                 Use --mailto, omit --to for stdout, or set --smtp-port 465 \
+                 and configure your SMTP server for implicit TLS."
+            );
+        }
+    }
+    if args.smtp_port == 465 {
+        anyhow::bail!(
+            "SMTP port 465 (implicit TLS / SMTPS) requires a TLS-capable SMTP client. \
+             This binary does not bundle a TLS client. Recommended alternatives:\n  \
+             1. Use --mailto (zero-credential, opens in your default mail client).\n  \
+             2. Use a local SMTP relay like msmtp or sendmail that does TLS for you:\n     \
+                msmtp --host=YOUR_SMTP_HOST --port=465 --tls=on < message_file\n  \
+             3. Omit --to to print the raw pairing link to stdout."
+        );
+    }
     let smtp_host = args.smtp_host.as_deref().context(
         "SMTP delivery requested but SMTP_HOST not set. \
          Use --mailto for mailto: link, or omit --to to print the raw URL.",

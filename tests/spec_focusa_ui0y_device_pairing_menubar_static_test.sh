@@ -138,20 +138,35 @@ else
   echo "ⓘ  daemon not running locally; skipping live CORS check"
 fi
 
-# 18. FirstRunWizard renders a URL-shaped QR (WhatsApp-like), not a JSON blob.
+# 18. FirstRunWizard renders the CANONICAL V2 mac_offer QR (not pairUrl).
+# Canonical V2: VPS creates the room and prints a QR for the phone to scan.
+# Mac idles showing a STATIC mac_offer QR (mac_name + nonce + pubkey + callback).
+# The Mac does NOT display the VPS pair_url.
 FIRST_RUN="$ROOT_DIR/apps/menubar/src/lib/components/FirstRunWizard.svelte"
 [ -f "$FIRST_RUN" ] || fail "FirstRunWizard.svelte missing"
 rg -n 'QRCode payload=' "$FIRST_RUN" >/dev/null || fail "FirstRunWizard.svelte missing QRCode usage"
-if ! rg -q 'payload=\{pairUrl' "$FIRST_RUN"; then
-  fail "FirstRunWizard.svelte QR payload is not the URL-shaped pairUrl"
+if ! rg -q 'payload=\{macOffer' "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte QR payload must be macOffer (canonical V2)"
 fi
-# The QR payload must be the URL (pairUrl), not a JSON blob. We allow
-# JSON.stringify elsewhere in the file (macOffer logging, completion
-# payload), so we narrow the check to the actual QRCode usage line.
-if rg -q "QRCode payload=\{[^p]" "$FIRST_RUN"; then
-  fail "FirstRunWizard.svelte QR payload is not the URL-shaped pairUrl"
+if rg -q 'payload=\{pairUrl' "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte still renders pairUrl as QR (legacy V1, forbidden in V2)"
 fi
-pass "FirstRunWizard.svelte QR is URL-shaped (WhatsApp-like), not a JSON blob"
+if ! rg -q 'role.*mac_handoff_offer' "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte macOffer missing role=mac_handoff_offer"
+fi
+if rg -q '/v1/connect/room/create' "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte still calls /v1/connect/room/create (Mac must not create rooms in V2)"
+fi
+if ! rg -q '/v1/connect/rooms' "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte missing /v1/connect/rooms polling (canonical V2)"
+fi
+# The QR payload must be the JSON-shaped macOffer (V2 protocol), not a URL.
+# We allow JSON.stringify elsewhere in the file (macOffer construction,
+# completion payload), so we narrow the check to the actual QRCode usage line.
+if rg -q 'QRCode payload=\{pairUrl' "$FIRST_RUN"; then
+  fail "FirstRunWizard.svelte QR payload is pairUrl (legacy V1, forbidden in V2)"
+fi
+pass "FirstRunWizard.svelte QR is canonical V2 mac_offer (JSON), not pairUrl"
 
 # 19. FirstRunWizard polls the URL-QR room status endpoint
 if ! rg -q '/v1/connect/room/firstrun|/v1/connect/room/.*status|pollRoomStatus' "$FIRST_RUN"; then
