@@ -66,30 +66,44 @@ The wizard output looks like:
 
 ## 4. Mac-side: install + first launch
 
+The menubar `.app` is published with every tag. Download the Intel build (the operator has an Intel Mac):
+
 ```bash
-# 4.1 Build Focusa.app from this branch (no v0.9.35-dev .app released yet — G02)
-cd /path/to/focusa
-git checkout v0.9.35-dev
-cd apps/menubar
-npm install
-npm run tauri build    # builds .app + .dmg
+# 4.1 Download (replace URL with the latest v* tag from the GitHub Releases page)
+# Latest:  https://github.com/Startempire-Wire/focusa/releases/download/v0.9.35-dev/Focusa_x64.app.tar.gz
+# DMG alt: https://github.com/Startempire-Wire/focusa/releases/download/v0.9.35-dev/Focusa_0.9.35-dev_x64.dmg
+curl -L -o /tmp/Focusa_x64.app.tar.gz \
+  https://github.com/Startempire-Wire/focusa/releases/download/v0.9.35-dev/Focusa_x64.app.tar.gz
 
-# 4.2 Locate the .app
-ls src-tauri/target/release/bundle/macos/
-# Focusa.app
+# 4.2 Extract (it contains a top-level Focusa.app/)
+mkdir -p /tmp/focusa-app
+tar xzf /tmp/Focusa_x64.app.tar.gz -C /tmp/focusa-app
 
-# 4.3 Remove the Gatekeeper quarantine (since unsigned)
-xattr -dr com.apple.quarantine /Applications/Focusa.app
+# 4.3 Remove the Gatekeeper quarantine attribute (release is ad-hoc-signed, not notarized)
+xattr -dr com.apple.quarantine /tmp/focusa-app/Focusa.app
 
-# 4.4 Move to /Applications
-mv src-tauri/target/release/bundle/macos/Focusa.app /Applications/
+# 4.4 Move to /Applications (the canonical location so Launch Services registers it)
+sudo mv /tmp/focusa-app/Focusa.app /Applications/
 
-# 4.5 First launch (right-click → Open since unsigned)
+# 4.5 First launch
 open /Applications/Focusa.app
-# macOS shows: "Focusa.app is from an unidentified developer" → click "Open"
+# macOS Gatekeeper shows: "Focusa.app is from an unidentified developer. Are you sure you want to open it?" → click "Open"
+# (One-time per machine; after first launch, double-click works normally.)
 ```
 
+> **Alternative install path** — instead of moving to `/Applications`, you can also drag the .app from Finder directly. Either path triggers Gatekeeper the same way.
+
 The menubar icon appears in the macOS menu bar (top right). Click it.
+
+**Troubleshooting first launch:**
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| "Focusa.app cannot be opened because it is from an unidentified developer" | Gatekeeper blocking unsigned/ad-hoc binary | Right-click the .app → Open → Open (the second Open button bypasses Gatekeeper for that one launch) |
+| Double-click does nothing | Quarantine attribute | `xattr -dr com.apple.quarantine /Applications/Focusa.app` |
+| Icon appears in Dock but not menubar | App is in foreground window state | `osascript -e 'tell application "Focusa" to activate'` then check menubar top-right |
+| Menubar icon missing entirely | LSUIElement not set; check `info.plist` `LSUIElement: true` | The current build sets `visible: false` and `decorations: false` to force menubar-only. If still missing, run `pkill focusa-menubar && open /Applications/Focusa.app` |
+| Crashes immediately on launch | Tauri runtime missing | `xcrun --find otool && otool -L /Applications/Focusa.app/Contents/MacOS/focusa-menubar | head`; reinstall macOS CLT: `xcode-select --install` |
 
 ## 5. Mac-side: the 6-step wizard
 
