@@ -184,6 +184,7 @@ jobs:
           done
           echo "codesign complete (mode: ad-hoc if no identity, else ${APPLE_SIGNING_IDENTITY%%:*})"
 
+      - name: Install frontend deps
         working-directory: apps/menubar
         run: bun install
 
