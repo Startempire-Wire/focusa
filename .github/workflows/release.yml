@@ -138,6 +138,42 @@ jobs:
       - name: Stamp menubar version from release tag
         run: python3 scripts/stamp-menubar-version.py "${{ github.ref_name }}"
 
+      - name: Install frontend deps
+        working-directory: apps/menubar
+        run: bun install
+
+      - name: Generate macOS icons
+        if: contains(matrix.platform, 'macos')
+        working-directory: apps/menubar/src-tauri
+        run: |
+          # Generate .icns from PNG source using iconutil (macOS only)
+          mkdir -p /tmp/focusa.iconset
+          sips -z 16 16     icons/icon.png --out /tmp/focusa.iconset/icon_16x16.png
+          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_16x16@2x.png
+          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_32x32.png
+          sips -z 64 64     icons/icon.png --out /tmp/focusa.iconset/icon_32x32@2x.png
+          sips -z 128 128   icons/icon.png --out /tmp/focusa.iconset/icon_128x128.png
+          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_128x128@2x.png
+          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_256x256.png
+          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_256x256@2x.png
+          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_512x512.png
+          iconutil -c icns /tmp/focusa.iconset -o icons/icon.icns
+          ls -la icons/
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/menubar
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Focusa ${{ github.ref_name }}'
+          releaseBody: ''
+          releaseDraft: false
+          prerelease: false
+          tauriScript: bunx tauri
+          args: ${{ matrix.args }}
+          uploadArtifact: true
+
       - name: Codesign + notarize + staple (.app + .dmg)
         if: contains(matrix.platform, 'macos')
         env:
@@ -184,41 +220,7 @@ jobs:
           done
           echo "codesign complete (mode: ad-hoc if no identity, else ${APPLE_SIGNING_IDENTITY%%:*})"
 
-      - name: Install frontend deps
-        working-directory: apps/menubar
-        run: bun install
 
-      - name: Generate macOS icons
-        if: contains(matrix.platform, 'macos')
-        working-directory: apps/menubar/src-tauri
-        run: |
-          # Generate .icns from PNG source using iconutil (macOS only)
-          mkdir -p /tmp/focusa.iconset
-          sips -z 16 16     icons/icon.png --out /tmp/focusa.iconset/icon_16x16.png
-          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_16x16@2x.png
-          sips -z 32 32     icons/icon.png --out /tmp/focusa.iconset/icon_32x32.png
-          sips -z 64 64     icons/icon.png --out /tmp/focusa.iconset/icon_32x32@2x.png
-          sips -z 128 128   icons/icon.png --out /tmp/focusa.iconset/icon_128x128.png
-          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_128x128@2x.png
-          sips -z 256 256   icons/icon.png --out /tmp/focusa.iconset/icon_256x256.png
-          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_256x256@2x.png
-          sips -z 512 512   icons/icon.png --out /tmp/focusa.iconset/icon_512x512.png
-          iconutil -c icns /tmp/focusa.iconset -o icons/icon.icns
-          ls -la icons/
-
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          projectPath: apps/menubar
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Focusa ${{ github.ref_name }}'
-          releaseBody: ''
-          releaseDraft: false
-          prerelease: false
-          tauriScript: bunx tauri
-          args: ${{ matrix.args }}
-          uploadArtifact: true
 
   # Publish Rust binaries for tester platforms.
   rust-release:
