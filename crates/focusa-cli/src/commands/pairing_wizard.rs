@@ -142,7 +142,11 @@ fn resolve_public_url(no_tailnet: bool) -> (String, String) {
     }
     if !no_tailnet {
         if let Some((name, ip)) = detect_tailscale_hostname() {
-            return (format!("https://{name}"), format!("tailscale MagicDNS {name} → {ip}"));
+            // V2: Tailscale MagicDNS discovery returns the daemon API URL
+            // (HTTP on port 8787), NOT an HTTPS public origin. The daemon
+            // serves the API on its own port; HTTPS would require a separate
+            // TLS-terminating proxy that isn't part of the self-host default.
+            return (format!("http://{name}:8787"), format!("tailscale MagicDNS {name} → {ip} (daemon API on 8787)"));
         }
     }
     (daemon_url(), "daemon URL fallback".to_string())

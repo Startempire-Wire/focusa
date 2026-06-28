@@ -469,6 +469,14 @@
       } catch {
         /* ignore */
       }
+      try {
+        // V2: mirror the device token to localStorage so api.requestJson()
+        // can attach `Authorization: Bearer <token>` to subsequent calls.
+        // The Keychain copy is the durable store; this is a hot-path cache.
+        localStorage.setItem('focusa_device_token', token);
+      } catch {
+        /* ignore */
+      }
       localStorage.setItem('focusa_has_connected_successfully', 'true');
       advanceTo('connected');
     } catch (err) {

@@ -145,10 +145,24 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
   const { timeoutMs = 3000, method = 'GET', body, headers = {} } = options;
   const base = getApiUrl();
   const url = `${base}${path}`;
+  // V2: inject the device pairing token as Bearer if present in localStorage.
+  // (Keychain-backed tokens are loaded on app start and mirrored here so
+  // every API call is authenticated without per-call Tauri round-trips.)
+  const mergedHeaders = { ...headers };
+  if (!mergedHeaders['Authorization'] && !mergedHeaders['authorization']) {
+    try {
+      const tok = localStorage.getItem('focusa_device_token');
+      if (tok && tok.trim().length > 0) {
+        mergedHeaders['Authorization'] = `Bearer ${tok.trim()}`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   try {
     const resp = await fetch(url, {
       method,
-      headers: body === undefined ? headers : { 'Content-Type': 'application/json', ...headers },
+      headers: body === undefined ? mergedHeaders : { 'Content-Type': 'application/json', ...mergedHeaders },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });

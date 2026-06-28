@@ -472,27 +472,53 @@ async fn connect_room_start(
 }
 
 async fn connect_room_status(
+    State(state): State<Arc<AppState>>,
     Path(room_id): Path<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let pairing_state = shared_state();
     let s = pairing_state.read().await;
-    let Some(session) = s.connect_sessions.get(room_id.trim()) else {
-        return Err(rejection(
+    if let Some(session) = s.connect_sessions.get(room_id.trim()) {
+        let expired = session.expires_at < Utc::now();
+        let status = if expired && session.token.is_none() {
+            "expired".to_string()
+        } else {
+            session.status.clone()
+        };
+        return Ok(Json(connect_status_payload(session, status)));
+    }
+    // V2: in-memory miss; fall back to the SQLite ledger. This is the
+    // restart-durability path: if the daemon restarted mid-pairing, the
+    // session may only exist in the ledger, not the in-memory map.
+    drop(s);
+    match pairing_store::get_session(&state, room_id.trim()) {
+        Ok(Some(p)) => {
+            // Reconstruct a minimal status payload from the persisted row.
+            let status = p.status.clone();
+            Ok(Json(json!({
+                "status": status,
+                "room_id": room_id,
+                "connect_id": room_id,
+                "server_url": p.server_url,
+                "mac_callback": p.mac_callback,
+                "expires_at": p.expires_at,
+                "expired": status == "expired",
+                "diagnostics": {
+                    "surface": "phone_bridge_flow",
+                    "event": "room_rehydrated_from_ledger",
+                    "room_state": status.clone(),
+                    "next_step_hint": "Room was rehydrated from SQLite after daemon restart.",
+                },
+            })))
+        }
+        _ => Err(rejection(
             StatusCode::NOT_FOUND,
             json!({
                 "status": "not_found",
                 "failure_class": "connect_room_not_found",
                 "room_id": room_id,
             }),
-        ));
-    };
-    let expired = session.expires_at < Utc::now();
-    let status = if expired && session.token.is_none() {
-        "expired".to_string()
-    } else {
-        session.status.clone()
-    };
-    Ok(Json(connect_status_payload(session, status)))
+        )),
+    }
 }
 
 // GET /v1/connect/rooms[?status=waiting_for_mac]
@@ -839,6 +865,9 @@ async fn connect_approve(
                     "complete_connect_session failed (continuing with in-memory state)"
                 );
             }
+            // Persist the token too so a /status poll after restart can
+            // deliver it without re-approval.
+            let _ = pairing_store::complete_session(&state, &connect_id);
             updated
         }
     };
@@ -904,6 +933,7 @@ async fn connect_approve(
 }
 
 async fn pair_start(
+    State(state): State<Arc<AppState>>,
     Json(body): Json<PairStartRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let device_name = bounded_label(body.device_name, "operator-device", 128);
@@ -948,6 +978,16 @@ async fn pair_start(
         // If the same code is already pending, replace it (idempotent for
         // re-tries from a flaky network).
         s.pending.insert(code.clone(), pair.clone());
+    }
+    // V2: Persist the pair code to the SQLite ledger so a daemon restart
+    // does not lose pending pair codes. In-memory is the hot path; the
+    // ledger is the source of truth on restart.
+    if let Err(e) = pairing_store::put_code(&state, &code, &device_id, Some(&device_name), Some(&platform), &scopes, Some(&daemon_base_url), &now.to_rfc3339(), &expires.to_rfc3339()) {
+        tracing::warn!(
+            code = %code,
+            error = %e,
+            "pair_start: persistence put_code failed (continuing with in-memory state)"
+        );
     }
 
     Ok(Json(json!({
@@ -1042,6 +1082,8 @@ async fn pair_complete(
         if let Some(p) = p {
             if p.expires_at < now {
                 s.pending.remove(&code);
+                // V2: also drop from the SQLite ledger on expiry.
+                let _ = pairing_store::consume_code(&state, &code);
                 return Err(rejection(
                     StatusCode::GONE,
                     json!({
@@ -1092,6 +1134,8 @@ async fn pair_complete(
             ));
         }
     };
+    // V2: drop the consumed code from the SQLite ledger.
+    let _ = pairing_store::consume_code(&state, &code);
 
     // The token was already inserted into the in-memory pairing_state.tokens
     // above; look it up by device_id for the response.
@@ -2407,11 +2451,14 @@ async fn connect_room_scan_page(
   </div>
   <script src="/static/jsqr/jsQR.js"></script>
   <script>
-    // Fallback to CDN only if local copy is missing (e.g. Tailscale-only operators)
+    // V2: no CDN fallback. The PWA is fully VPS-served and must not pull
+    // third-party code in a security-sensitive pairing flow. If the local
+    // jsQR is missing, we surface a clear error instead.
     if (!window.jsQR) {{
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-      document.head.appendChild(s);
+      document.addEventListener('DOMContentLoaded', function () {{
+        var s = document.getElementById('status');
+        if (s) s.textContent = 'PWA misconfigured: jsQR is not served by the VPS daemon. Contact your Focusa operator.';
+      }});
     }}
     const ROOM_ID = {rid_json};
     const video = document.getElementById('video');
