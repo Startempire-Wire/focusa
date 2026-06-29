@@ -43,7 +43,13 @@ assert_has "$FIRST_RUN" 'focusa_start_bridge_callback' 'Mac frontend calls start
 assert_has "$FIRST_RUN" 'focusa_take_bridge_completion' 'Mac frontend polls take_bridge_completion'
 assert_has "$FIRST_RUN" 'bridgePollHandle' 'Mac frontend uses callback polling interval'
 assert_has "$FIRST_RUN" 'macOffer' 'Mac frontend includes mac_callback in QR offer'
-assert_has "$PWA" 'fetch.*mac_callback' 'PWA POSTs to mac_callback URL on approval'
+# V2 P0.3: The PWA no longer POSTs to mac_callback itself; the server's
+# /v1/connect/room/approve handler dispatches the mac_completion_payload
+# to mac_callback server-side via dispatch_mac_callback(). The phone is
+# a renderer and never builds or copies a token-bearing payload.
+assert_has "$PWA" 'dispatch_mac_callback' 'Server-side mac_callback dispatch helper exists'
+assert_has "$PWA" 'mac_completion_payload' 'Server payload schema is the canonical mac_completion_payload'
+assert_not_has "$PWA" 'payload.token' 'PWA does NOT include payload.token in any code path'
 assert_has "$PWA" 'lastOffer.mac_callback' 'PWA reads mac_callback from lastOffer'
 assert_has "$TRANSPORT" 'private_or_tailscale' 'Transport resolver covers private/Tailscale routes'
 assert_has "$TRANSPORT" 'Tailscale' 'Transport resolver mentions Tailscale'
